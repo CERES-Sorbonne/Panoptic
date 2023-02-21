@@ -1,0 +1,8 @@
+structure de données back:
+- on envoie la liste des images et juste ça /images -> renvoie une liste de sha1
+- pour afficher une image on va fetch les metadonnées associées -> renvoie {url, name, tags, etc.}
+
+
+questions:
+- que penses tu de ce format de données ? 
+- que penses tu de mon orga du store ? vaut il mieux faire descendre tout de composant à composant comme j'ai fait pour 
