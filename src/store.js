@@ -9,18 +9,20 @@ export const globalStore = reactive({
   },
   tags: computed(() => {
     let tags = {}
-    for(let image of this.images){
+    for(let image of globalStore.images){
       for(let tag of image.tags){
-        tags[tag] = tags[tag] ? 1 : tags[tag]++
+        tags[tag] = !tags[tag] ? 1 : tags[tag]++
       }
     }
     return tags
   }),
-  addTag(image, tag){
-    this.images = [...apiAddTag(image, tag), ...this.images]
+  async addTag(image, tag){
+    console.log(image)
+    // on remplace l'image modifiée à l'index par la nouvelle 
+    this.images[this.images.findIndex(i => i.name === image.name)] = await apiAddTag(image, tag)
   },
   removeTag(image, tag){
-    this.images = [...apiRemoveTag(image, tag), ...this.images]
+    this.images = [apiRemoveTag(image, tag), ...this.images]
   }
 //   filters: {},
 //   order: {},

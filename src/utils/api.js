@@ -14,10 +14,11 @@ export const apiGetImages = async () => {
 }
 
 export const apiAddTag = async (image, tag) => {
-    // à compléter plus tard pour vraiment appeler l'api
+    // à compléter plus tard pour vraiment appeler l'api et en gérant les images comme un dico et pas comme un tableau pcke c'est chiant
     for(let simage of globalStore.images){
-        if(simage.name === image){
-            return {tags: [tag, ...simage.tags], ...simage}
+        if(simage.name === image.name){
+            const newImage = {...simage, tags: [...simage.tags, tag]}
+            return newImage
         }
     }
 }
