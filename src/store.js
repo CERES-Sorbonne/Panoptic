@@ -28,8 +28,11 @@ export const globalStore = reactive({
   },
   removeTag(image, tag){
     this.images = [apiRemoveTag(image, tag), ...this.images]
+  },
+  filters: [],
+  addFilter(filter){
+    this.filters.push(filter)
   }
-//   filters: {},
 //   order: {},
 //   group: {}
 })

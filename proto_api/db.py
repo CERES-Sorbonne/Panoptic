@@ -1,7 +1,7 @@
 import sqlite3
 
 # Connexion à la base de données SQLite
-conn = sqlite3.connect('database.db')
+conn = sqlite3.connect(':memory:')
 
 
 # Fonction utilitaire pour exécuter une requête SQL et commettre les modifications

@@ -1,4 +1,3 @@
-import sqlite3
 import uuid
 from typing import Optional
 
