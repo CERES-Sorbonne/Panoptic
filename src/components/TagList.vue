@@ -5,7 +5,7 @@
     </h4>
     <div class="tag-input" ref="tagInputContainer">
       <!-- <input type="text" v-model="tagInput" @keydown.enter="addTag" placeholder="Add a tag" @focusout="showTagList = false" @focus="showTagList = true" style="width: 100%"> -->
-      <input type="text" v-model="tagInput" @keydown.enter="globalStore.addTag(image, tagInput)" placeholder="Add a tag"  @focus="showTagList = true" style="width: 100%">
+      <input type="text" v-model="tagInput" @keydown.enter="addTag" placeholder="Add a tag"  @focus="showTagList = true" style="width: 100%">
       <ul v-if="showTagList && filteredTagList.length > 0" class="tag-proposals" ref="tagProposals">
         <li v-for="tag in filteredTagList">
           <tag-badge :tag="tag" @delete-tag="deleteTag(tag)" @click="globalStore.addTag(image, tag)"/>
@@ -20,13 +20,15 @@
 
 <script setup>
 import TagBadge from './TagBadge.vue';
-import {ref, watch, computed, onMounted, onUnmounted} from 'vue'
+
+import {ref, computed, onMounted, onUnmounted} from 'vue'
 
 import {globalStore} from '../store'
 
-const generateUniqueId = () => {
-  return Math.random().toString(36).substr(2, 9);
-};
+const addTag = async () => {
+  await globalStore.addTag(props.image, tagInput.value)
+  tagInput.value = ""
+}
 
 const props = defineProps({
   image: Object
@@ -36,8 +38,7 @@ const tagInput = ref('');
 const showTagList = ref(false);
 
 const filteredTagList = computed(() => {
-  console.log(globalStore.tags)
-  let filtered = Object.keys(globalStore.tags).filter(tag => tag.toLowerCase().includes(tagInput.value.toLowerCase()));
+  let filtered = Object.keys(globalStore.tags).filter(tag => !props.image.tags.includes(tag.toLowerCase()) && tag.toLowerCase().includes(tagInput.value.toLowerCase()));
   return filtered.length === 0 && tagInput.value.trim() !== "" ? [tagInput.value] : filtered
 })
 

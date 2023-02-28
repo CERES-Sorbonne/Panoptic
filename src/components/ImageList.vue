@@ -1,6 +1,6 @@
 <script setup>
   import {globalStore} from '../store'
-  import {ref, watch, reactive} from 'vue'
+  import {ref, watch, reactive, onMounted} from 'vue'
 
   import TagList from './TagList.vue'
   import TagBadge from './TagBadge.vue';
@@ -16,14 +16,19 @@
   const closeSelectedImage = () => selectedImage.value = null;
 
   // est ce qu'on peut éviter d'utiliser ce watch ? probablement mon archi quiest pourrie (archi pourrie même hehehehehe)
-  watch(globalStore.images, (newImages) => {
-    for(let image of newImages){
-      if(image.name === selectedImage.value.name){
-        selectImage(image)
+  watch(
+    globalStore,
+    (newStore) => {
+      if(!selectedImage.value){
         return
       }
-    }
-  })
+      for(let image of newStore.images.slice(0,10)){
+        if(image.name === selectedImage.value.name){
+          selectImage(image)
+          return
+        }
+      }
+    })
 </script>
 
 <template>
@@ -34,9 +39,9 @@
     </div>
   </div>
   <div class="image-list">
-    <div v-for="image in globalStore.images.slice(0,50)">
+    <div class="image-container" v-for="image in globalStore.images.slice(0,50)">
       <img class="image" :src="image.url" :key="image.name" @click="selectImage(image)"/>
-      <div>
+      <div class="metadata-container">
         <tag-badge v-for="tag in image.tags" :tag="tag"/>
       </div>
     </div>
@@ -47,17 +52,36 @@
 .image-list{
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  /* gap: 0.5rem; */
   margin-top: 1rem;
 }
 .image{
-  max-height: 200px;
+  /* max-height: 200px; */
+  height: 200px;
+  object-fit: cover;
+  max-width: 100%;
+  min-width: 100%;
+  vertical-align: bottom;
+  /* margin: 0.1rem; */
 }
-
+.image-container{
+  flex-grow: 1;
+  margin: 2px;
+  /* background-color: violet; */
+  height: 250px;
+}
 .image:hover {
-  cursor: pointer
+  cursor: pointer;
 }
 
+.metadata-container{
+  background-color: rgb(255, 255, 255);
+  height: 50px;
+  border-bottom-right-radius: 15px;
+  border-bottom-left-radius: 15px;
+  border-color: rgb(207, 0, 0);
+  border: solid 1px;
+}
 .selected-image-container {
   z-index: 2;
   position: absolute;
