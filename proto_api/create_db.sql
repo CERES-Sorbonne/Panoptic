@@ -6,6 +6,10 @@ CREATE TABLE datamodel (
 
 CREATE TABLE images (
     sha1 TEXT PRIMARY KEY,
+    height: INTEGER,
+    width: INTEGER,
+    name: TEXT,
+    extension: TEXT,
     paths JSON
 );
 

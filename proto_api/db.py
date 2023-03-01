@@ -1,5 +1,8 @@
+import hashlib
 import json
+import os
 import sqlite3
+from PIL import Image as pImage
 
 from models import DataModel, DataType, JSON, Image
 
@@ -49,8 +52,8 @@ async def get_images():
         data_id, name, data_type, value, sha1, paths = row
         if sha1 not in result:
             result[sha1] = {'data': {}, 'paths': json.loads(paths)}
-        result[sha1]['data'][name] = {'id': data_id, 'name': name, 'type': data_type,
-                                      'value': json.loads(value)}
+        result[sha1]['data'][data_id] = {'id': data_id, 'name': name, 'type': data_type,
+                                         'value': json.loads(value)}
     return result
 
 
@@ -63,7 +66,13 @@ async def add_data_to_image(data_id: int, sha1: str, value: JSON):
     return value
 
 
-async def add_image(sha1_hash, file_path):
+async def add_image(file_path):
+    image = pImage.open(file_path)
+    name = file_path.split(os.sep)[-1]
+    extension = name.split('.')[-1]
+    width, height = image.size
+    sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
+
     # Vérification si sha1_hash existe déjà dans la table images
     query = """
         SELECT paths
@@ -89,7 +98,7 @@ async def add_image(sha1_hash, file_path):
     # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
     else:
         query = """
-            INSERT INTO images (sha1, paths)
-            VALUES (?, ?)
+            INSERT INTO images (sha1, height, width, name, extension, paths)
+            VALUES (?, ?, ?, ?, ?, ?)
         """
-        await execute_query(query, (sha1_hash, json.dumps([file_path])))
+        await execute_query(query, (sha1_hash, height, width, name, extension, json.dumps([file_path])))

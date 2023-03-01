@@ -1,13 +1,14 @@
-from typing import Optional
+import os
 
 from fastapi import FastAPI
-import hashlib
+from fastapi.staticfiles import StaticFiles
 
 from db import execute_query, create_data_model, add_data_to_image, add_image, get_images
-from models import DataModel, DataValue, DataType, Images
+from models import DataModel, Images
 from payloads import ImagePayload, DataPayload, AddImageDataPayload
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory=os.getenv('PANOPTIC_ROOT', os.path.expanduser('~'))), name="static")
 
 
 # Route pour créer une définition metadata et l'insérer dans la table des metadata
@@ -17,7 +18,7 @@ async def create_data_route(payload: DataPayload):
     return DataModel(id=data_id, name=payload.name, type=payload.type.value)
 
 
-# Route pour ajouter une metadata à une image dans la table de jointure entre image et metadata
+# Route pour ajouter une data à une image dans la table de jointure entre image et data
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_data")
 async def add_image_data(payload: AddImageDataPayload):
@@ -25,13 +26,13 @@ async def add_image_data(payload: AddImageDataPayload):
     return payload
 
 
-# # Route pour supprimer une metadata d'une image dans la table de jointure entre image et metadata
-# @app.delete("/image_metadata")
-# async def delete_image_metadata(metadata_id: str, image_id: str):
-#     execute_query('DELETE FROM image_metadata WHERE metadata_id = ? AND image_id = ?', (metadata_id, image_id))
-#     return {"metadata_id": metadata_id, "image_id": image_id}
-#
-#
+# Route pour supprimer une data d'une image dans la table de jointure entre image et data
+@app.delete("/data")
+async def delete_data(data_id: str, sha1: str):
+    await execute_query('DELETE FROM images_data WHERE data_id = ? AND sha1 = ?', (data_id, sha1))
+    return {"metadata_id": data_id, "image_id": sha1}
+
+
 # # Route pour modifier une metadata d'une image dans la table de jointure entre image et metadata
 # @app.put("/image_metadata")
 # async def update_image_metadata(metadata_id: str, metadata_value: str, image_id: str):
@@ -42,11 +43,7 @@ async def add_image_data(payload: AddImageDataPayload):
 # Route pour ajouter une image
 @app.post("/images")
 async def add_image_route(image: ImagePayload):
-    with open(image.file_path, "rb") as image_file:
-        # Calcul du sha1 de l'image
-        sha1_hash = hashlib.sha1(image_file.read()).hexdigest()
-
-        await add_image(sha1_hash, image.file_path)
+    await add_image(image.file_path)
 
     return {"message": "Image ajoutée avec succès"}
 
