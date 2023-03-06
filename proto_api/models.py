@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypeAlias, Optional, Any
+from typing import TypeAlias, Optional, Any, Union
 
 from pydantic import BaseModel
 
@@ -23,7 +23,7 @@ class DataModel(BaseModel):
     type: str
 
 
-JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 
 
 class DataValue(DataModel):
@@ -32,7 +32,7 @@ class DataValue(DataModel):
 
 class Image(BaseModel):
     sha1: str
-    url: Optional[str]
+    url: str
     data: dict[int, DataValue]
 
 
