@@ -24,17 +24,17 @@ CREATE TABLE images_data (
 );
 
 INSERT INTO datamodel (name, type) VALUES ("categorie", "tag");
-INSERT INTO datamodel (name, type) VALUES ("thmes", "multi_tags");
+INSERT INTO datamodel (name, type) VALUES ("themes", "multi_tags");
 INSERT INTO datamodel (name, type) VALUES ("description", "string");
 
 INSERT INTO images (sha1, height, width, name, extension, paths, url)
 VALUES ('8157a2d13cee861c7a1bc3a01f4bfb8e300bc994', 1200, 800, '8157a2d13cee861c7a1bc3a01f4bfb8e300bc994', 'jpg', '["D:\\Alie\\Documents\\CollectesTwitter\\remigration\\media\\8157a2d13cee861c7a1bc3a01f4bfb8e300bc994.jpg"]', '/images/D:/Alie/Documents/CollectesTwitter/remigration/media/8157a2d13cee861c7a1bc3a01f4bfb8e300bc994.jpg');
 
 INSERT INTO images (sha1, height, width, name, extension, paths, url)
-VALUES ('7b02cf11f4a7a0dcd8201e7a4a8d01dc19b9d4d4', 1200, 800, '7b02cf11f4a7a0dcd8201e7a4a8d01dc19b9d4d4', 'jpg', '["D:\\Alie\\Documents\\CollectesTwitter\\remigration\\media\\7b02cf11f4a7a0dcd8201e7a4a8d01dc19b9d4d4.jpg"]', '/images/D:/Alie/Documents/CollectesTwitter/remigration/media/7b02cf11f4a7a0dcd8201e7a4a8d01dc19b9d4d4.jpg');
+VALUES ('0b8274fdf497c1b616f39086ac2d19872bfa51f9', 1200, 800, '0b8274fdf497c1b616f39086ac2d19872bfa51f9', 'jpg', '["D:\\Alie\\Documents\\CollectesTwitter\\remigration\\media\\0b8274fdf497c1b616f39086ac2d19872bfa51f9.jpg"]', '/images/D:/Alie/Documents/CollectesTwitter/remigration/media/0b8274fdf497c1b616f39086ac2d19872bfa51f9.jpg');
 
 INSERT INTO images (sha1, height, width, name, extension, paths, url)
-VALUES ('88a23f6c861bfa089332fb6c87af8f64b99e135e', 1200, 800, '88a23f6c861bfa089332fb6c87af8f64b99e135e', 'jpg', '["D:\\Alie\\Documents\\CollectesTwitter\\remigration\\media\\88a23f6c861bfa089332fb6c87af8f64b99e135e.jpg"]', '/images/D:/Alie/Documents/CollectesTwitter/remigration/media/88a23f6c861bfa089332fb6c87af8f64b99e135e.jpg');
+VALUES ('1abced957962d9ffeddbe6d21cf1ebbe0fc44669', 1200, 800, '1abced957962d9ffeddbe6d21cf1ebbe0fc44669', 'jpg', '["D:\\Alie\\Documents\\CollectesTwitter\\remigration\\media\\1abced957962d9ffeddbe6d21cf1ebbe0fc44669.jpg"]', '/images/D:/Alie/Documents/CollectesTwitter/remigration/media/1abced957962d9ffeddbe6d21cf1ebbe0fc44669.jpg');
 
 INSERT INTO images_data (sha1, data_id, value)
 VALUES ('8157a2d13cee861c7a1bc3a01f4bfb8e300bc994', 1, '"poulet"');
