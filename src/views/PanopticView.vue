@@ -1,15 +1,37 @@
 <script setup>
 import { reactive } from 'vue';
+import ImageGroup from '../components/ImageGroup.vue';
+import ExpandOption from '../components/Menu/ExpandOption.vue';
+import MainOption from '../components/Menu/MainOption.vue';
+import Property from '../components/Menu/Property.vue';
 import TagTree from '../components/TagTree/TagTree.vue';
 
-const data = reactive([{name: 'test', children: [{name: 'test1'}, {name: 'test2', children: [{name: 'test34'}]}]}, {name: 'deep', children: [{name: 'egg'}, {name: 'other'}]}])
-const selectedTags = reactive([])
-const state = reactive({selected: []})
+const data = reactive({
+    selected: [],
+    tags: [{name: 'test', children: [{name: 'test1'}, {name: 'test2', children: [{name: 'test34'}]}]}, {name: 'deep', children: [{name: 'egg'}, {name: 'other'}]}]
+})
+
+
+const groups = reactive([
+    {
+        name: "Group1",
+        groups: [
+            {name: 'SubGroup11', images: 15},
+            {name: 'SubGroup12', images: 12}
+        ]
+    },
+    {
+        name: "Group2",
+        groups: [
+            {name: 'SubGroup21', images: 4},
+            {name: 'SubGroup22', images: 7}
+        ]
+    },
+])
+
 </script>
 
 <template>
-    <TagTree :data="data" v-model:selected="state.selected"/>
-    {{ state.selected }}
     <div class=" ms-5 me-5">
         <div class="row">
             <div class="col-3 bg-secondary text-white" style="height: 55px;">
@@ -35,32 +57,31 @@ const state = reactive({selected: []})
         </div>
         <div class="row">
             <div class="col-3 bg-warning">
-                <div class="row mt-2">
-                    <div>
-                        <h4 class="text-center">Folders</h4>
-                    </div>
-                    <div>
-                        <ul class="list-group">
-                            <li class="list-group-item">/images/vacances</li>
-                            <li class="list-group-item">/theses/collecte</li>
-                            <li class="list-group-item">/racist/lepen</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="row mt-2">
-                    <div>
-                        <h4 class="text-center">Properties</h4>
-                    </div>
-                    <div>
-                        <ul class="list-group">
-                            <li class="list-group-item">Category</li>
-                            <li class="list-group-item">Name</li>
-                            <li class="list-group-item">Category 2
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+                <ul class="list-group mt-2">
+                    <li class="list-group-item mb-2">
+                        <ExpandOption>
+                            <template #name>Folder</template>
+                            <template #content>
+                                <ul class="list-group">
+                                    <li class="list-group-item">/images/vacances</li>
+                                    <li class="list-group-item">/theses/collecte</li>
+                                    <li class="list-group-item">/racist/lepen</li>
+                                </ul>
+                            </template>
+                        </ExpandOption>
+                    </li>
+                    <li class="list-group-item">
+                        <MainOption name="Properties">
+                            <ul class="list-group">
+                                <li class="list-group-item">Category</li>
+                                <li class="list-group-item"><span class="bi bi-caret-right"></span> Name</li>
+                                <li class="list-group-item">
+                                    <Property :name="'Category2'" type="tag-tree" :data="data" />
+                                </li>
+                            </ul>
+                        </MainOption>
+                    </li>
+                </ul>
             </div>
             <div class="col">
                 <div class="input-group mt-1">
@@ -81,28 +102,8 @@ const state = reactive({selected: []})
                     <div class="input-group-text bg-white">Tags <i class="bi bi-x-circle ms-2 text-danger"></i></div>
                     <button class="btn btn-outline-secondary">+</button>
                 </div>
-                <div class="mt-3">
-                    <div class="mb-3">
-                        <h3 class="mb-3"><i class="bi bi-caret-down"></i> Group1 (27 images) <i class="h5 bi bi-share"></i></h3>
-                        <div class="ms-5">
-                            <div>
-                                <h4><i class="bi bi-caret-down"></i> Subgroup 1 (15 images) <i class="h6 bi bi-share"></i></h4>
-                                <div class="row ms-4">
-                                    <div class="col-1 bg-success m-2" v-for="i in 15" style="width: 100px; height: 100px;"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <h4><i class="bi bi-caret-down"></i> Subgroup 2 (12 images) <i class="h6 bi bi-share"></i></h4>
-                                <div class="row ms-4">
-                                    <div class="col-1 bg-success m-2" v-for="i in 12" style="width: 100px; height: 100px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                    </div>
-                    <div>
-                        <h3><i class="bi bi-caret-right-fill"></i> Group2 (10 images) <i class="h5 bi bi-share"></i></h3>
-                    </div>
+                <div class="mt-4">
+                    <ImageGroup :leftAlign="true" v-for="group in groups" :group="group"/>
                 </div>
             </div>
         </div>
