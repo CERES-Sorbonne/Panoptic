@@ -29,7 +29,7 @@ function newTabName() {
 function addTab(event) {
     let tabName = newTabName()
     store.addTab(tabName)
-    store.selectedTabName = tabName
+    store.selectTab(tabName)
 }
 
 onMounted(() => {
