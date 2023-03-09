@@ -1,14 +1,19 @@
 import os
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.requests import Request
+from starlette.responses import Response
 
-from db import execute_query, create_data_model, add_data_to_image, add_image, get_images
+from core import execute_query, create_data_model, add_data_to_image, add_image, get_images
 from models import DataModel, Images
 from payloads import ImagePayload, DataPayload, AddImageDataPayload
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory=os.getenv('PANOPTIC_ROOT', os.path.expanduser('~'))), name="static")
+
+# TODO:
+# ajouter une route static pour le mode serveur
 
 
 # Route pour créer une définition metadata et l'insérer dans la table des metadata
@@ -53,3 +58,15 @@ async def add_image_route(image: ImagePayload):
 async def get_images_route():
     images = await get_images()
     return Images(images)
+
+
+@app.get('/images/{file_path:path}')
+def get_image(file_path: str):
+
+    with open(file_path, 'rb') as f:
+        data = f.read()
+
+    ext = file_path.split('.')[-1]
+
+    # # media_type here sets the media type of the actual response sent to the client.
+    return Response(content=data, media_type="image/" + ext)

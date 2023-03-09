@@ -7,7 +7,7 @@ from PIL import Image as pImage
 from models import DataModel, DataType, JSON, Image
 
 # Connexion à la base de données SQLite
-conn = sqlite3.connect(r'C:\Users\Orion\Documents\panoptic2.db')
+conn = sqlite3.connect(os.getenv('PANOPTIC_DB'))
 
 
 # Fonction utilitaire pour exécuter une requête SQL et commettre les modifications
@@ -23,10 +23,7 @@ async def execute_query(query: str, parameters: tuple = None):
 
 # Fonction utilitaire pour créer une metadata
 async def create_data_model(name: str, data_type: DataType):
-    query = """
-        INSERT INTO datamodel (name, type)
-        VALUES (?, ?)
-    """
+    query = 'INSERT INTO datamodel (name, type) VALUES (?, ?)'
     cursor = await execute_query(query, (name, data_type.value))
     data_id = cursor.lastrowid
     return data_id
@@ -40,20 +37,21 @@ async def get_images():
     # requête à optimiser en deux requêtes ? pcke là on récupère les paths de l'image pour chaque metadata,
     # ou alors solution c'est de considérer les paths comme une metadata
     query = """
-        SELECT d_m.id, d_m.name, d_m.type, i_d.value, i_d.sha1, i.paths
-        FROM datamodel d_m
-        INNER JOIN images_data i_d ON d_m.id = i_d.data_id
-        INNER JOIN images i ON i_d.sha1 = i.sha1
+        SELECT DISTINCT i.sha1, i.paths, d_m.id, d_m.name, d_m.type, i_d.value, i.url
+        FROM images i
+        LEFT JOIN images_data i_d ON i.sha1 = i_d.sha1
+        LEFT JOIN datamodel d_m ON i_d.data_id = d_m.id
         """
     cursor = await execute_query(query)
     rows = cursor.fetchall()
     result = {}
     for row in rows:
-        data_id, name, data_type, value, sha1, paths = row
+        sha1, paths, data_id, name, data_type, value, url = row
         if sha1 not in result:
-            result[sha1] = {'data': {}, 'paths': json.loads(paths)}
-        result[sha1]['data'][data_id] = {'id': data_id, 'name': name, 'type': data_type,
-                                         'value': json.loads(value)}
+            result[sha1] = {'data': {}, 'paths': json.loads(paths), 'url': url}
+        if data_id:
+            result[sha1]['data'][data_id] = {'id': data_id, 'name': name, 'type': data_type,
+                                             'value': json.loads(value)}
     return result
 
 
@@ -72,7 +70,9 @@ async def add_image(file_path):
     extension = name.split('.')[-1]
     width, height = image.size
     sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
-
+    # TODO: gérer l'url statique quand on sera en mode serveur
+    url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
+    url = f"/images/{file_path}"
     # Vérification si sha1_hash existe déjà dans la table images
     query = """
         SELECT paths
@@ -98,7 +98,7 @@ async def add_image(file_path):
     # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
     else:
         query = """
-            INSERT INTO images (sha1, height, width, name, extension, paths)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO images (sha1, height, width, name, extension, paths, url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
-        await execute_query(query, (sha1_hash, height, width, name, extension, json.dumps([file_path])))
+        await execute_query(query, (sha1_hash, height, width, name, extension, json.dumps([file_path]), url))
