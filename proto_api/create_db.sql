@@ -1,4 +1,9 @@
-CREATE TABLE datamodel (
+CREATE TABLE parameters(
+    folders JSON,
+    tabs JSON
+);
+
+CREATE TABLE properties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     type TEXT
@@ -14,17 +19,19 @@ CREATE TABLE images (
     url TEXT
 );
 
-CREATE TABLE images_data (
+CREATE TABLE images_properties (
     sha1 TEXT NOT NULL,
-    data_id INTEGER NOT NULL,
+    property_id INTEGER NOT NULL,
     value JSON,
-    PRIMARY KEY (sha1, data_id),
+    PRIMARY KEY (sha1, property_id),
     FOREIGN KEY (sha1) REFERENCES images (sha1) ON DELETE CASCADE,
-    FOREIGN KEY (data_id) REFERENCES datamodel (id) ON DELETE CASCADE
+    FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );
 
 CREATE TABLE tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    property_id INTEGER NOT NULL,
     value TEXT NOT NULL,
-    parents JSON
+    parents JSON,
+    FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );

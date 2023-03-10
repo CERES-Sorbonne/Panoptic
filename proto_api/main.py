@@ -6,9 +6,10 @@ from fastapi.staticfiles import StaticFiles
 from starlette.requests import Request
 from starlette.responses import Response
 
-from core import execute_query, create_data_model, add_data_to_image, add_image, get_images
-from models import DataModel, Images
-from payloads import ImagePayload, DataPayload, AddImageDataPayload
+from core import execute_query, create_property, add_property_to_image, add_image, get_images, create_tag, \
+    _get_tag_by_id, _get_tag_ancestors
+from models import Property, Images
+from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload
 
 app = FastAPI()
 
@@ -16,33 +17,18 @@ app = FastAPI()
 # ajouter une route static pour le mode serveur
 
 
-# Route pour créer une définition metadata et l'insérer dans la table des metadata
-@app.post("/data")
-async def create_data_route(payload: DataPayload):
-    data_id = await create_data_model(payload.name, payload.type)
-    return DataModel(id=data_id, name=payload.name, type=payload.type.value)
+# Route pour créer une property et l'insérer dans la table des properties
+@app.post("/property")
+async def create_property_route(payload: PropertyPayload):
+    property_id = await create_property(payload.name, payload.type)
+    return Property(id=property_id, name=payload.name, type=payload.type.value)
 
 
-# Route pour ajouter une data à une image dans la table de jointure entre image et data
-# On retourne le payload pour pouvoir valider l'update côté front
-@app.post("/image_data")
-async def add_image_data(payload: AddImageDataPayload):
-    await add_data_to_image(payload.data_id, payload.sha1, payload.value)
-    return payload
-
-
-# Route pour supprimer une data d'une image dans la table de jointure entre image et data
-@app.delete("/data")
-async def delete_data(data_id: str, sha1: str):
-    await execute_query('DELETE FROM images_data WHERE data_id = ? AND sha1 = ?', (data_id, sha1))
-    return {"metadata_id": data_id, "image_id": sha1}
-
-
-# # Route pour modifier une metadata d'une image dans la table de jointure entre image et metadata
-# @app.put("/image_metadata")
-# async def update_image_metadata(metadata_id: str, metadata_value: str, image_id: str):
-#     execute_query('UPDATE image_metadata SET metadata_value = ? WHERE metadata_id = ? AND image_id = ?', (metadata_value, metadata_id, image_id))
-#     return {"metadata_id": metadata_id, "metadata_value": metadata_value, "image_id": image_id}
+# Route pour supprimer une property d'une image dans la table de jointure entre image et property
+@app.delete("/property")
+async def delete_property(property_id: str, sha1: str):
+    await execute_query('DELETE FROM images_properties WHERE property_id = ? AND sha1 = ?', (property_id, sha1))
+    return {"property_id": property_id, "image_id": sha1}
 
 
 # Route pour ajouter une image
@@ -70,3 +56,23 @@ def get_image(file_path: str):
 
     # # media_type here sets the media type of the actual response sent to the client.
     return Response(content=data, media_type="image/" + ext)
+
+
+# Route pour ajouter une property à une image dans la table de jointure entre image et property
+# On retourne le payload pour pouvoir valider l'update côté front
+@app.post("/image_property")
+async def add_image_property(payload: AddImagePropertyPayload):
+    await add_property_to_image(payload.property_id, payload.sha1, payload.value)
+    return payload
+
+
+@app.post("/add_tag")
+async def add_tag(payload: AddTagPayload):
+    if not payload.parent_id:
+        payload.parent_id = 0
+    return await create_tag(payload.property_id, payload.value, payload.parent_id)
+
+@app.get("/test")
+async def test_route():
+    tag = await _get_tag_by_id("5")
+    return await _get_tag_ancestors(tag)

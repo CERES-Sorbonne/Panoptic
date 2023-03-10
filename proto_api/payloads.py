@@ -2,29 +2,35 @@ from typing import Optional, Any
 
 from pydantic import BaseModel
 
-from models import DataType, JSON
+from models import PropertyType, JSON
 
 
 class ImagePayload(BaseModel):
     file_path: str
 
 
-class DataPayload(BaseModel):
+class PropertyPayload(BaseModel):
     name: str
-    type: DataType
+    type: PropertyType
 
 
-class UpdateDataPayload(BaseModel):
+class UpdatePropertyPayload(BaseModel):
     id: int
     name: Optional[str]
-    type: Optional[DataType]
+    type: Optional[PropertyType]
 
 
-class DeleteDataPayload(BaseModel):
+class DeletePropertyPayload(BaseModel):
     id: int
 
 
-class AddImageDataPayload(BaseModel):
-    data_id: int
+class AddImagePropertyPayload(BaseModel):
+    property_id: int
     sha1: str
     value: Any
+
+
+class AddTagPayload(BaseModel):
+    property_id: int
+    value: str
+    parent_id: Optional[int] = None
