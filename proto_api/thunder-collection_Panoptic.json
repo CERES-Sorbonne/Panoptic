@@ -1,0 +1,80 @@
+{
+    "client": "Thunder Client",
+    "collectionName": "Panoptic",
+    "dateExported": "2023-03-06T15:21:37.409Z",
+    "version": "1.1",
+    "folders": [],
+    "requests": [
+        {
+            "_id": "bdd3410b-518e-427e-9bc2-cd775070a7fa",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Get images",
+            "url": "localhost:8000/images",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2023-02-28T21:52:34.476Z",
+            "modified": "2023-02-28T21:52:34.476Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "7bc98ce5-76a2-4022-9747-ac3a87638c9a",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Post Image",
+            "url": "localhost:8000/images",
+            "method": "POST",
+            "sortNum": 20000,
+            "created": "2023-02-28T21:52:45.948Z",
+            "modified": "2023-02-28T21:52:45.948Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"file_path\": \"C:\\\\Users\\\\Orion\\\\Pictures\\\\Dessins\\\\ludum52\\\\soleil1.png\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "1a282534-71dd-4a10-b5c6-d2c57b43e5d2",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Add DataModel",
+            "url": "localhost:8000/data",
+            "method": "POST",
+            "sortNum": 30000,
+            "created": "2023-02-28T22:04:40.961Z",
+            "modified": "2023-02-28T22:07:52.890Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"name\": \"catégorie3\",\n  \"type\": \"tag\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "2a1fb1a8-5cb8-4834-9030-238e5e3c0da6",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Add Image Data",
+            "url": "localhost:8000/image_data",
+            "method": "POST",
+            "sortNum": 40000,
+            "created": "2023-02-28T22:07:00.898Z",
+            "modified": "2023-02-28T22:07:49.154Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"data_id\": 10,\n  \"sha1\": \"sha1_1\",\n  \"value\": \"jambon\"\n}",
+                "form": []
+            },
+            "tests": []
+        }
+    ]
+}
