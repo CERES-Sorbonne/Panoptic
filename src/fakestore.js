@@ -26,6 +26,9 @@ function loadTabState(store) {
 
 export const fakeStore = reactive({
   images: [],
+  properties: [
+    {name: 'category1' ,type: 'tag'}
+  ],
   options: {
     display: ['grid', 'list','3eme Oeil'],
     filter: ['filter1', 'filter2', 'filter3', 'other1', 'other2', 'toto', 'felix', 'darmanin'],

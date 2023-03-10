@@ -8,7 +8,7 @@ const props = defineProps({
     data: Object
 })
 
-const expand = ref(true)
+const expand = ref(false)
 
 const caretClass = computed(() => {
     let className = 'bi bi-caret-right'

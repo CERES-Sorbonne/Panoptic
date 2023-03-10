@@ -45,8 +45,12 @@ const store = fakeStore
                         <li class="list-group-item">
                             <MainOption name="Properties">
                                 <ul class="list-group">
-                                    <li class="list-group-item">Category</li>
-                                    <li class="list-group-item"><span class="bi bi-caret-right"></span> Name</li>
+                                    <li class="list-group-item">
+                                        <Property :name="'Category1'" type="tag" :data="data" />
+                                    </li>
+                                    <li class="list-group-item">
+                                        <Property :name="'Name'" type="tag" :data="data" />
+                                    </li>
                                     <li class="list-group-item">
                                         <Property :name="'Category2'" type="tag-tree" :data="data" />
                                     </li>
