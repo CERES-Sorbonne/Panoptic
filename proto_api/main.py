@@ -2,14 +2,11 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from starlette.requests import Request
 from starlette.responses import Response
 
-from core import execute_query, create_property, add_property_to_image, add_image, get_images, create_tag, \
-    _get_tag_by_id, _get_tag_ancestors
+from core import create_property, add_property_to_image, add_image, get_images, create_tag,delete_image_property
 from models import Property, Images
-from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload
+from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload
 
 app = FastAPI()
 
@@ -24,13 +21,6 @@ async def create_property_route(payload: PropertyPayload):
     return Property(id=property_id, name=payload.name, type=payload.type.value)
 
 
-# Route pour supprimer une property d'une image dans la table de jointure entre image et property
-@app.delete("/property")
-async def delete_property(property_id: str, sha1: str):
-    await execute_query('DELETE FROM images_properties WHERE property_id = ? AND sha1 = ?', (property_id, sha1))
-    return {"property_id": property_id, "image_id": sha1}
-
-
 # Route pour ajouter une image
 @app.post("/images")
 async def add_image_route(image: ImagePayload):
@@ -41,9 +31,9 @@ async def add_image_route(image: ImagePayload):
 
 # Route pour récupérer la liste de toutes les images
 @app.get("/images")
-async def get_images_route():
+async def get_images_route() -> Images:
     images = await get_images()
-    return Images(images)
+    return images
 
 
 @app.get('/images/{file_path:path}')
@@ -66,13 +56,21 @@ async def add_image_property(payload: AddImagePropertyPayload):
     return payload
 
 
+# Route pour supprimer une property d'une image dans la table de jointure entre image et property
+@app.delete("/image_property")
+async def delete_property_route(payload: DeleteImagePropertyPayload):
+    await delete_image_property(payload.property_id, payload.sha1)
+    return payload
+
+
 @app.post("/add_tag")
 async def add_tag(payload: AddTagPayload):
     if not payload.parent_id:
         payload.parent_id = 0
     return await create_tag(payload.property_id, payload.value, payload.parent_id)
 
-@app.get("/test")
-async def test_route():
-    tag = await _get_tag_by_id("5")
-    return await _get_tag_ancestors(tag)
+# TODO: add get_tags
+# TODO: add update_tag
+# TODO: add update image property
+# TODO: add update property
+# TODO: add add folder

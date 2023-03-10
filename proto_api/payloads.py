@@ -30,6 +30,11 @@ class AddImagePropertyPayload(BaseModel):
     value: Any
 
 
+class DeleteImagePropertyPayload(BaseModel):
+    property_id: int
+    sha1: str
+
+
 class AddTagPayload(BaseModel):
     property_id: int
     value: str

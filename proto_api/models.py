@@ -23,7 +23,8 @@ class Property(BaseModel):
     type: str
 
 
-JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
+class PropertyValue(Property):
+    value: Any
 
 
 class Tag(BaseModel):
@@ -31,15 +32,18 @@ class Tag(BaseModel):
     property_id: int
     parents: list[int]
     value: str
-
-class PropertyValue(Property):
-    value: Any
+    color: Optional[str]
 
 
 class Image(BaseModel):
     sha1: str
     url: str
-    data: dict[int, PropertyValue]
+    width: int
+    height: int
+    paths: list[str]
+    extension: str
+    properties: Optional[dict[int, PropertyValue]] = {}
 
 
 Images: TypeAlias = dict[str, Image]
+JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
