@@ -20,10 +20,11 @@ async def execute_query(query: str, parameters: tuple = None):
     return cursor
 
 
-async def add_property(name: str, property_type: str) -> int:
+async def add_property(name: str, property_type: str) -> Property:
     query = 'INSERT INTO properties (name, type) VALUES (?, ?)'
     cursor = await execute_query(query, (name, property_type))
-    return cursor.lastrowid
+    prop = Property(id=cursor.lastrowid, name=name, type=property_type)
+    return prop
 
 
 async def add_tag(property_id: int, value: str, parents: str):
@@ -132,6 +133,17 @@ def _parse_tag_from_db(row):
         return Tag(id=_id, property_id=prop_id, value=value, parents=parents)
 
 
+async def tag_in_ancestors(tag_id, parent_id) -> bool:
+    if not parent_id:
+        return True
+    else:
+        parent = await get_tag_by_id(parent_id)
+        ancestors = await get_tag_ancestors(parent)
+        if tag_id in ancestors:
+            return False
+    return True
+
+
 async def get_tag_ancestors(tag: Tag, acc=[]):
     if tag.parents == [0]:
         return list({*tag.parents, *acc})
@@ -151,3 +163,13 @@ def decode_if_json(value):
         return json.loads(value)
     except (TypeError, JSONDecodeError):
         return value
+
+
+async def get_tags(prop) -> list[Tag]:
+    query = "SELECT * FROM tags "
+    params = None
+    if prop:
+        query += "WHERE property_id = ?"
+        params = (prop,)
+    cursor = await execute_query(query, params)
+    return [Tag(**auto_dict(row, cursor)) for row in cursor.fetchall()]

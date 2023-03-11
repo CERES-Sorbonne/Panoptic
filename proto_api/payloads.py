@@ -39,3 +39,11 @@ class AddTagPayload(BaseModel):
     property_id: int
     value: str
     parent_id: Optional[int] = None
+    color: Optional[str]
+
+
+class UpdateTagPayload(BaseModel):
+    id: int
+    value: Optional[str]
+    parent_id: Optional[int]
+    color: Optional[str]

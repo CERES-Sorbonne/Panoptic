@@ -4,12 +4,13 @@ import os
 from PIL import Image as pImage
 from fastapi import HTTPException
 
-from models import PropertyType, JSON, Image, Tag, Images, PropertyValue
+from models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags
 
 import db_utils as db
+from payloads import UpdateTagPayload
 
 
-async def create_property(name: str, property_type: PropertyType) -> int:
+async def create_property(name: str, property_type: PropertyType) -> Property:
     return await db.add_property(name, property_type.value)
 
 
@@ -42,7 +43,7 @@ async def delete_image_property(property_id: int, sha1: str):
     await db.delete_image_property(property_id, sha1)
 
 
-async def add_image(file_path):
+async def add_image(file_path) -> Image:
     image = pImage.open(file_path)
     name = file_path.split(os.sep)[-1]
     extension = name.split('.')[-1]
@@ -64,14 +65,13 @@ async def add_image(file_path):
     # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
     else:
         await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
+    return await db.get_image_by_sha1(sha1_hash)
 
 
 async def create_tag(property_id, value, parent_id) -> Tag:
     existing_tag = await db.get_tag(property_id, value)
     if existing_tag is not None:
-        parent = await db.get_tag_by_id(parent_id)
-        ancestors = await db.get_tag_ancestors(parent)
-        if existing_tag.id in ancestors:
+        if db.tag_in_ancestors(existing_tag.id, parent_id):
             raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
         existing_tag.parents = list({*existing_tag.parents, parent_id})
         await db.update_tag(existing_tag)
@@ -80,3 +80,24 @@ async def create_tag(property_id, value, parent_id) -> Tag:
         parents = [parent_id]
         tag_id = await db.add_tag(property_id, value, json.dumps(parents))
     return await db.get_tag_by_id(tag_id)
+
+
+async def update_tag(payload: UpdateTagPayload) -> Tag:
+    existing_tag = await db.get_tag_by_id(payload.id)
+    if not existing_tag:
+        raise HTTPException(status_code=400, detail="Trying to modify non existent tag")
+    if db.tag_in_ancestors(existing_tag.id, payload.parent_id):
+        raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
+    # change only fields of the tags that are set in the payload
+    new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
+    return await db.update_tag(new_tag)
+
+
+async def get_tags(prop: str = None) ->Tags:
+    res = {}
+    tag_list = await db.get_tags(prop)
+    for tag in tag_list:
+        if tag.property_id not in res:
+            res[tag.property_id] = {}
+        res[tag.property_id][tag.id] = tag
+    return res
