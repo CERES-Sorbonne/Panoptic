@@ -75,7 +75,7 @@ async def get_tags_route(property: Optional[str] = None) -> Tags:
     return await get_tags(property)
 
 
-@app.patch("/update_tag")
+@app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
     return await update_tag(payload)
 
@@ -89,8 +89,6 @@ async def update_image_property(new_value: str = Body(..., embed=True)) -> str:
 async def update_property(payload: str):
     pass
 
-# TODO: add get_tags
-# TODO: add update_tag
 # TODO: add update image property
 # TODO: add update property
 # TODO: add add folder

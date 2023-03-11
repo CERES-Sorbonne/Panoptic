@@ -114,34 +114,25 @@ async def get_tag(property_id, value):
     query = "SELECT * FROM tags WHERE property_id = ? AND value = ?"
     cursor = await execute_query(query, (property_id, value))
     row = cursor.fetchone()
-    return _parse_tag_from_db(row)
+    return Tag(**auto_dict(row, cursor))
 
 
 async def get_tag_by_id(tag_id: int):
     query = "SELECT * FROM tags WHERE id = ?"
     cursor = await execute_query(query, (str(tag_id),))
     row = cursor.fetchone()
-    return _parse_tag_from_db(row)
-
-
-def _parse_tag_from_db(row):
-    if not row:
-        return row
-    else:
-        _id, prop_id, value, parents = row
-        parents = json.loads(parents)
-        return Tag(id=_id, property_id=prop_id, value=value, parents=parents)
+    return Tag(**auto_dict(row, cursor))
 
 
 async def tag_in_ancestors(tag_id, parent_id) -> bool:
     if not parent_id:
-        return True
+        return False
     else:
         parent = await get_tag_by_id(parent_id)
         ancestors = await get_tag_ancestors(parent)
         if tag_id in ancestors:
-            return False
-    return True
+            return True
+    return False
 
 
 async def get_tag_ancestors(tag: Tag, acc=[]):

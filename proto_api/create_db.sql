@@ -33,5 +33,6 @@ CREATE TABLE tags (
     property_id INTEGER NOT NULL,
     value TEXT NOT NULL,
     parents JSON,
+    color TEXT
     FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );

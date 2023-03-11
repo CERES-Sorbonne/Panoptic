@@ -86,11 +86,11 @@ async def update_tag(payload: UpdateTagPayload) -> Tag:
     existing_tag = await db.get_tag_by_id(payload.id)
     if not existing_tag:
         raise HTTPException(status_code=400, detail="Trying to modify non existent tag")
-    if db.tag_in_ancestors(existing_tag.id, payload.parent_id):
+    if await db.tag_in_ancestors(existing_tag.id, payload.parent_id):
         raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
     # change only fields of the tags that are set in the payload
     new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
-    return await db.update_tag(new_tag)
+    return new_tag
 
 
 async def get_tags(prop: str = None) ->Tags:
