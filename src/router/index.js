@@ -12,7 +12,7 @@ const router = createRouter({
     },
     {
       path: '/test',
-      name: 'home',
+      name: 'test',
       component: PanopticView
     }
   ]

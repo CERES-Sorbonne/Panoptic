@@ -2,15 +2,23 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, Body
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 
 from core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
-    update_tag, get_tags
-from models import Property, Images, Tag, Image, Tags
+    update_tag, get_tags, get_properties
+from models import Property, Images, Tag, Image, Tags, Properties
 from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # TODO:
 # ajouter une route static pour le mode serveur
@@ -21,6 +29,10 @@ app = FastAPI()
 async def create_property_route(payload: PropertyPayload) -> Property:
     return await create_property(payload.name, payload.type)
 
+
+@app.get("/property")
+async def get_properties_route() -> Properties:
+    return await get_properties()
 
 # Route pour ajouter une image
 @app.post("/images")

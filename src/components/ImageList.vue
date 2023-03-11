@@ -39,7 +39,7 @@
     </div>
   </div>
   <div class="image-list">
-    <div class="image-container" v-for="image in globalStore.images.slice(0,50)">
+    <div class="image-container" v-for="image in globalStore.imageList.slice(0,50)">
       <img class="image" :src="image.url" :key="image.name" @click="selectImage(image)"/>
       <div class="metadata-container">
         <tag-badge v-for="tag in image.tags" :tag="tag"/>

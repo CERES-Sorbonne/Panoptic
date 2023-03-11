@@ -47,3 +47,4 @@ class Image(BaseModel):
 Images: TypeAlias = dict[str, Image]
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
+Properties: TypeAlias = dict[int, Property]

@@ -4,13 +4,20 @@
 
 // à virer
 import { globalStore } from "../store"
+import axios from 'axios'
 
-export const SERVER_PREFIX = "https://ceres.huma-num.fr/panoptic-back/"
+export const SERVER_PREFIX = "http://localhost:8000"
+axios.defaults.baseURL = SERVER_PREFIX
+
 
 export const apiGetImages = async () => {
-    const res = await fetch(SERVER_PREFIX + `images/`)
-    const images = await res.json()
-    return images
+    const res = await axios.get(`/images`)
+    return res.data
+}
+
+export const apiGetTags = async () => {
+    const res = await axios.get('/tags')
+    return res.data
 }
 
 export const apiAddTag = async (image, tag) => {

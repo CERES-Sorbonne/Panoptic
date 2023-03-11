@@ -4,7 +4,7 @@
   import { onMounted } from 'vue'
 
   onMounted(() => {
-    // globalStore.fetchImages()
+    globalStore.fetchAllData()
   })
 
 </script>

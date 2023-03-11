@@ -4,7 +4,7 @@ import os
 from PIL import Image as pImage
 from fastapi import HTTPException
 
-from models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags
+from models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties
 
 import db_utils as db
 from payloads import UpdateTagPayload
@@ -12,6 +12,11 @@ from payloads import UpdateTagPayload
 
 async def create_property(name: str, property_type: PropertyType) -> Property:
     return await db.add_property(name, property_type.value)
+
+
+async def get_properties() -> Properties:
+    properties = await db.get_properties()
+    return {prop.id: prop for prop in properties}
 
 
 async def get_images() -> Images:

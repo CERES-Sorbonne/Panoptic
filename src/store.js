@@ -1,38 +1,68 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiAddTag, apiRemoveTag, SERVER_PREFIX } from './utils/api'
+import { apiGetImages, apiGetTags, apiAddTag, apiRemoveTag, SERVER_PREFIX } from './utils/api'
 
 export const globalStore = reactive({
-  images: [],
-  async fetchImages() {
+  images: {},
+  tags: {},
+  properties: {},
+  
+  imageList: computed(() => Object.keys(globalStore.images).map(sha1 => {return{url: SERVER_PREFIX + globalStore.images[sha1].url, imageName: globalStore.images[sha1].name}})),
+  tagTrees: computed(() => {
+    const tree = {}
+    Object.entries(globalStore.tags).forEach(([propId, tags]) => {tree[propId] = getPropertyTree(tags)})
+    return tree
+  }),
+
+  async fetchAllData() {
     this.images = await apiGetImages()
-    this.images = this.images[0].map(el => ({url: SERVER_PREFIX + el.name, tags:[], ...el}))
+    this.tags = await apiGetTags()
+    this.properties = await apiGetProperties()
   },
-  tags: computed(() => {
-    let tags = {}
-    for(let image of globalStore.images){
-      for(let tag of image.tags){
-        tags[tag] = tags[tag] === undefined ? 1 : tags[tag] + 1
-      }
-    }
-    return tags
-  }),
-  tagList: computed(() => {
-    return Object.keys(globalStore.tags)
-  }),
-  async addTag(image, tag){
-    if(image.tags.includes(tag)){
-      return
-    }
-    // on remplace l'image modifiée à l'index par la nouvelle 
-    this.images[this.images.findIndex(i => i.name === image.name)] = await apiAddTag(image, tag)
+
+  async addTag(){
+
   },
-  removeTag(image, tag){
-    this.images = [apiRemoveTag(image, tag), ...this.images]
+
+  async addProperty(){
+
   },
-  filters: [],
-  addFilter(filter){
-    this.filters.push(filter)
+
+  async addPropertyToImage(){
+
+  },
+
+  async updateTag(){
+
+  },
+
+  async updateProperty(){
+
+  },
+
+  async updateImageProperty(){
+
+  },
+
+  async addFolder(){
+
   }
-//   order: {},
-//   group: {}
+
 })
+
+function getPropertyTree(property){
+  let tree = {}
+  let refs = {}
+  Object.values(property).forEach(tag => {
+      tag.parents.forEach(parent => {
+          if(parent === 0){
+              tree[tag.id] = {...tag, children: {}}
+              refs[tag.id] = tree[tag.id]
+          }
+          else{
+              refs[parent].children[tag.id] = {...tag, children: {}}
+              refs[tag.id] = refs[parent].children[tag.id]
+          }
+      })
+  })
+  return tree
+}

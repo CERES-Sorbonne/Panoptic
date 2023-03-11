@@ -62,7 +62,8 @@ async def get_image_by_sha1(sha1) -> [Image | None]:
 
 async def get_images():
     # requête à optimiser en deux requêtes ? pcke là on récupère les paths de l'image pour chaque property,
-    # ou alors solution c'est de considérer les paths comme une property
+    # also peut être qu'il faut virer les champs de properties et on garde que l'id puisque que côté client on chope
+    # les properties anyway
     query = """
             SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, p.id, p.name, p.type, i_d.value
             FROM images i
@@ -164,3 +165,9 @@ async def get_tags(prop) -> list[Tag]:
         params = (prop,)
     cursor = await execute_query(query, params)
     return [Tag(**auto_dict(row, cursor)) for row in cursor.fetchall()]
+
+
+async def get_properties() -> list[Property]:
+    query = "SELECT * from properties"
+    cursor = await execute_query(query)
+    return [Property(**auto_dict(row, cursor)) for row in cursor.fetchall()]
