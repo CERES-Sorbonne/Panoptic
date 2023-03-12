@@ -115,6 +115,8 @@ def get_tag(property_id, value):
     query = "SELECT * FROM tags WHERE property_id = ? AND value = ?"
     cursor = execute_query(query, (property_id, value))
     row = cursor.fetchone()
+    if not row:
+        return
     return Tag(**auto_dict(row, cursor))
 
 
