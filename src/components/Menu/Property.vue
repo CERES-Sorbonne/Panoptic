@@ -3,12 +3,15 @@ import {ref, computed} from 'vue'
 import TagTree from '../TagTree/TagTree.vue';
 
 const props = defineProps({
-    name: String,
-    type: String,
     data: Object
 })
 
 const expand = ref(false)
+
+const name = computed(() => props.data.name)
+const type = computed(() => props.data.type)
+const values = computed(() => props.data.values)
+
 
 const caretClass = computed(() => {
     let className = 'bi bi-caret-right'
@@ -30,15 +33,15 @@ function toggle() {
 <template>
     <div @click="toggle">
         <span :class="caretClass"></span>
-        {{ props.name }}
+        {{ name }}
         <span class="float-end">
             <button class="btn btn-sm btn-secondary-outline bi bi-pencil"></button>
             <button class="btn btn-sm btn-secondary-outline bi bi-eye"></button>
         </span>
     </div>
     <div v-show="expand" class="ms-2">
-        <template v-if="props.type == 'tag-tree'">
-            <TagTree :data="props.data.tags" v-model:selected="props.data.selected"/>
+        <template v-if="type == 'multi-tag'">
+            <TagTree :data="values" v-model:selected="props.data.selected"/>
         </template>
     </div>
 </template>
