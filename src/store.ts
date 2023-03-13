@@ -14,7 +14,7 @@ export const globalStore:GlobalStore = reactive({
   })}),
 
   tagTrees: computed(() => {
-    const tree:PropsTree = {}
+    const tree:any = {}
     Object.entries(globalStore.tags).forEach(([propId, tags]) => {tree[parseInt(propId)] = getPropertyTree(tags)})
     return tree 
   }),
@@ -60,16 +60,11 @@ export const globalStore:GlobalStore = reactive({
 function getPropertyTree(property: Tags):TagsTree{
   let tree:TagsTree = {0: {children: {}, localId: '0'}}
   let refs:any = {}
+  refs[0] = tree[0]
   Object.values(property).forEach((tag:Tag) => {
       tag.parents.forEach(parent => {
-          if(parent === 0){
-              tree[0].children[tag.id] = {...tag, children: {}, localId: `${0}.${tag.id}`}
-              refs[tag.id] = tree[tag.id]
-          }
-          else{
-              refs[parent].children[tag.id] = {...tag, children: {}, localId: `${refs[parent].localId}.${tag.id}`}
-              refs[tag.id] = refs[parent].children[tag.id]
-          }
+        refs[parent].children[tag.id] = {...tag, children: {}, localId: `${refs[parent].localId}.${tag.id}`}
+        refs[tag.id] = refs[parent].children[tag.id]
       })
   })
   return tree
