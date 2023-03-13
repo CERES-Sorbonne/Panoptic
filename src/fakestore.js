@@ -27,7 +27,16 @@ function loadTabState(store) {
 export const fakeStore = reactive({
   images: [],
   properties: [
-    {name: 'category1' ,type: 'tag'}
+    {
+      id: 0, 
+      name: 'Classification' ,
+      type: 'multi-tag', 
+      values: { 
+        shape: { rectangle: undefined, square: undefined, circle: undefined},
+        colors: { blue: undefined, green: undefined}
+      },
+      selected: []
+    }
   ],
   options: {
     display: ['grid', 'list','3eme Oeil'],

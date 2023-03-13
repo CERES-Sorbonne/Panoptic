@@ -28,3 +28,5 @@ coverage
 *.sw?
 
 */__pycache__/
+
+test
