@@ -3,12 +3,12 @@ import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty } from './utils/api'
 import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree } from './utils/models'
 
-export const globalStore = <GlobalStore>reactive({
+export const globalStore: GlobalStore = reactive({
   images: {} as Images,
   tags: {} as Tags,
   properties: {} as Properties,
   
-  imageList: computed(() => {
+  imageList: computed(():any => {
     return Object.keys(globalStore.images).map(sha1 => {
       return {url: SERVER_PREFIX + globalStore.images[sha1].url, imageName: sha1}
   })}),
