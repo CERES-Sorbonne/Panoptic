@@ -3,13 +3,6 @@ import {ref, computed, watch} from 'vue'
 import TagNode from './TagNode.vue'
 
 
-class TagData {
-    constructor(name, children) {
-        this.name = name
-        this.children = children
-    }
-}
-
 const props = defineProps({
     data: {type: Object, required: true}
 })

@@ -1,5 +1,7 @@
-import { computed, reactive } from 'vue'
-import { apiGetImages, apiAddTag, apiRemoveTag, SERVER_PREFIX } from './utils/api'
+import { computed, reactive, watch } from 'vue'
+import { globalStore } from './store'
+
+const store = globalStore
 
 function saveTabState(store) {
   localStorage.setItem('tabs', JSON.stringify(store.tabs))
@@ -38,6 +40,7 @@ export const fakeStore = reactive({
       selected: []
     }
   ],
+  selected: {},
   options: {
     display: ['grid', 'list','3eme Oeil'],
     filter: ['filter1', 'filter2', 'filter3', 'other1', 'other2', 'toto', 'felix', 'darmanin'],
@@ -54,7 +57,7 @@ export const fakeStore = reactive({
         filter: [],
         groupBy: [],
       },
-      groups: [{name: 'all', images: 34}]
+      groups: [{name: 'all', images: 34}],
     })
     this.saveTabState(this)
   },

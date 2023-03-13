@@ -26,30 +26,30 @@ app.add_middleware(
 
 # Route pour créer une property et l'insérer dans la table des properties
 @app.post("/property")
-def create_property_route(payload: PropertyPayload) -> Property:
+async def create_property_route(payload: PropertyPayload) -> Property:
     return create_property(payload.name, payload.type)
 
 
 @app.get("/property")
-def get_properties_route() -> Properties:
+async def get_properties_route() -> Properties:
     return get_properties()
 
 # Route pour ajouter une image
 @app.post("/images")
-def add_image_route(image: ImagePayload) -> Image:
+async def add_image_route(image: ImagePayload) -> Image:
     image = add_image(image.file_path)
     return image
 
 
 # Route pour récupérer la liste de toutes les images
 @app.get("/images")
-def get_images_route() -> Images:
+async def get_images_route() -> Images:
     images = get_images()
     return images
 
 
 @app.get('/images/{file_path:path}')
-def get_image(file_path: str):
+async def get_image(file_path: str):
 
     with open(file_path, 'rb') as f:
         data = f.read()
@@ -63,42 +63,42 @@ def get_image(file_path: str):
 # Route pour ajouter une property à une image dans la table de jointure entre image et property
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
-def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
+async def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
     add_property_to_image(payload.property_id, payload.sha1, payload.value)
     return payload
 
 
 # Route pour supprimer une property d'une image dans la table de jointure entre image et property
 @app.delete("/image_property")
-def delete_property_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
+async def delete_property_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
     delete_image_property(payload.property_id, payload.sha1)
     return payload
 
 
 @app.post("/tags")
-def add_tag(payload: AddTagPayload) -> Tag:
+async def add_tag(payload: AddTagPayload) -> Tag:
     if not payload.parent_id:
         payload.parent_id = 0
     return create_tag(payload.property_id, payload.value, payload.parent_id)
 
 
 @app.get("/tags")
-def get_tags_route(property: Optional[str] = None) -> Tags:
+async def get_tags_route(property: Optional[str] = None) -> Tags:
     return get_tags(property)
 
 
 @app.patch("/tags")
-def update_tag_route(payload: UpdateTagPayload) -> Tag:
+async def update_tag_route(payload: UpdateTagPayload) -> Tag:
     return update_tag(payload)
 
 
 @app.patch("/image_property")
-def update_image_property(new_value: str = Body(..., embed=True)) -> str:
+async def update_image_property(new_value: str = Body(..., embed=True)) -> str:
     pass
 
 
 @app.patch("/property")
-def update_property(payload: str):
+async def update_property(payload: str):
     pass
 
 # TODO: add update image property

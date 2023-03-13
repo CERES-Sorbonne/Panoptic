@@ -20,6 +20,11 @@ export const apiGetTags = async () => {
     return res.data
 }
 
+export const apiGetProperties = async () => {
+    const res = await axios.get('/property')
+    return res.data
+}
+
 export const apiAddTag = async (image, tag) => {
     // à compléter plus tard pour vraiment appeler l'api et en gérant les images comme un dico et pas comme un tableau pcke c'est chiant
     for(let simage of globalStore.images){
@@ -37,3 +42,5 @@ export const apiRemoveTag = async(image, tag) => {
         }
     }
 }
+
+// export const addPropertyTag

@@ -3,11 +3,12 @@ import { reactive, ref } from 'vue';
 import ImageGroup from '../components/ImageGroup.vue';
 import ExpandOption from '../components/Menu/ExpandOption.vue';
 import MainOption from '../components/Menu/MainOption.vue';
-import Property from '../components/Menu/Property.vue';
+import Property from '../components/properties/Property.vue';
 import TabContent from '../components/TabContent.vue';
 import TabNav from '../components/TabNav.vue';
 import TagTree from '../components/TagTree/TagTree.vue';
 import { fakeStore } from '../fakestore';
+import { globalStore } from '../store';
 
 const data = reactive({
     selected: [],
@@ -17,6 +18,8 @@ const data = reactive({
 const selectedTab = ref('')
 
 const store = fakeStore
+
+const store2 = globalStore
 
 </script>
 
@@ -45,7 +48,7 @@ const store = fakeStore
                         <li class="list-group-item">
                             <MainOption name="Properties">
                                 <ul class="list-group">
-                                    <li class="list-group-item" v-for="property in store.properties">
+                                    <li class="list-group-item" v-for="property in store2.properties">
                                         <Property :data="property" />
                                     </li>
                                 </ul>
@@ -55,6 +58,9 @@ const store = fakeStore
                 </div>
             </div>
             <div class="col">
+                {{ store2.properties }}
+                <br />
+                {{ store2.tagTrees }}
                 <div style="min-height: 55px;">
                     <TabNav v-model:selected="selectedTab"/>
                 </div>
