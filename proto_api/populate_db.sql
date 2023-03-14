@@ -29,3 +29,5 @@ VALUES ('1abced957962d9ffeddbe6d21cf1ebbe0fc44669', 1, '6');
 INSERT INTO images_properties (sha1, property_id, value)
 VALUES ('0b8274fdf497c1b616f39086ac2d19872bfa51f9', 3, 'Une longue description dune image');
 
+INSERT INTO parameters (folders, tabs)
+VALUES ('[]', '[]')

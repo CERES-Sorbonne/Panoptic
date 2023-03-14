@@ -4,7 +4,7 @@ import os
 import sqlite3
 from json import JSONDecodeError
 
-from models import Tag, Image, Property
+from models import Tag, Image, Property, PropertyValue, ImageProperty, JSON, Parameters
 
 conn = sqlite3.connect(os.getenv('PANOPTIC_DB'))
 
@@ -65,10 +65,9 @@ def get_images():
     # also peut être qu'il faut virer les champs de properties et on garde que l'id puisque que côté client on chope
     # les properties anyway
     query = """
-            SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, p.id, p.name, p.type, i_d.value
+            SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value
             FROM images i
             LEFT JOIN images_properties i_d ON i.sha1 = i_d.sha1
-            LEFT JOIN properties p ON i_d.property_id = p.id
             """
     cursor = execute_query(query)
     return cursor.fetchall()
@@ -175,3 +174,36 @@ def get_properties() -> list[Property]:
     query = "SELECT * from properties"
     cursor = execute_query(query)
     return [Property(**auto_dict(row, cursor)) for row in cursor.fetchall()]
+
+
+def get_image_property(sha1: str, property_id: int) -> ImageProperty:
+    query = "SELECT * from image_property WHERE sha1 = ? AND property_id = ?"
+    cursor = execute_query(query, (sha1, property_id))
+    return ImageProperty(**auto_dict(cursor.fetchone(), cursor))
+
+
+def update_image_property(sha1: str, property_id: int, value: JSON) -> str:
+    query = "UPDATE image_property SET value = ? WHERE sha1 = ? AND property_id = ?"
+    execute_query(query, (json.dumps(value), sha1, property_id))
+    return decode_if_json(value)
+
+
+def get_parameters() -> Parameters:
+    query = "SELECT * FROM parameters"
+    cursor = execute_query(query)
+    return Parameters(**auto_dict(cursor.fetchone(), cursor))
+
+
+def update_folders(folders: list[str]):
+    query = "UPDATE parameters SET folders = ?"
+    execute_query(query, (json.dumps(folders),))
+
+
+def delete_property(property_id):
+    query = "DELETE from properties WHERE id = ?"
+    execute_query(query, (property_id, ))
+
+
+def update_property(new_property: Property):
+    query = "UPDATE properties SET name = ?, type = ? WHERE id = ?"
+    execute_query(query, (new_property.name, new_property.type, new_property.id))

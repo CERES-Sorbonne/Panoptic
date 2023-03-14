@@ -1,3 +1,4 @@
+import concurrent.futures
 import hashlib
 import json
 import os
@@ -7,16 +8,29 @@ from fastapi import HTTPException
 from models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties
 
 import db_utils as db
-from payloads import UpdateTagPayload
+from payloads import UpdateTagPayload, UpdatePropertyPayload
 
 
 def create_property(name: str, property_type: PropertyType) -> Property:
     return db.add_property(name, property_type.value)
 
 
+def update_property(payload: UpdatePropertyPayload) -> Property:
+    existing_property = db.get_property_by_id(payload.id)
+    if not existing_property:
+        raise HTTPException(status_code=400, detail="Trying to modify non existent property")
+    new_property = existing_property.copy(update=payload.dict(exclude_unset=True))
+    db.update_property(new_property)
+    return new_property
+
+
 def get_properties() -> Properties:
     properties = db.get_properties()
     return {prop.id: prop for prop in properties}
+
+
+def delete_property(property_id: str):
+    db.delete_property(property_id)
 
 
 def get_images() -> Images:
@@ -26,19 +40,22 @@ def get_images() -> Images:
     rows = db.get_images()
     result = {}
     for row in rows:
-        sha1, paths, height, width, url, extension, name, property_id, property_name, property_type, value = row
+        sha1, paths, height, width, url, extension, name, property_id, value = row
         if sha1 not in result:
             result[sha1] = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name, extension=extension)
         if property_id:
-            result[sha1].properties[property_id] = PropertyValue(**{'id': property_id, 'name': property_name, 'type': property_type,
-                                                                    'value': db.decode_if_json(value)})
+            result[sha1].properties[property_id] = PropertyValue(**{'propertyId': property_id, 'value': db.decode_if_json(value)})
     return result
 
 
 def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
     # first check that the property and the image exist:
     if db.get_property_by_id(property_id) and db.get_image_by_sha1(sha1):
-        db.add_image_property(sha1, property_id, value)
+        # check if a value already exists
+        if db.get_image_property(sha1, property_id):
+            db.update_image_property(sha1, property_id, value)
+        else:
+            db.add_image_property(sha1, property_id, value)
         return value
     else:
         raise HTTPException(status_code=400, detail="Trying to set a value on a non existent property or sha1")
@@ -48,7 +65,7 @@ def delete_image_property(property_id: int, sha1: str):
     db.delete_image_property(property_id, sha1)
 
 
-def add_image(file_path) -> Image:
+def _proprocess_image(file_path):
     image = pImage.open(file_path)
     name = file_path.split(os.sep)[-1]
     extension = name.split('.')[-1]
@@ -57,8 +74,16 @@ def add_image(file_path) -> Image:
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
+    return name, extension, width, height, sha1_hash, url
 
+
+def add_image(file_path) -> Image:
+    name, extension, width, height, sha1_hash, url = _proprocess_image(file_path)
     # Vérification si sha1_hash existe déjà dans la table images
+    return add_image_to_db(file_path, name, extension, width, height, sha1_hash, url)
+
+
+def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
     image = db.get_image_by_sha1(sha1_hash)
     # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
     if image:
@@ -71,6 +96,18 @@ def add_image(file_path) -> Image:
     else:
         db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
     return db.get_image_by_sha1(sha1_hash)
+
+
+def add_folder(folder):
+    folders = db.get_parameters().folders
+    db.update_folders(list({folder, *folders}))
+    all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
+    all_images = [i for i in all_files if i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        transformed = [executor.submit(_proprocess_image, i) for i in all_images]
+    for future, path in zip(concurrent.futures.as_completed(transformed), all_images):
+        add_image_to_db(path, *future.result())
+    return len(all_images)
 
 
 def create_tag(property_id, value, parent_id) -> Tag:
@@ -95,10 +132,11 @@ def update_tag(payload: UpdateTagPayload) -> Tag:
         raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
     # change only fields of the tags that are set in the payload
     new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
+    db.update_tag(new_tag)
     return new_tag
 
 
-def get_tags(prop: str = None) ->Tags:
+def get_tags(prop: str = None) -> Tags:
     res = {}
     tag_list = db.get_tags(prop)
     for tag in tag_list:

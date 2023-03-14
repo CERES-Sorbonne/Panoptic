@@ -23,8 +23,13 @@ class Property(BaseModel):
     type: str
 
 
-class PropertyValue(Property):
+class PropertyValue(BaseModel):
+    propertyId: int
     value: Any
+
+
+class ImageProperty(PropertyValue):
+    sha1: str
 
 
 class Tag(BaseModel):
@@ -34,6 +39,7 @@ class Tag(BaseModel):
     value: str
     color: Optional[str]
 
+
 class Image(BaseModel):
     sha1: str
     url: str
@@ -42,6 +48,11 @@ class Image(BaseModel):
     paths: list[str]
     extension: str
     properties: Optional[dict[int, PropertyValue]] = {}
+
+
+class Parameters(BaseModel):
+    folders: list[str]
+    tabs: list[dict]
 
 
 Images: TypeAlias = dict[str, Image]

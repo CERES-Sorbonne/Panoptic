@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore} from '../data/models'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty } from '../data/api'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
   images: {} as Images,
@@ -34,30 +34,39 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     this.properties[newProperty.id] = newProperty
   },
 
-  async addPropertyToImage(){
-
+  async addOrUpdatePropertyToImage(sha1: string, propertyId:number, value: any){
+    const newValue:PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
+    if(!this.images[sha1].properties[propertyId]){
+      this.images[sha1].properties[propertyId] = {propertyId, value}
+    }
+    else{
+      this.images[sha1].properties[propertyId].value = newValue.value
+    }
   },
 
-  async updateTag(){
-
+  async updateTag(propId: number, tagId: number, color?:string, parentId?: number, value?: any){
+    const newTag = await apiUpdateTag(tagId, color, parentId, value)
+    this.tags[propId][tagId] = newTag
   },
 
-  async updateProperty(){
-
+  async addFolder(folder: string){
+    apiAddFolder(folder).then(() => globalStore.fetchAllData())
   },
 
-  async updateImageProperty(){
-
+  async updateProperty(propertyId: number, type?: PropertyType, name?: string){
+    const newProperty = await apiUpdateProperty(propertyId, type, name)
+    this.properties[propertyId] = newProperty
   },
 
-  async addFolder(){
-
+  async deleteProperty(propertyId:number){
+    await apiDeleteProperty(propertyId)
+    delete this.properties[propertyId]
   }
 
 })
 
 function getPropertyTree(property: Tags):TagsTree{
-  let tree:TagsTree = {0: {children: {}, localId: '0', name: 'root', id: 0}}
+  let tree:TagsTree = {0: {children: {}, localId: '0', value: 'root', id: 0}}
   let refs:any = {}
   refs[0] = tree[0]
   Object.values(property).forEach((tag:Tag) => {

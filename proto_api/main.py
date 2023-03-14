@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from fastapi import FastAPI, Body
@@ -6,10 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 
 from core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
-    update_tag, get_tags, get_properties
+    update_tag, get_tags, get_properties, add_folder, delete_property
 from models import Property, Images, Tag, Image, Tags, Properties
 from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload
+    UpdateTagPayload, UpdatePropertyPayload
 
 app = FastAPI()
 app.add_middleware(
@@ -33,6 +32,18 @@ async def create_property_route(payload: PropertyPayload) -> Property:
 @app.get("/property")
 async def get_properties_route() -> Properties:
     return get_properties()
+
+
+@app.patch("/property")
+async def update_property_route(payload: UpdatePropertyPayload) -> Property:
+    return update_property(payload)
+
+
+@app.delete('/property/{property_id}')
+async def delete_property_route(property_id: str):
+    delete_property(property_id)
+    return f"Property {property_id} correctly deleted"
+
 
 # Route pour ajouter une image
 @app.post("/images")
@@ -92,15 +103,9 @@ async def update_tag_route(payload: UpdateTagPayload) -> Tag:
     return update_tag(payload)
 
 
-@app.patch("/image_property")
-async def update_image_property(new_value: str = Body(..., embed=True)) -> str:
-    pass
+@app.post("/folders")
+async def add_folder_route(folder: str = Body(..., embed=True)):
+    nb_images = add_folder(folder)
+    return f"{nb_images} images were added to the library"
 
-
-@app.patch("/property")
-async def update_property(payload: str):
-    pass
-
-# TODO: add update image property
 # TODO: add update property
-# TODO: add add folder

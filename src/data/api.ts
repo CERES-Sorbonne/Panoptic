@@ -3,7 +3,7 @@
  */
 
 // à virer
-import { Property, PropertyType, Tag } from './models'
+import { Property, PropertyType, PropertyValue, Tag } from './models'
 
 import axios from 'axios'
 
@@ -28,15 +28,15 @@ export const apiGetProperties = async () => {
 
 export const apiAddTag = async (
     propertyId: number, 
-    tagValue: string, 
+    value: string, 
     color?: string, 
     parentId?: number
     ):Promise<Tag> => {
     const res = await axios.post('/tags', {
-        property_id: propertyId,
-        value: tagValue,
-        color: color,
-        parent_id: parentId,
+        propertyId,
+        value,
+        color,
+        parentId,
     })
     return res.data
 }
@@ -44,4 +44,26 @@ export const apiAddTag = async (
 export const apiAddProperty = async(name: string, type: PropertyType):Promise<Property> => {
     const res = await axios.post('/property', {name, type})
     return res.data
+}
+
+export const apiAddPropertyToImage = async(sha1: string, propertyId:number, value: any):Promise<PropertyValue> => {
+    const res = await axios.post('/image_property', {sha1, propertyId, value})
+    return res.data
+}
+
+export const apiUpdateTag = async(id: number, color?:string, parentId?: number, value?: any):Promise<Tag> => {
+    const res = await axios.patch('/tags', {id, color, parentId, value})
+    return res.data
+}
+
+export const apiAddFolder = async(folder: string) => {
+    return await axios.post('/folders', {folder})
+}
+
+export const apiUpdateProperty = async(propertyId: number, type?: PropertyType, name?: string):Promise<Property> => {
+    return await axios.patch('/property', {propertyId, type, name})
+}
+
+export const apiDeleteProperty = async(propertyId: number) => {
+    return await axios.delete(`/property/${propertyId}`)
 }

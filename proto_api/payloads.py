@@ -1,48 +1,43 @@
 from typing import Optional, Any
-
-from pydantic import BaseModel
+from fastapi_camelcase import CamelModel
 
 from models import PropertyType, JSON
 
 
-class ImagePayload(BaseModel):
+class ImagePayload(CamelModel):
     file_path: str
 
 
-class PropertyPayload(BaseModel):
+class PropertyPayload(CamelModel):
     name: str
     type: PropertyType
 
 
-class UpdatePropertyPayload(BaseModel):
+class UpdatePropertyPayload(CamelModel):
     id: int
     name: Optional[str]
     type: Optional[PropertyType]
 
 
-class DeletePropertyPayload(BaseModel):
-    id: int
-
-
-class AddImagePropertyPayload(BaseModel):
+class AddImagePropertyPayload(CamelModel):
     property_id: int
     sha1: str
     value: Any
 
 
-class DeleteImagePropertyPayload(BaseModel):
+class DeleteImagePropertyPayload(CamelModel):
     property_id: int
     sha1: str
 
 
-class AddTagPayload(BaseModel):
+class AddTagPayload(CamelModel):
     property_id: int
     value: str
     parent_id: Optional[int] = None
     color: Optional[str]
 
 
-class UpdateTagPayload(BaseModel):
+class UpdateTagPayload(CamelModel):
     id: int
     value: Optional[str]
     parent_id: Optional[int]
