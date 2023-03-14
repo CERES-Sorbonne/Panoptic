@@ -5,13 +5,10 @@ import TagNode from './TagNode.vue';
 const emits = defineEmits(['update:selected'])
 
 const props = defineProps({
-    data: {type: Array, required: true},
+    root: {type: Object, required: true},
     selected: {type: Array, required: true}
 })
 
-// const tagDict = computed(() => {
-    
-// })
 
 function tagName(parentPath, tagName) {
     if(parentPath == '') {
@@ -22,28 +19,34 @@ function tagName(parentPath, tagName) {
 
 function recursiveSelected(node, parentPath='') {
     let res = []
-    if(!node.selected) {
+    if(node.selected) {
+        return [tagName(parentPath, node.value)]
+    }
+    if(!node.selected && !Object.keys(node.children).length) {
         return res
     }
     if(node.children) {
-        let selectedChildren = node.children.filter(c => c.selected)
-        if(selectedChildren.length == node.children.length || selectedChildren.length == 0) {
-            return [tagName(parentPath, node.name)]
-        }
-        else {
-            for(let child of node.children) {
-                res.push(...recursiveSelected(child, tagName(parentPath, node.name)))
-            }
-            return res
-        }
+        Object.values(node.children).map(c => recursiveSelected(c, tagName(parentPath, node.value)))
+        .forEach(arr => res.push(...arr))
+
+        // let selectedChildren = Object.values(node.children).filter(c => c.selected)
+        // if(selectedChildren.length == node.children.length || selectedChildren.length == 0) {
+        //     return [tagName(parentPath, node.value)]
+        // }
+        // else {
+        //     for(let child of Object.values(node.children)) {
+        //         res.push(...recursiveSelected(child, tagName(parentPath, node.value)))
+        //     }
+        //     return res
+        // }
     }
-    return [tagName(parentPath, node.name)]
+    return res
 }
 
-watch(() => props.data, (data) => {
+watch(() => props.root, (root) => {
     console.log('lala')
     let res = []
-    for(let node of data) {
+    for(let node of Object.values(root.children)) {
         res.push(...recursiveSelected(node))
     }
     console.log(res)
@@ -69,8 +72,9 @@ watch(() => props.data, (data) => {
                 <a class="button">Lancer la recherche →</a>
             </div>
             <hr> -->
+            <!-- {{ props.root }} -->
             <div id="tags-panel-tree">
-                <TagNode :data="data" v-for="data in props.data"/>
+                <TagNode :node="node" v-for="node in props.root.children"/>
             </div>
         </nav>
     </div>
@@ -109,7 +113,7 @@ watch(() => props.data, (data) => {
     padding: 0;
     margin: 0;
     overflow-y: scroll;
-    overflow-x: hidden;
+    overflow-x: scroll;
     /* Cacher la barre de défilement pour Internet Explorer, Edge et Firefox */
     -ms-overflow-style: none;
     scrollbar-width: none;

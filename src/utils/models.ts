@@ -58,7 +58,9 @@ export interface Tags {
 }
 
 // a tag inside a tagstree
-export interface TreeTag extends Tags {
+export interface TreeTag{
+    name: string
+    id: number
     children: TagsTree
     localId: string
 }
@@ -74,10 +76,8 @@ export interface PropsTree {
 export interface GlobalStore {
     tags: Tags,
     tagTrees: ComputedRef<PropsTree>
-    // tagTrees: any
     properties: Properties
     images: Images
-    // imageList: ComputedRef<{url: String, imageName: String}[]>
-    imageList: any
+    imageList: ComputedRef<{url: String, imageName: String}[]>
     [otherOptions: string]: unknown
 }

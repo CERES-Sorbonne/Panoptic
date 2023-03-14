@@ -1,14 +1,22 @@
 <script setup>
 import {ref, computed, watch} from 'vue'
 import TagNode from './TagNode.vue'
+import { globalStore } from '../../store';
 
+const emits = defineEmits(['propagate-unselect'])
 
 const props = defineProps({
-    data: {type: Object, required: true}
+    node: {type: Object, required: true}
 })
 
-// const selected = ref(false)
-const selected = computed(() => props.data.selected)
+const selected = computed(() => props.node.selected)
+const expanded = computed(() => props.node.expanded)
+const hasChildren = computed(() => Object.keys(props.node.children).length)
+const anyChildSelected = computed(() => {
+    return allChildren(props.node).some(c => c.selected && c.localId !== props.node.localId)
+})
+
+
 
 const tagClass = computed(() => {
     let className = 'small-tag'
@@ -19,30 +27,72 @@ const tagClass = computed(() => {
 })
 
 function selectTag() {
-    props.data.selected = ! props.data.selected
+    props.node.selected = ! props.node.selected
+    if(props.node.selected) {
+        emits('propagate-unselect')
+        Object.values(props.node.children).forEach(propagateSelect)
+    }
 }
 
-watch(selected, (value) => {
-    if(!value && props.data.children) {
-        for(let child of props.data.children) {
-            child.selected = false
-        }
+function expandTag() {
+    console.log(expanded.value)
+    props.node.expanded = ! props.node.expanded
+}
+
+function propagateUnselect() {
+    props.node.selected = false
+    emits("propagate-unselect")
+}
+
+function propagateSelect(root) {
+    Object.values(root.children).forEach(child => propagateSelect(child))
+    root.selected = false
+}
+
+function allChildren(root) {
+    let res = [root]
+    if(!Object.values(root.children).length) {
+        return res
     }
+    Object.values(root.children).map(allChildren).forEach(arr => res.push(...arr))
+    return res 
+}
+
+function addTag() {
+    let node = props.node
+    let tagName = prompt('Tag Name')
+    if(!tagName) {
+        return
+    }
+    globalStore.addTag(node.property_id, tagName, node.id, null)
+}
+
+const caretClass = computed(() => {
+    let className = 'bi bi-caret-right-fill'
+    if(expanded.value) {
+        className += ' expand'
+    }
+    else {
+        className += ' hide'
+    }
+    if(anyChildSelected.value) {
+        className += ' text-info'
+    }
+
+    return className
 })
 
 </script>
 
 <template>
-    <a v-if="!props.data.children" :class="tagClass" @click="selectTag">{{ props.data.name }}</a>
-    <template v-else>
-        <div class="parent-tag-container">
-            <a :class="tagClass" @click="selectTag">{{ props.data.name }}</a>
-            <div class="parent-arrow" :style="'transform: ' + (selected ? 'rotate(90deg);' : 'none;')"></div>
-        </div>
-        <div class="tag-list" v-show="selected">
-            <TagNode v-for="child in props.data.children" :data="child"/>
-        </div>
-    </template>
+    <div class="parent-tag-container" :class="anyChildSelected ? ' highlight' : ' normal'">
+        <a :class="tagClass" @click="selectTag">{{ props.node.value }} [{{ props.node.localId }}]</a>
+        <span v-if="hasChildren" :class="caretClass" @click="expandTag"></span>
+        <span class="bi bi-plus-square-fill" @click="addTag"></span>
+    </div>
+    <div class="tag-list" v-show="expanded">
+        <TagNode v-for="child in props.node.children" :node="child" @propagate-unselect="propagateUnselect"/>
+    </div>
     
 
 </template>
@@ -117,17 +167,18 @@ watch(selected, (value) => {
     gap: 0.4rem;
 }
 
-.parent-arrow::before {
-    content: url("data:image/svg+xml,%3Csvg width='11' height='12' viewBox='0 0 11 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.75 4.70096C10.75 5.27831 10.75 6.72169 9.75 7.29904L2.25 11.6292C1.25 12.2065 -5.89441e-07 11.4848 -5.38967e-07 10.3301L-1.60415e-07 1.66987C-1.09942e-07 0.51517 1.25 -0.206516 2.25 0.370835L9.75 4.70096Z' fill='rgb(80, 80, 80)'/%3E%3C/svg%3E%0A");
-}
 
-.parent-arrow {
-    /* transform: none; */
-    transition: 0.1s;
-}
-
-.parent-arrow:hover {
-    cursor: pointer;
-}
+.bi-caret-right-fill {
+    display: inline-block;
+    transition: 0.2s;
+  }
+  
+  .bi-caret-right-fill.expand {
+    transform: rotate(90deg) !important;
+  }
+  
+  .bi-caret-right-fill.hide {
+    transform: rotate(0deg) !important;
+  }
 
 </style>
