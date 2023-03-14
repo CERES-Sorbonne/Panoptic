@@ -22,34 +22,21 @@ function recursiveSelected(node, parentPath='') {
     if(node.selected) {
         return [tagName(parentPath, node.value)]
     }
-    if(!node.selected && !Object.keys(node.children).length) {
+    if(!node.selected && !node.children) {
         return res
     }
     if(node.children) {
-        Object.values(node.children).map(c => recursiveSelected(c, tagName(parentPath, node.value)))
+        node.children.map(c => recursiveSelected(c, tagName(parentPath, node.value)))
         .forEach(arr => res.push(...arr))
-
-        // let selectedChildren = Object.values(node.children).filter(c => c.selected)
-        // if(selectedChildren.length == node.children.length || selectedChildren.length == 0) {
-        //     return [tagName(parentPath, node.value)]
-        // }
-        // else {
-        //     for(let child of Object.values(node.children)) {
-        //         res.push(...recursiveSelected(child, tagName(parentPath, node.value)))
-        //     }
-        //     return res
-        // }
     }
     return res
 }
 
 watch(() => props.root, (root) => {
-    console.log('lala')
     let res = []
-    for(let node of Object.values(root.children)) {
+    for(let node in root.children) {
         res.push(...recursiveSelected(node))
     }
-    console.log(res)
     emits('update:selected', res)
 }, 
 {deep: true}

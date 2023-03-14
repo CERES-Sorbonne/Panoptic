@@ -56,6 +56,11 @@ export const apiUpdateTag = async(id: number, color?:string, parentId?: number, 
     return res.data
 }
 
+export const apiDeleteTagParent = async(id: number, parentId: number):Promise<any> => {
+    const res = await axios.delete('/tags/parent', {params:{tag_id: id, parent_id: parentId}})
+    return res.data
+}
+
 export const apiAddFolder = async(folder: string) => {
     return await axios.post('/folders', {folder})
 }

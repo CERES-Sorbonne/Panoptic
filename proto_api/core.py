@@ -2,6 +2,8 @@ import concurrent.futures
 import hashlib
 import json
 import os
+from typing import List
+
 from PIL import Image as pImage
 from fastapi import HTTPException
 
@@ -42,9 +44,11 @@ def get_images() -> Images:
     for row in rows:
         sha1, paths, height, width, url, extension, name, property_id, value = row
         if sha1 not in result:
-            result[sha1] = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name, extension=extension)
+            result[sha1] = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
+                                 extension=extension)
         if property_id:
-            result[sha1].properties[property_id] = PropertyValue(**{'propertyId': property_id, 'value': db.decode_if_json(value)})
+            result[sha1].properties[property_id] = PropertyValue(
+                **{'propertyId': property_id, 'value': db.decode_if_json(value)})
     return result
 
 
@@ -102,7 +106,8 @@ def add_folder(folder):
     folders = db.get_parameters().folders
     db.update_folders(list({folder, *folders}))
     all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
-    all_images = [i for i in all_files if i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+    all_images = [i for i in all_files if
+                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
     with concurrent.futures.ProcessPoolExecutor() as executor:
         transformed = [executor.submit(_proprocess_image, i) for i in all_images]
     for future, path in zip(concurrent.futures.as_completed(transformed), all_images):
@@ -134,6 +139,14 @@ def update_tag(payload: UpdateTagPayload) -> Tag:
     new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
     db.update_tag(new_tag)
     return new_tag
+
+
+def delete_tag(tag_id: int) -> List[int]:
+    return db.delete_tag_by_id(tag_id)
+
+
+def delete_tag_parent(tag_id: int, parent_id: int) -> List[int]:
+    return db.delete_tag_parent_from_id(tag_id, parent_id)
 
 
 def get_tags(prop: str = None) -> Tags:
