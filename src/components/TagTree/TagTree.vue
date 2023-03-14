@@ -19,14 +19,15 @@ function tagName(parentPath, tagName) {
 
 function recursiveSelected(node, parentPath='') {
     let res = []
+    console.log(node.children)
     if(node.selected) {
         return [tagName(parentPath, node.value)]
     }
-    if(!node.selected && !Object.keys(node.children).length) {
+    if(!node.selected && !node.children) {
         return res
     }
     if(node.children) {
-        Object.values(node.children).map(c => recursiveSelected(c, tagName(parentPath, node.value)))
+        node.children.map(c => recursiveSelected(c, tagName(parentPath, node.value)))
         .forEach(arr => res.push(...arr))
 
         // let selectedChildren = Object.values(node.children).filter(c => c.selected)
@@ -44,9 +45,10 @@ function recursiveSelected(node, parentPath='') {
 }
 
 watch(() => props.root, (root) => {
-    console.log('lala')
+    console.log('lala:', root)
     let res = []
-    for(let node of Object.values(root.children)) {
+    for(let node in root.children) {
+        console.log('node:', node)
         res.push(...recursiveSelected(node))
     }
     console.log(res)

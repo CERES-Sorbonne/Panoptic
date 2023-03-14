@@ -58,7 +58,7 @@ const tags = computed(() => globalStore.tagTrees)
             </div>
             <div class="col">
                 <br />
-                <textarea :value="JSON.stringify(tags, null, 4)" rows="20" cols="80"></textarea>
+                <textarea :value="JSON.stringify(globalStore.tagTrees['1'], null, 4)" rows="20" cols="80"></textarea>
                 <div style="min-height: 55px;">
                     <TabNav v-model:selected="selectedTab"/>
                 </div>

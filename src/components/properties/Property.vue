@@ -1,7 +1,7 @@
 <script setup>
 import {ref, computed, reactive} from 'vue'
 import TagTree from '../TagTree/TagTree.vue';
-import MultiTagProperty from './MultiTagProperty.vue';
+import MultiTagProperty from './TagProperty.vue';
 
 const props = defineProps({
     data: Object,
