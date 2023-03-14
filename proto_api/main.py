@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 
 from core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
-    update_tag, get_tags, get_properties, add_folder, delete_property
+    update_tag, get_tags, get_properties, add_folder, delete_property, update_property
 from models import Property, Images, Tag, Image, Tags, Properties
 from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
