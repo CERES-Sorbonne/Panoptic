@@ -1,12 +1,14 @@
 <script setup>
 import { watch } from 'vue';
 import TagNode from './TagNode.vue';
+import { globalStore } from '../../data/store';
 
 const emits = defineEmits(['update:selected'])
 
 const props = defineProps({
     root: {type: Object, required: true},
-    selected: {type: Array, required: true}
+    selected: {type: Array, required: true},
+    propertyId: {type: String, required: true}
 })
 
 
@@ -42,9 +44,18 @@ watch(() => props.root, (root) => {
 {deep: true}
 )
 
+function addRootTag() {
+    let value = prompt('tag name: ')
+    if(!value) {
+        return
+    }
+    globalStore.addTag(props.root.propertyId, value, undefined)
+}
+
 </script>
 
 <template>
+    <span class="bi bi-plus-square-fill" @click="addRootTag"></span>
     <div id="tags-panel-container">
         <nav id="tags-panel">
             <!-- <div id="title-button-container">

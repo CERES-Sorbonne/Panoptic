@@ -9,6 +9,7 @@ const props = defineProps({
     node: {type: Object, required: true}
 })
 
+const hover = ref(false)
 const selected = computed(() => props.node.selected)
 const expanded = computed(() => props.node.expanded)
 const hasChildren = computed(() => Object.keys(props.node.children).length)
@@ -80,6 +81,7 @@ function addTag() {
         return
     }
     globalStore.addTag(node.property_id, tagName, node.id, null)
+    props.node.expanded = true
 }
 
 function delTag() {
@@ -90,16 +92,21 @@ function delTag() {
 
 }
 
-
+function log(value) {
+    console.log(value)
+}
 
 </script>
 
 <template>
-    <div class="parent-tag-container" :class="anyChildSelected ? ' highlight' : ' normal'">
+    <div class="parent-tag-container" :class="anyChildSelected ? ' highlight' : ' normal'"
+    @mouseenter="hover = true"
+    @mouseleave="hover = false"
+    >
         <a :class="tagClass" @click="selectTag">{{ props.node.value }} [{{ props.node.localId }}]</a>
         <span v-if="hasChildren" :class="caretClass" @click="expandTag"></span>
-        <span class="bi bi-plus-square-fill" @click="addTag"></span>
-        <span class="bi bi-dash-square-fill" @click="delTag"></span>
+        <span v-if="hover" class="bi bi-plus-square-fill" @click="addTag"></span>
+        <span v-if="hover" class="bi bi-dash-square-fill" @click="delTag"></span>
     </div>
     <div class="tag-list" v-show="expanded">
         <TagNode v-for="child in props.node.children" :node="child" @propagate-unselect="propagateUnselect"/>

@@ -1,5 +1,6 @@
 <script setup>
 import {ref, computed, reactive} from 'vue'
+import { globalStore } from '../../data/store';
 import TagTree from '../TagTree/TagTree.vue';
 import MultiTagProperty from './TagProperty.vue';
 
@@ -41,7 +42,7 @@ function toggle() {
         </span>
     </div>
     <div v-show="expand" class="ms-2">
-        <template v-if="type == 'multi_tags'">
+        <template v-if="['multi_tags', 'tags'].includes(type)">
             <MultiTagProperty :data="props.data" :filter="filter"/>
         </template>
     </div>
