@@ -96,7 +96,7 @@ def delete_image_property(property_id, sha1):
     execute_query(query, (property_id, sha1))
 
 
-def get_property_by_id(property_id) -> [Property|None]:
+def get_property_by_id(property_id) -> [Property | None]:
     query = """
             SELECT *
             FROM properties
@@ -124,6 +124,13 @@ def get_tag_by_id(tag_id: int):
     cursor = execute_query(query, (str(tag_id),))
     row = cursor.fetchone()
     return Tag(**auto_dict(row, cursor))
+
+
+def delete_tag_by_id(tag_id: int):
+    query = "DELETE FROM tags WHERE id = ?"
+    cursor = execute_query(query, (str(tag_id),))
+    row = cursor.fetchone()
+    return row
 
 
 def tag_in_ancestors(tag_id, parent_id) -> bool:
@@ -201,7 +208,7 @@ def update_folders(folders: list[str]):
 
 def delete_property(property_id):
     query = "DELETE from properties WHERE id = ?"
-    execute_query(query, (property_id, ))
+    execute_query(query, (property_id,))
 
 
 def update_property(new_property: Property):

@@ -26,6 +26,21 @@ const tagClass = computed(() => {
     return className
 })
 
+const caretClass = computed(() => {
+    let className = 'bi bi-caret-right-fill'
+    if(expanded.value) {
+        className += ' expand'
+    }
+    else {
+        className += ' hide'
+    }
+    if(anyChildSelected.value) {
+        className += ' text-info'
+    }
+
+    return className
+})
+
 function selectTag() {
     props.node.selected = ! props.node.selected
     if(props.node.selected) {
@@ -67,20 +82,15 @@ function addTag() {
     globalStore.addTag(node.property_id, tagName, node.id, null)
 }
 
-const caretClass = computed(() => {
-    let className = 'bi bi-caret-right-fill'
-    if(expanded.value) {
-        className += ' expand'
-    }
-    else {
-        className += ' hide'
-    }
-    if(anyChildSelected.value) {
-        className += ' text-info'
-    }
+function delTag() {
+    let node = props.node
+    globalStore.deleteTag(node.property_id, node.id, node.localParent).then(() => {
+        console.log('deleted')
+    })
 
-    return className
-})
+}
+
+
 
 </script>
 
@@ -89,6 +99,7 @@ const caretClass = computed(() => {
         <a :class="tagClass" @click="selectTag">{{ props.node.value }} [{{ props.node.localId }}]</a>
         <span v-if="hasChildren" :class="caretClass" @click="expandTag"></span>
         <span class="bi bi-plus-square-fill" @click="addTag"></span>
+        <span class="bi bi-dash-square-fill" @click="delTag"></span>
     </div>
     <div class="tag-list" v-show="expanded">
         <TagNode v-for="child in props.node.children" :node="child" @propagate-unselect="propagateUnselect"/>

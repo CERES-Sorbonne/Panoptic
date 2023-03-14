@@ -62,7 +62,7 @@ export interface Tags {
 export interface TreeTag{
     value: string
     id: number
-    children: TagsTree
+    children: TreeTag[]
     localId: string
 }
 
@@ -76,7 +76,7 @@ export interface PropsTree {
 
 export interface GlobalStore {
     tags: Tags,
-    tagTrees: ComputedRef<PropsTree>
+    tagTrees: ComputedRef<TagsTree>
     properties: Properties
     images: Images
     imageList: ComputedRef<{url: String, imageName: String}[]>
@@ -86,7 +86,7 @@ export interface GlobalStore {
 
 export interface ReactiveStore{
     tags: Tags,
-    tagTrees: PropsTree
+    tagTrees: TagsTree
     properties: Properties
     images: Images
     imageList: {url: String, imageName: String}[]
