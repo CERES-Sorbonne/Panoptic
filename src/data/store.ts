@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTag } from '../data/api'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent } from '../data/api'
 import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
@@ -29,14 +29,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.tags[propertyId][newTag.id] = newTag
     },
 
-    async deleteTag(propertyId: number, tagId: number, parent_id: number) {
-        const newTag = await apiDeleteTag(tagId, parent_id)
-        if(newTag) {
-            this.tags[propertyId][tagId] = newTag
-        }
-        else {
-            delete this.tags[propertyId][tagId]
-        }
+    async deleteTagParent(propertyId: number, tagId: number, parent_id: number) {
+        const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
+        this.tags = await apiGetTags()
     },
 
     async addProperty(name: string, type: PropertyType){

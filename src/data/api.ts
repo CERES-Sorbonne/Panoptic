@@ -56,8 +56,8 @@ export const apiUpdateTag = async(id: number, color?:string, parentId?: number, 
     return res.data
 }
 
-export const apiDeleteTag = async(id: number, parentId?: number):Promise<Tag> => {
-    const res = await axios.delete('/tags', {params:{tag_id: id, parent_id: parentId}})
+export const apiDeleteTagParent = async(id: number, parentId: number):Promise<any> => {
+    const res = await axios.delete('/tags/parent', {params:{tag_id: id, parent_id: parentId}})
     return res.data
 }
 

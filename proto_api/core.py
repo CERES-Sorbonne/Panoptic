@@ -2,13 +2,15 @@ import concurrent.futures
 import hashlib
 import json
 import os
+from typing import List
+
 from PIL import Image as pImage
 from fastapi import HTTPException
 
 from models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties
 
 import db_utils as db
-from payloads import UpdateTagPayload, UpdatePropertyPayload, DeleteTagPayload
+from payloads import UpdateTagPayload, UpdatePropertyPayload
 
 
 def create_property(name: str, property_type: PropertyType) -> Property:
@@ -139,21 +141,12 @@ def update_tag(payload: UpdateTagPayload) -> Tag:
     return new_tag
 
 
-def delete_tag(tag_id: int, parent_id: int | None) -> bool:
-    if parent_id is not None:
-        existing_tag = db.get_tag_by_id(tag_id)
-        if not existing_tag:
-            raise HTTPException(status_code=400, detail="Trying to delete non existent tag")
-        if len(existing_tag.parents) > 1:
-            pass  # remove parent from node
-            existing_tag.parents.remove(parent_id)
-            db.update_tag(existing_tag)
-            return existing_tag
-
+def delete_tag(tag_id: int) -> List[int]:
     return db.delete_tag_by_id(tag_id)
 
 
-
+def delete_tag_parent(tag_id: int, parent_id: int) -> List[int]:
+    return db.delete_tag_parent_from_id(tag_id, parent_id)
 
 
 def get_tags(prop: str = None) -> Tags:

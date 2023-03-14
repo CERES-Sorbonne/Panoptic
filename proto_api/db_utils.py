@@ -127,10 +127,35 @@ def get_tag_by_id(tag_id: int):
 
 
 def delete_tag_by_id(tag_id: int):
+    res = [tag_id]
     query = "DELETE FROM tags WHERE id = ?"
-    cursor = execute_query(query, (str(tag_id),))
-    row = cursor.fetchone()
-    return row
+    execute_query(query, (str(tag_id),))
+
+    tags = get_tags_by_parent_id(tag_id)
+    [res.extend(delete_tag_parent_from_tag(t, tag_id)) for t in tags]
+
+    return res
+
+
+def get_tags_by_parent_id(parent_id: int):
+    query = f"SELECT tags.* FROM tags, json_each(tags.parents) WHERE json_each.value = {parent_id}"
+    cursor = execute_query(query)
+
+    return [Tag(**auto_dict(row, cursor)) for row in cursor.fetchall()]
+
+
+def delete_tag_parent_from_id(tag_id: int, parent_id: int):
+    tag = get_tag_by_id(tag_id)
+    return delete_tag_parent_from_tag(tag, parent_id)
+
+
+def delete_tag_parent_from_tag(tag: Tag, parent_id: int):
+    tag.parents.remove(parent_id)
+    if not tag.parents:
+        return delete_tag_by_id(tag.id)
+    else:
+        update_tag(tag)
+        return []
 
 
 def tag_in_ancestors(tag_id, parent_id) -> bool:
