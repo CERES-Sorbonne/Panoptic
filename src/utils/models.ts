@@ -74,10 +74,17 @@ export interface PropsTree {
 export interface GlobalStore {
     tags: Tags,
     tagTrees: ComputedRef<PropsTree>
-    // tagTrees: any
     properties: Properties
     images: Images
-    // imageList: ComputedRef<{url: String, imageName: String}[]>
-    imageList: any
+    imageList: ComputedRef<{url: String, imageName: String}[]>
+    [otherOptions: string]: unknown
+}
+
+export interface ReactiveStore{
+    tags: Tags,
+    tagTrees: PropsTree
+    properties: Properties
+    images: Images
+    imageList: {url: String, imageName: String}[]
     [otherOptions: string]: unknown
 }

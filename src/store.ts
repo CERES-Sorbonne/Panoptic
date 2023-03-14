@@ -1,20 +1,19 @@
-import { ComputedRef } from 'vue'
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty } from './utils/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree } from './utils/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore} from './utils/models'
 
-export const globalStore: GlobalStore = reactive({
+export const globalStore: ReactiveStore = reactive<GlobalStore>({
   images: {} as Images,
   tags: {} as Tags,
   properties: {} as Properties,
   
-  imageList: computed(():any => {
+  imageList: computed(() => {
     return Object.keys(globalStore.images).map(sha1 => {
       return {url: SERVER_PREFIX + globalStore.images[sha1].url, imageName: sha1}
   })}),
 
   tagTrees: computed(() => {
-    const tree:any = {}
+    const tree:PropsTree = {}
     Object.entries(globalStore.tags).forEach(([propId, tags]) => {tree[parseInt(propId)] = getPropertyTree(tags)})
     return tree 
   }),
