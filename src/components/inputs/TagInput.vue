@@ -19,11 +19,11 @@
 </template>
 
 <script setup>
-import TagBadge from './TagBadge.vue';
+import TagBadge from '../TagTree/TagBadge.vue';
 
 import {ref, computed, onMounted, onUnmounted} from 'vue'
 
-import {globalStore} from '../store'
+import {globalStore} from '../../data/store'
 
 const addTag = async () => {
   await globalStore.addTag(props.image, tagInput.value)

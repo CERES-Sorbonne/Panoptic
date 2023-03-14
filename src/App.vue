@@ -1,6 +1,6 @@
 <script setup>
   import { RouterLink, RouterView } from 'vue-router'
-  import { globalStore } from './store'
+  import { globalStore } from './data/store'
   import { onMounted } from 'vue'
 
   onMounted(() => {

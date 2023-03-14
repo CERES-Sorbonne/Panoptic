@@ -33,10 +33,10 @@ export const apiAddTag = async (
     parentId?: number
     ):Promise<Tag> => {
     const res = await axios.post('/tags', {
-        propertyId,
+        property_id: propertyId,
         value: tagValue,
-        ...(color && {color}),
-        ...(parentId && {parentId})
+        color: color,
+        parent_id: parentId,
     })
     return res.data
 }

@@ -58,7 +58,9 @@ export interface Tags {
 }
 
 // a tag inside a tagstree
-export interface TreeTag extends Tags {
+export interface TreeTag{
+    name: string
+    id: number
     children: TagsTree
     localId: string
 }

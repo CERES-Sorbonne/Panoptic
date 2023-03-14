@@ -1,15 +1,13 @@
 <script setup>
 
-import { reactive, ref } from 'vue';
-import ImageGroup from '../components/ImageGroup.vue';
+import { reactive, ref, computed } from 'vue';
 import ExpandOption from '../components/Menu/ExpandOption.vue';
 import MainOption from '../components/Menu/MainOption.vue';
 import Property from '../components/properties/Property.vue';
-import TabContent from '../components/TabContent.vue';
-import TabNav from '../components/TabNav.vue';
-import TagTree from '../components/TagTree/TagTree.vue';
+import TabContent from '../components/layout/TabContent.vue';
+import TabNav from '../components/layout/TabNav.vue';
 import { fakeStore } from '../fakestore';
-import { globalStore } from '../store';
+import { globalStore } from '../data/store';
 
 const data = reactive({
     selected: [],
@@ -20,14 +18,14 @@ const selectedTab = ref('')
 
 const store = fakeStore
 
-const store2 = globalStore
+const tags = computed(() => globalStore.tagTrees)
 
 </script>
 
 <template>
     <div class=" ms-5 me-5">
         <div class="row">
-            <div class="col-3 bg-warning text-white p-0">
+            <div class="col-4 bg-warning text-white p-0">
                 <div class="bg-secondary" style="height: 55px;">
                     <h1 class="text-center">Panoptic</h1>
                 </div>
@@ -49,7 +47,7 @@ const store2 = globalStore
                         <li class="list-group-item">
                             <MainOption name="Properties">
                                 <ul class="list-group">
-                                    <li class="list-group-item" v-for="property in store2.properties">
+                                    <li class="list-group-item" v-for="property in globalStore.properties">
                                         <Property :data="property" />
                                     </li>
                                 </ul>
@@ -59,9 +57,8 @@ const store2 = globalStore
                 </div>
             </div>
             <div class="col">
-                {{ store2.properties }}
                 <br />
-                {{ store2.tagTrees }}
+                <textarea :value="JSON.stringify(tags, null, 4)" rows="20" cols="80"></textarea>
                 <div style="min-height: 55px;">
                     <TabNav v-model:selected="selectedTab"/>
                 </div>

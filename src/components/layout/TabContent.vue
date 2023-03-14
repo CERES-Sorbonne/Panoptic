@@ -1,9 +1,9 @@
 <script setup>
 import { reactive, computed, watch } from 'vue';
-import { fakeStore } from '../fakestore';
+import { fakeStore } from '../../fakestore';
 import ImageGroup from './ImageGroup.vue';
-import DropdownInput from './inputs/DropdownInput.vue';
-import ListInput from './inputs/ListInput.vue';
+import DropdownInput from '../inputs/DropdownInput.vue';
+import ListInput from '../inputs/ListInput.vue';
 
 const store = fakeStore
 

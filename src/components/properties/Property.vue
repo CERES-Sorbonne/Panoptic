@@ -1,5 +1,5 @@
 <script setup>
-import {ref, computed} from 'vue'
+import {ref, computed, reactive} from 'vue'
 import TagTree from '../TagTree/TagTree.vue';
 import MultiTagProperty from './MultiTagProperty.vue';
 
@@ -7,7 +7,8 @@ const props = defineProps({
     data: Object,
 })
 
-const expand = ref(false)
+const expand = ref(true)
+const filter = reactive({})
 
 const name = computed(() => props.data.name)
 const type = computed(() => props.data.type)
@@ -41,8 +42,7 @@ function toggle() {
     </div>
     <div v-show="expand" class="ms-2">
         <template v-if="type == 'multi_tags'">
-            <MultiTagProperty :data="props.data"/>
-            <!-- <TagTree :data="{}" v-model:selected="props.data.selected"/> -->
+            <MultiTagProperty :data="props.data" :filter="filter"/>
         </template>
     </div>
 </template>

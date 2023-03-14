@@ -1,29 +1,4 @@
-import { computed, reactive, watch } from 'vue'
-import { globalStore } from './data/store'
-
-const store = globalStore
-
-function saveTabState(store) {
-  localStorage.setItem('tabs', JSON.stringify(store.tabs))
-  localStorage.setItem('selectedTabName', store.selectedTabName)
-}
-
-function loadTabState(store) {
-  try {
-    let tabs = JSON.parse(localStorage.getItem('tabs'))
-    let selectedTabName = localStorage.getItem('selectedTabName')
-
-    if(tabs) {
-      store.tabs = tabs
-    }
-    if(selectedTabName) {
-      store.selectTab(selectedTabName)
-    }
-  }
-  catch {
-    // ignore
-  }
-}
+import { reactive } from 'vue'
 
 
 export const fakeStore = reactive({
@@ -49,7 +24,7 @@ export const fakeStore = reactive({
   tabs: [
   ],
   selectedTabName: '',
-  addTab(tabName) {
+  addTab(tabName: string) {
     this.tabs.push({
       name: tabName,
       state: {
@@ -59,24 +34,40 @@ export const fakeStore = reactive({
       },
       groups: [{name: 'all', images: 34}],
     })
-    this.saveTabState(this)
+    this.saveTabState()
   },
-  removeTab(tabName) {
+  removeTab(tabName: string) {
     let index = this.tabs.findIndex(t => t.name == tabName)
     if(index < 0) {
       return
     }
     this.tabs.splice(index, 1)
-    this.saveTabState(this)
+    this.saveTabState()
   },
-  selectTab(tabName) {
+  selectTab(tabName: string) {
     this.selectedTabName = tabName
-    this.saveTabState(this)
+    this.saveTabState()
   },
   saveTabState() {
     localStorage.setItem('tabs', JSON.stringify(this.tabs))
     localStorage.setItem('selectedTabName', this.selectedTabName)
+  },
+  loadTabState() {
+    try {
+      let tabs = JSON.parse(localStorage.getItem('tabs'))
+      let selectedTabName = localStorage.getItem('selectedTabName')
+  
+      if(tabs) {
+        this.tabs = tabs
+      }
+      if(selectedTabName) {
+        this.selectTab(selectedTabName)
+      }
+    }
+    catch {
+      // ignore
+    }
   }
 })
 
-loadTabState(fakeStore)
+fakeStore.loadTabState()

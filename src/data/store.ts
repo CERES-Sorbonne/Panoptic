@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty } from './utils/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore} from './utils/models'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty } from '../data/api'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
   images: {} as Images,
@@ -57,7 +57,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 })
 
 function getPropertyTree(property: Tags):TagsTree{
-  let tree:TagsTree = {0: {children: {}, localId: '0'}}
+  let tree:TagsTree = {0: {children: {}, localId: '0', name: 'root', id: 0}}
   let refs:any = {}
   refs[0] = tree[0]
   Object.values(property).forEach((tag:Tag) => {

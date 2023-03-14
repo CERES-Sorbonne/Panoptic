@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted } from 'vue';
-import { fakeStore } from '../fakestore';
+import { fakeStore } from '../../fakestore';
 
 const store = fakeStore
 

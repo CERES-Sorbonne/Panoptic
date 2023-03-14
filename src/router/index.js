@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 import PanopticView from '../views/PanopticView.vue'
 
 const router = createRouter({
@@ -7,12 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView
-    },
-    {
-      path: '/test',
-      name: 'test',
+      name: 'panoptic',
       component: PanopticView
     }
   ]

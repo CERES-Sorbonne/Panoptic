@@ -1,5 +1,5 @@
 <script setup>
-import ExpandOption from './Menu/ExpandOption.vue';
+import ExpandOption from '../Menu/ExpandOption.vue';
 import {computed} from 'vue'
 
 const props = defineProps({

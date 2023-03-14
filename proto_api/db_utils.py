@@ -144,6 +144,8 @@ def get_tag_ancestors(tag: Tag, acc=[]):
     else:
         acc = acc + tag.parents
         for parent in tag.parents:
+            if parent == 0:
+                continue
             parent_tag = get_tag_by_id(parent)
             return get_tag_ancestors(parent_tag, acc)
 
