@@ -100,7 +100,6 @@ function getPropertyTree(tags: Tags): TreeTag {
         }
         children[p].push(tag.id)
     })})
-    console.log(children)
 
     let root = {id: 0, localId: '0', value: 'root'}
     let nodes = [root, ...Object.values(tags)]
@@ -114,7 +113,6 @@ function getPropertyTree(tags: Tags): TreeTag {
     root = nodeIndex['0']
 
     let buildTree = (rootNode: any, parent?: any) => {
-        console.log(rootNode, parent)
         if(parent == undefined) {
             rootNode.localId = rootNode.id + ''
         } else {
@@ -123,7 +121,6 @@ function getPropertyTree(tags: Tags): TreeTag {
         }
         if(rootNode.children) {
             rootNode.children = rootNode.children.map((childId: number) => {
-                console.log('children: ', childId)
                 let child = {... nodeIndex[childId]}
                 return buildTree(child, rootNode)
             })
