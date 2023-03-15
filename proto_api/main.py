@@ -1,5 +1,6 @@
 from typing import Optional
 
+from tkinter.filedialog import *
 from fastapi import FastAPI, Body
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
@@ -118,8 +119,7 @@ async def delete_tag_parent_route(tag_id: int, parent_id: int):
 
 
 @app.post("/folders")
-async def add_folder_route(folder: str = Body(..., embed=True)):
+async def add_folder_route():
+    folder = askdirectory(title="tg gdp")
     nb_images = add_folder(folder)
     return f"{nb_images} images were added to the library"
-
-# TODO: add update property
