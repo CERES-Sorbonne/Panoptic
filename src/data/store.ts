@@ -70,25 +70,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
 })
 
-// function getPropertyTree(property: Tags):TagsTree{
-
-// let tree:TagsTree = {0: {children: {}, localId: '0', value: 'root', id: 0}}
-// let refs:any = {}
-// refs[0] = tree[0]
-// Object.values(property).forEach((tag:Tag) => {
-//     tag.parents.forEach(parent => {
-//         console.log(parent, refs[parent], refs)
-//         refs[parent].children[tag.id] = {...tag, children: {}, localId: `${refs[parent].localId}.${tag.id}`, localParent: parent}
-//         refs[tag.id] = refs[parent].children[tag.id]
-//     })
-// })
-// return tree
-// }
-
 
 function getPropertyTree(tags: Tags): TreeTag {
     let children: any = {}
 
+    // get tagId to children list mapping
     Object.values(tags).forEach(tag => { tag.parents.forEach((p: number) => {
         if(!children[p]) {
             children[p] = []
@@ -96,9 +82,11 @@ function getPropertyTree(tags: Tags): TreeTag {
         children[p].push(tag.id)
     })})
 
+    // create a root node to make tree visiting more straightforward
     let root = {id: 0, localId: '0', value: 'root'}
     let nodes = [root, ...Object.values(tags)]
 
+    // fill children property in each node
     nodes = nodes.map((n: TreeTag) => {
         return { ...n, children: children[n.id] }
     })
@@ -107,6 +95,7 @@ function getPropertyTree(tags: Tags): TreeTag {
 
     root = nodeIndex['0']
 
+    // recursive function. builds all possible path starting from a rootNode
     let buildTree = (rootNode: any, parent?: any) => {
         if(parent == undefined) {
             rootNode.localId = rootNode.id + ''

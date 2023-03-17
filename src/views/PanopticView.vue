@@ -16,10 +16,16 @@ const data = reactive({
 
 const selectedTab = ref('')
 
+const files = reactive({})
 const store = fakeStore
 
 const tags = computed(() => globalStore.tagTrees)
 
+function onFileChange(event) {
+    const selectedFiles = event.target.files;
+    console.log(selectedFiles)
+    // Do something with the selected files
+}
 </script>
 
 <template>
@@ -28,15 +34,20 @@ const tags = computed(() => globalStore.tagTrees)
             <div class="col-4 bg-warning text-white p-0">
                 <div class="bg-secondary" style="height: 55px;">
                     <h1 class="text-center">Panoptic</h1>
+
                 </div>
 
                 <div>
                     <ul class="list-group mt-2">
                         <li class="list-group-item mb-2">
+                            {{ files }}
                             <ExpandOption>
                                 <template #name>Folder</template>
                                 <template #content>
-                                    <ul class="list-group">
+                                    <div class="mb-3" @click.stop>
+                                        <input class="form-control" @change="onFileChange" type="file" id="formFileMultiple" multiple>
+                                    </div>
+                                    <ul class="list-group" @click.stop>
                                         <li class="list-group-item">/images/vacances</li>
                                         <li class="list-group-item">/theses/collecte</li>
                                         <li class="list-group-item">/racist/lepen</li>

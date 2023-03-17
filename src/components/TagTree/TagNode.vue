@@ -28,7 +28,7 @@ const tagClass = computed(() => {
 })
 
 const caretClass = computed(() => {
-    let className = 'bi bi-caret-right-fill'
+    let className = 'h5 bi bi-caret-right-fill'
     if(expanded.value) {
         className += ' expand'
     }
