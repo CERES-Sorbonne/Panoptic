@@ -1,0 +1,99 @@
+<script setup lang="ts">
+
+import { reactive, computed, onMounted, watch } from 'vue';
+import { globalStore } from '../../data/store';
+import { TreeTag } from '../../data/models';
+import TagTree from '../TagTree/TagTree.vue';
+
+interface NodeState extends TreeTag{
+    expanded: boolean
+    selected: boolean
+}
+
+const props = defineProps({
+    data: Object,
+    filter: Object
+})
+
+type StateDict =  {[key: string]: NodeState}
+
+const nodeStates: StateDict = reactive({})
+const localTree = <NodeState>reactive({})
+
+
+const id = computed(() => props.data.id)
+const rootNode = computed(() => globalStore.tagTrees[id.value])
+
+
+
+// function create_state(tagId) {
+
+// }
+
+// function updateTreeState() {
+//     Object.keys(tags.value).forEach(tId => {
+
+//         if(!tagStates[tId]) {
+//             tagStates[tId] = create_state(tId)
+//         }
+//     })
+
+//     Object.keys(tagStates).forEach(tId => {
+//         if(!tags.value[tId]) {
+//             delete tagStates[tId]
+//         }
+//     })
+// }
+
+// function getNodeState(tagNode: TreeTag) {
+//     if(nodeStates[tagNode.localId]) {
+//         Object.assign(nodeStates[tagNode.localId], {name: tagNode.name})
+//         return nodeStates[tagNode.localId]
+//     }
+//     let state = Object.assign({}, tagNode)
+//     state.children =
+// }
+
+function createOrUpdateState(tagNode: TreeTag) {
+    if(!nodeStates[tagNode.localId]) {
+        nodeStates[tagNode.localId] = Object.assign({}, {...tagNode, expanded: false, selected: false})
+    }
+    else {
+        Object.assign(nodeStates[tagNode.localId], tagNode)
+    }
+    nodeStates[tagNode.localId].children = []
+    return nodeStates[tagNode.localId]
+}
+
+function copyTree(root: TreeTag) {
+    let state = createOrUpdateState(root)
+    
+    if(root.children) {
+        root.children.forEach((child: TreeTag)  => {
+            state.children.push(copyTree(child))
+        })
+    }
+    return state
+}
+
+function updateTree() {
+    let res = copyTree(rootNode.value)
+    Object.assign(localTree, {...res, propertyId: id.value})
+    // localTree.children = res.children
+}
+
+onMounted(() => {
+    updateTree()
+})
+
+watch(rootNode, () => {
+    updateTree()
+})
+
+const selected = reactive([])
+
+</script>
+
+<template>
+    <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
+</template>
