@@ -36,7 +36,8 @@ const tags = computed(() => globalStore.tagTrees)
                     <ul class="list-group mt-2">
                         <li class="list-group-item mb-2">
                             <ExpandOption>
-                                <template #name>Folders</template>
+                                <template #name> Folders </template>
+                                <template #icons><span @click.stop="globalStore.importFolders" class=" h4 bi bi-folder-plus me-3"></span></template>
                                 <template #content>
                                     <ul class="list-group" @click.stop>
                                         <li class="list-group-item" v-for="folder in globalStore.params.folders">{{ folder }}</li>

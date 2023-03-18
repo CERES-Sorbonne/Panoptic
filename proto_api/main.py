@@ -140,6 +140,8 @@ async def add_folder_route():
     process.start()
     process.join()
     folder = queue.get()
+    if not folder:
+        return
     nb_images = add_folder(folder)
     return f"{nb_images} images were added to the library"
 

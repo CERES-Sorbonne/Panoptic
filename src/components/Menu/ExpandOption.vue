@@ -31,6 +31,7 @@
         </span>
         <slot name="name"></slot>
         <span v-if="!props.leftAlign" class="float-end">
+          <slot name="icons"></slot>
           <span :class="caretClass"></span>
         </span>
     </p>

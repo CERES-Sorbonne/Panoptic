@@ -77,3 +77,8 @@ export const apiGetParams = async() => {
     let res = await axios.get('/params')
     return res.data
 }
+
+export const apiImportFolder = async() => {
+    let res = await axios.post('/folders')
+    return res.data
+}
