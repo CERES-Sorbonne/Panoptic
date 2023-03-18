@@ -1,9 +1,10 @@
 <script setup>
-import { reactive, computed, watch } from 'vue';
+import { reactive, computed, watch, onMounted } from 'vue';
 import { fakeStore } from '../../fakestore';
 import ImageGroup from './ImageGroup.vue';
 import DropdownInput from '../inputs/DropdownInput.vue';
 import ListInput from '../inputs/ListInput.vue';
+import { globalStore } from '../../data/store';
 
 const store = fakeStore
 
@@ -29,6 +30,22 @@ const tab = computed(() => store.tabs.find(t => t.name == store.selectedTabName)
 const state = computed(() => tab.value.state)
 const groups = computed(() => tab.value.groups)
 
+const groups2 = reactive([])
+
+function computeGroups() {
+    // TODO filter
+
+    groups2.length = 0
+    
+    let allGroup = {
+        name: 'all',
+        images: Object.values(globalStore.images)
+    }
+    groups2.push(allGroup)
+}
+
+onMounted(computeGroups)
+
 // const groups = reactive([
 //     {
 //         name: "Group1",
@@ -50,6 +67,8 @@ watch(tab, () => {
     store.saveTabState()
 }, {deep: true})
 
+watch(() => globalStore.images, computeGroups)
+
 </script>
 
 <template>
@@ -67,9 +86,8 @@ watch(tab, () => {
             <ListInput label="GroupBy" :selected="state.groupBy" :possible="options.groupBy"/>
         </div>
     </div>
-    {{ state }}
     <div class="mt-4">
-        <ImageGroup :leftAlign="true" v-for="group in groups" :group="group"/>
+        <ImageGroup :leftAlign="true" v-for="group in groups2" :group="group"/>
     </div>
 
 </template>

@@ -9,7 +9,7 @@ const props = defineProps({
 
 const images = computed(() => props.group.images)
 const subgroups = computed(() => props.group.groups)
-const hasImages = computed(() => images.value != undefined)
+const hasImages = computed(() => images.value.length > 0)
 const hasSubgroups = computed(() => subgroups.value != undefined)
 
 function recursiveCount(groupe) {
@@ -17,7 +17,7 @@ function recursiveCount(groupe) {
         return props.group.groups.map(recursiveCount).reduce((a, b) => a+b, 0)
     }
     else {
-        return groupe.images
+        return groupe.images.length
     }
 }
 
@@ -36,7 +36,7 @@ const imageSum = computed(() => {
         <template #content>
             <div  v-if="hasImages">
                 <div class="row ms-3">
-                    <div class="col-1 bg-success m-2" v-for="i in imageSum" style="width: 100px; height: 100px;"></div>
+                    <img :src="image.url" style="width: 100px;" v-for="image in images"/>
                 </div>
             </div>
             <div v-else-if="hasSubgroups" class="ms-3">

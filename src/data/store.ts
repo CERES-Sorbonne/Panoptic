@@ -1,11 +1,12 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag} from '../data/models'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams } from '../data/api'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
     properties: {} as Properties,
+    params: {} as Params,
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
@@ -22,6 +23,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.images = await apiGetImages()
         this.tags = await apiGetTags()
         this.properties = await apiGetProperties()
+        this.params = await apiGetParams()
+        console.log(this.images)
     },
 
     async addTag(propertyId: number, tagValue:string, parentId?:number, color?:string): Promise<void>{

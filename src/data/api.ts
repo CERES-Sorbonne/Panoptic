@@ -72,3 +72,8 @@ export const apiUpdateProperty = async(propertyId: number, type?: PropertyType, 
 export const apiDeleteProperty = async(propertyId: number) => {
     return await axios.delete(`/property/${propertyId}`)
 }
+
+export const apiGetParams = async() => {
+    let res = await axios.get('/params')
+    return res.data
+}

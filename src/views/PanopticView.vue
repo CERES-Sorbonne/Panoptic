@@ -21,11 +21,6 @@ const store = fakeStore
 
 const tags = computed(() => globalStore.tagTrees)
 
-function onFileChange(event) {
-    const selectedFiles = event.target.files;
-    console.log(selectedFiles)
-    // Do something with the selected files
-}
 </script>
 
 <template>
@@ -40,17 +35,11 @@ function onFileChange(event) {
                 <div>
                     <ul class="list-group mt-2">
                         <li class="list-group-item mb-2">
-                            {{ files }}
                             <ExpandOption>
-                                <template #name>Folder</template>
+                                <template #name>Folders</template>
                                 <template #content>
-                                    <div class="mb-3" @click.stop>
-                                        <input class="form-control" @change="onFileChange" type="file" id="formFileMultiple" multiple>
-                                    </div>
                                     <ul class="list-group" @click.stop>
-                                        <li class="list-group-item">/images/vacances</li>
-                                        <li class="list-group-item">/theses/collecte</li>
-                                        <li class="list-group-item">/racist/lepen</li>
+                                        <li class="list-group-item" v-for="folder in globalStore.params.folders">{{ folder }}</li>
                                     </ul>
                                 </template>
                             </ExpandOption>
@@ -69,7 +58,7 @@ function onFileChange(event) {
             </div>
             <div class="col">
                 <br />
-                <textarea :value="JSON.stringify(globalStore.tagTrees['1'], null, 4)" rows="20" cols="80"></textarea>
+                <!-- <textarea :value="JSON.stringify(globalStore.tagTrees['1'], null, 4)" rows="20" cols="80"></textarea> -->
                 <div style="min-height: 55px;">
                     <TabNav v-model:selected="selectedTab"/>
                 </div>

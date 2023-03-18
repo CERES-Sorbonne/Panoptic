@@ -1,15 +1,21 @@
+import logging
+import tkinter
+from sys import platform
+from tkinter.filedialog import *
 from typing import Optional
 
-from tkinter.filedialog import *
-from fastapi import FastAPI, Body
+import multiprocessing as mp
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 from starlette.responses import Response
 
 from core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
-    update_tag, get_tags, get_properties, add_folder, delete_property, update_property, delete_tag, delete_tag_parent
+    update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder
 from models import Property, Images, Tag, Image, Tags, Properties
 from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
+import db_utils
 
 app = FastAPI()
 app.add_middleware(
@@ -62,7 +68,10 @@ async def get_images_route() -> Images:
 
 @app.get('/images/{file_path:path}')
 async def get_image(file_path: str):
-
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        if not file_path.startswith('/'):
+            file_path = '/' + file_path
+    print(file_path)
     with open(file_path, 'rb') as f:
         data = f.read()
 
@@ -118,8 +127,26 @@ async def delete_tag_parent_route(tag_id: int, parent_id: int):
     return res
 
 
+@app.get("/params")
+async def get_params():
+    res = db_utils.get_parameters()
+    return res
+
+
 @app.post("/folders")
 async def add_folder_route():
-    folder = askdirectory(title="tg gdp")
+    queue = mp.Queue()
+    process = mp.Process(target=ui_process, args=(queue,))
+    process.start()
+    process.join()
+    folder = queue.get()
     nb_images = add_folder(folder)
     return f"{nb_images} images were added to the library"
+
+
+def ui_process(queue):
+    root = tkinter.Tk()
+    root.withdraw()
+    folder_path = askdirectory(parent=root, title='Select a directory')
+    root.destroy()
+    queue.put(folder_path)

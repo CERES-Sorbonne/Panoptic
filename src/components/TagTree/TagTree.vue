@@ -8,7 +8,7 @@ const emits = defineEmits(['update:selected'])
 const props = defineProps({
     root: {type: Object, required: true},
     selected: {type: Array, required: true},
-    propertyId: {type: String, required: true}
+    propertyId: {type: Number, required: true}
 })
 
 

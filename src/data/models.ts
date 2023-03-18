@@ -52,6 +52,11 @@ export interface Properties {
     [id:number]: Property
 }
 
+export interface Params {
+    folders: Array<string>
+    tabs: Array<Object>
+}
+
 export interface Tags {
     [property_id: number]: {
         [id: number]: Tag

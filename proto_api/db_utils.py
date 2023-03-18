@@ -220,10 +220,13 @@ def update_image_property(sha1: str, property_id: int, value: JSON) -> str:
     return decode_if_json(value)
 
 
-def get_parameters() -> Parameters:
+def get_parameters() -> Parameters | None:
     query = "SELECT * FROM parameters"
     cursor = execute_query(query)
-    return Parameters(**auto_dict(cursor.fetchone(), cursor))
+    row = cursor.fetchone()
+    if not row:
+        return
+    return Parameters(**auto_dict(row, cursor))
 
 
 def update_folders(folders: list[str]):

@@ -36,3 +36,6 @@ CREATE TABLE tags (
     color TEXT,
     FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );
+
+INSERT INTO parameters (folders, tabs)
+VALUES ('[]', '[]')
