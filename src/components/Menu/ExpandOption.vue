@@ -9,7 +9,7 @@
   const expand = ref(true);
   
   const caretClass = computed(() => {
-    let className = 'bi bi-caret-right';
+    let className = 'bi bi-caret-right btn-icon';
     if (expand.value) {
       className += ' expand';
     } else {
@@ -24,8 +24,8 @@
   </script>
 
 <template>
-    <div @click.stop="toggle">
-      <p :class="props.small ? 'h5' : 'h3'">
+    <div>
+      <div :class="props.small ? 'h5' : 'h3'" @click.stop="toggle">
         <span v-if="leftAlign" class="float-start">
           <span :class="caretClass"></span>
         </span>
@@ -34,7 +34,7 @@
           <slot name="icons"></slot>
           <span :class="caretClass"></span>
         </span>
-    </p>
+      </div>
       <div v-show="expand" class="ms-2">
         <div class="mt-3">
             <slot name="content"> </slot>

@@ -8,22 +8,6 @@ import { globalStore } from '../../data/store';
 
 const store = fakeStore
 
-// const props = defineProps({
-//     tabName: String
-// })
-
-
-// const state = reactive({
-//     display: 'grid',
-//     filter: ['filter1', 'filter2', 'filter3'],
-//     groupBy: ['value1', 'value2'],
-// })
-
-// const options = reactive({
-//     display: ['grid', 'list','3eme Oeil'],
-//     filter: ['filter1', 'filter2', 'filter3', 'other1', 'other2', 'toto', 'felix', 'darmanin'],
-//     groupBy: ['filter1', 'filter2', 'toto', 'darmanin']
-// })
 
 const options = store.options
 const tab = computed(() => store.tabs.find(t => t.name == store.selectedTabName))
@@ -46,22 +30,6 @@ function computeGroups() {
 
 onMounted(computeGroups)
 
-// const groups = reactive([
-//     {
-//         name: "Group1",
-//         groups: [
-//             {name: 'SubGroup11', images: 15},
-//             {name: 'SubGroup12', images: 12}
-//         ]
-//     },
-//     {
-//         name: "Group2",
-//         groups: [
-//             {name: 'SubGroup21', images: 4},
-//             {name: 'SubGroup22', images: 7}
-//         ]
-//     },
-// ])
 
 watch(tab, () => {
     store.saveTabState()

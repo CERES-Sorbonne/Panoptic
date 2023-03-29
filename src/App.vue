@@ -7,6 +7,7 @@
     globalStore.fetchAllData()
   })
 
+
 </script>
 
 <template>
@@ -56,5 +57,9 @@ Les formules sont complexes pour ne pas avoir des problèmes liés à la transpa
 --in-card-margin: 0.6rem;
 --card-padding: 1rem;
 --card-border-radius: 0.4rem;
+}
+.btn-icon:hover {
+cursor: pointer;
+user-select: none;
 }
 </style>

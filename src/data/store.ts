@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params} from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -15,7 +15,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     tagTrees: computed(() => {
         const tree:TagsTree = {}
-        Object.entries(globalStore.tags).forEach(([propId, tags]) => {tree[parseInt(propId)] = getPropertyTree(tags)})
+        Object.values(globalStore.properties).forEach((property: Property) => {
+            if(!globalStore.tags[property.id]) {
+                globalStore.tags[property.id] = {}
+            }
+            tree[property.id] = getPropertyTree(globalStore.tags[property.id])
+        })
         return tree 
     }),
 
@@ -79,7 +84,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 })
 
 
-function getPropertyTree(tags: Tags): TreeTag {
+function getPropertyTree(tags: IndexedTags): TreeTag {
     let children: any = {}
 
     // get tagId to children list mapping

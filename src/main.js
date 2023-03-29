@@ -8,7 +8,6 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import "bootstrap"
 
 const app = createApp(App)
-
 // Make BootstrapVue available throughout your project
 // Optionally install the BootstrapVue icon components plugin
 
