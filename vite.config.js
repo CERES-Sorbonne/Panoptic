@@ -13,16 +13,16 @@ export default defineConfig({
     },
     server: {
         proxy: {
-        '/images': {
-            target: 'http://localhost:8000/',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => {
-                // let p = path.replace(/^\/images/, '')
-                // console.log(path)
-                return path
-            }
-        },
+            '/images': {
+                target: 'http://localhost:8000/',
+                changeOrigin: true,
+                secure: false,
+                rewrite: (path) => {
+                    // let p = path.replace(/^\/images/, '')
+                    // console.log(path)
+                    return path
+                }
+            },
         }
     },
 })
