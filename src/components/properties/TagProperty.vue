@@ -1,9 +1,11 @@
 <script setup lang="ts">
 
 import { reactive, computed, onMounted, watch } from 'vue';
-import { globalStore } from '../../data/store';
+import { globalStore } from '@/data/store';
 import { TreeTag } from '../../data/models';
 import TagTree from '../TagTree/TagTree.vue';
+import ExpandOption from '../menu/ExpandOption.vue';
+import Property from './Property.vue';
 
 interface NodeState extends TreeTag{
     expanded: boolean
@@ -25,34 +27,6 @@ const id = computed(() => props.data.id)
 const rootNode = computed(() => globalStore.tagTrees[id.value])
 
 
-
-// function create_state(tagId) {
-
-// }
-
-// function updateTreeState() {
-//     Object.keys(tags.value).forEach(tId => {
-
-//         if(!tagStates[tId]) {
-//             tagStates[tId] = create_state(tId)
-//         }
-//     })
-
-//     Object.keys(tagStates).forEach(tId => {
-//         if(!tags.value[tId]) {
-//             delete tagStates[tId]
-//         }
-//     })
-// }
-
-// function getNodeState(tagNode: TreeTag) {
-//     if(nodeStates[tagNode.localId]) {
-//         Object.assign(nodeStates[tagNode.localId], {name: tagNode.name})
-//         return nodeStates[tagNode.localId]
-//     }
-//     let state = Object.assign({}, tagNode)
-//     state.children =
-// }
 
 function createOrUpdateState(tagNode: TreeTag) {
     if(!nodeStates[tagNode.localId]) {
@@ -95,5 +69,10 @@ const selected = reactive([])
 </script>
 
 <template>
-    <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
+    <Property :data="props.data">
+        <template #property>
+            <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
+        </template>
+    </Property>
+    
 </template>
