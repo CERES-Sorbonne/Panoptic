@@ -3,7 +3,7 @@
   
   const props = defineProps({
     leftAlign: Boolean,
-    small: String
+    titleSize: {type: String, default: 'h5'}
   });
   
   const expand = ref(true);
@@ -25,18 +25,18 @@
 
 <template>
     <div>
-      <div :class="props.small ? 'h5' : 'h3'" @click.stop="toggle">
+      <div :class="props.titleSize + ' m-1'" @click.stop="toggle">
         <span v-if="leftAlign" class="float-start">
           <span :class="caretClass"></span>
         </span>
         <slot name="name"></slot>
-        <span v-if="!props.leftAlign" class="float-end">
+        <span class="float-end">
           <slot name="icons"></slot>
-          <span :class="caretClass"></span>
+          <span v-if="!props.leftAlign" :class="caretClass"></span>
         </span>
       </div>
       <div v-show="expand" class="ms-2">
-        <div class="mt-3">
+        <div class="">
             <slot name="content"> </slot>
         </div>
       </div>
