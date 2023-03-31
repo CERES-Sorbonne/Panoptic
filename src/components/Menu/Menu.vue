@@ -3,12 +3,11 @@
 import { V_MODEL_SELECT } from '@vue/compiler-dom';
 import { onMounted, reactive } from 'vue';
 import { globalStore } from '../../data/store';
-import Property from '../properties/Property.vue';
 import ExpandOption from './ExpandOption.vue';
 import * as models from '../../data/models'
 import PropertyForm from '../forms/PropertyForm.vue';
 import TagProperty from '../properties/TagProperty.vue';
-import StringProperty from '../properties/StringProperty.vue';
+import Property from '../properties/Property.vue';
 
 </script>
 
@@ -39,8 +38,8 @@ import StringProperty from '../properties/StringProperty.vue';
                     <template #content>
                         <ul class="list-group">
                             <li class="list-group-item" v-for="property in globalStore.properties">
-                                <TagProperty v-if="property.type == models.PropertyType.multi_tags" :data="property"/>
-                                <StringProperty v-if="property.type == models.PropertyType.string" :data="property"/>
+                                <TagProperty v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag" :data="property"/>
+                                <Property v-else :data="property"/>
                             </li>
                         </ul>
                     </template>

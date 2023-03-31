@@ -1,9 +1,10 @@
-<script setup>
-  import { ref, computed, defineProps } from 'vue';
+<script setup lang="ts">
+  import { ref, computed, defineProps, onMounted } from 'vue';
   
   const props = defineProps({
     leftAlign: Boolean,
-    titleSize: {type: String, default: 'h5'}
+    titleSize: {type: String, default: 'h5'},
+    defaultExpand: {type: Boolean, default: true}
   });
   
   const expand = ref(true);
@@ -15,17 +16,23 @@
     } else {
       className += ' hide';
     }
-    return className;
+    return className + ' me-1';
   });
   
   function toggle() {
     expand.value = !expand.value;
   }
+
+  onMounted(() => {
+    if(props.defaultExpand !== undefined) {
+      expand.value = props.defaultExpand
+    }
+  })
   </script>
 
 <template>
     <div>
-      <div :class="props.titleSize + ' m-1'" @click.stop="toggle">
+      <div :class="props.titleSize + ' btn-icon'" @click.stop="toggle">
         <span v-if="leftAlign" class="float-start">
           <span :class="caretClass"></span>
         </span>
