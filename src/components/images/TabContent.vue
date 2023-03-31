@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed, watch, onMounted } from 'vue';
+import { reactive, computed, watch, onMounted, ref } from 'vue';
 import { fakeStore } from '../../fakestore';
 import ImageGroup from './ImageGroup.vue';
 import DropdownInput from '../inputs/DropdownInput.vue';
@@ -7,7 +7,7 @@ import ListInput from '../inputs/ListInput.vue';
 import { globalStore } from '../../data/store';
 
 const store = fakeStore
-
+const imageSize = ref(100)
 
 const options = store.options
 const tab = computed(() => store.tabs.find(t => t.name == store.selectedTabName))
@@ -55,7 +55,10 @@ watch(() => globalStore.images, computeGroups)
         </div>
     </div>
     <div class="mt-4">
-        <ImageGroup :leftAlign="true" v-for="group in groups2" :group="group"/>
+        <i class="h2 bi bi-aspect-ratio me-3"></i>
+        <input type="range" class="form-range" id="rangeImageSize" min="50" max="200" v-model="imageSize" style="width: 300px;">
+
+        <ImageGroup :leftAlign="true" v-for="group in groups2" :group="group" :imageSize="imageSize"/>
     </div>
 
 </template>

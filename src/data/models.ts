@@ -30,6 +30,7 @@ export interface Property {
 export interface PropertyValue{
     propertyId: number
     value: string | number | number[] | string[]
+    type: PropertyType
 }
 
 export interface Image {

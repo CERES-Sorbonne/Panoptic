@@ -48,7 +48,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="modal fade text-dark" :id="props.id" tabindex="-1" aria-labelledby="addPropertyModal" aria-hidden="true">
+    <div class="modal fade text-dark " :id="props.id" tabindex="-1" aria-labelledby="addPropertyModal" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -56,7 +56,7 @@ onMounted(() => {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form @submit.prevent="saveProperty">
                         <div class="mb-3">
                             <label for="propertyName" class="form-label">Property Name</label>
                             <input type="text" :class="'form-control '  + (nameError ? 'is-invalid' : '')" id="propertyName" name="propertyName"

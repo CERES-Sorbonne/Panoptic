@@ -1,8 +1,8 @@
 <script setup>
 
 import { reactive, ref, computed } from 'vue';
-import TabContent from '../components/layout/TabContent.vue';
-import TabNav from '../components/layout/TabNav.vue';
+import TabContent from '../components/images/TabContent.vue';
+import TabNav from '../components/images/TabNav.vue';
 import { fakeStore } from '../fakestore';
 import { globalStore } from '../data/store';
 import Menu from '../components/menu/Menu.vue';
