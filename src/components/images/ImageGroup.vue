@@ -2,6 +2,7 @@
 import {computed} from 'vue'
 import ExpandOption from '../menu/ExpandOption.vue';
 import Image from './Image.vue';
+import PaginatedImages from './PaginatedImages.vue';
 
 const props = defineProps({
     group: Object,
@@ -33,12 +34,12 @@ const imageSum = computed(() => {
 </script>
 
 <template>
-    <ExpandOption :small="props.small" :left-align="true">
+    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true">
         <template #name>{{ props.group.name }} ({{ imageSum }})<i class="h5 ms-2 bi bi-share"></i></template>
         <template #content>
             <div  v-if="hasImages">
                 <div class="ms-3">
-                    <Image :image="image" :width="props.imageSize" v-for="image in images" class="me-1"/>
+                    <PaginatedImages :images="images" :image-size="imageSize" />
                 </div>
             </div>
             <div v-else-if="hasSubgroups" class="ms-3">

@@ -7,6 +7,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     tags: {} as Tags,
     properties: {} as Properties,
     params: {} as Params,
+    settings: {pageSize: 200},
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {

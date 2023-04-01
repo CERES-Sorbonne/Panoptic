@@ -14,7 +14,7 @@ const properties = computed(() => globalStore.propertyList.filter((p:any) => p.s
 </script>
 
 <template>
-    <div class="d-inline-block bg-warning overflow-hidden" :style="'width: ' + props.width + 'px;'">
+    <div class="d-inline-block overflow-hidden" :style="'width: ' + props.width + 'px;'">
         <img :src="props.image.url" :style="'width: ' + props.width + 'px;'" />
         <div class="" v-for="property in properties">
             <PropertyInput :property="props.image.properties[property.id]" />
