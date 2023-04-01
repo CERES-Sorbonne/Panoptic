@@ -24,7 +24,7 @@ class Property(BaseModel):
 
 
 class PropertyValue(BaseModel):
-    propertyId: int
+    property_id: int
     value: Any
 
 

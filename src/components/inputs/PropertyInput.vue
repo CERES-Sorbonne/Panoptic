@@ -3,9 +3,10 @@ import { Image, Property, PropertyValue } from '@/data/models';
 import { computed, nextTick, ref } from 'vue';
 import { PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
+import { PropertyRef } from '@/data/models'
 
 const props = defineProps({
-    property: Object as () => PropertyValue,
+    property: Object as () => PropertyRef,
 })
 
 const edit = ref(false)
@@ -27,6 +28,7 @@ function setEdit(value: Boolean) {
         })
     }
     else {
+        globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
         edit.value = false
         if (props.property.value == '') {
             props.property.value = undefined

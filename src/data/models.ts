@@ -30,7 +30,11 @@ export interface Property {
 export interface PropertyValue{
     propertyId: number
     value: string | number | number[] | string[]
+}
+
+export interface PropertyRef extends PropertyValue {
     type: PropertyType
+    imageSHA1: String
 }
 
 export interface Image {

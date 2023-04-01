@@ -182,6 +182,7 @@ def get_tag_ancestors(tag: Tag, acc=[]):
 
 
 def auto_dict(row, cursor):
+    print(cursor.description)
     return {key: decode_if_json(value) for key, value in zip([c[0] for c in cursor.description], row)}
 
 
@@ -214,11 +215,12 @@ def get_image_property(sha1: str, property_id: int) -> ImageProperty | None:
     row = cursor.fetchone()
     if not row:
         return None
+    print(row)
     return ImageProperty(**auto_dict(row, cursor))
 
 
 def update_image_property(sha1: str, property_id: int, value: JSON) -> str:
-    query = "UPDATE image_property SET value = ? WHERE sha1 = ? AND property_id = ?"
+    query = "UPDATE images_properties SET value = ? WHERE sha1 = ? AND property_id = ?"
     execute_query(query, (json.dumps(value), sha1, property_id))
     return decode_if_json(value)
 

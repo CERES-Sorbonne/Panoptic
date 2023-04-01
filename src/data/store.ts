@@ -35,16 +35,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.tags = await apiGetTags()
         this.properties = await apiGetProperties()
         this.params = await apiGetParams()
-        for (let sha1 in this.images) {
-            for (let propId in this.properties) {
-                if (!this.images[sha1].properties[propId]) {
-                    this.images[sha1].properties[propId] = { propertyId: Number(propId), value: undefined, type: this.properties[propId].type }
-                }
-                else {
-                    this.images[sha1].properties[propId].type = this.properties[propId].type
-                }
-            }
-        }
+        // for (let sha1 in this.images) {
+        //     for (let propId in this.properties) {
+        //         if (!this.images[sha1].properties[propId]) {
+        //             this.images[sha1].properties[propId] = { propertyId: Number(propId), value: undefined, type: this.properties[propId].type }
+        //         }
+        //         else {
+        //             this.images[sha1].properties[propId].type = this.properties[propId].type
+        //         }
+        //     }
+        // }
     },
 
     async importFolders() {
