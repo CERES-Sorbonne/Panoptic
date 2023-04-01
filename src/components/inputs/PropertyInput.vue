@@ -4,6 +4,7 @@ import { computed, nextTick, ref } from 'vue';
 import { PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { PropertyRef } from '@/data/models'
+import PropertyIcon from '../properties/PropertyIcon.vue';
 
 const props = defineProps({
     property: Object as () => PropertyRef,
@@ -44,16 +45,8 @@ function setEdit(value: Boolean) {
         <div class="input-group bg-light">
             <span class="input-group-text small bg-light text-dark me-1">
                 <span class="me-1">
-                    <i v-if="type == PropertyType.string" class="bi bi-type"></i>
-                    <i v-if="type == PropertyType.number" class="bi bi-123"></i>
-                    <i v-if="type == PropertyType.date" class="bi bi-calendar-date"></i>
-                    <i v-if="type == PropertyType.path" class="bi bi-code-slash"></i>
-                    <i v-if="type == PropertyType.image_link" class="bi bi-card-image"></i>
-                    <i v-if="type == PropertyType.url" class="bi bi-globe"></i>
-                    <i v-if="type == PropertyType.color" class="bi bi-palette"></i>
-                    <input v-if="type == PropertyType.checkbox" class="form-check-input" type="checkbox">
-                    <i v-if="type == PropertyType.tag" class="bi bi-tag"></i>
-                    <i v-if="type == PropertyType.multi_tags" class="bi bi-tags"></i>
+                    <input v-if="type == PropertyType.checkbox" class="form-check-input" type="checkbox" v-model="props.property.value" @focusout="setEdit(false)">
+                    <span @click="setEdit(true)" v-else> <PropertyIcon :type="property.type"/> </span>
                 </span>
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">
                     <span v-if="!isSet" class="text-secondary">None</span>

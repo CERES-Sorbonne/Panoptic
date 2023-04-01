@@ -18,9 +18,9 @@ const tags = computed(() => globalStore.tagTrees)
 </script>
 
 <template>
-    <div class=" ms-5 me-5">
+    <div class=" ms-5 me-0">
         <div class="row">
-            <div class="col-4 bg-warning text-white p-0">
+            <div class="col-3 bg-warning text-white p-0">
                 <Menu />
             </div>
             <div class="col">
