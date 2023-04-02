@@ -57,6 +57,13 @@ watch(() => globalStore.images, computeGroups)
     <div class="mt-4">
         <i class="h2 bi bi-aspect-ratio me-3"></i>
         <input type="range" class="form-range" id="rangeImageSize" min="50" max="200" v-model="imageSize" style="width: 300px;">
+        <span class="ms-2">({{ imageSize }}px)</span>
+        <div class="float-end me-5">
+            <div class="input-group">
+                <div class="input-group-text">PageSize</div>
+                <input class="form-control" type="number" v-model="globalStore.settings.pageSize" style="width: 100px;"/>
+            </div>
+        </div>
 
         <ImageGroup :leftAlign="true" v-for="group in groups2" :group="group" :imageSize="imageSize"/>
     </div>
