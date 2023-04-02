@@ -64,7 +64,6 @@ watch(() => globalStore.images, computeGroups)
                 <input class="form-control" type="number" v-model="globalStore.settings.pageSize" style="width: 100px;"/>
             </div>
         </div>
-
         <ImageGroup :leftAlign="true" v-for="group in groups2" :group="group" :imageSize="imageSize"/>
     </div>
 

@@ -5,6 +5,7 @@ import { reactive, onMounted, ref } from 'vue';
 import * as boostrap from 'bootstrap'
 import { globalStore } from '@/data/store';
 import { apiAddProperty } from '@/data/api';
+import PropertyIcon from '../properties/PropertyIcon.vue';
 
 const props = defineProps({
     id: { type: String, required: true }
@@ -69,17 +70,7 @@ onMounted(() => {
                             <label for="propertyType" class="form-label">Property Type</label>
                             <select class="form-select" id="propertyType" name="propertyType" v-model="newProperty.type"
                                 required>
-                                <option value="">Choose...</option>
-                                <option value="string">string</option>
-                                <option value="number">number</option>
-                                <option value="tag">tag</option>
-                                <option value="multi_tags">multi_tags</option>
-                                <option value="image_link">image_link</option>
-                                <option value="url">url</option>
-                                <option value="date">date</option>
-                                <option value="path">path</option>
-                                <option value="color">color</option>
-                                <option value="checkbox">checkbox</option>
+                                <option v-for="ptype in globalStore.settings.propertyTypes" :value="ptype" >{{ ptype }}</option>
                             </select>
                         </div>
                     </form>
