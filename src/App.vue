@@ -2,6 +2,7 @@
   import { RouterLink, RouterView } from 'vue-router'
   import { globalStore } from './data/store'
   import { onMounted } from 'vue'
+  import './assets/main.css';
 
   onMounted(() => {
     globalStore.fetchAllData()

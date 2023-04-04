@@ -1,35 +1,29 @@
-@import './base.css';
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-
-  font-weight: normal;
+.menu{
+  font-size: small;
+  height: 100vh;
+  position: sticky;
+  top: 0;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
+.menu h3,.menu .h3 {
+  font-size: 1.1rem;
+  margin-left: 1rem;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
+.clickable:hover{
+  cursor: pointer;
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+.bi-caret-right {
+  display: inline-block;
+  transition: 0.2s;
+  margin-left: 1rem;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+.bi-caret-right.expand {
+  transform: rotate(90deg) !important;
+}
+
+.bi-caret-right.hide {
+  transform: rotate(0deg) !important;
 }

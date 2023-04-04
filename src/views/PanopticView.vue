@@ -1,13 +1,14 @@
 <script setup>
 
 import { reactive, ref, computed } from 'vue';
-import ExpandOption from '../components/Menu/ExpandOption.vue';
-import MainOption from '../components/Menu/MainOption.vue';
+import ExpandOption from '../components/menu/ExpandOption.vue';
+import MainOption from '../components/menu/MainOption.vue';
 import Property from '../components/properties/Property.vue';
 import TabContent from '../components/layout/TabContent.vue';
 import TabNav from '../components/layout/TabNav.vue';
 import { fakeStore } from '../fakestore';
 import { globalStore } from '../data/store';
+import { PropertyType } from '../data/models';
 
 const data = reactive({
     selected: [],
@@ -21,12 +22,16 @@ const store = fakeStore
 
 const tags = computed(() => globalStore.tagTrees)
 
+const testAddProperty = () => {
+    globalStore.addProperty("tags", PropertyType.multi_tags)
+}
+
 </script>
 
 <template>
-    <div class=" ms-5 me-5">
+    <div class="me-5">
         <div class="row">
-            <div class="col-4 bg-warning text-white p-0">
+            <div class="col-2 bg-warning text-white p-0 menu">
                 <div class="bg-secondary" style="height: 55px;">
                     <h1 class="text-center">Panoptic</h1>
 
@@ -37,7 +42,7 @@ const tags = computed(() => globalStore.tagTrees)
                         <li class="list-group-item mb-2">
                             <ExpandOption>
                                 <template #name> Folders </template>
-                                <template #icons><span @click.stop="globalStore.importFolders" class=" h4 bi bi-folder-plus me-3"></span></template>
+                                <template #icons><span @click.stop="globalStore.importFolders" class=" h4 bi bi-folder-plus me- clickable"></span></template>
                                 <template #content>
                                     <ul class="list-group" @click.stop>
                                         <li class="list-group-item" v-for="folder in globalStore.params.folders">{{ folder }}</li>
@@ -46,7 +51,7 @@ const tags = computed(() => globalStore.tagTrees)
                             </ExpandOption>
                         </li>
                         <li class="list-group-item">
-                            <MainOption name="Properties">
+                            <MainOption name="Properties" @addProperty="testAddProperty">
                                 <ul class="list-group">
                                     <li class="list-group-item" v-for="property in globalStore.properties">
                                         <Property :data="property" />

@@ -9,16 +9,7 @@ const props = defineProps({
 
 const expand = ref(true)
 
-const caretClass = computed(() => {
-    let className = 'bi bi-caret-right'
-    if(expand.value) {
-        className += ' expand'
-    }
-    else {
-        className += ' hide'
-    }
-    return className
-})
+const caretClass = computed(() => 'bi bi-caret-right clickable ' + (expand.value ? 'expand' : 'hide'))
 
 function toggle() {
     expand.value = !expand.value
@@ -27,10 +18,11 @@ function toggle() {
 </script>
 
 <template>
-    <div @click="toggle">
+    <div>
         <h3>{{ props.name }}
             <span class="float-end">
-                <span :class="caretClass"></span>
+                <i class="bi bi-plus-circle clickable" @click="$emit('addProperty')"></i>
+                <span :class="caretClass" @click="toggle"></span>
             </span>
         </h3>
 
@@ -39,19 +31,3 @@ function toggle() {
         <div class="mt-3"><slot></slot></div>
     </div>
 </template>
-
-<style>
-.bi-caret-right {
-    display: inline-block;
-    transition: 0.2s;
-}
-
-
-.bi-caret-right.expand{
-    transform: rotate(90deg) !important;
-}
-
-.bi-caret-right.hide {
-    transform: rotate(0deg) !important;
-}
-</style>

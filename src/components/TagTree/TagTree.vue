@@ -49,7 +49,7 @@ function addRootTag() {
     if(!value) {
         return
     }
-    globalStore.addTag(props.root.propertyId, value, undefined)
+    globalStore.addTag(props.propertyId, value, undefined)
 }
 
 </script>

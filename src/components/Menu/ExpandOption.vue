@@ -1,5 +1,5 @@
 <script setup>
-  import { ref, computed, defineProps } from 'vue';
+  import { ref, computed } from 'vue';
   
   const props = defineProps({
     leftAlign: Boolean,
@@ -8,15 +8,7 @@
   
   const expand = ref(true);
   
-  const caretClass = computed(() => {
-    let className = 'bi bi-caret-right';
-    if (expand.value) {
-      className += ' expand';
-    } else {
-      className += ' hide';
-    }
-    return className;
-  });
+  const caretClass = computed(() => 'ml-1 bi bi-caret-right clickable ' + (expand.value ? 'expand' : 'hide'))
   
   function toggle() {
     expand.value = !expand.value;
@@ -42,19 +34,3 @@
       </div>
     </div>
 </template>
-  
-  <style>
-  .bi-caret-right {
-    display: inline-block;
-    transition: 0.2s;
-  }
-  
-  .bi-caret-right.expand {
-    transform: rotate(90deg) !important;
-  }
-  
-  .bi-caret-right.hide {
-    transform: rotate(0deg) !important;
-  }
-  </style>
-  

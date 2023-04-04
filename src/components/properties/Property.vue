@@ -1,7 +1,7 @@
 <script setup>
 import {ref, computed, reactive} from 'vue'
 import { globalStore } from '../../data/store';
-import TagTree from '../TagTree/TagTree.vue';
+import TagTree from '../tagtree/TagTree.vue';
 import MultiTagProperty from './TagProperty.vue';
 
 const props = defineProps({
