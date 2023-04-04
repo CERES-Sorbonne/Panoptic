@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import { globalStore } from '@/data/store';
-import { Image, Property, PropertyRef } from '@/data/models';
+import { Image, Property, PropertyRef, PropertyType } from '@/data/models';
 import PropertyInput from '../inputs/PropertyInput.vue';
+import TagInput from '../inputs/TagInput.vue';
 
 const props = defineProps({
     image: Object as () => Image,
-    width: {type: Number, default: 100}
+    width: {type: String, default: '100'}
 })
 
 const properties = computed(() => globalStore.propertyList.filter((p:any) => p.show))
@@ -29,13 +30,16 @@ const imageProperties = computed(() => {
     return res
 })
 
+const widthStyle = computed(() => `width: ${props.width}px;`)
+
 </script>
 
 <template>
-    <div class="d-inline-block overflow-hidden" :style="'width: ' + props.width + 'px;'">
-        <img :src="props.image.url" :style="'width: ' + props.width + 'px;'" />
+    <div class="d-inline-block small-text" :style="widthStyle">
+        <img :src="props.image.url" :style="widthStyle"/>
         <div class="" v-for="property in imageProperties">
-            <PropertyInput :property="property" />
+            <TagInput v-if="property.type == PropertyType.multi_tags" :property="property"/>
+            <PropertyInput v-else :property="property" />
         </div>
         <!-- <input class="small form-control" /> -->
     </div>

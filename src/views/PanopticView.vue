@@ -23,7 +23,7 @@ const tags = computed(() => globalStore.tagTrees)
             <div class="col-3 bg-warning text-white p-0">
                 <Menu />
             </div>
-            <div class="col">
+            <div class="col-9">
                 <br />
                 <!-- <textarea :value="JSON.stringify(globalStore.tagTrees['1'], null, 4)" rows="20" cols="80"></textarea> -->
                 <div style="min-height: 55px;">

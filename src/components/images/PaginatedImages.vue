@@ -6,7 +6,7 @@ import { globalStore } from '@/data/store';
 
 const props = defineProps({
     images: Array<Image>,
-    imageSize: { type: Number, default: 150 },
+    imageSize: { type: String, default: '150' },
 })
 
 const loadedPages = ref(1)

@@ -1,11 +1,10 @@
 <template>
   <div class="badge rounded-pill text-bg-primary m-1 tag-badge">
     <div class="d-flex align-items-center justify-content-between">
-      <span class="pr-2">{{ tag }}</span>
+      <span class="pr-2">{{ tag }}<span v-if="showDelete" @click="$emit('delete')" class="bi bi-x ms-1"></span></span>
       <span v-if="number" class="position-absolute top-0 start-100 badge rounded-pill bg-danger number">
         {{number}}
       </span>
-      <i @click="$emit('deleteTag')" class="fa fa-times"></i>
     </div>
   </div>
 </template>
@@ -13,7 +12,8 @@
 <script setup>
 const props = defineProps({
   tag: String,
-  number: Number
+  number: Number,
+  showDelete: {type: Boolean, default: false}
 })
 </script>
   

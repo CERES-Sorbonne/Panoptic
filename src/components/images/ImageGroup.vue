@@ -7,7 +7,7 @@ import PaginatedImages from './PaginatedImages.vue';
 const props = defineProps({
     group: Object,
     small: String,
-    imageSize: Number
+    imageSize: String
 })
 
 const images = computed(() => props.group.images)

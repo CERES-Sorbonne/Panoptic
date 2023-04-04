@@ -29,7 +29,8 @@ export interface Property {
 
 export interface PropertyValue{
     propertyId: number
-    value: string | number | number[] | string[]
+    // value: string | number | number[] | string[]
+    value: any
 }
 
 export interface PropertyRef extends PropertyValue {
