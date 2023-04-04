@@ -29,7 +29,13 @@ export interface Property {
 
 export interface PropertyValue{
     propertyId: number
-    value: string | number | number[] | string[]
+    // value: string | number | number[] | string[]
+    value: any
+}
+
+export interface PropertyRef extends PropertyValue {
+    type: PropertyType
+    imageSHA1: String
 }
 
 export interface Image {
@@ -63,6 +69,10 @@ export interface Tags {
     }
 }
 
+export interface IndexedTags {
+    [id: number]: Tag
+}
+
 // a tag inside a tagstree
 export interface TreeTag{
     value: string
@@ -83,18 +93,20 @@ export interface GlobalStore {
     tags: Tags,
     tagTrees: ComputedRef<TagsTree>
     properties: Properties
+    params: Params
     images: Images
     imageList: ComputedRef<{url: String, imageName: String}[]>
     fetchAllData: () => void
-    [otherOptions: string]: unknown
+    [otherOptions: string]: any
 }
 
 export interface ReactiveStore{
     tags: Tags,
     tagTrees: TagsTree
     properties: Properties
+    params: Params
     images: Images
     imageList: {url: String, imageName: String}[]
     fetchAllData: () => void
-    [otherOptions: string]: unknown
+    [otherOptions: string]: any
 }

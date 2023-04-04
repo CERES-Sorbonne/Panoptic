@@ -1,10 +1,12 @@
 <script setup>
+import {computed} from 'vue'
 import ExpandOption from '../menu/ExpandOption.vue';
-import { computed } from 'vue'
+import PaginatedImages from './PaginatedImages.vue';
 
 const props = defineProps({
     group: Object,
-    small: String
+    small: String,
+    imageSize: String
 })
 
 const images = computed(() => props.group.images)
@@ -31,23 +33,16 @@ const imageSum = computed(() => {
 </script>
 
 <template>
-    <ExpandOption :small="props.small" :left-align="true">
+    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true">
         <template #name>{{ props.group.name }} ({{ imageSum }})<i class="h5 ms-2 bi bi-share"></i></template>
         <template #content>
-            <div v-if="hasImages">
-                <div class="row ms-3 images-group">
-                    <div class="image-card" v-for="image in images">
-                        <div class="image-container">
-                            <img :src="image.url"/>
-                        </div>
-                        <div class="image-info" v-if="image.info">
-                            Une prop
-                        </div>
-                    </div>
+            <div  v-if="hasImages">
+                <div class="ms-3">
+                    <PaginatedImages :images="images" :image-size="imageSize" />
                 </div>
             </div>
             <div v-else-if="hasSubgroups" class="ms-3">
-                <ImageGroup v-for="group in subgroups" :group="group" small=true />
+                <ImageGroup v-for="group in subgroups" :group="group" small=true :image-size="props.imageSize" />
             </div>
             <div v-else>
                 Error.. No Subgroups, No images, Why ?

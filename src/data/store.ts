@@ -1,22 +1,33 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params} from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
     properties: {} as Properties,
     params: {} as Params,
+    settings: {pageSize: 200, propertyTypes: Object.values(PropertyType)},
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
-        return {url: SERVER_PREFIX + globalStore.images[sha1].url, imageName: sha1}
-    })}),
+            return { url: SERVER_PREFIX + globalStore.images[sha1].url, imageName: sha1 }
+        })
+    }),
+
+    propertyList: computed(() => {
+        return Object.values(globalStore.properties)
+    }),
 
     tagTrees: computed(() => {
-        const tree:TagsTree = {}
-        Object.entries(globalStore.tags).forEach(([propId, tags]) => {tree[parseInt(propId)] = getPropertyTree(tags)})
-        return tree 
+        const tree: TagsTree = {}
+        Object.values(globalStore.properties).forEach((property: Property) => {
+            if (!globalStore.tags[property.id]) {
+                globalStore.tags[property.id] = {}
+            }
+            tree[property.id] = getPropertyTree(globalStore.tags[property.id])
+        })
+        return tree
     }),
 
     async fetchAllData() {
@@ -24,7 +35,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.tags = await apiGetTags()
         this.properties = await apiGetProperties()
         this.params = await apiGetParams()
-        console.log(this.images)
+        // for (let sha1 in this.images) {
+        //     for (let propId in this.properties) {
+        //         if (!this.images[sha1].properties[propId]) {
+        //             this.images[sha1].properties[propId] = { propertyId: Number(propId), value: undefined, type: this.properties[propId].type }
+        //         }
+        //         else {
+        //             this.images[sha1].properties[propId].type = this.properties[propId].type
+        //         }
+        //     }
+        // }
     },
 
     async importFolders() {
@@ -32,7 +52,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         await this.fetchAllData()
     },
 
-    async addTag(propertyId: number, tagValue:string, parentId?:number, color?:string): Promise<void>{
+    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<void> {
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
         this.tags[propertyId][newTag.id] = newTag
     },
@@ -42,36 +62,31 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.tags = await apiGetTags()
     },
 
-    async addProperty(name: string, type: PropertyType){
-        const newProperty:Property = await apiAddProperty(name, type)
+    async addProperty(name: string, type: PropertyType) {
+        const newProperty: Property = await apiAddProperty(name, type)
         this.properties[newProperty.id] = newProperty
     },
 
-    async addOrUpdatePropertyToImage(sha1: string, propertyId:number, value: any){
-        const newValue:PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
-        if(!this.images[sha1].properties[propertyId]){
-        this.images[sha1].properties[propertyId] = {propertyId, value}
-        }
-        else{
-        this.images[sha1].properties[propertyId].value = newValue.value
-        }
+    async addOrUpdatePropertyToImage(sha1: string, propertyId: number, value: any) {
+        const newValue: PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
+        this.images[sha1].properties[propertyId] = newValue
     },
 
-    async updateTag(propId: number, tagId: number, color?:string, parentId?: number, value?: any){
+    async updateTag(propId: number, tagId: number, color?: string, parentId?: number, value?: any) {
         const newTag = await apiUpdateTag(tagId, color, parentId, value)
         this.tags[propId][tagId] = newTag
     },
 
-    async addFolder(folder: string){
+    async addFolder(folder: string) {
         apiAddFolder(folder).then(() => globalStore.fetchAllData())
     },
 
-    async updateProperty(propertyId: number, type?: PropertyType, name?: string){
+    async updateProperty(propertyId: number, type?: PropertyType, name?: string) {
         const newProperty = await apiUpdateProperty(propertyId, type, name)
         this.properties[propertyId] = newProperty
     },
 
-    async deleteProperty(propertyId:number){
+    async deleteProperty(propertyId: number) {
         await apiDeleteProperty(propertyId)
         delete this.properties[propertyId]
     }
@@ -79,19 +94,21 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 })
 
 
-function getPropertyTree(tags: Tags): TreeTag {
+function getPropertyTree(tags: IndexedTags): TreeTag {
     let children: any = {}
 
     // get tagId to children list mapping
-    Object.values(tags).forEach(tag => { tag.parents.forEach((p: number) => {
-        if(!children[p]) {
-            children[p] = []
-        }
-        children[p].push(tag.id)
-    })})
+    Object.values(tags).forEach(tag => {
+        tag.parents.forEach((p: number) => {
+            if (!children[p]) {
+                children[p] = []
+            }
+            children[p].push(tag.id)
+        })
+    })
 
     // create a root node to make tree visiting more straightforward
-    let root = {id: 0, localId: '0', value: 'root'}
+    let root = { id: 0, localId: '0', value: 'root' }
     let nodes = [root, ...Object.values(tags)]
 
     // fill children property in each node
@@ -105,15 +122,15 @@ function getPropertyTree(tags: Tags): TreeTag {
 
     // recursive function. builds all possible path starting from a rootNode
     let buildTree = (rootNode: any, parent?: any) => {
-        if(parent == undefined) {
+        if (parent == undefined) {
             rootNode.localId = rootNode.id + ''
         } else {
             rootNode.localId = parent.localId + '.' + rootNode.id
             rootNode.localParent = parent.id
         }
-        if(rootNode.children) {
+        if (rootNode.children) {
             rootNode.children = rootNode.children.map((childId: number) => {
-                let child = {... nodeIndex[childId]}
+                let child = { ...nodeIndex[childId] }
                 return buildTree(child, rootNode)
             })
         }

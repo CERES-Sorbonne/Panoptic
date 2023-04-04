@@ -48,7 +48,7 @@ def get_images() -> Images:
                                  extension=extension)
         if property_id:
             result[sha1].properties[property_id] = PropertyValue(
-                **{'propertyId': property_id, 'value': db.decode_if_json(value)})
+                **{'property_id': property_id, 'value': db.decode_if_json(value)})
     return result
 
 

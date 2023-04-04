@@ -47,6 +47,7 @@ export const apiAddProperty = async(name: string, type: PropertyType):Promise<Pr
 }
 
 export const apiAddPropertyToImage = async(sha1: string, propertyId:number, value: any):Promise<PropertyValue> => {
+    console.log(propertyId)
     const res = await axios.post('/image_property', {sha1, propertyId, value})
     return res.data
 }

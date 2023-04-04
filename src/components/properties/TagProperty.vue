@@ -1,9 +1,12 @@
 <script setup lang="ts">
 
 import { reactive, computed, onMounted, watch } from 'vue';
-import { globalStore } from '../../data/store';
+import { globalStore } from '@/data/store';
 import { TreeTag } from '../../data/models';
 import TagTree from '../TagTree/TagTree.vue';
+import ExpandOption from '../menu/ExpandOption.vue';
+import Property from './Property.vue';
+import { PropertyType } from '../../data/models';
 
 interface NodeState extends TreeTag{
     expanded: boolean
@@ -23,36 +26,8 @@ const localTree = <NodeState>reactive({})
 
 const id = computed(() => props.data.id)
 const rootNode = computed(() => globalStore.tagTrees[id.value])
+const type = computed(() => props.data.type)
 
-
-
-// function create_state(tagId) {
-
-// }
-
-// function updateTreeState() {
-//     Object.keys(tags.value).forEach(tId => {
-
-//         if(!tagStates[tId]) {
-//             tagStates[tId] = create_state(tId)
-//         }
-//     })
-
-//     Object.keys(tagStates).forEach(tId => {
-//         if(!tags.value[tId]) {
-//             delete tagStates[tId]
-//         }
-//     })
-// }
-
-// function getNodeState(tagNode: TreeTag) {
-//     if(nodeStates[tagNode.localId]) {
-//         Object.assign(nodeStates[tagNode.localId], {name: tagNode.name})
-//         return nodeStates[tagNode.localId]
-//     }
-//     let state = Object.assign({}, tagNode)
-//     state.children =
-// }
 
 function createOrUpdateState(tagNode: TreeTag) {
     if(!nodeStates[tagNode.localId]) {
@@ -95,5 +70,19 @@ const selected = reactive([])
 </script>
 
 <template>
-    <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
+    <ExpandOption title-size="h5" :left-align="true" :default-expand="false">
+        <template #name>
+            <i v-if="type == PropertyType.tag" class="bi bi-tag"></i>
+            <i v-if="type == PropertyType.multi_tags" class="bi bi-tags"></i>
+            {{ props.data.name }}
+        </template>
+        <template #icons>
+            <span @click.stop="" class="h6 bi bi-pencil btn-icon me-3"></span>
+            <span @click.stop="props.data.show = !props.data.show" :class="'h5 bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
+        </template>
+        <template #content>
+            <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
+        </template>
+    </ExpandOption>
+    
 </template>

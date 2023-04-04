@@ -208,14 +208,17 @@ def get_properties() -> list[Property]:
     return [Property(**auto_dict(row, cursor)) for row in cursor.fetchall()]
 
 
-def get_image_property(sha1: str, property_id: int) -> ImageProperty:
-    query = "SELECT * from image_property WHERE sha1 = ? AND property_id = ?"
+def get_image_property(sha1: str, property_id: int) -> ImageProperty | None:
+    query = "SELECT * from images_properties WHERE sha1 = ? AND property_id = ?"
     cursor = execute_query(query, (sha1, property_id))
-    return ImageProperty(**auto_dict(cursor.fetchone(), cursor))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return ImageProperty(**auto_dict(row, cursor))
 
 
 def update_image_property(sha1: str, property_id: int, value: JSON) -> str:
-    query = "UPDATE image_property SET value = ? WHERE sha1 = ? AND property_id = ?"
+    query = "UPDATE images_properties SET value = ? WHERE sha1 = ? AND property_id = ?"
     execute_query(query, (json.dumps(value), sha1, property_id))
     return decode_if_json(value)
 
