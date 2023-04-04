@@ -27,3 +27,7 @@
 .bi-caret-right.hide {
   transform: rotate(0deg) !important;
 }
+
+.menu {
+  overflow-wrap: break-word;
+}

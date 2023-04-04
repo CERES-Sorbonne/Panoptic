@@ -11,7 +11,7 @@ const type = computed(() => props.data.type)
 </script>
 
 <template>
-    <h5>
+    <div class="h6 property">
         <PropertyIcon :type="type" />
 
         [{{props.data.type}}] 
@@ -21,6 +21,11 @@ const type = computed(() => props.data.type)
             <span class="h6 bi bi-pencil btn-icon me-3"></span>
             <span @click="props.data.show = !props.data.show" :class="'h5 bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
         </span>
-    </h5>
+    </div>
 </template>
 
+<style scoped="true">
+.property{
+    overflow-wrap: anywhere;
+}
+</style>

@@ -70,7 +70,7 @@ const selected = reactive([])
 </script>
 
 <template>
-    <ExpandOption title-size="h5" :left-align="true" :default-expand="false">
+    <ExpandOption title-size="h6" :left-align="true" :default-expand="false">
         <template #name>
             <i v-if="type == PropertyType.tag" class="bi bi-tag"></i>
             <i v-if="type == PropertyType.multi_tags" class="bi bi-tags"></i>

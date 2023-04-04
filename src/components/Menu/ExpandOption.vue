@@ -10,7 +10,7 @@ const props = defineProps({
 
 const expand = ref(true);
 
-const caretClass = computed(() => 'ml-1 bi bi-caret-right clickable ' + (expand.value ? 'expand' : 'hide'))
+const caretClass = computed(() => 'bi bi-caret-right clickable ' + (expand.value ? 'expand' : 'hide'))
 
 function toggle() {
   expand.value = !expand.value;
@@ -25,14 +25,14 @@ onMounted(() => {
 
 <template>
   <div>
-    <div :class="props.titleSize + ' btn-icon'" @click.stop="toggle">
+    <div :class="props.titleSize">
       <span v-if="leftAlign" class="float-start">
-        <span :class="caretClass"></span>
+        <span :class="caretClass" @click.stop="toggle"></span>
       </span>
       <slot name="name"></slot>
       <span class="float-end">
         <slot name="icons"></slot>
-        <span v-if="!props.leftAlign" :class="caretClass"></span>
+        <span v-if="!props.leftAlign" :class="caretClass" @click.stop="toggle"></span>
       </span>
     </div>
     <!-- Use v-if to delete component on hide -->
@@ -59,6 +59,7 @@ onMounted(() => {
 .bi-caret-right {
   display: inline-block;
   transition: 0.2s;
+  margin-left: 0 !important;
 }
 
 .bi-caret-right.expand {
@@ -67,6 +68,10 @@ onMounted(() => {
 
 .bi-caret-right.hide {
   transform: rotate(0deg) !important;
+}
+
+.option-content{
+  width: 100%
 }
 </style>
   
