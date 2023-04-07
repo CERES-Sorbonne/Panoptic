@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import TagBadge from '../TagTree/TagBadge.vue';
+import TagBadge from '../tagtree/TagBadge.vue';
 
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 
 import { globalStore } from '../../data/store'
 import { PropertyRef, Tag } from '@/data/models';
-import { isArray } from '@vue/shared';
 
+console.log("test")
+
+// contains the tag property of this image
 const props = defineProps({
     property: { type: Object as () => PropertyRef, required: true }
 })
@@ -23,10 +25,11 @@ const tags = computed(() => globalStore.tags[props.property.propertyId])
 
 
 const filteredTagList = computed(() => {
+    // filter tags according to inputed text
     if (!props.property.value) {
         props.property.value = []
     }
-    let filtered = Object.values(tags.value).filter(tag => !(props.property.value as string[]).includes(tag.value.toLowerCase()) && tag.value.toLowerCase().includes(tagInput.value.toLowerCase()));
+    let filtered = Object.values(tags.value).filter((tag:Tag) => !props.property.value.includes(tag.value.toLowerCase()) && tag.value.toLowerCase().includes(tagInput.value.toLowerCase()));
     return filtered
 
 })
@@ -34,14 +37,9 @@ const filteredTagList = computed(() => {
 const isCreatePossible = computed(() => tagInput.value.length > 0 && !filteredTagList.value.some(t => t.value == tagInput.value))
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
-const imageTags = computed(() => {
-    let res: string[] = []
-    if (props.property.value && isArray(props.property.value)) {
-        res.push(...(props.property.value as string[]))
-    }
-    return res
-})
-const hasTags = computed(() => imageTags.value.length > 0)
+
+const imageTags = computed(() => props.property.value.map((id:number) => tags.value[id]))
+
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
     if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target)) {
@@ -50,40 +48,36 @@ const handleContainerClick = (event: any) => {
 };
 
 const selectOption = async function () {
+    let valueToAdd: number
+    // should we create the tag first ? 
     if (isCreateSelected.value) {
-        await globalStore.addTag(props.property.propertyId, tagInput.value);
-        (props.property.value as string[]).push(tagInput.value)
+        const newTag = await globalStore.addTag(props.property.propertyId, tagInput.value);
+        valueToAdd = newTag.id
     }
     else if (selectedIndex.value < filteredTagList.value.length) {
-        let tagg = filteredTagList.value[selectedIndex.value].value;
-        (props.property.value as string[]).push(tagg)
+        let selectedTag = filteredTagList.value[selectedIndex.value]
+        if(imageTags.value.indexOf(selectedTag) === -1){
+            valueToAdd = selectedTag.id;
+        }
     }
-    else {
+    if(!valueToAdd) {
         return
     }
     tagInput.value = ''
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, [...props.property.value, valueToAdd])
     inputElem.value.focus()
 }
 
-function optionClass(id: number) {
-    if (selectedIndex.value == id) {
-        return 'bg-selected'
-    }
-    else {
-        return 'bg-white'
-    }
-}
+const optionClass = (id: number) => selectedIndex.value == id ? 'bg-selected' : 'bg-white'
 
-
-const deleteTag = async (tag: any) => {
-    let index = props.property.value.indexOf(tag)
-    props.property.value.splice(index, 1)
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+const removeTag = async (tag: Tag) => {
+    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, 
+                                                props.property.propertyId, 
+                                                props.property.value.filter((id:number) => id !== tag.id))
     inputElem.value.focus()
 }
 
-function moveSected(value: number) {
+function moveSelected(value: number) {
     let bonus = isCreatePossible.value ? 0 : -1
     if (value > 0 && selectedIndex.value < filteredTagList.value.length + bonus) {
         selectedIndex.value += 1
@@ -108,15 +102,15 @@ onUnmounted(() => {
 
 <template>
     <div>
-        <div class="tag-input" ref="tagInputContainer" @keydown.down.prevent="moveSected(1)"
-            @keydown.up.prevent="moveSected(-1)" @keydown.enter="selectOption">
+        <div class="tag-input" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
+            @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption">
             <input type="text" v-model="tagInput" placeholder="Add a tag"
                 @focus="showTagList = true" style="width: 100%;" @input="selectedIndex = 0" ref="inputElem"/>
 
             <ul v-if="showTagList" class="tag-proposals bg-white">
-                <li v-if="hasTags" class="bg-light m-0 p-0 pb-1 pt-1" style="width: 300px;">
-                    <TagBadge @delete="deleteTag(tag)" :show-delete="true" :tag="(tag as string)"
-                        v-for="tag in props.property.value" />
+                <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1" style="width: 300px;">
+                    <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value"
+                        v-for="tag in imageTags" />
                 </li>
                 <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one</p>
                 <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)" v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
