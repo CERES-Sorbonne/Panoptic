@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TagBadge from '../TagTree/TagBadge.vue';
 
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, nextTick } from 'vue'
 
 import { globalStore } from '../../data/store'
 import { PropertyRef, Tag } from '@/data/models';
@@ -11,11 +11,13 @@ const props = defineProps({
     property: { type: Object as () => PropertyRef, required: true }
 })
 
+const edit = ref(false)
+
+
 const tagInput = ref('');
 const showTagList = ref(false);
 const tagInputContainer = ref(null);
 const tagProposals = ref(null);
-const input = ref(null)
 const selectedIndex = ref(0)
 const inputElem = ref(null)
 
@@ -44,8 +46,12 @@ const imageTags = computed(() => {
 const hasTags = computed(() => imageTags.value.length > 0)
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
+    if(!edit.value) {
+        return
+    }
     if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target)) {
         showTagList.value = false;
+        edit.value = false;
     }
 };
 
@@ -72,6 +78,25 @@ function optionClass(id: number) {
     }
     else {
         return 'bg-white'
+    }
+}
+
+function setEdit(value: Boolean) {
+    if (value) {
+        edit.value = true
+        nextTick(() => {
+            if (!inputElem.value) {
+                return
+            }
+            inputElem.value.focus()
+        })
+    }
+    else {
+        globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+        edit.value = false
+        if (props.property.value == '') {
+            props.property.value = undefined
+        }
     }
 }
 
@@ -108,7 +133,10 @@ onUnmounted(() => {
 
 <template>
     <div>
-        <div class="tag-input" ref="tagInputContainer" @keydown.down.prevent="moveSected(1)"
+        <div v-if="!edit" @click="setEdit(true)" class="text-nowrap bg-light btn-icon">
+            <span v-for="tag in props.property.value"><TagBadge :tag="tag"/></span>
+        </div>
+        <div v-else class="tag-input" ref="tagInputContainer" @keydown.down.prevent="moveSected(1)"
             @keydown.up.prevent="moveSected(-1)" @keydown.enter="selectOption">
             <input type="text" v-model="tagInput" placeholder="Add a tag"
                 @focus="showTagList = true" style="width: 100%;" @input="selectedIndex = 0" ref="inputElem"/>
@@ -133,7 +161,7 @@ onUnmounted(() => {
 
 <style scoped>
 .tag-input {
-    margin-top: 1rem;
+    /* margin-top: 1rem; */
     position: relative;
 }
 
@@ -161,4 +189,5 @@ onUnmounted(() => {
     list-style: none;
     /* max-height: 120px; */
     /* overflow-y: visible; */
-}</style>
+}
+</style>
