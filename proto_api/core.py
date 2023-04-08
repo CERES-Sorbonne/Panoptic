@@ -142,11 +142,29 @@ def update_tag(payload: UpdateTagPayload) -> Tag:
 
 
 def delete_tag(tag_id: int) -> List[int]:
-    return db.delete_tag_by_id(tag_id)
+    # first delete the tag
+    modified_tags = [db.delete_tag_by_id(tag_id)]
+    # when deleting a tag, get all children of this tag
+    children = db.get_tags_by_parent_id(tag_id)
+    # and remove parent ref of tag in children
+    [modified_tags.extend(delete_tag_parent(c, tag_id)) for c in children]
+    # then get all images properties tagged with it
+    image_properties = db.get_image_properties_with_tag(tag_id)
+    # and delete the tag ref from them
+    for image_property in image_properties:
+        image_property.value.remove(tag_id)
+        db.update_image_property(image_property.sha1, image_property.property_id, image_property.value)
+    return modified_tags
 
 
 def delete_tag_parent(tag_id: int, parent_id: int) -> List[int]:
-    return db.delete_tag_parent_from_id(tag_id, parent_id)
+    tag = db.get_tag_by_id(tag_id)
+    tag.parents.remove(parent_id)
+    if not tag.parents:
+        return delete_tag(tag.id)
+    else:
+        db.update_tag(tag)
+        return []
 
 
 def get_tags(prop: str = None) -> Tags:

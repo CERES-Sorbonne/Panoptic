@@ -52,14 +52,17 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         await this.fetchAllData()
     },
 
-    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<void> {
+    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
         this.tags[propertyId][newTag.id] = newTag
+        return newTag
     },
 
     async deleteTagParent(propertyId: number, tagId: number, parent_id: number) {
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         this.tags = await apiGetTags()
+        // also reload images since the tag should be removed from their properties
+        this.images = await apiGetImages()
     },
 
     async addProperty(name: string, type: PropertyType) {

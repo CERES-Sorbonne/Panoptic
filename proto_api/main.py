@@ -114,16 +114,13 @@ async def update_tag_route(payload: UpdateTagPayload) -> Tag:
 
 
 @app.delete("/tags")
-async def delete_tag_route(tag_id: int):
-    # print(tag_id, parent_id)
+async def delete_tag_route(tag_id: int) -> list[int]:
     return delete_tag(tag_id)
 
 
 @app.delete("/tags/parent")
 async def delete_tag_parent_route(tag_id: int, parent_id: int):
-    # print(tag_id, parent_id)
     res = delete_tag_parent(tag_id, parent_id)
-    print(res)
     return res
 
 

@@ -3,9 +3,8 @@
 import { reactive, computed, onMounted, watch } from 'vue';
 import { globalStore } from '@/data/store';
 import { TreeTag } from '../../data/models';
-import TagTree from '../TagTree/TagTree.vue';
+import TagTree from '../tagtree/TagTree.vue';
 import ExpandOption from '../menu/ExpandOption.vue';
-import Property from './Property.vue';
 import { PropertyType } from '../../data/models';
 
 interface NodeState extends TreeTag{
@@ -70,7 +69,7 @@ const selected = reactive([])
 </script>
 
 <template>
-    <ExpandOption title-size="h6" :left-align="true" :default-expand="false">
+    <ExpandOption title-size="h7" :left-align="true" :default-expand="false">
         <template #name>
             <i v-if="type == PropertyType.tag" class="bi bi-tag"></i>
             <i v-if="type == PropertyType.multi_tags" class="bi bi-tags"></i>
