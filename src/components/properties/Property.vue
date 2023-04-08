@@ -11,10 +11,8 @@ const type = computed(() => props.data.type)
 </script>
 
 <template>
-    <div class="h6 property">
+    <div class="property">
         <PropertyIcon :type="type" />
-
-        [{{props.data.type}}] 
         {{ props.data.name}}
 
         <span class="float-end">

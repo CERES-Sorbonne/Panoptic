@@ -8,6 +8,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 
 const props = defineProps({
     property: Object as () => PropertyRef,
+    maxSize: String
 })
 
 const edit = ref(false)
@@ -42,11 +43,11 @@ function setEdit(value: Boolean) {
 
 <template>
     <form @submit.prevent="edit = false">
-        <div class="input-group bg-light">
+        <div class="input-group bg-light overflow-hidden" :style="'width:'+props.maxSize+'px;'">
             <span class="input-group-text small bg-light text-dark me-1">
                 <span class="me-1">
                     <input v-if="type == PropertyType.checkbox" class="form-check-input" type="checkbox" v-model="props.property.value" @focusout="setEdit(false)">
-                    <span @click="setEdit(true)" v-else> <PropertyIcon :type="property.type"/> </span>
+                    <span @click="setEdit(true)" v-else><PropertyIcon :type="property.type"/> </span>
                 </span>
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">
                     <span v-if="!isSet" class="text-secondary">None</span>
