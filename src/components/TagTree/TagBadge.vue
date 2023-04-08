@@ -1,3 +1,13 @@
+<script setup lang="ts">
+
+const props = defineProps({
+  tag: String,
+  number: Number,
+  showDelete: {type: Boolean, default: false}
+})
+</script>
+
+
 <template>
   <div class="badge rounded-pill text-bg-primary m-1 tag-badge">
     <div class="d-flex align-items-center justify-content-between">
@@ -9,13 +19,6 @@
   </div>
 </template>
   
-<script setup>
-const props = defineProps({
-  tag: String,
-  number: Number,
-  showDelete: {type: Boolean, default: false}
-})
-</script>
   
 <style scoped>
 .tag-badge{

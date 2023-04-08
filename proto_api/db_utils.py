@@ -126,15 +126,10 @@ def get_tag_by_id(tag_id: int):
     return Tag(**auto_dict(row, cursor))
 
 
-def delete_tag_by_id(tag_id: int):
-    res = [tag_id]
+def delete_tag_by_id(tag_id: int) -> int:
     query = "DELETE FROM tags WHERE id = ?"
     execute_query(query, (str(tag_id),))
-
-    tags = get_tags_by_parent_id(tag_id)
-    [res.extend(delete_tag_parent_from_tag(t, tag_id)) for t in tags]
-
-    return res
+    return tag_id
 
 
 def get_tags_by_parent_id(parent_id: int):
@@ -142,20 +137,6 @@ def get_tags_by_parent_id(parent_id: int):
     cursor = execute_query(query)
 
     return [Tag(**auto_dict(row, cursor)) for row in cursor.fetchall()]
-
-
-def delete_tag_parent_from_id(tag_id: int, parent_id: int):
-    tag = get_tag_by_id(tag_id)
-    return delete_tag_parent_from_tag(tag, parent_id)
-
-
-def delete_tag_parent_from_tag(tag: Tag, parent_id: int):
-    tag.parents.remove(parent_id)
-    if not tag.parents:
-        return delete_tag_by_id(tag.id)
-    else:
-        update_tag(tag)
-        return []
 
 
 def tag_in_ancestors(tag_id, parent_id) -> bool:
@@ -245,3 +226,9 @@ def delete_property(property_id):
 def update_property(new_property: Property):
     query = "UPDATE properties SET name = ?, type = ? WHERE id = ?"
     execute_query(query, (new_property.name, new_property.type, new_property.id))
+
+
+def get_image_properties_with_tag(tag_id: int) -> list[ImageProperty]:
+    query = "SELECT * from images_properties ip where ip.value like ?"
+    cursor = execute_query(query, (f"[%{tag_id}%]",))
+    return [ImageProperty(**auto_dict(row, cursor)) for row in cursor.fetchall()]
