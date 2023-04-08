@@ -30,3 +30,5 @@ coverage
 */__pycache__/
 
 test
+/proto_api/test.json
+/proto_api/test.db
