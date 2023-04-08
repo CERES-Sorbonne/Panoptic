@@ -37,9 +37,10 @@ const widthStyle = computed(() => `width: ${props.width}px;`)
 <template>
     <div class="d-inline-block small-text" :style="widthStyle">
         <img :src="props.image.url" :style="widthStyle"/>
-        <div class="" v-for="property in imageProperties">
-            <TagInput v-if="property.type == PropertyType.multi_tags" :property="property"/>
-            <PropertyInput v-else :property="property" />
+        <div v-for="property in imageProperties">
+            <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" :max-size="props.width"/>
+            <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="props.width" :mono-tag="true"/>
+            <PropertyInput v-else :property="property" :max-size="props.width" />
         </div>
         <!-- <input class="small form-control" /> -->
     </div>

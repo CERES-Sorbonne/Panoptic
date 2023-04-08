@@ -6,12 +6,15 @@ import { ref, computed, onMounted, onUnmounted, reactive, nextTick } from 'vue'
 import { globalStore } from '../../data/store'
 import { PropertyRef, Tag } from '@/data/models';
 import TagBadge from '../TagTree/TagBadge.vue';
+import PropertyIcon from '../properties/PropertyIcon.vue';
 
 console.log("test")
 
 // contains the tag property of this image
 const props = defineProps({
-    property: { type: Object as () => PropertyRef, required: true }
+    property: { type: Object as () => PropertyRef, required: true },
+    maxSize: String,
+    monoTag: Boolean
 })
 
 const edit = ref(false)
@@ -32,7 +35,7 @@ const filteredTagList = computed(() => {
     if (!props.property.value) {
         props.property.value = []
     }
-    let filtered = Object.values(tags.value).filter((tag: Tag) => !props.property.value.includes(tag.value.toLowerCase()) && tag.value.toLowerCase().includes(tagInput.value.toLowerCase()));
+    let filtered = Object.values(tags.value).filter((tag: Tag) => !props.property.value.includes(tag.id) && tag.value.toLowerCase().includes(tagInput.value.toLowerCase()));
     return filtered
 
 })
@@ -71,7 +74,8 @@ const selectOption = async function () {
         return
     }
     tagInput.value = ''
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, [...props.property.value, valueToAdd])
+    let updatedValue = props.monoTag ? [valueToAdd] : [...props.property.value, valueToAdd]
+    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, updatedValue)
     inputElem.value.focus()
 }
 
@@ -135,9 +139,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div>
-        <div v-if="!edit" @click="setEdit(true)" class="text-nowrap bg-light btn-icon">
-            <span v-if="!props.property.value || props.property.value.length < 1">None</span>
+    <div class="input-group bg-light">
+        <div v-if="!edit" @click="setEdit(true)"  class="input-group-text small bg-light text-dark me-1 overflow-hidden" :style="'width:'+props.maxSize+'px;'">
+            <PropertyIcon :type="props.property.type" class="me-1"/>
+            <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
             <span v-else>
                 <span v-for="tag in props.property.value">
                     <template
@@ -151,7 +156,7 @@ onUnmounted(() => {
         <div v-else class="tag-input" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption">
             <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
-                @input="selectedIndex = 0" ref="inputElem" />
+                @input="selectedIndex = 0" ref="inputElem" class="form-control small"/>
 
             <ul v-if="showTagList" class="tag-proposals bg-white">
                 <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1" style="width: 300px;">
