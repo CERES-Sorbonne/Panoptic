@@ -63,7 +63,7 @@ const handleContainerClick = (event: any) => {
     if (!edit.value) {
         return
     }
-    if (!inputElem.value.contains(event.target)) {
+    if (inputElem.value && !inputElem.value.contains(event.target)) {
         setEdit(false)
         
         if(!elemIsInput(event.target, 10)) {
@@ -86,11 +86,11 @@ function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
 
 
 <template>
-    <form @submit.prevent="edit = false" is-input="true">
-        <div class="input-group bg-light overflow-hidden" :style="'width:'+props.maxSize+'px;'">
+    <form @submit.prevent="setEdit(false)" is-input="true">
+        <div class="input-group bg-light overflow-hidden" :style="'width:'+props.maxSize+'px;'" @click="setEdit(true)">
             <span class="input-group-text small bg-light text-dark me-1">
                 <span class="me-1">
-                    <input v-if="type == PropertyType.checkbox" class="form-check-input" type="checkbox" v-model="props.property.value">
+                    <input v-if="type == PropertyType.checkbox" class="form-check-input" type="checkbox" v-model="props.property.value" @change="setEdit(false)">
                     <span @click="setEdit(true)" v-else><PropertyIcon :type="property.type"/> </span>
                 </span>
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">

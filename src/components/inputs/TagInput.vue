@@ -157,7 +157,7 @@ onMounted(() => {
         </div>
         <div v-else class="tag-input w-100" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
-            @keydown.escape.prevent="setEdit(false)">
+            @keydown.escape.prevent.stop="setEdit(false)">
             <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
                 @input="selectedIndex = 0" ref="inputElem" class="form-control small"/>
 
