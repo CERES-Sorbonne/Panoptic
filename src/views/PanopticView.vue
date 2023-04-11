@@ -5,11 +5,13 @@ import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
 import { fakeStore } from '../fakestore';
 import Menu from '../components/menu/Menu.vue';
+import ImageForm from '@/components/forms/ImageForm.vue';
+import { globalStore } from '@/data/store';
+import { Modals } from '@/data/models';
 
 
 const selectedTab = ref('')
 const store = fakeStore
-
 
 </script>
 
@@ -29,5 +31,8 @@ const store = fakeStore
             </div>
 
         </div>
+
     </div>
+
+    <ImageForm :id="Modals.IMAGE" />
 </template>

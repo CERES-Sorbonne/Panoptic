@@ -110,3 +110,7 @@ export interface ReactiveStore{
     fetchAllData: () => void
     [otherOptions: string]: any
 }
+
+export enum Modals {
+    IMAGE = 'image'
+}
