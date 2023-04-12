@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import { globalStore } from '@/data/store';
-import { Image, Property, PropertyRef, PropertyType } from '@/data/models';
+import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 
@@ -36,7 +36,7 @@ const widthStyle = computed(() => `width: ${props.width}px;`)
 
 <template>
     <div class="d-inline-block small-text" :style="widthStyle">
-        <img :src="props.image.url" :style="widthStyle"/>
+        <img :src="props.image.url" :style="widthStyle" @click="globalStore.showModal(Modals.IMAGE, props.image)"/>
         <div v-for="property in imageProperties">
             <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" :max-size="props.width"/>
             <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="props.width" :mono-tag="true"/>

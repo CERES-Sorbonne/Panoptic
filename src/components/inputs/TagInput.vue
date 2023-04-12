@@ -8,8 +8,6 @@ import { PropertyRef, Tag } from '@/data/models';
 import TagBadge from '../TagTree/TagBadge.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 
-console.log("test")
-
 // contains the tag property of this image
 const props = defineProps({
     property: { type: Object as () => PropertyRef, required: true },
@@ -52,8 +50,11 @@ const handleContainerClick = (event: any) => {
         return
     }
     if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target)) {
-        showTagList.value = false;
-        edit.value = false;
+        setEdit(false)
+        
+        if(!elemIsInput(event.target, 10)) {
+            event.stopPropagation()
+        }
     }
 };
 
@@ -84,6 +85,7 @@ const optionClass = (id: number) => selectedIndex.value == id ? 'bg-selected' : 
 function setEdit(value: Boolean) {
     if (value) {
         edit.value = true
+        document.addEventListener('click', handleContainerClick, true)
         nextTick(() => {
             if (!inputElem.value) {
                 return
@@ -92,19 +94,24 @@ function setEdit(value: Boolean) {
         })
     }
     else {
+        document.removeEventListener('click', handleContainerClick)
         globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
         edit.value = false
+        showTagList.value = false;
         if (props.property.value == '') {
             props.property.value = undefined
         }
     }
 }
 
-
-const deleteTag = async (tag: any) => {
-    let index = props.property.value.indexOf(tag)
-    props.property.value.splice(index, 1)
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
+    if(elem.getAttribute('is-input')) {
+        return true
+    }
+    if(depth > 0 && elem.parentElement) {
+        return elemIsInput(elem.parentElement, depth-1)
+    }
+    return false
 }
 
 const removeTag = async (tag: Tag) => {
@@ -129,18 +136,13 @@ onMounted(() => {
     if (!props.property.value) {
         props.property.value = []
     }
-    document.addEventListener('mousedown', handleContainerClick);
-});
-
-onUnmounted(() => {
-    document.removeEventListener('mousedown', handleContainerClick);
 });
 
 </script>
 
 <template>
-    <div class="input-group bg-light">
-        <div v-if="!edit" @click="setEdit(true)"  class="input-group-text small bg-light text-dark me-1 overflow-hidden" :style="'width:'+props.maxSize+'px;'">
+    <div class="input-group bg-light w-100" is-input="true">
+        <div v-if="!edit" @click.stop="setEdit(true)"  class="input-group-text small bg-light text-dark me-1 overflow-hidden w-100" :style="'width:'+props.maxSize+'px;'">
             <PropertyIcon :type="props.property.type" class="me-1"/>
             <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
             <span v-else>
@@ -153,9 +155,9 @@ onUnmounted(() => {
             </span>
             <!-- <span class="text-wrap">{{ props.property }}</span> -->
         </div>
-        <div v-else class="tag-input" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
+        <div v-else class="tag-input w-100" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
-            @keydown.escape.prevent="setEdit(false)">
+            @keydown.escape.prevent.stop="setEdit(false)">
             <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
                 @input="selectedIndex = 0" ref="inputElem" class="form-control small"/>
 

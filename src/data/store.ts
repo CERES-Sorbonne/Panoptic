@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags } from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags, Modals } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -8,6 +8,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     properties: {} as Properties,
     params: {} as Params,
     settings: {pageSize: 200, propertyTypes: Object.values(PropertyType)},
+    openModal: {id: null, data: null},
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
@@ -29,6 +30,15 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         })
         return tree
     }),
+
+    showModal(modalId: Modals, data: any) {
+        globalStore.openModal.id = modalId
+        globalStore.openModal.data = data
+    },
+
+    hideModal() {
+        globalStore.openModal = {id: null, data: null}
+    },
 
     async fetchAllData() {
         let images = await apiGetImages()

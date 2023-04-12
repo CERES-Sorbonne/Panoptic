@@ -127,3 +127,6 @@ export interface Filter {
     strict: boolean // strict to true will be an "OR" filter, set to false it would be an "AND"
 }
 
+export enum Modals {
+    IMAGE = 'image'
+}
