@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, computed, watch, onMounted, ref } from 'vue';
 import { fakeStore } from '../../fakestore';
+import { filterData } from '@/utils/filter';
 import ImageGroup from './ImageGroup.vue';
 import DropdownInput from '../inputs/DropdownInput.vue';
 import ListInput from '../inputs/ListInput.vue';
@@ -22,7 +23,13 @@ const groups2 = reactive([])
 
 function computeGroups() {
     // TODO filter
-
+    // let filters = [{propertyId:14, operator: "equal", value: "jambon", strict: true}]
+    // let filters = [{propertyId:14, operator: "like", value: "jam", strict: true}]
+    // let filters = [{propertyId:14, operator: "equal", value: "jambon", strict: true}, {propertyId:14, operator: "equal", value: "toto", strict: true}]
+    // let filters = [{propertyId:14, operator: "equal", value: "tata", strict: false}, {propertyId:14, operator: "equal", value: "titi", strict: false}]
+    // let filters = [{propertyId: 15, operator: "leq", value: "2023-04-01", strict: true}]
+    let filters = [{propertyId: 15, operator: "leq", value: "2023-05-01", strict: true}, {propertyId: 15, operator: "greater", value: "2023-03-05", strict: true}]
+    let filtered = filterData(filters)
     groups2.length = 0
 
     let allGroup = {
@@ -38,7 +45,7 @@ watch(tab, () => {
     store.saveTabState()
 }, { deep: true })
 
-watch(() => globalStore.images, computeGroups)
+watch(() => globalStore.images, computeGroups, {deep: true})
 
 </script>
 

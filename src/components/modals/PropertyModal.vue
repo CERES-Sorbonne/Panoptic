@@ -20,6 +20,7 @@ function onHide() {
     if (globalStore.openModal.id == props.id) {
         globalStore.hideModal()
     }
+    resetNewProperty()
 }
 
 function hide() {
@@ -53,9 +54,7 @@ async function saveProperty() {
 
     await globalStore.addProperty(newProperty.name, newProperty.type)
 
-    let elem = document.getElementById(props.id)
-    let modal = bootstrap.Modal.getInstance(elem)
-    modal.hide()
+    hide()
 }
 
 watch(() => globalStore.openModal.id, (id) => {

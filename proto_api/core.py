@@ -69,7 +69,7 @@ def delete_image_property(property_id: int, sha1: str):
     db.delete_image_property(property_id, sha1)
 
 
-def _proprocess_image(file_path):
+def _preprocess_image(file_path):
     image = pImage.open(file_path)
     name = file_path.split(os.sep)[-1]
     extension = name.split('.')[-1]
@@ -82,7 +82,7 @@ def _proprocess_image(file_path):
 
 
 def add_image(file_path) -> Image:
-    name, extension, width, height, sha1_hash, url = _proprocess_image(file_path)
+    name, extension, width, height, sha1_hash, url = _preprocess_image(file_path)
     # Vérification si sha1_hash existe déjà dans la table images
     return add_image_to_db(file_path, name, extension, width, height, sha1_hash, url)
 
@@ -109,7 +109,7 @@ def add_folder(folder):
     all_images = [i for i in all_files if
                   i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        transformed = [executor.submit(_proprocess_image, i) for i in all_images]
+        transformed = [executor.submit(_preprocess_image, i) for i in all_images]
     for future, path in zip(concurrent.futures.as_completed(transformed), all_images):
         add_image_to_db(path, *future.result())
     return len(all_images)

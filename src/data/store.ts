@@ -41,10 +41,15 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async fetchAllData() {
-        this.images = await apiGetImages()
-        this.tags = await apiGetTags()
-        this.properties = await apiGetProperties()
-        this.params = await apiGetParams()
+        let images = await apiGetImages()
+        let tags = await apiGetTags()
+        let properties = await apiGetProperties()
+        let params = await apiGetParams()
+
+        this.images = images
+        this.tags = tags
+        this.properties = properties
+        this.params = params
         // for (let sha1 in this.images) {
         //     for (let propId in this.properties) {
         //         if (!this.images[sha1].properties[propId]) {
