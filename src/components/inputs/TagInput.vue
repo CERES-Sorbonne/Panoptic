@@ -141,7 +141,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="input-group bg-light w-100" is-input="true">
+    <div class="input-group bg-light w-100 ms-1" is-input="true">
         <div v-if="!edit" @click.stop="setEdit(true)"  class="input-group-text small bg-light text-dark me-1 overflow-hidden w-100" :style="'width:'+props.maxSize+'px;'">
             <PropertyIcon :type="props.property.type" class="me-1"/>
             <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>

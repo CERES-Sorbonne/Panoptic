@@ -86,7 +86,7 @@ function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
 
 
 <template>
-    <form @submit.prevent="setEdit(false)" is-input="true">
+    <form @submit.prevent="setEdit(false)" is-input="true" class="ms-1">
         <div class="input-group bg-light overflow-hidden" :style="'width:'+props.maxSize+'px;'" @click="setEdit(true)">
             <span class="input-group-text small bg-light text-dark me-1">
                 <span class="me-1">
