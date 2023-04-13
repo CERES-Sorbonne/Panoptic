@@ -1,23 +1,17 @@
 <script setup>
 
-import { reactive, ref, computed } from 'vue';
+import { ref } from 'vue';
 import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
 import { fakeStore } from '../fakestore';
-import { globalStore } from '../data/store';
 import Menu from '../components/menu/Menu.vue';
+import ImageForm from '@/components/forms/ImageForm.vue';
+import { globalStore } from '@/data/store';
+import { Modals } from '@/data/models';
 
 
 const selectedTab = ref('')
-
-const files = reactive({})
 const store = fakeStore
-
-const tags = computed(() => globalStore.tagTrees)
-
-const testAddProperty = () => {
-    globalStore.addProperty("tags", PropertyType.multi_tags)
-}
 
 </script>
 
@@ -37,5 +31,8 @@ const testAddProperty = () => {
             </div>
 
         </div>
+
     </div>
+
+    <ImageForm :id="Modals.IMAGE" />
 </template>

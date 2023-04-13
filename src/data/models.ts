@@ -110,3 +110,23 @@ export interface ReactiveStore{
     fetchAllData: () => void
     [otherOptions: string]: any
 }
+
+export enum FilterOperator {
+    equal = "equal",
+    like = "like",
+    lower = "lower",
+    leq = "leq",
+    greater = "greater",
+    geq = "geq"
+}
+
+export interface Filter {
+    propertyId: number,
+    operator: FilterOperator,
+    value: any,
+    strict: boolean // strict to true will be an "OR" filter, set to false it would be an "AND"
+}
+
+export enum Modals {
+    IMAGE = 'image'
+}

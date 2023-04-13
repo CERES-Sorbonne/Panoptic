@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags } from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags, Modals } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -8,6 +8,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     properties: {} as Properties,
     params: {} as Params,
     settings: {pageSize: 200, propertyTypes: Object.values(PropertyType)},
+    openModal: {id: null, data: null},
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
@@ -30,11 +31,25 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return tree
     }),
 
+    showModal(modalId: Modals, data: any) {
+        globalStore.openModal.id = modalId
+        globalStore.openModal.data = data
+    },
+
+    hideModal() {
+        globalStore.openModal = {id: null, data: null}
+    },
+
     async fetchAllData() {
-        this.images = await apiGetImages()
-        this.tags = await apiGetTags()
-        this.properties = await apiGetProperties()
-        this.params = await apiGetParams()
+        let images = await apiGetImages()
+        let tags = await apiGetTags()
+        let properties = await apiGetProperties()
+        let params = await apiGetParams()
+
+        this.images = images
+        this.tags = tags
+        this.properties = properties
+        this.params = params
         // for (let sha1 in this.images) {
         //     for (let propId in this.properties) {
         //         if (!this.images[sha1].properties[propId]) {
@@ -52,14 +67,17 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         await this.fetchAllData()
     },
 
-    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<void> {
+    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
         this.tags[propertyId][newTag.id] = newTag
+        return newTag
     },
 
     async deleteTagParent(propertyId: number, tagId: number, parent_id: number) {
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         this.tags = await apiGetTags()
+        // also reload images since the tag should be removed from their properties
+        this.images = await apiGetImages()
     },
 
     async addProperty(name: string, type: PropertyType) {
