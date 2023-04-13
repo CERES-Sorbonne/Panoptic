@@ -7,7 +7,6 @@ from typing import Optional
 import multiprocessing as mp
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.requests import Request
 from starlette.responses import Response
 
 from core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
