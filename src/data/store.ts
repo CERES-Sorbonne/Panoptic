@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, SERVER_PREFIX, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
 import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags, Modals } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
@@ -12,7 +12,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
-            return { url: SERVER_PREFIX + globalStore.images[sha1].url, imageName: sha1 }
+            return { url: globalStore.images[sha1].url, imageName: sha1 }
         })
     }),
 

@@ -7,7 +7,7 @@ import { Property, PropertyType, PropertyValue, Tag } from './models'
 
 import axios from 'axios'
 
-export const SERVER_PREFIX = "http://localhost:8000"
+export const SERVER_PREFIX = "api/"
 axios.defaults.baseURL = SERVER_PREFIX
 
 
