@@ -12,17 +12,19 @@ export default defineConfig({
         },
     },
     server: {
+        host: '0.0.0.0',
         proxy: {
-        '/images': {
-            target: 'http://127.0.0.1:8000/',
-            changeOrigin: true,
-            secure: false,
-            rewrite: (path) => {
-                // let p = path.replace(/^\/images/, '')
-                // console.log(path)
-                return path
-            }
-        },
+            '/api': {
+                target: 'http://127.0.0.1:8000/',
+                changeOrigin: true,
+                secure: false,
+                rewrite: (path) => path.replace(/^\/api/, '')
+            },
+            '/images': {
+                target: 'http://127.0.0.1:8000/',
+                changeOrigin: true,
+                secure: false,
+            },
         }
     },
 })
