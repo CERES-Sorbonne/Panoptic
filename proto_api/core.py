@@ -110,8 +110,8 @@ def add_folder(folder):
                   i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
     with concurrent.futures.ProcessPoolExecutor() as executor:
         transformed = [executor.submit(_preprocess_image, i) for i in all_images]
-    for future, path in zip(concurrent.futures.as_completed(transformed), all_images):
-        add_image_to_db(path, *future.result())
+    for future in concurrent.futures.as_completed(transformed):
+        add_image_to_db(*future.result())
     return len(all_images)
 
 
