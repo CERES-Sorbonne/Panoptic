@@ -78,11 +78,11 @@ def _preprocess_image(file_path):
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
-    return name, extension, width, height, sha1_hash, url
+    return file_path, name, extension, width, height, sha1_hash, url
 
 
 def add_image(file_path) -> Image:
-    name, extension, width, height, sha1_hash, url = _preprocess_image(file_path)
+    _, name, extension, width, height, sha1_hash, url = _preprocess_image(file_path)
     # Vérification si sha1_hash existe déjà dans la table images
     return add_image_to_db(file_path, name, extension, width, height, sha1_hash, url)
 
