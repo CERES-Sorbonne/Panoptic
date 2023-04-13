@@ -5,9 +5,9 @@ import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
 import { fakeStore } from '../fakestore';
 import Menu from '../components/menu/Menu.vue';
-import ImageForm from '@/components/forms/ImageForm.vue';
-import { globalStore } from '@/data/store';
 import { Modals } from '@/data/models';
+import ImageModal from '@/components/modals/ImageModal.vue';
+import PropertyModal from '@/components/modals/PropertyModal.vue';
 
 
 const selectedTab = ref('')
@@ -34,5 +34,6 @@ const store = fakeStore
 
     </div>
 
-    <ImageForm :id="Modals.IMAGE" />
+    <ImageModal :id="Modals.IMAGE" />
+    <PropertyModal :id="Modals.PROPERTY" />
 </template>

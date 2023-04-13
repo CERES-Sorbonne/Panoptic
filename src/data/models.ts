@@ -112,5 +112,6 @@ export interface ReactiveStore{
 }
 
 export enum Modals {
-    IMAGE = 'image'
+    IMAGE = 'image',
+    PROPERTY = 'property'
 }

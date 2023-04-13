@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, Property, PropertyRef, PropertyType } from '@/data/models';
+import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed } from 'vue';
@@ -65,7 +65,7 @@ onMounted(() => {
 
 
 <template>
-    <div class="modal" tabindex="-1" role="dialog" ref="modalElem" id="lala3" aria-labelledby="newModal" aria-hidden="true">
+    <div class="modal" tabindex="-1" role="dialog" ref="modalElem" aria-hidden="true">
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header">
@@ -76,13 +76,39 @@ onMounted(() => {
                 </div>
                 <div class="modal-body">
                     <div class="text-center">
-                        <img :src="image.url" class="border"/>
+                        <img :src="image.url" class="border" />
                     </div>
-                    
-                    <div v-for="property in imageProperties">
-                        <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" />
-                        <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :mono-tag="true" />
-                        <PropertyInput v-else :property="property" />
+
+
+                    <div class="mt-2">
+                        <p class="m-0">Metadata</p>
+                        <div class="ms-2">
+                            <div>
+                                <i class="bi bi-card-image"></i>
+                                <span class="ms-2">{{ image.sha1 }}</span>
+                            </div>
+
+                            <div>
+                                <i class="bi bi-aspect-ratio"></i>
+                                <span class="ms-2">{{ image.width }} x {{ image.height }}</span>
+                            </div>
+
+                            <div>
+                                <span class="bi bi-folder" v-for="path in image.paths">
+                                    <span class="ms-2">{{ path }}</span>
+                                </span>
+
+                            </div>
+                        </div>
+                        <p class="m-0">Properties</p>
+                        <div class="ms-2">
+                            <div v-for="property in imageProperties">
+                                <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" />
+                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
+                                    :mono-tag="true" />
+                                <PropertyInput v-else :property="property" />
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

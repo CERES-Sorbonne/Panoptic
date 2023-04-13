@@ -1,22 +1,41 @@
 <script setup lang="ts">
 
-import * as models from '@/data/models'
-import { reactive, onMounted, ref } from 'vue';
-import * as boostrap from 'bootstrap'
+import { Property, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { apiAddProperty } from '@/data/api';
-import PropertyIcon from '../properties/PropertyIcon.vue';
+import * as bootstrap from 'bootstrap';
+import { ref, onMounted, watch, computed, reactive } from 'vue';
+
+
+const modalElem = ref(null)
+let modal: bootstrap.Modal = null
 
 const props = defineProps({
     id: { type: String, required: true }
 })
 
-const newProperty = <models.Property>reactive({})
+const isActive = computed(() => globalStore.openModal.id == props.id)
+
+
+function onHide() {
+    if (globalStore.openModal.id == props.id) {
+        globalStore.hideModal()
+    }
+}
+
+function hide() {
+    modal.hide()
+}
+
+function show() {
+    modal.show()
+}
+
+const newProperty = <Property>reactive({})
 const nameError = ref('')
 
 function resetNewProperty() {
     newProperty.name = ''
-    newProperty.type = models.PropertyType.string
+    newProperty.type = PropertyType.string
     nameError.value = ''
 }
 
@@ -35,26 +54,34 @@ async function saveProperty() {
     await globalStore.addProperty(newProperty.name, newProperty.type)
 
     let elem = document.getElementById(props.id)
-    let modal = boostrap.Modal.getInstance(elem)
+    let modal = bootstrap.Modal.getInstance(elem)
     modal.hide()
 }
 
-onMounted(() => {
-    let elem = document.getElementById(props.id)
-    elem.addEventListener('hide.bs.modal', resetNewProperty)
-
-    resetNewProperty()
+watch(() => globalStore.openModal.id, (id) => {
+    if (id == props.id) {
+        show()
+    }
+    else {
+        hide()
+    }
 })
 
+onMounted(() => {
+    modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
+    modalElem.value.addEventListener('hide.bs.modal', onHide)
+    resetNewProperty()
+})
 </script>
 
+
 <template>
-    <div class="modal fade text-dark " :id="props.id" tabindex="-1" aria-labelledby="addPropertyModal" aria-hidden="true">
+    <div class="modal fade text-dark" role="dialog" ref="modalElem">
         <div class="modal-dialog">
-            <div class="modal-content">
+            <div class="modal-content" v-if="isActive">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Add Property</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="saveProperty">
@@ -76,7 +103,7 @@ onMounted(() => {
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" @click="hide">Close</button>
                     <button type="button" class="btn btn-primary" @click="saveProperty">Save changes</button>
                 </div>
             </div>
