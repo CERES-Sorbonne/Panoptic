@@ -3,9 +3,9 @@
 import { globalStore } from '../../data/store';
 import ExpandOption from './ExpandOption.vue';
 import * as models from '../../data/models'
-import PropertyForm from '../forms/PropertyForm.vue';
 import TagProperty from '../properties/TagProperty.vue';
 import Property from '../properties/Property.vue';
+import { Modals } from '../../data/models';
 
 </script>
 
@@ -31,8 +31,7 @@ import Property from '../properties/Property.vue';
                 <li class="list-group-item">
                     <ExpandOption title-size="h6">
                         <template #name>Properties </template>
-                        <template #icons><span @click.stop="" class="h4 bi bi-plus-square me-3 btn-icon" data-bs-toggle="modal"
-                                data-bs-target="#propForm"></span></template>
+                        <template #icons><span @click="globalStore.showModal(Modals.PROPERTY)" class="h4 bi bi-plus-square me-3 btn-icon"></span></template>
                         <template #content>
                             <ul class="list-group option-content">
                                 <li class="list-group-item" v-for="property in globalStore.properties">
@@ -46,9 +45,6 @@ import Property from '../properties/Property.vue';
             </ul>
         </div>
     </div>
-
-    <PropertyForm id="propForm"/>
-
 </template>
 
 <style>
