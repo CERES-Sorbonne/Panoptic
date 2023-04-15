@@ -131,3 +131,8 @@ export enum Modals {
     IMAGE = 'image',
     PROPERTY = 'property'
 }
+
+export interface PropertySetting {
+    propertyId: number,
+    maxLines: number
+}

@@ -3,6 +3,7 @@
   import { globalStore } from './data/store'
   import { onMounted } from 'vue'
   import './assets/main.css';
+import TagWrapCount from './components/test/TagWrapCount.vue';
 
   onMounted(() => {
     globalStore.fetchAllData()
@@ -12,6 +13,7 @@
 </script>
 
 <template>
+  <!-- <TagWrapCount /> -->
   <RouterView />
 </template>
 
