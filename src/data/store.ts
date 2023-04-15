@@ -7,8 +7,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     tags: {} as Tags,
     properties: {} as Properties,
     params: {} as Params,
-    settings: {pageSize: 200, propertyTypes: Object.values(PropertyType)},
-    openModal: {id: null, data: null},
+    settings: {
+        pageSize: 200,
+        propertyTypes: Object.values(PropertyType),
+        propertySettings: {}
+    },
+    openModal: { id: null, data: null },
 
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
@@ -37,7 +41,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     hideModal() {
-        globalStore.openModal = {id: null, data: null}
+        globalStore.openModal = { id: null, data: null }
     },
 
     async fetchAllData() {

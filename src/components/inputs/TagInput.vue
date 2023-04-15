@@ -42,7 +42,12 @@ const isCreatePossible = computed(() => tagInput.value.length > 0 && !filteredTa
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const imageTags = computed(() => props.property.value.map((id: number) => tags.value[id]))
+const imageTags = computed(() => {
+    if (!props.property.value) {
+        return []
+    }
+    return props.property.value.map((id: number) => tags.value[id])
+})
 
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
@@ -51,8 +56,8 @@ const handleContainerClick = (event: any) => {
     }
     if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target)) {
         setEdit(false)
-        
-        if(!elemIsInput(event.target, 10)) {
+
+        if (!elemIsInput(event.target, 10)) {
             event.stopPropagation()
         }
     }
@@ -105,11 +110,11 @@ function setEdit(value: Boolean) {
 }
 
 function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
-    if(elem.getAttribute('is-input')) {
+    if (elem.getAttribute('is-input')) {
         return true
     }
-    if(depth > 0 && elem.parentElement) {
-        return elemIsInput(elem.parentElement, depth-1)
+    if (depth > 0 && elem.parentElement) {
+        return elemIsInput(elem.parentElement, depth - 1)
     }
     return false
 }
@@ -133,17 +138,17 @@ function moveSelected(value: number) {
 }
 
 onMounted(() => {
-    if (!props.property.value) {
-        props.property.value = []
-    }
+    // if (!props.property.value) {
+    //     props.property.value = []
+    // }
 });
 
 </script>
 
 <template>
     <div class="input-group bg-light w-100 ms-1" is-input="true">
-        <div v-if="!edit" @click.stop="setEdit(true)"  class="input-group-text small bg-light text-dark me-1 overflow-hidden w-100" :style="'width:'+props.maxSize+'px;'">
-            <PropertyIcon :type="props.property.type" class="me-1"/>
+        <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped ">
+            <PropertyIcon :type="props.property.type" class="me-1" />
             <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
             <span v-else>
                 <span v-for="tag in props.property.value">
@@ -159,7 +164,7 @@ onMounted(() => {
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
             @keydown.escape.prevent.stop="setEdit(false)">
             <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
-                @input="selectedIndex = 0" ref="inputElem" class="form-control small"/>
+                @input="selectedIndex = 0" ref="inputElem" class="form-control small" />
 
             <ul v-if="showTagList" class="tag-proposals bg-white">
                 <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1" style="width: 300px;">
@@ -210,5 +215,14 @@ onMounted(() => {
     list-style: none;
     /* max-height: 120px; */
     /* overflow-y: visible; */
+}
+
+.test-wraped {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    /* number of lines to show */
+    line-clamp: 1;
+    overflow: hidden;
 }
 </style>
