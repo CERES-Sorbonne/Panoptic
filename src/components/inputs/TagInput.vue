@@ -146,8 +146,8 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="input-group bg-light w-100 ms-1" is-input="true">
-        <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped ">
+    <div class="bg-light w-100 ms-1 pt-1 pb-1" is-input="true">
+        <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped w-100">
             <PropertyIcon :type="props.property.type" class="me-1" />
             <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
             <span v-else>
@@ -160,14 +160,15 @@ onMounted(() => {
             </span>
             <!-- <span class="text-wrap">{{ props.property }}</span> -->
         </div>
-        <div v-else class="tag-input w-100" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
+        <div v-else class="tag-input w-100 d-flex flex-row" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
             @keydown.escape.prevent.stop="setEdit(false)">
+            <PropertyIcon :type="props.property.type" class="me-1" style="float:left;" />
             <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
-                @input="selectedIndex = 0" ref="inputElem" class="form-control small" />
+                @input="selectedIndex = 0" ref="inputElem" class="small-input" />
 
-            <ul v-if="showTagList" class="tag-proposals bg-white">
-                <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1" style="width: 300px;">
+            <ul v-if="showTagList" class="tag-proposals bg-white border">
+                <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ms-1" style="width: 300px;">
                     <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
                 </li>
                 <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one</p>
@@ -206,11 +207,11 @@ onMounted(() => {
     position: absolute;
     top: 100%;
     left: 0;
-    z-index: 10;
+    z-index: 20;
     background-color: white;
-    border: 1px solid gray;
-    border-top: none;
-    border-radius: 0 0 0.2rem 0.2rem;
+    /* border: 1px solid gray; */
+    /* border-top: none; */
+    /* border-radius: 0 0 0.2rem 0.2rem; */
     padding: 0px;
     list-style: none;
     /* max-height: 120px; */
@@ -224,5 +225,13 @@ onMounted(() => {
     /* number of lines to show */
     line-clamp: 1;
     overflow: hidden;
+    cursor: pointer;
+}
+
+.small-input {
+    padding: 0;
+    padding-left: 0.3em;
+    margin: 0;
+    border: none;
 }
 </style>
