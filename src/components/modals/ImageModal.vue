@@ -75,41 +75,56 @@ onMounted(() => {
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="text-center">
-                        <img :src="image.url" class="border" />
+                    <div class="row">
+                        <div class="col">
+                            <div class="text-center">
+                                <img :src="image.url" class="border" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mt-2">
+                                <!-- <p class="m-0">Metadata</p>
+                                            <div class="ms-2">
+                                                <div>
+                                                    <i class="bi bi-card-image"></i>
+                                                    <span class="ms-2">{{ image.sha1 }}</span>
+                                                </div>
+
+                                                <div>
+                                                    <i class="bi bi-aspect-ratio"></i>
+                                                    <span class="ms-2">{{ image.width }} x {{ image.height }}</span>
+                                                </div>
+
+                                                <div>
+                                                    <span class="bi bi-folder" v-for="path in image.paths">
+                                                        <span class="ms-2">{{ path }}</span>
+                                                    </span>
+
+                                                </div>
+                                            </div> -->
+                                <!-- <p class="m-0">Properties</p> -->
+                                <table class="table">
+                                    <!-- <tbody> -->
+                                        <tr v-for="property in imageProperties" class="">
+                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td class="w-100">
+                                                <TagInput v-if="property.type == PropertyType.multi_tags"
+                                                    :property="property" />
+                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
+                                                    :mono-tag="true" />
+                                                <PropertyInput v-else :property="property" />
+                                            </td>
+
+                                        </tr>
+                                    <!-- </tbody> -->
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
 
-                    <div class="mt-2">
-                        <p class="m-0">Metadata</p>
-                        <div class="ms-2">
-                            <div>
-                                <i class="bi bi-card-image"></i>
-                                <span class="ms-2">{{ image.sha1 }}</span>
-                            </div>
 
-                            <div>
-                                <i class="bi bi-aspect-ratio"></i>
-                                <span class="ms-2">{{ image.width }} x {{ image.height }}</span>
-                            </div>
 
-                            <div>
-                                <span class="bi bi-folder" v-for="path in image.paths">
-                                    <span class="ms-2">{{ path }}</span>
-                                </span>
-
-                            </div>
-                        </div>
-                        <p class="m-0">Properties</p>
-                        <div class="ms-2">
-                            <div v-for="property in imageProperties">
-                                <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" />
-                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                    :mono-tag="true" />
-                                <PropertyInput v-else :property="property" />
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
