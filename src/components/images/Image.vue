@@ -42,7 +42,6 @@ const widthStyle = computed(() => `width: ${props.width}px;`)
             <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="props.width" :mono-tag="true"/>
             <PropertyInput v-else :property="property" :max-size="props.width" />
         </div>
-        <!-- <input class="small form-control" /> -->
     </div>
 </template>
 
