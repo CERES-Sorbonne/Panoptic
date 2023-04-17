@@ -49,17 +49,18 @@ const checkIfKeepImage = (image: Image, filter:Filter):boolean => {
     switch(filter.operator){
         case FilterOperator.equal:
             switch(prop.type){
+                case PropertyType.multi_tags:
+                case PropertyType.tag:
+                    imageProp.value.some((el:any) => filter.value.includes(el))
                 default:
-                    return imageProp.value.filter((el:any) => el === filter.value).length > 0
+                    return imageProp.value.some((el:any) => el === filter.value)
             }
         case FilterOperator.like:
             switch(prop.type){
                 case PropertyType.string:
-                case PropertyType.tag:
-                case PropertyType.multi_tags:
                 case PropertyType.url:
                 case PropertyType.path:
-                    return imageProp.value.filter((el:any) => el.match(filter.value)).length > 0
+                    return imageProp.value.some((el:any) => el.match(filter.value))
                 default:
                     return false
             }
@@ -69,7 +70,7 @@ const checkIfKeepImage = (image: Image, filter:Filter):boolean => {
         case FilterOperator.greater:
             switch(prop.type){
                 case PropertyType.date || PropertyType.number:
-                    return imageProp.value.filter((el:any) => operatorMap[filter.operator](el, filter.value)).length > 0
+                    return imageProp.value.some((el:any) => operatorMap[filter.operator](el, filter.value))
                 default:
                     return false
             }   
