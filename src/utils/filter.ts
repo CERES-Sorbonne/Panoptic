@@ -1,78 +1,87 @@
 import { Filter, FilterOperator, Image, FilterGroup } from "@/data/models";
 import { isArray } from "@vue/shared";
 
+function isEmpty(value:any) {
+    return value == undefined || value == '' || (isArray(value) && value.length == 0)
+}
 
 const operatorMap: {[operator in FilterOperator]? : any} = {
-    [FilterOperator.geq] : (a:any,b:any) => a >= b,
-    [FilterOperator.leq] : (a:any,b:any) => a <= b,
-    [FilterOperator.lower] : (a:any,b:any) => a < b,
-    [FilterOperator.greater] : (a:any,b:any) => a > b,
+    [FilterOperator.geq] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a >= b
+    },
+    [FilterOperator.leq] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a <= b
+    },
+    [FilterOperator.lower] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a < b
+    },
+    [FilterOperator.greater] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a > b
+    },
     [FilterOperator.and] : (a: boolean, b: boolean) => a && b,
     [FilterOperator.or] : (a: boolean, b: boolean) => a || b,
-    [FilterOperator.contains] : (a: string, b: string) => a.includes(b),
-    [FilterOperator.containsAll] : (a: any[], b: any[]) => b.filter(e => a.includes(e)).length == b.length,
-    [FilterOperator.containsAny] : (a: any[], b: any[]) => a.some(e => b.includes(e)),
-    [FilterOperator.containsNot] : (a: any[], b: any[]) => !a.some(e => b.includes(e)),
-    [FilterOperator.equal] : (a: any, b: any) => a == b,
-    [FilterOperator.equalNot] : (a: any, b: any) => a != b,
-    [FilterOperator.isFalse] : (a: any) => a == false,
+    [FilterOperator.contains] : (a: string, b: string) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.includes(b)
+    },
+    [FilterOperator.containsAll] : (a: any[], b: any[]) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return b.filter(e => a.includes(e)).length == b.length
+    },
+    [FilterOperator.containsAny] : (a: any[], b: any[]) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.some(e => b.includes(e))
+    },
+    [FilterOperator.containsNot] : (a: any[], b: any[]) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return true;
+        return !a.some(e => b.includes(e))
+    },
+    [FilterOperator.equal] : (a: any, b: any) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a == b
+    },
+    [FilterOperator.equalNot] : (a: any, b: any) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return true;
+        return a != b
+    },
+    [FilterOperator.isFalse] : (a: any) => {
+        if(isEmpty(a)) return true;
+        return a == false
+    },
     [FilterOperator.isTrue] : (a: any) => a,
-    [FilterOperator.isSet] : (a: any) => a != undefined && a != '' && (!isArray(a) || a.length > 0),
-    [FilterOperator.notSet] : (a: any) => a == undefined || a == '' || (isArray(a) && a.length == 0),
-    [FilterOperator.startsWith] : (a: string, b:string) => a.startsWith(b),
-    [FilterOperator.like] : (a: string, b:string) => a.startsWith(b)
+    [FilterOperator.isSet] : (a: any) => !isEmpty(a),
+    [FilterOperator.notSet] : (a: any) => isEmpty(a),
+    [FilterOperator.startsWith] : (a: string, b:string) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.startsWith(b)
+    },
+    [FilterOperator.like] : (a: string, b:string) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.match(b)
+    }
 
 }
 
 
 function computeFilter(filter: Filter, propertyValue: any) {
-    // console.log('filter ' + filter.value + ' -- ' + propertyValue)
-    if(propertyValue == undefined || (isArray(propertyValue) && propertyValue.length == 0)) {
-        switch(filter.operator) {
-            case FilterOperator.geq:
-            case FilterOperator.leq:
-            case FilterOperator.lower:
-            case FilterOperator.greater:
-            case FilterOperator.contains:
-            case FilterOperator.containsAll:
-            case FilterOperator.containsAny:
-            case FilterOperator.equal:
-            case FilterOperator.equalNot:
-            case FilterOperator.isTrue:
-            case FilterOperator.isSet:
-            case FilterOperator.startsWith:
-            case FilterOperator.like:
-                return false
-            case FilterOperator.containsNot:
-            case FilterOperator.notSet:
-            case FilterOperator.isFalse:
-                return true
-        }
-    }
-
-    if(filter.value == undefined || (isArray(filter.value) && filter.value.length == 0)) {
-        switch(filter.operator) {
-            case FilterOperator.geq:
-            case FilterOperator.leq:
-            case FilterOperator.lower:
-            case FilterOperator.greater:
-            case FilterOperator.contains:
-            case FilterOperator.containsAll:
-            case FilterOperator.containsAny:
-            case FilterOperator.equal:
-            case FilterOperator.equalNot:
-            case FilterOperator.isTrue:
-            case FilterOperator.isSet:
-            case FilterOperator.startsWith:
-            case FilterOperator.like:
-                case FilterOperator.containsNot:
-                return true
-        }
-    }
-
     let opFnc = operatorMap[filter.operator]
     let res = opFnc(propertyValue, filter.value)
-    // console.log('filter res: ' + res)
     return res
 }
 
