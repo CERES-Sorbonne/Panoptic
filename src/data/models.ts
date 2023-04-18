@@ -60,7 +60,7 @@ export interface Properties {
 
 export interface Params {
     folders: Array<string>
-    tabs: Array<Object>
+    tabs: Array<TabState>
 }
 
 export interface Tags {
@@ -93,6 +93,7 @@ export interface GlobalStore {
     tags: Tags,
     tagTrees: ComputedRef<TagsTree>
     properties: Properties
+    propertyList: ComputedRef<Array<Property>>
     params: Params
     images: Images
     imageList: ComputedRef<{url: String, imageName: String}[]>
@@ -104,6 +105,7 @@ export interface ReactiveStore{
     tags: Tags,
     tagTrees: TagsTree
     properties: Properties
+    propertyList: Array<Property>
     params: Params
     images: Images
     imageList: {url: String, imageName: String}[]
@@ -113,18 +115,31 @@ export interface ReactiveStore{
 
 export enum FilterOperator {
     equal = "equal",
+    equalNot = "not equal",
     like = "like",
     lower = "lower",
-    leq = "leq",
+    leq = "lower or equal",
     greater = "greater",
-    geq = "geq"
+    geq = "greater or equal",
+    isTrue = "is true",
+    isFalse = "is false",
+    contains = "contains",
+    startsWith = "starts with",
+    containsAny = "contains any",
+    containsAll = "contains all",
+    containsNot = "does not contain",
+    and = "and",
+    or = "or",
+    isSet = "is set",
+    notSet = "is not set",
 }
 
 export interface Filter {
     propertyId: number,
     operator: FilterOperator,
     value: any,
-    strict: boolean // strict to true will be an "OR" filter, set to false it would be an "AND"
+    // strict: boolean // strict to true will be an "OR" filter, set to false it would be an "AND"
+    isGroup?: false
 }
 
 export enum Modals {
@@ -135,4 +150,65 @@ export enum Modals {
 export interface PropertySetting {
     propertyId: number,
     maxLines: number
+}
+
+export interface FilterGroup {
+    filters: Array<Filter | FilterGroup>
+    groupOperator: FilterOperator.and | FilterOperator.or
+    depth: number
+    isGroup: true
+}
+
+export function availableOperators(propertyType: PropertyType): Array<FilterOperator> {
+    switch(propertyType) {
+        case PropertyType.checkbox:
+            return [FilterOperator.isTrue, FilterOperator.isFalse]
+        case PropertyType.color:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot]
+        case PropertyType.date:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.leq, FilterOperator.lower, FilterOperator.greater, FilterOperator.geq]
+        case PropertyType.image_link:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot]
+        case PropertyType.multi_tags:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAll, FilterOperator.containsAny, FilterOperator.containsNot]
+        case PropertyType.number:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.leq, FilterOperator.lower, FilterOperator.greater, FilterOperator.geq]
+        case PropertyType.path:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.contains, FilterOperator.startsWith, FilterOperator.containsNot]
+        case PropertyType.string:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.contains, FilterOperator.startsWith, FilterOperator.containsNot]
+        case PropertyType.tag:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
+        case PropertyType.url:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.contains, FilterOperator.startsWith, FilterOperator.containsNot]
+        default:
+            return []
+    }
+}
+
+export function operatorHasInput(operator: FilterOperator) {
+    switch(operator) {
+        case FilterOperator.contains:
+        case FilterOperator.containsAll:
+        case FilterOperator.containsAny:
+        case FilterOperator.containsNot:
+        case FilterOperator.equal:
+        case FilterOperator.equalNot:
+        case FilterOperator.geq:
+        case FilterOperator.greater:
+        case FilterOperator.leq:
+        case FilterOperator.lower:
+        case FilterOperator.like:
+        case FilterOperator.startsWith:
+            return true
+        default:
+            return false
+    }
+}
+
+export interface TabState {
+    name: string
+    display: string
+    filter: FilterGroup
+    groups: Object
 }

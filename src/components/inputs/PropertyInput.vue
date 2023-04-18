@@ -18,26 +18,6 @@ const inputElem = ref(null)
 const isSet = computed(() => props.property.value || props.property.value == 0)
 const type = computed(() => props.property.type)
 
-
-// function setEdit(value: Boolean) {
-//     if (value) {
-//         edit.value = true
-//         nextTick(() => {
-//             if (!input.value) {
-//                 return
-//             }
-//             input.value.focus()
-//         })
-//     }
-//     else {
-//         globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
-//         edit.value = false
-//         if (props.property.value == '') {
-//             props.property.value = undefined
-//         }
-//     }
-// }
-
 function setEdit(value: Boolean) {
     if (value) {
         edit.value = true
