@@ -227,11 +227,4 @@ onMounted(() => {
     overflow: hidden;
     cursor: pointer;
 }
-
-.small-input {
-    padding: 0;
-    padding-left: 0.3em;
-    margin: 0;
-    border: none;
-}
 </style>

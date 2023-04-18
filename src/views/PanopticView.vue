@@ -1,17 +1,16 @@
-<script setup>
+<script setup lang="ts">
 
 import { ref } from 'vue';
 import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
-import { fakeStore } from '../fakestore';
 import Menu from '../components/menu/Menu.vue';
 import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
+import { globalStore } from '@/data/store';
 
 
 const selectedTab = ref('')
-const store = fakeStore
 
 </script>
 
@@ -26,10 +25,11 @@ const store = fakeStore
             <div style="min-height: 55px;">
                 <TabNav v-model:selected="selectedTab" />
             </div>
-            <div v-if="store.selectedTabName">
-                <TabContent />
-            </div>
-
+            <template v-for="tab, index in globalStore.params.tabs">
+                <div v-if="globalStore.selectedTabName == tab.name">
+                    <TabContent :tab-index="index" />
+                </div>
+            </template>
         </div>
 
     </div>

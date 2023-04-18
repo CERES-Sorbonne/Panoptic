@@ -31,3 +31,8 @@
 .menu {
   overflow-wrap: break-word;
 }
+
+
+.hover-light:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
