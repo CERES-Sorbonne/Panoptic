@@ -185,11 +185,11 @@ onMounted(() => {
                         <span class="me-2">
                             <PropertyIcon :type="props.property.type" />
                         </span>
-                        <span>
+                        <div class="w-100">
                             <input class="m-0 me-1 ps-1 no-border bg-light small-input" ref="inputElem" v-model="tagInput"
                                 @keydown.down.prevent="moveSelected(1)" @keydown.up.prevent="moveSelected(-1)"
                                 @keydown.enter="selectOption" @keydown.escape.prevent.stop="setEdit(false)" />
-                        </span>
+                        </div>
                     </div>
 
                 </div>
