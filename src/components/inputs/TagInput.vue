@@ -87,7 +87,11 @@ const selectOption = async function () {
     inputElem.value.focus()
 }
 
-const optionClass = (id: number) => selectedIndex.value == id ? 'bg-selected' : 'bg-white'
+const optionClass = (id: number) => {
+    let bg = selectedIndex.value == id ? 'bg-selected' : 'bg-white'
+    let rounded = id == filteredTagList.value.length-1 && !isCreatePossible.value ? ' rounded-bottom' : ''
+    return bg + rounded
+}
 
 function setEdit(value: Boolean) {
     console.log('set edit: ' + value)
@@ -196,18 +200,18 @@ onMounted(() => {
             </div>
             <div class="dropdown-menu m-0 p-0" ref="tagInputContainer">
 
-                <ul class="list-unstyled">
-                    <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ms-1" style="width: 300px;">
+                <ul class="list-unstyled mb-0">
+                    <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top" style="width: 300px;">
                         <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
                     </li>
                     <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
                     </p>
                     <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
                         v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
-                            <TagBadge :tag="tag.value" />
+                            <TagBadge :tag="tag.value"/>
                         </a></li>
                     <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
-                        :class="optionClass(filteredTagList.length)" style="cursor: pointer;">
+                        :class="optionClass(filteredTagList.length) + ' rounded-bottom'" style="cursor: pointer;">
                         <span class="text-muted ms-1">Create </span>
                         <TagBadge :tag="tagInput" />
                     </li>
