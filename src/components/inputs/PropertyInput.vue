@@ -82,8 +82,8 @@ function inputType(type: PropertyType) {
 
 
 <template>
-    <form @submit.prevent="setEdit(false)" is-input="true" class="ms-1 pt-1 pb-1 bg-light">
-        <div class="d-flex flex-row" :style="'width:' + props.maxSize + 'px;'" @click="setEdit(true)">
+    <form @submit.prevent="setEdit(false)" is-input="true" class="pt-1 pb-1 bg-light">
+        <div class="d-flex flex-row" @click="setEdit(true)">
             <div class="bg-light text-dark me-1">
                 <span class="me-1">
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
@@ -98,10 +98,10 @@ function inputType(type: PropertyType) {
                 </span>
             </div>
             <template v-if="type == PropertyType.color && isSet">
-                <input type="color" class="form-control small" v-model="props.property.value" />
+                <input type="color" class="" v-model="props.property.value" />
             </template>
             <div v-if="edit && type != PropertyType.checkbox" class="w-100">
-                <input :type="inputType(type)" class="small-input" ref="inputElem" v-model="props.property.value" />
+                <input :type="inputType(type)" class="small-input   " ref="inputElem" v-model="props.property.value" />
             </div>
             <div v-if="type == PropertyType.checkbox">
                 {{ globalStore.properties[props.property.propertyId].name }}
@@ -111,7 +111,7 @@ function inputType(type: PropertyType) {
 </template>
 
 
-<style scoped>
+<style>
 .small {
     margin: 0px !important;
     padding: 0px !important;

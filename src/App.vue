@@ -63,4 +63,7 @@ Les formules sont complexes pour ne pas avoir des problèmes liés à la transpa
   cursor: pointer;
   user-select: none;
 }
+/* textarea:focus, input:focus{
+    outline: none !important;
+} */
 </style>
