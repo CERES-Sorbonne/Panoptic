@@ -170,9 +170,9 @@ onMounted(() => {
 
 <template>
     <div class="bg-light pt-1 pb-1 pe-1 overflow-hidden" is-input="true">
-        <div @click="setEdit(true)" :class="!edit ? 'test-wraped' : ''">
+        <div @click="setEdit(true)">
             <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0">
-                <div v-if="!edit" class="overflow-hidden">
+                <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''" >
                     <span class="me-1">
                         <PropertyIcon :type="props.property.type" />
                     </span>
@@ -266,7 +266,7 @@ onMounted(() => {
     -webkit-line-clamp: 2;
     /* number of lines to show */
     line-clamp: 2;
-    /* overflow: hidden; */
+    overflow: hidden;
     cursor: pointer;
 }
 </style>
