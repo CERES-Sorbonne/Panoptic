@@ -82,7 +82,7 @@ function inputType(type: PropertyType) {
 
 
 <template>
-    <form @submit.prevent="setEdit(false)" is-input="true" class="pt-1 pb-1 bg-light">
+    <form @submit.prevent="setEdit(false)" is-input="true" class="pt-1 pb-1 bg-light pe-1 overflow-hidden">
         <div class="d-flex flex-row" @click="setEdit(true)">
             <div class="bg-light text-dark me-1">
                 <span class="me-1">
