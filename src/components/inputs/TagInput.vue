@@ -7,6 +7,7 @@ import { globalStore } from '../../data/store'
 import { PropertyRef, Tag } from '@/data/models';
 import TagBadge from '../TagTree/TagBadge.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import * as boostrap from 'bootstrap'
 
 // contains the tag property of this image
 const props = defineProps({
@@ -24,6 +25,7 @@ const tagInputContainer = ref(null);
 const tagProposals = ref(null);
 const selectedIndex = ref(0)
 const inputElem = ref(null)
+const dropdownElem = ref(null)
 
 const tags = computed(() => globalStore.tags[props.property.propertyId])
 
@@ -51,12 +53,12 @@ const imageTags = computed(() => {
 
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
+    console.log(event.target)
     if (!edit.value) {
         return
     }
-    if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target)) {
+    if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target) && !inputElem.value.contains(event.target)) {
         setEdit(false)
-
         if (!elemIsInput(event.target, 10)) {
             event.stopPropagation()
         }
@@ -88,14 +90,22 @@ const selectOption = async function () {
 const optionClass = (id: number) => selectedIndex.value == id ? 'bg-selected' : 'bg-white'
 
 function setEdit(value: Boolean) {
+    console.log('set edit: ' + value)
+    if (value == edit.value) {
+        console.log('set edit: double')
+        return
+    }
     if (value) {
         edit.value = true
         document.addEventListener('click', handleContainerClick, true)
         nextTick(() => {
+            console.log(inputElem.value)
             if (!inputElem.value) {
                 return
             }
             inputElem.value.focus()
+            let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
+            dropdown.show()
         })
     }
     else {
@@ -106,6 +116,9 @@ function setEdit(value: Boolean) {
         if (props.property.value == '') {
             props.property.value = undefined
         }
+        inputElem.value.focus()
+        let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
+        dropdown.hide()
     }
 }
 
@@ -137,6 +150,12 @@ function moveSelected(value: number) {
     }
 }
 
+function hanldeInputEvent(e: any) {
+    e.preventDefault()
+    setEdit(true)
+
+}
+
 onMounted(() => {
     // if (!props.property.value) {
     //     props.property.value = []
@@ -146,8 +165,34 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="bg-light w-100 ms-1 pt-1 pb-1" is-input="true">
-        <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped w-100">
+    <div class="bg-light pt-1 pb-1" is-input="true">
+        <div class="d-flex flex-row w-100" @click="setEdit(true)">
+            <div class="me-2">
+                <PropertyIcon :type="props.property.type" />
+            </div>
+            <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem">
+                <span v-if="!edit">
+                    <span v-for="tag in imageTags">
+                        <TagBadge :tag="tag.value" />
+                    </span>
+                </span>
+                <span v-else><input class="m-0 ps-2 no-border bg-light small-input" ref="inputElem" /></span>
+            </div>
+            <ul class="dropdown-menu m-0 p-0" ref="tagInputContainer">
+                test
+                <!-- <div class="m-2">
+                    <span v-for="tagId in imageTags">
+                        <TagBadge :tag="tagId" :show-delete="true" @delete="removeTag(tagId)" />
+                    </span>
+                </div>
+                <li v-for="tag in filteredTagList" class="dropdown-item" style="cursor:pointer" @click="">
+                    <TagBadge :tag="tag.value" />
+                </li> -->
+            </ul>
+        </div>
+
+
+        <!-- <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped w-100">
             <PropertyIcon :type="props.property.type" class="me-1" />
             <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
             <span v-else>
@@ -158,14 +203,13 @@ onMounted(() => {
                     </template>
                 </span>
             </span>
-            <!-- <span class="text-wrap">{{ props.property }}</span> -->
-        </div>
-        <div v-else class="tag-input w-100 d-flex flex-row" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
+        </div> -->
+        <!-- <div v-else class="tag-input w-100 d-flex flex-row m-0 p-0" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
             @keydown.escape.prevent.stop="setEdit(false)">
             <PropertyIcon :type="props.property.type" class="me-1" style="float:left;" />
             <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
-                @input="selectedIndex = 0" ref="inputElem" class="small-input" />
+                @input="selectedIndex = 0" ref="inputElem" class="" />
 
             <ul v-if="showTagList" class="tag-proposals bg-white border">
                 <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ms-1" style="width: 300px;">
@@ -182,13 +226,13 @@ onMounted(() => {
                     <TagBadge :tag="tagInput" />
                 </li>
             </ul>
-        </div>
+        </div> -->
     </div>
 </template>
 
 <style scoped>
 .tag-input {
-    /* margin-top: 1rem; */
+    /* margin-top: 0px; */
     position: relative;
 }
 
