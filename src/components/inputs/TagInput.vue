@@ -165,34 +165,57 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="bg-light pt-1 pb-1" is-input="true">
-        <div class="d-flex flex-row w-100" @click="setEdit(true)">
-            <div class="me-2">
-                <PropertyIcon :type="props.property.type" />
-            </div>
-            <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem">
-                <span v-if="!edit">
-                    <span v-for="tag in imageTags">
-                        <TagBadge :tag="tag.value" />
+    <div class="bg-light pt-1 pb-1 pe-1 overflow-hidden" is-input="true">
+        <div @click="setEdit(true)" :class="!edit ? 'test-wraped' : ''">
+            <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0">
+                <div v-if="!edit" class="overflow-hidden">
+                    <span class="me-1">
+                        <PropertyIcon :type="props.property.type" />
                     </span>
-                </span>
-                <span v-else><input class="m-0 ps-2 no-border bg-light small-input" ref="inputElem" /></span>
-            </div>
-            <ul class="dropdown-menu m-0 p-0" ref="tagInputContainer">
-                test
-                <!-- <div class="m-2">
-                    <span v-for="tagId in imageTags">
-                        <TagBadge :tag="tagId" :show-delete="true" @delete="removeTag(tagId)" />
+                    <span v-if="!edit">
+                        <span v-for="tag in imageTags">
+                            <TagBadge :tag="tag.value" />
+                        </span>
+                        <span v-if="imageTags.length == 0">None</span>
                     </span>
                 </div>
-                <li v-for="tag in filteredTagList" class="dropdown-item" style="cursor:pointer" @click="">
-                    <TagBadge :tag="tag.value" />
-                </li> -->
-            </ul>
-        </div>
+
+                <div v-else>
+                    <div class="d-flex flex-row">
+                        <span class="me-2">
+                            <PropertyIcon :type="props.property.type" />
+                        </span>
+                        <span>
+                            <input class="m-0 me-1 ps-1 no-border bg-light small-input" ref="inputElem" v-model="tagInput"
+                                @keydown.down.prevent="moveSelected(1)" @keydown.up.prevent="moveSelected(-1)"
+                                @keydown.enter="selectOption" @keydown.escape.prevent.stop="setEdit(false)" />
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+            <div class="dropdown-menu m-0 p-0" ref="tagInputContainer">
+
+                <ul class="list-group">
+                    <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ms-1" style="width: 300px;">
+                        <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
+                    </li>
+                    <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
+                    </p>
+                    <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
+                        v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
+                            <TagBadge :tag="tag.value" />
+                        </a></li>
+                    <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
+                        :class="optionClass(filteredTagList.length)" style="cursor: pointer;">
+                        <span class="text-muted ms-1">Create </span>
+                        <TagBadge :tag="tagInput" />
+                    </li>
+                </ul>
+            </div>
 
 
-        <!-- <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped w-100">
+            <!-- <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped w-100">
             <PropertyIcon :type="props.property.type" class="me-1" />
             <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
             <span v-else>
@@ -204,7 +227,7 @@ onMounted(() => {
                 </span>
             </span>
         </div> -->
-        <!-- <div v-else class="tag-input w-100 d-flex flex-row m-0 p-0" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
+            <!-- <div v-else class="tag-input w-100 d-flex flex-row m-0 p-0" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
             @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
             @keydown.escape.prevent.stop="setEdit(false)">
             <PropertyIcon :type="props.property.type" class="me-1" style="float:left;" />
@@ -227,6 +250,7 @@ onMounted(() => {
                 </li>
             </ul>
         </div> -->
+        </div>
     </div>
 </template>
 
@@ -265,10 +289,10 @@ onMounted(() => {
 .test-wraped {
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     /* number of lines to show */
-    line-clamp: 1;
-    overflow: hidden;
+    line-clamp: 2;
+    /* overflow: hidden; */
     cursor: pointer;
 }
 </style>
