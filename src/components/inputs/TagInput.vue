@@ -196,7 +196,7 @@ onMounted(() => {
             </div>
             <div class="dropdown-menu m-0 p-0" ref="tagInputContainer">
 
-                <ul class="list-group">
+                <ul class="list-unstyled">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ms-1" style="width: 300px;">
                         <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
                     </li>
@@ -255,36 +255,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.tag-input {
-    /* margin-top: 0px; */
-    position: relative;
-}
-
-.tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-}
-
-.tag-list>* {
-    margin-right: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.tag-proposals {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 20;
-    background-color: white;
-    /* border: 1px solid gray; */
-    /* border-top: none; */
-    /* border-radius: 0 0 0.2rem 0.2rem; */
-    padding: 0px;
-    list-style: none;
-    /* max-height: 120px; */
-    /* overflow-y: visible; */
-}
 
 .test-wraped {
     display: -webkit-box;
