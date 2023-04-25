@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Filter, FilterGroup, FilterOperator, Property, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import FilterInput from './FilterInput.vue';
+import { defaultOperator } from '@/utils/filter';
 
 const props = defineProps({
     filter: { type: Object as () => FilterGroup, required: true }
@@ -15,23 +16,6 @@ const subGroupStyle = computed(() => {
     let val = 255 - ((props.filter.depth + 1) * 5)
     return `background: rgb(${val},${val},${val});`
 })
-
-function defaultOperator(propertyType: PropertyType) {
-    switch (propertyType) {
-        case PropertyType.checkbox:
-            return FilterOperator.isTrue
-
-        case PropertyType.multi_tags:
-        case PropertyType.tag:
-            return FilterOperator.containsAny
-
-        case PropertyType.date:
-            return FilterOperator.greater
-
-        default:
-            return FilterOperator.equal
-    }
-}
 
 function addNewFilter() {
     let property = (Object.values(globalStore.properties)[0] as Property)
@@ -61,11 +45,9 @@ function deleteFilter(filter: Filter | FilterGroup) {
     }
 }
 
-
-
 onMounted(() => {
-    if (props.filter.filters.length == 0) {
-        // addNewFilter()
+    if (props.filter.filters.length == 0 && props.filter.depth > 0) {
+        addNewFilter()
     }
 })
 

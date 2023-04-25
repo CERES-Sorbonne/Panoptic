@@ -20,18 +20,16 @@ const filteredOperators = computed(() => {
 </script>
 
 <template>
-    <div>
-        <div class="btn-group">
-            <button class="border border-secondary rounded dropdown-toggle p-1 bg-white text-secondary hover-light" type="button" data-bs-toggle="dropdown"
-                data-bs-auto-close="true" aria-expanded="false" ref="buttonElem">
-                {{ props.modelValue }}
-            </button>
-            <ul class="dropdown-menu m-0 p-0">
-                <li v-for="op in filteredOperators" class="dropdown-item" style="cursor:pointer"
-                    @click="$emit('update:modelValue', op)">
-                    <a>{{ op }}</a>
-                </li>
-            </ul>
+    <div class="m-0 p-0">
+        <div class="btn btn-sm no-border rounded dropdown-toggle bg-white hover-light" type="button"
+            data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" ref="buttonElem">
+            {{ props.modelValue }}
         </div>
+        <ul class="dropdown-menu m-0 p-1">
+            <li v-for="op in filteredOperators" class="hover-light p-1 rounded" style="cursor:pointer"
+                @click="$emit('update:modelValue', op)">
+                <a>{{ op }}</a>
+            </li>
+        </ul>
     </div>
 </template>
