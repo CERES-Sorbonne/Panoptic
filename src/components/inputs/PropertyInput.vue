@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { Image, Property, PropertyValue } from '@/data/models';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import * as inputTree from '@/utils/inputTree'
 
 const props = defineProps({
     property: Object as () => PropertyRef,
-    maxSize: String
+    maxSize: String,
+    inputId: Array<number>
 })
 
 const edit = ref(false)
 const inputElem = ref(null)
+const clickableElem = ref(null)
 
 
 const isSet = computed(() => props.property.value || props.property.value == 0)
@@ -78,12 +81,19 @@ function inputType(type: PropertyType) {
     }
 }
 
+
+onMounted(() => {
+    if(props.inputId != undefined) {
+        inputTree.registerInput(props.inputId, clickableElem.value)
+    }
+})
+
 </script>
 
 
 <template>
     <form @submit.prevent="setEdit(false)" is-input="true" class="pt-1 pb-1 bg-light pe-1 overflow-hidden">
-        <div class="d-flex flex-row" @click="setEdit(true)">
+        <div class="d-flex flex-row" @click="setEdit(true)" ref="clickableElem">
             <div class="bg-light text-dark me-1">
                 <span class="me-1">
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
@@ -101,7 +111,7 @@ function inputType(type: PropertyType) {
                 <input type="color" class="" v-model="props.property.value" />
             </template>
             <div v-if="edit && type != PropertyType.checkbox" class="w-100">
-                <input :type="inputType(type)" class="small-input   " ref="inputElem" v-model="props.property.value" />
+                <input :type="inputType(type)" class="small-input   " ref="inputElem" v-model="props.property.value" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)"/>
             </div>
             <div v-if="type == PropertyType.checkbox">
                 {{ globalStore.properties[props.property.propertyId].name }}

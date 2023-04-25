@@ -7,7 +7,8 @@ import TagInput from '../inputs/TagInput.vue';
 
 const props = defineProps({
     image: Object as () => Image,
-    width: {type: String, default: '100'}
+    width: {type: String, default: '100'},
+    index: Number
 })
 
 const properties = computed(() => globalStore.propertyList.filter((p:any) => p.show))
@@ -39,9 +40,9 @@ const imageWidthStyle = computed(() => `width: ${Number(props.width) -4}px;`)
     <div class="d-inline-block small-text m-2" :style="widthStyle">
         <img :src="props.image.url" :style="imageWidthStyle" @click="globalStore.showModal(Modals.IMAGE, props.image)"/>
         <div v-for="property in imageProperties" class="" :style="imageWidthStyle">
-            <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" :max-size="props.width"/>
-            <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="props.width" :mono-tag="true"/>
-            <PropertyInput v-else :property="property" :max-size="props.width" />
+            <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" :max-size="props.width" :input-id="[property.propertyId, props.index]"/>
+            <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="props.width" :mono-tag="true" :input-id="[property.propertyId, props.index]"/>
+            <PropertyInput v-else :property="property" :max-size="props.width" :input-id="[property.propertyId, props.index]"/>
         </div>
     </div>
 </template>
