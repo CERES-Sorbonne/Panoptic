@@ -224,43 +224,6 @@ onMounted(() => {
                     </li>
                 </ul>
             </div>
-
-
-            <!-- <div v-if="!edit" @click.stop="setEdit(true)" class="bg-light text-dark me-1 test-wraped w-100">
-            <PropertyIcon :type="props.property.type" class="me-1" />
-            <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
-            <span v-else>
-                <span v-for="tag in props.property.value">
-                    <template
-                        v-if="globalStore.tags[props.property.propertyId] && globalStore.tags[props.property.propertyId][tag]">
-                        <TagBadge :tag="globalStore.tags[props.property.propertyId][tag].value" />
-                    </template>
-                </span>
-            </span>
-        </div> -->
-            <!-- <div v-else class="tag-input w-100 d-flex flex-row m-0 p-0" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
-            @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
-            @keydown.escape.prevent.stop="setEdit(false)">
-            <PropertyIcon :type="props.property.type" class="me-1" style="float:left;" />
-            <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
-                @input="selectedIndex = 0" ref="inputElem" class="" />
-
-            <ul v-if="showTagList" class="tag-proposals bg-white border">
-                <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ms-1" style="width: 300px;">
-                    <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
-                </li>
-                <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one</p>
-                <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
-                    v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
-                        <TagBadge :tag="tag.value" />
-                    </a></li>
-                <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
-                    :class="optionClass(filteredTagList.length)" style="cursor: pointer;"><span
-                        class="text-muted ms-1">Create </span>
-                    <TagBadge :tag="tagInput" />
-                </li>
-            </ul>
-        </div> -->
         </div>
     </div>
 </template>

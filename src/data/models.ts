@@ -131,7 +131,7 @@ export enum FilterOperator {
     and = "and",
     or = "or",
     isSet = "is set",
-    notSet = "is not set",
+    notSet = "is not set"
 }
 
 export interface Filter {
@@ -174,13 +174,13 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
         case PropertyType.number:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.leq, FilterOperator.lower, FilterOperator.greater, FilterOperator.geq]
         case PropertyType.path:
-            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.contains, FilterOperator.startsWith, FilterOperator.containsNot]
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like]
         case PropertyType.string:
-            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.contains, FilterOperator.startsWith, FilterOperator.containsNot]
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like]
         case PropertyType.tag:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
         case PropertyType.url:
-            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.contains, FilterOperator.startsWith, FilterOperator.containsNot]
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.startsWith]
         default:
             return []
     }
