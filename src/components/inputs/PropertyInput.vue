@@ -97,7 +97,7 @@ onMounted(() => {
             <div class="bg-light text-dark me-1">
                 <span class="me-1">
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
-                        v-model="props.property.value" @change="setEdit(false)">
+                        v-model="props.property.value" @change="setEdit(false)" ref="inputElem" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)">
                     <span @click="setEdit(true)" v-else>
                         <PropertyIcon :type="property.type" />
                     </span>

@@ -105,14 +105,14 @@ onMounted(() => {
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
                                     <!-- <tbody> -->
-                                        <tr v-for="property in imageProperties" class="">
+                                        <tr v-for="property, index in imageProperties" class="">
                                             <td>{{ globalStore.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
                                                 <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" />
+                                                    :property="property" :input-id="[100, index]"/>
                                                 <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" />
-                                                <PropertyInput v-else :property="property" />
+                                                    :mono-tag="true" :input-id="[100, index]"/>
+                                                <PropertyInput v-else :property="property" :input-id="[100, index]"/>
                                             </td>
 
                                         </tr>
