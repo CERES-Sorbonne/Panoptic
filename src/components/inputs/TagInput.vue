@@ -8,12 +8,14 @@ import { PropertyRef, Tag } from '@/data/models';
 import TagBadge from '../TagTree/TagBadge.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as boostrap from 'bootstrap'
+import * as inputTree from '@/utils/inputTree'
 
 // contains the tag property of this image
 const props = defineProps({
     property: { type: Object as () => PropertyRef, required: true },
     maxSize: String,
-    monoTag: Boolean
+    monoTag: Boolean,
+    inputId: Array<number>,
 })
 
 const edit = ref(false)
@@ -26,6 +28,7 @@ const tagProposals = ref(null);
 const selectedIndex = ref(0)
 const inputElem = ref(null)
 const dropdownElem = ref(null)
+const clickableElem = ref(null)
 
 const tags = computed(() => globalStore.tags[props.property.propertyId])
 
@@ -53,7 +56,6 @@ const imageTags = computed(() => {
 
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
-    console.log(event.target)
     if (!edit.value) {
         return
     }
@@ -89,7 +91,7 @@ const selectOption = async function () {
 
 const optionClass = (id: number) => {
     let bg = selectedIndex.value == id ? 'bg-selected' : 'bg-white'
-    let rounded = id == filteredTagList.value.length-1 && !isCreatePossible.value ? ' rounded-bottom' : ''
+    let rounded = id == filteredTagList.value.length - 1 && !isCreatePossible.value ? ' rounded-bottom' : ''
     return bg + rounded
 }
 
@@ -164,15 +166,18 @@ onMounted(() => {
     // if (!props.property.value) {
     //     props.property.value = []
     // }
+    if(props.inputId) {
+        inputTree.registerInput(props.inputId, clickableElem.value)
+    }
 });
 
 </script>
 
 <template>
     <div class="bg-light pt-1 pb-1 pe-1 overflow-hidden" is-input="true">
-        <div @click="setEdit(true)">
+        <div @click="setEdit(true)" ref="clickableElem">
             <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0">
-                <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''" >
+                <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">
                     <span class="me-1">
                         <PropertyIcon :type="props.property.type" />
                     </span>
@@ -192,7 +197,9 @@ onMounted(() => {
                         <div class="w-100">
                             <input class="m-0 me-1 ps-1 no-border bg-light small-input" ref="inputElem" v-model="tagInput"
                                 @keydown.down.prevent="moveSelected(1)" @keydown.up.prevent="moveSelected(-1)"
-                                @keydown.enter="selectOption" @keydown.escape.prevent.stop="setEdit(false)" />
+                                @keydown.enter="selectOption" @keydown.escape.prevent.stop="setEdit(false)"
+                                @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)"
+                                @keydown.tab.prevent="inputTree.nextInput(props.inputId)" />
                         </div>
                     </div>
 
@@ -208,7 +215,7 @@ onMounted(() => {
                     </p>
                     <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
                         v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
-                            <TagBadge :tag="tag.value"/>
+                            <TagBadge :tag="tag.value" />
                         </a></li>
                     <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
                         :class="optionClass(filteredTagList.length) + ' rounded-bottom'" style="cursor: pointer;">
@@ -259,7 +266,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-
 .test-wraped {
     display: -webkit-box;
     -webkit-box-orient: vertical;
