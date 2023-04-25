@@ -5,10 +5,13 @@ import DropdownInput from '../inputs/DropdownInput.vue';
 import ListInput from '../inputs/ListInput.vue';
 import { globalStore } from '../../data/store';
 import * as boostrap from 'bootstrap'
-import FilterInputDropdown from '../inputs/FilterInputDropdown.vue';
+import GlobalFilterInputDropdown from '../inputs/GlobalFilterInputDropdown.vue';
 import { createCompoundExpression } from '@vue/compiler-core';
-import { Images } from '@/data/models';
+import { FilterGroup, FilterOperator, Images } from '@/data/models';
 import { computeGroupFilter } from '@/utils/filter';
+import { Filter } from '@/data/models';
+import FilterInputDropdown from "@/components/inputs/FilterInputDropdown.vue"
+import FilterForm from '../forms/FilterForm.vue';
 
 const props = defineProps({
     tabIndex: Number
@@ -61,7 +64,12 @@ watch(filteredImages, computeGroups, {deep: true})
             <ListInput label="GroupBy" :selected="state.groupBy" :possible="options.groupBy" />
         </div>
     </div> -->
-    <FilterInputDropdown v-model="globalStore.params.tabs[props.tabIndex].filter"/>
+    
+    <FilterForm :filter="globalStore.params.tabs[props.tabIndex].filter" />
+    
+
+
+
     <div class="mt-4">
         <i class="h2 bi bi-aspect-ratio me-3"></i>
         <input type="range" class="form-range" id="rangeImageSize" min="50" max="200" v-model="imageSize"

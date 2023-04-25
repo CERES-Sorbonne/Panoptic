@@ -1,5 +1,23 @@
-import { Filter, FilterOperator, Image, FilterGroup } from "@/data/models";
+import { Filter, FilterOperator, Image, FilterGroup, PropertyType } from "@/data/models";
 import { isArray } from "@vue/shared";
+
+
+export function defaultOperator(propertyType: PropertyType) {
+    switch (propertyType) {
+        case PropertyType.checkbox:
+            return FilterOperator.isTrue
+
+        case PropertyType.multi_tags:
+        case PropertyType.tag:
+            return FilterOperator.containsAny
+
+        case PropertyType.date:
+            return FilterOperator.greater
+
+        default:
+            return FilterOperator.equal
+    }
+}
 
 function isEmpty(value:any) {
     return value == undefined || value == '' || (isArray(value) && value.length == 0)

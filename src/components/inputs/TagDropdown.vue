@@ -59,7 +59,7 @@ onMounted(() => {
 <template>
     <div>
         <div class="btn-group">
-            <button class="border border-secondary rounded dropdown-toggle p-1 bg-light text-secondary hover-light tag-button" type="button" data-bs-toggle="dropdown"
+            <button class="no-border text-nowrap rounded p-1 bg-light text-secondary hover-light tag-button" type="button" data-bs-toggle="dropdown"
                 data-bs-auto-close="outside" aria-expanded="false" ref="buttonElem" >
                 <template v-if="props.modelValue && props.modelValue.length > 0">
                     <span v-for="tagId in props.modelValue">

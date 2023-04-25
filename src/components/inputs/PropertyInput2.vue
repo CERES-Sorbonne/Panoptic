@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { PropertyType } from '@/data/models';
+import { onMounted, ref } from 'vue';
 
 const props = defineProps({
     type: String as () => PropertyType,
-    modelValue: String
+    modelValue: String,
+    focus: Boolean
 })
 
+const inputElem = ref(null)
 
 function inputType(type: PropertyType) {
     switch (type) {
@@ -26,5 +29,5 @@ function inputType(type: PropertyType) {
 
 
 <template>
-    <input :type="inputType(props.type)" class="bg-light border border-secondary rounded p-1" @input="(e:any) => $emit('update:modelValue', e.target.value)" />
+    <input :type="inputType(props.type)" ref="inputElem" class="m-0 p-0 ps-1 bg-light no-border" @input="(e:any) => $emit('update:modelValue', e.target.value)" placeholder="None.."/>
 </template>
