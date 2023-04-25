@@ -29,5 +29,5 @@ function inputType(type: PropertyType) {
 
 
 <template>
-    <input :type="inputType(props.type)" ref="inputElem" class="m-0 p-0 ps-1 bg-light no-border" @input="(e:any) => $emit('update:modelValue', e.target.value)" placeholder="None.."/>
+    <input :type="inputType(props.type)" ref="inputElem" class="m-0 p-0 ps-1 bg-light no-border" @input="(e:any) => $emit('update:modelValue', e.target.value)" :value="props.modelValue" placeholder="None.."/>
 </template>
