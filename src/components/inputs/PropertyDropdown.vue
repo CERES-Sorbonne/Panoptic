@@ -34,11 +34,11 @@ onMounted(() => {
 <template>
     <div>
         <div class="btn-group">
-            <button class="no-border rounded dropdown-toggle p-1 bg-white text-secondary hover-light " type="button" data-bs-toggle="dropdown"
+            <div class="btn btn-sm no-border rounded dropdown-toggle p-1 bg-white hover-light " data-bs-toggle="dropdown"
                 data-bs-auto-close="true" aria-expanded="false" ref="buttonElem">
                 <PropertyIcon :type="property.type" />
                 {{ property.name }}
-            </button>
+        </div>
             <ul class="dropdown-menu m-0 p-0">
                 <input class=" m-2 bg-light" type="text" ref="searchElem" v-model="propertyFilter"/>
                 <li v-for="prop in filteredProperties" class="dropdown-item" style="cursor:pointer" @click="$emit('update:modelValue', prop.id)">

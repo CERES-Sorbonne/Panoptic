@@ -4,13 +4,14 @@ import FilterInputDropdown from '../inputs/FilterInputDropdown.vue';
 import GlobalFilterInputDropdown from '../inputs/GlobalFilterInputDropdown.vue';
 import { globalStore } from '@/data/store';
 import { defaultOperator } from '@/utils/filter';
+import PropertySelection from '../inputs/PropertySelection.vue';
 
 const props = defineProps({
     filter: Object as () => FilterGroup
 })
 
-function addNewFilter() {
-    let property = (Object.values(globalStore.properties)[0] as Property)
+function addNewFilter(property: Property) {
+    // let property = (Object.values(globalStore.properties)[0] as Property)
 
     let filter: Filter = {
         propertyId: property.id,
@@ -45,9 +46,10 @@ function addNewGroupFilter() {
         <div class="btn btn-sm no-border me-1 p-1 hover-light" data-bs-toggle="dropdown" data-bs-auto-close="true">
             <i class="bi bi-plus"></i>
         </div>
-        <ul class="dropdown-menu p-1 btn-icon">
-            <li class="mb-1 hover-light rounded ps-1 pe-1" @click="addNewFilter">Add new filter</li>
-            <li class="mb-1 hover-light rounded ps-1 pe-1" @click="addNewGroupFilter">Add new group</li>
-        </ul>
+        <div class="dropdown-menu p-0">
+            <PropertySelection @select="addNewFilter"/>
+            <hr class="dropdown-divider">
+            <div class="hover-light p-1 ps-2 mb-1 btn-icon" @click="addNewGroupFilter">Filter group</div>
+        </div>
     </div>
 </template>
