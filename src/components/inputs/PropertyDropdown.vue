@@ -40,7 +40,7 @@ onMounted(() => {
                 {{ property.name }}
             </button>
             <ul class="dropdown-menu m-0 p-0">
-                <input class="small-input m-2 bg-light" type="text" ref="searchElem" v-model="propertyFilter"/>
+                <input class=" m-2 bg-light" type="text" ref="searchElem" v-model="propertyFilter"/>
                 <li v-for="prop in filteredProperties" class="dropdown-item" style="cursor:pointer" @click="$emit('update:modelValue', prop.id)">
                     <PropertyIcon :type="prop.type" class="me-2"/>
                     <a>{{ prop.name }}</a>

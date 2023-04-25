@@ -77,7 +77,7 @@ onMounted(() => {
                         <TagBadge :tag="tags[tagId].value" :show-delete="true" @delete="removeTag(tagId)" />
                     </span>
                 </div>
-                <input type="text" class="small-input m-2" v-model="tagFilter" ref="searchElem" />
+                <input type="text" class="m-2" v-model="tagFilter" ref="searchElem" />
                 <li v-for="tag in filteredTagList" class="dropdown-item" style="cursor:pointer" @click="toggle(tag.id)">
                     <input type="checkbox" class="me-2" :checked="props.modelValue.includes(tag.id)" />
                     <TagBadge :tag="tag.value" />
