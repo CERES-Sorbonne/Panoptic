@@ -38,7 +38,7 @@ function addNewGroupFilter() {
         <div class="">
             <GlobalFilterInputDropdown :model-value="props.filter" @update:model-value="e => Object.assign(props.filter, e)"/>
         </div>
-        <div class="btn btn-sm border me-1" style="cursor: inherit;" @click="props.filter.groupOperator = props.filter.groupOperator == FilterOperator.and ? FilterOperator.or : FilterOperator.and">{{
+        <div class="btn btn-sm border rounded bg-white hover-light me-1" @click="props.filter.groupOperator = props.filter.groupOperator == FilterOperator.and ? FilterOperator.or : FilterOperator.and">{{
             props.filter.groupOperator == FilterOperator.and ? 'All' : 'Any' }}</div>
         <div v-for="filter, index in props.filter.filters">
             <FilterInputDropdown v-model="props.filter.filters[index]" @delete="props.filter.filters.splice(index, 1)" />
