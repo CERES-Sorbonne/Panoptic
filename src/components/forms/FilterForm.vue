@@ -43,8 +43,8 @@ function addNewGroupFilter() {
         <div v-for="filter, index in props.filter.filters">
             <FilterInputDropdown v-model="props.filter.filters[index]" @delete="props.filter.filters.splice(index, 1)" />
         </div>
-        <div class="btn btn-sm no-border me-1 p-1 hover-light" data-bs-toggle="dropdown" data-bs-auto-close="true">
-            <i class="bi bi-plus"></i>
+        <div class="btn btn-sm no-border me-1 p-1 hover-light text-secondary" data-bs-toggle="dropdown" data-bs-auto-close="true">
+            <i class="bi bi-plus"></i> Add filter
         </div>
         <div class="dropdown-menu p-0">
             <PropertySelection @select="addNewFilter"/>
