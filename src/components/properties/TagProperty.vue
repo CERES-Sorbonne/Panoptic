@@ -3,9 +3,9 @@
 import { reactive, computed, onMounted, watch } from 'vue';
 import { globalStore } from '@/data/store';
 import { TreeTag } from '../../data/models';
-import TagTree from '../tagtree/TagTree.vue';
 import ExpandOption from '../menu/ExpandOption.vue';
 import { PropertyType } from '../../data/models';
+import TagTree from '../TagTree/TagTree.vue';
 
 interface NodeState extends TreeTag{
     expanded: boolean

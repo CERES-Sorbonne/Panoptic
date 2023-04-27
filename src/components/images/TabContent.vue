@@ -1,56 +1,56 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, computed, watch, onMounted, ref } from 'vue';
-import { fakeStore } from '../../fakestore';
-import { filterData } from '@/utils/filter';
 import ImageGroup from './ImageGroup.vue';
 import DropdownInput from '../inputs/DropdownInput.vue';
 import ListInput from '../inputs/ListInput.vue';
 import { globalStore } from '../../data/store';
 import * as boostrap from 'bootstrap'
+import GlobalFilterInputDropdown from '../inputs/GlobalFilterInputDropdown.vue';
+import { createCompoundExpression } from '@vue/compiler-core';
+import { FilterGroup, FilterOperator, Images } from '@/data/models';
+import { computeGroupFilter } from '@/utils/filter';
+import { Filter } from '@/data/models';
+import FilterInputDropdown from "@/components/inputs/FilterInputDropdown.vue"
+import FilterForm from '../forms/FilterForm.vue';
 
+const props = defineProps({
+    tabIndex: Number
+})
 
-const store = fakeStore
 const imageSize = ref('100')
 
-const options = store.options
-const tab = computed(() => store.tabs.find(t => t.name == store.selectedTabName))
-const state = computed(() => tab.value.state)
-const groups = computed(() => tab.value.groups)
+const tab = computed(() => globalStore.params.tabs[props.tabIndex])
 
 const groups2 = reactive([])
 
-
+const filteredImages = computed(() => {
+    let images = Object.values(globalStore.images)
+    return images.filter(img => computeGroupFilter(img, tab.value.filter))
+})
 
 function computeGroups() {
-    // TODO filter
-    // let filters = [{propertyId:14, operator: "equal", value: "jambon", strict: true}]
-    // let filters = [{propertyId:14, operator: "like", value: "jam", strict: true}]
-    // let filters = [{propertyId:14, operator: "equal", value: "jambon", strict: true}, {propertyId:14, operator: "equal", value: "toto", strict: true}]
-    // let filters = [{propertyId:14, operator: "equal", value: "tata", strict: false}, {propertyId:14, operator: "equal", value: "titi", strict: false}]
-    // let filters = [{propertyId: 15, operator: "leq", value: "2023-04-01", strict: true}]
-    let filters = [{propertyId: 15, operator: "leq", value: "2023-05-01", strict: true}, {propertyId: 15, operator: "greater", value: "2023-03-05", strict: true}]
-    let filtered = filterData(filters)
     groups2.length = 0
 
     let allGroup = {
         name: 'all',
-        images: Object.values(globalStore.images)
+        images: filteredImages.value
     }
+    groups2.length = 0
     groups2.push(allGroup)
 }
 onMounted(computeGroups)
 
 
 watch(tab, () => {
-    store.saveTabState()
+    globalStore.saveTabState()
 }, { deep: true })
 
-watch(() => globalStore.images, computeGroups, {deep: true})
+watch(filteredImages, computeGroups, {deep: true})
 
 </script>
 
 <template>
-    <div class="d-flex flex-wrap mb-3 mt-3">
+    <!-- <div class="d-flex flex-wrap mb-3 mt-3">
         <div class="bd-highlight mt-1 me-1">
             <div class="input-group">
                 <div class="input-group-text">Display</div>
@@ -63,7 +63,13 @@ watch(() => globalStore.images, computeGroups, {deep: true})
         <div class="bd-highlight mt-1 me-1">
             <ListInput label="GroupBy" :selected="state.groupBy" :possible="options.groupBy" />
         </div>
-    </div>
+    </div> -->
+    
+    <FilterForm :filter="globalStore.params.tabs[props.tabIndex].filter" />
+    
+
+
+
     <div class="mt-4">
         <i class="h2 bi bi-aspect-ratio me-3"></i>
         <input type="range" class="form-range" id="rangeImageSize" min="50" max="200" v-model="imageSize"

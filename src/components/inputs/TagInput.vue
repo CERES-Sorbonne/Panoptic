@@ -7,12 +7,15 @@ import { globalStore } from '../../data/store'
 import { PropertyRef, Tag } from '@/data/models';
 import TagBadge from '../TagTree/TagBadge.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import * as boostrap from 'bootstrap'
+import * as inputTree from '@/utils/inputTree'
 
 // contains the tag property of this image
 const props = defineProps({
     property: { type: Object as () => PropertyRef, required: true },
     maxSize: String,
-    monoTag: Boolean
+    monoTag: Boolean,
+    inputId: Array<number>,
 })
 
 const edit = ref(false)
@@ -24,6 +27,8 @@ const tagInputContainer = ref(null);
 const tagProposals = ref(null);
 const selectedIndex = ref(0)
 const inputElem = ref(null)
+const dropdownElem = ref(null)
+const clickableElem = ref(null)
 
 const tags = computed(() => globalStore.tags[props.property.propertyId])
 
@@ -42,17 +47,21 @@ const isCreatePossible = computed(() => tagInput.value.length > 0 && !filteredTa
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const imageTags = computed(() => props.property.value.map((id: number) => tags.value[id]))
+const imageTags = computed(() => {
+    if (!props.property.value) {
+        return []
+    }
+    return props.property.value.map((id: number) => tags.value[id])
+})
 
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
     if (!edit.value) {
         return
     }
-    if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target)) {
+    if (!(tagProposals.value && tagProposals.value.contains(event.target)) && !tagInputContainer.value.contains(event.target) && !inputElem.value.contains(event.target)) {
         setEdit(false)
-        
-        if(!elemIsInput(event.target, 10)) {
+        if (!elemIsInput(event.target, 10)) {
             event.stopPropagation()
         }
     }
@@ -80,17 +89,29 @@ const selectOption = async function () {
     inputElem.value.focus()
 }
 
-const optionClass = (id: number) => selectedIndex.value == id ? 'bg-selected' : 'bg-white'
+const optionClass = (id: number) => {
+    let bg = selectedIndex.value == id ? 'bg-selected' : 'bg-white'
+    let rounded = id == filteredTagList.value.length - 1 && !isCreatePossible.value ? ' rounded-bottom' : ''
+    return bg + rounded
+}
 
 function setEdit(value: Boolean) {
+    console.log('set edit: ' + value)
+    if (value == edit.value) {
+        console.log('set edit: double')
+        return
+    }
     if (value) {
         edit.value = true
         document.addEventListener('click', handleContainerClick, true)
         nextTick(() => {
+            console.log(inputElem.value)
             if (!inputElem.value) {
                 return
             }
             inputElem.value.focus()
+            let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
+            dropdown.show()
         })
     }
     else {
@@ -101,15 +122,18 @@ function setEdit(value: Boolean) {
         if (props.property.value == '') {
             props.property.value = undefined
         }
+        inputElem.value.focus()
+        let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
+        dropdown.hide()
     }
 }
 
 function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
-    if(elem.getAttribute('is-input')) {
+    if (elem.getAttribute('is-input')) {
         return true
     }
-    if(depth > 0 && elem.parentElement) {
-        return elemIsInput(elem.parentElement, depth-1)
+    if (depth > 0 && elem.parentElement) {
+        return elemIsInput(elem.parentElement, depth - 1)
     }
     return false
 }
@@ -132,83 +156,86 @@ function moveSelected(value: number) {
     }
 }
 
+function hanldeInputEvent(e: any) {
+    e.preventDefault()
+    setEdit(true)
+
+}
+
 onMounted(() => {
-    if (!props.property.value) {
-        props.property.value = []
+    // if (!props.property.value) {
+    //     props.property.value = []
+    // }
+    if(props.inputId) {
+        inputTree.registerInput(props.inputId, clickableElem.value)
     }
 });
 
 </script>
 
 <template>
-    <div class="input-group bg-light w-100 ms-1" is-input="true">
-        <div v-if="!edit" @click.stop="setEdit(true)"  class="input-group-text small bg-light text-dark me-1 overflow-hidden w-100" :style="'width:'+props.maxSize+'px;'">
-            <PropertyIcon :type="props.property.type" class="me-1"/>
-            <span v-if="!props.property.value || props.property.value.length < 1" class="text-secondary">None</span>
-            <span v-else>
-                <span v-for="tag in props.property.value">
-                    <template
-                        v-if="globalStore.tags[props.property.propertyId] && globalStore.tags[props.property.propertyId][tag]">
-                        <TagBadge :tag="globalStore.tags[props.property.propertyId][tag].value" />
-                    </template>
-                </span>
-            </span>
-            <!-- <span class="text-wrap">{{ props.property }}</span> -->
-        </div>
-        <div v-else class="tag-input w-100" ref="tagInputContainer" @keydown.down.prevent="moveSelected(1)"
-            @keydown.up.prevent="moveSelected(-1)" @keydown.enter="selectOption"
-            @keydown.escape.prevent.stop="setEdit(false)">
-            <input type="text" v-model="tagInput" placeholder="Add a tag" @focus="showTagList = true" style="width: 100%;"
-                @input="selectedIndex = 0" ref="inputElem" class="form-control small"/>
+    <div class="bg-light pt-1 pb-1 pe-1 overflow-hidden" is-input="true">
+        <div @click="setEdit(true)" ref="clickableElem">
+            <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0">
+                <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">
+                    <span class="me-1">
+                        <PropertyIcon :type="props.property.type" />
+                    </span>
+                    <span v-if="!edit">
+                        <span v-for="tag in imageTags">
+                            <TagBadge :tag="tag.value" />
+                        </span>
+                        <span v-if="imageTags.length == 0">None</span>
+                    </span>
+                </div>
 
-            <ul v-if="showTagList" class="tag-proposals bg-white">
-                <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1" style="width: 300px;">
-                    <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
-                </li>
-                <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one</p>
-                <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
-                    v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
-                        <TagBadge :tag="tag.value" />
-                    </a></li>
-                <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
-                    :class="optionClass(filteredTagList.length)" style="cursor: pointer;"><span
-                        class="text-muted ms-1">Create </span>
-                    <TagBadge :tag="tagInput" />
-                </li>
-            </ul>
+                <div v-else>
+                    <div class="d-flex flex-row">
+                        <span class="me-2">
+                            <PropertyIcon :type="props.property.type" />
+                        </span>
+                        <div class="w-100">
+                            <input class="m-0 me-1 ps-1 no-border bg-light small-input" ref="inputElem" v-model="tagInput"
+                                @keydown.down.prevent="moveSelected(1)" @keydown.up.prevent="moveSelected(-1)"
+                                @keydown.enter="selectOption" @keydown.escape.prevent.stop="setEdit(false)"
+                                @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)"
+                                @keydown.tab.prevent="inputTree.nextInput(props.inputId)" />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="dropdown-menu m-0 p-0" ref="tagInputContainer">
+
+                <ul class="list-unstyled mb-0">
+                    <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top" style="width: 300px;">
+                        <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" v-for="tag in imageTags" />
+                    </li>
+                    <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
+                    </p>
+                    <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
+                        v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
+                            <TagBadge :tag="tag.value" />
+                        </a></li>
+                    <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
+                        :class="optionClass(filteredTagList.length) + ' rounded-bottom'" style="cursor: pointer;">
+                        <span class="text-muted ms-1">Create </span>
+                        <TagBadge :tag="tagInput" />
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.tag-input {
-    /* margin-top: 1rem; */
-    position: relative;
-}
-
-.tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-}
-
-.tag-list>* {
-    margin-right: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.tag-proposals {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 10;
-    background-color: white;
-    border: 1px solid gray;
-    border-top: none;
-    border-radius: 0 0 0.2rem 0.2rem;
-    padding: 0px;
-    list-style: none;
-    /* max-height: 120px; */
-    /* overflow-y: visible; */
+.test-wraped {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    /* number of lines to show */
+    line-clamp: 2;
+    overflow: hidden;
+    cursor: pointer;
 }
 </style>

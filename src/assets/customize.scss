@@ -3,7 +3,9 @@
 @import "../node_modules/bootstrap/scss/mixins";
 
 $theme-colors: map-merge($theme-colors, (
-  "selected": #eae8e8
+  "selected": #eae8e8,
+  "light": #fbfbfb,
+  "medium": #e5e3e3
 ));
 
 @import "../node_modules/bootstrap/scss/bootstrap";

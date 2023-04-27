@@ -3,32 +3,32 @@
 const props = defineProps({
   tag: String,
   number: Number,
-  showDelete: {type: Boolean, default: false}
+  showDelete: { type: Boolean, default: false }
 })
 </script>
 
 
 <template>
-  <div class="badge rounded-pill text-bg-primary m-1 tag-badge">
-    <div class="d-flex align-items-center justify-content-between">
-      <span class="pr-2">{{ tag }}<span v-if="showDelete" @click="$emit('delete')" class="bi bi-x ms-1"></span></span>
-      <span v-if="number" class="position-absolute top-0 start-100 badge rounded-pill bg-danger number">
-        {{number}}
-      </span>
-    </div>
+  <div class="badge rounded me-1 tag-badge ps-1 pe-1">
+    <span class="m-0">
+      {{ tag }}
+      <span v-if="showDelete" @click="$emit('delete')" class="bi bi-x ms-1 tag-x"></span>
+    </span>
   </div>
 </template>
   
   
 <style scoped>
-.tag-badge{
-  position: relative
+.tag-badge {
+  position: relative;
+  background: rgb(169, 169, 255);
 }
-.tag-badge:hover {
+
+.tag-x:hover {
   cursor: pointer;
 }
 
-.number{
+.number {
   transform: translate(-40%, -40%);
   font-size: 0.5rem;
 }

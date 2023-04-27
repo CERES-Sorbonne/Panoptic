@@ -1,95 +1,134 @@
-import { Filter, FilterOperator, Image, Images, PropertyType, PropertyValue, Property } from "@/data/models";
-import { globalStore } from "@/data/store"
+import { Filter, FilterOperator, Image, FilterGroup, PropertyType } from "@/data/models";
 import { isArray } from "@vue/shared";
 
-export const filterData = (filters: Filter[]) => {
-    const images:Images = globalStore.images;
-    const res = []
-    for(let image of Object.values(images)){
-        let keeps = []
-        for(let filter of filters){
-            let keep = checkIfKeepImage(image, filter)
-            if(!keep && filter.strict){
-                keeps = []
-                break
-            }
-            keeps.push(keep)
+
+export function defaultOperator(propertyType: PropertyType) {
+    switch (propertyType) {
+        case PropertyType.checkbox:
+            return FilterOperator.isTrue
+
+        case PropertyType.multi_tags:
+        case PropertyType.tag:
+            return FilterOperator.containsAny
+
+        case PropertyType.date:
+            return FilterOperator.greater
+
+        default:
+            return FilterOperator.equal
+    }
+}
+
+function isEmpty(value:any) {
+    return value == undefined || value == '' || (isArray(value) && value.length == 0)
+}
+
+const operatorMap: {[operator in FilterOperator]? : any} = {
+    [FilterOperator.geq] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a >= b
+    },
+    [FilterOperator.leq] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a <= b
+    },
+    [FilterOperator.lower] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a < b
+    },
+    [FilterOperator.greater] : (a:any,b:any) => {
+        if(b == undefined) return true;
+        if(a == undefined) return false;
+        return a > b
+    },
+    [FilterOperator.and] : (a: boolean, b: boolean) => a && b,
+    [FilterOperator.or] : (a: boolean, b: boolean) => a || b,
+    [FilterOperator.contains] : (a: string, b: string) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.includes(b)
+    },
+    [FilterOperator.containsAll] : (a: any[], b: any[]) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return b.filter(e => a.includes(e)).length == b.length
+    },
+    [FilterOperator.containsAny] : (a: any[], b: any[]) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.some(e => b.includes(e))
+    },
+    [FilterOperator.containsNot] : (a: any[], b: any[]) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return true;
+        return !a.some(e => b.includes(e))
+    },
+    [FilterOperator.equal] : (a: any, b: any) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a == b
+    },
+    [FilterOperator.equalNot] : (a: any, b: any) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return true;
+        return a != b
+    },
+    [FilterOperator.isFalse] : (a: any) => {
+        if(isEmpty(a)) return true;
+        return a == false
+    },
+    [FilterOperator.isTrue] : (a: any) => a,
+    [FilterOperator.isSet] : (a: any) => !isEmpty(a),
+    [FilterOperator.notSet] : (a: any) => isEmpty(a),
+    [FilterOperator.startsWith] : (a: string, b:string) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.startsWith(b)
+    },
+    [FilterOperator.like] : (a: string, b:string) => {
+        if(isEmpty(b)) return true;
+        if(isEmpty(a)) return false;
+        return a.match(b)
+    }
+
+}
+
+
+function computeFilter(filter: Filter, propertyValue: any) {
+    let opFnc = operatorMap[filter.operator]
+    let res = opFnc(propertyValue, filter.value)
+    return res
+}
+
+export function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
+    // console.log('filter: ' + image.sha1)
+    if(filterGroup.filters.length == 0) {
+        return true
+    }
+
+    let groupOp = filterGroup.groupOperator ? filterGroup.groupOperator : FilterOperator.and
+    let res = groupOp == FilterOperator.and ? true : false
+    let groupOperatorFnc = operatorMap[groupOp]
+
+    // console.log(groupOp)
+
+    for(let filter of filterGroup.filters) {
+        // console.log('resssss ' + res)
+        if(filter.isGroup) {
+            // console.log('subgroup')
+            res = groupOperatorFnc(computeGroupFilter(image, filter), res)
         }
-        if(atLeastOneTrue(keeps)){
-            res.push(image)
-        }
-        else{
-            continue
+        else {
+            filter = filter as Filter
+            let property = image.properties[filter.propertyId]
+            let propertyValue = property ? property.value : undefined
+            let subRes = computeFilter(filter, propertyValue)
+            res = groupOperatorFnc(res, subRes)
+            // console.log('subRes : ' + subRes + '  >> ' + res)
         }
     }
     return res
 }
-
-const atLeastOneTrue = (arr:boolean[]) => arr.filter(el => el).length > 0
-
-const convertToTag = (prop:Property, tagId: number) => globalStore.tags[prop.id][tagId].value
-
-const checkIfKeepImage = (image: Image, filter:Filter):boolean => {
-    const prop = {...globalStore.properties[filter.propertyId]}
-    const imageProp = {...image.properties[filter.propertyId]}
-    // if no value for this prop exclude
-    if(!imageProp.value){
-        return false
-    }
-    // transform imageProp value into an array to make filtering more generalist
-    if(!isArray(imageProp.value)){
-        imageProp.value = [imageProp.value]
-    }
-    // transform ids of tags into their value to be able to compare with user value when using like
-    if(prop.type === PropertyType.tag || prop.type === PropertyType.multi_tags){
-        imageProp.value = imageProp.value.map((id:number) => convertToTag(prop, id))
-    }
-
-
-    switch(filter.operator){
-        case FilterOperator.equal:
-            switch(prop.type){
-                case PropertyType.multi_tags:
-                case PropertyType.tag:
-                    imageProp.value.some((el:any) => filter.value.includes(el))
-                default:
-                    return imageProp.value.some((el:any) => el === filter.value)
-            }
-        case FilterOperator.like:
-            switch(prop.type){
-                case PropertyType.string:
-                case PropertyType.url:
-                case PropertyType.path:
-                    return imageProp.value.some((el:any) => el.match(filter.value))
-                default:
-                    return false
-            }
-        case FilterOperator.geq:
-        case FilterOperator.leq:
-        case FilterOperator.lower:
-        case FilterOperator.greater:
-            switch(prop.type){
-                case PropertyType.date || PropertyType.number:
-                    return imageProp.value.some((el:any) => operatorMap[filter.operator](el, filter.value))
-                default:
-                    return false
-            }   
-        default:
-            return false
-    }
-    return false
-}
-
-const operatorMap: {[operator in FilterOperator]? : any} = {
-    [FilterOperator.geq] : (a:any,b:any) => a >= b,
-    [FilterOperator.leq] : (a:any,b:any) => a <= b,
-    [FilterOperator.lower] : (a:any,b:any) => a < b,
-    [FilterOperator.greater] : (a:any,b:any) => a > b,
-}
-// pour chaque filtre
-// on check toutes les propriétés de l'image
-// si un filtre exclue l'image:
-    // si c'est un AND
-    // on vire l'image direct
-    // si c'est un OR
-    // on marque qu'il faut exclure l'image, et si il y a au moins un "keep" on garde
