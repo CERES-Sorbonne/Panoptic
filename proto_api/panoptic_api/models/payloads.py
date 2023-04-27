@@ -1,7 +1,7 @@
 from typing import Optional, Any
 from fastapi_camelcase import CamelModel
 
-from models import PropertyType, JSON
+from .models import PropertyType, JSON
 
 
 class ImagePayload(CamelModel):

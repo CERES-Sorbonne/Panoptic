@@ -9,12 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 
-from core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
+from panoptic_api.core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder
-from models import Property, Images, Tag, Image, Tags, Properties
-from payloads import ImagePayload, PropertyPayload, AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
+from panoptic_api.models import Property, Images, Tag, Image, Tags, Properties, ImagePayload, PropertyPayload, \
+    AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
-import db_utils
+from panoptic_api.core import db
 
 app = FastAPI()
 app.add_middleware(
@@ -125,7 +125,7 @@ async def delete_tag_parent_route(tag_id: int, parent_id: int):
 
 @app.get("/params")
 async def get_params():
-    res = db_utils.get_parameters()
+    res = db.get_parameters()
     return res
 
 
@@ -140,6 +140,11 @@ async def add_folder_route():
         return
     nb_images = add_folder(folder)
     return f"{nb_images} images were added to the library"
+
+
+@app.post("/transform")
+async def toggle_transform():
+    pass
 
 
 def ui_process(queue):

@@ -1,23 +1,13 @@
 # Connexion à la base de données SQLite
 import json
-import os
-import sqlite3
-from json import JSONDecodeError
 
-from models import Tag, Image, Property, PropertyValue, ImageProperty, JSON, Parameters
+import numpy as np
 
-conn = sqlite3.connect(os.getenv('PANOPTIC_DB'))
+from panoptic_api.core.db_utils import create_tables_if_db_empty, execute_query, decode_if_json
+from panoptic_api.models import Tag, Image, Property, ImageProperty, JSON, Parameters
 
 
-# Fonction utilitaire pour exécuter une requête SQL et commettre les modifications
-def execute_query(query: str, parameters: tuple = None):
-    cursor = conn.cursor()
-    if parameters:
-        cursor.execute(query, parameters)
-    else:
-        cursor.execute(query)
-    conn.commit()
-    return cursor
+create_tables_if_db_empty()
 
 
 def add_property(name: str, property_type: str) -> Property:
@@ -81,6 +71,11 @@ def update_image_paths(sha1, new_paths) -> list[str]:
            """
     execute_query(query, (new_paths, sha1))
     return new_paths
+
+
+def update_image_hashs(sha1, ahash: str, vector: np.array):
+    query = """UPDATE images SET ahash = ?, vector= ? WHERE sha1 = ?"""
+    execute_query(query, (ahash, vector, sha1))
 
 
 def add_image_property(sha1, property_id, value):
@@ -164,13 +159,6 @@ def get_tag_ancestors(tag: Tag, acc=[]):
 
 def auto_dict(row, cursor):
     return {key: decode_if_json(value) for key, value in zip([c[0] for c in cursor.description], row)}
-
-
-def decode_if_json(value):
-    try:
-        return json.loads(value)
-    except (TypeError, JSONDecodeError):
-        return value
 
 
 def get_tags(prop) -> list[Tag]:

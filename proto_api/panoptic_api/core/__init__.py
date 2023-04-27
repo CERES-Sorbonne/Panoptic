@@ -7,10 +7,8 @@ from typing import List
 from PIL import Image as pImage
 from fastapi import HTTPException
 
-from models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties
-
-import db_utils as db
-from payloads import UpdateTagPayload, UpdatePropertyPayload
+from panoptic_api.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, UpdateTagPayload, UpdatePropertyPayload
+import panoptic_api.core.db
 
 
 def create_property(name: str, property_type: PropertyType) -> Property:

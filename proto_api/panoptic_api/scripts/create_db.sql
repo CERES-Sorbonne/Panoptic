@@ -16,7 +16,9 @@ CREATE TABLE images (
     name TEXT,
     extension TEXT,
     paths JSON,
-    url TEXT
+    url TEXT,
+    ahash TEXT,
+    vector ARRAY
 );
 
 CREATE TABLE images_properties (
@@ -38,4 +40,4 @@ CREATE TABLE tags (
 );
 
 INSERT INTO parameters (folders, tabs)
-VALUES ('[]', '[]')
+VALUES ('[]', '[]');
