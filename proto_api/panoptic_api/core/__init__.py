@@ -7,8 +7,11 @@ from typing import List
 from PIL import Image as pImage
 from fastapi import HTTPException
 
+from panoptic_api.core.queue import TransformManager
 from panoptic_api.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, UpdateTagPayload, UpdatePropertyPayload
 import panoptic_api.core.db
+
+transform_manager = TransformManager(root=os.getcwd())
 
 
 def create_property(name: str, property_type: PropertyType) -> Property:
@@ -73,6 +76,7 @@ def _preprocess_image(file_path):
     extension = name.split('.')[-1]
     width, height = image.size
     sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
+    transform_manager.process_image(sha1_hash, image)
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
@@ -105,7 +109,7 @@ def add_folder(folder):
     db.update_folders(list({folder, *folders}))
     all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
     all_images = [i for i in all_files if
-                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')
     with concurrent.futures.ProcessPoolExecutor() as executor:
         transformed = [executor.submit(_preprocess_image, i) for i in all_images]
     for future in concurrent.futures.as_completed(transformed):

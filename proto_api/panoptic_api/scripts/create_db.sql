@@ -40,4 +40,4 @@ CREATE TABLE tags (
 );
 
 INSERT INTO parameters (folders, tabs)
-VALUES ('[]', '[]');
+VALUES ('[]', '[{"name": "default","filter": { "depth": 0, "filters": [], "groupOperator": "AND", "isGroup": true },"display": "grid","groups": [{ "name": "all", "images": 34 }]}]');
