@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL.Image import Image
 from pydantic import BaseModel
-import panoptic
+from panoptic_api import panoptic
 
 from panoptic_api.core import db
 

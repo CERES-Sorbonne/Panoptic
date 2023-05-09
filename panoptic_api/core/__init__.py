@@ -109,7 +109,7 @@ def add_folder(folder):
     db.update_folders(list({folder, *folders}))
     all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
     all_images = [i for i in all_files if
-                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')
+                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
     with concurrent.futures.ProcessPoolExecutor() as executor:
         transformed = [executor.submit(_preprocess_image, i) for i in all_images]
     for future in concurrent.futures.as_completed(transformed):
