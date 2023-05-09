@@ -69,7 +69,6 @@ def compute_image(image_path: str = None, image: Image = None):
 
     ahash = panoptic.to_average_hash(image)
     # TODO: find a way to access all the images for PCA
-    print(image)
     vector = panoptic.to_vector(image)
 
     return ahash, vector
