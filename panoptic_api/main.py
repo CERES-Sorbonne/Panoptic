@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import tkinter
 from sys import platform
@@ -5,12 +6,16 @@ from tkinter.filedialog import *
 from typing import Optional
 
 import multiprocessing as mp
+
+import aiofiles as aiofiles
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 
-from panoptic_api.core import create_property, add_property_to_image, add_image, get_images, create_tag, delete_image_property, \
-    update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder
+from panoptic_api.core import create_property, add_property_to_image, add_image, get_images, create_tag, \
+    delete_image_property, \
+    update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
+    db_utils
 from panoptic_api.models import Property, Images, Tag, Image, Tags, Properties, ImagePayload, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
@@ -28,40 +33,43 @@ app.add_middleware(
 # TODO:
 # ajouter une route static pour le mode serveur
 
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(db_utils.init())
 
 # Route pour créer une property et l'insérer dans la table des properties
 @app.post("/property")
 async def create_property_route(payload: PropertyPayload) -> Property:
-    return create_property(payload.name, payload.type)
+    return await create_property(payload.name, payload.type)
 
 
 @app.get("/property")
 async def get_properties_route() -> Properties:
-    return get_properties()
+    return await get_properties()
 
 
 @app.patch("/property")
 async def update_property_route(payload: UpdatePropertyPayload) -> Property:
-    return update_property(payload)
+    return await update_property(payload)
 
 
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
-    delete_property(property_id)
+    await delete_property(property_id)
     return f"Property {property_id} correctly deleted"
 
 
 # Route pour ajouter une image
 @app.post("/images")
 async def add_image_route(image: ImagePayload) -> Image:
-    image = add_image(image.file_path)
+    image = await add_image(image.file_path)
     return image
 
 
 # Route pour récupérer la liste de toutes les images
 @app.get("/images")
 async def get_images_route() -> Images:
-    images = get_images()
+    images = await get_images()
     return images
 
 
@@ -70,9 +78,9 @@ async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
             file_path = '/' + file_path
-    print(file_path)
-    with open(file_path, 'rb') as f:
-        data = f.read()
+    # print(file_path)
+    async with aiofiles.open(file_path, 'rb') as f:
+        data = await f.read()
 
     ext = file_path.split('.')[-1]
 
@@ -84,14 +92,14 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
-    add_property_to_image(payload.property_id, payload.sha1, payload.value)
+    await add_property_to_image(payload.property_id, payload.sha1, payload.value)
     return payload
 
 
 # Route pour supprimer une property d'une image dans la table de jointure entre image et property
 @app.delete("/image_property")
 async def delete_property_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
-    delete_image_property(payload.property_id, payload.sha1)
+    await delete_image_property(payload.property_id, payload.sha1)
     return payload
 
 
@@ -99,33 +107,33 @@ async def delete_property_route(payload: DeleteImagePropertyPayload) -> DeleteIm
 async def add_tag(payload: AddTagPayload) -> Tag:
     if not payload.parent_id:
         payload.parent_id = 0
-    return create_tag(payload.property_id, payload.value, payload.parent_id)
+    return await create_tag(payload.property_id, payload.value, payload.parent_id)
 
 
 @app.get("/tags")
 async def get_tags_route(property: Optional[str] = None) -> Tags:
-    return get_tags(property)
+    return await get_tags(property)
 
 
 @app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
-    return update_tag(payload)
+    return await update_tag(payload)
 
 
 @app.delete("/tags")
 async def delete_tag_route(tag_id: int) -> list[int]:
-    return delete_tag(tag_id)
+    return await delete_tag(tag_id)
 
 
 @app.delete("/tags/parent")
 async def delete_tag_parent_route(tag_id: int, parent_id: int):
-    res = delete_tag_parent(tag_id, parent_id)
+    res = await delete_tag_parent(tag_id, parent_id)
     return res
 
 
 @app.get("/params")
 async def get_params():
-    res = db.get_parameters()
+    res = await db.get_parameters()
     return res
 
 
@@ -138,7 +146,7 @@ async def add_folder_route():
     folder = queue.get()
     if not folder:
         return
-    nb_images = add_folder(folder)
+    nb_images = await add_folder(folder)
     return f"{nb_images} images were added to the library"
 
 
