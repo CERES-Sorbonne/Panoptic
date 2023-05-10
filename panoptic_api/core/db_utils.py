@@ -26,7 +26,7 @@ async def create_tables_if_db_empty():
     if len(list(all_tables)) < len(ALL_TABLES):
         with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'create_db.sql'), 'r') as f:
             sql_script = f.read()
-            async with conn.execute(sql_script) as cursor:
+            async with conn.executescript(sql_script) as cursor:
                 await conn.commit()
 
 

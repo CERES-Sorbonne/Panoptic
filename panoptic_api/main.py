@@ -1,11 +1,6 @@
 import asyncio
-import logging
-import tkinter
 from sys import platform
-from tkinter.filedialog import *
 from typing import Optional
-
-import multiprocessing as mp
 
 import aiofiles as aiofiles
 from fastapi import FastAPI
@@ -14,12 +9,12 @@ from starlette.responses import Response
 
 from panoptic_api.core import create_property, add_property_to_image, add_image, get_images, create_tag, \
     delete_image_property, \
-    update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils
+    update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, db_utils, \
+    executor
+from panoptic_api.core import db
 from panoptic_api.models import Property, Images, Tag, Image, Tags, Properties, ImagePayload, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
-from panoptic_api.core import db
 
 app = FastAPI()
 app.add_middleware(
@@ -30,12 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # TODO:
 # ajouter une route static pour le mode serveur
 
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(db_utils.init())
+
 
 # Route pour créer une property et l'insérer dans la table des properties
 @app.post("/property")
@@ -139,15 +136,13 @@ async def get_params():
 
 @app.post("/folders")
 async def add_folder_route():
-    queue = mp.Queue()
-    process = mp.Process(target=ui_process, args=(queue,))
-    process.start()
-    process.join()
-    folder = queue.get()
+    folder = await asyncio.wrap_future(executor.submit(ui_process))
+
     if not folder:
         return
-    nb_images = await add_folder(folder)
-    return f"{nb_images} images were added to the library"
+    # nb_images = await add_folder(folder)
+    print(folder)
+    # return f"{nb_images} images were added to the library"
 
 
 @app.post("/transform")
@@ -155,9 +150,10 @@ async def toggle_transform():
     pass
 
 
-def ui_process(queue):
-    root = tkinter.Tk()
-    root.withdraw()
-    folder_path = askdirectory(parent=root, title='Select a directory')
-    root.destroy()
-    queue.put(folder_path)
+def ui_process():
+    pass
+    # root = tkinter.Tk()
+    # root.withdraw()
+    # folder_path = askdirectory(parent=root, title='Select a directory')
+    # root.destroy()
+    # return folder_path
