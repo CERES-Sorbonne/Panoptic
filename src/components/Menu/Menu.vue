@@ -36,7 +36,7 @@ const addFolder = async () => {
                         </template>
                         <template #content>
                             <ul class="list-group option-content" @click.stop>
-                                <li class="list-group-item" v-for="folder in globalStore.params.folders">{{ folder }}</li>
+                                <li class="list-group-item" v-for="folder in globalStore.folders">{{ folder }}</li>
                             </ul>
                         </template>
                     </ExpandOption>
