@@ -6,7 +6,7 @@ import aiosqlite
 from json import JSONDecodeError
 import atexit
 
-ALL_TABLES = ['images', 'images_properties', 'properties', 'parameters', 'tags']
+ALL_TABLES = ['images', 'images_properties', 'properties', 'tags', 'folders', 'tabs']
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
 aiosqlite.register_converter("array", np.frombuffer)

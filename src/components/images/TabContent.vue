@@ -19,7 +19,7 @@ const props = defineProps({
 
 const imageSize = ref('100')
 
-const tab = computed(() => globalStore.params.tabs[props.tabIndex])
+const tab = computed(() => globalStore.tabs[props.tabIndex])
 
 const groups2 = reactive([])
 
@@ -65,7 +65,7 @@ watch(filteredImages, computeGroups, {deep: true})
         </div>
     </div> -->
     
-    <FilterForm :filter="globalStore.params.tabs[props.tabIndex].filter" />
+    <FilterForm :filter="globalStore.tabs[props.tabIndex].filter" />
     
 
 

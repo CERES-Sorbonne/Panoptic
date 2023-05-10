@@ -1,12 +1,13 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetParams, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, PropsTree, ReactiveStore, PropertyValue, TreeTag, Params, IndexedTags, Modals, FilterOperator } from '../data/models'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder } from '../data/api'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
     properties: {} as Properties,
-    params: { tabs: undefined} as Params,
+    folders: [] as Array<string>,
+    tabs: [] as Array<TabState>,
     settings: {
         pageSize: 200,
         propertyTypes: Object.values(PropertyType),
@@ -16,7 +17,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     selectedTabName: '',
     addTab(tabName: string) {
-        globalStore.params.tabs.push({
+        globalStore.tabs.push({
             name: tabName,
             filter: { depth: 0, filters: [], groupOperator: FilterOperator.and, isGroup: true },
             display: 'grid',
@@ -25,11 +26,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         globalStore.saveTabState()
     },
     removeTab(tabName: string) {
-        let index = globalStore.params.tabs.findIndex(t => t.name == tabName)
+        let index = globalStore.tabs.findIndex(t => t.name == tabName)
         if (index < 0) {
             return
         }
-        globalStore.params.tabs.splice(index, 1)
+        globalStore.tabs.splice(index, 1)
         globalStore.saveTabState()
     },
     selectTab(tabName: string) {
@@ -37,7 +38,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         globalStore.saveTabState()
     },
     saveTabState() {
-        localStorage.setItem('tabs', JSON.stringify(globalStore.params.tabs))
+        localStorage.setItem('tabs', JSON.stringify(globalStore.tabs))
         localStorage.setItem('selectedTabName', this.selectedTabName)
     },
     loadTabState() {
@@ -45,8 +46,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             let tabs = JSON.parse(localStorage.getItem('tabs'))
             let selectedTabName = localStorage.getItem('selectedTabName')
             if (tabs) {
-                this.params.tabs = tabs
-                console.log(globalStore.params.tabs)
+                this.tabs = tabs
+                console.log(globalStore.tabs)
             }
             if (selectedTabName) {
                 globalStore.selectTab(selectedTabName)
@@ -91,12 +92,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let images = await apiGetImages()
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
-        let params = await apiGetParams()
+        let folders = await apiGetFolders()
 
         this.images = images
         this.tags = tags
         this.properties = properties
-        this.params = params
+        this.folders = folders
 
         this.loadTabState()
     },

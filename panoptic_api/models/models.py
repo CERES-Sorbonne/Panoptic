@@ -55,6 +55,16 @@ class Parameters(BaseModel):
     tabs: list[dict]
 
 
+class Folder(BaseModel):
+    path: str
+
+
+class Tab(BaseModel):
+    id: int
+    name: str
+    data: dict
+
+
 Images: TypeAlias = dict[str, Image]
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]

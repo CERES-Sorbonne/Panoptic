@@ -73,8 +73,8 @@ export const apiDeleteProperty = async(propertyId: number) => {
     return await axios.delete(`/property/${propertyId}`)
 }
 
-export const apiGetParams = async() => {
-    let res = await axios.get('/params')
+export const apiGetFolders = async() => {
+    let res = await axios.get('/folders')
     return res.data
 }
 

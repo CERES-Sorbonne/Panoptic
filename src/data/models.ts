@@ -94,9 +94,10 @@ export interface GlobalStore {
     tagTrees: ComputedRef<TagsTree>
     properties: Properties
     propertyList: ComputedRef<Array<Property>>
-    params: Params
     images: Images
     imageList: ComputedRef<{url: String, imageName: String}[]>
+    folders: Array<string>
+    tabs: Array<TabState>
     fetchAllData: () => void
     [otherOptions: string]: any
 }
@@ -106,7 +107,8 @@ export interface ReactiveStore{
     tagTrees: TagsTree
     properties: Properties
     propertyList: Array<Property>
-    params: Params
+    folders: Array<string>
+    tabs: Array<TabState>
     images: Images
     imageList: {url: String, imageName: String}[]
     fetchAllData: () => void

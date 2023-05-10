@@ -1,12 +1,8 @@
 import atexit
-import atexit
-import hashlib
 import json
-import os
 from concurrent.futures import ProcessPoolExecutor
 from typing import List
 
-from PIL import Image as pImage
 from fastapi import HTTPException
 
 import panoptic_api.core.db
@@ -14,7 +10,6 @@ from panoptic_api.core.queue import TransformManager
 from panoptic_api.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload
 from .image_importer import ImageImporter
-from .. import panoptic
 
 executor = ProcessPoolExecutor(max_workers=4)
 atexit.register(executor.shutdown)
@@ -77,37 +72,6 @@ async def delete_image_property(property_id: int, sha1: str):
     await db.delete_image_property(property_id, sha1)
 
 
-def _preprocess_image(file_path):
-    image = pImage.open(file_path)
-    name = file_path.split(os.sep)[-1]
-    extension = name.split('.')[-1]
-    width, height = image.size
-    sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
-    # TODO: gérer l'url statique quand on sera en mode serveur
-    # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
-    url = f"/images/{file_path}"
-
-    ahash, vector = _compute_ml(image)
-
-    return file_path, name, extension, width, height, sha1_hash, url
-
-
-def _compute_ml(image):
-    # TODO: maybe move this function in core ? later if it works
-    # TODO: use multiprocessing here ?
-    ahash = panoptic.to_average_hash(image)
-    # TODO: find a way to access all the images for PCA
-    vector = panoptic.to_vector(image)
-    # TODO: maybe add another queue to avoid bottleneck on db
-    return ahash, vector
-
-
-async def add_image(file_path) -> Image:
-    _, name, extension, width, height, sha1_hash, url = _preprocess_image(file_path)
-    # Vérification si sha1_hash existe déjà dans la table images
-    return await add_image_to_db(file_path, name, extension, width, height, sha1_hash, url)
-
-
 async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
     image = await db.get_image_by_sha1(sha1_hash)
     # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
@@ -124,12 +88,11 @@ async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, 
 
 
 async def add_folder(folder):
-    folders = (await db.get_parameters()).folders
-    await db.update_folders(list({folder, *folders}))
+    saved = await db.add_folder(folder)
 
-    found = importer.import_folder(save_callback, folder)
+    found = importer.import_folder(save_callback, saved.path)
     print(f'found {found} images')
-    return found
+    return folder
 
 
 async def save_callback(image, file_path, name, extension, width, height, sha1_hash, url):

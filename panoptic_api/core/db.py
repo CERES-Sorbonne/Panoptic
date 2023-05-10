@@ -1,11 +1,12 @@
 # Connexion à la base de données SQLite
 import asyncio
 import json
+from typing import List
 
 import numpy as np
 
 from panoptic_api.core.db_utils import execute_query, decode_if_json
-from panoptic_api.models import Tag, Image, Property, ImageProperty, JSON, Parameters
+from panoptic_api.models import Tag, Image, Property, ImageProperty, JSON, Parameters, Folder, Tab
 
 
 async def add_property(name: str, property_type: str) -> Property:
@@ -190,18 +191,42 @@ async def update_image_property(sha1: str, property_id: int, value: JSON) -> str
     return decode_if_json(value)
 
 
-async def get_parameters() -> Parameters | None:
-    query = "SELECT * FROM parameters"
+async def get_folders() -> List[Folder]:
+    query = "SELECT * from folders"
     cursor = await execute_query(query)
-    row = await cursor.fetchone()
-    if not row:
-        return
-    return Parameters(**auto_dict(row, cursor))
+    return [Folder(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-async def update_folders(folders: list[str]):
-    query = "UPDATE parameters SET folders = ?"
-    await execute_query(query, (json.dumps(folders),))
+async def get_tabs() -> List[Tab]:
+    query = "SELECT * from folders"
+    cursor = await execute_query(query)
+    return [Tab(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+
+
+async def add_folder(path: str):
+    query = 'INSERT INTO folders (path) VALUES (?)'
+    cursor = await execute_query(query, (path,))
+    folder = Folder(id=cursor.lastrowid, path=path)
+    return folder
+
+
+async def delete_folder(folder_id: int):
+    query = "DELETE from folders WHERE id = ?"
+    await execute_query(query, (folder_id,))
+    return folder_id
+
+
+async def add_tab(name: str):
+    query = 'INSERT INTO tabs (name) VALUES (?)'
+    cursor = await execute_query(query, (name,))
+    folder = Tab(id=cursor.lastrowid, name=name)
+    return folder
+
+
+async def delete_tab(tab_id: int):
+    query = "DELETE from tabs WHERE id = ?"
+    await execute_query(query, (tab_id,))
+    return tab_id
 
 
 async def delete_property(property_id):

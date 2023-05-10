@@ -15,10 +15,10 @@ function select(tab: string) {
 }
 
 function newTabName() {
-    let counter = globalStore.params.tabs.length + 1
+    let counter = globalStore.tabs.length + 1
     let nameFnc = () => 'Tab' + counter
     let name = nameFnc()
-    while(globalStore.params.tabs.map(t => t.name).includes(name)) {
+    while(globalStore.tabs.map(t => t.name).includes(name)) {
         counter++
         name = nameFnc()
     }
@@ -40,7 +40,7 @@ onMounted(() => {
 <template>
     <nav>
         <div class="nav nav-tabs">
-            <button v-for="tab in globalStore.params.tabs" class="nav-link" :class="(tab.name == globalStore.selectedTabName ? ' active' : '')" @click="select(tab.name)"><span class="h4">{{ tab.name }}</span></button>
+            <button v-for="tab in globalStore.tabs" class="nav-link" :class="(tab.name == globalStore.selectedTabName ? ' active' : '')" @click="select(tab.name)"><span class="h4">{{ tab.name }}</span></button>
             <button class="nav-link no-border" @click="addTab"><span class="h3 bi bi-plus"></span></button>
         </div>
     </nav>
