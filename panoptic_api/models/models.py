@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import TypeAlias, Optional, Any, Union
 
+import numpy
 from pydantic import BaseModel
 
 
@@ -48,6 +49,15 @@ class Image(BaseModel):
     paths: list[str]
     extension: str
     properties: Optional[dict[int, PropertyValue]] = {}
+
+
+class ImageVector(BaseModel):
+    sha1: str
+    vector: numpy.ndarray
+    ahash: str
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class Parameters(BaseModel):
