@@ -1,15 +1,9 @@
-import asyncio
-import sys
-import threading
 import tkinter as tk
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from multiprocessing import Process
 from time import sleep
 from tkinter.filedialog import askdirectory
 
 import uvicorn
-from uvicorn import Config
-
-from panoptic_api.main import app
 
 
 class MiniUI:
@@ -49,19 +43,27 @@ class MiniUI:
 
 
 def launch_uvicorn():
+    from panoptic_api.main import app
     uvicorn.run(app)
+    # while True:
+    #     print("running")
+    #     sleep(2)
 
 
 root = tk.Tk()
 
 if __name__ == '__main__':
-    thread = threading.Thread(target=launch_uvicorn)
+    thread = Process(target=launch_uvicorn)
     thread.daemon = True
     thread.start()
 
     ui = MiniUI(root)
 
-    app.add_event_handler('startup', lambda: ui.server_status.set('running'))
-    app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
+    # app.add_event_handler('startup', lambda: ui.server_status.set('running'))
+    # app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
 
     root.mainloop()
+
+    # thread.terminate()
+    # # thread.join()
+    # thread.close()

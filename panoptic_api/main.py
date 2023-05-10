@@ -137,10 +137,10 @@ async def get_params():
 @app.post("/folders")
 async def add_folder_route():
     folder = await asyncio.wrap_future(executor.submit(ui_process))
-
-    if not folder:
-        return
-    # nb_images = await add_folder(folder)
+    #
+    # if not folder:
+    #     return
+    # # nb_images = await add_folder(folder)
     print(folder)
     # return f"{nb_images} images were added to the library"
 
