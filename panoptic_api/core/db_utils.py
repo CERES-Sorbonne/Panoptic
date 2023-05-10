@@ -17,7 +17,7 @@ conn: aiosqlite.Connection | None = None
 async def init():
     global conn
     conn = await aiosqlite.connect("panoptic.db")
-    atexit.register(conn.close)
+    # atexit.register(conn.close)
     await create_tables_if_db_empty()
 
 

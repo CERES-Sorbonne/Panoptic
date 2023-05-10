@@ -1,5 +1,6 @@
 import tkinter as tk
 from multiprocessing import Process
+from threading import Thread
 from time import sleep
 from tkinter.filedialog import askdirectory
 
@@ -44,6 +45,8 @@ class MiniUI:
 
 def launch_uvicorn():
     from panoptic_api.main import app
+    app.add_event_handler('startup', lambda: ui.server_status.set('running'))
+    app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
     uvicorn.run(app)
     # while True:
     #     print("running")
@@ -53,17 +56,10 @@ def launch_uvicorn():
 root = tk.Tk()
 
 if __name__ == '__main__':
-    thread = Process(target=launch_uvicorn)
+    thread = Thread(target=launch_uvicorn)
     thread.daemon = True
     thread.start()
 
     ui = MiniUI(root)
 
-    # app.add_event_handler('startup', lambda: ui.server_status.set('running'))
-    # app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
-
     root.mainloop()
-
-    # thread.terminate()
-    # # thread.join()
-    # thread.close()
