@@ -4,6 +4,7 @@ import os
 import numpy as np
 import aiosqlite
 from json import JSONDecodeError
+import atexit
 
 ALL_TABLES = ['images', 'images_properties', 'properties', 'parameters', 'tags']
 
@@ -16,6 +17,7 @@ conn: aiosqlite.Connection | None = None
 async def init():
     global conn
     conn = await aiosqlite.connect("panoptic.db")
+    atexit.register(conn.close)
     await create_tables_if_db_empty()
 
 
