@@ -15,7 +15,7 @@ from starlette.responses import Response
 from panoptic_api.core import create_property, add_property_to_image, add_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils
+    db_utils, make_clusters
 from panoptic_api.models import Property, Images, Tag, Image, Tags, Properties, ImagePayload, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
@@ -150,9 +150,9 @@ async def add_folder_route():
     return f"{nb_images} images were added to the library"
 
 
-@app.post("/transform")
-async def toggle_transform():
-    pass
+@app.get("/clusters")
+async def make_clusters_route(sensibility: Optional[float] = 3) -> list[list[str]]:
+    return await make_clusters(sensibility)
 
 
 def ui_process(queue):

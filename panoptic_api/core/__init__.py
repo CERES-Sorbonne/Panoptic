@@ -60,6 +60,15 @@ async def get_images() -> Images:
     return result
 
 
+async def make_clusters(sensibility: float) -> list[list[str]]:
+    """
+    Compute clusters and return a list of list of sha1
+    """
+    # TODO: add parameters to compute clusters only on some images
+    images = await db.get_images_with_vectors()
+    return panoptic.make_clusters(images, sensibility)
+
+
 async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
     # first check that the property and the image exist:
     if await db.get_property_by_id(property_id) and await db.get_image_by_sha1(sha1):
