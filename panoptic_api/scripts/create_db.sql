@@ -1,6 +1,12 @@
-CREATE TABLE parameters(
-    folders JSON,
-    tabs JSON
+CREATE TABLE folders(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT
+);
+
+CREATE TABLE tabs(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    data JSON
 );
 
 CREATE TABLE properties (
@@ -38,6 +44,3 @@ CREATE TABLE tags (
     color TEXT,
     FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );
-
-INSERT INTO parameters (folders, tabs)
-VALUES ('[]', '[{"name": "default","filter": { "depth": 0, "filters": [], "groupOperator": "AND", "isGroup": true },"display": "grid","groups": [{ "name": "all", "images": 34 }]}]');

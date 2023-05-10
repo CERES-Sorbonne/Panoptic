@@ -18,6 +18,10 @@ import torch
 from .ocr import full_ocr
 from .utils import load_data
 
+from transformers import logging
+
+logging.set_verbosity_error()
+
 PCA_SIZE = 15
 USE_PCA_IF_POSSIBLE = True
 

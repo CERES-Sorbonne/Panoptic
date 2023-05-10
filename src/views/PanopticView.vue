@@ -25,7 +25,7 @@ const selectedTab = ref('')
             <div style="min-height: 55px;">
                 <TabNav v-model:selected="selectedTab" />
             </div>
-            <template v-for="tab, index in globalStore.params.tabs">
+            <template v-for="tab, index in globalStore.tabs">
                 <div v-if="globalStore.selectedTabName == tab.name">
                     <TabContent :tab-index="index" />
                 </div>

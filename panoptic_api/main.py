@@ -5,18 +5,20 @@ from typing import Optional
 import aiofiles as aiofiles
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from starlette.responses import Response
 
-from panoptic_api.core import create_property, add_property_to_image, add_image, get_images, create_tag, \
+from panoptic_api.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, db_utils, \
-    executor
+    add_folder
 from panoptic_api.core import db
-from panoptic_api.models import Property, Images, Tag, Image, Tags, Properties, ImagePayload, PropertyPayload, \
+from panoptic_api.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
 
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,13 +56,6 @@ async def update_property_route(payload: UpdatePropertyPayload) -> Property:
 async def delete_property_route(property_id: str):
     await delete_property(property_id)
     return f"Property {property_id} correctly deleted"
-
-
-# Route pour ajouter une image
-@app.post("/images")
-async def add_image_route(image: ImagePayload) -> Image:
-    image = await add_image(image.file_path)
-    return image
 
 
 # Route pour récupérer la liste de toutes les images
@@ -128,32 +123,23 @@ async def delete_tag_parent_route(tag_id: int, parent_id: int):
     return res
 
 
-@app.get("/params")
-async def get_params():
-    res = await db.get_parameters()
+@app.get("/folders")
+async def get_folders():
+    res = await db.get_folders()
     return res
 
 
+class PathRequest(BaseModel):
+    path: str
+
+
 @app.post("/folders")
-async def add_folder_route():
-    folder = await asyncio.wrap_future(executor.submit(ui_process))
-    #
-    # if not folder:
-    #     return
-    # # nb_images = await add_folder(folder)
-    print(folder)
-    # return f"{nb_images} images were added to the library"
+async def add_folder_route(path: PathRequest):
+    #TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
+    nb_images = await add_folder(path.path)
+    return await get_folders()
 
 
 @app.post("/transform")
 async def toggle_transform():
     pass
-
-
-def ui_process():
-    pass
-    # root = tkinter.Tk()
-    # root.withdraw()
-    # folder_path = askdirectory(parent=root, title='Select a directory')
-    # root.destroy()
-    # return folder_path
