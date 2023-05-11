@@ -12,6 +12,8 @@ import { computeGroupFilter } from '@/utils/filter';
 import { Filter } from '@/data/models';
 import FilterInputDropdown from "@/components/inputs/FilterInputDropdown.vue"
 import FilterForm from '../forms/FilterForm.vue';
+import GroupForm from '../forms/GroupForm.vue';
+import SortForm from '../forms/SortForm.vue';
 
 const props = defineProps({
     tabIndex: Number
@@ -20,23 +22,31 @@ const props = defineProps({
 const imageSize = ref('100')
 
 const tab = computed(() => globalStore.tabs[props.tabIndex])
+const filters = computed(() => tab.value.filter)
+const groups = computed(() => tab.value.groups)
+const sorts = computed(() => tab.value.sortList)
 
 const groups2 = reactive([])
 
 const filteredImages = computed(() => {
     let images = Object.values(globalStore.images)
-    return images.filter(img => computeGroupFilter(img, tab.value.filter))
+    return images.filter(img => computeGroupFilter(img, filters.value))
 })
 
 function computeGroups() {
     groups2.length = 0
 
-    let allGroup = {
-        name: 'all',
-        images: filteredImages.value
+    if (groups.value.length == 0) {
+        let allGroup = {
+            name: 'all',
+            images: filteredImages.value
+        }
+        groups2.length = 0
+        groups2.push(allGroup)
+        return
     }
-    groups2.length = 0
-    groups2.push(allGroup)
+
+    
 }
 onMounted(computeGroups)
 
@@ -45,7 +55,7 @@ watch(tab, () => {
     globalStore.saveTabState()
 }, { deep: true })
 
-watch(filteredImages, computeGroups, {deep: true})
+watch(filteredImages, computeGroups, { deep: true })
 
 </script>
 
@@ -64,10 +74,12 @@ watch(filteredImages, computeGroups, {deep: true})
             <ListInput label="GroupBy" :selected="state.groupBy" :possible="options.groupBy" />
         </div>
     </div> -->
-    
-    <FilterForm :filter="globalStore.tabs[props.tabIndex].filter" />
-    
 
+    <div class="d-flex flex-wrap mb-3 mt-3">
+        <FilterForm :filter="globalStore.tabs[props.tabIndex].filter" />
+        <GroupForm :groupIds="globalStore.tabs[props.tabIndex].groups" />
+        <SortForm :sortList="globalStore.tabs[props.tabIndex].sortList" />
+    </div>
 
 
     <div class="mt-4">

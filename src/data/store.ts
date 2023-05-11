@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState } from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -17,12 +17,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     selectedTabName: '',
     addTab(tabName: string) {
-        globalStore.tabs.push({
-            name: tabName,
-            filter: { depth: 0, filters: [], groupOperator: FilterOperator.and, isGroup: true },
-            display: 'grid',
-            groups: [{ name: 'all', images: 34 }],
-        })
+        globalStore.tabs.push(buildTabState())
         globalStore.saveTabState()
     },
     removeTab(tabName: string) {
@@ -42,6 +37,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         localStorage.setItem('selectedTabName', this.selectedTabName)
     },
     loadTabState() {
+        this.tabs = [buildTabState()]
+        globalStore.selectTab(this.tabs[0].name)
+        return
         try {
             let tabs = JSON.parse(localStorage.getItem('tabs'))
             let selectedTabName = localStorage.getItem('selectedTabName')

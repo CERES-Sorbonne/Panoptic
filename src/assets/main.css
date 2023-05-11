@@ -36,3 +36,15 @@
 .hover-light:hover {
   background-color: rgb(240, 240, 240) !important;
 }
+
+.label {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  color: #212529;
+}
+
+.smaller {
+  font-size: 0.875rem;
+  padding: 0.25rem 0rem;
+  color: #212529;
+}
