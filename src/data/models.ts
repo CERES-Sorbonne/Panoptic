@@ -212,5 +212,34 @@ export interface TabState {
     name: string
     display: string
     filter: FilterGroup
-    groups: Object
+    groups: Array<number>
+    sortList: Array<Sort>
+}
+
+export interface TabRequest {
+
+}
+
+export interface Sort {
+    property_id: number,
+    ascending: boolean
+}
+
+export function buildTabState() {
+    return {
+        name: 'Tab',
+        display: 'grid',
+        filter: buildFilterGroup(),
+        groups: [],
+        sortList: []
+    } as TabState
+}
+
+export function buildFilterGroup() {
+    return { 
+        depth: 0, 
+        filters: [], 
+        groupOperator: FilterOperator.and, 
+        isGroup: true 
+    } as FilterGroup
 }

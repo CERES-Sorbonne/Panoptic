@@ -3,13 +3,21 @@ import { globalStore } from '@/data/store'
 import { computed, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
 
+const props = defineProps({
+    ignoreIds: Array<number>
+})
+
 
 const searchElem = ref(null)
 
 const propertyFilter = ref('')
 
 const filteredProperties = computed(() => {
-    return globalStore.propertyList.filter(p => p.name.includes(propertyFilter.value))
+    let properties = globalStore.propertyList
+    if(props.ignoreIds) {
+        properties = properties.filter(p => !props.ignoreIds.includes(p.id))
+    }
+    return properties.filter(p => p.name.includes(propertyFilter.value))
 })
 
 

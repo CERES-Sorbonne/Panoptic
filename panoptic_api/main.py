@@ -33,8 +33,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(db_utils.init())
-
+    await db_utils.init()
 
 # Route pour créer une property et l'insérer dans la table des properties
 @app.post("/property")
