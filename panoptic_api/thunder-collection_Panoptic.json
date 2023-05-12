@@ -1,0 +1,199 @@
+{
+    "client": "Thunder Client",
+    "collectionName": "Panoptic",
+    "dateExported": "2023-03-14T22:18:12.917Z",
+    "version": "1.1",
+    "folders": [],
+    "requests": [
+        {
+            "_id": "7bc98ce5-76a2-4022-9747-ac3a87638c9a",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Post Image",
+            "url": "localhost:8000/images",
+            "method": "POST",
+            "sortNum": 5000,
+            "created": "2023-02-28T21:52:45.948Z",
+            "modified": "2023-03-11T12:07:14.576Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"file_path\": \"C:\\\\Users\\\\Orion\\\\Pictures\\\\Dessins\\\\ludum52\\\\soleil1.png\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "088c21fc-3424-4978-8557-64e7ebe43a8d",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Add Folder",
+            "url": "http://localhost:8000/folders",
+            "method": "POST",
+            "sortNum": 7500,
+            "created": "2023-03-14T12:56:27.525Z",
+            "modified": "2023-03-14T13:22:03.651Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"folder\": \"D:\\\\CERES\\\\ressources_pma_mpt_tdg\\\\images\\\\pma\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "bdd3410b-518e-427e-9bc2-cd775070a7fa",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Get images",
+            "url": "localhost:8000/images",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2023-02-28T21:52:34.476Z",
+            "modified": "2023-02-28T21:52:34.476Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "6280a1f8-635a-4ef4-ad0b-f3303fe5dcb2",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Get Single Image",
+            "url": "http://localhost:8000/images/C:/Users/Orion/Pictures/ImagesPanoptic/1abced957962d9ffeddbe6d21cf1ebbe0fc44669.jpg",
+            "method": "GET",
+            "sortNum": 20000,
+            "created": "2023-03-08T09:47:50.376Z",
+            "modified": "2023-03-11T12:07:23.638Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "1a282534-71dd-4a10-b5c6-d2c57b43e5d2",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Add Property",
+            "url": "localhost:8000/property",
+            "method": "POST",
+            "sortNum": 30000,
+            "created": "2023-02-28T22:04:40.961Z",
+            "modified": "2023-03-10T19:38:25.948Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"name\": \"catégorie3\",\n  \"type\": \"tag\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "f42c429c-87b3-498c-a10a-785294939ce8",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Add Tag",
+            "url": "http://localhost:8000/tags",
+            "method": "POST",
+            "sortNum": 35000,
+            "created": "2023-03-10T19:37:59.330Z",
+            "modified": "2023-03-11T12:08:10.550Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"property_id\": 1,\n  \"value\": \"Geralt Darmanin\",\n  \"parent_id\": 3\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "2a1fb1a8-5cb8-4834-9030-238e5e3c0da6",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Add Image Property",
+            "url": "localhost:8000/image_property",
+            "method": "POST",
+            "sortNum": 40000,
+            "created": "2023-02-28T22:07:00.898Z",
+            "modified": "2023-03-10T21:52:34.022Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"property_id\": 2,\n  \"sha1\": \"8157a2d13cee861c7a1bc3a01f4bfb8e300bc994\",\n  \"value\": [1]\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "2ddd194b-0eac-42a0-b564-3a7e535445eb",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Get Tags",
+            "url": "http://localhost:8000/tags",
+            "method": "GET",
+            "sortNum": 50000,
+            "created": "2023-03-11T12:10:30.196Z",
+            "modified": "2023-03-11T12:10:30.196Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        },
+        {
+            "_id": "6e63e52f-3225-4f6e-acff-6cd7e48fa8a4",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Get Tags By Property",
+            "url": "http://localhost:8000/tags?property=2",
+            "method": "GET",
+            "sortNum": 60000,
+            "created": "2023-03-11T12:10:47.035Z",
+            "modified": "2023-03-11T12:11:01.161Z",
+            "headers": [],
+            "params": [
+                {
+                    "name": "property",
+                    "value": "2",
+                    "isPath": false
+                }
+            ],
+            "tests": []
+        },
+        {
+            "_id": "09ebd875-7e9c-4e6b-864b-94f5428c57b6",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Update Tags",
+            "url": "http://localhost:8000/tags",
+            "method": "PATCH",
+            "sortNum": 70000,
+            "created": "2023-03-11T12:28:28.205Z",
+            "modified": "2023-03-11T12:28:28.205Z",
+            "headers": [],
+            "params": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"id\": 1,\n  \"value\": \"GiletsJaunes\"\n}",
+                "form": []
+            },
+            "tests": []
+        },
+        {
+            "_id": "80de4f8d-2d50-416b-abca-d86ec3b51a60",
+            "colId": "ebd47cc3-a885-4827-b80b-d3b800e87bdf",
+            "containerId": "",
+            "name": "Get Properties",
+            "url": "http://localhost:8000/property",
+            "method": "GET",
+            "sortNum": 80000,
+            "created": "2023-03-11T21:55:21.894Z",
+            "modified": "2023-03-11T21:55:31.977Z",
+            "headers": [],
+            "params": [],
+            "tests": []
+        }
+    ]
+}
