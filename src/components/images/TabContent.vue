@@ -6,7 +6,7 @@ import { computeGroupFilter } from '@/utils/filter';
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
-import { Group, Image } from '@/data/models';
+import { Group, Image, PropertyType } from '@/data/models';
 import {DefaultDict} from '@/utils/helpers'
 
 const props = defineProps({
@@ -34,7 +34,7 @@ function computeGroups() {
             images: filteredImages.value,
             groups: undefined,
             count: filteredImages.value.length,
-            type: undefined
+            propertyId: undefined
     } as Group
     if(groups.value.length > 0) {
         rootGroup = computeSubgroups(rootGroup, groups.value)
@@ -53,6 +53,12 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
 
     for(let img of images) {
         let value = propertyId in img.properties ? img.properties[propertyId].value : "undefined"
+        if(value == null) {
+            value == undefined
+        }
+        if(type == PropertyType.checkbox && value != true) {
+            value = false
+        }
         if(Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
@@ -67,7 +73,7 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
             images: groups[group],
             groups: undefined,
             count: groups[group].length,
-            type: type
+            propertyId: propertyId
         })
     }
 
