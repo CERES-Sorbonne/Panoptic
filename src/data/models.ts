@@ -225,6 +225,14 @@ export interface Sort {
     ascending: boolean
 }
 
+export interface Group {
+    name: string
+    images: Array<Image>
+    groups: Array<Group>
+    count: number
+    type: PropertyType
+}
+
 export function buildTabState() {
     return {
         name: 'Tab',
