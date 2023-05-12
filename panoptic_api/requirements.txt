@@ -1,0 +1,16 @@
+aiofiles
+aiosqlite
+fastapi-camelcase
+fastapi
+imagehash
+numpy
+opencv-python
+pandaspydantic
+pytesseract
+scikit-learn
+scipy
+sqlite
+tk
+torch
+transformers
+uvicorn
