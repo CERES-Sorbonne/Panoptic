@@ -78,7 +78,7 @@ onMounted(() => {
                     <div class="row">
                         <div class="col">
                             <div class="text-center">
-                                <img :src="image.url" class="border" />
+                                <img :src="image.url" class="border image-size" />
                             </div>
                         </div>
                         <div class="col">
@@ -134,3 +134,11 @@ onMounted(() => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.image-size {
+    max-width: 800px;
+    max-height: 600px;
+}
+
+</style>
