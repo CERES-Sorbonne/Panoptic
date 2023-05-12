@@ -1,11 +1,5 @@
-import asyncio
-import logging
-import tkinter
 from sys import platform
-from tkinter.filedialog import *
 from typing import Optional
-
-import multiprocessing as mp
 
 import aiofiles as aiofiles
 from fastapi import FastAPI
@@ -18,10 +12,10 @@ from panoptic_api.core import create_property, add_property_to_image, get_images
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     db_utils, make_clusters
-from panoptic_api.models import Property, Images, Tag, Image, Tags, Properties, ImagePayload, PropertyPayload, \
+from panoptic_api.core import db
+from panoptic_api.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
-from panoptic_api.core import db
 
 app = FastAPI()
 app.add_middleware(
