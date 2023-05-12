@@ -3,17 +3,18 @@
  */
 
 // à virer
-import { Property, PropertyType, PropertyValue, Tag } from './models'
+import { Images, Property, PropertyType, PropertyValue, Tag } from './models'
 
 import axios from 'axios'
 
-export const SERVER_PREFIX = "api/"
+export const SERVER_PREFIX = import.meta.env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
 
 
-export const apiGetImages = async () => {
+export const apiGetImages = async ():Promise<Images> => {
     const res = await axios.get(`/images`)
-    return res.data
+    const images = Object.fromEntries(Object.entries(res.data as Images).map(([k,v]) => [k, {...v, url: SERVER_PREFIX + v.url,}]))
+    return images
 }
 
 export const apiGetTags = async () => {
