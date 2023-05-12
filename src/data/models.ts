@@ -230,7 +230,7 @@ export interface Group {
     images: Array<Image>
     groups: Array<Group>
     count: number
-    type: PropertyType
+    propertyId: number
 }
 
 export function buildTabState() {
