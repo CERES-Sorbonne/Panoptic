@@ -1,19 +1,22 @@
+import os
 import tkinter as tk
-from multiprocessing import Process
+import webbrowser
 from threading import Thread
 from time import sleep
 from tkinter.filedialog import askdirectory
 
 import uvicorn
-from fastapi import FastAPI
 import requests
-from uvicorn import logging
 
 port = 8000
 
 
 def api(path):
     return 'http://localhost:' + str(port) + '/' + path
+
+
+FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
+
 
 
 class MiniUI:
@@ -39,13 +42,17 @@ class MiniUI:
         self.label2 = tk.Label(master, textvariable=self.server_status)
         self.label2.pack()
 
+        # Create a button to add new folders
+        self.button = tk.Button(master, text="Add Folder", command=self.add_folder)
+        self.button.pack()
+
         # Create a listbox to display imported folders
         self.listbox = tk.Listbox(master)
         # self.listbox.insert(tk.END, "path/lala/lolo")
         self.listbox.pack(fill=tk.BOTH, expand=True)
 
-        # Create a button to add new folders
-        self.button = tk.Button(master, text="Add Folder", command=self.add_folder)
+        # Create a button to
+        self.button = tk.Button(master, text="Open Panoptic", command=self.open_panoptic)
         self.button.pack()
 
     def init_folders(self):
@@ -70,6 +77,9 @@ class MiniUI:
         self.listbox.delete(0, tk.END)
         for folder in res:
             self.listbox.insert(tk.END, folder['path'])
+
+    def open_panoptic(self):
+        webbrowser.open(FRONT_URL)
 
 
 def on_fastapi_start():
