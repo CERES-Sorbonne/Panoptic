@@ -7,7 +7,7 @@ import { Images, Property, PropertyType, PropertyValue, Tag } from './models'
 
 import axios from 'axios'
 
-export const SERVER_PREFIX = import.meta.env.VITE_API_ROUTE
+export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
 
 

@@ -7,7 +7,8 @@ import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import { Group, Image, PropertyType } from '@/data/models';
-import {DefaultDict} from '@/utils/helpers'
+import { DefaultDict } from '@/utils/helpers'
+import PaginatedImages from './PaginatedImages.vue';
 
 const props = defineProps({
     tabIndex: Number
@@ -30,36 +31,37 @@ const filteredImages = computed(() => {
 function computeGroups() {
     imageGroups.length = 0
     let rootGroup = {
-            name: 'all',
-            images: filteredImages.value,
-            groups: undefined,
-            count: filteredImages.value.length,
-            propertyId: undefined
+        name: '__all__',
+        images: filteredImages.value,
+        groups: undefined,
+        count: filteredImages.value.length,
+        propertyId: undefined
     } as Group
-    if(groups.value.length > 0) {
+    if (groups.value.length > 0) {
         rootGroup = computeSubgroups(rootGroup, groups.value)
+        imageGroups.push(...rootGroup.groups)
     }
-    imageGroups.push(rootGroup)
-
-    console.log(imageGroups)
+    else {
+        imageGroups.push(rootGroup)
+    }
 }
 
 function computeSubgroups(parentGroup: Group, groupList: number[]) {
     console.log('compute subgroup for property: ' + groupList[0])
     let images = parentGroup.images
     let propertyId = groupList[0]
-    let groups = new DefaultDict(Array) as {[k:string|number]: any}
+    let groups = new DefaultDict(Array) as { [k: string | number]: any }
     let type = globalStore.properties[propertyId].type
 
-    for(let img of images) {
+    for (let img of images) {
         let value = propertyId in img.properties ? img.properties[propertyId].value : "undefined"
-        if(value == null) {
+        if (value == null) {
             value == undefined
         }
-        if(type == PropertyType.checkbox && value != true) {
+        if (type == PropertyType.checkbox && value != true) {
             value = false
         }
-        if(Array.isArray(value)) {
+        if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
         else {
@@ -67,7 +69,7 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
         }
     }
     let res = []
-    for(let group in groups) {
+    for (let group in groups) {
         res.push({
             name: group,
             images: groups[group],
@@ -77,7 +79,7 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
         })
     }
 
-    if(groupList.length > 1) {
+    if (groupList.length > 1) {
         res.map(g => computeSubgroups(g, groupList.slice(1)))
     }
 
@@ -94,12 +96,11 @@ watch(tab, () => {
 }, { deep: true })
 
 watch(filteredImages, computeGroups, { deep: true })
-watch(groups, computeGroups, {deep: true})
+watch(groups, computeGroups, { deep: true })
 
 </script>
 
 <template>
-
     <!-- {{ imageGroups }} -->
     <!-- <div class="d-flex flex-wrap mb-3 mt-3">
         <div class="bd-highlight mt-1 me-1">
@@ -134,7 +135,9 @@ watch(groups, computeGroups, {deep: true})
                 <input class="form-control" type="number" v-model="globalStore.settings.pageSize" style="width: 100px;" />
             </div>
         </div>
-
-        <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="imageSize" />
+        <PaginatedImages v-if="imageGroups.length > 0 && imageGroups[0].name == '__all__'" :images="imageGroups[0].images" :imageSize="imageSize" />
+        <template v-else>
+            <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="imageSize" />
+        </template>
     </div>
 </template>
