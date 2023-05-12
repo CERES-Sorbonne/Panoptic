@@ -244,3 +244,8 @@ async def get_image_properties_with_tag(tag_id: int) -> list[ImageProperty]:
     query = "SELECT * from images_properties ip where ip.value like ?"
     cursor = await execute_query(query, (f"[%{tag_id}%]",))
     return [ImageProperty(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+
+async def get_images_with_vectors():
+    query = "SELECT sha1, vector, ahash from images"
+    cursor = await execute_query(query)
+    return [ImageVector(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
