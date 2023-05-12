@@ -135,9 +135,11 @@ watch(groups, computeGroups, { deep: true })
                 <input class="form-control" type="number" v-model="globalStore.settings.pageSize" style="width: 100px;" />
             </div>
         </div>
-        <PaginatedImages v-if="imageGroups.length > 0 && imageGroups[0].name == '__all__'" :images="imageGroups[0].images" :imageSize="imageSize" />
-        <template v-else>
+        <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
+            <PaginatedImages :images="imageGroups[0].images" :imageSize="imageSize" />
+        </div>
+        <div v-else>
             <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="imageSize" />
-        </template>
+        </div>
     </div>
 </template>
