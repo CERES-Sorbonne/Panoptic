@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 
 from panoptic_api.core.db_utils import execute_query, decode_if_json
+from panoptic_api.models import Tag, Image, Property, ImageProperty, JSON, Parameters, ImageVector
 from panoptic_api.models import Tag, Image, Property, ImageProperty, JSON, Parameters, Folder, Tab
 
 
