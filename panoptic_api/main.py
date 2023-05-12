@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from starlette.responses import Response
+from starlette.staticfiles import StaticFiles
 
 from panoptic_api.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
@@ -28,12 +29,13 @@ app.add_middleware(
 )
 
 
-# TODO:
+# # TODO:
 # ajouter une route static pour le mode serveur
 
 @app.on_event("startup")
 async def startup_event():
     await db_utils.init()
+
 
 # Route pour créer une property et l'insérer dans la table des properties
 @app.post("/property")
@@ -142,3 +144,5 @@ async def add_folder_route(path: PathRequest):
 @app.post("/transform")
 async def toggle_transform():
     pass
+
+app.mount("/", StaticFiles(directory="../dist", html=True), name="static")

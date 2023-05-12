@@ -1,7 +1,6 @@
+import os
 import tkinter as tk
-import urllib
 import webbrowser
-from multiprocessing import Process
 from threading import Thread
 from time import sleep
 from tkinter.filedialog import askdirectory
@@ -14,6 +13,10 @@ port = 8000
 
 def api(path):
     return 'http://localhost:' + str(port) + '/' + path
+
+
+FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
+
 
 
 class MiniUI:
@@ -75,9 +78,9 @@ class MiniUI:
         for folder in res:
             self.listbox.insert(tk.END, folder['path'])
 
-
     def open_panoptic(self):
-        webbrowser.open('http://localhost:5173/')
+        webbrowser.open(FRONT_URL)
+
 
 def on_fastapi_start():
     ui.server_status.set('fastapi init...')
