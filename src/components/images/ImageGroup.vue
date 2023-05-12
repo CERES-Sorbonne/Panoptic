@@ -14,27 +14,12 @@ const subgroups = computed(() => props.group.groups)
 const hasImages = computed(() => images.value.length > 0)
 const hasSubgroups = computed(() => subgroups.value != undefined)
 
-function recursiveCount(groupe) {
-    if (groupe.groups) {
-        return props.group.groups.map(recursiveCount).reduce((a, b) => a + b, 0)
-    }
-    else {
-        return groupe.images.length
-    }
-}
 
-const imageSum = computed(() => {
-    if (!hasImages.value && !hasSubgroups.value) {
-        return 0
-    }
-    return recursiveCount(props.group)
-
-})
 </script>
 
 <template>
     <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true">
-        <template #name>{{ props.group.name }} ({{ imageSum }})<i class="h5 ms-2 bi bi-share"></i></template>
+        <template #name>{{ props.group.name }} ({{ props.group.count }})<i class="h5 ms-2 bi bi-share"></i></template>
         <template #content>
             <div  v-if="hasImages">
                 <div class="ms-3">

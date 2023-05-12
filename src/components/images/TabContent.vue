@@ -1,19 +1,13 @@
 <script setup lang="ts">
 import { reactive, computed, watch, onMounted, ref } from 'vue';
 import ImageGroup from './ImageGroup.vue';
-import DropdownInput from '../inputs/DropdownInput.vue';
-import ListInput from '../inputs/ListInput.vue';
 import { globalStore } from '../../data/store';
-import * as boostrap from 'bootstrap'
-import GlobalFilterInputDropdown from '../inputs/GlobalFilterInputDropdown.vue';
-import { createCompoundExpression } from '@vue/compiler-core';
-import { FilterGroup, FilterOperator, Images } from '@/data/models';
 import { computeGroupFilter } from '@/utils/filter';
-import { Filter } from '@/data/models';
-import FilterInputDropdown from "@/components/inputs/FilterInputDropdown.vue"
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
+import { Group, Image } from '@/data/models';
+import {DefaultDict} from '@/utils/helpers'
 
 const props = defineProps({
     tabIndex: Number
@@ -26,7 +20,7 @@ const filters = computed(() => tab.value.filter)
 const groups = computed(() => tab.value.groups)
 const sorts = computed(() => tab.value.sortList)
 
-const groups2 = reactive([])
+const imageGroups = reactive([])
 
 const filteredImages = computed(() => {
     let images = Object.values(globalStore.images)
@@ -34,20 +28,58 @@ const filteredImages = computed(() => {
 })
 
 function computeGroups() {
-    groups2.length = 0
-
-    if (groups.value.length == 0) {
-        let allGroup = {
+    imageGroups.length = 0
+    let rootGroup = {
             name: 'all',
-            images: filteredImages.value
+            images: filteredImages.value,
+            groups: undefined,
+            count: filteredImages.value.length,
+            type: undefined
+    } as Group
+    if(groups.value.length > 0) {
+        rootGroup = computeSubgroups(rootGroup, groups.value)
+    }
+    imageGroups.push(rootGroup)
+
+    console.log(imageGroups)
+}
+
+function computeSubgroups(parentGroup: Group, groupList: number[]) {
+    console.log('compute subgroup for property: ' + groupList[0])
+    let images = parentGroup.images
+    let propertyId = groupList[0]
+    let groups = new DefaultDict(Array) as {[k:string|number]: any}
+    let type = globalStore.properties[propertyId].type
+
+    for(let img of images) {
+        let value = propertyId in img.properties ? img.properties[propertyId].value : "undefined"
+        if(Array.isArray(value)) {
+            value.forEach((v: any) => groups[v].push(img))
         }
-        groups2.length = 0
-        groups2.push(allGroup)
-        return
+        else {
+            groups[value].push(img)
+        }
+    }
+    let res = []
+    for(let group in groups) {
+        res.push({
+            name: group,
+            images: groups[group],
+            groups: undefined,
+            count: groups[group].length,
+            type: type
+        })
     }
 
-    
+    if(groupList.length > 1) {
+        res.map(g => computeSubgroups(g, groupList.slice(1)))
+    }
+
+    parentGroup.groups = res
+    parentGroup.images = []
+    return parentGroup
 }
+
 onMounted(computeGroups)
 
 
@@ -56,10 +88,13 @@ watch(tab, () => {
 }, { deep: true })
 
 watch(filteredImages, computeGroups, { deep: true })
+watch(groups, computeGroups, {deep: true})
 
 </script>
 
 <template>
+
+    <!-- {{ imageGroups }} -->
     <!-- <div class="d-flex flex-wrap mb-3 mt-3">
         <div class="bd-highlight mt-1 me-1">
             <div class="input-group">
@@ -94,6 +129,6 @@ watch(filteredImages, computeGroups, { deep: true })
             </div>
         </div>
 
-        <ImageGroup :leftAlign="true" v-for="group in groups2" :group="group" :imageSize="imageSize" />
+        <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="imageSize" />
     </div>
 </template>
