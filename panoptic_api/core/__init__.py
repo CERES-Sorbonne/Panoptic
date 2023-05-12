@@ -10,6 +10,7 @@ from panoptic_api.core.queue import TransformManager
 from panoptic_api.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload
 from .image_importer import ImageImporter
+from .. import panoptic
 
 executor = ProcessPoolExecutor(max_workers=4)
 atexit.register(executor.shutdown)

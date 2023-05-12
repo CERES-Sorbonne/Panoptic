@@ -1,6 +1,8 @@
 import asyncio
 import json
 import os
+import sqlite3
+
 import numpy as np
 import aiosqlite
 from json import JSONDecodeError
@@ -15,7 +17,7 @@ conn: aiosqlite.Connection | None = None
 
 async def init():
     global conn
-    conn = await aiosqlite.connect("panoptic.db")
+    conn = await aiosqlite.connect("panoptic.db", detect_types=sqlite3.PARSE_DECLTYPES)
     await create_tables_if_db_empty()
 
 
