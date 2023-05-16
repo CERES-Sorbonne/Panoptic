@@ -5,7 +5,7 @@ import concurrent
 import itertools
 from operator import itemgetter
 
-import cv2
+# import cv2
 import numpy as np
 import pandas as pd
 import pytesseract
@@ -16,46 +16,46 @@ os.environ['TESSDATA_PREFIX'] = os.getenv('TESSDATA_PREFIX', os.sep.join([*sys.e
 
 tess_config = "-c tessedit_char_blacklist='+=*;)(][\{\}@/|_^\\#~&'"
 
-
-def full_ocr(image: Image):
-    img = np.array(image)
-
-    # create list of combinations (preprocessing + language) to try
-    operations = list(itertools.product([_no_preprocess, _bilateral], ['eng', 'fra']))
-
-    # run in parallel
-    # TODO: passer en multiprocess plutôt que threaded ?
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [executor.submit(_preprocess_and_ocr, img, o[0], o[1]) for o in operations]
-        return max([f.result() for f in concurrent.futures.as_completed(futures)], key=itemgetter(1))
-
-
-def _no_preprocess(img):
-    return img
-
-
-def _bilateral(img):
-    img = cv2.bilateralFilter(img, 5, 55, 60)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, img = cv2.threshold(img, 240, 255, 1)
-    return img
+#
+# def full_ocr(image: Image):
+#     img = np.array(image)
+#
+#     # create list of combinations (preprocessing + language) to try
+#     operations = list(itertools.product([_no_preprocess, _bilateral], ['eng', 'fra']))
+#
+#     # run in parallel
+#     # TODO: passer en multiprocess plutôt que threaded ?
+#     with ThreadPoolExecutor(max_workers=4) as executor:
+#         futures = [executor.submit(_preprocess_and_ocr, img, o[0], o[1]) for o in operations]
+#         return max([f.result() for f in concurrent.futures.as_completed(futures)], key=itemgetter(1))
+#
+#
+# def _no_preprocess(img):
+#     return img
 
 
-def _adaptive(img):
-    imgf = cv2.adaptiveThreshold(img, 200, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 2)
-    return imgf
-
-
-def _normalize(img):
-    # normalize image
-    norm_img = np.zeros((img.shape[0], img.shape[1]))
-    return cv2.normalize(img, norm_img, 0, 255, cv2.NORM_MINMAX)
-
-
-def _remove_noise(img):
-    print(img.shape)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 15)
+# def _bilateral(img):
+#     img = cv2.bilateralFilter(img, 5, 55, 60)
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     _, img = cv2.threshold(img, 240, 255, 1)
+#     return img
+#
+#
+# def _adaptive(img):
+#     imgf = cv2.adaptiveThreshold(img, 200, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 2)
+#     return imgf
+#
+#
+# def _normalize(img):
+#     # normalize image
+#     norm_img = np.zeros((img.shape[0], img.shape[1]))
+#     return cv2.normalize(img, norm_img, 0, 255, cv2.NORM_MINMAX)
+#
+#
+# def _remove_noise(img):
+#     print(img.shape)
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 15)
 
 
 def _image_to_blocks(img, lang="fra", config="--oem 3 --psm 1 " + tess_config):

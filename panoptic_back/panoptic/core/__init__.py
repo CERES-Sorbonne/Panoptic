@@ -5,12 +5,11 @@ from typing import List
 
 from fastapi import HTTPException
 
-import panoptic_api.core.db
-from panoptic_api.core.queue import TransformManager
-from panoptic_api.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
+import panoptic.core.db
+from panoptic.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload
 from .image_importer import ImageImporter
-from .. import panoptic
+from .. import compute
 
 executor = ProcessPoolExecutor(max_workers=4)
 atexit.register(executor.shutdown)
@@ -62,7 +61,7 @@ async def make_clusters(sensibility: float) -> list[list[str]]:
     """
     # TODO: add parameters to compute clusters only on some images
     images = await db.get_images_with_vectors()
-    return panoptic.make_clusters(images, sensibility)
+    return compute.make_clusters(images, sensibility)
 
 
 async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
