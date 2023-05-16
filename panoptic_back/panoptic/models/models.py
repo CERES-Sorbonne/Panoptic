@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import TypeAlias, Optional, Any, Union
+from typing import TypeAlias, Optional, Any, Union, List, Dict
 
 import numpy as np
 import numpy
@@ -68,7 +70,11 @@ class Parameters(BaseModel):
 
 
 class Folder(BaseModel):
+    id: int | None
     path: str
+    name: str
+    parent: int | None = None
+    children: Dict[str, Folder] = {}
 
 
 class Tab(BaseModel):

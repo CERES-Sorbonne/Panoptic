@@ -54,6 +54,10 @@ export interface Images {
     [sha1:string]: Image
 }
 
+export interface Folders {
+    [id:number]: Folder
+}
+
 export interface Properties {
     [id:number]: Property
 }
@@ -96,7 +100,7 @@ export interface GlobalStore {
     propertyList: ComputedRef<Array<Property>>
     images: Images
     imageList: ComputedRef<{url: String, imageName: String}[]>
-    folders: Array<string>
+    folders: Folders
     tabs: Array<TabState>
     fetchAllData: () => void
     [otherOptions: string]: any
@@ -107,7 +111,7 @@ export interface ReactiveStore{
     tagTrees: TagsTree
     properties: Properties
     propertyList: Array<Property>
-    folders: Array<string>
+    folders: Folders
     tabs: Array<TabState>
     images: Images
     imageList: {url: String, imageName: String}[]
@@ -214,6 +218,7 @@ export interface TabState {
     filter: FilterGroup
     groups: Array<number>
     sortList: Array<Sort>
+    imageSize: number
 }
 
 export interface TabRequest {
@@ -233,13 +238,22 @@ export interface Group {
     propertyId: number
 }
 
+export interface Folder {
+    id: number
+    name: string
+    path: string
+    parent: number
+    children: Array<Folder>
+}
+
 export function buildTabState() {
     return {
         name: 'Tab',
         display: 'grid',
         filter: buildFilterGroup(),
         groups: [],
-        sortList: []
+        sortList: [],
+        imageSize: 100
     } as TabState
 }
 

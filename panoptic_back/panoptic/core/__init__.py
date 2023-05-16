@@ -5,11 +5,11 @@ from typing import List
 
 from fastapi import HTTPException
 
+import panoptic
 import panoptic.core.db
 from panoptic.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload
+    UpdateTagPayload, UpdatePropertyPayload, Folder
 from .image_importer import ImageImporter
-from .. import compute
 
 executor = ProcessPoolExecutor(max_workers=4)
 atexit.register(executor.shutdown)
@@ -61,7 +61,7 @@ async def make_clusters(sensibility: float) -> list[list[str]]:
     """
     # TODO: add parameters to compute clusters only on some images
     images = await db.get_images_with_vectors()
-    return compute.make_clusters(images, sensibility)
+    return panoptic.make_clusters(images, sensibility)
 
 
 async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
@@ -97,15 +97,13 @@ async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, 
 
 
 async def add_folder(folder):
-    saved = await db.add_folder(folder)
-
-    found = importer.import_folder(save_callback, saved.path)
+    found = await importer.import_folder(save_callback, folder)
     print(f'found {found} images')
     return folder
 
 
-async def save_callback(image, file_path, name, extension, width, height, sha1_hash, url):
-    await add_image_to_db(file_path, name, extension, width, height, sha1_hash, url)
+async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url):
+    await add_image_to_db(folder_id, name, extension, width, height, sha1_hash, url)
 
     importer.compute_image(get_compute_callback(sha1_hash), image=image)
 

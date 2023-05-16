@@ -1,6 +1,9 @@
 CREATE TABLE folders(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    path TEXT
+    path TEXT UNIQUE,
+    name TEXT,
+    parent INTEGER,
+    FOREIGN KEY (parent) REFERENCES folders (id) ON DELETE CASCADE
 );
 
 CREATE TABLE tabs(
