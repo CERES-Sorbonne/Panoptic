@@ -14,7 +14,7 @@ SETUP_REQUIRES = ['setuptools', 'setuptools-git', 'wheel']
 INSTALL_REQUIRES = parse_requirements('requirements.txt')
 LONG_DESCRIPTION = ""
 
-with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'README.md'), 'r') as f:
+with open(os.path.join(os.path.dirname(__file__), 'description.md'), 'r') as f:
     LONG_DESCRIPTION = f.read()
 
 def setup_package():
