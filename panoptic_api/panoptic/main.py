@@ -4,6 +4,7 @@ import webbrowser
 from threading import Thread
 from time import sleep
 from tkinter.filedialog import askdirectory
+from panoptic.api import app
 
 import uvicorn
 import requests
@@ -32,7 +33,7 @@ class MiniUI:
         # Set the window position and size
         master.geometry(f"500x300+{x}+{y}")
 
-        self._database_name = tk.StringVar(value='panoptic.db')
+        self._database_name = tk.StringVar(value='compute.db')
         self.server_status = tk.StringVar(value='starting...')
 
         # Create a label
@@ -89,7 +90,6 @@ def on_fastapi_start():
 
 
 def launch_uvicorn():
-    from panoptic_api.main import app
     app.add_event_handler('startup', on_fastapi_start)
     app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
     uvicorn.run(app)

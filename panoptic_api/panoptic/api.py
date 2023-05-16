@@ -8,12 +8,12 @@ from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
-from panoptic_api.core import create_property, add_property_to_image, get_images, create_tag, \
+from panoptic.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     db_utils, make_clusters
-from panoptic_api.core import db
-from panoptic_api.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
+from panoptic.core import db
+from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload
 
@@ -143,4 +143,4 @@ async def add_folder_route(path: PathRequest):
 async def make_clusters_route(sensibility: Optional[float] = 3) -> list[list[str]]:
     return await make_clusters(sensibility)
 
-app.mount("/", StaticFiles(directory="../dist", html=True), name="static")
+app.mount("/", StaticFiles(directory="./html", html=True), name="static")
