@@ -1,12 +1,12 @@
 <script setup>
-import {ref, computed, watch} from 'vue'
+import { ref, computed, watch } from 'vue'
 import TagNode from './TagNode.vue'
 import { globalStore } from '../../data/store';
 
 const emits = defineEmits(['propagate-unselect'])
 
 const props = defineProps({
-    node: {type: Object, required: true}
+    node: { type: Object, required: true }
 })
 
 const hover = ref(false)
@@ -21,7 +21,7 @@ const anyChildSelected = computed(() => {
 
 const tagClass = computed(() => {
     let className = 'small-tag'
-    if(selected.value) {
+    if (selected.value) {
         className += ' selected'
     }
     return className
@@ -29,13 +29,13 @@ const tagClass = computed(() => {
 
 const caretClass = computed(() => {
     let className = 'h5 bi bi-caret-right-fill'
-    if(expanded.value) {
+    if (expanded.value) {
         className += ' expand'
     }
     else {
         className += ' hide'
     }
-    if(anyChildSelected.value) {
+    if (anyChildSelected.value) {
         className += ' text-info'
     }
 
@@ -43,8 +43,8 @@ const caretClass = computed(() => {
 })
 
 function selectTag() {
-    props.node.selected = ! props.node.selected
-    if(props.node.selected) {
+    props.node.selected = !props.node.selected
+    if (props.node.selected) {
         emits('propagate-unselect')
         Object.values(props.node.children).forEach(propagateSelect)
     }
@@ -52,7 +52,7 @@ function selectTag() {
 
 function expandTag() {
     console.log(expanded.value)
-    props.node.expanded = ! props.node.expanded
+    props.node.expanded = !props.node.expanded
 }
 
 function propagateUnselect() {
@@ -67,17 +67,17 @@ function propagateSelect(root) {
 
 function allChildren(root) {
     let res = [root]
-    if(!Object.values(root.children).length) {
+    if (!Object.values(root.children).length) {
         return res
     }
     Object.values(root.children).map(allChildren).forEach(arr => res.push(...arr))
-    return res 
+    return res
 }
 
 function addTag() {
     let node = props.node
     let tagName = prompt('Tag Name')
-    if(!tagName) {
+    if (!tagName) {
         return
     }
     globalStore.addTag(node.property_id, tagName, node.id, null)
@@ -99,24 +99,19 @@ function log(value) {
 </script>
 
 <template>
-    <div class="parent-tag-container" :class="anyChildSelected ? ' highlight' : ' normal'"
-    @mouseenter="hover = true"
-    @mouseleave="hover = false"
-    >
+    <div class="parent-tag-container" :class="anyChildSelected ? ' highlight' : ' normal'" @mouseenter="hover = true"
+        @mouseleave="hover = false">
         <a :class="tagClass" @click="selectTag">{{ props.node.value }} [{{ props.node.localId }}]</a>
         <span v-if="hasChildren" :class="caretClass" @click="expandTag"></span>
         <span v-if="hover" class="bi bi-plus-square-fill" @click="addTag"></span>
         <span v-if="hover" class="bi bi-dash-square-fill" @click="delTag"></span>
     </div>
     <div class="tag-list" v-show="expanded">
-        <TagNode v-for="child in props.node.children" :node="child" @propagate-unselect="propagateUnselect"/>
+        <TagNode v-for="child in props.node.children" :node="child" @propagate-unselect="propagateUnselect" />
     </div>
-    
-
 </template>
 
 <style>
-
 .tag,
 .small-tag {
     display: block;
@@ -189,14 +184,13 @@ function log(value) {
 .bi-caret-right-fill {
     display: inline-block;
     transition: 0.2s;
-  }
-  
-  .bi-caret-right-fill.expand {
-    transform: rotate(90deg) !important;
-  }
-  
-  .bi-caret-right-fill.hide {
-    transform: rotate(0deg) !important;
-  }
+}
 
+.bi-caret-right-fill.expand {
+    transform: rotate(90deg) !important;
+}
+
+.bi-caret-right-fill.hide {
+    transform: rotate(0deg) !important;
+}
 </style>

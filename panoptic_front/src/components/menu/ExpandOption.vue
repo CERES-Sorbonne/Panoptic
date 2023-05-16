@@ -10,7 +10,7 @@ const props = defineProps({
 
 const expand = ref(true);
 
-const caretClass = computed(() => 'bi bi-caret-right clickable ' + (expand.value ? 'expand' : 'hide'))
+const caretClass = computed(() => 'bi-chevron-right clickable ' + (expand.value ? 'expand' : 'hide'))
 
 function toggle() {
   expand.value = !expand.value;
@@ -31,13 +31,13 @@ onMounted(() => {
       </span>
       <slot name="name"></slot>
       <span class="float-end">
-        <slot name="icons"></slot>
+        <span style="margin-right: 3px;"><slot name="icons" ></slot></span>
         <span v-if="!props.leftAlign" :class="caretClass" @click.stop="toggle"></span>
       </span>
     </div>
-    <!-- Use v-if to delete component on hide -->
+    <!-- Use v-if to delete component n hide -->
     <template v-if="props.resetOnHide">
-      <div v-if="expand" class="ms-2">
+      <div v-if="expand" class="">
         <div class="">
           <slot name="content"> </slot>
         </div>
@@ -46,7 +46,7 @@ onMounted(() => {
     <!-- DEFAULT BEHAVIOR -->
     <!-- User v-show to keep the element in dom and just hiding it when needed -->
     <template v-else>
-      <div v-show="expand" class="ms-2">
+      <div v-show="expand" class="">
         <div class="">
           <slot name="content"> </slot>
         </div>

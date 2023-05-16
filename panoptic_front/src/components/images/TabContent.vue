@@ -9,12 +9,11 @@ import SortForm from '../forms/SortForm.vue';
 import { Group, Image, PropertyType } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
+import ContentFilter from './ContentFilter.vue';
 
 const props = defineProps({
     tabIndex: Number
 })
-
-const imageSize = ref('100')
 
 const tab = computed(() => globalStore.tabs[props.tabIndex])
 const filters = computed(() => tab.value.filter)
@@ -101,45 +100,16 @@ watch(groups, computeGroups, { deep: true })
 </script>
 
 <template>
-    <!-- {{ imageGroups }} -->
-    <!-- <div class="d-flex flex-wrap mb-3 mt-3">
-        <div class="bd-highlight mt-1 me-1">
-            <div class="input-group">
-                <div class="input-group-text">Display</div>
-                <DropdownInput :options="options.display" v-model="state.display" />
-            </div>
-        </div>
-        <div class="bd-highlight mt-1 me-1">
-            <ListInput label="Filters" :selected="state.filter" :possible="options.filter" />
-        </div>
-        <div class="bd-highlight mt-1 me-1">
-            <ListInput label="GroupBy" :selected="state.groupBy" :possible="options.groupBy" />
-        </div>
-    </div> -->
-
-    <div class="d-flex flex-wrap mb-3 mt-3">
-        <FilterForm :filter="globalStore.tabs[props.tabIndex].filter" />
-        <GroupForm :groupIds="globalStore.tabs[props.tabIndex].groups" />
-        <SortForm :sortList="globalStore.tabs[props.tabIndex].sortList" />
+    <div class="m-2">
+        <ContentFilter :tab="globalStore.tabs[props.tabIndex]" :imageSize="tab.imageSize" />
     </div>
-
-
+    <hr class="custom-hr"/>
     <div class="mt-4">
-        <i class="h2 bi bi-aspect-ratio me-3"></i>
-        <input type="range" class="form-range" id="rangeImageSize" min="50" max="200" v-model="imageSize"
-            style="width: 300px;">
-        <span class="ms-2">({{ imageSize }}px)</span>
-        <div class="float-end me-5">
-            <div class="input-group">
-                <div class="input-group-text">PageSize</div>
-                <input class="form-control" type="number" v-model="globalStore.settings.pageSize" style="width: 100px;" />
-            </div>
-        </div>
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
-            <PaginatedImages :images="imageGroups[0].images" :imageSize="imageSize" />
+            <PaginatedImages :images="imageGroups[0].images" :imageSize="String(tab.imageSize)" />
         </div>
         <div v-else>
-            <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="imageSize" />
+            <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="String(tab.imageSize)" />
         </div>
     </div>
 </template>

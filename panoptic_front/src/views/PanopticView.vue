@@ -15,16 +15,15 @@ const selectedTab = ref('')
 </script>
 
 <template>
-    <div class="row">
-        <div class="col-2 bg-warning text-white p-0">
+    <div class="d-flex flex-row">
+        <div class="">
             <Menu />
         </div>
-        <div class="col-9">
-            <br />
-            <!-- <textarea :value="JSON.stringify(globalStore.tagTrees['1'], null, 4)" rows="20" cols="80"></textarea> -->
-            <div style="min-height: 55px;">
+        <div style="width: 100%;" class="me-3">
+            <div class="ms-3">
                 <TabNav v-model:selected="selectedTab" />
             </div>
+            <div class="custom-hr" />
             <template v-for="tab, index in globalStore.tabs">
                 <div v-if="globalStore.selectedTabName == tab.name">
                     <TabContent :tab-index="index" />

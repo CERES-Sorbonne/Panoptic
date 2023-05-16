@@ -5,7 +5,8 @@ from typing import List
 import numpy as np
 
 from panoptic.core.db_utils import execute_query, decode_if_json
-from panoptic.models import Tag, Image, Property, ImageProperty, JSON, Folder, Tab, ImageVector
+from panoptic.models import ImageVector
+from panoptic.models import Tag, Image, Property, ImageProperty, JSON, Folder, Tab
 
 
 async def add_property(name: str, property_type: str) -> Property:
@@ -202,10 +203,12 @@ async def get_tabs() -> List[Tab]:
     return [Tab(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-async def add_folder(path: str):
-    query = 'INSERT INTO folders (path) VALUES (?)'
-    cursor = await execute_query(query, (path,))
-    folder = Folder(id=cursor.lastrowid, path=path)
+async def add_folder(path: str, name: str, parent: int = None):
+    query = 'INSERT INTO folders (path, name, parent) VALUES (?, ?, ?) ON CONFLICT(path) DO NOTHING'
+    await execute_query(query, (path, name, parent))
+    cursor = await execute_query('SELECT * FROM folders WHERE path = ?', (path,))
+    row = await cursor.fetchone()
+    folder = Folder(**auto_dict(row, cursor))
     return folder
 
 
@@ -242,6 +245,7 @@ async def get_image_properties_with_tag(tag_id: int) -> list[ImageProperty]:
     query = "SELECT * from images_properties ip where ip.value like ?"
     cursor = await execute_query(query, (f"[%{tag_id}%]",))
     return [ImageProperty(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+
 
 async def get_images_with_vectors():
     query = "SELECT sha1, vector, ahash from images"
