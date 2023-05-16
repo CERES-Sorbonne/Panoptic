@@ -17,7 +17,7 @@ export default defineConfig({
         }
     },
     build: {
-        outDir: '../panoptic_back/html',
+        outDir: '../panoptic_back/panoptic/html',
         emptyOutDir: true
     }
 })

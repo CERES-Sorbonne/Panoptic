@@ -3,7 +3,7 @@
  */
 
 // à virer
-import { Images, Property, PropertyType, PropertyValue, Tag } from './models'
+import { Images, Property, PropertyType, PropertyValue, Tab, TabState, Tag } from './models'
 
 import axios from 'axios'
 
@@ -81,5 +81,25 @@ export const apiGetFolders = async() => {
 
 export const apiImportFolder = async() => {
     let res = await axios.post('/folders')
+    return res.data
+}
+
+export const apiGetTabs = async() => {
+    let res = await axios.get('/tabs')
+    return res.data
+}
+
+export const apiAddTab = async(tab: Tab) => {
+    let res = await axios.post('/tab', tab)
+    return res.data
+}
+
+export const apiUpdateTab = async(tab: Tab) => {
+    let res = await axios.patch('/tab', tab)
+    return res.data
+}
+
+export const apiDeleteTab = async(tabId: number) => {
+    let res = await axios.delete('/tab', {params: {tab_id: tabId}})
     return res.data
 }

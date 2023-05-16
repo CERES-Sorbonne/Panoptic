@@ -6,19 +6,18 @@ import { computeGroupFilter } from '@/utils/filter';
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
-import { Group, Image, PropertyType } from '@/data/models';
+import { Group, Image, PropertyType, Tab } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
 import ContentFilter from './ContentFilter.vue';
 
 const props = defineProps({
-    tabIndex: Number
+    tab: Object as () => Tab
 })
 
-const tab = computed(() => globalStore.tabs[props.tabIndex])
-const filters = computed(() => tab.value.filter)
-const groups = computed(() => tab.value.groups)
-const sorts = computed(() => tab.value.sortList)
+const filters = computed(() => props.tab.data.filter)
+const groups = computed(() => props.tab.data.groups)
+const sorts = computed(() => props.tab.data.sortList)
 
 const imageGroups = reactive([])
 
@@ -90,8 +89,8 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
 onMounted(computeGroups)
 
 
-watch(tab, () => {
-    globalStore.saveTabState()
+watch(props, () => {
+    globalStore.updateTab(props.tab)
 }, { deep: true })
 
 watch(filteredImages, computeGroups, { deep: true })
@@ -101,15 +100,15 @@ watch(groups, computeGroups, { deep: true })
 
 <template>
     <div class="m-2">
-        <ContentFilter :tab="globalStore.tabs[props.tabIndex]" :imageSize="tab.imageSize" />
+        <ContentFilter :tab="props.tab"/>
     </div>
     <hr class="custom-hr"/>
     <div class="mt-4">
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
-            <PaginatedImages :images="imageGroups[0].images" :imageSize="String(tab.imageSize)" />
+            <PaginatedImages :images="imageGroups[0].images" :imageSize="String(props.tab.data.imageSize)" />
         </div>
         <div v-else>
-            <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="String(tab.imageSize)" />
+            <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="String(props.tab.data.imageSize)" />
         </div>
     </div>
 </template>

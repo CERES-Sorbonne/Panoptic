@@ -18,8 +18,6 @@ def api(path):
 
 FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
 
-
-
 class MiniUI:
     def __init__(self, master):
         self.master = master
@@ -53,8 +51,9 @@ class MiniUI:
         self.listbox.pack(fill=tk.BOTH, expand=True)
 
         # Create a button to
-        self.button = tk.Button(master, text="Open Panoptic", command=self.open_panoptic)
-        self.button.pack()
+        self.open_button = tk.Button(master, text="Open Panoptic", command=self.open_panoptic)
+        self.open_button['state'] = "disabled"
+        self.open_button.pack()
 
     def init_folders(self):
         failed = True
@@ -66,6 +65,7 @@ class MiniUI:
                         self.listbox.insert(tk.END, folder['path'])
                 failed = False
                 ui.server_status.set('running !')
+                ui.open_button['state'] = "normal"
             except Exception:
                 pass
             sleep(0.5)
@@ -100,12 +100,16 @@ def launch_uvicorn():
     #     sleep(2)
 
 
-if __name__ == '__main__':
+def start():
     root = tk.Tk()
+    root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
     thread = Thread(target=launch_uvicorn)
     thread.daemon = True
     thread.start()
-
+    global ui
     ui = MiniUI(root)
 
     root.mainloop()
+
+if __name__ == '__main__':
+    start()

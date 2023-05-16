@@ -62,6 +62,10 @@ export interface Properties {
     [id:number]: Property
 }
 
+export interface Tabs {
+    [id:number]: Tab
+}
+
 export interface Params {
     folders: Array<string>
     tabs: Array<TabState>
@@ -101,7 +105,7 @@ export interface GlobalStore {
     images: Images
     imageList: ComputedRef<{url: String, imageName: String}[]>
     folders: Folders
-    tabs: Array<TabState>
+    tabs: Tabs
     fetchAllData: () => void
     [otherOptions: string]: any
 }
@@ -112,7 +116,7 @@ export interface ReactiveStore{
     properties: Properties
     propertyList: Array<Property>
     folders: Folders
-    tabs: Array<TabState>
+    tabs: Tabs
     images: Images
     imageList: {url: String, imageName: String}[]
     fetchAllData: () => void
@@ -210,6 +214,12 @@ export function operatorHasInput(operator: FilterOperator) {
         default:
             return false
     }
+}
+
+export interface Tab {
+    id?: number
+    name: string
+    data: TabState
 }
 
 export interface TabState {
