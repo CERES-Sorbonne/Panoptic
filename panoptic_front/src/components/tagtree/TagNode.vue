@@ -101,7 +101,7 @@ function log(value) {
 <template>
     <div class="parent-tag-container" :class="anyChildSelected ? ' highlight' : ' normal'" @mouseenter="hover = true"
         @mouseleave="hover = false">
-        <a :class="tagClass" @click="selectTag">{{ props.node.value }} [{{ props.node.localId }}]</a>
+        <a :class="tagClass" @click="selectTag">{{ props.node.value }}</a>
         <span v-if="hasChildren" :class="caretClass" @click="expandTag"></span>
         <span v-if="hover" class="bi bi-plus-square-fill" @click="addTag"></span>
         <span v-if="hover" class="bi bi-dash-square-fill" @click="delTag"></span>

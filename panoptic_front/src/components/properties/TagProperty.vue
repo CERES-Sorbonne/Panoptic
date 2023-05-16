@@ -8,7 +8,7 @@ import { PropertyType } from '../../data/models';
 import TagTree from '../TagTree/TagTree.vue';
 import PropertyIcon from './PropertyIcon.vue';
 
-interface NodeState extends TreeTag{
+interface NodeState extends TreeTag {
     expanded: boolean
     selected: boolean
 }
@@ -18,7 +18,7 @@ const props = defineProps({
     filter: Object
 })
 
-type StateDict =  {[key: string]: NodeState}
+type StateDict = { [key: string]: NodeState }
 
 const nodeStates: StateDict = reactive({})
 const localTree = <NodeState>reactive({})
@@ -30,8 +30,8 @@ const type = computed(() => props.data.type)
 
 
 function createOrUpdateState(tagNode: TreeTag) {
-    if(!nodeStates[tagNode.localId]) {
-        nodeStates[tagNode.localId] = Object.assign({}, {...tagNode, expanded: false, selected: false})
+    if (!nodeStates[tagNode.localId]) {
+        nodeStates[tagNode.localId] = Object.assign({}, { ...tagNode, expanded: false, selected: false })
     }
     else {
         Object.assign(nodeStates[tagNode.localId], tagNode)
@@ -42,9 +42,9 @@ function createOrUpdateState(tagNode: TreeTag) {
 
 function copyTree(root: TreeTag) {
     let state = createOrUpdateState(root)
-    
-    if(root.children) {
-        root.children.forEach((child: TreeTag)  => {
+
+    if (root.children) {
+        root.children.forEach((child: TreeTag) => {
             state.children.push(copyTree(child))
         })
     }
@@ -53,7 +53,7 @@ function copyTree(root: TreeTag) {
 
 function updateTree() {
     let res = copyTree(rootNode.value)
-    Object.assign(localTree, {...res, propertyId: id.value})
+    Object.assign(localTree, { ...res, propertyId: id.value })
     // localTree.children = res.children
 }
 
@@ -77,11 +77,13 @@ const selected = reactive([])
         </template>
         <template #icons>
             <!-- <span @click.stop="" class="bi bi-pencil btn-icon me-3"></span> -->
-            <span @click.stop="props.data.show = !props.data.show" :class="'bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
+            <span @click.stop="props.data.show = !props.data.show"
+                :class="'bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
         </template>
         <template #content>
-            <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
+            <div style="margin-left: -10px;">
+                <TagTree :root="localTree" v-model:selected="selected" :property-id="id" />
+            </div>
         </template>
     </ExpandOption>
-    
 </template>
