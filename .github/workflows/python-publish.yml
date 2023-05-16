@@ -34,7 +34,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install build
     - name: Check content
-      run: ls
+      run: |
+        pwd
+        ls panoptic_back
     - name: Build package
       run: python -m build ./panoptic_back
     - name: Publish package
