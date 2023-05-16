@@ -17,7 +17,7 @@ INSTALL_REQUIRES = parse_requirements('requirements.txt')
 def setup_package():
     metadata = dict(name=NAME,
                     version=VERSION,
-                    licence='MIT',
+                    licence='Mozilla',
                     install_requires=INSTALL_REQUIRES,
                     setup_requires=SETUP_REQUIRES,
                     entry_points={
@@ -25,10 +25,10 @@ def setup_package():
                             'panoptic = panoptic.main:start'
                         ]
                     },
-                    include_package_data=True,
+                    # include_package_data=True,
                     # package_dir="panoptic/html",
                     package_data={
-                        "": ['html/*', 'html/assets/*'],
+                        "": ['html/*', 'html/assets/*', 'scripts/create_db.sql'],
                     },
                     packages=find_packages())
 
