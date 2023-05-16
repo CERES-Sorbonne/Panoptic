@@ -32,7 +32,7 @@ const imageProperties = computed(() => {
 })
 
 const widthStyle = computed(() => `width: ${Number(props.width)}px;`)
-const imageWidthStyle = computed(() => `width: ${Number(props.width) -4}px; max-height: ${Number(props.width) -4}px`)
+const imageWidthStyle = computed(() => `max-width: ${Number(props.width) -4}px; max-height: ${Number(props.width) -4}px;`)
 
 </script>
 
