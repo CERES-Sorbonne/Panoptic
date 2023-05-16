@@ -56,17 +56,17 @@ onMounted(() => {
 </template>
   
 <style>
-.bi-caret-right {
+.bi-chevron-right {
   display: inline-block;
   transition: 0.2s;
   margin-left: 0 !important;
 }
 
-.bi-caret-right.expand {
+.bi-chevron-right.expand {
   transform: rotate(90deg) !important;
 }
 
-.bi-caret-right.hide {
+.bi-chevron-right.hide {
   transform: rotate(0deg) !important;
 }
 
