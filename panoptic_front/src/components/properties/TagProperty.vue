@@ -3,7 +3,7 @@
 import { reactive, computed, onMounted, watch } from 'vue';
 import { globalStore } from '@/data/store';
 import { TreeTag } from '../../data/models';
-import ExpandOption from '../menu/ExpandOption.vue';
+import ExpandOption from '../Menu/ExpandOption.vue';
 import { PropertyType } from '../../data/models';
 import TagTree from '../TagTree/TagTree.vue';
 import PropertyIcon from './PropertyIcon.vue';
