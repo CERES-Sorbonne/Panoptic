@@ -21,7 +21,7 @@ const addFolder = async () => {
 </script>
 
 <template>
-    <div class="menu">
+    <div class="menu overflow-scroll">
         <div>
             <div>
                 <div class="p-2">
