@@ -6,7 +6,7 @@ const props = defineProps(['type'])
 
 <template>
         <span>
-                <i v-if="props.type == PropertyType.string" class="bi bi-type"></i>
+                <i v-if="props.type == PropertyType.string" class="bi bi-text-left"></i>
                 <i v-else-if="props.type == PropertyType.number" class="bi bi-123"></i>
                 <i v-else-if="props.type == PropertyType.date" class="bi bi-calendar-date"></i>
                 <i v-else-if="props.type == PropertyType.path" class="bi bi-code-slash"></i>
@@ -14,7 +14,7 @@ const props = defineProps(['type'])
                 <i v-else-if="props.type == PropertyType.url" class="bi bi-globe"></i>
                 <i v-else-if="props.type == PropertyType.color" class="bi bi-palette"></i>
                 <i v-else-if="props.type == PropertyType.checkbox" class="bi bi-check-square"></i>
-                <i v-else-if="type == PropertyType.tag" class="bi bi-tag"></i>
-                <i v-else-if="type == PropertyType.multi_tags" class="bi bi-tags"></i>
+                <i v-else-if="type == PropertyType.tag" class="bi bi-tag-fill"></i>
+                <i v-else-if="type == PropertyType.multi_tags" class="bi bi-tags-fill"></i>
         </span>
 </template>

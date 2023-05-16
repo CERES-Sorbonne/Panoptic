@@ -1,12 +1,12 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState } from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
     properties: {} as Properties,
-    folders: [] as Array<string>,
+    folders: {} as Folders,
     tabs: [] as Array<TabState>,
     settings: {
         pageSize: 200,
@@ -77,6 +77,21 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return tree
     }),
 
+    folderTree: computed(() => {
+        let copies = {} as Folders
+        for(let k in globalStore.folders) {
+            copies[k] = {...globalStore.folders[k]}
+            copies[k].children = []
+        }
+        for(let k in copies) {
+            let parent = copies[k].parent
+            if(parent != undefined) {
+                copies[parent].children.push(copies[k])
+
+            }
+        }
+        return Object.values(copies).filter(f => f.parent == undefined) as Array<Folder>
+    }),
     showModal(modalId: Modals, data: any) {
         globalStore.openModal.id = modalId
         globalStore.openModal.data = data
@@ -91,11 +106,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
+        console.log(folders)
 
         this.images = images
         this.tags = tags
         this.properties = properties
-        this.folders = folders
+        this.folders = {}
+        folders.forEach((f: Folder) => this.folders[f.id] = f)
 
         this.loadTabState()
     },

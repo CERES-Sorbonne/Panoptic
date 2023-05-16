@@ -15,9 +15,9 @@ const type = computed(() => props.data.type)
         <PropertyIcon :type="type" />
         {{ props.data.name}}
 
-        <span class="float-end">
-            <span class="h6 bi bi-pencil btn-icon me-3"></span>
-            <span @click="props.data.show = !props.data.show" :class="'h5 bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
+        <span class="float-end me-3">
+            <!-- <span class="h6 bi bi-pencil btn-icon me-3"></span> -->
+            <span @click="props.data.show = !props.data.show" :class="'bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
         </span>
     </div>
 </template>
