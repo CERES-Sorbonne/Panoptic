@@ -1,61 +1,57 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder } from '../data/models'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab } from '../data/api'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
     properties: {} as Properties,
     folders: {} as Folders,
-    tabs: [] as Array<TabState>,
+    tabs: {} as Tabs,
     settings: {
         pageSize: 200,
         propertyTypes: Object.values(PropertyType),
         propertySettings: {}
     },
     openModal: { id: null, data: null },
+    isLoaded: false,
 
-    selectedTabName: '',
-    addTab(tabName: string) {
-        globalStore.tabs.push(buildTabState())
-        globalStore.saveTabState()
+    selectedTab: 0,
+    async addTab(tabName: string) {
+        let state = buildTabState()
+        let tab = await apiAddTab({name: tabName, data:state})
+        this.tabs[tab.id] = tab
+        this.selectedTab = tab.id
     },
-    removeTab(tabName: string) {
-        let index = globalStore.tabs.findIndex(t => t.name == tabName)
-        if (index < 0) {
-            return
-        }
-        globalStore.tabs.splice(index, 1)
-        globalStore.saveTabState()
+    async removeTab(tabId: number) {
+        await apiDeleteTab(tabId)
+        delete this.tabs[tabId]
+        this.verifySelectedTab()
+    },
+    async updateTab(tab: Tab) {
+        await apiUpdateTab(tab)
     },
     selectTab(tabName: string) {
         globalStore.selectedTabName = tabName
         globalStore.saveTabState()
     },
-    saveTabState() {
-        localStorage.setItem('tabs', JSON.stringify(globalStore.tabs))
-        localStorage.setItem('selectedTabName', this.selectedTabName)
-    },
-    loadTabState() {
-        this.tabs = [buildTabState()]
-        globalStore.selectTab(this.tabs[0].name)
-        return
-        try {
-            let tabs = JSON.parse(localStorage.getItem('tabs'))
-            let selectedTabName = localStorage.getItem('selectedTabName')
-            if (tabs) {
-                this.tabs = tabs
-                console.log(globalStore.tabs)
-            }
-            if (selectedTabName) {
-                globalStore.selectTab(selectedTabName)
-            }
-        }
-        catch(e: any) {
-            throw e
-        }
-    },
+    async loadTabState() {
+        let tabs = await apiGetTabs()
+        console.log(tabs)
+        tabs.forEach((t:Tab) => globalStore.tabs[t.id] = t)
 
+        if(tabs.length == 0) {
+            this.addTab('Tab1')
+        }
+
+        this.verifySelectedTab()
+    },
+    verifySelectedTab() {
+        if(this.tabs[this.selectedTab] != undefined) {
+            return
+        }
+        this.selectedTab = Object.keys(this.tabs)[0]
+    },
     imageList: computed(() => {
         return Object.keys(globalStore.images).map(sha1 => {
             return { url: globalStore.images[sha1].url, imageName: sha1 }
@@ -114,7 +110,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.folders = {}
         folders.forEach((f: Folder) => this.folders[f.id] = f)
 
-        this.loadTabState()
+        await this.loadTabState()
+
+        this.isLoaded = true
     },
 
     async importFolders() {

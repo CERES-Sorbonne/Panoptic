@@ -103,7 +103,34 @@ body {
   border: none;
   background-color: white;
   font-size: 20px;
+  line-height: 30px;
   margin: 0px;
   padding: 0;
   color: rgb(74, 93, 107)
+}
+
+
+.text-input {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  border: 2px solid rgb(197, 206, 213);
+  margin: 0;
+  padding: 10px;
+  /* margin-top: 1px; */
+  height: 16px;
+  /* line-height: 10px; */
+  font-size: 10px;
+  color: var(--text-color);
+
+  width: 100%;
+}
+
+.text-input:focus {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline-width: 0;
+  border: 2px solid rgb(197, 206, 213);
+  outline: none;
 }

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { TabState } from '@/data/models';
+import { Tab, TabState } from '@/data/models';
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
+import { computed } from 'vue';
 
 
 const props = defineProps({
-    tab: Object as () => TabState,
+    tab: Object as () => Tab,
 })
 
 </script>
@@ -20,14 +21,17 @@ const props = defineProps({
         </div>
         <div class="bi bi-aspect-ratio me-1"></div>
         <div>
-            <RangeInput :min="50" :max="200" v-model="props.tab.imageSize" />
+            <RangeInput :min="50" :max="200" v-model="props.tab.data.imageSize" />
+        </div>
+        <div class="ms-5">
+            <input type="text" class="text-input" v-model="props.tab.name"/>
         </div>
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
     <div class="d-flex flex-wrap mb-3 mt-3">
-        <FilterForm :filter="props.tab.filter" />
-        <GroupForm :groupIds="props.tab.groups" />
-        <SortForm :sortList="props.tab.sortList" />
+        <FilterForm :filter="props.tab.data.filter" />
+        <GroupForm :groupIds="props.tab.data.groups" />
+        <SortForm :sortList="props.tab.data.sortList" />
     </div>
 </template>
 
