@@ -5,11 +5,9 @@ fastapi
 imagehash
 numpy
 opencv-python
-pandaspydantic
+pandas
 pytesseract
 scikit-learn
-scipy
-sqlite
 tk
 torch
 transformers

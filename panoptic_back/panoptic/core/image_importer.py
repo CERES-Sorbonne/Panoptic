@@ -1,13 +1,11 @@
 import asyncio
 import hashlib
-import io
 import os
 from concurrent.futures import ProcessPoolExecutor
-from time import sleep
 
 from PIL import Image
 
-from panoptic_api import panoptic
+from panoptic import compute
 
 
 class ImageImporter:
@@ -67,9 +65,9 @@ def compute_image(image_path: str = None, image: Image = None):
         image = Image.open(image_path)
     image = image.convert('RGB')
 
-    ahash = panoptic.to_average_hash(image)
+    ahash = compute.to_average_hash(image)
     # TODO: find a way to access all the images for PCA
-    vector = panoptic.to_vector(image)
+    vector = compute.to_vector(image)
 
     return ahash, vector
 

@@ -1,0 +1,3 @@
+python -m nuitka --follow-imports main.py
+
+python -m nuitka --standalone --enable-plugin=tk-inter --nofollow-import-to=pandas --nofollow-import-to=torch --nofollow-import-to=scipy --nofollow-import-to=numpy --nofollow-import-to=scikit-learn --include-data-dir=html=html main.py 

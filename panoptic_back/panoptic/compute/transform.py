@@ -7,15 +7,14 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from imagehash import average_hash, colorhash, dhash, crop_resistant_hash, phash
+from imagehash import average_hash
 from hashlib import sha1 as sha1hash
 import glob
 from PIL import Image
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
 from transformers import AutoImageProcessor, MobileNetV2Model
-import torch
-from .ocr import full_ocr
+# from .ocr import full_ocr
 from .utils import load_data
 
 from transformers import logging
@@ -27,8 +26,6 @@ USE_PCA_IF_POSSIBLE = True
 
 processor = AutoImageProcessor.from_pretrained("google/mobilenet_v2_1.0_224")
 model = MobileNetV2Model.from_pretrained("google/mobilenet_v2_1.0_224")
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-model = model.to(device)
 pca: None | PCA = None
 tree: None | KDTree = None
 try:
@@ -111,12 +108,8 @@ def to_average_hash(image: Image):
 
 def to_vector(img):
     input1 = processor(images=img, return_tensors="pt")
-    input1 = input1.to(device)
     output1 = model(**input1)
-    if device == 'cuda:0':
-        pooled_output1 = output1[1].detach().cpu().numpy()
-    else:
-        pooled_output1 = output1[1].detach().numpy()
+    pooled_output1 = output1[1].detach().numpy()
     vector = pooled_output1.flatten()
     # if a pca was already trained use it
     if pca is not None:
@@ -124,8 +117,8 @@ def to_vector(img):
     return vector
 
 
-def to_ocr(image: Image):
-    return full_ocr(image)
+# def to_ocr(image: Image):
+#     return full_ocr(image)
 
 
 def make_clusters(sensibility):

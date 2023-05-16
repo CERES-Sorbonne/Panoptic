@@ -6,7 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'panoptic',
+      name: 'compute',
       component: PanopticView
     }
   ]

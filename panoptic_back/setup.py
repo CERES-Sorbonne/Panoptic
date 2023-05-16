@@ -17,6 +17,7 @@ INSTALL_REQUIRES = parse_requirements('requirements.txt')
 def setup_package():
     metadata = dict(name=NAME,
                     version=VERSION,
+                    licence='MIT',
                     install_requires=INSTALL_REQUIRES,
                     setup_requires=SETUP_REQUIRES,
                     packages=find_packages())
