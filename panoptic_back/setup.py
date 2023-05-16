@@ -12,13 +12,18 @@ VERSION = "0.0.1"
 # Get dependencies from requirement files
 SETUP_REQUIRES = ['setuptools', 'setuptools-git', 'wheel']
 INSTALL_REQUIRES = parse_requirements('requirements.txt')
+LONG_DESCRIPTION = ""
 
+with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'README.md'), 'r') as f:
+    LONG_DESCRIPTION = f.read()
 
 def setup_package():
     metadata = dict(name=NAME,
                     version=VERSION,
                     licence='Mozilla',
                     install_requires=INSTALL_REQUIRES,
+                    long_description=LONG_DESCRIPTION,
+                    long_description_content_type='text/markdown',
                     setup_requires=SETUP_REQUIRES,
                     entry_points={
                         'console_scripts':[
