@@ -3,14 +3,11 @@
 import { ref } from 'vue';
 import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
-import Menu from '../components/menu/Menu.vue';
+import Menu from '../components/Menu/Menu.vue';
 import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
-
-
-const selectedTab = ref('')
 
 </script>
 
@@ -19,16 +16,12 @@ const selectedTab = ref('')
         <div class="">
             <Menu />
         </div>
-        <div style="width: 100%;" class="me-3">
+        <div style="width: 100%;" class="me-3" v-if="globalStore.isLoaded">
             <div class="ms-3">
-                <TabNav v-model:selected="selectedTab" />
+                <TabNav />
             </div>
             <div class="custom-hr" />
-            <template v-for="tab, index in globalStore.tabs">
-                <div v-if="globalStore.selectedTabName == tab.name">
-                    <TabContent :tab-index="index" />
-                </div>
-            </template>
+            <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" />
         </div>
 
     </div>

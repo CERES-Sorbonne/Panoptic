@@ -198,7 +198,7 @@ async def get_folders() -> List[Folder]:
 
 
 async def get_tabs() -> List[Tab]:
-    query = "SELECT * from folders"
+    query = "SELECT * from tabs"
     cursor = await execute_query(query)
     return [Tab(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
@@ -218,11 +218,17 @@ async def delete_folder(folder_id: int):
     return folder_id
 
 
-async def add_tab(name: str):
-    query = 'INSERT INTO tabs (name) VALUES (?)'
-    cursor = await execute_query(query, (name,))
-    folder = Tab(id=cursor.lastrowid, name=name)
+async def add_tab(name: str, data):
+    query = 'INSERT INTO tabs (name, data) VALUES (?,?)'
+    cursor = await execute_query(query, (name, json.dumps(data)))
+    row = await cursor.fetchone()
+    folder = Tab(id=cursor.lastrowid, name=name, data=data)
     return folder
+
+
+async def update_tab(tab: Tab):
+    query = "UPDATE tabs SET name = ?, data = ? WHERE id = ?"
+    await execute_query(query, (tab.name, json.dumps(tab.data), tab.id))
 
 
 async def delete_tab(tab_id: int):

@@ -15,7 +15,7 @@ from panoptic.core import create_property, add_property_to_image, get_images, cr
 from panoptic.core import db
 from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload
+    UpdateTagPayload, UpdatePropertyPayload, Tab
 
 app = FastAPI()
 app.add_middleware(
@@ -134,13 +134,35 @@ class PathRequest(BaseModel):
 
 @app.post("/folders")
 async def add_folder_route(path: PathRequest):
-    #TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
+    # TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
     nb_images = await add_folder(path.path)
     return await get_folders()
+
+
+@app.get("/tabs")
+async def get_tabs_route():
+    return await db.get_tabs()
+
+
+@app.post("/tab")
+async def add_tab_route(tab: Tab):
+    print(tab)
+    return await db.add_tab(tab.name, tab.data)
+
+
+@app.patch("/tab")
+async def update_tab_route(tab: Tab):
+    return await db.update_tab(tab)
+
+
+@app.delete("/tab")
+async def delete_tab_route(tab_id: int):
+    return await db.delete_tab(tab_id)
 
 
 @app.get("/clusters")
 async def make_clusters_route(sensibility: Optional[float] = 3) -> list[list[str]]:
     return await make_clusters(sensibility)
+
 
 app.mount("/", StaticFiles(directory="../html", html=True), name="static")
