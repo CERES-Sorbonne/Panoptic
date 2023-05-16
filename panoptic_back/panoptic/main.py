@@ -102,6 +102,7 @@ def launch_uvicorn():
 
 def start():
     root = tk.Tk()
+    root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
     thread = Thread(target=launch_uvicorn)
     thread.daemon = True
     thread.start()
