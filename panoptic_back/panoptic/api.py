@@ -143,4 +143,4 @@ async def add_folder_route(path: PathRequest):
 async def make_clusters_route(sensibility: Optional[float] = 3) -> list[list[str]]:
     return await make_clusters(sensibility)
 
-app.mount("/", StaticFiles(directory="./html", html=True), name="static")
+app.mount("/", StaticFiles(directory="../html", html=True), name="static")
