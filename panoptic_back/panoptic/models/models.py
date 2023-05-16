@@ -78,9 +78,9 @@ class Folder(BaseModel):
 
 
 class Tab(BaseModel):
-    id: int
-    name: str
-    data: dict
+    id: int | None
+    name: str | None
+    data: dict | None
 
 
 Images: TypeAlias = dict[str, Image]
