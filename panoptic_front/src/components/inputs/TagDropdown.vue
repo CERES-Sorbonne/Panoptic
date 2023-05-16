@@ -63,7 +63,7 @@ onMounted(() => {
                 data-bs-auto-close="outside" aria-expanded="false" ref="buttonElem" >
                 <template v-if="props.modelValue && props.modelValue.length > 0">
                     <span v-for="tagId in props.modelValue">
-                        <TagBadge :tag="tags[tagId].value" />
+                        <TagBadge :tag="tags[tagId].value" :color="tags[tagId].color" />
                     </span>
                 </template>
                 <template v-else>
@@ -74,13 +74,13 @@ onMounted(() => {
             <ul class="dropdown-menu m-0 p-0" v-if="props.modelValue">
                 <div class="m-2">
                     <span v-for="tagId in props.modelValue">
-                        <TagBadge :tag="tags[tagId].value" :show-delete="true" @delete="removeTag(tagId)" />
+                        <TagBadge :tag="tags[tagId].value" :color="tags[tagId].color" :show-delete="true" @delete="removeTag(tagId)" />
                     </span>
                 </div>
                 <input type="text" class="m-2" v-model="tagFilter" ref="searchElem" />
                 <li v-for="tag in filteredTagList" class="dropdown-item" style="cursor:pointer" @click="toggle(tag.id)">
                     <input type="checkbox" class="me-2" :checked="props.modelValue.includes(tag.id)" />
-                    <TagBadge :tag="tag.value" />
+                    <TagBadge :tag="tag.value"  :color="tag.color"/>
                 </li>
             </ul>
         </div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { computed } from 'vue'
-import ExpandOption from '../menu/ExpandOption.vue';
+import ExpandOption from '../Menu/ExpandOption.vue';
 import PaginatedImages from './PaginatedImages.vue';
 import { Group, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
@@ -39,8 +39,8 @@ const groupName = computed(() => {
 </script>
 
 <template>
-    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true">
-        <template #name>{{ groupName }} ({{ props.group.count }})<i class="h5 ms-2 bi bi-share"></i></template>
+    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true" :title-size="'6'">
+        <template #name>{{ groupName }} ({{ props.group.count }})</template>
         <template #content>
             <div v-if="hasImages">
                 <div class="ms-3">
