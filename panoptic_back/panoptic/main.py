@@ -61,7 +61,8 @@ class MiniUI:
             try:
                 res = requests.get(api('folders')).json()
                 for folder in res:
-                    self.listbox.insert(tk.END, folder['path'])
+                    if folder['parent'] is None:
+                        self.listbox.insert(tk.END, folder['path'])
                 failed = False
                 ui.server_status.set('running !')
                 ui.open_button['state'] = "normal"
@@ -77,7 +78,8 @@ class MiniUI:
                             json={"path": folder_path}).json()
         self.listbox.delete(0, tk.END)
         for folder in res:
-            self.listbox.insert(tk.END, folder['path'])
+            if folder['parent'] is None:
+                self.listbox.insert(tk.END, folder['path'])
 
     def open_panoptic(self):
         webbrowser.open(FRONT_URL)

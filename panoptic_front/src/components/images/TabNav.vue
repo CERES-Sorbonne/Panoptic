@@ -39,9 +39,9 @@ onMounted(() => {
 
 <template>
     <nav>
-        <div class="nav nav-tabs">
-            <button v-for="tab in globalStore.tabs" class="nav-link" :class="(tab.name == globalStore.selectedTabName ? ' active' : '')" @click="select(tab.name)"><span class="h4">{{ tab.name }}</span></button>
-            <button class="nav-link no-border" @click="addTab"><span class="h3 bi bi-plus"></span></button>
+        <div class="d-flex d-row">
+            <button v-for="tab in globalStore.tabs" class="tab-button" :class="(tab.name == globalStore.selectedTabName ? ' active' : '')" @click="select(tab.name)"><span>{{ tab.name }}</span></button>
+            <button class="tab-icon ms-2" @click="addTab"><span class="bi bi-plus"></span></button>
         </div>
     </nav>
 </template>

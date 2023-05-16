@@ -1,8 +1,13 @@
 .menu{
-  font-size: small;
+  font-size: 13px;
   height: 100vh;
   position: sticky;
   top: 0;
+  width: 210px;
+}
+
+.menu b {
+  font-size: 13px;
 }
 
 .menu h3,.menu .h3 {
@@ -40,11 +45,65 @@
 .label {
   font-size: 0.875rem;
   padding: 0.25rem 0.5rem;
-  color: #212529;
+  /* color: #212529; */
 }
 
 .smaller {
   font-size: 0.875rem;
   padding: 0.25rem 0rem;
-  color: #212529;
+  /* color: #212529; */
+}
+
+body {
+
+  --text-color: rgb(41, 56, 69);
+
+
+  min-height: 100vh;
+  color: var(--text-color);
+  background: var(--color-background);
+  transition: color 0.5s, background-color 0.5s;
+  line-height: 1.6;
+  /* font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; */
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: Inter, Din, Barlow, 'IBM Plex Sans', sans-serif !important;
+  /* font-family: Helvetica !important; */
+  /* font-style: italic; */
+}
+
+.property-item {
+  padding: 5px;
+  border-top: 1px solid rgb(195, 207, 217);
+}
+
+.custom-hr {
+  border-bottom: 1px solid rgb(195, 207, 217);
+  margin: 0;
+  padding: 0;
+}
+
+.tab-button {
+  border: none;
+  background-color: white;
+  font-size: 13px;
+  margin: 0px;
+  padding: 0;
+  color: rgb(41, 56, 69);
+}
+
+.tab-button.active {
+  border-bottom: 1px solid rgb(74, 93, 107);
+}
+
+.tab-icon {
+  border: none;
+  background-color: white;
+  font-size: 20px;
+  margin: 0px;
+  padding: 0;
+  color: rgb(74, 93, 107)
 }

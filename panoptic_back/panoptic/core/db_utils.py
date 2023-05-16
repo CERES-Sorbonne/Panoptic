@@ -1,10 +1,10 @@
 import json
 import os
 import sqlite3
-
-import numpy as np
-import aiosqlite
 from json import JSONDecodeError
+
+import aiosqlite
+import numpy as np
 
 ALL_TABLES = ['images', 'images_properties', 'properties', 'tags', 'folders', 'tabs']
 
@@ -25,7 +25,7 @@ async def create_tables_if_db_empty():
     cursor = await execute_query(query)
     all_tables = await cursor.fetchall()
     if len(list(all_tables)) < len(ALL_TABLES):
-        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'scripts', 'create_db.sql'), 'r') as f:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), '../scripts', 'create_db.sql'), 'r') as f:
             sql_script = f.read()
             async with conn.executescript(sql_script) as cursor:
                 await conn.commit()

@@ -6,6 +6,7 @@ import { TreeTag } from '../../data/models';
 import ExpandOption from '../menu/ExpandOption.vue';
 import { PropertyType } from '../../data/models';
 import TagTree from '../TagTree/TagTree.vue';
+import PropertyIcon from './PropertyIcon.vue';
 
 interface NodeState extends TreeTag{
     expanded: boolean
@@ -69,15 +70,14 @@ const selected = reactive([])
 </script>
 
 <template>
-    <ExpandOption title-size="h7" :left-align="true" :default-expand="false">
+    <ExpandOption title-size="b" :left-align="false" :default-expand="false">
         <template #name>
-            <i v-if="type == PropertyType.tag" class="bi bi-tag"></i>
-            <i v-if="type == PropertyType.multi_tags" class="bi bi-tags"></i>
+            <PropertyIcon :type="type" />
             {{ props.data.name }}
         </template>
         <template #icons>
-            <span @click.stop="" class="h6 bi bi-pencil btn-icon me-3"></span>
-            <span @click.stop="props.data.show = !props.data.show" :class="'h5 bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
+            <!-- <span @click.stop="" class="bi bi-pencil btn-icon me-3"></span> -->
+            <span @click.stop="props.data.show = !props.data.show" :class="'bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
         </template>
         <template #content>
             <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>
