@@ -38,5 +38,3 @@ To test and modify the backend operation, we provide an already built frontend i
 ## Windows install (coming soon)
 ## Mac installation (coming soon)
 ## Linux installation (coming soon)
-
-Translated with www.DeepL.com/Translator (free version)
