@@ -1,4 +1,4 @@
-# Panoptic
+# Panoptic 👀
 
 ![Preview](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/a1da87bf-1d06-4873-8fd7-686211252461)
 *This image is only a preview and the final product does not look like that for now*
