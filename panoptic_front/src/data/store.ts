@@ -41,7 +41,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         tabs.forEach((t:Tab) => globalStore.tabs[t.id] = t)
 
         if(tabs.length == 0) {
-            this.addTab('Tab1')
+            await this.addTab('Tab1')
         }
 
         this.verifySelectedTab()
@@ -121,12 +121,19 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
+        console.log(color)
+        if(color == undefined) {
+            console.log("find color")
+            let options = ["7c1314","c31d20","f94144","f3722c","f8961e","f9c74f","90be6d","43aa8b","577590","9daebe"]
+            let r = Math.round(Math.random() * (options.length-1))
+            color = '#' + options[r]
+        }
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
         this.tags[propertyId][newTag.id] = newTag
         return newTag
     },
 
-    async deleteTagParent(propertyId: number, tagId: number, parent_id: number) {
+    async deleteTagParent(tagId: number, parent_id: number) {
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         this.tags = await apiGetTags()
         // also reload images since the tag should be removed from their properties
@@ -202,6 +209,9 @@ function getPropertyTree(tags: IndexedTags): TreeTag {
         if (rootNode.children) {
             rootNode.children = rootNode.children.map((childId: number) => {
                 let child = { ...nodeIndex[childId] }
+                if(rootNode.color) {
+                    child.color = rootNode.color
+                }
                 return buildTree(child, rootNode)
             })
         }

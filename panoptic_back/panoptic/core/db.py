@@ -16,9 +16,9 @@ async def add_property(name: str, property_type: str) -> Property:
     return prop
 
 
-async def add_tag(property_id: int, value: str, parents: str):
-    query = "INSERT INTO tags (property_id, value, parents) VALUES (?, ?, ?)"
-    cursor = await execute_query(query, (property_id, value, parents))
+async def add_tag(property_id: int, value: str, parents: str, color: str):
+    query = "INSERT INTO tags (property_id, value, parents, color) VALUES (?, ?, ?, ?)"
+    cursor = await execute_query(query, (property_id, value, parents, color))
     return cursor.lastrowid
 
 
@@ -107,7 +107,7 @@ async def get_tag(property_id, value):
     row = await cursor.fetchone()
     if not row:
         return
-    return Tag
+    return Tag(**auto_dict(row, cursor))
 
 
 async def get_tag_ancestors(tag: Tag, acc=None):
@@ -139,7 +139,7 @@ async def get_tags(prop) -> list[Tag]:
 
 
 async def get_tag_by_id(tag_id: int):
-    query = "SELECT * FROM tags WHERE id = $1"
+    query = "SELECT * FROM tags WHERE id = ?"
     cursor = await execute_query(query, (tag_id,))
     row = await cursor.fetchone()
     if row:
@@ -148,13 +148,13 @@ async def get_tag_by_id(tag_id: int):
 
 
 async def delete_tag_by_id(tag_id: int) -> int:
-    query = "DELETE FROM tags WHERE id = $1"
+    query = "DELETE FROM tags WHERE id = ?"
     await execute_query(query, (tag_id,))
     return tag_id
 
 
 async def get_tags_by_parent_id(parent_id: int):
-    query = "SELECT tags.* FROM tags, json_each(tags.parents) WHERE json_each.value = $1"
+    query = "SELECT tags.* FROM tags, json_each(tags.parents) WHERE json_each.value = ?"
     cursor = await execute_query(query, (parent_id,))
     return [Tag(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 

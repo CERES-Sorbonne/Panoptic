@@ -99,7 +99,7 @@ async def delete_property_route(payload: DeleteImagePropertyPayload) -> DeleteIm
 async def add_tag(payload: AddTagPayload) -> Tag:
     if not payload.parent_id:
         payload.parent_id = 0
-    return await create_tag(payload.property_id, payload.value, payload.parent_id)
+    return await create_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
 
 
 @app.get("/tags")

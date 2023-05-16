@@ -3,13 +3,14 @@
 const props = defineProps({
   tag: String,
   number: Number,
-  showDelete: { type: Boolean, default: false }
+  showDelete: { type: Boolean, default: false },
+  color: String
 })
 </script>
 
 
 <template>
-  <div class="badge rounded me-1 tag-badge ps-1 pe-1">
+  <div class="badge rounded me-1 tag-badge ps-1 pe-1" :style="'background: ' + props.color">
     <span class="m-0">
       {{ tag }}
       <span v-if="showDelete" @click="$emit('delete')" class="bi bi-x ms-1 tag-x"></span>
@@ -21,7 +22,7 @@ const props = defineProps({
 <style scoped>
 .tag-badge {
   position: relative;
-  background: rgb(169, 169, 255);
+  /* background: rgb(169, 169, 255); */
 }
 
 .tag-x:hover {

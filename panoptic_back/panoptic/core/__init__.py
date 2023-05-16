@@ -114,7 +114,7 @@ def get_compute_callback(sha1):
     return callback
 
 
-async def create_tag(property_id, value, parent_id) -> Tag:
+async def create_tag(property_id, value, parent_id, color:str) -> Tag:
     existing_tag = await db.get_tag(property_id, value)
     if existing_tag is not None:
         if await db.tag_in_ancestors(existing_tag.id, parent_id):
@@ -124,7 +124,7 @@ async def create_tag(property_id, value, parent_id) -> Tag:
         tag_id = existing_tag.id
     else:
         parents = [parent_id]
-        tag_id = await db.add_tag(property_id, value, json.dumps(parents))
+        tag_id = await db.add_tag(property_id, value, json.dumps(parents), color)
     return await db.get_tag_by_id(tag_id)
 
 
@@ -146,17 +146,19 @@ async def delete_tag(tag_id: int) -> List[int]:
     # when deleting a tag, get all children of this tag
     children = await db.get_tags_by_parent_id(tag_id)
     # and remove parent ref of tag in children
-    [modified_tags.extend(await delete_tag_parent(c, tag_id)) for c in children]
+    [modified_tags.extend(await delete_tag_parent(c.id, tag_id)) for c in children]
     # then get all images properties tagged with it
     image_properties = await db.get_image_properties_with_tag(tag_id)
     # and delete the tag ref from them
     for image_property in image_properties:
-        image_property.value.remove(tag_id)
+        if tag_id in image_property.value:
+            image_property.value.remove(tag_id)
         await db.update_image_property(image_property.sha1, image_property.property_id, image_property.value)
     return modified_tags
 
 
 async def delete_tag_parent(tag_id: int, parent_id: int) -> List[int]:
+    print(tag_id, parent_id)
     tag = await db.get_tag_by_id(tag_id)
     tag.parents.remove(parent_id)
     if not tag.parents:
