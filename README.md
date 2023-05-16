@@ -2,39 +2,41 @@
 
 
 
-Panoptic est un outil d'exploration et d'annotation de large corpus d'images, utilisant des outils d'analyse d'image et de machine learning pour faciliter ces tâches. 
+Panoptic is a tool for exploring and annotating large image corpora, using image analysis and machine learning tools to facilitate these tasks. 
 
-Ayant besoin de librairies de deep learning, il est recommandé de l'utiliser avec un ordinateur ayant des capacités minimales en terme de calcul.
+Since it requires deep learning libraries, it is recommended to use it with a computer with minimal computing capabilities.
 
-> Attention: Panoptic est encore en phase active de développement et n'est pour l'instant qu'un prototype, il est fort probable que vous rencontriez des bugs, aussi nous recommandons de n'utiliser cet outil que pour des tests et ne pas se reposer dessus pour un travail académique conséquent. 
+> Caution: Panoptic is still in active development and is currently a prototype, it is likely that you will encounter bugs, so we recommend to use this tool only for testing and not to rely on it for a substantial academic work. 
 
-## Installation (développement)
-Les étapes suivantes impliquent d'avoir cloné le répertoire et sont recommandées pour les utilisateurs souhaitant avoir accès aux versions de développement, ou souhaitant modifier eux même le code afin de constribuer.
+## Installation (development)
+The following steps involve cloning the directory and are recommended for users who wish to have access to the development versions, or who wish to modify the code themselves in order to contribute.
 
-### Développement back uniquement
+### Backend development only
 
-Pour tester et modifier le fonctionnement backend, nous fournissons un front-end déjà buildé dans le dossier html du back.
-* aller dans le dossier `panoptic-back`
-* pour installer les dépendances
-    - `python setup.py install` simplement pour utiliser panoptic
-    - `pip install -e .` pour développer
-    - `pip install -r requirements.txt` et il faut ajouter `panoptic-back` au PYTHON_PATH également pour développer
-* lancer `python panoptic/main.py`
+To test and modify the backend operation, we provide an already built frontend in the backend html folder.
+* go to the `panoptic-back` folder
+* to install the dependencies
+    - `python setup.py install` to simply use panoptic
+    - `pip install -e .` to develop
+    - `pip install -r requirements.txt` and you have to add `panoptic-back` to the PYTHON_PATH for developping purpose too
+* run `python panoptic/main.py`
 
 
-### Développement front et back
+### Front and back development
 
-1. Réaliser tout d'abord les étapes d'installation du backend
-2. aller dans le dossier `panoptic-front`
-3. lancer `npm install`
-4. lancer `npm run dev`
-5. avant de lancer le backend la variable d'environnement `PANOPTIC_ENV` devra être set à `DEV` afin d'utiliser le frontend de développement.
+1. First of all, perform the installation steps of the backend
+2. go to the `panoptic-front` folder
+3. Run `npm install`.
+4. run `npm run dev`.
+5. before running the backend the `PANOPTIC_ENV` environment variable should be set to `DEV` in order to use the development frontend.
 
-## Installation pip (WIP)
+## Pip installation (WIP)
 
 - `pip install panoptic`
 - `panoptic`
 
-## Installation Windows (A venir)
-## Installation Mac (A venir)
-## Installation Linux (A venir)
+## Windows install (coming soon)
+## Mac installation (coming soon)
+## Linux installation (coming soon)
+
+Translated with www.DeepL.com/Translator (free version)
