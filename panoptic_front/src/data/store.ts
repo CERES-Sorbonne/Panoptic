@@ -5,6 +5,7 @@ import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, I
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
+    tagNodes: {} as Tags,
     properties: {} as Properties,
     folders: {} as Folders,
     tabs: {} as Tabs,
@@ -68,11 +69,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             if (!globalStore.tags[property.id]) {
                 globalStore.tags[property.id] = {}
             }
-            tree[property.id] = getPropertyTree(globalStore.tags[property.id])
+            tree[property.id] = getPropertyTree(globalStore.tags[property.id], property.id)
         })
         return tree
     }),
+    // tagsWithChildren: computed(() => {
+    //     let res = {} as Tags
 
+    // }),
     folderTree: computed(() => {
         let copies = {} as Folders
         for(let k in globalStore.folders) {
@@ -172,7 +176,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 })
 
 
-function getPropertyTree(tags: IndexedTags): TreeTag {
+function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     let children: any = {}
 
     // get tagId to children list mapping
@@ -193,16 +197,21 @@ function getPropertyTree(tags: IndexedTags): TreeTag {
     nodes = nodes.map((n: TreeTag) => {
         return { ...n, children: children[n.id] }
     })
-    let nodeIndex: any = {}
+    let nodeIndex = {} as any
     nodes.forEach(n => nodeIndex[n.id] = n)
 
     root = nodeIndex['0']
+
+
+    let tagNodes = {} as {[key:string]: Tag}
+
 
     // recursive function. builds all possible path starting from a rootNode
     let buildTree = (rootNode: any, parent?: any) => {
         if (parent == undefined) {
             rootNode.localId = rootNode.id + ''
         } else {
+            tagNodes[rootNode.id] = rootNode
             rootNode.localId = parent.localId + '.' + rootNode.id
             rootNode.localParent = parent.id
         }
@@ -217,6 +226,7 @@ function getPropertyTree(tags: IndexedTags): TreeTag {
         }
         return rootNode
     }
-
-    return buildTree(root)
+    let res = buildTree(root)
+    globalStore.tagNodes[propId] = tagNodes
+    return res
 }
