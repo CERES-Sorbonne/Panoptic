@@ -103,7 +103,7 @@ watch(groups, computeGroups, { deep: true })
         <ContentFilter :tab="props.tab"/>
     </div>
     <hr class="custom-hr"/>
-    <div class="mt-4">
+    <div class="mt-4 ms-1">
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
             <PaginatedImages :images="imageGroups[0].images" :imageSize="String(props.tab.data.imageSize)" />
         </div>

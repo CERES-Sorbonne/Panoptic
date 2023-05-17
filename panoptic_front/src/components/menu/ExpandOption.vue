@@ -26,7 +26,7 @@ onMounted(() => {
 <template>
   <div>
     <div :class="props.titleSize">
-      <span v-if="leftAlign" class="float-start">
+      <span v-if="leftAlign" class="float-start me-2">
         <span :class="caretClass" @click.stop="toggle"></span>
       </span>
       <slot name="name"></slot>
