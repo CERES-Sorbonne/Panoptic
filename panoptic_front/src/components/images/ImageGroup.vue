@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { computed } from 'vue'
-import ExpandOption from '../Menu/ExpandOption.vue';
+import ExpandOption from '../menu/ExpandOption.vue';
 import PaginatedImages from './PaginatedImages.vue';
 import { Group, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';

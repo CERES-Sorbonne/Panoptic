@@ -16,7 +16,7 @@ from panoptic.core import create_property, add_property_to_image, get_images, cr
 from panoptic.core import db
 from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload
 
 app = FastAPI()
 app.add_middleware(
@@ -161,8 +161,8 @@ async def delete_tab_route(tab_id: int):
     return await db.delete_tab(tab_id)
 
 
-@app.get("/clusters")
-async def make_clusters_route(sensibility: Optional[float] = 3) -> list[list[str]]:
-    return await make_clusters(sensibility)
+@app.post("/clusters")
+async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
+    return await make_clusters(payload.nb_groups, payload.image_list)
 
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")

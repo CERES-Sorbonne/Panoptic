@@ -245,7 +245,7 @@ export interface Group {
     images: Array<Image>
     groups: Array<Group>
     count: number
-    propertyId: number
+    propertyId?: number
 }
 
 export interface Folder {

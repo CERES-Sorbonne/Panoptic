@@ -1,5 +1,5 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab } from '../data/api'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab, apiGetMLGroups } from '../data/api'
 import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
@@ -167,6 +167,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async deleteProperty(propertyId: number) {
         await apiDeleteProperty(propertyId)
         delete this.properties[propertyId]
+    },
+
+    async getMLGroups(nbGroups:number = 50, imageList: string[] = []){
+        const res = await apiGetMLGroups(nbGroups, imageList)
+        return res
     }
 
 })

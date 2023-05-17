@@ -42,3 +42,8 @@ class UpdateTagPayload(CamelModel):
     value: Optional[str]
     parent_id: Optional[int]
     color: Optional[str]
+
+
+class MakeClusterPayload(CamelModel):
+    nb_groups: Optional[int] = 50
+    image_list: Optional[list[str]] = []
