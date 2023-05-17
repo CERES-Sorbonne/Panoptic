@@ -3,9 +3,6 @@ import { reactive, computed, watch, onMounted, ref } from 'vue';
 import ImageGroup from './ImageGroup.vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import FilterForm from '../forms/FilterForm.vue';
-import GroupForm from '../forms/GroupForm.vue';
-import SortForm from '../forms/SortForm.vue';
 import { Group, Image, PropertyType, Tab } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
@@ -41,6 +38,52 @@ function computeGroups() {
     }
     else {
         imageGroups.push(rootGroup)
+    }
+}
+
+async function computeMLGroups(groupId: number = null){
+    const saveGroups = [...imageGroups]
+    let sha1List: [[string]]
+    imageGroups.length = 0
+    if(groupId){
+        let images = saveGroups[groupId].images.map((i: Image) => i.sha1)
+        sha1List = await globalStore.getMLGroups(Math.min(50, images.length), images)
+    }
+    else{
+        sha1List = await globalStore.getMLGroups()
+    }
+    const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
+
+    if(groupId){
+        for(let [index, group] of saveGroups.entries()){
+            if(index === groupId){
+                for(let [index_ml, ml_group] of ml_groups.entries()){
+                    let realGroup: Group = {
+                        name: 'cluster ' + index_ml.toString(),
+                        images: ml_group,
+                        count: ml_group.length,
+                        groups: []
+                    }
+                    if(!group.groups){
+                        group.groups = []
+                    }
+                    group.images = []
+                    group.groups.push(realGroup)
+                }
+            }
+            imageGroups.push(group)
+        }
+    }
+    else{
+        for(let [index, group] of ml_groups.entries()){
+            let realGroup: Group = {
+                name: 'cluster ' + index.toString(),
+                images: group,
+                count:group.length,
+                groups: []
+            }
+            imageGroups.push(realGroup)
+        }
     }
 }
 
@@ -104,11 +147,15 @@ watch(groups, computeGroups, { deep: true })
     </div>
     <hr class="custom-hr"/>
     <div class="mt-4">
+        <button @click="computeMLGroups()">Compute All Groups</button>
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
             <PaginatedImages :images="imageGroups[0].images" :imageSize="String(props.tab.data.imageSize)" />
         </div>
         <div v-else>
-            <ImageGroup :leftAlign="true" v-for="group in imageGroups" :group="group" :imageSize="String(props.tab.data.imageSize)" />
+            <div v-for="(group, index) in imageGroups">
+                <button @click="computeMLGroups(index)">Compute Groups</button>
+                <ImageGroup :leftAlign="true" :group="group" :imageSize="String(props.tab.data.imageSize)" />
+            </div>
         </div>
     </div>
 </template>

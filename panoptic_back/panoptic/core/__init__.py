@@ -5,7 +5,7 @@ from typing import List
 
 from fastapi import HTTPException
 
-import panoptic
+from panoptic.compute import make_clusters as get_groups
 import panoptic.core.db
 from panoptic.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload, Folder
@@ -55,13 +55,13 @@ async def get_images() -> Images:
     return result
 
 
-async def make_clusters(sensibility: float) -> list[list[str]]:
+async def make_clusters(sensibility: float, image_list: [str]) -> list[list[str]]:
     """
     Compute clusters and return a list of list of sha1
     """
     # TODO: add parameters to compute clusters only on some images
-    images = await db.get_images_with_vectors()
-    return panoptic.make_clusters(images, sensibility)
+    images = await db.get_images_with_vectors(image_list)
+    return get_groups(images, sensibility)
 
 
 async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:

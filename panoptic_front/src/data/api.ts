@@ -103,3 +103,8 @@ export const apiDeleteTab = async(tabId: number) => {
     let res = await axios.delete('/tab', {params: {tab_id: tabId}})
     return res.data
 }
+
+export const apiGetMLGroups = async(nbGroups=50, imageList: string[] = []) => {
+    let res = await axios.post('/clusters', {imageList, nbGroups})
+    return res.data
+}

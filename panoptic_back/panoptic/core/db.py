@@ -253,7 +253,11 @@ async def get_image_properties_with_tag(tag_id: int) -> list[ImageProperty]:
     return [ImageProperty(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-async def get_images_with_vectors():
+async def get_images_with_vectors(image_list: list[str]):
     query = "SELECT sha1, vector, ahash from images"
-    cursor = await execute_query(query)
+    if len(image_list) > 0:
+        query += " WHERE sha1 in (" + ','.join('?' * len(image_list)) + ')'
+        cursor = await execute_query(query, tuple(image_list))
+    else:
+        cursor = await execute_query(query)
     return [ImageVector(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
