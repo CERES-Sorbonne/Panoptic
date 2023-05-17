@@ -23,12 +23,14 @@ const filteredImages = computed(() => {
     return images.filter(img => computeGroupFilter(img, filters.value))
 })
 
+let nbClusters = ref(10)
+
 function computeGroups() {
     imageGroups.length = 0
     let rootGroup = {
         name: '__all__',
         images: filteredImages.value,
-        groups: undefined,
+        groups: [],
         count: filteredImages.value.length,
         propertyId: undefined
     } as Group
@@ -42,53 +44,42 @@ function computeGroups() {
 }
 
 async function computeMLGroups(groupId: number = null){
-    const saveGroups = [...imageGroups]
     let sha1List: [[string]]
-    imageGroups.length = 0
     if(groupId){
-        let images = saveGroups[groupId].images.map((i: Image) => i.sha1)
-        sha1List = await globalStore.getMLGroups(Math.min(50, images.length), images)
+        let images = []
+        if(imageGroups[groupId].images.length === 0){
+            images = imageGroups[groupId].groups.map((group:Group) => group.images).flat().map((i: Image) => i.sha1)
+        }
+        else{
+            images = imageGroups[groupId].images.map((i: Image) => i.sha1)
+        }
+        imageGroups[groupId].groups = []
+        imageGroups[groupId].images = []
+        sha1List = await globalStore.getMLGroups(Math.min(nbClusters.value, images.length), images)
     }
     else{
-        sha1List = await globalStore.getMLGroups()
+        imageGroups.length = 0
+        sha1List = await globalStore.getMLGroups(nbClusters.value)
     }
     const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
 
-    if(groupId){
-        for(let [index, group] of saveGroups.entries()){
-            if(index === groupId){
-                for(let [index_ml, ml_group] of ml_groups.entries()){
-                    let realGroup: Group = {
-                        name: 'cluster ' + index_ml.toString(),
-                        images: ml_group,
-                        count: ml_group.length,
-                        groups: []
-                    }
-                    if(!group.groups){
-                        group.groups = []
-                    }
-                    group.images = []
-                    group.groups.push(realGroup)
-                }
-            }
-            imageGroups.push(group)
+    for(let [index, group] of ml_groups.entries()){
+        let realGroup: Group = {
+            name: 'cluster ' + index.toString(),
+            images: group,
+            count:group.length,
+            groups: []
         }
-    }
-    else{
-        for(let [index, group] of ml_groups.entries()){
-            let realGroup: Group = {
-                name: 'cluster ' + index.toString(),
-                images: group,
-                count:group.length,
-                groups: []
-            }
+        if(groupId){
+            imageGroups[groupId].groups.push(realGroup)
+        }
+        else{
             imageGroups.push(realGroup)
         }
     }
 }
 
 function computeSubgroups(parentGroup: Group, groupList: number[]) {
-    console.log('compute subgroup for property: ' + groupList[0])
     let images = parentGroup.images
     let propertyId = groupList[0]
     let groups = new DefaultDict(Array) as { [k: string | number]: any }
@@ -147,13 +138,14 @@ watch(groups, computeGroups, { deep: true })
     </div>
     <hr class="custom-hr"/>
     <div class="mt-4">
-        <button @click="computeMLGroups()">Compute All Groups</button>
+        <button class="btn btn-outline-success m-2" @click="computeMLGroups()">Compute All Groups</button>
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
             <PaginatedImages :images="imageGroups[0].images" :imageSize="String(props.tab.data.imageSize)" />
         </div>
         <div v-else>
             <div v-for="(group, index) in imageGroups">
-                <button @click="computeMLGroups(index)">Compute Groups</button>
+                <button class="btn btn-outline-success m-3" style="font-size: small;" @click="computeMLGroups(index)">Compute Groups</button>
+                <input class="form-control form-control-sm" style="display:inline-block;width:10%" type="number" v-model="nbClusters"/>
                 <ImageGroup :leftAlign="true" :group="group" :imageSize="String(props.tab.data.imageSize)" />
             </div>
         </div>
