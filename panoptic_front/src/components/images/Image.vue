@@ -49,14 +49,14 @@ const imageSizes = computed(() => {
 
 const imageContainerStyle = computed(() => `width: ${imageSizes.value.width -2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
-const widthStyle = computed(() => `width: ${Number(imageSizes.value.width)}px;`)
+const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 
 </script>
 
 <template>
-    <div class="m-2 full-container" :style="widthStyle">
-        <div :style="imageContainerStyle" style="position: relative;" class="img-container">
-            <img :src="props.image.url" :style="imageStyle" @click="globalStore.showModal(Modals.IMAGE, props.image)" />
+    <div class="me-2 mb-2 full-container" :style="widthStyle">
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
+            <img :src="props.image.url" :style="imageStyle"/>
         </div>
         <div class="prop-container" v-if="imageProperties.length > 0">
             <div v-for="property, index in imageProperties">
@@ -75,11 +75,14 @@ const widthStyle = computed(() => `width: ${Number(imageSizes.value.width)}px;`)
 <style scoped>
 
 .full-container {
+    position: relative;
     border: 1px solid var(--border-color);
 }
 .img-container {
+    position: relative;
     margin: auto;
     padding: auto;
+    cursor: pointer;
 }
 
 .prop-container {
