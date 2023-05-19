@@ -174,9 +174,9 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="bg-light pt-1 pb-1 pe-1 overflow-hidden" is-input="true">
-        <div @click="setEdit(true)" ref="clickableElem">
-            <div class="no-border p-0 bg-light text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0">
+    <div class="pt-1 pb-1 pe-1" is-input="true">
+        <div class="dropdown" @click="setEdit(true)" ref="clickableElem">
+            <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem" data-bs-offset="20,0" data-ds-toggle="dropdown" data-bs-display="static">
                 <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">
                     <span class="me-1">
                         <PropertyIcon :type="props.property.type" />
@@ -205,7 +205,7 @@ onMounted(() => {
 
                 </div>
             </div>
-            <div class="dropdown-menu m-0 p-0" ref="tagInputContainer">
+            <div class="dropdown-menu m-0 p-0 overflow-visible" ref="tagInputContainer"  data-bs-display="static">
 
                 <ul class="list-unstyled mb-0">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top" style="width: 300px;">
@@ -229,13 +229,16 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.test-wraped {
-    display: -webkit-box;
+/* .test-wraped { */
+    /* display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 2; */
     /* number of lines to show */
-    line-clamp: 2;
+    /* line-clamp: 2;
     overflow: hidden;
-    cursor: pointer;
-}
+    cursor: pointer; */
+/* } */
+
+
+
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { computed } from 'vue'
-import ExpandOption from '../menu/ExpandOption.vue';
+import ExpandOption from '../Menu/ExpandOption.vue';
 import PaginatedImages from './PaginatedImages.vue';
 import { Group, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
@@ -9,7 +9,7 @@ import { globalStore } from '@/data/store';
 const props = defineProps({
     group: Object as () => Group,
     small: String,
-    imageSize: String
+    imageSize: Number
 })
 
 const images = computed(() => props.group.images)
