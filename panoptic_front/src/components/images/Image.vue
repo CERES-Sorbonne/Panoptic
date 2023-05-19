@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed} from 'vue'
+import { computed } from 'vue'
 import { globalStore } from '@/data/store';
 import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import PropertyInput from '../inputs/PropertyInput.vue';
@@ -7,11 +7,11 @@ import TagInput from '../inputs/TagInput.vue';
 
 const props = defineProps({
     image: Object as () => Image,
-    width: {type: String, default: '100'},
+    size: { type: Number, default: 100 },
     index: Number
 })
 
-const properties = computed(() => globalStore.propertyList.filter((p:any) => p.show))
+const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
 
 function hasProperty(propertyId: number) {
     return props.image.properties[propertyId] && props.image.properties[propertyId].value !== undefined
@@ -31,25 +31,73 @@ const imageProperties = computed(() => {
     return res
 })
 
-const widthStyle = computed(() => `width: ${Number(props.width)}px;`)
-const imageWidthStyle = computed(() => `max-width: ${Number(props.width) -4}px; max-height: ${Number(props.width) -4}px;`)
+const imageWidthStyle = computed(() => `max-width: ${Number(props.size) - 4}px; max-height: ${Number(props.size) - 4}px;`)
+
+const imageSizes = computed(() => {
+    let ratio = props.image.width / props.image.height
+
+    let h = props.size
+    let w = h * ratio
+
+    if (ratio > 2) {
+        w = props.size
+        h = props.size / ratio
+    }
+
+    return { width: w, height: h }
+})
+
+const imageContainerStyle = computed(() => `width: ${imageSizes.value.width -2}px; height: ${props.size}px;`)
+const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
+const widthStyle = computed(() => `width: ${Number(imageSizes.value.width)}px;`)
 
 </script>
 
 <template>
-    <div class="d-inline-block small-text m-2" :style="widthStyle">
-        <img :src="props.image.url" :style="imageWidthStyle" @click="globalStore.showModal(Modals.IMAGE, props.image)"/>
-        <div v-for="property in imageProperties" class="" :style="imageWidthStyle">
-            <TagInput v-if="property.type == PropertyType.multi_tags" :property="property" :max-size="props.width" :input-id="[property.propertyId, props.index]"/>
-            <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="props.width" :mono-tag="true" :input-id="[property.propertyId, props.index]"/>
-            <PropertyInput v-else :property="property" :max-size="props.width" :input-id="[property.propertyId, props.index]"/>
+    <div class="m-2 full-container" :style="widthStyle">
+        <div :style="imageContainerStyle" style="position: relative;" class="img-container">
+            <img :src="props.image.url" :style="imageStyle" @click="globalStore.showModal(Modals.IMAGE, props.image)" />
+        </div>
+        <div class="prop-container" v-if="imageProperties.length > 0">
+            <div v-for="property, index in imageProperties">
+                <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
+                <TagInput v-if="property.type == PropertyType.multi_tags" :property="property"
+                    :max-size="String(props.size)" :input-id="[property.propertyId, props.index]" />
+                <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="String(props.size)"
+                    :mono-tag="true" :input-id="[property.propertyId, props.index]" />
+                <PropertyInput v-else :property="property" :max-size="String(props.size)"
+                    :input-id="[property.propertyId, props.index]" />
+            </div>
         </div>
     </div>
 </template>
 
-<style>
-.small-text {
-    font-size: 14px;
+<style scoped>
+
+.full-container {
+    border: 1px solid var(--border-color);
+}
+.img-container {
+    margin: auto;
+    padding: auto;
 }
 
+.prop-container {
+    width: 100%;
+    border-top: 1px solid var(--border-color);
+    padding: 2px;
+}
+
+img {
+    max-height: 100%;
+    max-width: 100%;
+    /* width: auto;
+    height: auto; */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+}
 </style>
