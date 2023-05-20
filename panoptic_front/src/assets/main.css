@@ -122,12 +122,14 @@ body {
   appearance: none !important;
   border: 2px solid rgb(197, 206, 213);
   margin: 0;
-  padding: 10px;
+  padding: 8px;
+  padding-bottom: 9px;
   /* margin-top: 1px; */
   height: 16px;
   /* line-height: 10px; */
   font-size: 10px;
   color: var(--text-color);
+  border-radius: 3px;
 
   width: 100%;
 }
@@ -231,8 +233,8 @@ body {
 button {
   border: 2px solid var(--border-color);
   border-radius: 3px !important;
-  padding: 2px;
-  font-size: 12px !important;
+  padding: 1px;
+  font-size: 10px !important;
   background-color: #ffffff;
   color: rgb(76, 92, 107);
 }

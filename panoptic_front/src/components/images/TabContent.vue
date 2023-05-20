@@ -87,8 +87,8 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
 
     for (let img of images) {
         let value = propertyId in img.properties ? img.properties[propertyId].value : "undefined"
-        if (value == null) {
-            value == undefined
+        if (value == null || value == '') {
+            value = undefined
         }
         if (type == PropertyType.checkbox && value != true) {
             value = false
@@ -134,21 +134,18 @@ watch(groups, computeGroups, { deep: true })
 
 <template>
     <div class="m-2">
-        <ContentFilter :tab="props.tab"/>
+        <ContentFilter :tab="props.tab" @compute-ml="computeMLGroups"/>
     </div>
     <hr class="custom-hr"/>
-    <div class="ms-1">
-        <button @click="computeMLGroups()">Compute All Groups</button>
-        </div>
-    <div class="ms-1">
+    <div class="ms-2 mt-2">
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
-            <PaginatedImages :images="imageGroups[0].images" :imageSize="props.tab.data.imageSize" />
+            <PaginatedImages :images="imageGroups[0].images" :imageSize="props.tab.data.imageSize" :groupId="'0'"/>
         </div>
         <div v-else>
             <div v-for="(group, index) in imageGroups">
-                <button class="btn btn-outline-success m-3" style="font-size: small;" @click="computeMLGroups(index)">Compute Groups</button>
-                <input class="form-control form-control-sm" style="display:inline-block;width:10%" type="number" v-model="nbClusters"/>
-                <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize" />
+                <button class="me-2" @click="computeMLGroups(index)">Compute Groups</button>
+                <input class="text-input d-inline-block" type="number" style="width: 70px;" v-model="nbClusters"/>
+                <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize" :group-id="String(index)" />
             </div>
         </div>
     </div>
