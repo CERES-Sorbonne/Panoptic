@@ -21,7 +21,7 @@ import { globalStore } from '@/data/store';
                 <TabNav />
             </div>
             <div class="custom-hr" />
-            <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" />
+            <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" v-if="globalStore.isLoaded && globalStore.tagTrees" />
         </div>
 
     </div>
