@@ -21,7 +21,7 @@ const props = defineProps({
         </div>
         <div class="bi bi-aspect-ratio me-1"></div>
         <div>
-            <RangeInput :min="50" :max="200" v-model="props.tab.data.imageSize" />
+            <RangeInput :min="50" :max="500" v-model="props.tab.data.imageSize" />
         </div>
         <div class="ms-5">
             <input type="text" class="text-input" v-model="props.tab.name"/>
