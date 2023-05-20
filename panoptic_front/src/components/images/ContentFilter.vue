@@ -11,6 +11,8 @@ const props = defineProps({
     tab: Object as () => Tab,
 })
 
+const emits = defineEmits(['compute-ml'])
+
 </script>
 
 <template>
