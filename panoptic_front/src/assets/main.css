@@ -95,8 +95,9 @@ body {
   border: none;
   background-color: white;
   font-size: 13px;
-  margin: 0px;
+  margin: 0;
   padding: 0;
+  line-height: 30px;
   color: rgb(41, 56, 69);
 }
 
@@ -225,4 +226,13 @@ body {
   /* min-width: 30px; */
   font-size: 15px;
   width: auto;
+}
+
+button {
+  border: 2px solid var(--border-color);
+  border-radius: 3px !important;
+  padding: 2px;
+  font-size: 12px !important;
+  background-color: #ffffff;
+  color: rgb(76, 92, 107);
 }

@@ -2,7 +2,7 @@
 
 import { reactive, computed, onMounted, watch } from 'vue';
 import { globalStore } from '@/data/store';
-import { TreeTag } from '../../data/models';
+import { Property, TreeTag } from '../../data/models';
 import ExpandOption from '../Menu/ExpandOption.vue';
 import { PropertyType } from '../../data/models';
 import TagTree from '../TagTree/TagTree.vue';
@@ -14,7 +14,7 @@ interface NodeState extends TreeTag{
 }
 
 const props = defineProps({
-    data: Object,
+    data: Object as () => Property,
     filter: Object
 })
 
@@ -66,6 +66,12 @@ watch(rootNode, () => {
 })
 
 const selected = reactive([])
+const visible = computed(() => globalStore.getPropertyVisible(props.data.id))
+
+function toggleVisible() {
+    globalStore.setPropertyVisible(props.data.id, !visible.value)
+}
+
 
 </script>
 
@@ -77,7 +83,7 @@ const selected = reactive([])
         </template>
         <template #icons>
             <!-- <span @click.stop="" class="bi bi-pencil btn-icon me-3"></span> -->
-            <span @click.stop="props.data.show = !props.data.show" :class="'bi bi-eye btn-icon text-' + (props.data.show ? 'primary' : 'secondary')"></span>
+            <span @click.stop="toggleVisible" :class="'bi bi-eye btn-icon text-' + (visible ? 'primary' : 'secondary')"></span>
         </template>
         <template #content>
             <TagTree :root="localTree" v-model:selected="selected" :property-id="id"/>

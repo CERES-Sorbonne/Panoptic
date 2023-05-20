@@ -5,6 +5,7 @@ import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, I
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
     tags: {} as Tags,
+    tagNodes: {} as Tags,
     properties: {} as Properties,
     folders: {} as Folders,
     tabs: {} as Tabs,
@@ -37,7 +38,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     async loadTabState() {
         let tabs = await apiGetTabs()
-        console.log(tabs)
+        // console.log(tabs)
         tabs.forEach((t:Tab) => globalStore.tabs[t.id] = t)
 
         if(tabs.length == 0) {
@@ -61,18 +62,27 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     propertyList: computed(() => {
         return Object.values(globalStore.properties) as Array<Property>
     }),
-
+    setPropertyVisible(propId: number, value: boolean) {
+        this.tabs[this.selectedTab].data.visibleProperties[propId] = value
+    },
+    getPropertyVisible(propId: number) {
+        //console.log(this.tabs[this.selectedTab])
+        return this.tabs[this.selectedTab].data.visibleProperties[propId]
+    },
     tagTrees: computed(() => {
         const tree: TagsTree = {}
         Object.values(globalStore.properties).forEach((property: Property) => {
             if (!globalStore.tags[property.id]) {
                 globalStore.tags[property.id] = {}
             }
-            tree[property.id] = getPropertyTree(globalStore.tags[property.id])
+            tree[property.id] = getPropertyTree(globalStore.tags[property.id], property.id)
         })
         return tree
     }),
+    // tagsWithChildren: computed(() => {
+    //     let res = {} as Tags
 
+    // }),
     folderTree: computed(() => {
         let copies = {} as Folders
         for(let k in globalStore.folders) {
@@ -102,7 +112,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
-        console.log(folders)
+        //console.log(folders)
 
         this.images = images
         this.tags = tags
@@ -121,9 +131,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
-        console.log(color)
+        //console.log(color)
         if(color == undefined) {
-            console.log("find color")
+            //console.log("find color")
             let options = ["7c1314","c31d20","f94144","f3722c","f8961e","f9c74f","90be6d","43aa8b","577590","9daebe"]
             let r = Math.round(Math.random() * (options.length-1))
             color = '#' + options[r]
@@ -177,7 +187,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 })
 
 
-function getPropertyTree(tags: IndexedTags): TreeTag {
+function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     let children: any = {}
 
     // get tagId to children list mapping
@@ -198,16 +208,21 @@ function getPropertyTree(tags: IndexedTags): TreeTag {
     nodes = nodes.map((n: TreeTag) => {
         return { ...n, children: children[n.id] }
     })
-    let nodeIndex: any = {}
+    let nodeIndex = {} as any
     nodes.forEach(n => nodeIndex[n.id] = n)
 
     root = nodeIndex['0']
+
+
+    let tagNodes = {} as {[key:string]: Tag}
+
 
     // recursive function. builds all possible path starting from a rootNode
     let buildTree = (rootNode: any, parent?: any) => {
         if (parent == undefined) {
             rootNode.localId = rootNode.id + ''
         } else {
+            tagNodes[rootNode.id] = rootNode
             rootNode.localId = parent.localId + '.' + rootNode.id
             rootNode.localParent = parent.id
         }
@@ -222,6 +237,7 @@ function getPropertyTree(tags: IndexedTags): TreeTag {
         }
         return rootNode
     }
-
-    return buildTree(root)
+    let res = buildTree(root)
+    globalStore.tagNodes[propId] = tagNodes
+    return res
 }

@@ -229,6 +229,7 @@ export interface TabState {
     groups: Array<number>
     sortList: Array<Sort>
     imageSize: number
+    visibleProperties: {[key: number]: boolean}
 }
 
 export interface TabRequest {
@@ -263,7 +264,8 @@ export function buildTabState() {
         filter: buildFilterGroup(),
         groups: [],
         sortList: [],
-        imageSize: 100
+        imageSize: 100,
+        visibleProperties: {}
     } as TabState
 }
 
