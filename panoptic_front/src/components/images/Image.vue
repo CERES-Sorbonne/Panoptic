@@ -11,22 +11,28 @@ const props = defineProps({
     index: Number
 })
 
-const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
+// const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
 
 function hasProperty(propertyId: number) {
     return props.image.properties[propertyId] && props.image.properties[propertyId].value !== undefined
 }
 
 const imageProperties = computed(() => {
+
+    let selected = globalStore.tabs[globalStore.selectedTab].data.visibleProperties
+
     let res: Array<PropertyRef> = []
-    properties.value.forEach((p: Property) => {
-        let propRef: PropertyRef = {
-            propertyId: p.id,
-            type: p.type,
-            value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
-            imageSHA1: props.image.sha1
+    globalStore.propertyList.forEach((p: Property) => {
+        if (selected[p.id]) {
+            let propRef: PropertyRef = {
+                propertyId: p.id,
+                type: p.type,
+                value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
+                imageSHA1: props.image.sha1
+            }
+            res.push(propRef)
         }
-        res.push(propRef)
+
     });
     return res
 })
@@ -47,7 +53,7 @@ const imageSizes = computed(() => {
     return { width: w, height: h }
 })
 
-const imageContainerStyle = computed(() => `width: ${imageSizes.value.width -2}px; height: ${props.size}px;`)
+const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 
@@ -56,7 +62,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle">
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
-            <img :src="props.image.url" :style="imageStyle"/>
+            <img :src="props.image.url" :style="imageStyle" />
         </div>
         <div class="prop-container" v-if="imageProperties.length > 0">
             <div v-for="property, index in imageProperties">
@@ -73,11 +79,11 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 </template>
 
 <style scoped>
-
 .full-container {
     position: relative;
     border: 1px solid var(--border-color);
 }
+
 .img-container {
     position: relative;
     margin: auto;

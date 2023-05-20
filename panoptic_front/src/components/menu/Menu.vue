@@ -31,7 +31,7 @@ const addFolder = async () => {
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
                     <b>Properties</b>
-                    <div class="mt-2">
+                    <div class="mt-2" v-if="globalStore.isLoaded">
                         <div v-for="property in globalStore.properties" class="property-item">
                             <TagProperty
                                 v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag"

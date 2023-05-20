@@ -1,4 +1,5 @@
-import { Filter, FilterOperator, Image, FilterGroup, PropertyType } from "@/data/models";
+import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag } from "@/data/models";
+import { globalStore } from "@/data/store";
 import { isArray } from "@vue/shared";
 
 
@@ -98,6 +99,7 @@ const operatorMap: {[operator in FilterOperator]? : any} = {
 
 
 function computeFilter(filter: Filter, propertyValue: any) {
+    // console.log(filter.value)
     let opFnc = operatorMap[filter.operator]
     let res = opFnc(propertyValue, filter.value)
     return res
@@ -122,10 +124,38 @@ export function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
             res = groupOperatorFnc(computeGroupFilter(image, filter), res)
         }
         else {
-            filter = filter as Filter
-            let property = image.properties[filter.propertyId]
+            let nfilter = {...filter} as Filter
+            let propId = nfilter.propertyId
+            let propType = globalStore.properties[propId].type
+
+            let property = image.properties[propId]
             let propertyValue = property ? property.value : undefined
-            let subRes = computeFilter(filter, propertyValue)
+
+            if(Array.isArray(nfilter.value) && nfilter.value.length > 0 && (propType == PropertyType.tag || propType == PropertyType.multi_tags)) {
+                let filterValue = nfilter.value as number[]
+                // console.log(filterValue)
+                let tags = globalStore.tagNodes[propId]
+                let found = {} as any
+                let toCheck = [] as number[]
+                filterValue.forEach((v:number) => toCheck.push(v))
+                while(toCheck.length > 0) {
+                    let id = toCheck.splice(0,1)[0]
+                    if(found[id]) {
+                        continue
+                    }
+                    found[id] = true
+                    let tag = tags[id]
+                    if(tag && tag.children != undefined) {
+                        Object.values(tag.children).forEach((c: any) => {toCheck.push(c.id)})
+                    }
+                }
+
+                filterValue = Object.keys(found).map(Number)
+                // console.log('updated to: ' + filterValue)
+                nfilter.value = filterValue
+            }
+
+            let subRes = computeFilter(nfilter, propertyValue)
             res = groupOperatorFnc(res, subRes)
             // console.log('subRes : ' + subRes + '  >> ' + res)
         }

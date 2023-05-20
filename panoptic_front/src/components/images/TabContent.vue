@@ -137,16 +137,18 @@ watch(groups, computeGroups, { deep: true })
         <ContentFilter :tab="props.tab"/>
     </div>
     <hr class="custom-hr"/>
-    <div class="mt-4">
-        <button class="btn btn-outline-success m-2" @click="computeMLGroups()">Compute All Groups</button>
+    <div class="ms-1">
+        <button @click="computeMLGroups()">Compute All Groups</button>
+        </div>
+    <div class="ms-1">
         <div v-if="imageGroups.length && imageGroups[0].name == '__all__'">
-            <PaginatedImages :images="imageGroups[0].images" :imageSize="String(props.tab.data.imageSize)" />
+            <PaginatedImages :images="imageGroups[0].images" :imageSize="props.tab.data.imageSize" />
         </div>
         <div v-else>
             <div v-for="(group, index) in imageGroups">
                 <button class="btn btn-outline-success m-3" style="font-size: small;" @click="computeMLGroups(index)">Compute Groups</button>
                 <input class="form-control form-control-sm" style="display:inline-block;width:10%" type="number" v-model="nbClusters"/>
-                <ImageGroup :leftAlign="true" :group="group" :imageSize="String(props.tab.data.imageSize)" />
+                <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize" />
             </div>
         </div>
     </div>
