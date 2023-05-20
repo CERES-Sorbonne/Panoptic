@@ -242,6 +242,7 @@ export interface Sort {
 }
 
 export interface Group {
+    id?: string
     name: string
     images: Array<Image>
     groups: Array<Group>

@@ -94,7 +94,7 @@ onMounted(() => {
 <template>
     <form @submit.prevent="setEdit(false)" is-input="true" class="pt-1 pb-1 pe-1 overflow-hidden">
         <div class="d-flex flex-row" @click="setEdit(true)" ref="clickableElem">
-            <div class="text-dark me-1">
+            <div class="me-1 text-nowrap text-truncate">
                 <span class="me-1">
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
                         v-model="props.property.value" @change="setEdit(false)" ref="inputElem" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)">

@@ -8,7 +8,8 @@ import TagInput from '../inputs/TagInput.vue';
 const props = defineProps({
     image: Object as () => Image,
     size: { type: Number, default: 100 },
-    index: Number
+    index: Number,
+    groupId: String
 })
 
 // const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
@@ -68,11 +69,11 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
                 <TagInput v-if="property.type == PropertyType.multi_tags" :property="property"
-                    :max-size="String(props.size)" :input-id="[property.propertyId, props.index]" />
+                    :max-size="String(props.size)" :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
                 <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="String(props.size)"
-                    :mono-tag="true" :input-id="[property.propertyId, props.index]" />
+                    :mono-tag="true" :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
-                    :input-id="[property.propertyId, props.index]" />
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
             </div>
         </div>
     </div>
@@ -95,6 +96,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
     width: 100%;
     border-top: 1px solid var(--border-color);
     padding: 2px;
+    font-size: 12px;
 }
 
 img {

@@ -24,7 +24,7 @@ const props = defineProps({
             <RangeInput :min="50" :max="500" v-model="props.tab.data.imageSize" />
         </div>
         <div class="ms-5">
-            <input type="text" class="text-input" v-model="props.tab.name"/>
+            <input type="text" class="text-input" v-model="props.tab.name" />
         </div>
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
@@ -32,6 +32,9 @@ const props = defineProps({
         <FilterForm :filter="props.tab.data.filter" />
         <GroupForm :groupIds="props.tab.data.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
+        <div class="ms-2">
+            <button @click="$emit('compute-ml')">Compute All Groups</button>
+        </div>
     </div>
 </template>
 

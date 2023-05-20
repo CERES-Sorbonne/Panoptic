@@ -7,6 +7,7 @@ import { globalStore } from '@/data/store';
 const props = defineProps({
     images: Array<Image>,
     imageSize: { type: Number, default: 100 },
+    groupId: String
 })
 
 const loadedPages = ref(1)
@@ -19,7 +20,7 @@ const loadedImages = computed(() => props.images.slice(0, loadedImageCount.value
 
 <template>
     <div class="d-flex flex-wrap">
-        <ImageVue :image="image" :index="index" :size="props.imageSize" v-for="image, index in loadedImages" class="" />
+        <ImageVue :image="image" :index="index" :size="props.imageSize" v-for="image, index in loadedImages" class="" :groupId="props.groupId" />
     </div>
     <!-- <div v-if="loadedImageCount < props.images.length" class="d-inline-block overflow-hidden align-items-center"> -->
     <!-- <div class="d-flex justify-content-center align-items-center h-100 w-100">

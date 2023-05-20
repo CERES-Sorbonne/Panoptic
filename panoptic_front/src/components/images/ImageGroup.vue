@@ -9,7 +9,8 @@ import { globalStore } from '@/data/store';
 const props = defineProps({
     group: Object as () => Group,
     small: String,
-    imageSize: Number
+    imageSize: Number,
+    groupId: {type: String, default: '0'}
 })
 
 const images = computed(() => props.group.images)
@@ -44,11 +45,11 @@ const groupName = computed(() => {
         <template #content>
             <div v-if="hasImages">
                 <div class="ms-3">
-                    <PaginatedImages :images="images" :image-size="imageSize" />
+                    <PaginatedImages :images="images" :image-size="imageSize" :groupId="props.groupId"/>
                 </div>
             </div>
             <div v-else-if="hasSubgroups" class="ms-3">
-                <ImageGroup v-for="group in subgroups" :group="group" small=true :image-size="props.imageSize" />
+                <ImageGroup v-for="group, index in subgroups" :group="group" small=true :image-size="props.imageSize" :groupId="props.groupId + '-' + index"/>
             </div>
             <div v-else>
                 Error.. No Subgroups, No images, Why ?
