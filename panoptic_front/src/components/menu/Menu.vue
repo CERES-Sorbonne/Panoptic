@@ -22,7 +22,7 @@ const addFolder = async () => {
 
 <template>
     <div class="menu overflow-scroll">
-        <div>
+        <div class="">
             <div>
                 <div class="p-2">
                     <b>Dossiers</b>
@@ -69,7 +69,4 @@ const addFolder = async () => {
     width: 100%
 }
 
-.menu {
-    border-right: 1px solid rgb(195, 207, 217);
-}
 </style>
