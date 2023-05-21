@@ -8,7 +8,15 @@
   position: sticky;
   top: 0;
   width: 210px;
+  border-right: 1px solid var(--border-color);
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
+
+.menu::-webkit-scrollbar {
+  display: none;
+}
+
 
 .menu b {
   font-size: 13px;
