@@ -3,7 +3,7 @@ import hashlib
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import List
+from typing import List, Callable
 
 from PIL import Image
 
@@ -25,6 +25,7 @@ class ImageImporter:
         self.total_compute = 0
         self.current_computed = 0
 
+        self._final_callback = None
     # def _reset_counters(self):
     #     self.total_import = -1
     #     self.current_import = 0
@@ -72,8 +73,13 @@ class ImageImporter:
         res = await task
         self.current_computed += 1
         await callback(*res)
+        # this was the last callback
+        if len(self.compute_tasks) == 1:
+            await self._final_callback()
 
-
+    def set_final_callback(self, fn: Callable):
+        self._final_callback = fn
+        return fn
 
 def compute_image(image_path: str = None, image: Image = None):
     if not image_path and not image:
@@ -98,7 +104,7 @@ def import_image(file_path, folder_id):
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
-    return image, folder_id, name, extension, width, height, sha1_hash, url, file_path
+    return image, folder_id, name, extension, width, height, sha1_hash, url
 
 
 async def compute_folder_structure(root_path, all_files: List[str]):

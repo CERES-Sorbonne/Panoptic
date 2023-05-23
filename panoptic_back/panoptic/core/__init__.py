@@ -5,10 +5,10 @@ from typing import List
 
 from fastapi import HTTPException
 
-from panoptic.compute import make_clusters as get_groups
+from panoptic import compute
 import panoptic.core.db
 from panoptic.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload, Folder
+    UpdateTagPayload, UpdatePropertyPayload, Folder, ImageVector
 from .image_importer import ImageImporter
 
 executor = ProcessPoolExecutor(max_workers=4)
@@ -61,7 +61,13 @@ async def make_clusters(sensibility: float, image_list: [str]) -> list[list[str]
     """
     # TODO: add parameters to compute clusters only on some images
     images = await db.get_images_with_vectors(image_list)
-    return get_groups(images, sensibility)
+    return compute.make_clusters(images, method="kmeans", nb_clusters=sensibility)
+
+
+async def get_similar_images(sha1: str):
+    images = await db.get_images_with_vectors([sha1])
+    image = images[0]
+    return compute.get_similar_images(image.vector)
 
 
 async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
@@ -112,6 +118,12 @@ def get_compute_callback(sha1):
     async def callback(ahash, vector, is_last=False):
         await db.update_image_hashs(sha1, str(ahash), vector)
     return callback
+
+
+@importer.set_final_callback
+async def compute_finished_callback():
+    images: list[ImageVector] = await db.get_images_with_vectors()
+    compute.create_similarity_tree(images)
 
 
 async def create_tag(property_id, value, parent_id, color:str) -> Tag:
