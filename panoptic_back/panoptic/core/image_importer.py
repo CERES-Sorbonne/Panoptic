@@ -71,7 +71,9 @@ class ImageImporter:
         task = asyncio.wrap_future(future)
         res = await task
         self.current_computed += 1
-        await callback(*res)
+        is_last = True if len(self.compute_tasks) == 1 else False
+        await callback(*res, is_last)
+
 
 
 def compute_image(image_path: str = None, image: Image = None):

@@ -10,7 +10,16 @@ export enum PropertyType {
     date = "date",
     path = "path",
     color = "color",
-    checkbox = "checkbox"
+    checkbox = "checkbox",
+
+
+    ahash = "average hash",
+    sha1 = "sha1",
+}
+
+export enum PropertyID {
+    sha1 = -1,
+    ahash = -2,
 }
 
 export interface Tag {
@@ -40,6 +49,7 @@ export interface PropertyRef extends PropertyValue {
 
 export interface Image {
     sha1: string
+    ahash: string
     width: number
     height: number
     url: string
@@ -193,7 +203,10 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
         case PropertyType.url:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.startsWith]
-        default:
+        case PropertyType.ahash:
+        case PropertyType.sha1:
+            return [FilterOperator.equal, FilterOperator.equalNot]
+            default:
             return []
     }
 }

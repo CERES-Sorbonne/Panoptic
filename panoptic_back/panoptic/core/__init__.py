@@ -45,10 +45,10 @@ async def get_images() -> Images:
     rows = await db.get_images()
     result = {}
     for row in rows:
-        sha1, paths, height, width, url, extension, name, property_id, value = row
+        sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
         if sha1 not in result:
             result[sha1] = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
-                                 extension=extension)
+                                 extension=extension, ahash=ahash)
         if property_id:
             result[sha1].properties[property_id] = PropertyValue(
                 **{'property_id': property_id, 'value': db.decode_if_json(value)})
@@ -109,7 +109,7 @@ async def save_callback(image, folder_id: Folder, name, extension, width, height
 
 
 def get_compute_callback(sha1):
-    async def callback(ahash, vector):
+    async def callback(ahash, vector, is_last=False):
         await db.update_image_hashs(sha1, str(ahash), vector)
     return callback
 
