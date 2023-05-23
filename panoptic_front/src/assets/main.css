@@ -246,3 +246,26 @@ button {
   background-color: #ffffff;
   color: rgb(76, 92, 107);
 }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    /* display: none; <- Crashes Chrome on hover */
+    -webkit-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+    -moz-appearance:textfield; /* Firefox */
+    /* padding: 5px; */
+    /* line-height: 20px !important; */
+    /* line-height: 16px; */
+    font-size: 9px;
+    /* padding-top: 2px; */
+    padding: 2px;
+    -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline-width: 0;
+  border: 2px solid var(--border-color);
+  border-radius: 3px;
+}

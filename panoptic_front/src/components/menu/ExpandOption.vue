@@ -3,7 +3,6 @@ import { ref, computed, defineProps, onMounted } from 'vue';
 
 const props = defineProps({
   leftAlign: Boolean,
-  titleSize: { type: String, default: 'h5' },
   defaultExpand: { type: Boolean, default: true },
   resetOnHide: { type: Boolean, default: false }
 });
@@ -25,7 +24,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div :class="props.titleSize">
+    <div>
       <span v-if="leftAlign" class="float-start me-2">
         <span :class="caretClass" @click.stop="toggle"></span>
       </span>

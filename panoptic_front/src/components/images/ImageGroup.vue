@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ExpandOption from '../Menu/ExpandOption.vue';
 import PaginatedImages from './PaginatedImages.vue';
 import { Group, PropertyType } from '@/data/models';
@@ -13,14 +13,16 @@ const props = defineProps({
     groupId: {type: String, default: '0'}
 })
 
+const clusterNb = ref(10)
+
 const images = computed(() => props.group.images)
 const subgroups = computed(() => props.group.groups)
 const hasImages = computed(() => images.value.length > 0)
 const hasSubgroups = computed(() => subgroups.value != undefined)
+const property = computed(() => globalStore.properties[props.group.propertyId])
 
 const groupName = computed(() => {
     let name = props.group.name
-    let property = globalStore.properties[props.group.propertyId]
     if(props.group.propertyId == undefined) {
         return props.group.name
     }
@@ -34,22 +36,50 @@ const groupName = computed(() => {
         }
     }
 
-    return property.name + ': ' + name
+    return name
 })
+
+function clear() {
+    props.group.groups = undefined
+}
+
+async function computeClusters() {
+    let mlGroups = await globalStore.computeMLGroups(props.group.images.map(i => i.sha1), clusterNb.value)
+    props.group.groups = []
+    for(let [index, group] of mlGroups.entries()){
+        let realGroup: Group = {
+            name: 'cluster ' + index.toString(),
+            images: group,
+            count:group.length,
+            groups: undefined
+        }
+        props.group.groups.push(realGroup)
+    }
+}
 
 </script>
 
 <template>
-    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true" :title-size="'6'">
-        <template #name>{{ groupName }} ({{ props.group.count }})</template>
+    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true" class="image-group">
+        <template #name>
+            <div class="d-flex flex-row mb-1">
+                <div v-if="property != undefined"><b>{{ property.name }}</b> : {{ groupName }}</div>
+                <div v-else><b>{{ groupName }}</b></div>
+                <div class="ms-2">({{ props.group.count }})</div>
+                <div v-if="hasImages && hasSubgroups" class="button-offset ms-2"><button @click="clear">Clear</button></div>
+                <div v-if="hasImages && !hasSubgroups" class="button-offset ms-2"><button @click="computeClusters">Compute Groups</button></div>
+                <div v-if="hasImages && !hasSubgroups" class="button-offset ms-2"><input class="" type="number" v-model="clusterNb" style="width: 30px;"/></div>
+            </div>
+             
+        </template>
         <template #content>
-            <div v-if="hasImages">
+            <div v-if="hasSubgroups" class="ms-3">
+                <ImageGroup v-for="group, index in subgroups" :group="group" small=true :image-size="props.imageSize" :groupId="props.groupId + '-' + index"/>
+            </div>
+            <div v-else-if="hasImages">
                 <div class="ms-3">
                     <PaginatedImages :images="images" :image-size="imageSize" :groupId="props.groupId"/>
                 </div>
-            </div>
-            <div v-else-if="hasSubgroups" class="ms-3">
-                <ImageGroup v-for="group, index in subgroups" :group="group" small=true :image-size="props.imageSize" :groupId="props.groupId + '-' + index"/>
             </div>
             <div v-else>
                 Error.. No Subgroups, No images, Why ?
@@ -59,27 +89,13 @@ const groupName = computed(() => {
 </template>
 
 <style scoped="true">
-.images-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    grid-gap: 20px;
+/* .image-group {
+    border-left: 1px solid var(--border-color);
+} */
+
+.button-offset {
+    position: relative;
+    top: -3px
 }
 
-.image-card {
-    height: 100%;
-    max-height: 300px;
-    border: 1px solid #ccc;
-    padding-left: 0;
-    padding-right: 0;
-}
-
-.image-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.image-container {
-    height: 100%;
-}
 </style>
