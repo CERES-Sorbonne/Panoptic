@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab, apiGetMLGroups, apiGetImportStatus } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID } from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, Image } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -21,7 +21,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     selectedTab: 0,
     async addTab(tabName: string) {
         let state = buildTabState()
-        let tab = await apiAddTab({name: tabName, data:state})
+        let tab = await apiAddTab({ name: tabName, data: state })
         this.tabs[tab.id] = tab
         this.selectedTab = tab.id
     },
@@ -40,16 +40,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async loadTabState() {
         let tabs = await apiGetTabs()
         // console.log(tabs)
-        tabs.forEach((t:Tab) => globalStore.tabs[t.id] = t)
+        tabs.forEach((t: Tab) => globalStore.tabs[t.id] = t)
 
-        if(tabs.length == 0) {
+        if (tabs.length == 0) {
             await this.addTab('Tab1')
         }
 
         this.verifySelectedTab()
     },
     verifySelectedTab() {
-        if(this.tabs[this.selectedTab] != undefined) {
+        if (this.tabs[this.selectedTab] != undefined) {
             return
         }
         this.selectedTab = Object.keys(this.tabs)[0]
@@ -86,13 +86,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     // }),
     folderTree: computed(() => {
         let copies = {} as Folders
-        for(let k in globalStore.folders) {
-            copies[k] = {...globalStore.folders[k]}
+        for (let k in globalStore.folders) {
+            copies[k] = { ...globalStore.folders[k] }
             copies[k].children = []
         }
-        for(let k in copies) {
+        for (let k in copies) {
             let parent = copies[k].parent
-            if(parent != undefined) {
+            if (parent != undefined) {
                 copies[parent].children.push(copies[k])
 
             }
@@ -116,11 +116,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //console.log(folders)
 
         Object.values(images).forEach(img => {
-            img.properties[PropertyID.sha1] = {propertyId: PropertyID.sha1, value: img.sha1} 
-            img.properties[PropertyID.ahash] = {propertyId: PropertyID.ahash, value: img.ahash} 
+            img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
+            img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         })
-        properties[PropertyID.sha1] = {id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1}
-        properties[PropertyID.ahash] = {id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash}
+        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1 }
+        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash }
 
         this.images = images
         this.tags = tags
@@ -145,10 +145,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
         //console.log(color)
-        if(color == undefined) {
+        if (color == undefined) {
             //console.log("find color")
-            let options = ["7c1314","c31d20","f94144","f3722c","f8961e","f9c74f","90be6d","43aa8b","577590","9daebe"]
-            let r = Math.round(Math.random() * (options.length-1))
+            let options = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590", "9daebe"]
+            let r = Math.round(Math.random() * (options.length - 1))
             color = '#' + options[r]
         }
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
@@ -192,9 +192,20 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         delete this.properties[propertyId]
     },
 
-    async getMLGroups(nbGroups:number = 50, imageList: string[] = []){
+    async getMLGroups(nbGroups: number = 50, imageList: string[] = []) {
         const res = await apiGetMLGroups(nbGroups, imageList)
         return res
+    },
+    async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10){
+        let sha1List: [[string]]
+        if(images){
+            sha1List = await globalStore.getMLGroups(Math.min(nbClusters, images.length), images)
+        }
+        else{
+            sha1List = await globalStore.getMLGroups(nbClusters)
+        }
+        const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
+        return ml_groups
     }
 
 })
@@ -227,7 +238,7 @@ function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     root = nodeIndex['0']
 
 
-    let tagNodes = {} as {[key:string]: Tag}
+    let tagNodes = {} as { [key: string]: Tag }
 
 
     // recursive function. builds all possible path starting from a rootNode
@@ -242,7 +253,7 @@ function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
         if (rootNode.children) {
             rootNode.children = rootNode.children.map((childId: number) => {
                 let child = { ...nodeIndex[childId] }
-                if(rootNode.color) {
+                if (rootNode.color) {
                     child.color = rootNode.color
                 }
                 return buildTree(child, rootNode)
@@ -254,3 +265,18 @@ function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     globalStore.tagNodes[propId] = tagNodes
     return res
 }
+
+// for(let [index, group] of ml_groups.entries()){
+    //     let realGroup: Group = {
+    //         name: 'cluster ' + index.toString(),
+    //         images: group,
+    //         count:group.length,
+    //         groups: []
+    //     }
+    //     if(groupId){
+    //         imageGroups[groupId].groups.push(realGroup)
+    //     }
+    //     else{
+    //         imageGroups.push(realGroup)
+    //     }
+    // }
