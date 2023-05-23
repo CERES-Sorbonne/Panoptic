@@ -265,18 +265,3 @@ function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     globalStore.tagNodes[propId] = tagNodes
     return res
 }
-
-// for(let [index, group] of ml_groups.entries()){
-    //     let realGroup: Group = {
-    //         name: 'cluster ' + index.toString(),
-    //         images: group,
-    //         count:group.length,
-    //         groups: []
-    //     }
-    //     if(groupId){
-    //         imageGroups[groupId].groups.push(realGroup)
-    //     }
-    //     else{
-    //         imageGroups.push(realGroup)
-    //     }
-    // }

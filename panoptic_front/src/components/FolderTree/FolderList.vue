@@ -1,19 +1,30 @@
 <script setup lang="ts">
 import { Folder } from '@/data/models';
-
+import {globalStore} from '@/data/store'
 
 const props = defineProps({
     folders: Array<Folder>,
     root: {type: Boolean, default: true}
 })
 
+function toggleFolder(folderId: number) {
+    let folder = globalStore.folders[folderId]
+    if(folder.show) {
+        folder.show = false
+    }
+    else {
+        folder.show = true
+    }
+}
+
 </script>
 
 <template>
     <ul :class="props.root ? 'tree' : ''" :style="props.root ? 'padding-left:0px;' : ''">
-        <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''">
+        <li v-for="folder, index in folders" :style="props.root ? 'padding-left:0px;' : ''">
             <summary class="folder-text">{{ folder.name }}</summary>
-            <template v-if="folder.children && folder.children.length > 0">
+            <i v-if="folder.children && folder.children.length > 0" @click="toggleFolder(folder.id)" :class="'bi bi-chevron-' + (folder.show ? 'down' : 'right') + ' ms-2'" style="font-size: 9px;"></i>
+            <template v-if="folder.children && folder.children.length > 0 && folder.show">
                 <FolderList :folders="folder.children" :root="false"/>
             </template>
         </li>

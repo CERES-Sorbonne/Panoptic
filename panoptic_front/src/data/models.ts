@@ -271,6 +271,7 @@ export interface Folder {
     path: string
     parent: number
     children: Array<Folder>
+    show?: boolean // frontend variable to know if exanded in view or not
 }
 
 export interface ImportState {
