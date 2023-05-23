@@ -103,6 +103,7 @@ export interface GlobalStore {
     properties: Properties
     propertyList: ComputedRef<Array<Property>>
     images: Images
+    importState: ImportState
     imageList: ComputedRef<{url: String, imageName: String}[]>
     folders: Folders
     tabs: Tabs
@@ -118,6 +119,7 @@ export interface ReactiveStore{
     folders: Folders
     tabs: Tabs
     images: Images
+    importState: ImportState
     imageList: {url: String, imageName: String}[]
     fetchAllData: () => void
     [otherOptions: string]: any
@@ -256,6 +258,11 @@ export interface Folder {
     path: string
     parent: number
     children: Array<Folder>
+}
+
+export interface ImportState {
+    to_import: number
+    imported: number
 }
 
 export function buildTabState() {

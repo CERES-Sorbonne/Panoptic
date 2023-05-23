@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
+from panoptic import core
 from panoptic.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
@@ -124,8 +125,15 @@ async def delete_tag_parent_route(tag_id: int, parent_id: int):
 
 
 @app.get("/folders")
-async def get_folders():
+async def get_folders_route():
     res = await db.get_folders()
+    return res
+
+
+@app.get('/import_status')
+async def get_import_status_route():
+    image_import = core.importer
+    res = {'to_import': image_import.total_import, 'imported': image_import.current_import}
     return res
 
 
@@ -137,7 +145,7 @@ class PathRequest(BaseModel):
 async def add_folder_route(path: PathRequest):
     # TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
     nb_images = await add_folder(path.path)
-    return await get_folders()
+    return await get_folders_route()
 
 
 @app.get("/tabs")
@@ -164,5 +172,6 @@ async def delete_tab_route(tab_id: int):
 @app.post("/clusters")
 async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
     return await make_clusters(payload.nb_groups, payload.image_list)
+
 
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
