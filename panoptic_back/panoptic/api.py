@@ -13,7 +13,7 @@ from panoptic import core
 from panoptic.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters
+    db_utils, make_clusters, get_similar_images
 from panoptic.core import db
 from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
@@ -155,7 +155,6 @@ async def get_tabs_route():
 
 @app.post("/tab")
 async def add_tab_route(tab: Tab):
-    print(tab)
     return await db.add_tab(tab.name, tab.data)
 
 
@@ -172,6 +171,11 @@ async def delete_tab_route(tab_id: int):
 @app.post("/clusters")
 async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
     return await make_clusters(payload.nb_groups, payload.image_list)
+
+
+@app.get("/similar/{sha1}")
+async def get_similar_images_route(sha1: str) -> list:
+    return await get_similar_images(sha1)
 
 
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
