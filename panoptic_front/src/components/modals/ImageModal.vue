@@ -69,7 +69,7 @@ onMounted(() => {
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header">
-                    <h5 class="modal-title">Image: {{ image.sha1 }}</h5>
+                    <h5 class="modal-title">Image View</h5>
                     <button type="button" class="btn close" @click="hide">
                         <span aria-hidden="true">&times;</span>
                     </button>

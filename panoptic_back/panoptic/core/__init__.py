@@ -102,10 +102,10 @@ async def add_folder(folder):
     return folder
 
 
-async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url):
+async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url, file_path):
     await add_image_to_db(folder_id, name, extension, width, height, sha1_hash, url)
 
-    importer.compute_image(get_compute_callback(sha1_hash), image=image)
+    importer.compute_image(get_compute_callback(sha1_hash), image_path=file_path)
 
 
 def get_compute_callback(sha1):
