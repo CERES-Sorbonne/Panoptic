@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab, apiGetMLGroups } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab } from '../data/models'
+import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab, apiGetMLGroups, apiGetImportStatus } from '../data/api'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -9,6 +9,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     properties: {} as Properties,
     folders: {} as Folders,
     tabs: {} as Tabs,
+    importState: {} as ImportState,
     settings: {
         pageSize: 200,
         propertyTypes: Object.values(PropertyType),
@@ -114,6 +115,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let folders = await apiGetFolders()
         //console.log(folders)
 
+        Object.values(images).forEach(img => {
+            img.properties[PropertyID.sha1] = {propertyId: PropertyID.sha1, value: img.sha1} 
+            img.properties[PropertyID.ahash] = {propertyId: PropertyID.ahash, value: img.ahash} 
+        })
+        properties[PropertyID.sha1] = {id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1}
+        properties[PropertyID.ahash] = {id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash}
+
         this.images = images
         this.tags = tags
         this.properties = properties
@@ -121,6 +129,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         folders.forEach((f: Folder) => this.folders[f.id] = f)
 
         await this.loadTabState()
+
+
+        this.importState = await apiGetImportStatus()
+        setInterval(async () => { this.importState = await apiGetImportStatus() }, 1000)
+        console.log(this.importState)
 
         this.isLoaded = true
     },

@@ -10,7 +10,16 @@ export enum PropertyType {
     date = "date",
     path = "path",
     color = "color",
-    checkbox = "checkbox"
+    checkbox = "checkbox",
+
+
+    ahash = "average hash",
+    sha1 = "sha1",
+}
+
+export enum PropertyID {
+    sha1 = -1,
+    ahash = -2,
 }
 
 export interface Tag {
@@ -40,6 +49,7 @@ export interface PropertyRef extends PropertyValue {
 
 export interface Image {
     sha1: string
+    ahash: string
     width: number
     height: number
     url: string
@@ -103,6 +113,7 @@ export interface GlobalStore {
     properties: Properties
     propertyList: ComputedRef<Array<Property>>
     images: Images
+    importState: ImportState
     imageList: ComputedRef<{url: String, imageName: String}[]>
     folders: Folders
     tabs: Tabs
@@ -118,6 +129,7 @@ export interface ReactiveStore{
     folders: Folders
     tabs: Tabs
     images: Images
+    importState: ImportState
     imageList: {url: String, imageName: String}[]
     fetchAllData: () => void
     [otherOptions: string]: any
@@ -191,7 +203,10 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
         case PropertyType.url:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.startsWith]
-        default:
+        case PropertyType.ahash:
+        case PropertyType.sha1:
+            return [FilterOperator.equal, FilterOperator.equalNot]
+            default:
             return []
     }
 }
@@ -256,6 +271,11 @@ export interface Folder {
     path: string
     parent: number
     children: Array<Folder>
+}
+
+export interface ImportState {
+    to_import: number
+    imported: number
 }
 
 export function buildTabState() {
