@@ -104,19 +104,37 @@ onMounted(() => {
                                             </div> -->
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
-                                    <!-- <tbody> -->
-                                        <tr v-for="property, index in imageProperties" class="">
+                                    <b>Proprietés</b>
+                                    <tr v-for="property, index in imageProperties" class="">
+                                        <template v-if="property.propertyId >= 0">
                                             <td>{{ globalStore.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
                                                 <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" :input-id="[100, index]"/>
+                                                    :property="property" :input-id="[100, index]" />
                                                 <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" :input-id="[100, index]"/>
-                                                <PropertyInput v-else :property="property" :input-id="[100, index]"/>
+                                                    :mono-tag="true" :input-id="[100, index]" />
+                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
                                             </td>
+                                        </template>
 
-                                        </tr>
-                                    <!-- </tbody> -->
+                                    </tr>
+                                </table>
+
+                                <table class="table">
+                                    <b>Computed</b>
+                                    <tr v-for="property, index in imageProperties" class="">
+                                        <template v-if="property.propertyId < 0">
+                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td class="w-100">
+                                                <TagInput v-if="property.type == PropertyType.multi_tags"
+                                                    :property="property" :input-id="[100, index]" />
+                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
+                                                    :mono-tag="true" :input-id="[100, index]" />
+                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
+                                            </td>
+                                        </template>
+
+                                    </tr>
                                 </table>
                             </div>
                         </div>
@@ -137,8 +155,7 @@ onMounted(() => {
 
 <style scoped>
 .image-size {
-    max-width: 800px;
+    max-width: 600px;
     max-height: 600px;
 }
-
 </style>

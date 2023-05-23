@@ -51,7 +51,7 @@ async def get_image_by_sha1(sha1) -> [Image | None]:
 
 async def get_images():
     query = """
-            SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value
+            SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
             FROM images i
             LEFT JOIN images_properties i_d ON i.sha1 = i_d.sha1
             """
