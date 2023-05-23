@@ -30,6 +30,10 @@ class ImageImporter:
     #     self.current_import = 0
 
     async def import_folder(self, callback, folder: str):
+        if self.total_import == self.current_import:
+            self.total_compute = 0
+            self.current_computed = 0
+
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
                       i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]

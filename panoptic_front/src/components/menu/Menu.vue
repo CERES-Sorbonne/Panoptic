@@ -38,27 +38,23 @@ const addFolder = async () => {
                                 :data="property" />
                             <Property v-else :data="property" />
                         </div>
-                        <div @click="globalStore.showModal(Modals.PROPERTY)" class="btn-icon property-item" style="line-height: 25px;">
+                        <div @click="globalStore.showModal(Modals.PROPERTY)" class="btn-icon property-item"
+                            style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                             <span>Nouvelle propriété</span>
                         </div>
                     </div>
                 </div>
-                <!-- <ExpandOption title-size="h6">
-                    <template #name> </template>
-                    <template #icons><span @click="globalStore.showModal(Modals.PROPERTY)"
-                            class="h4 bi bi-plus-square me-3 btn-icon"></span></template>
-                    <template #content>
-                        <ul class="list-group option-content">
-                            <li class="list-group-item" v-for="property in globalStore.properties">
-                                <TagProperty
-                                    v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag"
-                                    :data="property" />
-                                <Property v-else :data="property" />
-                            </li>
-                        </ul>
-                    </template> -->
-                <!-- </ExpandOption> -->
+                <div class="custom-hr" />
+                <div class="p-2" v-if="globalStore.importState.to_import != undefined">
+                    <div class="w-100 text-center" style="font-size: 10px;">
+                        {{ globalStore.importState.imported }} / {{ globalStore.importState.to_import }} importées
+                    </div>
+                    <div v-if="globalStore.importState.to_import > 0" class="progress" role="progressbar" aria-label="Example 1px high"
+                        aria-valuemin="0" aria-valuemax="100" style="height: 1px">
+                        <div class="progress-bar" :style="`width: ${globalStore.importState.imported / globalStore.importState.to_import * 100}%`"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -68,5 +64,4 @@ const addFolder = async () => {
 .option-content {
     width: 100%
 }
-
 </style>
