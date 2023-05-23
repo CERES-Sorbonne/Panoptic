@@ -133,7 +133,7 @@ async def get_folders_route():
 @app.get('/import_status')
 async def get_import_status_route():
     image_import = core.importer
-    res = {'to_import': image_import.total_import, 'imported': image_import.current_import}
+    res = {'to_import': image_import.total_import, 'imported': image_import.current_computed}
     return res
 
 
