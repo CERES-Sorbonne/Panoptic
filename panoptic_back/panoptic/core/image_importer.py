@@ -104,7 +104,7 @@ def import_image(file_path, folder_id):
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
-    return image, folder_id, name, extension, width, height, sha1_hash, url
+    return image, folder_id, name, extension, width, height, sha1_hash, url, file_path
 
 
 async def compute_folder_structure(root_path, all_files: List[str]):
