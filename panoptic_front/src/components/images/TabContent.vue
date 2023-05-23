@@ -7,6 +7,7 @@ import { Group, Image, PropertyType, Tab } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
 import ContentFilter from './ContentFilter.vue';
+import { sortImages } from '@/utils/sort';
 
 const props = defineProps({
     tab: Object as () => Tab
@@ -20,6 +21,15 @@ const imageGroups = reactive([])
 
 const filteredImages = computed(() => {
     let images = Object.values(globalStore.images)
+
+    if(sorts.value.length > 0) {
+        console.log('soort')
+        images = sortImages(images, globalStore.properties[sorts.value[0].property_id])
+        if(!sorts.value[0].ascending) {
+            images.reverse()
+        }
+    }
+
     return images.filter(img => computeGroupFilter(img, filters.value))
 })
 

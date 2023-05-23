@@ -22,6 +22,10 @@ const isSet = computed(() => props.property.value || props.property.value == 0)
 const type = computed(() => props.property.type)
 
 function setEdit(value: Boolean) {
+    if(props.property.propertyId < 0) {
+        edit.value = false
+        return
+    }
     if (value) {
         edit.value = true
         document.addEventListener('click', handleContainerClick, true)
