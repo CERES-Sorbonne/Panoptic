@@ -81,7 +81,7 @@ function scrollToTop() {
                     <button @click="computeClusters">Compute Groups</button>
                 </div>
                 <div v-if="hasImages && !hasSubgroups" class="ms-2">
-                    <input class="" type="number" v-model="clusterNb" style="width: 30px;" />
+                    <input class="" type="number" v-model="clusterNb" style="width: 50px;" />
                 </div>
             </div>
 
