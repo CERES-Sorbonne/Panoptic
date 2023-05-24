@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Folder } from '@/data/models';
 import {globalStore} from '@/data/store'
+import { computed } from 'vue';
 
 const props = defineProps({
     folders: Array<Folder>,
@@ -17,13 +18,30 @@ function toggleFolder(folderId: number) {
     }
 }
 
+function toggleFolderSelect(folderId: number) {
+    let folder = globalStore.folders[folderId]
+    if(folder.selected) {
+        folder.selected = false
+    }
+    else {
+        folder.selected = true
+    }
+}
+
+function folderClass(folder: Folder) {
+    let classes = []
+    if(folder.selected) classes.push('selected')
+
+    return classes.join(' ')
+}
+
 </script>
 
 <template>
     <ul :class="props.root ? 'tree' : ''" :style="props.root ? 'padding-left:0px;' : ''">
-        <li v-for="folder, index in folders" :style="props.root ? 'padding-left:0px;' : ''">
-            <summary class="folder-text">{{ folder.name }}</summary>
-            <i v-if="folder.children && folder.children.length > 0" @click="toggleFolder(folder.id)" :class="'bi bi-chevron-' + (folder.show ? 'down' : 'right') + ' ms-2'" style="font-size: 9px;"></i>
+        <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''">
+            <summary :class="folderClass(folder)" @click="toggleFolderSelect(folder.id)">{{ folder.name }}</summary>
+            <i v-if="folder.children && folder.children.length > 0" @click="toggleFolder(folder.id)" :class="'bi bi-chevron-' + (folder.show ? 'down' : 'right') + ' ms-2 btn-icon'" style="font-size: 9px;"></i>
             <template v-if="folder.children && folder.children.length > 0 && folder.show">
                 <FolderList :folders="folder.children" :root="false"/>
             </template>
@@ -32,6 +50,12 @@ function toggleFolder(folderId: number) {
 </template>
 
 <style scoped>
+
+.selected {
+    border: 1px solid blue;
+    padding: 2px 4px !important;
+    
+}
 
 .tree {
     text-align: start;
@@ -83,7 +107,7 @@ function toggleFolder(folderId: number) {
     background-color: rgb(195, 207, 217);
     margin: 3px 0px 0px 0px;
     border-radius: 2px;
-    padding: 0.2em 0.7em;
+    padding: 3px 5px;
     /* min-width: 30px; */
     font-size: 10px;
     width: auto;
