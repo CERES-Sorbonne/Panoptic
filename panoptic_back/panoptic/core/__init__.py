@@ -55,6 +55,23 @@ async def get_images() -> Images:
     return result
 
 
+async def get_full_image(sha1: str) -> Image:
+    """
+    Get all images from database
+    """
+    rows = await db.get_full_image_with_sha1(sha1)
+    result = None
+    for row in rows:
+        sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
+        result = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
+                                 extension=extension, ahash=ahash)
+        if property_id:
+            result.properties[property_id] = PropertyValue(
+                **{'property_id': property_id, 'value': db.decode_if_json(value)})
+        break
+    return result
+
+
 async def make_clusters(sensibility: float, image_list: [str]) -> list[list[str]]:
     """
     Compute clusters and return a list of list of sha1
@@ -108,15 +125,25 @@ async def add_folder(folder):
     return folder
 
 
+new_images = []
+
+
+def get_new_images():
+    copy = [i for i in new_images]
+    new_images.clear()
+    return copy
+
+
 async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url, file_path):
     await add_image_to_db(folder_id, name, extension, width, height, sha1_hash, url)
-
+    new_images.append(sha1_hash)
     importer.compute_image(get_compute_callback(sha1_hash), image_path=file_path)
 
 
 def get_compute_callback(sha1):
     async def callback(ahash, vector, is_last=False):
         await db.update_image_hashs(sha1, str(ahash), vector)
+
     return callback
 
 
@@ -126,7 +153,7 @@ async def compute_finished_callback():
     compute.create_similarity_tree(images)
 
 
-async def create_tag(property_id, value, parent_id, color:str) -> Tag:
+async def create_tag(property_id, value, parent_id, color: str) -> Tag:
     existing_tag = await db.get_tag(property_id, value)
     if existing_tag is not None:
         if await db.tag_in_ancestors(existing_tag.id, parent_id):

@@ -248,6 +248,8 @@ button {
   display:flex;
   align-items:center;
   justify-content:center;
+  padding-left: 3px;
+  padding-right: 3px;
 }
 
 input::-webkit-outer-spin-button,
@@ -262,9 +264,9 @@ input[type=number] {
     /* padding: 5px; */
     /* line-height: 20px !important; */
     /* line-height: 16px; */
-    font-size: 9px;
+    font-size: 10px;
     /* padding-top: 2px; */
-    padding: 2px;
+    padding: 1px;
     -webkit-appearance: none !important;
   -moz-appearance: none !important;
   appearance: none !important;
@@ -274,6 +276,7 @@ input[type=number] {
   display:flex;
   align-items:center;
   justify-content:center;
+  text-align: center;
 }
 
 .text-dimmed {

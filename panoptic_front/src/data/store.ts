@@ -1,9 +1,13 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, 
-    apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, 
-    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, 
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault } from '../data/models'
+import {
+    apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder,
+    apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
+    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX
+} from '../data/api'
+import {
+    PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image
+} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -43,7 +47,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async loadTabState() {
         let tabs = await apiGetTabs()
         // console.log(tabs)
-        tabs.forEach((t: Tab) => globalStore.tabs[t.id] = t)
+        tabs.forEach((t: Tab) => {
+            // old version compability
+            if (t.data.selectedFolders == undefined) {
+                t.data.selectedFolders = {}
+            }
+            if (t.data.visibleFolders == undefined) {
+                t.data.visibleFolders = {}
+            }
+            globalStore.tabs[t.id] = t
+        })
 
         if (tabs.length == 0) {
             await this.addTab('Tab1')
@@ -88,19 +101,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     // }),
     folderTree: computed(() => {
-        let copies = {} as Folders
-        for (let k in globalStore.folders) {
-            copies[k] = { ...globalStore.folders[k] }
-            copies[k].children = []
-        }
-        for (let k in copies) {
-            let parent = copies[k].parent
-            if (parent != undefined) {
-                copies[parent].children.push(copies[k])
-
-            }
-        }
-        return Object.values(copies).filter(f => f.parent == undefined) as Array<Folder>
+        return Object.values(globalStore.folders).filter(f => f.parent == null) as Array<Folder>
     }),
     showModal(modalId: Modals, data: any) {
         globalStore.openModal.id = modalId
@@ -110,7 +111,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     hideModal() {
         globalStore.openModal = { id: null, data: null }
     },
-
+    importImage(img: Image) {
+        img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
+        img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
+        globalStore.images[img.sha1] = img
+    },
     async fetchAllData() {
         let images = await apiGetImages()
         let tags = await apiGetTags()
@@ -118,29 +123,32 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let folders = await apiGetFolders()
         //console.log(folders)
 
-        Object.values(images).forEach(img => {
-            img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
-            img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
-        })
+
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1 }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash }
 
-        this.images = images
+        Object.values(images).forEach(this.importImage)
+
+
         this.tags = tags
         this.properties = properties
-        this.folders = {}
-        folders.forEach((f: Folder) => this.folders[f.id] = f)
+        this.folders = buildFolderNodes(folders)
+        console.log(this.folders)
 
         await this.loadTabState()
 
 
         this.importState = await apiGetImportStatus()
-        setInterval(async () => { this.importState = await apiGetImportStatus() }, 1000)
+        setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
         console.log(this.importState)
 
         this.isLoaded = true
     },
-
+    applyImportState(state: ImportState) {
+        state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
+        state.new_images.forEach(globalStore.importImage)
+        this.importState = state
+    },
     async importFolders() {
         await apiImportFolder()
         await this.fetchAllData()
@@ -173,7 +181,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async addOrUpdatePropertyToImage(sha1: string, propertyId: number, value: any) {
         let type = this.properties[propertyId].type
-        if(value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
+        if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
         const newValue: PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
@@ -203,21 +211,31 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const res = await apiGetMLGroups(nbGroups, imageList)
         return res
     },
-    async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10){
+    async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10) {
         let sha1List: [[string]]
-        if(images){
+        if (images) {
             sha1List = await globalStore.getMLGroups(Math.min(nbClusters, images.length), images)
         }
-        else{
+        else {
             sha1List = await globalStore.getMLGroups(nbClusters)
         }
         const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
         return ml_groups
     },
 
-    async getSimilarImages(sha1: string){
+    async getSimilarImages(sha1: string) {
         const res = await apiGetSimilarImages(sha1)
         return res
+    },
+    getFolderChildren(folderId: number) {
+        let res = {} as { [key: number]: boolean }
+        let children = this.folders[folderId].children
+        children.forEach(c => {
+            res[c.id] = true
+            let subRes = globalStore.getFolderChildren(c.id)
+            subRes.forEach((r: any) => res[r] = true)
+        })
+        return Object.keys(res).map(Number)
     }
 
 })
@@ -275,5 +293,33 @@ function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     }
     let res = buildTree(root)
     globalStore.tagNodes[propId] = tagNodes
+    return res
+}
+
+function buildFolderNodes(folders: Array<Folder>) {
+    let res = {} as Folders
+    folders.forEach(f => {
+        f.children = []
+        res[f.id] = f
+    })
+
+    let parentMap = {} as { [key: number]: Array<Folder> }
+    folders.forEach(f => {
+        if (!f.parent) {
+            return
+        }
+        if (parentMap[f.parent] == undefined) {
+            parentMap[f.parent] = []
+        }
+        parentMap[f.parent].push(f)
+    })
+    Object.keys(parentMap).forEach((parentId: any) => {
+        if (parentId == undefined) {
+            return
+        }
+        parentMap[parentId].forEach(f => {
+            res[parentId].children.push(f)
+        })
+    })
     return res
 }

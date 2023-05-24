@@ -26,7 +26,7 @@ const addFolder = async () => {
             <div>
                 <div class="p-2">
                     <b>Dossiers</b>
-                    <FolderList :folders="globalStore.folderTree" />
+                    <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree" :tab="globalStore.tabs[globalStore.selectedTab].data"/>
                 </div>
                 <div class="p-2"
                     v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">

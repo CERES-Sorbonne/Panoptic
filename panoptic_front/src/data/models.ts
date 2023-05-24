@@ -270,6 +270,8 @@ export interface TabState {
     sortList: Array<Sort>
     imageSize: number
     visibleProperties: {[key: number]: boolean}
+    visibleFolders: {[key: number]: boolean}
+    selectedFolders: {[key: number]: boolean}
 }
 
 export interface TabRequest {
@@ -297,11 +299,13 @@ export interface Folder {
     parent: number
     children: Array<Folder>
     show?: boolean // frontend variable to know if exanded in view or not
+    selected?: boolean // frontend variable for smart folder filter
 }
 
 export interface ImportState {
     to_import: number
     imported: number
+    new_images?: Array<Image>
 }
 
 export function buildTabState() {
@@ -312,7 +316,9 @@ export function buildTabState() {
         groups: [],
         sortList: [],
         imageSize: 100,
-        visibleProperties: {}
+        visibleProperties: {},
+        visibleFolders: {},
+        selectedFolders: {},
     } as TabState
 }
 
