@@ -2,10 +2,9 @@
 import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
-import StampForm from '../forms/StampForm.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -16,6 +15,7 @@ const props = defineProps({
 
 const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
+const similarImages = ref([])
 
 function hasProperty(propertyId: number) {
     return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
@@ -55,6 +55,7 @@ watch(() => globalStore.openModal.id, (id) => {
     }
     else {
         hide()
+        similarImages.value = []
     }
 })
 
@@ -63,9 +64,10 @@ onMounted(() => {
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
 
-
-const tmp = reactive({})
-
+const setSimilar = async() => {
+    similarImages.value = await globalStore.getSimilarImages(image.value.sha1)
+    similarImages.value = similarImages.value.map(i => ({url: globalStore.images[i.sha1].url, dist: i.dist}))
+}
 </script>
 
 
@@ -74,7 +76,7 @@ const tmp = reactive({})
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header">
-                    <h5 class="modal-title">Image View</h5>
+                    <h5 class="modal-title">Image: {{ image.sha1 }}</h5>
                     <button type="button" class="btn close" @click="hide">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -85,6 +87,10 @@ const tmp = reactive({})
                             <div class="text-center">
                                 <img :src="image.url" class="border image-size" />
                             </div>
+                            <figure v-for="img in similarImages.slice(1, 25)" style="display: inline-block">
+                                    <img :src="img.url" style="width:100px" />
+                                    <figcaption>{{img.dist}}</figcaption>
+                                </figure>
                         </div>
                         <div class="col">
                             <div class="mt-2">
@@ -141,6 +147,7 @@ const tmp = reactive({})
 
                                     </tr>
                                 </table>
+                                <button class="me-2" @click="setSimilar()">Find Similar</button>
                             </div>
                         </div>
                     </div>
