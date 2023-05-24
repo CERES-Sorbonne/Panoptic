@@ -1,37 +1,104 @@
 <script setup lang="ts">
 import { Folder } from '@/data/models';
-import {globalStore} from '@/data/store'
+import { TabState } from '@/data/models'
+import { globalStore } from '@/data/store';
+import { computed } from 'vue';
 
 const props = defineProps({
     folders: Array<Folder>,
-    root: {type: Boolean, default: true}
+    tab: Object as () => TabState,
+    root: { type: Boolean, default: true }
 })
 
-function toggleFolder(folderId: number) {
-    let folder = globalStore.folders[folderId]
-    if(folder.show) {
-        folder.show = false
+const isSelected2 = computed(() => {
+    let res = {} as any
+    props.folders.map(f => f.id).forEach(id => {
+        if (props.tab.selectedFolders[id]) {
+            res[id] = true
+        }
+    })
+    return res
+})
+
+const isVisible = computed(() => {
+    let res = {} as any
+    props.folders.map(f => f.id).forEach(id => {
+        if (props.tab.visibleFolders[id]) {
+            res[id] = true
+        }
+    })
+    return res
+})
+
+const folderClass = computed(() => {
+    let res = {} as any
+    props.folders.forEach(f => {
+        let classes = []
+        if (isSelected2.value[f.id]) classes.push('selected')
+
+        res[f.id] = classes.join(' ')
+    })
+
+    return res
+})
+
+function toggleFolderVisible(folderId: number) {
+    let visible = props.tab.visibleFolders
+    if (visible[folderId]) {
+        delete visible[folderId]
     }
     else {
-        folder.show = true
+        visible[folderId] = true
     }
+}
+
+function toggleFolderSelect(folderId: number) {
+    let selected = props.tab.selectedFolders
+    if (selected[folderId]) {
+        delete selected[folderId]
+    }
+    else {
+        propagateParentUnselect(globalStore.folders[folderId])
+        propagateChildUnselect(globalStore.folders[folderId])
+        selected[folderId] = true
+    }
+}
+
+function propagateParentUnselect(folder: Folder) {
+    delete props.tab.selectedFolders[folder.id]
+    if(folder.parent != undefined) {
+        propagateParentUnselect(globalStore.folders[folder.parent])
+    }
+}
+
+function propagateChildUnselect(folder: Folder) {
+    folder.children.forEach(c => {
+        delete props.tab.selectedFolders[c.id]
+        c.children.forEach(propagateChildUnselect)
+    })
 }
 
 </script>
 
 <template>
     <ul :class="props.root ? 'tree' : ''" :style="props.root ? 'padding-left:0px;' : ''">
-        <li v-for="folder, index in folders" :style="props.root ? 'padding-left:0px;' : ''">
-            <summary class="folder-text">{{ folder.name }}</summary>
-            <i v-if="folder.children && folder.children.length > 0" @click="toggleFolder(folder.id)" :class="'bi bi-chevron-' + (folder.show ? 'down' : 'right') + ' ms-2'" style="font-size: 9px;"></i>
-            <template v-if="folder.children && folder.children.length > 0 && folder.show">
-                <FolderList :folders="folder.children" :root="false"/>
+        <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''">
+            <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }}</summary>
+            <i v-if="folder.children && folder.children.length > 0" @click="toggleFolderVisible(folder.id)"
+                :class="'bi bi-chevron-' + (isVisible[folder.id] ? 'down' : 'right') + ' ms-2 btn-icon'" style="font-size: 9px;"></i>
+            <template v-if="folder.children && folder.children.length > 0 && isVisible[folder.id]">
+                <FolderList :folders="folder.children" :root="false" :tab="props.tab" />
             </template>
         </li>
     </ul>
 </template>
 
 <style scoped>
+.selected {
+    border: 1px solid blue;
+    padding: 2px 4px !important;
+
+}
 
 .tree {
     text-align: start;
@@ -83,7 +150,7 @@ function toggleFolder(folderId: number) {
     background-color: rgb(195, 207, 217);
     margin: 3px 0px 0px 0px;
     border-radius: 2px;
-    padding: 0.2em 0.7em;
+    padding: 3px 5px;
     /* min-width: 30px; */
     font-size: 10px;
     width: auto;
