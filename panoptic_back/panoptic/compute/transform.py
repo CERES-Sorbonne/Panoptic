@@ -13,7 +13,7 @@ import glob
 from PIL import Image
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
-from transformers import AutoImageProcessor, MobileNetV2Model
+from transformers import AutoImageProcessor, MobileNetV2Model, CLIPVisionModel, CLIPProcessor
 # from .ocr import full_ocr
 from .utils import load_data
 
@@ -21,11 +21,12 @@ from transformers import logging
 
 logging.set_verbosity_error()
 
-PCA_SIZE = 15
+PCA_SIZE = 10
 USE_PCA_IF_POSSIBLE = True
 
 processor = AutoImageProcessor.from_pretrained("google/mobilenet_v2_1.0_224")
 model = MobileNetV2Model.from_pretrained("google/mobilenet_v2_1.0_224")
+
 pca: None | PCA = None
 tree: None | KDTree = None
 try:
@@ -134,12 +135,12 @@ def create_pca(vectors: []):
     global pca
     pca = PCA(PCA_SIZE)
     pca.fit(vectors)
-    return pca
+    save_pca()
 
 
-def to_pca(vectors: []):
+def to_pca(vector: np.ndarray):
     if pca is not None:
-        return pca.transform(vectors)
+        return pca.transform([vector])[0]
 
 
 def save_pca():
@@ -156,6 +157,8 @@ def can_use_pca(nb_vectors: int, vector_sample: np.array) -> bool:
     :return: bool
     """
     if not USE_PCA_IF_POSSIBLE:
+        return False
+    if pca is not None:
         return False
     if nb_vectors > vector_sample.shape[0] + (vector_sample.shape[0] / 10):
         return True

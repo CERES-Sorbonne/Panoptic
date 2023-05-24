@@ -47,10 +47,8 @@ class SimilarityTreeWithLabel:
         self.image_labels = sha1_list
         self.tree = KDTree(vectors)
 
-    def query(self, image: np.ndarray, k=200):
-        if k > len(self.image_labels):
-            k = len(self.image_labels)
-        dist, ind = self.tree.query(image.reshape(1, -1), k)
+    def query(self, image: np.ndarray):
+        dist, ind = self.tree.query(image.reshape(1, -1), len(self.image_labels))
         indices = [x for x in ind[0]]
         distances = [x for x in dist[0]]
         return [{'sha1': self.image_labels[i], 'dist': float('%.2f' % (distances[index]))} for index, i in enumerate(indices)]

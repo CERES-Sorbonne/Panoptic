@@ -15,6 +15,7 @@ const props = defineProps({
 
 const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
+const similarImages = ref([])
 
 function hasProperty(propertyId: number) {
     return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
@@ -54,6 +55,7 @@ watch(() => globalStore.openModal.id, (id) => {
     }
     else {
         hide()
+        similarImages.value = []
     }
 })
 
@@ -61,6 +63,11 @@ onMounted(() => {
     modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
+
+const setSimilar = async() => {
+    similarImages.value = await globalStore.getSimilarImages(image.value.sha1)
+    similarImages.value = similarImages.value.map(i => ({url: globalStore.images[i.sha1].url, dist: i.dist}))
+}
 </script>
 
 
@@ -80,6 +87,10 @@ onMounted(() => {
                             <div class="text-center">
                                 <img :src="image.url" class="border image-size" />
                             </div>
+                            <figure v-for="img in similarImages.slice(1, 25)" style="display: inline-block">
+                                    <img :src="img.url" style="width:100px" />
+                                    <figcaption>{{img.dist}}</figcaption>
+                                </figure>
                         </div>
                         <div class="col">
                             <div class="mt-2">
@@ -136,6 +147,7 @@ onMounted(() => {
 
                                     </tr>
                                 </table>
+                                <button class="me-2" @click="setSimilar()">Find Similar</button>
                             </div>
                         </div>
                     </div>
