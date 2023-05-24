@@ -254,9 +254,9 @@ async def get_image_properties_with_tag(tag_id: int) -> list[ImageProperty]:
 
 
 async def get_images_with_vectors(image_list: list[str] = None):
-    query = "SELECT sha1, vector, ahash from images"
+    query = "SELECT sha1, vector, ahash from images WHERE vector is not null "
     if image_list and len(image_list) > 0:
-        query += " WHERE sha1 in (" + ','.join('?' * len(image_list)) + ')'
+        query += " AND sha1 in (" + ','.join('?' * len(image_list)) + ')'
         cursor = await execute_query(query, tuple(image_list))
     else:
         cursor = await execute_query(query)
