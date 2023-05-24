@@ -22,15 +22,25 @@ const imageGroups = reactive([])
 const filteredImages = computed(() => {
     let images = Object.values(globalStore.images)
 
-    if(sorts.value.length > 0) {
-        console.log('soort')
-        images = sortImages(images, globalStore.properties[sorts.value[0].property_id])
-        if(!sorts.value[0].ascending) {
-            images.reverse()
+    if(Object.keys(props.tab.data.selectedFolders).length > 0) {
+        let folderIds = Object.keys(props.tab.data.selectedFolders).map(Number)
+        let allIds = [...folderIds] as Array<number>
+        folderIds.forEach(id => allIds.push(...globalStore.getFolderChildren(id)))
+        if(allIds.length > 0) {
+            images = images.filter(img => img.paths.some((p:any) => allIds.includes(Number(p))))
         }
     }
 
-    return images.filter(img => computeGroupFilter(img, filters.value))
+    let filtered = images.filter(img => computeGroupFilter(img, filters.value))
+
+    if(sorts.value.length > 0) {
+        filtered = sortImages(filtered, globalStore.properties[sorts.value[0].property_id])
+        if(!sorts.value[0].ascending) {
+            filtered.reverse()
+        }
+    }
+
+    return filtered
 })
 function computeGroups() {
     imageGroups.length = 0

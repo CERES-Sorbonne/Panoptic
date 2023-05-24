@@ -270,6 +270,8 @@ export interface TabState {
     sortList: Array<Sort>
     imageSize: number
     visibleProperties: {[key: number]: boolean}
+    visibleFolders: {[key: number]: boolean}
+    selectedFolders: {[key: number]: boolean}
 }
 
 export interface TabRequest {
@@ -313,7 +315,9 @@ export function buildTabState() {
         groups: [],
         sortList: [],
         imageSize: 100,
-        visibleProperties: {}
+        visibleProperties: {},
+        visibleFolders: {},
+        selectedFolders: {},
     } as TabState
 }
 
