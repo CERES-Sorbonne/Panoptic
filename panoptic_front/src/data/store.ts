@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, apiDeleteTab, apiGetMLGroups, apiGetImportStatus } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, Image } from '../data/models'
+import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, Modals, FilterOperator, TabState, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, Image, propertyDefault } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -169,6 +169,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async addOrUpdatePropertyToImage(sha1: string, propertyId: number, value: any) {
+        let type = this.properties[propertyId].type
+        if(value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
+            value = undefined
+        }
         const newValue: PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
         this.images[sha1].properties[propertyId] = newValue
     },

@@ -5,6 +5,7 @@ import ExpandOption from '../Menu/ExpandOption.vue';
 import PaginatedImages from './PaginatedImages.vue';
 import { Group, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
+import StampDropdown from '../inputs/StampDropdown.vue';
 
 const props = defineProps({
     group: Object as () => Group,
@@ -67,6 +68,7 @@ async function computeClusters() {
                 <div v-else><b>{{ groupName }}</b></div>
                 <div class="ms-2">({{ props.group.count }})</div>
                 <div v-if="hasImages && hasSubgroups" class="button-offset ms-2"><button @click="clear">Clear</button></div>
+                <div v-if="hasImages && !hasSubgroups" class="ms-2"><StampDropdown :images="images"/></div>
                 <div v-if="hasImages && !hasSubgroups" class="button-offset ms-2"><button @click="computeClusters">Compute Groups</button></div>
                 <div v-if="hasImages && !hasSubgroups" class="button-offset ms-2"><input class="" type="number" v-model="clusterNb" style="width: 30px;"/></div>
             </div>
@@ -95,7 +97,7 @@ async function computeClusters() {
 
 .button-offset {
     position: relative;
-    top: -3px
+    top: -2px
 }
 
 </style>

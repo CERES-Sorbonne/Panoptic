@@ -269,3 +269,7 @@ input[type=number] {
   border: 2px solid var(--border-color);
   border-radius: 3px;
 }
+
+.text-dimmed {
+  color: #e0e0e0;
+}
