@@ -9,7 +9,7 @@ import numpy as np
 ALL_TABLES = ['images', 'images_properties', 'properties', 'tags', 'folders', 'tabs']
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
-aiosqlite.register_converter("array", np.frombuffer)
+aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='float32'))
 
 conn: aiosqlite.Connection | None = None
 

@@ -113,13 +113,24 @@ def to_vector(img):
     pooled_output1 = output1[1].detach().numpy()
     vector = pooled_output1.flatten()
     # if a pca was already trained use it
-    if pca is not None:
+    if get_pca() is not None:
         return to_pca(vector)
     return vector
 
 
 # def to_ocr(image: Image):
 #     return full_ocr(image)
+
+def get_pca():
+    path = os.path.join(os.getenv('PANOPTIC_DATA'), 'pca.pkl')
+    global pca
+    if pca:
+        return pca
+    if not pca and os.path.exists(path):
+        with open(path, 'rb') as f:
+            pca = pickle.load(f)
+        return pca
+    return None
 
 
 def make_clusters(sensibility):
@@ -140,7 +151,7 @@ def create_pca(vectors: []):
 
 def to_pca(vector: np.ndarray):
     if pca is not None:
-        return pca.transform([vector])[0]
+        return np.float32(pca.transform([vector])[0])
 
 
 def save_pca():
