@@ -21,7 +21,7 @@ const loadedImages = computed(() => props.images.slice(0, loadedImageCount.value
     <div class="d-flex flex-wrap">
         <ImageVue :image="image" :index="index" :size="props.imageSize" v-for="image, index in loadedImages" class="" :groupId="props.groupId" />
     </div>
-    <div v-if="loadedImageCount < props.images.length" class="d-flex flex-row mt-1">
+    <div v-if="loadedImageCount < props.images.length" class="d-flex flex-row mt-1 mb-2">
         <div class="me-3 text-secondary" style="font-size: 12px;">Afficher plus: </div>
         <div class="me-3"><button class="ps-4 pe-4" @click="maxImages += 20">20</button></div>
         <div class="me-3"><button class="ps-4 pe-4" @click="maxImages += 50">50</button></div>
