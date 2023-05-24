@@ -74,7 +74,7 @@ class ImageImporter:
         self.current_computed += 1
         await callback(*res)
         # this was the last callback
-        if len(self.compute_tasks) == 1:
+        if self.current_computed == self.total_import:
             await self._final_callback()
 
     def set_final_callback(self, fn: Callable):

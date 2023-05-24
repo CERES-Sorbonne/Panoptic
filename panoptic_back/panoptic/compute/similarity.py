@@ -20,7 +20,7 @@ def create_similarity_tree(images: list[ImageVector]):
 def get_similar_images(vector: np.ndarray):
     if not SIMILARITY_TREE:
         raise ValueError("Cannot compute image similarity since KDTree was not computed yet")
-    return SIMILARITY_TREE.query(vector, k=200)
+    return SIMILARITY_TREE.query(vector)
 
 
 def make_clusters(images: list[ImageVector], *, method='kmeans', **kwargs) -> list[list[str]]:
