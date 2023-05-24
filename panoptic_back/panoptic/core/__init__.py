@@ -1,3 +1,4 @@
+import asyncio
 import atexit
 import json
 from concurrent.futures import ProcessPoolExecutor
@@ -64,7 +65,7 @@ async def get_full_image(sha1: str) -> Image:
     for row in rows:
         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
         result = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
-                                 extension=extension, ahash=ahash)
+                       extension=extension, ahash=ahash)
         if property_id:
             result.properties[property_id] = PropertyValue(
                 **{'property_id': property_id, 'value': db.decode_if_json(value)})
@@ -104,19 +105,24 @@ async def delete_image_property(property_id: int, sha1: str):
     await db.delete_image_property(property_id, sha1)
 
 
-async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
-    image = await db.get_image_by_sha1(sha1_hash)
-    # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
-    if image:
-        if file_path not in image.paths:
-            image.paths.append(file_path)
-            # Mise à jour de la liste de paths
-            await db.update_image_paths(sha1_hash, json.dumps(image.paths))
+# TODO: confirm lock efficacity
+add_image_lock = asyncio.Lock()
 
-    # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
-    else:
-        await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
-    return await db.get_image_by_sha1(sha1_hash)
+
+async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
+    async with add_image_lock:
+        image = await db.get_image_by_sha1(sha1_hash)
+        # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
+        if image:
+            if file_path not in image.paths:
+                image.paths.append(file_path)
+                # Mise à jour de la liste de paths
+                await db.update_image_paths(sha1_hash, json.dumps(image.paths))
+
+        # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
+        else:
+            await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
+        return await db.get_image_by_sha1(sha1_hash)
 
 
 async def add_folder(folder):
