@@ -13,7 +13,7 @@ from panoptic import core
 from panoptic.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images
+    db_utils, make_clusters, get_similar_images, get_full_image
 from panoptic.core import db
 from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
@@ -133,7 +133,9 @@ async def get_folders_route():
 @app.get('/import_status')
 async def get_import_status_route():
     image_import = core.importer
-    res = {'to_import': image_import.total_import, 'imported': image_import.current_computed}
+    new_image = core.get_new_images()
+    update = [await get_full_image(i) for i in new_image]
+    res = {'to_import': image_import.total_import, 'imported': image_import.current_computed, 'new_images': update}
     return res
 
 

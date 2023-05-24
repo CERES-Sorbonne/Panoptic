@@ -305,6 +305,7 @@ export interface Folder {
 export interface ImportState {
     to_import: number
     imported: number
+    new_images?: Array<Image>
 }
 
 export function buildTabState() {

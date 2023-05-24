@@ -1,9 +1,13 @@
 import { computed, reactive } from 'vue'
-import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder, 
-    apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, 
-    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages } from '../data/api'
-import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, 
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image } from '../data/models'
+import {
+    apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder,
+    apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
+    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX
+} from '../data/api'
+import {
+    PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image
+} from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -45,10 +49,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         // console.log(tabs)
         tabs.forEach((t: Tab) => {
             // old version compability
-            if(t.data.selectedFolders == undefined) {
+            if (t.data.selectedFolders == undefined) {
                 t.data.selectedFolders = {}
             }
-            if(t.data.visibleFolders == undefined) {
+            if (t.data.visibleFolders == undefined) {
                 t.data.visibleFolders = {}
             }
             globalStore.tabs[t.id] = t
@@ -107,7 +111,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     hideModal() {
         globalStore.openModal = { id: null, data: null }
     },
-
+    importImage(img: Image) {
+        img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
+        img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
+        globalStore.images[img.sha1] = img
+    },
     async fetchAllData() {
         let images = await apiGetImages()
         let tags = await apiGetTags()
@@ -115,14 +123,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let folders = await apiGetFolders()
         //console.log(folders)
 
-        Object.values(images).forEach(img => {
-            img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
-            img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
-        })
+
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1 }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash }
 
-        this.images = images
+        Object.values(images).forEach(this.importImage)
+
+
         this.tags = tags
         this.properties = properties
         this.folders = buildFolderNodes(folders)
@@ -132,12 +139,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
 
         this.importState = await apiGetImportStatus()
-        setInterval(async () => { this.importState = await apiGetImportStatus() }, 1000)
+        setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
         console.log(this.importState)
 
         this.isLoaded = true
     },
-
+    applyImportState(state: ImportState) {
+        state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
+        state.new_images.forEach(globalStore.importImage)
+        this.importState = state
+    },
     async importFolders() {
         await apiImportFolder()
         await this.fetchAllData()
@@ -170,7 +181,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async addOrUpdatePropertyToImage(sha1: string, propertyId: number, value: any) {
         let type = this.properties[propertyId].type
-        if(value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
+        if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
         const newValue: PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
@@ -200,29 +211,29 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const res = await apiGetMLGroups(nbGroups, imageList)
         return res
     },
-    async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10){
+    async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10) {
         let sha1List: [[string]]
-        if(images){
+        if (images) {
             sha1List = await globalStore.getMLGroups(Math.min(nbClusters, images.length), images)
         }
-        else{
+        else {
             sha1List = await globalStore.getMLGroups(nbClusters)
         }
         const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
         return ml_groups
     },
 
-    async getSimilarImages(sha1: string){
+    async getSimilarImages(sha1: string) {
         const res = await apiGetSimilarImages(sha1)
         return res
     },
     getFolderChildren(folderId: number) {
-        let res = {} as {[key:number]:boolean}
+        let res = {} as { [key: number]: boolean }
         let children = this.folders[folderId].children
         children.forEach(c => {
             res[c.id] = true
             let subRes = globalStore.getFolderChildren(c.id)
-            subRes.forEach((r:any) => res[r] = true)
+            subRes.forEach((r: any) => res[r] = true)
         })
         return Object.keys(res).map(Number)
     }
@@ -291,19 +302,19 @@ function buildFolderNodes(folders: Array<Folder>) {
         f.children = []
         res[f.id] = f
     })
-    
-    let parentMap = {} as {[key: number]: Array<Folder>}
+
+    let parentMap = {} as { [key: number]: Array<Folder> }
     folders.forEach(f => {
-        if(!f.parent) {
+        if (!f.parent) {
             return
         }
-        if(parentMap[f.parent] == undefined) {
+        if (parentMap[f.parent] == undefined) {
             parentMap[f.parent] = []
         }
         parentMap[f.parent].push(f)
     })
     Object.keys(parentMap).forEach((parentId: any) => {
-        if(parentId == undefined){
+        if (parentId == undefined) {
             return
         }
         parentMap[parentId].forEach(f => {
