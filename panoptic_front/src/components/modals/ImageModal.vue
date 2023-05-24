@@ -2,9 +2,10 @@
 import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
+import StampForm from '../forms/StampForm.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -61,6 +62,10 @@ onMounted(() => {
     modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
+
+
+const tmp = reactive({})
+
 </script>
 
 

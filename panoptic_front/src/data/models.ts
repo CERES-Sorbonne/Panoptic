@@ -211,6 +211,31 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
     }
 }
 
+export function propertyDefault(type: PropertyType): any {
+    switch(type) {
+        case PropertyType.checkbox:
+            return false
+        case PropertyType.color:
+            return '#aaaaaa'
+        case PropertyType.date:
+            return ''
+        case PropertyType.number:
+            return 0
+        case PropertyType.string:
+        case PropertyType.image_link:
+        case PropertyType.path:
+        case PropertyType.sha1:
+        case PropertyType.url:
+        case PropertyType.ahash:
+            return ''
+        case PropertyType.multi_tags:
+        case PropertyType.tag:
+            return []
+        default:
+            return ''
+    }
+}
+
 export function operatorHasInput(operator: FilterOperator) {
     switch(operator) {
         case FilterOperator.contains:
