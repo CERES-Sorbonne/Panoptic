@@ -4,12 +4,14 @@ import { ref, computed, defineProps, onMounted } from 'vue';
 const props = defineProps({
   leftAlign: Boolean,
   defaultExpand: { type: Boolean, default: true },
-  resetOnHide: { type: Boolean, default: false }
+  resetOnHide: { type: Boolean, default: false },
+  icon: {type: String, default: 'chevron'},
+  fill: {type: String, default: ''}
 });
 
 const expand = ref(true);
 
-const caretClass = computed(() => 'bi-chevron-right clickable ' + (expand.value ? 'expand' : 'hide'))
+const caretClass = computed(() => 'expand-icon bi-' + props.icon + '-right' + props.fill + ' clickable ' + (expand.value ? 'expand' : 'hide'))
 
 function toggle() {
   expand.value = !expand.value;
@@ -55,17 +57,17 @@ onMounted(() => {
 </template>
   
 <style>
-.bi-chevron-right {
+.expand-icon {
   display: inline-block;
   transition: 0.2s;
   margin-left: 0 !important;
 }
 
-.bi-chevron-right.expand {
+.expand-icon.expand {
   transform: rotate(90deg) !important;
 }
 
-.bi-chevron-right.hide {
+.expand-icon.hide {
   transform: rotate(0deg) !important;
 }
 

@@ -67,7 +67,7 @@ function scrollToTop() {
 </script>
 
 <template>
-    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true">
+    <ExpandOption :small="props.small" :left-align="true" :reset-on-hide="true" :icon="'caret'" fill="-fill">
         <template #name>
             <div class="d-flex flex-row mb-1" ref="topElem">
                 <div v-if="property != undefined"><b>{{ property.name }}</b> : {{ groupName }}</div>
