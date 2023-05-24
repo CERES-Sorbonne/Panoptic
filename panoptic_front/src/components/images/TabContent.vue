@@ -32,15 +32,12 @@ const filteredImages = computed(() => {
 
     return images.filter(img => computeGroupFilter(img, filters.value))
 })
-
-let nbClusters = ref(10)
-
 function computeGroups() {
     imageGroups.length = 0
     let rootGroup = {
-        name: '__all__',
+        name: 'All',
         images: filteredImages.value,
-        groups: [],
+        groups: undefined,
         count: filteredImages.value.length,
         propertyId: undefined
     } as Group
@@ -53,41 +50,7 @@ function computeGroups() {
     }
 }
 
-async function computeMLGroups(groupId: number = null){
-    let sha1List: [[string]]
-    if(groupId){
-        let images = []
-        if(imageGroups[groupId].images.length === 0){
-            images = imageGroups[groupId].groups.map((group:Group) => group.images).flat().map((i: Image) => i.sha1)
-        }
-        else{
-            images = imageGroups[groupId].images.map((i: Image) => i.sha1)
-        }
-        imageGroups[groupId].groups = []
-        imageGroups[groupId].images = []
-        sha1List = await globalStore.getMLGroups(Math.min(nbClusters.value, images.length), images)
-    }
-    else{
-        imageGroups.length = 0
-        sha1List = await globalStore.getMLGroups(nbClusters.value)
-    }
-    const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
 
-    for(let [index, group] of ml_groups.entries()){
-        let realGroup: Group = {
-            name: 'cluster ' + index.toString(),
-            images: group,
-            count:group.length,
-            groups: []
-        }
-        if(groupId){
-            imageGroups[groupId].groups.push(realGroup)
-        }
-        else{
-            imageGroups.push(realGroup)
-        }
-    }
-}
 
 function computeSubgroups(parentGroup: Group, groupList: number[]) {
     let images = parentGroup.images
@@ -144,7 +107,7 @@ watch(groups, computeGroups, { deep: true })
 
 <template>
     <div class="m-2">
-        <ContentFilter :tab="props.tab" @compute-ml="computeMLGroups"/>
+        <ContentFilter :tab="props.tab" @compute-ml=""/>
     </div>
     <hr class="custom-hr"/>
     <div class="ms-2 mt-2">
@@ -153,8 +116,6 @@ watch(groups, computeGroups, { deep: true })
         </div>
         <div v-else>
             <div v-for="(group, index) in imageGroups">
-                <button class="me-2" @click="computeMLGroups(index)">Compute Groups</button>
-                <input class="text-input d-inline-block" type="number" style="width: 70px;" v-model="nbClusters"/>
                 <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize" :group-id="String(index)" />
             </div>
         </div>

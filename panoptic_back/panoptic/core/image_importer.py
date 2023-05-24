@@ -58,7 +58,7 @@ class ImageImporter:
         if not image_path and not image:
             raise ValueError('Must give image path or bytes to compute ML vectors')
         self.total_compute += 1
-        task = asyncio.create_task(self.wrap_compute(self.executor.submit(compute_image, image_path, image), callback))
+        task = asyncio.create_task(self.wrap_compute(self.executor.submit(compute_image, image_path), callback))
         self.compute_tasks.add(task)
         task.add_done_callback(self.compute_tasks.discard)
 
@@ -104,7 +104,7 @@ def import_image(file_path, folder_id):
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
-    return image, folder_id, name, extension, width, height, sha1_hash, url
+    return image, folder_id, name, extension, width, height, sha1_hash, url, file_path
 
 
 async def compute_folder_structure(root_path, all_files: List[str]):

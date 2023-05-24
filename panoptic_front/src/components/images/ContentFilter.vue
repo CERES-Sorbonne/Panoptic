@@ -34,9 +34,9 @@ const emits = defineEmits(['compute-ml'])
         <FilterForm :filter="props.tab.data.filter" />
         <GroupForm :groupIds="props.tab.data.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
-        <div class="ms-2">
+        <!-- <div class="ms-2">
             <button @click="$emit('compute-ml')">Compute All Groups</button>
-        </div>
+        </div> -->
     </div>
 </template>
 
