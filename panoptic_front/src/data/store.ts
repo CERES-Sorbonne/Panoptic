@@ -3,7 +3,7 @@ import { apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, 
     apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab, 
     apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages } from '../data/api'
 import { PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags, 
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault } from '../data/models'
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -43,7 +43,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async loadTabState() {
         let tabs = await apiGetTabs()
         // console.log(tabs)
-        tabs.forEach((t: Tab) => globalStore.tabs[t.id] = t)
+        tabs.forEach((t: Tab) => {
+            // old version compability
+            if(t.data.selectedFolders == undefined) {
+                t.data.selectedFolders = {}
+            }
+            if(t.data.visibleFolders == undefined) {
+                t.data.visibleFolders = {}
+            }
+            globalStore.tabs[t.id] = t
+        })
 
         if (tabs.length == 0) {
             await this.addTab('Tab1')
@@ -88,19 +97,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     // }),
     folderTree: computed(() => {
-        let copies = {} as Folders
-        for (let k in globalStore.folders) {
-            copies[k] = { ...globalStore.folders[k] }
-            copies[k].children = []
-        }
-        for (let k in copies) {
-            let parent = copies[k].parent
-            if (parent != undefined) {
-                copies[parent].children.push(copies[k])
-
-            }
-        }
-        return Object.values(copies).filter(f => f.parent == undefined) as Array<Folder>
+        return Object.values(globalStore.folders).filter(f => f.parent == null) as Array<Folder>
     }),
     showModal(modalId: Modals, data: any) {
         globalStore.openModal.id = modalId
@@ -128,8 +125,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.images = images
         this.tags = tags
         this.properties = properties
-        this.folders = {}
-        folders.forEach((f: Folder) => this.folders[f.id] = f)
+        this.folders = buildFolderNodes(folders)
+        console.log(this.folders)
 
         await this.loadTabState()
 
@@ -218,6 +215,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async getSimilarImages(sha1: string){
         const res = await apiGetSimilarImages(sha1)
         return res
+    },
+    getFolderChildren(folderId: number) {
+        let res = {} as {[key:number]:boolean}
+        let children = this.folders[folderId].children
+        children.forEach(c => {
+            res[c.id] = true
+            let subRes = globalStore.getFolderChildren(c.id)
+            subRes.forEach((r:any) => res[r] = true)
+        })
+        return Object.keys(res).map(Number)
     }
 
 })
@@ -275,5 +282,33 @@ function getPropertyTree(tags: IndexedTags, propId: number): TreeTag {
     }
     let res = buildTree(root)
     globalStore.tagNodes[propId] = tagNodes
+    return res
+}
+
+function buildFolderNodes(folders: Array<Folder>) {
+    let res = {} as Folders
+    folders.forEach(f => {
+        f.children = []
+        res[f.id] = f
+    })
+    
+    let parentMap = {} as {[key: number]: Array<Folder>}
+    folders.forEach(f => {
+        if(!f.parent) {
+            return
+        }
+        if(parentMap[f.parent] == undefined) {
+            parentMap[f.parent] = []
+        }
+        parentMap[f.parent].push(f)
+    })
+    Object.keys(parentMap).forEach((parentId: any) => {
+        if(parentId == undefined){
+            return
+        }
+        parentMap[parentId].forEach(f => {
+            res[parentId].children.push(f)
+        })
+    })
     return res
 }
