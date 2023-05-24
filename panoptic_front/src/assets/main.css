@@ -245,6 +245,9 @@ button {
   font-size: 10px !important;
   background-color: #ffffff;
   color: rgb(76, 92, 107);
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 input::-webkit-outer-spin-button,
@@ -268,6 +271,9 @@ input[type=number] {
   outline-width: 0;
   border: 2px solid var(--border-color);
   border-radius: 3px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 .text-dimmed {

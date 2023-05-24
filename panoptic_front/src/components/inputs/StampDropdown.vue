@@ -36,8 +36,8 @@ function apply() {
 </script>
 
 <template>
-    <div class="btn-group">
-        <button class="" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside"
+    <!-- <div class="btn-group"> -->
+        <button data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside"
             ref="buttonElem">
             Tampon
         </button>
@@ -52,5 +52,5 @@ function apply() {
                 <button class="me" @click="apply">Apply</button>
             </div>
         </div>
-    </div>
+    <!-- </div> -->
 </template>
