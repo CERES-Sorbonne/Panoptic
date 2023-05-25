@@ -5,6 +5,7 @@ import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
+import StampDropdown from '../inputs/StampDropdown.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -16,6 +17,7 @@ const props = defineProps({
 const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
 const similarImages = ref([])
+const nbSimilarImages = ref(10)
 
 function hasProperty(propertyId: number) {
     return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
@@ -66,7 +68,7 @@ onMounted(() => {
 
 const setSimilar = async() => {
     similarImages.value = await globalStore.getSimilarImages(image.value.sha1)
-    similarImages.value = similarImages.value.map(i => ({url: globalStore.images[i.sha1].url, dist: i.dist}))
+    similarImages.value = similarImages.value.map(i => ({url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1}))
 }
 </script>
 
@@ -84,13 +86,19 @@ const setSimilar = async() => {
                 <div class="modal-body">
                     <div class="row">
                         <div class="col">
-                            <div class="text-center">
+                            <div class="text-center mb-2">
                                 <img :src="image.url" class="border image-size" />
                             </div>
-                            <figure v-for="img in similarImages.slice(1, 50)" style="display: inline-block">
-                                    <img :src="img.url" style="width:100px" />
-                                    <figcaption>{{img.dist}}</figcaption>
-                                </figure>
+                            <div id="similarImages" v-if="similarImages.length > 0">
+                                <input type="range" class="form-range" min="0" max="50" v-model="nbSimilarImages" />
+                                <StampDropdown :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.sha1])" />
+                                <div class="m-2">
+                                    <figure v-for="img in similarImages.slice(1, nbSimilarImages)" style="display: inline-block">
+                                        <img :src="img.url" style="width:100px" />
+                                        <figcaption>{{img.dist}}</figcaption>
+                                    </figure>
+                                </div>
+                            </div>
                         </div>
                         <div class="col">
                             <div class="mt-2">
