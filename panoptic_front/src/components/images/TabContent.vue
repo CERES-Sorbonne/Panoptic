@@ -47,18 +47,17 @@ const filteredImages = computed(() => {
 
     return filtered
 })
-function computeGroups() {
+function computeGroups(force=false) {
     console.log('compute groups')
     let rootGroup = generateGroups()
     console.log(rootGroup)
-    Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
+    if(!force) {
+        Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
+    }
+    else {
+        Object.assign(imageGroups, rootGroup)
+    }
     
-    // if (Array.isArray(rootGroup.groups)) {
-    //     imageGroups.push(...rootGroup.groups)
-    // }
-    // else {
-    //     imageGroups.push(rootGroup)
-    // }
 }
 function isNode(group: Group) {
     return group.images && group.images.length == 0 && Array.isArray(group.groups) && group.groups.length > 0
@@ -180,9 +179,9 @@ watch(props, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
 
-watch(filteredImages, computeGroups, { deep: true })
-watch(groups, computeGroups, { deep: true })
-// watch(() => filteredImages, computeGroups, { deep: true })
+watch(filteredImages, () => computeGroups(), { deep: true })
+watch(groups, () => computeGroups(), { deep: true })
+watch(sorts, () => computeGroups(true), { deep: true })
 
 </script>
 
