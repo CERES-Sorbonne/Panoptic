@@ -39,7 +39,7 @@ function apply() {
     <!-- <div class="btn-group"> -->
         <button data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside"
             ref="buttonElem">
-            Tampon
+            Tagger le groupe
         </button>
         <div class="dropdown-menu">
             <div class="m-2" style="width: 300px;">
