@@ -47,7 +47,7 @@ const filteredImages = computed(() => {
 
     return filtered
 })
-function computeGroups(force=false) {
+function computeGroups(force=true) {
     console.log('compute groups')
     let rootGroup = generateGroups()
     console.log(rootGroup)

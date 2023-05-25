@@ -175,7 +175,7 @@ onMounted(() => {
 
 <template>
     <div class="pt-1 pb-1 pe-1" is-input="true">
-        <div class="dropdown" @click="setEdit(true)" ref="clickableElem">
+        <div class="dropdown" @click.prevent.stop="setEdit(true)" ref="clickableElem">
             <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem" data-bs-offset="20,0" data-ds-toggle="dropdown" data-bs-display="static">
                 <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">
                     <span class="me-1">
@@ -213,11 +213,11 @@ onMounted(() => {
                     </li>
                     <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
                     </p>
-                    <li @mouseover="selectedIndex = index" @click="selectOption" :class="optionClass(index)"
+                    <li @mouseover="selectedIndex = index" @click.prevent.stop="selectOption" :class="optionClass(index)"
                         v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
                             <TagBadge :tag="tag.value" :color="tag.color" />
                         </a></li>
-                    <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
+                    <li @mouseover="selectedIndex = filteredTagList.length" @click.prevent.stop="selectOption" v-if="isCreatePossible"
                         :class="optionClass(filteredTagList.length) + ' rounded-bottom'" style="cursor: pointer;">
                         <span class="text-muted ms-1">Create </span>
                         <TagBadge :tag="tagInput" color="grey"/>
