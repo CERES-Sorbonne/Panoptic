@@ -6,6 +6,9 @@ import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
+import PaginatedImages from '../images/PaginatedImages.vue';
+import ImageSimi from '../images/ImageSimi.vue'
+import RangeInput from '../inputs/RangeInput.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -66,9 +69,9 @@ onMounted(() => {
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
 
-const setSimilar = async() => {
+const setSimilar = async () => {
     similarImages.value = await globalStore.getSimilarImages(image.value.sha1)
-    similarImages.value = similarImages.value.map(i => ({url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1}))
+    similarImages.value = similarImages.value.map(i => ({ url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1 }))
 }
 </script>
 
@@ -90,13 +93,14 @@ const setSimilar = async() => {
                                 <img :src="image.url" class="border image-size" />
                             </div>
                             <div id="similarImages" v-if="similarImages.length > 0">
-                                <input type="range" class="form-range" min="0" max="50" v-model="nbSimilarImages" />
-                                <StampDropdown :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.sha1])" />
+                                <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
+                                <StampDropdown
+                                    :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.sha1])" />
                                 <div class="m-2">
-                                    <figure v-for="img in similarImages.slice(1, nbSimilarImages)" style="display: inline-block">
-                                        <img :src="img.url" style="width:100px" />
-                                        <figcaption>{{img.dist}}</figcaption>
-                                    </figure>
+                                    <div class="d-flex flex-wrap">
+                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.sha1])" :size="100" v-for="img in similarImages.slice(1, nbSimilarImages)" />
+                                    </div>
+
                                 </div>
                             </div>
                         </div>

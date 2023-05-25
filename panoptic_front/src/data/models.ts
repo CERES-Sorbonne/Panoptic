@@ -58,6 +58,7 @@ export interface Image {
     properties: {
         [id:number]: PropertyValue
     }
+    dist?: number
 }
 
 export interface Images {
