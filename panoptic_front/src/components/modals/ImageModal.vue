@@ -87,7 +87,7 @@ const setSimilar = async() => {
                             <div class="text-center">
                                 <img :src="image.url" class="border image-size" />
                             </div>
-                            <figure v-for="img in similarImages.slice(1, 25)" style="display: inline-block">
+                            <figure v-for="img in similarImages.slice(1, 50)" style="display: inline-block">
                                     <img :src="img.url" style="width:100px" />
                                     <figcaption>{{img.dist}}</figcaption>
                                 </figure>
