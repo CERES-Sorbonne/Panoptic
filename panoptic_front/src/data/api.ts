@@ -118,3 +118,8 @@ export const apiGetSimilarImages = async(sha1: string) => {
     let res = await axios.get('/similar/' + sha1)
     return res.data
 }
+
+// TODO: remove this when fixed
+export const apiStartPCA = async() => {
+    return await axios.post('/pca')
+}

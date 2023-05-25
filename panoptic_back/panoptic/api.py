@@ -10,6 +10,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from panoptic import core
+from panoptic.scripts.to_pca import compute_all_pca
 from panoptic.core import create_property, add_property_to_image, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
@@ -179,5 +180,8 @@ async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
 async def get_similar_images_route(sha1: str) -> list:
     return await get_similar_images(sha1)
 
+@app.post("/pca")
+async def start_pca_route():
+    return await compute_all_pca(force=True)
 
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")

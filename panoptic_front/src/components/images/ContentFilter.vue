@@ -5,6 +5,8 @@ import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
 import { computed } from 'vue';
+import axios from 'axios'
+import {apiStartPCA} from '../../data/api'
 
 
 const props = defineProps({
@@ -27,6 +29,9 @@ const emits = defineEmits(['compute-ml'])
         </div>
         <div class="ms-5">
             <input type="text" class="text-input" v-model="props.tab.name" />
+        </div>
+        <div class="ms-5">
+            <button class="me-2" @click="apiStartPCA">PCA</button>
         </div>
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>

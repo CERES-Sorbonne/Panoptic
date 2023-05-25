@@ -52,3 +52,5 @@ class SimilarityTreeWithLabel:
         indices = [x for x in ind[0]]
         distances = [x for x in dist[0]]
         return [{'sha1': self.image_labels[i], 'dist': float('%.2f' % (distances[index]))} for index, i in enumerate(indices)]
+
+
