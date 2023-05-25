@@ -96,7 +96,7 @@ if(navigator.userAgent.indexOf('AppleWebKit') != -1){
   appearance: none;
   /* pointer-events: none; */
   border-radius: 999px;
-  width: 200px;
+  width: 100%;
   z-index: 0;
 }
 

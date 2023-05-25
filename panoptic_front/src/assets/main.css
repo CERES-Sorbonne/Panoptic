@@ -9,8 +9,10 @@
   top: 0;
   width: 210px;
   border-right: 1px solid var(--border-color);
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .menu::-webkit-scrollbar {
@@ -245,38 +247,31 @@ button {
   font-size: 10px !important;
   background-color: #ffffff;
   color: rgb(76, 92, 107);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding-left: 3px;
   padding-right: 3px;
 }
 
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-    /* display: none; <- Crashes Chrome on hover */
-    -webkit-appearance: none;
-    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
 }
 
 input[type=number] {
-    -moz-appearance:textfield; /* Firefox */
-    /* padding: 5px; */
-    /* line-height: 20px !important; */
-    /* line-height: 16px; */
-    font-size: 10px;
-    /* padding-top: 2px; */
-    padding: 1px;
-    -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
+  -moz-appearance:textfield !important;
+  font-size: 10px;
+  padding: 1px;
   outline-width: 0;
   border: 2px solid var(--border-color);
   border-radius: 3px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  outline: none;
 }
 
 .text-dimmed {
