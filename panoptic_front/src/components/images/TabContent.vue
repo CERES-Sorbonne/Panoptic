@@ -48,7 +48,9 @@ const filteredImages = computed(() => {
     return filtered
 })
 function computeGroups() {
+    console.log('compute groups')
     let rootGroup = generateGroups()
+    console.log(rootGroup)
     Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
     
     // if (Array.isArray(rootGroup.groups)) {
@@ -72,12 +74,14 @@ function replaceIfChanged(oldGroup: Group, newGroup: Group) {
 
     let changed = false
     if (isNode(oldGroup) && isNode(newGroup)) {
+        console.log('isnode')
         if (oldGroup.propertyId != newGroup.propertyId || oldGroup.name != newGroup.name || oldGroup.count != newGroup.count) {
             changed = true
         }
     }
     else if (isLeaf(oldGroup) && isLeaf(newGroup)) {
-        if (oldGroup.propertyId == newGroup.propertyId || oldGroup.count == newGroup.count || oldGroup.name == oldGroup.name) {
+        console.log('isleaf')
+        if (oldGroup.propertyId == newGroup.propertyId && oldGroup.count == newGroup.count && oldGroup.name == oldGroup.name) {
             let oldImgs = {} as any
             oldGroup.images.forEach(img => oldImgs[img.sha1] = true)
             for (let img of newGroup.images) {
@@ -178,6 +182,7 @@ watch(props, () => {
 
 watch(filteredImages, computeGroups, { deep: true })
 watch(groups, computeGroups, { deep: true })
+// watch(() => filteredImages, computeGroups, { deep: true })
 
 </script>
 
