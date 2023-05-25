@@ -102,6 +102,10 @@ function replaceIfChanged(oldGroup: Group, newGroup: Group) {
         return newGroup
     }
     if(isLeaf(oldGroup)) {
+        let imageOrder = newGroup.images.map(i => i.sha1)
+        let oldImgs = {} as any
+        oldGroup.images.forEach(img => oldImgs[img.sha1] = img)
+        oldGroup.images = imageOrder.map(sha1 => oldImgs[sha1])
         return oldGroup
     }
 
@@ -181,7 +185,7 @@ watch(props, () => {
 
 watch(filteredImages, () => computeGroups(), { deep: true })
 watch(groups, () => computeGroups(), { deep: true })
-watch(sorts, () => computeGroups(true), { deep: true })
+watch(sorts, () => computeGroups(), { deep: true })
 
 </script>
 
