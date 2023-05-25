@@ -40,7 +40,7 @@ watch(() => props.filter.operator, (operator) => {
         </div>
     </td>
     <td class="w-100">
-        <div class="me-2" v-if="operatorHasInput(props.filter.operator)">
+        <div class="me-2" v-if="operatorHasInput(props.filter.operator)" style="width: 150px;">
             <TagDropdown v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
                 v-model="filter.value" :property-id="props.filter.propertyId" />
             <PropertyInput2 v-else :type="property.type" v-model="filter.value" />
