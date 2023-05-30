@@ -223,7 +223,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return ml_groups
     },
 
-    async getSimilarImages(sha1: string) {
+    async getSimilarImages(sha1: string | string[]) {
+        sha1 = Array.isArray(sha1) ? sha1 : [sha1]
         const res = await apiGetSimilarImages(sha1)
         return res
     },

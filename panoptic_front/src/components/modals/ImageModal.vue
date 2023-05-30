@@ -98,7 +98,7 @@ const setSimilar = async () => {
                                     :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.sha1])" />
                                 <div class="m-2">
                                     <div class="d-flex flex-wrap">
-                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.sha1])" :size="100" v-for="img in similarImages.slice(1, nbSimilarImages)" />
+                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.sha1])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
                                     </div>
 
                                 </div>

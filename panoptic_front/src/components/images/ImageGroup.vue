@@ -1,8 +1,9 @@
 <script setup lang="ts">
 
 import { computed, onMounted, ref } from 'vue'
-import ExpandOption from '../Menu/ExpandOption.vue';
+import ExpandOption from '../menu/ExpandOption.vue';
 import PaginatedImages from './PaginatedImages.vue';
+import ImageRecomended from './ImageRecomended.vue';
 import { Group, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import StampDropdown from '../inputs/StampDropdown.vue';
@@ -17,6 +18,7 @@ const props = defineProps({
 const clusterNb = ref(10)
 const topElem = ref(null)
 const hoverBorder = ref(false)
+const similarImages = ref([])
 
 const images = computed(() => props.group.images)
 const subgroups = computed(() => props.group.groups)
@@ -60,6 +62,22 @@ async function computeClusters() {
     }
 }
 
+const recommandImages = async () => {
+    similarImages.value = await globalStore.getSimilarImages(images.value.map(im => im.sha1))
+    similarImages.value = similarImages.value.slice(0, 15).map(i => ({ url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1 }))
+}
+
+const recommandImagesCallback = async (sha1: string, index: number) => {
+    let propertyValue: string | string[] = props.group.name
+    // if tag or multitag we need to send an array instead of just the value
+    let type = globalStore.properties[props.group.propertyId].type
+    if (type == PropertyType.tag || type == PropertyType.multi_tags) {
+        propertyValue = [propertyValue]
+    }
+    similarImages.value.splice(index, 1)
+    await globalStore.addOrUpdatePropertyToImage(sha1, props.group.propertyId, propertyValue)
+}
+
 function scrollToTop() {
     topElem.value.scrollIntoView()
 }
@@ -78,10 +96,13 @@ function scrollToTop() {
                     <StampDropdown :images="images" />
                 </div>
                 <div v-if="hasImages && !hasSubgroups" class="ms-2">
-                    <button @click="computeClusters">Compute Groups</button>
+                    <button @click="computeClusters">Créer clusters</button>
                 </div>
                 <div v-if="hasImages && !hasSubgroups" class="ms-2">
                     <input class="no-spin" type="number" v-model="clusterNb" style="width: 30px;" />
+                </div>
+                <div v-if="hasImages && !hasSubgroups" class="ms-2">
+                    <button @click="recommandImages">Images Similaires</button>
                 </div>
             </div>
 
@@ -98,6 +119,12 @@ function scrollToTop() {
                 </div>
                 <div v-else-if="hasImages">
                     <div class="ms-3">
+                        <div class="d-flex flex-wrap" v-if="similarImages.length > 0">
+                            <ImageRecomended v-for="img, index in similarImages"
+                                :image="Object.assign(img, globalStore.images[img.sha1])"
+                                :callback="(sha1: string) => recommandImagesCallback(sha1, index)" />
+                            </div>
+                        <div class="custom-hr mb-3 mt-1" v-if="similarImages.length > 0" />
                         <PaginatedImages :images="images" :image-size="imageSize" :groupId="props.groupId" />
                     </div>
                 </div>

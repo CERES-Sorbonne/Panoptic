@@ -3,7 +3,7 @@ from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from starlette.responses import Response
@@ -176,9 +176,9 @@ async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 
-@app.get("/similar/{sha1}")
-async def get_similar_images_route(sha1: str) -> list:
-    return await get_similar_images(sha1)
+@app.get("/similar/")
+async def get_similar_images_route(sha1_list: list[str] = Query(None)) -> list:
+    return await get_similar_images(sha1_list)
 
 @app.post("/pca")
 async def start_pca_route():
