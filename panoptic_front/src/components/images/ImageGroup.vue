@@ -19,6 +19,8 @@ const clusterNb = ref(10)
 const topElem = ref(null)
 const hoverBorder = ref(false)
 const similarImages = ref([])
+const allSimilarImages = ref([])
+const similarImagesBlackList = ref([])
 
 const images = computed(() => props.group.images)
 const subgroups = computed(() => props.group.groups)
@@ -62,9 +64,15 @@ async function computeClusters() {
     }
 }
 
+const reloadSimilar = async() => {
+    similarImages.value = allSimilarImages.value.filter(i => similarImagesBlackList.value.indexOf(i.sha1) === -1)
+                                            .slice(0, 30)
+                                            .map(i => ({ url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1 }))
+}
+
 const recommandImages = async () => {
-    similarImages.value = await globalStore.getSimilarImages(images.value.map(im => im.sha1))
-    similarImages.value = similarImages.value.slice(0, 15).map(i => ({ url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1 }))
+    allSimilarImages.value = await globalStore.getSimilarImages(images.value.map(im => im.sha1))
+    reloadSimilar()
 }
 
 const recommandImagesCallback = async (sha1: string, index: number) => {
@@ -75,7 +83,14 @@ const recommandImagesCallback = async (sha1: string, index: number) => {
         propertyValue = [propertyValue]
     }
     similarImages.value.splice(index, 1)
-    await globalStore.addOrUpdatePropertyToImage(sha1, props.group.propertyId, propertyValue)
+    globalStore.addOrUpdatePropertyToImage(sha1, props.group.propertyId, propertyValue)
+}
+
+const recommandImagesRefuseCallback = async(sha1: string, index: number) => {
+    similarImages.value.splice(index, 1)
+    similarImagesBlackList.value.push(sha1)
+    reloadSimilar()
+
 }
 
 function scrollToTop() {
@@ -122,7 +137,7 @@ function scrollToTop() {
                         <div class="d-flex flex-wrap" v-if="similarImages.length > 0">
                             <ImageRecomended v-for="img, index in similarImages"
                                 :image="Object.assign(img, globalStore.images[img.sha1])"
-                                :callback="(sha1: string) => recommandImagesCallback(sha1, index)" />
+                                :callback="(sha1: string) => recommandImagesCallback(sha1, index)" :refuse="(sha1: string) => recommandImagesRefuseCallback(sha1, index)"/>
                             </div>
                         <div class="custom-hr mb-3 mt-1" v-if="similarImages.length > 0" />
                         <PaginatedImages :images="images" :image-size="imageSize" :groupId="props.groupId" />
