@@ -195,3 +195,6 @@ cython_debug/
 #.idea/
 
 .vscode
+panoptic_back/pca_violences.pkl
+panoptic_back/pca.pkl
+panoptic_back/tree.pkl

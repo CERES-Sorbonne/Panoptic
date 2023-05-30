@@ -4,7 +4,7 @@ from typing import List
 
 import numpy as np
 
-from panoptic.core.db_utils import execute_query, decode_if_json
+from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many
 from panoptic.models import ImageVector
 from panoptic.models import Tag, Image, Property, ImageProperty, JSON, Folder, Tab
 
@@ -35,16 +35,20 @@ async def add_image(sha1, height, width, name, extension, paths, url):
     await execute_query(query, (sha1, height, width, name, extension, paths, url))
 
 
-async def get_image_by_sha1(sha1) -> [Image | None]:
+async def get_images_by_sha1s(sha1_list: str | list[str]) -> [Image | list[Image] | None]:
+    if type(sha1_list) == str:
+        sha1_list = [sha1_list]
     query = """
         SELECT *
         FROM images
-        WHERE sha1 = ?
     """
-    cursor = await execute_query(query, (sha1,))
-    image = await cursor.fetchone()
-    if image:
-        return Image(**auto_dict(image, cursor))
+    query += " WHERE sha1 in (" + ','.join('?' * len(sha1_list)) + ')'
+    cursor = await execute_query(query, tuple(sha1_list))
+    images = [Image(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
+    if len(images) > 1:
+        return images
+    elif len(images) == 1:
+        return images[0]
     else:
         return None
 
@@ -278,3 +282,11 @@ async def get_all_sha1() -> list[str]:
     query = "SELECT sha1 from images ORDER BY sha1"
     cursor = await execute_query(query)
     return [row for row in await cursor.fetchall()]
+
+
+async def add_or_update_images_properties(sha1_list: list[str], property_id: int, value):
+    query = "INSERT into images_properties (sha1, property_id, value) " \
+            "VALUES (?, ?, ?)" \
+            "ON conflict (sha1, property_id) do update set value=excluded.value"
+    svalue = json.dumps(value)
+    return await execute_query_many(query, [(sha1, property_id, svalue) for sha1 in sha1_list])

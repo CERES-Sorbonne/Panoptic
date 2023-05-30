@@ -116,7 +116,7 @@ function setEdit(value: Boolean) {
     }
     else {
         document.removeEventListener('click', handleContainerClick)
-        globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+        // globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
         edit.value = false
         showTagList.value = false;
         if (props.property.value == '') {

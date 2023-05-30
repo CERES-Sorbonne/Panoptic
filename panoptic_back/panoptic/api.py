@@ -86,7 +86,7 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
-    await add_property_to_image(payload.property_id, payload.sha1, payload.value)
+    await add_property_to_image(payload.property_id, payload.sha1_list, payload.value)
     return payload
 
 
