@@ -82,11 +82,10 @@ async def make_clusters(sensibility: float, image_list: [str]) -> list[list[str]
     return compute.make_clusters(images, method="kmeans", nb_clusters=sensibility)
 
 
-async def get_similar_images(sha1: str):
-    images = await db.get_images_with_vectors([sha1])
-    image = images[0]
-    return compute.get_similar_images(image.vector)
-
+async def get_similar_images(sha1_list: list[str]):
+    vectors = [i.vector for i in await db.get_images_with_vectors(sha1_list)]
+    res = compute.get_similar_images(vectors)
+    return [img for img in res if img['sha1'] not in sha1_list]
 
 async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
     # first check that the property and the image exist:

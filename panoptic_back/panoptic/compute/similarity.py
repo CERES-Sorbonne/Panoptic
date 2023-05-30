@@ -17,9 +17,11 @@ def create_similarity_tree(images: list[ImageVector]):
     global SIMILARITY_TREE
     SIMILARITY_TREE = tree
 
-def get_similar_images(vector: np.ndarray):
+
+def get_similar_images(vectors: list[np.ndarray]):
     if not SIMILARITY_TREE:
         raise ValueError("Cannot compute image similarity since KDTree was not computed yet")
+    vector = np.mean(vectors, axis=0)
     return SIMILARITY_TREE.query(vector)
 
 
