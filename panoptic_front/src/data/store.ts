@@ -179,13 +179,18 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.properties[newProperty.id] = newProperty
     },
 
-    async addOrUpdatePropertyToImage(sha1: string, propertyId: number, value: any) {
+    async addOrUpdatePropertyToImage(sha1s: string | string[], propertyId: number, value: any) {
         let type = this.properties[propertyId].type
+        if(!Array.isArray(sha1s)){
+            sha1s = [sha1s]
+        }
         if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
-        const newValue: PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
-        this.images[sha1].properties[propertyId] = newValue
+        const newValue = await apiAddPropertyToImage(sha1s, propertyId, value)
+        for(let sha1 of sha1s){
+            this.images[sha1].properties[propertyId] = newValue
+        }
     },
 
     async updateTag(propId: number, tagId: number, color?: string, parentId?: number, value?: any) {

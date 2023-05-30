@@ -87,14 +87,16 @@ async def get_similar_images(sha1_list: list[str]):
     res = compute.get_similar_images(vectors)
     return [img for img in res if img['sha1'] not in sha1_list]
 
-async def add_property_to_image(property_id: int, sha1: str, value: JSON) -> str:
+
+async def add_property_to_image(property_id: int, sha1_list: list[str], value: JSON) -> str:
     # first check that the property and the image exist:
-    if await db.get_property_by_id(property_id) and await db.get_image_by_sha1(sha1):
+    if await db.get_property_by_id(property_id) and await db.get_images_by_sha1s(sha1_list):
+        await db.add_or_update_images_properties(sha1_list, property_id, value)
         # check if a value already exists
-        if await db.get_image_property(sha1, property_id):
-            await db.update_image_property(sha1, property_id, value)
-        else:
-            await db.add_image_property(sha1, property_id, value)
+        # if await db.get_image_property(sha1, property_id):
+        #     await db.update_image_property(sha1, property_id, value)
+        # else:
+        #     await db.add_image_property(sha1, property_id, value)
         return value
     else:
         raise HTTPException(status_code=400, detail="Trying to set a value on a non existent property or sha1")
@@ -110,7 +112,7 @@ add_image_lock = asyncio.Lock()
 
 async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
     async with add_image_lock:
-        image = await db.get_image_by_sha1(sha1_hash)
+        image = await db.get_images_by_sha1s(sha1_hash)
         # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
         if image:
             if file_path not in image.paths:
@@ -121,7 +123,7 @@ async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, 
         # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
         else:
             await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
-        return await db.get_image_by_sha1(sha1_hash)
+        return await db.get_images_by_sha1s(sha1_hash)
 
 
 async def add_folder(folder):
