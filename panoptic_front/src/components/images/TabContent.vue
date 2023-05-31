@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, computed, watch, onMounted, ref, unref } from 'vue';
+import { reactive, computed, watch, onMounted, ref, unref, nextTick } from 'vue';
 import ImageGroup from './ImageGroup.vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
@@ -18,6 +18,8 @@ const props = defineProps({
 const filterElem = ref(null)
 const hrElem = ref(null)
 const testElem = ref(null)
+
+const scrollerWidth = ref(0)
 
 const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
@@ -189,7 +191,12 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
 }
 
 onMounted(computeGroups)
-
+onMounted(() => {
+    scrollerWidth.value = hrElem.value.clientWidth
+    window.addEventListener('resize', () => {
+        nextTick(() => scrollerWidth.value = hrElem.value.clientWidth)
+    })
+})
 
 watch(props, () => {
     globalStore.updateTab(props.tab)
@@ -212,8 +219,8 @@ function log(value:any) {
     </div>
     <hr class="custom-hr" ref="hrElem"/>
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
-    <div v-if="hrElem">
-        <ImageList :image-size="props.tab.data.imageSize" :height="scrollerHeight" ref="testElem" :width="hrElem.clientWidth"/>
+    <div v-if="scrollerWidth > 0">
+        <ImageList :image-size="props.tab.data.imageSize" :height="scrollerHeight" ref="testElem" :width="scrollerWidth"/>
     </div>
     <!-- <div class="ms-2 mt-2">
         <div v-if="groupList.length && groupList[0].name == '__all__'">

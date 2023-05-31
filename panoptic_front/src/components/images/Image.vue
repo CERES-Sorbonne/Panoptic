@@ -60,12 +60,6 @@ const imageSizes = computed(() => {
 const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
-
-watch(imageProperties, () => nextTick(() => {
-    console.log('resize: ' + (containerElem.value.clientHeight + 2))
-    emits('resize', containerElem.value.clientHeight + 2)
-}))
-
 </script>
 
 <template>
