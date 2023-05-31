@@ -53,6 +53,7 @@ export interface Image {
     width: number
     height: number
     url: string
+    fullUrl: string
     paths: [string]
     extension: string
     properties: {

@@ -209,7 +209,7 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
             </div>
             <div class="dropdown-menu m-0 p-0 overflow-visible" ref="tagInputContainer"  data-bs-display="static">
 
-                <ul class="list-unstyled mb-0">
+                <ul class="list-unstyled mb-0" v-if="edit">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top" style="width: 300px;">
                         <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" :color="tag.color" v-for="tag in imageTags" />
                     </li>
