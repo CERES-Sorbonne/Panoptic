@@ -291,9 +291,20 @@ export interface Group {
     name: string
     images: Array<Image>
     groups: Array<Group>
+    children: Array<string>
+    parentId: string
     count: number
     propertyId?: number,
-    depth: number
+    depth: number,
+    index: number
+}
+
+export interface GroupIndex {[key: string]: Group}
+
+export interface GroupData {
+    root: Group,
+    index: GroupIndex,
+    order: Array<string>
 }
 
 export interface Folder {
@@ -313,10 +324,12 @@ export interface ImportState {
 }
 
 export interface ScrollerLine {
-    id: Number
-    type: String
-    groupId: String
+    id: number
+    type: string
+    groupId: string
     data: any
+    index: number
+    depth: number
 }
 export function buildTabState() {
     return {

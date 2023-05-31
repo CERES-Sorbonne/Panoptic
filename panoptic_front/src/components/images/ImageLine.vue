@@ -9,13 +9,13 @@ const props = defineProps({
     hoverBorder: {type: Boolean, default: false}
 })
 
-const emits = defineEmits(['hover:border'])
+const emits = defineEmits(['hover:border', 'scroll'])
 //:style="'padding-left:' + (props.item.depth * MARGIN) + 'px'"
 </script>
 
 <template>
     <div class="d-flex flex-row">
-        <div v-for="i in props.item.depth+1" style="cursor: pointer;" class="ps-2" @click="" @mouseenter="$emit('hover:border', true)"
+        <div v-for="i in props.item.depth + 1" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', props.item.depth+1 - i)" @mouseenter="$emit('hover:border', true)"
             @mouseleave="$emit('hover:border', true)">
             <div class="image-line" :class="props.hoverBorder ? 'active' : ''"></div>
         </div>
