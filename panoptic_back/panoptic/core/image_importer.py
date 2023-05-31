@@ -87,7 +87,6 @@ def compute_image(image_path: str = None, image: Image = None):
     if image_path:
         image = Image.open(image_path)
     image = image.convert('RGB')
-
     ahash = compute.to_average_hash(image)
     # TODO: find a way to access all the images for PCA
     vector = compute.to_vector(image)
@@ -104,6 +103,10 @@ def import_image(file_path, folder_id):
     # TODO: gérer l'url statique quand on sera en mode serveur
     # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
     url = f"/images/{file_path}"
+    image = image.convert('RGB')
+    mini = image.copy()
+    mini.thumbnail(size=(200,200))
+    mini.save("mini/" + sha1_hash + '.jpeg', optimize=True, quality=30)
     return image, folder_id, name, extension, width, height, sha1_hash, url, file_path
 
 
