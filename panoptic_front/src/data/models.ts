@@ -310,6 +310,12 @@ export interface ImportState {
     new_images?: Array<Image>
 }
 
+export interface ScrollerLine {
+    id: Number
+    type: String
+    data: any
+}
+
 export function buildTabState() {
     return {
         name: 'Tab',

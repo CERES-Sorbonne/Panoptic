@@ -77,10 +77,6 @@ watch(() => props.width, () => {
 </script>
 
 <template>
-    <!-- <div class="d-flex flex-wrap">
-        <Image :image="image" v-for="image, index in globalStore.images" :index="index" groupId="0" />
-    </div> -->
-    <!-- {{ Object.values(globalStore.images) }} -->
     <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
         :buffer="400" :min-item-size="props.imageSize">
         <template v-slot="{ item, index, active }">
@@ -89,19 +85,9 @@ watch(() => props.width, () => {
                     <ImageVue :image="image" :index="(index * maxPerLine) + i" groupId="0" :size="props.imageSize"
                         v-for="image, i in item.images" />
                 </div>
-
             </DynamicScrollerItem>
         </template>
     </DynamicScroller>
-
-    <!-- <InfiniteList :data="imageLines" :width="props.width" :height="props.height" :item-size="props.imageSize" ref="scroller"
-        v-slot="{ item, index }">
-        <div class="d-flex flex-row">
-
-            <ImageVue :image="image" :index="(index * maxPerLine) + i" groupId="0" :size="props.imageSize"
-                v-for="image, i in item.images"/>
-        </div>
-    </InfiniteList> -->
 </template>
 
 <style scoped>
