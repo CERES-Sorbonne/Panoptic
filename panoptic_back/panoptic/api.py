@@ -184,5 +184,8 @@ async def get_similar_images_route(sha1_list: list[str] = Query(None)) -> list:
 async def start_pca_route():
     return await compute_all_pca(force=True)
 
+if not os.path.exists('mini'):
+    os.makedirs('mini')
+
 app.mount("/small/images/", StaticFiles(directory='mini'), name="static")
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
