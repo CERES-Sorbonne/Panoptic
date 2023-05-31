@@ -1,8 +1,10 @@
 <script setup>
 import { globalStore } from '@/data/store';
 import ImageVue from './Image.vue';
-import { RecycleScroller, DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
+import InfiniteList from 'vue3-infinite-list';
+import DynamicScrollerItem from '@/components/Scroller/src/components/DynamicScrollerItem.vue'
+import DynamicScroller from '@/components/Scroller/src/components/DynamicScroller.vue'
 
 const props = defineProps({
     imageSize: Number,
@@ -11,6 +13,7 @@ const props = defineProps({
 })
 
 const imageLines = reactive([])
+const lineSizes = reactive({})
 
 const scroller = ref(null)
 
@@ -34,7 +37,7 @@ function computeLines() {
     let newLine = []
     let actualWidth = 0
 
-    let addLine = (line) => { imageLines.push({ id: imageLines.length, images: line }) }
+    let addLine = (line) => { imageLines.push({ id: imageLines.length, images: line, size: props.imageSize }) }
 
     for (let i = 0; i < images.length; i++) {
         let img = images[i]
@@ -61,7 +64,9 @@ onMounted(() => {
     nextTick(computeLines)
 })
 
-watch(() => props.imageSize, computeLines)
+watch(() => props.imageSize, () => {
+    computeLines()
+})
 
 </script>
 
@@ -70,27 +75,35 @@ watch(() => props.imageSize, computeLines)
         <Image :image="image" v-for="image, index in globalStore.images" :index="index" groupId="0" />
     </div> -->
     <!-- {{ Object.values(globalStore.images) }} -->
-    <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: '+ props.height +'px;'" :buffer="0"
-            :min-item-size="10">
-            <template v-slot="{ item, index, active }">
-                <DynamicScrollerItem :item="item" :active="active"
-                    :data-index="index">
-    <div class="d-flex flex-row">
-        <ImageVue :image="image" :index="(index * maxPerLine) + i" groupId="0" :size="props.imageSize"
-            v-for="image, i in item.images" />
-    </div>
+    <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
+        :buffer="0" :min-item-size="props.imageSize">
+        <template v-slot="{ item, index, active }">
+            <DynamicScrollerItem :item="item" :active="active" :data-index="index" >
+                <div class="d-flex flex-row">
+                    <ImageVue :image="image" :index="(index * maxPerLine) + i" groupId="0" :size="props.imageSize"
+                        v-for="image, i in item.images" />
+                </div>
 
-    </DynamicScrollerItem>
-            </template>
-        </DynamicScroller>
+            </DynamicScrollerItem>
+        </template>
+    </DynamicScroller>
 
-    <!-- <RecycleScroller class="" :items="imageLines" :item-size="props.imageSize" key-field="id"
-        v-slot="{ item, index, active }">
+    <!-- <InfiniteList :data="imageLines" :width="props.width" :height="props.height" :item-size="props.imageSize" ref="scroller"
+        v-slot="{ item, index }">
         <div class="d-flex flex-row">
+
             <ImageVue :image="image" :index="(index * maxPerLine) + i" groupId="0" :size="props.imageSize"
-                v-for="image, i in item.images" />
+                v-for="image, i in item.images"/>
         </div>
-    </RecycleScroller> -->
+    </InfiniteList> -->
 </template>
 
-<style scoped></style>
+<style scoped>
+
+.text-div {
+    position: absolute;
+    z-index: 900;
+    background-color: wheat;
+    top: 100px;
+}
+</style>
