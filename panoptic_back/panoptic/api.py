@@ -62,7 +62,7 @@ async def delete_property_route(property_id: str):
 
 # Route pour récupérer la liste de toutes les images
 @app.get("/images")
-async def get_images_route() -> Images:
+async def get_images_route():
     images = await get_images()
     return images
 

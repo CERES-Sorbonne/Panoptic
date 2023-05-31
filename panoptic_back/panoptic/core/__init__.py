@@ -39,7 +39,7 @@ async def delete_property(property_id: str):
     await db.delete_property(property_id)
 
 
-async def get_images() -> Images:
+async def get_images():
     """
     Get all images from database
     """
@@ -48,11 +48,10 @@ async def get_images() -> Images:
     for row in rows:
         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
         if sha1 not in result:
-            result[sha1] = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
-                                 extension=extension, ahash=ahash)
+            result[sha1] = {'sha1':sha1, 'paths':json.loads(paths), 'width':width, 'height': height, 'url':url, 'name':name,
+                                 'extension':extension, 'ahash':ahash, 'properties': {}}
         if property_id:
-            result[sha1].properties[property_id] = PropertyValue(
-                **{'property_id': property_id, 'value': db.decode_if_json(value)})
+            result[sha1]['properties'][property_id] = {'property_id': property_id, 'value': db.decode_if_json(value)}
     return result
 
 
