@@ -43,9 +43,6 @@ const setCSSProgress = (progress) => {
 // watchEffect to update the css variable when the slider value changes
 watchEffect(() => {
   if (slider.value) {
-    // emit the updated value to the parent component
-    emit("update:modelValue", sliderValue.value);
-
     // update the slider progress
     const progress = getProgress(
       sliderValue.value,
@@ -60,26 +57,24 @@ watchEffect(() => {
     // set the css variable
     setCSSProgress(progress + extraWidth);
   }
-});
+})
+
+function update() {
+  // emit the updated value to the parent component
+  emit("update:modelValue", sliderValue.value);
+
+}
 
 let isWebkit = false
-if(navigator.userAgent.indexOf('AppleWebKit') != -1){
-    isWebkit = true
+if (navigator.userAgent.indexOf('AppleWebKit') != -1) {
+  isWebkit = true
 }
 </script>
 <template>
   <div class="custom-slider">
-    <input
-      ref="slider"
-      :value="sliderValue"
-      @input="({ target }) => (sliderValue = parseFloat(target.value))"
-      type="range"
-      :min="min"
-      :max="max"
-      :step="step"
-      class="slider"
-      :style="isWebkit ? 'top:-5px' : ''"
-    />
+    <input ref="slider" :value="sliderValue" @input="({ target }) => (sliderValue = parseFloat(target.value))"
+      type="range" :min="min" :max="max" :step="step" class="slider" :style="isWebkit ? 'top:-5px' : ''"
+      @change="update" />
   </div>
 </template>
 <style scoped>
@@ -151,7 +146,6 @@ if(navigator.userAgent.indexOf('AppleWebKit') != -1){
 }
 
 .custom-slider input[type="range"]::-moz-range-progress {
-    background: var(--dark-color);
+  background: var(--dark-color);
 }
-
 </style>

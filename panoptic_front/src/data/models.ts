@@ -59,6 +59,7 @@ export interface Image {
         [id:number]: PropertyValue
     }
     dist?: number
+    containerRatio?: number
 }
 
 export interface Images {
