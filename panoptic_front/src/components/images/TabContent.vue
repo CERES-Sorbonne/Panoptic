@@ -138,7 +138,8 @@ function generateGroups() {
         groups: undefined,
         count: filteredImages.value.length,
         propertyId: undefined,
-        id: '__all__'
+        id: '__all__',
+        depth: 0
     } as Group
     if (groups.value.length > 0) {
         rootGroup = computeSubgroups(rootGroup, groups.value)
@@ -177,7 +178,8 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
             groups: undefined,
             count: groups[group].length,
             propertyId: propertyId,
-            id: propertyId + '-' + group
+            id: parentGroup.id + '-' + propertyId + '-' + group,
+            depth: parentGroup.depth + 1
         } as Group)
     }
 
@@ -219,8 +221,8 @@ function log(value:any) {
     </div>
     <hr class="custom-hr" ref="hrElem"/>
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
-    <div v-if="scrollerWidth > 0">
-        <ImageList :image-size="props.tab.data.imageSize" :height="scrollerHeight" ref="testElem" :width="scrollerWidth"/>
+    <div v-if="scrollerWidth > 0" style="margin-left: 10px;">
+        <ImageList :root-group="imageGroups" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="testElem" :width="scrollerWidth-10"/>
     </div>
     <!-- <div class="ms-2 mt-2">
         <div v-if="groupList.length && groupList[0].name == '__all__'">

@@ -292,7 +292,8 @@ export interface Group {
     images: Array<Image>
     groups: Array<Group>
     count: number
-    propertyId?: number
+    propertyId?: number,
+    depth: number
 }
 
 export interface Folder {
@@ -314,9 +315,9 @@ export interface ImportState {
 export interface ScrollerLine {
     id: Number
     type: String
+    groupId: String
     data: any
 }
-
 export function buildTabState() {
     return {
         name: 'Tab',
