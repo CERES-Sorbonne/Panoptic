@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { globalStore } from '@/data/store';
 import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import PropertyInput from '../inputs/PropertyInput.vue';
@@ -12,6 +12,9 @@ const props = defineProps({
     groupId: String
 })
 
+const emits = defineEmits(['resize'])
+
+const containerElem = ref(null)
 // const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
 
 function hasProperty(propertyId: number) {
@@ -57,11 +60,10 @@ const imageSizes = computed(() => {
 const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
-
 </script>
 
 <template>
-    <div class="me-2 mb-2 full-container" :style="widthStyle">
+    <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
             <img :src="props.image.url" :style="imageStyle" />
         </div>
