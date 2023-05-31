@@ -54,4 +54,23 @@ function onResize() {
 
     <ImageModal :id="Modals.IMAGE" />
     <PropertyModal :id="Modals.PROPERTY" />
+
+    <!-- <div class="above bg-info">lalala</div>
+    <div class="above2 bg-warning">lalala</div> -->
 </template>
+
+<style scoped>
+
+.above {
+    position: absolute;
+    top: 500px;
+    left: 500px;
+    z-index: 200;
+}
+
+.above2 {
+    position: absolute;
+    top: 500px;
+    left: 500px;
+}
+</style>
