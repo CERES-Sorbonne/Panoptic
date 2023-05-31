@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, computed, watch, onMounted, ref } from 'vue';
+import { reactive, computed, watch, onMounted, ref, unref } from 'vue';
 import ImageGroup from './ImageGroup.vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
@@ -8,18 +8,30 @@ import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
 import ContentFilter from './ContentFilter.vue';
 import { sortImages } from '@/utils/sort';
+import ImageList from './ImageList.vue';
 
 const props = defineProps({
-    tab: Object as () => Tab
+    tab: Object as () => Tab,
+    height: Number
 })
+
+const filterElem = ref(null)
+const hrElem = ref(null)
+const testElem = ref(null)
 
 const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
 const sorts = computed(() => props.tab.data.sortList)
+const scrollerHeight = computed(() => {
+    if(filterElem.value && hrElem.value) {
+        return props.height - filterElem.value.clientHeight - hrElem.value.clientHeight - 5
+    }
+    return 0
+})
 
 const imageGroups = reactive({}) as Group
 const groupList = computed(() => {
-    if(!imageGroups.id) 
+    if (!imageGroups.id)
         return []
     return [imageGroups]
 })
@@ -47,17 +59,17 @@ const filteredImages = computed(() => {
 
     return filtered
 })
-function computeGroups(force=false) {
+function computeGroups(force = false) {
     console.log('compute groups')
     let rootGroup = generateGroups()
     console.log(rootGroup)
-    if(!force) {
+    if (!force) {
         Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
     }
     else {
         Object.assign(imageGroups, rootGroup)
     }
-    
+
 }
 function isNode(group: Group) {
     return group.images && group.images.length == 0 && Array.isArray(group.groups) && group.groups.length > 0
@@ -67,7 +79,7 @@ function isLeaf(group: Group) {
 }
 
 function replaceIfChanged(oldGroup: Group, newGroup: Group) {
-    if(!oldGroup) {
+    if (!oldGroup) {
         return newGroup
     }
 
@@ -98,10 +110,10 @@ function replaceIfChanged(oldGroup: Group, newGroup: Group) {
     else {
         changed = true
     }
-    if(changed) {
+    if (changed) {
         return newGroup
     }
-    if(isLeaf(oldGroup)) {
+    if (isLeaf(oldGroup)) {
         let imageOrder = newGroup.images.map(i => i.sha1)
         let oldImgs = {} as any
         oldGroup.images.forEach(img => oldImgs[img.sha1] = img)
@@ -109,7 +121,7 @@ function replaceIfChanged(oldGroup: Group, newGroup: Group) {
         return oldGroup
     }
 
-    let oldSubGroups = {} as {[k:string]: Group}
+    let oldSubGroups = {} as { [k: string]: Group }
     oldGroup.groups.forEach(g => oldSubGroups[g.id] = g)
 
     oldGroup.groups = newGroup.groups.map(g => replaceIfChanged(oldSubGroups[g.id], g))
@@ -187,14 +199,23 @@ watch(filteredImages, () => computeGroups(), { deep: true })
 watch(groups, () => computeGroups(), { deep: true })
 watch(sorts, () => computeGroups(), { deep: true })
 
+
+function log(value:any) {
+    console.log(testElem.value.clientHeight)
+}
+
 </script>
 
 <template>
-    <div class="m-2">
+    <div class="p-2" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" />
     </div>
-    <hr class="custom-hr" />
-    <div class="ms-2 mt-2">
+    <hr class="custom-hr" ref="hrElem"/>
+    <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
+    <div v-if="hrElem">
+        <ImageList :image-size="props.tab.data.imageSize" :height="scrollerHeight" ref="testElem" :width="hrElem.clientWidth"/>
+    </div>
+    <!-- <div class="ms-2 mt-2">
         <div v-if="groupList.length && groupList[0].name == '__all__'">
             <PaginatedImages :images="groupList[0].images" :imageSize="props.tab.data.imageSize" :groupId="'0'" />
         </div>
@@ -204,5 +225,5 @@ watch(sorts, () => computeGroups(), { deep: true })
                     :group-id="String(index)" />
             </div>
         </div>
-    </div>
+    </div> -->
 </template>

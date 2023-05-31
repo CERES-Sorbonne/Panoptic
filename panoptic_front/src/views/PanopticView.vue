@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { ref } from 'vue';
+import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
 import Menu from '../components/Menu/Menu.vue';
@@ -9,19 +9,45 @@ import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
 
+
+const navElem = ref(null)
+
+const windowHeight = ref(400)
+
+const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
+
+onMounted(() => {
+    nextTick(() => {
+      window.addEventListener('resize', onResize);
+      onResize()
+    })
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', onResize); 
+})
+
+function onResize() {
+    windowHeight.value = window.innerHeight
+}
+
+
 </script>
 
 <template>
-    <div class="d-flex flex-row">
+    <div class="d-flex flex-row h-100v">
         <div class="">
             <Menu />
         </div>
-        <div style="width: 100%;" class="me-3" v-if="globalStore.isLoaded">
-            <div class="ms-3">
+
+        <div class="w-100" v-if="globalStore.isLoaded">
+            
+            <div class="ms-3" ref="navElem">
                 <TabNav />
             </div>
             <div class="custom-hr" />
-            <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" v-if="globalStore.isLoaded && globalStore.tagTrees" />
+            <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" :height="contentHeight"
+                v-if="globalStore.isLoaded && globalStore.tagTrees" />
         </div>
 
     </div>

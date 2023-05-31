@@ -114,6 +114,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     importImage(img: Image) {
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
+        img.containerRatio = computeContainerRatio(img)
         globalStore.images[img.sha1] = img
     },
     async fetchAllData() {
@@ -323,4 +324,9 @@ function buildFolderNodes(folders: Array<Folder>) {
         })
     })
     return res
+}
+
+function computeContainerRatio(img: Image) {
+    let ratio = img.width / img.height
+    return Math.max(Math.min(2, ratio), 1)
 }
