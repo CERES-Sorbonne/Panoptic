@@ -3,18 +3,19 @@ from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
+import pandas as pd
 
 from panoptic import core
 from panoptic.scripts.to_pca import compute_all_pca
-from panoptic.core import create_property, add_property_to_image, get_images, create_tag, \
+from panoptic.core import create_property, add_property_to_images, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, get_full_image
+    db_utils, make_clusters, get_similar_images, get_full_image, read_properties_file
 from panoptic.core import db
 from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
@@ -53,6 +54,10 @@ async def get_properties_route() -> Properties:
 async def update_property_route(payload: UpdatePropertyPayload) -> Property:
     return await update_property(payload)
 
+@app.post('/property/file')
+async def properties_by_file(file: UploadFile):
+    data = pd.read_csv(file.file, sep=";")
+    return await read_properties_file(data)
 
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
@@ -86,7 +91,7 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
-    await add_property_to_image(payload.property_id, payload.sha1_list, payload.value)
+    await add_property_to_images(payload.property_id, payload.sha1_list, payload.value)
     return payload
 
 

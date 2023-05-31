@@ -12,3 +12,4 @@ tk
 torch
 transformers
 uvicorn
+python-multipart
