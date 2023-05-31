@@ -29,6 +29,7 @@ defineExpose({
 })
 
 function computeLines() {
+    console.log('compute lines')
     imageLines.length = 0
     let images = Object.values(globalStore.images)
 
@@ -67,6 +68,12 @@ watch(() => props.imageSize, () => {
     computeLines()
 })
 
+let resizeWidthHandler = undefined
+watch(() => props.width, () => {
+    clearTimeout(resizeWidthHandler)
+    setTimeout(computeLines, 500)
+})
+
 </script>
 
 <template>
@@ -75,9 +82,9 @@ watch(() => props.imageSize, () => {
     </div> -->
     <!-- {{ Object.values(globalStore.images) }} -->
     <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="1000" :min-item-size="props.imageSize">
+        :buffer="400" :min-item-size="props.imageSize">
         <template v-slot="{ item, index, active }">
-            <DynamicScrollerItem :item="item" :active="active" :data-index="index" >
+            <DynamicScrollerItem :item="item" :active="active" :data-index="index"  >
                 <div class="d-flex flex-row">
                     <ImageVue :image="image" :index="(index * maxPerLine) + i" groupId="0" :size="props.imageSize"
                         v-for="image, i in item.images" />
