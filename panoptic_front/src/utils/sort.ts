@@ -1,7 +1,7 @@
-import { Image, Property, PropertyType } from "@/data/models";
+import { Group, Image, Property, PropertyType } from "@/data/models";
 import { globalStore } from "@/data/store";
 
-function getSortFunction(type: PropertyType) {
+function getSortFunction(type: PropertyType): any {
     switch(type) {
         case PropertyType.string:
         case PropertyType.url:
@@ -66,4 +66,37 @@ export function sortImages(images: Array<Image>, property: Property) {
     let fnc = getImageSortFunction(property)
     images.sort(fnc)
     return images
+}
+
+export function sortGroups(groups: Array<Group>, descending=false) {
+    if(groups.length == 0) {
+        return groups
+    }
+    if(groups.some(g => g.propertyId == undefined)) {
+        return groups
+    }
+
+    let property = globalStore.properties[groups[0].propertyId]
+    let type = property.type
+    if(type == PropertyType.multi_tags || type == PropertyType.tag) {
+        type = PropertyType.tag // one group is one tag, we do alphabetical string comparaison when sorting groups
+    }
+
+    let sortFnc = getSortFunction(type)
+    groups.sort((a: Group, b:Group) => {
+        let va = a.name
+        let vb = b.name
+        sortFnc(va, vb)
+        return 0
+    })
+
+    return groups
+}
+
+export function sortGroupTree(group: Group, order: Array<string>) {
+    order.push(group.id)
+    if(group.groups && group.groups.length > 0) {
+        sortGroups(group.groups)
+        group.groups.forEach(g => sortGroupTree(g, order))
+    }
 }

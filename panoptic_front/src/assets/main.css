@@ -243,15 +243,27 @@ body {
 button {
   border: 2px solid var(--border-color);
   border-radius: 3px !important;
-  padding: 1px;
-  font-size: 10px !important;
+  padding: 0px;
+  font-size: 12px !important;
   background-color: #ffffff;
   color: rgb(76, 92, 107);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   padding-left: 3px;
   padding-right: 3px;
+  /* height: 19px; */
+}
+
+.button {
+  border: 2px solid var(--border-color);
+  font-size: 11px;
+  background-color: #ffffff;
+  color: rgb(76, 92, 107);
+  border-radius: 3px;
+  padding: 0px 3px;
+  position: relative;
+  top: 2px
 }
 
 input[type=number]::-webkit-outer-spin-button,
@@ -261,9 +273,9 @@ input[type=number]::-webkit-inner-spin-button {
 }
 
 input[type=number] {
-  -moz-appearance:textfield !important;
-  font-size: 10px;
-  padding: 1px;
+  -moz-appearance: textfield !important;
+  font-size: 11px !important;
+  /* padding: 1px; */
   outline-width: 0;
   border: 2px solid var(--border-color);
   border-radius: 3px;
@@ -272,6 +284,10 @@ input[type=number] {
   justify-content: center;
   text-align: center;
   outline: none;
+  height: 20px;
+  position: relative;
+  top: 2px;
+  color: rgb(76, 92, 107);
 }
 
 .text-dimmed {

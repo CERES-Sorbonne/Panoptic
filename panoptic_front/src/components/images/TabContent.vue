@@ -3,12 +3,13 @@ import { reactive, computed, watch, onMounted, ref, unref, nextTick } from 'vue'
 import ImageGroup from './ImageGroup.vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import { Group, Image, PropertyType, Tab } from '@/data/models';
+import { Group, GroupIndex, Image, PropertyType, Tab, GroupData } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
 import ContentFilter from './ContentFilter.vue';
-import { sortImages } from '@/utils/sort';
+import { sortGroupTree, sortImages } from '@/utils/sort';
 import ImageList from './ImageList.vue';
+
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -25,13 +26,20 @@ const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
 const sorts = computed(() => props.tab.data.sortList)
 const scrollerHeight = computed(() => {
-    if(filterElem.value && hrElem.value) {
+    if (filterElem.value && hrElem.value) {
         return props.height - filterElem.value.clientHeight - hrElem.value.clientHeight - 5
     }
     return 0
 })
 
+const groupData = reactive({
+    root: undefined,
+    index: {},
+    order: []
+}) as GroupData
+
 const imageGroups = reactive({}) as Group
+const groupIndex = reactive({}) as GroupIndex
 const groupList = computed(() => {
     if (!imageGroups.id)
         return []
@@ -63,7 +71,8 @@ const filteredImages = computed(() => {
 })
 function computeGroups(force = false) {
     console.log('compute groups')
-    let rootGroup = generateGroups()
+    let index = {} as GroupIndex
+    let rootGroup = generateGroups(index)
     console.log(rootGroup)
     if (!force) {
         Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
@@ -72,7 +81,36 @@ function computeGroups(force = false) {
         Object.assign(imageGroups, rootGroup)
     }
 
+    for (let id in index) {
+        index[id] = mergeGroup(index[id])
+    }
+
+    groupData.index = index
+    groupData.root = rootGroup
+    groupData.order = []
+    sortGroupTree(groupData.root, groupData.order)
 }
+
+function mergeGroup(update: Group) {
+    let id = update.id
+
+    if (update.images.length == 0 || groupIndex[id] == undefined) {
+        return update
+    }
+
+    let childrenIds = groupIndex[id].children
+    if (childrenIds.length == 0) {
+        return update
+    }
+
+    let children = childrenIds.map(id => groupIndex[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
+    if (children.length > 0) {
+        update.children = children.map(c => c.id)
+        update.groups = children
+    }
+    return update
+}
+
 function isNode(group: Group) {
     return group.images && group.images.length == 0 && Array.isArray(group.groups) && group.groups.length > 0
 }
@@ -131,25 +169,27 @@ function replaceIfChanged(oldGroup: Group, newGroup: Group) {
     return oldGroup
 }
 
-function generateGroups() {
+function generateGroups(index: GroupIndex) {
     let rootGroup = {
         name: 'All',
         images: filteredImages.value,
         groups: undefined,
         count: filteredImages.value.length,
         propertyId: undefined,
-        id: '__all__',
-        depth: 0
+        id: '0',
+        depth: 0,
+        parentId: undefined
     } as Group
     if (groups.value.length > 0) {
-        rootGroup = computeSubgroups(rootGroup, groups.value)
+        rootGroup = computeSubgroups(rootGroup, groups.value, index)
     }
+    index[rootGroup.id] = rootGroup
     return rootGroup
 }
 
 
 
-function computeSubgroups(parentGroup: Group, groupList: number[]) {
+function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupIndex) {
     let images = parentGroup.images
     let propertyId = groupList[0]
     let groups = new DefaultDict(Array) as { [k: string | number]: any }
@@ -172,23 +212,27 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
     }
     let res = []
     for (let group in groups) {
-        res.push({
+        let newGroup = {
             name: group,
             images: groups[group],
             groups: undefined,
             count: groups[group].length,
             propertyId: propertyId,
             id: parentGroup.id + '-' + propertyId + '-' + group,
-            depth: parentGroup.depth + 1
-        } as Group)
+            depth: parentGroup.depth + 1,
+            parentId: parentGroup.id
+        } as Group
+        res.push(newGroup)
     }
 
     if (groupList.length > 1) {
-        res.map(g => computeSubgroups(g, groupList.slice(1)))
+        res.map(g => computeSubgroups(g, groupList.slice(1), index))
     }
 
     parentGroup.groups = res
+    parentGroup.children = res.map(g => g.id)
     parentGroup.images = []
+    res.forEach(g => index[g.id] = g)
     return parentGroup
 }
 
@@ -209,7 +253,7 @@ watch(groups, () => computeGroups(), { deep: true })
 watch(sorts, () => computeGroups(), { deep: true })
 
 
-function log(value:any) {
+function log(value: any) {
     console.log(testElem.value.clientHeight)
 }
 
@@ -219,10 +263,11 @@ function log(value:any) {
     <div class="p-2" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" />
     </div>
-    <hr class="custom-hr" ref="hrElem"/>
+    <hr class="custom-hr" ref="hrElem" />
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
     <div v-if="scrollerWidth > 0" style="margin-left: 10px;">
-        <ImageList :root-group="imageGroups" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="testElem" :width="scrollerWidth-10"/>
+        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20"
+            ref="testElem" :width="scrollerWidth - 10" />
     </div>
     <!-- <div class="ms-2 mt-2">
         <div v-if="groupList.length && groupList[0].name == '__all__'">

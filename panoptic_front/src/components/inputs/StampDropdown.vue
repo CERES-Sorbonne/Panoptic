@@ -37,20 +37,19 @@ function apply() {
 
 <template>
     <!-- <div class="btn-group"> -->
-        <button data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside"
-            ref="buttonElem">
-            Tagger le groupe
-        </button>
-        <div class="dropdown-menu">
-            <div class="m-2" style="width: 300px;">
-                <StampForm :values="stamp" />
-            </div>
-
-            <div class="d-flex float-end pe-2">
-                <button class="me-2" @click="close">Cancel</button>
-                <button class="me-2" @click="clear">Clear</button>
-                <button class="me" @click="apply">Apply</button>
-            </div>
+    <div class="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
+        Tagger le groupe
+    </div>
+    <div class="dropdown-menu">
+        <div class="m-2" style="width: 300px;">
+            <StampForm :values="stamp" />
         </div>
+
+        <div class="d-flex float-end pe-2">
+            <button class="me-2" @click="close">Cancel</button>
+            <button class="me-2" @click="clear">Clear</button>
+            <button class="me" @click="apply">Apply</button>
+        </div>
+    </div>
     <!-- </div> -->
 </template>

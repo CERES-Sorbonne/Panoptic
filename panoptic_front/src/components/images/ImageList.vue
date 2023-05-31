@@ -12,7 +12,7 @@ const props = defineProps({
     imageSize: Number,
     height: Number,
     width: Number,
-    rootGroup: Object
+    data: Object
 })
 
 const imageLines = reactive([])
@@ -23,12 +23,6 @@ const MARGIN_STEP = 20
 
 const visiblePropertiesNb = computed(() => Object.values(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(v => v).length)
 
-function scroll() {
-    scroller.value.scrollToItem(5)
-    nextTick(() => scroller.value.forceUpdate())
-    console.log(scroller.value)
-}
-
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
 
 defineExpose({
@@ -36,41 +30,39 @@ defineExpose({
 })
 
 function computeLines() {
-    console.log('compute lines')
-    let group = props.rootGroup
-    const groupToLines = (group, lineWidth, imgHeight) => {
-        let res = []
-        res.push({
+    // console.log('compute lines')
+    let group = props.data.root
+    const groupToLines = (group, lines, lineWidth, imgHeight) => {
+        lines.push({
             id: group.id,
             type: 'group',
             data: group,
             depth: group.depth,
-            size: 25
+            size: 30,
+            // index: lines.length
         })
+        group.index = lines.length - 1
         if (Array.isArray(group.groups) && group.groups.length > 0) {
             group.groups.forEach(g => {
-                res.push(...groupToLines(g, lineWidth, imgHeight))
+                groupToLines(g, lines, lineWidth, imgHeight)
             })
-            return res
+            return
         }
         if (Array.isArray(group.images) && group.images.length > 0) {
-            let imgLines = computeImageLines(group.images, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
-            res.push(...imgLines)
+            computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
-
-        return res
     }
 
-    let lines = groupToLines(group, props.width, props.imageSize)
+    let lines = []
+    groupToLines(group, lines, props.width, props.imageSize)
     imageLines.length = 0
     imageLines.push(...lines)
-    console.log(lines)
+    // console.log(lines)
     // nextTick(() => scroller.value.forceUpdate())
     return lines
 }
 
-function computeImageLines(images, imageHeight, totalWidth, parentGroup) {
-    let lines = []
+function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) {
     let lineWidth = totalWidth
     let newLine = []
     let actualWidth = 0
@@ -82,7 +74,8 @@ function computeImageLines(images, imageHeight, totalWidth, parentGroup) {
             data: line,
             groupId: parentGroup.id,
             depth: parentGroup.depth,
-            size: props.imageSize + (visiblePropertiesNb.value * 31) + 10
+            size: props.imageSize + (visiblePropertiesNb.value * 31) + 10,
+            // index: lines.length
         })
     }
 
@@ -105,12 +98,21 @@ function computeImageLines(images, imageHeight, totalWidth, parentGroup) {
     if (newLine.length > 0) {
         addLine(newLine)
     }
-    return lines
+}
+
+function scrollToParent(currentId, dist=0) {
+    let currentGroup = props.data.index[currentId]
+    if(dist > 0) {
+        scrollToParent(currentGroup.parentId, dist-1)
+        return
+    }
+    let i = currentGroup.index
+    scroller.value.scrollToItem(i)
 }
 
 onMounted(computeLines)
 
-watch(() => props.rootGroup, computeLines, { deep: true })
+watch(() => props.data, computeLines, { deep: true })
 
 watch(() => props.imageSize, () => {
     computeLines()
@@ -132,10 +134,10 @@ watch(() => props.width, () => {
 
     <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
         <div v-if="item.type == 'group'">
-            <GroupLine :item="item" />
+            <GroupLine :item="item" @scroll="dist => scrollToParent(item.id, dist+1)"/>
         </div>
         <div v-if="item.type == 'images'">
-            <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item" />
+            <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item" @scroll="dist => scrollToParent(item.groupId, dist)"/>
         </div>
     <!-- </RecycleScroller> -->
     </DynamicScrollerItem>
