@@ -2,8 +2,10 @@ import asyncio
 import atexit
 import json
 from concurrent.futures import ProcessPoolExecutor
+import random
 from typing import List
 
+import pandas
 from fastapi import HTTPException
 
 from panoptic import compute
@@ -87,7 +89,7 @@ async def get_similar_images(sha1_list: list[str]):
     return [img for img in res if img['sha1'] not in sha1_list]
 
 
-async def add_property_to_image(property_id: int, sha1_list: list[str], value: JSON) -> str:
+async def add_property_to_images(property_id: int, sha1_list: list[str], value: JSON) -> str:
     # first check that the property and the image exist:
     if await db.get_property_by_id(property_id) and await db.get_images_by_sha1s(sha1_list):
         await db.add_or_update_images_properties(sha1_list, property_id, value)
@@ -99,6 +101,34 @@ async def add_property_to_image(property_id: int, sha1_list: list[str], value: J
         return value
     else:
         raise HTTPException(status_code=400, detail="Trying to set a value on a non existent property or sha1")
+
+
+async def read_properties_file(data: pandas.DataFrame):
+    filenames, sha1s = zip(*[(i.name, i.sha1) for i in await db.get_images(as_image=True)])
+    data = data[data.key.isin(filenames)]
+    data = data.drop_duplicates(subset='key', keep='first')
+    for f, s in zip(filenames, sha1s):
+        data.loc[data.key == f, 'sha1'] = s
+
+    properties_to_create = data.columns.tolist()
+
+    for prop in properties_to_create:
+        if prop == "key" or prop == "sha1":
+            continue
+        prop_name, prop_type = prop.split('[')
+        prop_type = PropertyType(prop_type.split(']')[0])
+        property = await create_property(prop_name, prop_type)
+        prop_values = list(data[prop].unique())
+        for value in prop_values:
+            real_value = value
+            if property.type == PropertyType.tag.value or property.type == PropertyType.multi_tags.value:
+                colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
+                           "9daebe"]
+                color = colors[random.randint(0, len(colors) - 1)]
+                tag = await create_tag(property.id, value, 0, color)
+                real_value = [tag.id]
+            sub_data = data[data[prop] == value]
+            await add_property_to_images(property.id, sub_data.sha1.tolist(), real_value)
 
 
 async def delete_image_property(property_id: int, sha1: str):
