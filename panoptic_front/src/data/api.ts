@@ -13,7 +13,7 @@ axios.defaults.baseURL = SERVER_PREFIX
 
 export const apiGetImages = async ():Promise<Images> => {
     const res = await axios.get(`/images`)
-    const images = Object.fromEntries(Object.entries(res.data as Images).map(([k,v]) => [k, {...v, url: SERVER_PREFIX + v.url,}]))
+    const images = Object.fromEntries(Object.entries(res.data as Images).map(([k,v]) => [k, {...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url}]))
     return images
 }
 

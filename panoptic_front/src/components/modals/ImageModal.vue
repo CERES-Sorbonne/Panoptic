@@ -90,7 +90,7 @@ const setSimilar = async () => {
                     <div class="row">
                         <div class="col">
                             <div class="text-center mb-2">
-                                <img :src="image.url" class="border image-size" />
+                                <img :src="image.fullUrl" class="border image-size" />
                             </div>
                             <div id="similarImages" v-if="similarImages.length > 0">
                                 <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
