@@ -2,7 +2,6 @@
 import { globalStore } from '@/data/store';
 import ImageVue from './Image.vue';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
-import InfiniteList from 'vue3-infinite-list';
 import DynamicScrollerItem from '@/components/Scroller/src/components/DynamicScrollerItem.vue'
 import DynamicScroller from '@/components/Scroller/src/components/DynamicScroller.vue'
 
@@ -76,7 +75,7 @@ watch(() => props.imageSize, () => {
     </div> -->
     <!-- {{ Object.values(globalStore.images) }} -->
     <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="0" :min-item-size="props.imageSize">
+        :buffer="1000" :min-item-size="props.imageSize">
         <template v-slot="{ item, index, active }">
             <DynamicScrollerItem :item="item" :active="active" :data-index="index" >
                 <div class="d-flex flex-row">
