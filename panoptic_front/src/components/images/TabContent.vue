@@ -74,15 +74,16 @@ function computeGroups(force = false) {
     let index = {} as GroupIndex
     let rootGroup = generateGroups(index)
     console.log(rootGroup)
-    if (!force) {
-        Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
-    }
-    else {
-        Object.assign(imageGroups, rootGroup)
-    }
+    Object.assign(imageGroups, rootGroup)
+    // if (!force) {
+    //     Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
+    // }
+    // else {
+    //     Object.assign(imageGroups, rootGroup)
+    // }
 
     for (let id in index) {
-        index[id] = mergeGroup(index[id])
+        // index[id] = mergeGroup(index[id])
     }
 
     groupData.index = index
