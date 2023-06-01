@@ -84,10 +84,24 @@ export function sortGroups(groups: Array<Group>, descending=false) {
 
     let sortFnc = getSortFunction(type)
     groups.sort((a: Group, b:Group) => {
-        let va = a.name
-        let vb = b.name
-        sortFnc(va, vb)
-        return 0
+        let va = a.name as any
+        let vb = b.name as any
+
+        if(type == PropertyType.tag) {
+            if(va == 'undefined' || va == undefined) {
+                va = 'zzzzzzzzzzzzzzzzzz'
+            } else {
+                va = globalStore.tags[property.id][va].value
+            }
+            if(vb == 'undefined' || vb == undefined) {
+                vb = 'zzzzzzzzzzzzzzzzzz'
+            } else {
+                vb = globalStore.tags[property.id][vb].value
+            }
+            
+            
+        }
+        return sortFnc(va, vb)
     })
 
     return groups
