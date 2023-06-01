@@ -152,7 +152,7 @@ watch(() => props.width, () => {
 
                 <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
                 <div v-if="item.type == 'group'">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)" :group-index="props.data.index"
+                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
                 </div>
                 <div v-if="item.type == 'images'">
