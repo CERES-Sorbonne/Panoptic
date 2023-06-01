@@ -44,13 +44,13 @@ function computeLines() {
             // index: lines.length
         })
         group.index = lines.length - 1
-        if (Array.isArray(group.groups) && group.groups.length > 0) {
+        if (!group.closed && Array.isArray(group.groups) && group.groups.length > 0) {
             group.groups.forEach(g => {
                 groupToLines(g, lines, lineWidth, imgHeight)
             })
             return
         }
-        if (Array.isArray(group.images) && group.images.length > 0) {
+        if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
             computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
     }

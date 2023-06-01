@@ -296,7 +296,8 @@ export interface Group {
     count: number
     propertyId?: number,
     depth: number,
-    index: number
+    index: number,
+    closed: boolean
 }
 
 export interface GroupIndex {[key: string]: Group}
