@@ -12,7 +12,9 @@ const props = defineProps({
     hoverBorder: String
 })
 
-const emits = defineEmits(['hover', 'unhover' ,'scroll'])
+const emits = defineEmits(['hover', 'unhover', 'scroll'])
+
+const hoverGroup = ref(false)
 
 const group = computed(() => props.item.data as Group)
 const images = computed(() => props.item.data.images)
@@ -21,6 +23,7 @@ const hasImages = computed(() => images.value.length > 0)
 const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
 const closed = computed(() => group.value?.closed)
+const hasOpenChildren = computed(() => group.value.groups.some(g => g.closed != true))
 
 const groupName = computed(() => {
     let name = group.value.name
@@ -57,7 +60,7 @@ function recommandImages() {
 }
 
 function toggleClosed() {
-    if(closed.value) {
+    if (closed.value) {
         // props.groupIndex[props.item.id].closed = false
         props.item.data.closed = false
     }
@@ -66,12 +69,17 @@ function toggleClosed() {
     }
 }
 
+function closeChildren() {
+    props.item.data.groups.forEach((g: Group) => g.closed = true)
+}
+
 </script>
 
 <template>
-    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden">        
-        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)"
-            @mouseleave="$emit('unhover')">
+    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden" @mouseenter="hoverGroup = true"
+        @mouseleave="hoverGroup = false">
+        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)"
+            @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <div @click="toggleClosed" class="me-2">
@@ -90,8 +98,9 @@ function toggleClosed() {
         </div>
         <div v-else><b>{{ groupName }}</b></div>
         <div class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.count }} Images</div>
-        <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.groups.length }} Groupes</div>
-        <div v-if="hasImages && hasSubgroups" class="ms-2" ><button @click="clear">Clear</button></div>
+        <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{
+            group.groups.length }} Groupes</div>
+        <div v-if="hasImages && hasSubgroups" class="ms-2"><button @click="clear">Clear</button></div>
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
             <StampDropdown :images="images" />
         </div>
@@ -105,10 +114,19 @@ function toggleClosed() {
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
             <div class="button" @click="recommandImages">Images Similaires</div>
         </div>
+        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children" @click="closeChildren">
+            Reduire
+        </div>
     </div>
 </template>
 
 <style scoped>
+.close-children {
+    font-size: 11px;
+    line-height: 25px;
+    cursor: pointer;
+}
+
 .group-line {
     /* position: relative; */
     height: 30px;
