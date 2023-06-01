@@ -24,12 +24,10 @@ function clear() {
 }
 
 function apply() {
-    props.images.forEach(img => {
-        Object.keys(stamp).forEach((propId) => {
-            let value = stamp[propId]
-            globalStore.addOrUpdatePropertyToImage(img.sha1, propId, value)
-        })
-    })
+    Object.keys(stamp).forEach( propId => {
+        let value = stamp[propId]
+        globalStore.addOrUpdatePropertyToImage(props.images.map(i => i.sha1), propId, value)
+    });
     close()
 }
 

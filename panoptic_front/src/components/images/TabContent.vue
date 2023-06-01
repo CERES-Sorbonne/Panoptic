@@ -10,6 +10,7 @@ import ContentFilter from './ContentFilter.vue';
 import { sortGroupTree, sortImages } from '@/utils/sort';
 import ImageList from './ImageList.vue';
 
+// import moment from 'moment';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -88,7 +89,7 @@ function computeGroups(force = false) {
 
 function mergeGroup(update: Group) {
     let index = groupData.index
-    console.log('merge: ' + update.id)
+    // console.log('merge: ' + update.id)
     
     let id = update.id
 
@@ -205,6 +206,9 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
         if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
+        // if (type == PropertyType.date){
+        //     groups[moment(value).format('YYYY/MM')].push(img)
+        // }
         else {
             groups[value].push(img)
         }

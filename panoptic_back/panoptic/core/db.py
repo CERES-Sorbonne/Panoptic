@@ -4,13 +4,13 @@ from typing import List
 
 import numpy as np
 
-from panoptic.core.db_utils import execute_query, decode_if_json
+from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many
 from panoptic.models import ImageVector
 from panoptic.models import Tag, Image, Property, ImageProperty, JSON, Folder, Tab
 
 
 async def add_property(name: str, property_type: str) -> Property:
-    query = 'INSERT INTO properties (name, type) VALUES (?, ?)'
+    query = 'INSERT INTO properties (name, type) VALUES (?, ?) on conflict do nothing'
     cursor = await execute_query(query, (name, property_type))
     prop = Property(id=cursor.lastrowid, name=name, type=property_type)
     return prop
@@ -35,16 +35,20 @@ async def add_image(sha1, height, width, name, extension, paths, url):
     await execute_query(query, (sha1, height, width, name, extension, paths, url))
 
 
-async def get_image_by_sha1(sha1) -> [Image | None]:
+async def get_images_by_sha1s(sha1_list: str | list[str]) -> [Image | list[Image] | None]:
+    if type(sha1_list) == str:
+        sha1_list = [sha1_list]
     query = """
         SELECT *
         FROM images
-        WHERE sha1 = ?
     """
-    cursor = await execute_query(query, (sha1,))
-    image = await cursor.fetchone()
-    if image:
-        return Image(**auto_dict(image, cursor))
+    query += " WHERE sha1 in (" + ','.join('?' * len(sha1_list)) + ')'
+    cursor = await execute_query(query, tuple(sha1_list))
+    images = [Image(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
+    if len(images) > 1:
+        return images
+    elif len(images) == 1:
+        return images[0]
     else:
         return None
 
@@ -60,13 +64,16 @@ async def get_full_image_with_sha1(sha1: str):
     return await cursor.fetchall()
 
 
-async def get_images():
+async def get_images(as_image=False):
     query = """
             SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
             FROM images i
             LEFT JOIN images_properties i_d ON i.sha1 = i_d.sha1
+            ORDER BY i.name
             """
     cursor = await execute_query(query)
+    if as_image:
+        return [Image(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
     return await cursor.fetchall()
 
 
@@ -278,3 +285,17 @@ async def get_all_sha1() -> list[str]:
     query = "SELECT sha1 from images ORDER BY sha1"
     cursor = await execute_query(query)
     return [row for row in await cursor.fetchall()]
+
+
+async def add_or_update_images_properties(sha1_list: list[str], property_id: int, value):
+    query = "INSERT into images_properties (sha1, property_id, value) " \
+            "VALUES (?, ?, ?)" \
+            "ON conflict (sha1, property_id) do update set value=excluded.value"
+    svalue = json.dumps(value)
+    return await execute_query_many(query, [(sha1, property_id, svalue) for sha1 in sha1_list])
+
+
+async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
+    query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
+    cursor = await execute_query(query, tuple(filenames))
+    return await cursor.fetchall()

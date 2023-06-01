@@ -21,7 +21,7 @@ class UpdatePropertyPayload(CamelModel):
 
 class AddImagePropertyPayload(CamelModel):
     property_id: int
-    sha1: str
+    sha1_list: list[str]
     value: Any
 
 
