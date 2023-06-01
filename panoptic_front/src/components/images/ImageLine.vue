@@ -6,18 +6,19 @@ const props = defineProps({
     imageSize: Number,
     index: Number,
     item: Object,
-    hoverBorder: {type: Boolean, default: false}
+    parentIds: Array<string>,
+    hoverBorder: String
 })
 
-const emits = defineEmits(['hover:border', 'scroll'])
+const emits = defineEmits(['hover', 'unhover' ,'scroll'])
 //:style="'padding-left:' + (props.item.depth * MARGIN) + 'px'"
 </script>
 
 <template>
     <div class="d-flex flex-row">
-        <div v-for="i in props.item.depth + 1" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', props.item.depth+1 - i)" @mouseenter="$emit('hover:border', true)"
-            @mouseleave="$emit('hover:border', true)">
-            <div class="image-line" :class="props.hoverBorder ? 'active' : ''"></div>
+        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)"
+            @mouseleave="$emit('unhover')">
+            <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <Image :image="image" :index="props.index + i" :groupId="item.groupId" :size="props.imageSize"
             v-for="image, i in props.item.data" />
