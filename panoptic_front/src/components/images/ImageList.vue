@@ -16,7 +16,6 @@ const props = defineProps({
 })
 
 const imageLines = reactive([])
-const lineSizes = reactive({})
 
 const hoverGroupBorder = ref('')
 
@@ -113,12 +112,15 @@ function updateHoverBorder(value) {
 }
 
 function getParents(item) {
+    if(!item) {
+        return []
+    }
     if (item.groupId != undefined) {
         return [...getParents(props.data.index[item.groupId]), item.groupId]
     }
     if (item.id != undefined) {
         let group = props.data.index[item.id]
-        if (group.parentId != undefined) {
+        if (group && group.parentId != undefined) {
             return [...getParents(props.data.index[group.parentId]), group.parentId]
         }
     }
