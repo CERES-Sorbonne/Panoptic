@@ -8,14 +8,13 @@ import TagBadge from '../TagTree/TagBadge.vue'
 
 const props = defineProps({
     item: Object as () => ScrollerLine,
-    groupIndex: Object as () => GroupIndex,
     parentIds: Array<string>,
     hoverBorder: String
 })
 
 const emits = defineEmits(['hover', 'unhover' ,'scroll'])
 
-const group = computed(() => props.groupIndex[props.item.id] as Group)
+const group = computed(() => props.item.data as Group)
 const images = computed(() => props.item.data.images)
 const subgroups = computed(() => props.item.data.groups)
 const hasImages = computed(() => images.value.length > 0)
@@ -42,7 +41,6 @@ const groupName = computed(() => {
 })
 
 function getTag(propId: number, tagId: number) {
-    console.log(propId + ' : ' + tagId)
     return globalStore.tags[propId][tagId]
 }
 
@@ -60,10 +58,11 @@ function recommandImages() {
 
 function toggleClosed() {
     if(closed.value) {
-        props.groupIndex[props.item.id].closed = false
+        // props.groupIndex[props.item.id].closed = false
+        props.item.data.closed = false
     }
     else {
-        props.groupIndex[props.item.id].closed = true
+        props.item.data.closed = true
     }
 }
 
