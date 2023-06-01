@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Group, PropertyType, ScrollerLine } from '@/data/models'
+import { Group, GroupIndex, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, ref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
@@ -8,19 +8,20 @@ import TagBadge from '../TagTree/TagBadge.vue'
 
 const props = defineProps({
     item: Object as () => ScrollerLine,
+    groupIndex: Object as () => GroupIndex,
     parentIds: Array<string>,
     hoverBorder: String
 })
 
 const emits = defineEmits(['hover', 'unhover' ,'scroll'])
 
-const group = computed(() => props.item.data as Group)
+const group = computed(() => props.groupIndex[props.item.id] as Group)
 const images = computed(() => props.item.data.images)
 const subgroups = computed(() => props.item.data.groups)
 const hasImages = computed(() => images.value.length > 0)
 const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
-const closed = computed(() => group.value.closed)
+const closed = computed(() => group.value?.closed)
 
 const groupName = computed(() => {
     let name = group.value.name
@@ -58,10 +59,10 @@ function recommandImages() {
 
 function toggleClosed() {
     if(closed.value) {
-        props.item.data.closed = false
+        props.groupIndex[props.item.id].closed = false
     }
     else {
-        props.item.data.closed = true
+        props.groupIndex[props.item.id].closed = true
     }
 }
 
@@ -109,7 +110,7 @@ function toggleClosed() {
 
 <style scoped>
 .group-line {
-    position: relative;
+    /* position: relative; */
     height: 30px;
     /* line-height: 25px; */
 }

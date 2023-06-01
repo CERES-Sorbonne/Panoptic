@@ -33,6 +33,7 @@ defineExpose({
 function computeLines() {
     // console.log('compute lines')
     let group = props.data.root
+    let index = props.data.index
     const groupToLines = (group, lines, lineWidth, imgHeight) => {
         lines.push({
             id: group.id,
@@ -46,7 +47,7 @@ function computeLines() {
         group.index = lines.length - 1
         if (!group.closed && Array.isArray(group.groups) && group.groups.length > 0) {
             group.groups.forEach(g => {
-                groupToLines(g, lines, lineWidth, imgHeight)
+                groupToLines(index[g.id], lines, lineWidth, imgHeight)
             })
             return
         }
@@ -56,7 +57,7 @@ function computeLines() {
     }
 
     let lines = []
-    groupToLines(group, lines, props.width, props.imageSize)
+    groupToLines(index[group.id], lines, props.width, props.imageSize)
     imageLines.length = 0
     imageLines.push(...lines)
     // console.log(lines)
@@ -151,7 +152,7 @@ watch(() => props.width, () => {
 
                 <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
                 <div v-if="item.type == 'group'">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)"
+                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)" :group-index="props.data.index"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
                 </div>
                 <div v-if="item.type == 'images'">

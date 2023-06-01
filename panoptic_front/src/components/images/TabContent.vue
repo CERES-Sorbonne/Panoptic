@@ -39,12 +39,6 @@ const groupData = reactive({
 }) as GroupData
 
 const imageGroups = reactive({}) as Group
-const groupIndex = reactive({}) as GroupIndex
-const groupList = computed(() => {
-    if (!imageGroups.id)
-        return []
-    return [imageGroups]
-})
 
 const filteredImages = computed(() => {
     let images = Object.values(globalStore.images)
@@ -73,8 +67,8 @@ function computeGroups(force = false) {
     console.log('compute groups')
     let index = {} as GroupIndex
     let rootGroup = generateGroups(index)
-    console.log(rootGroup)
-    Object.assign(imageGroups, rootGroup)
+    // console.log(rootGroup)
+    // Object.assign(imageGroups, rootGroup)
     // if (!force) {
     //     Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
     // }
@@ -83,7 +77,7 @@ function computeGroups(force = false) {
     // }
 
     for (let id in index) {
-        // index[id] = mergeGroup(index[id])
+        index[id] = mergeGroup(index[id])
     }
 
     groupData.index = index
@@ -93,18 +87,22 @@ function computeGroups(force = false) {
 }
 
 function mergeGroup(update: Group) {
+    let index = groupData.index
+    console.log('merge: ' + update.id)
+    
     let id = update.id
 
-    if (update.images.length == 0 || groupIndex[id] == undefined) {
+    if (index[id] == undefined) {
+        return update
+    }
+    // console.log('closed: ' + index[id].closed)
+    update.closed = index[id].closed
+    let childrenIds = index[id].children
+    if (!childrenIds || childrenIds.length == 0) {
         return update
     }
 
-    let childrenIds = groupIndex[id].children
-    if (childrenIds.length == 0) {
-        return update
-    }
-
-    let children = childrenIds.map(id => groupIndex[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
+    let children = childrenIds.map(id => index[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
     if (children.length > 0) {
         update.children = children.map(c => c.id)
         update.groups = children

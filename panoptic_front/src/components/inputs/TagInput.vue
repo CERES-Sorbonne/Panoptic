@@ -142,7 +142,10 @@ const removeTag = async (tag: Tag) => {
     await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1,
         props.property.propertyId,
         props.property.value.filter((id: number) => id !== tag.id));
-    inputElem.value.focus()
+    if (inputElem.value) {
+        inputElem.value.focus()
+
+    }
 };
 
 
@@ -166,19 +169,20 @@ onMounted(() => {
     // if (!props.property.value) {
     //     props.property.value = []
     // }
-    if(props.inputId) {
+    if (props.inputId) {
         inputTree.registerInput(props.inputId, clickableElem.value)
     }
 });
 
-watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickableElem.value), {deep: true, immediate: true})
+watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickableElem.value), { deep: true, immediate: true })
 
 </script>
 
 <template>
     <div class="pt-1 pb-1 pe-1 input-container" is-input="true">
         <div class="dropdown" @click.prevent.stop="setEdit(true)" ref="clickableElem">
-            <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem" data-bs-offset="20,0" data-ds-toggle="dropdown" data-bs-display="static">
+            <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem" data-bs-offset="20,0"
+                data-ds-toggle="dropdown" data-bs-display="static">
                 <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">
                     <span class="me-1">
                         <PropertyIcon :type="props.property.type" />
@@ -207,11 +211,12 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
 
                 </div>
             </div>
-            <div class="dropdown-menu m-0 p-0 overflow-visible" ref="tagInputContainer"  data-bs-display="static">
+            <div class="dropdown-menu m-0 p-0 overflow-visible" ref="tagInputContainer" data-bs-display="static">
 
                 <ul class="list-unstyled mb-0" v-if="edit">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top" style="width: 300px;">
-                        <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" :color="tag.color" v-for="tag in imageTags" />
+                        <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" :color="tag.color"
+                            v-for="tag in imageTags" />
                     </li>
                     <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
                     </p>
@@ -219,10 +224,11 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
                         v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
                             <TagBadge :tag="tag.value" :color="tag.color" />
                         </a></li>
-                    <li @mouseover="selectedIndex = filteredTagList.length" @click.prevent.stop="selectOption" v-if="isCreatePossible"
-                        :class="optionClass(filteredTagList.length) + ' rounded-bottom'" style="cursor: pointer;">
+                    <li @mouseover="selectedIndex = filteredTagList.length" @click.prevent.stop="selectOption"
+                        v-if="isCreatePossible" :class="optionClass(filteredTagList.length) + ' rounded-bottom'"
+                        style="cursor: pointer;">
                         <span class="text-muted ms-1">Create </span>
-                        <TagBadge :tag="tagInput" color="grey"/>
+                        <TagBadge :tag="tagInput" color="grey" />
                     </li>
                 </ul>
             </div>
@@ -232,11 +238,11 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
 
 <style scoped>
 /* .test-wraped { */
-    /* display: -webkit-box;
+/* display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2; */
-    /* number of lines to show */
-    /* line-clamp: 2;
+/* number of lines to show */
+/* line-clamp: 2;
     overflow: hidden;
     cursor: pointer; */
 /* } */
@@ -245,13 +251,11 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
 .input-container {
     position: relative;
     /* top: 0; */
-    
+
 }
 
 .drop-menu {
     position: absolute;
     z-index: 9000 !important;
 }
-
-
 </style>
