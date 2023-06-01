@@ -8,6 +8,7 @@ import { DefaultDict } from '@/utils/helpers'
 import PaginatedImages from './PaginatedImages.vue';
 import ContentFilter from './ContentFilter.vue';
 import { sortImages } from '@/utils/sort';
+import moment from 'moment';
 
 const props = defineProps({
     tab: Object as () => Tab
@@ -151,12 +152,15 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
         if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
+        if (type == PropertyType.date){
+            groups[moment(value).format('YYYY/MM')].push(img)
+        }
         else {
             groups[value].push(img)
         }
     }
     let res = []
-    for (let group in groups) {
+    for (let group of Object.keys(groups).sort()) {
         res.push({
             name: group,
             images: groups[group],
