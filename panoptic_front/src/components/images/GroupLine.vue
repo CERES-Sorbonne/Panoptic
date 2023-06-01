@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { Group, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
 import TagBadge from '../TagTree/TagBadge.vue'
 
 
 const props = defineProps({
     item: Object as () => ScrollerLine,
-    hoverBorder: { type: Boolean, default: false }
+    parentIds: Array<string>,
+    hoverBorder: String
 })
 
-const emits = defineEmits(['hover:border', 'scroll'])
+const emits = defineEmits(['hover', 'unhover' ,'scroll'])
 
 const group = computed(() => props.item.data as Group)
 const images = computed(() => props.item.data.images)
@@ -58,9 +59,9 @@ function recommandImages() {
 
 <template>
     <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden">
-        <div v-for="i in props.item.depth" style="cursor: pointer;" class="ps-2" @click="emits('scroll', (props.item.depth - i))"
-            @mouseenter="$emit('hover:border', true)" @mouseleave="$emit('hover:border', true)">
-            <div class="group-line-border" :class="props.hoverBorder ? 'active' : ''"></div>
+        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)"
+            @mouseleave="$emit('unhover')">
+            <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <div v-if="property != undefined && property.type != PropertyType.multi_tags && property.type != PropertyType.tag">
             <b>{{ property.name }}</b> : {{ groupName }}
@@ -73,17 +74,18 @@ function recommandImages() {
             <TagBadge v-else tag="_undefined_" color="#000000" />
         </div>
         <div v-else><b>{{ groupName }}</b></div>
-        <div class="ms-2">({{ group.count }})</div>
-        <div v-if="hasImages && hasSubgroups" class="ms-2"><button @click="clear">Clear</button></div>
+        <div class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.count }} Images</div>
+        <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.groups.length }} Groupes</div>
+        <div v-if="hasImages && hasSubgroups" class="ms-2" ><button @click="clear">Clear</button></div>
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
             <StampDropdown :images="images" />
         </div>
-        <div class="ms-2">
+        <div class="ms-2" v-if="!hasSubgroups">
             <!-- <button @click="computeClusters">Créer clusters</button> -->
             <div class="button">Créer clusters</div>
         </div>
         <div v-if="hasImages && !hasSubgroups" style="margin-left: 2px;">
-            <input class="no-spin" type="number" v-model="props.item.data.clusterNb" style="width: 30px;" />
+            <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
         </div>
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
             <div class="button" @click="recommandImages">Images Similaires</div>

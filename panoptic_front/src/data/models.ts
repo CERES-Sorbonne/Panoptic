@@ -330,6 +330,7 @@ export interface ScrollerLine {
     data: any
     index: number
     depth: number
+    nbClusters: number
 }
 export function buildTabState() {
     return {

@@ -18,6 +18,8 @@ const props = defineProps({
 const imageLines = reactive([])
 const lineSizes = reactive({})
 
+const hoverGroupBorder = ref('')
+
 const scroller = ref(null)
 const MARGIN_STEP = 20
 
@@ -39,6 +41,7 @@ function computeLines() {
             data: group,
             depth: group.depth,
             size: 30,
+            nbClusters: 10
             // index: lines.length
         })
         group.index = lines.length - 1
@@ -75,7 +78,6 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) 
             groupId: parentGroup.id,
             depth: parentGroup.depth,
             size: props.imageSize + (visiblePropertiesNb.value * 31) + 10,
-            // index: lines.length
         })
     }
 
@@ -100,14 +102,27 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) 
     }
 }
 
-function scrollToParent(currentId, dist=0) {
-    let currentGroup = props.data.index[currentId]
-    if(dist > 0) {
-        scrollToParent(currentGroup.parentId, dist-1)
-        return
-    }
-    let i = currentGroup.index
+function scrollTo(groupId) {
+    let group = props.data.index[groupId]
+    let i = group.index
     scroller.value.scrollToItem(i)
+}
+
+function updateHoverBorder(value) {
+    hoverGroupBorder.value = value
+}
+
+function getParents(item) {
+    if (item.groupId != undefined) {
+        return [...getParents(props.data.index[item.groupId]), item.groupId]
+    }
+    if (item.id != undefined) {
+        let group = props.data.index[item.id]
+        if (group.parentId != undefined) {
+            return [...getParents(props.data.index[group.parentId]), group.parentId]
+        }
+    }
+    return []
 }
 
 onMounted(computeLines)
@@ -132,15 +147,18 @@ watch(() => props.width, () => {
         <template v-slot="{ item, index, active }">
             <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]">
 
-    <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
-        <div v-if="item.type == 'group'">
-            <GroupLine :item="item" @scroll="dist => scrollToParent(item.id, dist+1)"/>
-        </div>
-        <div v-if="item.type == 'images'">
-            <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item" @scroll="dist => scrollToParent(item.groupId, dist)"/>
-        </div>
-    <!-- </RecycleScroller> -->
-    </DynamicScrollerItem>
+                <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
+                <div v-if="item.type == 'group'">
+                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)"
+                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
+                </div>
+                <div v-if="item.type == 'images'">
+                    <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
+                        :hover-border="hoverGroupBorder" :parent-ids="getParents(item)" @scroll="scrollTo"
+                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
+                </div>
+                <!-- </RecycleScroller> -->
+            </DynamicScrollerItem>
         </template>
     </DynamicScroller>
 </template>
