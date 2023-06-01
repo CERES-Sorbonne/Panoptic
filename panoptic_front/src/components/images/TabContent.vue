@@ -146,13 +146,13 @@ function computeSubgroups(parentGroup: Group, groupList: number[]) {
         if (value == null || value == '') {
             value = undefined
         }
-        if (type == PropertyType.checkbox && value != true) {
+        else if (type == PropertyType.checkbox && value != true) {
             value = false
         }
-        if (Array.isArray(value)) {
+        else if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
-        if (type == PropertyType.date){
+        else if (type == PropertyType.date){
             groups[moment(value).format('YYYY/MM')].push(img)
         }
         else {
