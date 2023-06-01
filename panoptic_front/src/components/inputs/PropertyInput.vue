@@ -81,6 +81,8 @@ function inputType(type: PropertyType) {
             return 'color'
         case PropertyType.checkbox:
             return 'checkbox'
+        case PropertyType.url:
+            return 'url'
         default:
             return 'text'
     }
@@ -103,8 +105,11 @@ onMounted(() => {
                 <span class="me-1">
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
                         v-model="props.property.value" @change="setEdit(false)" ref="inputElem" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)">
-                    <span @click="setEdit(true)" v-else>
-                        <PropertyIcon :type="property.type" />
+                    <span v-else>
+                        <a v-if="type == PropertyType.url" :href="props.property.value" target="_blank">
+                            <PropertyIcon :type="property.type" />
+                        </a>
+                        <PropertyIcon :type="property.type" v-else/>
                     </span>
                 </span>
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">

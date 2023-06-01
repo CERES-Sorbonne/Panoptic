@@ -54,6 +54,7 @@ class Image(BaseModel):
     properties: Optional[dict[int, PropertyValue]] = {}
     vector: Any
     ahash: str|None
+    name: str
 
 
 class ImageVector(BaseModel):

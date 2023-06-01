@@ -2,7 +2,7 @@ import { computed, reactive } from 'vue'
 import {
     apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder,
     apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
-    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX
+    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
@@ -115,6 +115,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.containerRatio = computeContainerRatio(img)
+        // for(let [id, prop] of Object.entries(img.properties)){
+        //     if(this.properties[parseInt(id)].type == PropertyType.date){
+        //         prop.value = moment(prop.value).format()
+        //     }
+        // }
         globalStore.images[img.sha1] = img
     },
     async fetchAllData() {
@@ -134,14 +139,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.tags = tags
         this.properties = properties
         this.folders = buildFolderNodes(folders)
-        console.log(this.folders)
 
         await this.loadTabState()
 
 
         this.importState = await apiGetImportStatus()
         setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
-        console.log(this.importState)
 
         this.isLoaded = true
     },
@@ -180,13 +183,18 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.properties[newProperty.id] = newProperty
     },
 
-    async addOrUpdatePropertyToImage(sha1: string, propertyId: number, value: any) {
+    async addOrUpdatePropertyToImage(sha1s: string | string[], propertyId: number, value: any) {
         let type = this.properties[propertyId].type
+        if(!Array.isArray(sha1s)){
+            sha1s = [sha1s]
+        }
         if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
-        const newValue: PropertyValue = await apiAddPropertyToImage(sha1, propertyId, value)
-        this.images[sha1].properties[propertyId] = newValue
+        const newValue = await apiAddPropertyToImage(sha1s, propertyId, value)
+        for(let sha1 of sha1s){
+            this.images[sha1].properties[propertyId] = newValue
+        }
     },
 
     async updateTag(propId: number, tagId: number, color?: string, parentId?: number, value?: any) {
@@ -238,6 +246,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             subRes.forEach((r: any) => res[r] = true)
         })
         return Object.keys(res).map(Number)
+    },
+
+    async uploadPropFile(file: any) {
+        apiUploadPropFile(file)
     }
 
 })

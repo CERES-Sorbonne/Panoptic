@@ -47,8 +47,8 @@ export const apiAddProperty = async(name: string, type: PropertyType):Promise<Pr
     return res.data
 }
 
-export const apiAddPropertyToImage = async(sha1: string, propertyId:number, value: any):Promise<PropertyValue> => {
-    const res = await axios.post('/image_property', {sha1, propertyId, value})
+export const apiAddPropertyToImage = async(sha1s: string[], propertyId:number, value: any):Promise<PropertyValue> => {
+    const res = await axios.post('/image_property', {sha1List: sha1s, propertyId, value})
     return res.data
 }
 
@@ -122,4 +122,16 @@ export const apiGetSimilarImages = async(sha1List: string[]) => {
 // TODO: remove this when fixed
 export const apiStartPCA = async() => {
     return await axios.post('/pca')
+}
+
+export const apiUploadPropFile = async(file: any) => {
+    let formData = new FormData();
+      formData.append('file', file);
+      axios.post('/property/file',
+      formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    )
 }

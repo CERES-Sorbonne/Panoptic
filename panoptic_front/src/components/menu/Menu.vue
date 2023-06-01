@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
 import { globalStore } from '../../data/store';
-import ExpandOption from './ExpandOption.vue';
 import * as models from '../../data/models'
 import TagProperty from '../properties/TagProperty.vue';
 import Property from '../properties/Property.vue';
@@ -10,12 +9,11 @@ import { reactive, ref } from 'vue';
 import FolderList from '../FolderTree/FolderList.vue';
 
 
-let isFolderLoading = ref(false)
+const inputFile = ref(null)
 
-const addFolder = async () => {
-    isFolderLoading.value = true
-    await globalStore.importFolders()
-    isFolderLoading.value = false
+const handleInput = (e: any) => {
+    const file = e.target.files[0]
+    globalStore.uploadPropFile(file)
 }
 
 </script>
@@ -43,6 +41,11 @@ const addFolder = async () => {
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
                     <b>Properties</b>
+                    <span class="float-end me-3">
+                        <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden/>
+                        <i class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="inputFile.click()"/>
+                    </span>
+                    <!-- <i class="bi bi-plus btn-icon float-end" style="font-size: 25px;"></i> -->
                     <div class="mt-2" v-if="globalStore.isLoaded">
                         <template v-for="property in globalStore.properties">
                             <div class="property-item" v-if="property.id >= 0">

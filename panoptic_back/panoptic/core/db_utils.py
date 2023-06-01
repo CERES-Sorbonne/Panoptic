@@ -41,6 +41,12 @@ async def execute_query(query: str, parameters: tuple = None):
     await conn.commit()
     return cursor
 
+async def execute_query_many(query, data: list):
+    cursor = await conn.cursor()
+    await cursor.executemany(query, data)
+    await conn.commit()
+    return cursor
+
 
 def decode_if_json(value):
     try:
