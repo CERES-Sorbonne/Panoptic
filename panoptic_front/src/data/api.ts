@@ -123,3 +123,15 @@ export const apiGetSimilarImages = async(sha1List: string[]) => {
 export const apiStartPCA = async() => {
     return await axios.post('/pca')
 }
+
+export const apiUploadPropFile = async(file: any) => {
+    let formData = new FormData();
+      formData.append('file', file);
+      axios.post('/property/file',
+      formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    )
+}
