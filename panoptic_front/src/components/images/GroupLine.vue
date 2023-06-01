@@ -20,6 +20,7 @@ const subgroups = computed(() => props.item.data.groups)
 const hasImages = computed(() => images.value.length > 0)
 const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
+const closed = computed(() => group.value.closed)
 
 const groupName = computed(() => {
     let name = group.value.name
@@ -55,13 +56,26 @@ function recommandImages() {
 
 }
 
+function toggleClosed() {
+    if(closed.value) {
+        props.item.data.closed = false
+    }
+    else {
+        props.item.data.closed = true
+    }
+}
+
 </script>
 
 <template>
-    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden">
+    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden">        
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)"
             @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
+        </div>
+        <div @click="toggleClosed" class="me-2">
+            <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
+            <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div v-if="property != undefined && property.type != PropertyType.multi_tags && property.type != PropertyType.tag">
             <b>{{ property.name }}</b> : {{ groupName }}
