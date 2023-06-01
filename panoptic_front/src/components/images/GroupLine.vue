@@ -42,6 +42,7 @@ const groupName = computed(() => {
 })
 
 function getTag(propId: number, tagId: number) {
+    console.log(propId + ' : ' + tagId)
     return globalStore.tags[propId][tagId]
 }
 
@@ -84,7 +85,7 @@ function toggleClosed() {
         <div
             v-else-if="property != undefined && (property.type == PropertyType.multi_tags || property.type == PropertyType.tag)">
             <b>{{ property.name }}</b> :
-            <TagBadge v-if="group.name != 'undefined'" :tag="getTag(property.id, Number(group.name)).value"
+            <TagBadge v-if="!isNaN(Number(group.name))" :tag="getTag(property.id, Number(group.name)).value"
                 :color="getTag(property.id, Number(group.name)).color" />
             <TagBadge v-else tag="_undefined_" color="#000000" />
         </div>
