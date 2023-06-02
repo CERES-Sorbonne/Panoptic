@@ -25,6 +25,12 @@ jobs:
 #           working-directory: ./panoptic_back
     steps:
     - uses: actions/checkout@v3
+    - name: Build node
+      uses: actions/setup-node@master
+      working-directory: ./panoptic_front
+      run: |
+        npm install
+        npm run build
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
@@ -33,10 +39,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install build
-    - name: Check content
-      run: |
-        pwd
-        ls panoptic_back
     - name: Build package
       run: python -m build ./panoptic_back
     - name: Publish package
