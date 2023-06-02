@@ -1,4 +1,3 @@
-import moment from 'moment'
 import { computed, reactive } from 'vue'
 import {
     apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder,
@@ -115,11 +114,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     importImage(img: Image) {
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
-        // for(let [id, prop] of Object.entries(img.properties)){
-        //     if(this.properties[parseInt(id)].type == PropertyType.date){
-        //         prop.value = moment(prop.value).format()
-        //     }
-        // }
+        img.properties[PropertyID.folders] = {propertyId: PropertyID.ahash, value: img.paths}
         globalStore.images[img.sha1] = img
     },
     async fetchAllData() {
@@ -132,6 +127,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1 }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash }
+        properties[PropertyID.folders] = {id: PropertyID.folders, name: 'folders', type: PropertyType.folders}
         
         
         Object.values(images).forEach(this.importImage)

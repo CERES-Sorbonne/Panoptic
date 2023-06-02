@@ -175,7 +175,7 @@ onMounted(() => {
 
 <template>
     <div class="pt-1 pb-1 pe-1" is-input="true">
-        <div class="dropdown" @click.prevent.stop="setEdit(true)" ref="clickableElem">
+        <div class="dropdown" @click.prevent.stop="props.property.propertyId > 0 && setEdit(true)" ref="clickableElem">
             <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem" data-bs-offset="20,0" data-ds-toggle="dropdown" data-bs-display="static">
                 <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">
                     <span class="me-1">
