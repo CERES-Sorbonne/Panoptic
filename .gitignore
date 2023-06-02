@@ -198,3 +198,5 @@ cython_debug/
 panoptic_back/pca_violences.pkl
 panoptic_back/pca.pkl
 panoptic_back/tree.pkl
+
+*.db

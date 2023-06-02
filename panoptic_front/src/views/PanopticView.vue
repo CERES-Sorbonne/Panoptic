@@ -1,9 +1,8 @@
 <script setup lang="ts">
 
-import { ref } from 'vue';
 import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
-import Menu from '../components/Menu/Menu.vue';
+import Menu from '../components/menu/Menu.vue';
 import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
