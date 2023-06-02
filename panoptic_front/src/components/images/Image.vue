@@ -68,10 +68,9 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <div class="prop-container" v-if="imageProperties.length > 0">
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
-                <TagInput v-if="property.type == PropertyType.multi_tags" :property="property"
-                    :max-size="String(props.size)" :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
-                <TagInput v-else-if="property.type == PropertyType.tag" :property="property" :max-size="String(props.size)"
-                    :mono-tag="true" :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
+                <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
+                    :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
             </div>

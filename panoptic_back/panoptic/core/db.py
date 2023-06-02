@@ -299,3 +299,8 @@ async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
     query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
     cursor = await execute_query(query, tuple(filenames))
     return await cursor.fetchall()
+
+
+async def vacuum():
+    query = "VACUUM"
+    await execute_query(query)

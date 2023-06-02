@@ -41,6 +41,9 @@ const groupName = computed(() => {
         if (type == PropertyType.tag || type == PropertyType.multi_tags) {
             name = globalStore.tags[props.group.propertyId][Number(props.group.name)].value
         }
+        else if(type == PropertyType.folders){
+            name = globalStore.folders[Number(props.group.name)].name
+        }
     }
 
     return name
