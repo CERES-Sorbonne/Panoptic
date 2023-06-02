@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Image, Property, PropertyValue } from '@/data/models';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';

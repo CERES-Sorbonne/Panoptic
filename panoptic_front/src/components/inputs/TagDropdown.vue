@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { FilterOperator, PropertyType, Tag, Tags } from '@/data/models';
+import { PropertyType, Tag } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { ref, computed, onMounted, nextTick } from 'vue';
-import PropertyIcon from '../properties/PropertyIcon.vue';
-import TagBadge from '../TagTree/TagBadge.vue';
+import TagBadge from '../tagtree/TagBadge.vue';
 
 const props = defineProps({
     propertyId: { type: Number, required: true },
