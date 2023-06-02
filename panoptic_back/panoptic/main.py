@@ -68,8 +68,11 @@ class MiniUI:
                 failed = False
                 message = 'running'
                 if HOST:
-                    ip = socket.gethostbyname(socket.gethostname())
-                    message += f' on {ip}:{PORT}'
+                    try:
+                        ip = socket.gethostbyname(socket.gethostname())
+                        message += f' on {ip}:{PORT}'
+                    except:
+                        pass
                 ui.server_status.set(message)
                 ui.open_button['state'] = "normal"
             except Exception:

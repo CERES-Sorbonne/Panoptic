@@ -8,7 +8,7 @@ def parse_requirements(req_file):
 
 
 NAME = "panoptic"
-VERSION = "0.0.9.dev9"
+VERSION = "0.0.9.dev10"
 # Get dependencies from requirement files
 SETUP_REQUIRES = ['setuptools', 'setuptools-git', 'wheel']
 INSTALL_REQUIRES = parse_requirements('requirements.txt')
@@ -20,7 +20,7 @@ with open(os.path.join(os.path.dirname(__file__), 'description.md'), 'r') as f:
 def setup_package():
     metadata = dict(name=NAME,
                     version=VERSION,
-                    licence='Mozilla',
+                    licence='MPL-2.0 license',
                     install_requires=INSTALL_REQUIRES,
                     long_description=LONG_DESCRIPTION,
                     long_description_content_type='text/markdown',
