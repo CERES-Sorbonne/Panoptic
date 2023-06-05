@@ -1,11 +1,17 @@
 # Connexion à la base de données SQLite
+import dataclasses
 import json
+from dataclasses import astuple
 from typing import List
 
 import numpy as np
+import pypika
+from pypika import Table, Query, Parameter
+from pypika.functions import Count
+from pypika.terms import Values
 
 from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many
-from panoptic.models import ImageVector
+from panoptic.models import ImageVector, PropertyValue2, Image2, ImageFileRef, ImageVector2
 from panoptic.models import Tag, Image, Property, ImageProperty, JSON, Folder, Tab
 
 
@@ -27,12 +33,58 @@ async def update_tag(tag: Tag):
     await execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
 
 
-async def add_image(sha1, height, width, name, extension, paths, url):
-    query = """
-        INSERT INTO images (sha1, height, width, name, extension, paths, url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """
-    await execute_query(query, (sha1, height, width, name, extension, paths, url))
+# async def add_image(sha1, height, width, name, extension, folder, url):
+#     query = """
+#         INSERT INTO images (sha1, height, width, name, extension, folder, url)
+#         VALUES (?, ?, ?, ?, ?, ?, ?)
+#     """
+#     await execute_query(query, (sha1, height, width, name, extension, folder, url))
+#
+
+async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
+    table = Table('images')
+    query = Query.into(table).columns(
+        'folder_id',
+        'name',
+        'extension',
+        'sha1',
+        'url',
+        'width',
+        'height').insert(
+        folder_id,
+        name,
+        extension,
+        sha1,
+        url,
+        width,
+        height
+    )
+    cursor = await execute_query(query.get_sql())
+    id_ = cursor.lastrowid
+
+    return Image2(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
+                  height=height)
+
+
+# async def add_images(images: List[Image2]):
+#     table = Table('images')
+#     fields = dataclasses.fields(images[0])
+#     query = Query.into(table).columns(*(fields[1:0])).insert([astuple(i)[1:] for i in images])
+#     cursor = await execute_query(query.get_sql())
+#     rows = await cursor.fetchall()
+#     print(rows)
+
+
+async def has_image_file(folder_id, name, extension):
+    table = Table('images')
+    query = Query.from_(table).select('*').where(table.folder_id == folder_id)
+    query = query.where(table.name == name).where(table.extension == extension).limit(1)
+
+    cursor = await execute_query(query.get_sql())
+    res = await cursor.fetchone()
+    if res:
+        return Image2(*res)
+    return False
 
 
 async def get_images_by_sha1s(sha1_list: str | list[str]) -> [Image | list[Image] | None]:
@@ -53,6 +105,35 @@ async def get_images_by_sha1s(sha1_list: str | list[str]) -> [Image | list[Image
         return None
 
 
+async def get_images(ids: List[int] = None):
+    img_table = Table('images')
+    query = Query.from_(img_table).select('*')
+
+    if ids:
+        query = query.where(img_table.id.isin(ids))
+
+    cursor = await execute_query(query.get_sql())
+    images = [Image2(*image) for image in await cursor.fetchall()]
+    return images
+
+
+async def get_property_values(property_ids: List[int] = None, image_ids: List[int] = None, sha1s: List[str] = None):
+    values = Table('property_values').select('*')
+    query = Query.from_(values)
+
+    if property_ids:
+        query = query.where(values.property_id.isin(property_ids))
+
+    if image_ids:
+        query = query.where(values.image_id.isin(image_ids))
+    elif sha1s:
+        query = query.where(values.sha1.isin(sha1s))
+
+    cursor = await execute_query(query.get_sql())
+    res = [PropertyValue2(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
+    return res
+
+
 async def get_full_image_with_sha1(sha1: str):
     query = """
             SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
@@ -64,17 +145,17 @@ async def get_full_image_with_sha1(sha1: str):
     return await cursor.fetchall()
 
 
-async def get_images(as_image=False):
-    query = """
-            SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
-            FROM images i
-            LEFT JOIN images_properties i_d ON i.sha1 = i_d.sha1
-            ORDER BY i.name
-            """
-    cursor = await execute_query(query)
-    if as_image:
-        return [Image(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-    return await cursor.fetchall()
+# async def get_images(as_image=False):
+#     query = """
+#             SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
+#             FROM images i
+#             LEFT JOIN images_properties i_d ON i.sha1 = i_d.sha1
+#             ORDER BY i.name
+#             """
+#     cursor = await execute_query(query)
+#     if as_image:
+#         return [Image(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+#     return await cursor.fetchall()
 
 
 async def update_image_paths(sha1, new_paths) -> list[str]:
@@ -215,6 +296,15 @@ async def get_folders() -> List[Folder]:
     return [Folder(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
+async def get_folder(folder_id: int):
+    table = Table('folders')
+    query = Query.from_(table).select('*').where(table.id == folder_id)
+    cursor = await execute_query(query.get_sql())
+    row = await cursor.fetchone()
+
+    return Folder(**auto_dict(row, cursor))
+
+
 async def get_tabs() -> List[Tab]:
     query = "SELECT * from tabs"
     cursor = await execute_query(query)
@@ -295,7 +385,15 @@ async def add_or_update_images_properties(sha1_list: list[str], property_id: int
     return await execute_query_many(query, [(sha1, property_id, svalue) for sha1 in sha1_list])
 
 
-async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
-    query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
-    cursor = await execute_query(query, tuple(filenames))
-    return await cursor.fetchall()
+# async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
+#     query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
+#     cursor = await execute_query(query, tuple(filenames))
+#     return await cursor.fetchall()
+
+
+async def add_image_vector(sha1: str, ahash: str, vector: np.array):
+    t = Table('image_vectors')
+    query = Query.into(t).columns('sha1', 'ahash', 'vector').insert(sha1, ahash, Parameter('?'))
+    query = query.get_sql() + " ON CONFLICT(sha1) DO NOTHING"
+    await execute_query(query, (vector,))
+    return ImageVector2(sha1, ahash, vector)

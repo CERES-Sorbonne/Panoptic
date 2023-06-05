@@ -50,16 +50,26 @@ async def get_images():
     for row in rows:
         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
         if sha1 not in result:
-            result[sha1] = {'sha1':sha1, 'paths':json.loads(paths), 'width':width, 'height': height, 'url':url, 'name':name,
-                                 'extension':extension, 'ahash':ahash, 'properties': {}}
+            result[sha1] = {'sha1': sha1, 'paths': json.loads(paths), 'width': width, 'height': height, 'url': url,
+                            'name': name,
+                            'extension': extension, 'ahash': ahash, 'properties': {}}
         if property_id:
             result[sha1]['properties'][property_id] = {'property_id': property_id, 'value': db.decode_if_json(value)}
     return result
 
 
+async def get_images_with_properties(image_ids: List[int] = None):
+    images = await db.get_images(image_ids)
+    property_values = await db.get_property_values(image_ids=image_ids)
+
+    image_index = {img.id: img for img in images}
+    [setattr(image_index[prop.image_id].properties, prop.property_id, prop) for prop in property_values]
+
+    return image_index
+
 async def get_full_image(sha1: str) -> Image:
     """
-    Get all images from database
+    Get image from db
     """
     rows = await db.get_full_image_with_sha1(sha1)
     result = None
@@ -104,7 +114,7 @@ async def add_property_to_images(property_id: int, sha1_list: list[str], value: 
 
 
 async def read_properties_file(data: pandas.DataFrame):
-    filenames, sha1s = zip(*[(i.name, i.sha1) for i in await db.get_images(as_image=True)])
+    filenames, sha1s = zip(*[(i.name, i.sha1) for i in await db.get_images()])
     data = data[data.key.isin(filenames)]
     data = data.drop_duplicates(subset='key', keep='first')
     for f, s in zip(filenames, sha1s):
@@ -123,7 +133,7 @@ async def read_properties_file(data: pandas.DataFrame):
             real_value = value
             if property.type == PropertyType.tag.value or property.type == PropertyType.multi_tags.value:
                 colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
-                           "9daebe"]
+                          "9daebe"]
                 color = colors[random.randint(0, len(colors) - 1)]
                 tag = await create_tag(property.id, value, 0, color)
                 real_value = [tag.id]
@@ -139,24 +149,24 @@ async def delete_image_property(property_id: int, sha1: str):
 add_image_lock = asyncio.Lock()
 
 
-async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
-    async with add_image_lock:
-        image = await db.get_images_by_sha1s(sha1_hash)
-        # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
-        if image:
-            if file_path not in image.paths:
-                image.paths.append(file_path)
-                # Mise à jour de la liste de paths
-                await db.update_image_paths(sha1_hash, json.dumps(image.paths))
-
-        # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
-        else:
-            await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
-        return await db.get_images_by_sha1s(sha1_hash)
+# async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
+#     async with add_image_lock:
+#         image = await db.get_images_by_sha1s(sha1_hash)
+#         # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
+#         if image:
+#             if file_path not in image.paths:
+#                 image.paths.append(file_path)
+#                 # Mise à jour de la liste de paths
+#                 await db.update_image_paths(sha1_hash, json.dumps(image.paths))
+#
+#         # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
+#         else:
+#             await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
+#         return await db.get_images_by_sha1s(sha1_hash)
 
 
 async def add_folder(folder):
-    found = await importer.import_folder(save_callback, folder)
+    found = await importer.import_folder(folder)
     print(f'found {found} images')
     return folder
 
@@ -170,23 +180,23 @@ def get_new_images():
     return copy
 
 
-async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url, file_path):
-    await add_image_to_db(folder_id, name, extension, width, height, sha1_hash, url)
-    new_images.append(sha1_hash)
-    importer.compute_image(get_compute_callback(sha1_hash), image_path=file_path)
+# async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url, file_path):
+#     await add_image_to_db(folder_id, name, extension, width, height, sha1_hash, url)
+#     new_images.append(sha1_hash)
+#     importer.compute_image(get_compute_callback(sha1_hash), image_path=file_path)
 
 
-def get_compute_callback(sha1):
-    async def callback(ahash, vector, is_last=False):
-        await db.update_image_hashs(sha1, str(ahash), vector)
+# def get_compute_callback(sha1):
+#     async def callback(ahash, vector, is_last=False):
+#         await db.update_image_hashs(sha1, str(ahash), vector)
+#
+#     return callback
 
-    return callback
 
-
-@importer.set_final_callback
-async def compute_finished_callback():
-    images: list[ImageVector] = await db.get_images_with_vectors()
-    compute.create_similarity_tree(images)
+# @importer.set_final_callback
+# async def compute_finished_callback():
+#     images: list[ImageVector] = await db.get_images_with_vectors()
+#     compute.create_similarity_tree(images)
 
 
 async def create_tag(property_id, value, parent_id, color: str) -> Tag:
