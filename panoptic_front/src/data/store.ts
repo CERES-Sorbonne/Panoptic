@@ -234,7 +234,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const res = await apiGetMLGroups(nbGroups, imageList)
         return res
     },
-    async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10) {
+    async computeMLGroups(images: Array<string> = undefined, nbClusters: number = 10) {
         let res: [[number]]
         if (images) {
             res = await globalStore.getMLGroups(Math.min(nbClusters, images.length), images)
@@ -242,8 +242,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         else {
             res = await globalStore.getMLGroups(nbClusters)
         }
-        const ml_groups = res.map(group => group.map(id => globalStore.images[id]))
-        return ml_groups
+        return res
     },
 
     async getSimilarImages(sha1: string | string[]) {

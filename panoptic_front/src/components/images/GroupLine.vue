@@ -47,11 +47,33 @@ function getTag(propId: number, tagId: number) {
     return globalStore.tags[propId][tagId]
 }
 
-function computeClusters() {
+async function computeClusters() {
+    let sha1 = group.value.images.map(img => img.sha1)
+    let mlGroups = await globalStore.computeMLGroups(sha1, props.item.nbClusters)
+    // props.item.data.groups = []
+
+    let groups = []
+    for (let [index, sha1s] of mlGroups.entries()) {
+        let realGroup: Group = {
+            id: props.item.id + '-cluster' + String(index), 
+            name: 'cluster ' + index.toString(),
+            images: globalStore.getOneImagePerSha1(sha1s),
+            count: sha1s.length,
+            groups: undefined,
+            children: [],
+            parentId: group.value.id,
+            index: index,
+            depth: props.item.depth+1,
+            closed: false
+        }
+        groups.push(realGroup)
+    }
+    props.item.data.groups = groups
 
 }
 
 function clear() {
+    props.item.data.groups = undefined
 
 }
 
@@ -105,8 +127,8 @@ function closeChildren() {
             <StampDropdown :images="images" />
         </div>
         <div class="ms-2" v-if="!hasSubgroups">
-            <!-- <button @click="computeClusters">Créer clusters</button> -->
-            <div class="button">Créer clusters</div>
+            <button @click="computeClusters">Créer clusters</button>
+            <!-- <div class="button">Créer clusters</div> -->
         </div>
         <div v-if="hasImages && !hasSubgroups" style="margin-left: 2px;">
             <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
