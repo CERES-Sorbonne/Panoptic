@@ -68,17 +68,18 @@ function computeGroups(force = false) {
     console.log('compute groups')
     let index = {} as GroupIndex
     let rootGroup = generateGroups(index)
-    // console.log(rootGroup)
-    // Object.assign(imageGroups, rootGroup)
-    // if (!force) {
-    //     Object.assign(imageGroups, replaceIfChanged(imageGroups, rootGroup))
-    // }
-    // else {
-    //     Object.assign(imageGroups, rootGroup)
-    // }
 
-    for (let id in index) {
-        index[id] = mergeGroup(index[id])
+    if (!force) {
+        for (let id in index) {
+            index[id] = mergeGroup(index[id])
+        }
+
+        for(let id in groupData.index) {
+            let group = groupData.index[id]
+            if(group.isCluster) {
+                index[group.id] = group
+            }
+        }
     }
 
     groupData.index = index
@@ -90,7 +91,7 @@ function computeGroups(force = false) {
 function mergeGroup(update: Group) {
     let index = groupData.index
     // console.log('merge: ' + update.id)
-    
+
     let id = update.id
 
     if (index[id] == undefined) {
@@ -105,7 +106,7 @@ function mergeGroup(update: Group) {
 
     // let children = childrenIds.map(id => index[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
     let children = index[id].groups
-    if (children.length > 0) {
+    if (Array.isArray(index[id].images) && index[id].images.length > 0 && children && children.length > 0) {
         update.children = children.map(c => c.id)
         update.groups = children
     }
@@ -207,7 +208,7 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
         else if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
-        else if (type == PropertyType.date){
+        else if (type == PropertyType.date) {
             groups[moment(value).format('YYYY/MM')].push(img)
         }
         else {
@@ -253,7 +254,7 @@ watch(props, () => {
 }, { deep: true })
 
 watch(filteredImages, () => computeGroups(), { deep: true })
-watch(groups, () => computeGroups(), { deep: true })
+watch(groups, () => computeGroups(true), { deep: true })
 watch(sorts, () => computeGroups(), { deep: true })
 
 
@@ -270,8 +271,8 @@ function log(value: any) {
     <hr class="custom-hr" ref="hrElem" />
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
     <div v-if="scrollerWidth > 0" style="margin-left: 10px;">
-        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20"
-            ref="testElem" :width="scrollerWidth - 10" />
+        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="testElem"
+            :width="scrollerWidth - 10" />
     </div>
     <!-- <div class="ms-2 mt-2">
         <div v-if="groupList.length && groupList[0].name == '__all__'">

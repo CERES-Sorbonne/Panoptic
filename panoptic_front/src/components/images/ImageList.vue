@@ -112,21 +112,20 @@ function updateHoverBorder(value) {
     hoverGroupBorder.value = value
 }
 
-function getParents(item) {
-    if(!item) {
-        return []
-    }
-    // console.log(item.groupId, ' ', item.type)
-    if (item.groupId != undefined) {
-        return [...getParents(props.data.index[item.groupId]), item.groupId]
-    }
-    if (item.id != undefined) {
-        let group = item.data
-        if (group && group.parentId != undefined) {
+function getParents(group) {
+    // if (item.groupId != undefined) {
+    //     return [...getParents(props.data.index[item.groupId]), item.groupId]
+    // }
+    if (group && group.id != undefined) {
+        if (group.parentId != undefined) {
             return [...getParents(props.data.index[group.parentId]), group.parentId]
         }
     }
     return []
+}
+
+function getImageLineParents(item) {
+    return [...getParents(props.data.index[item.groupId]), item.groupId]
 }
 
 onMounted(computeLines)
@@ -153,12 +152,12 @@ watch(() => props.width, () => {
                 <!-- {{ item.groupId}} -->
                 <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
                 <div v-if="item.type == 'group'">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)" :index="props.data.index"
+                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)" :index="props.data.index"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
                 </div>
                 <div v-if="item.type == 'images'">
                     <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
-                        :hover-border="hoverGroupBorder" :parent-ids="getParents(item)" @scroll="scrollTo"
+                        :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
                 </div>
                 <!-- </RecycleScroller> -->

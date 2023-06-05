@@ -67,9 +67,10 @@ async function computeClusters() {
             index: index,
             depth: (props.item.data.depth+1),
             closed: false,
+            isCluster: true
         }
         groups.push(realGroup)
-        // props.index[realGroup.id] = realGroup
+        props.index[realGroup.id] = realGroup
     }
     props.item.data.groups = groups
     props.item.data.children = groups.map(g => g.id)
@@ -78,7 +79,6 @@ async function computeClusters() {
 
 function clear() {
     props.item.data.groups = undefined
-
 }
 
 function recommandImages() {
@@ -105,6 +105,8 @@ function closeChildren() {
     <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden" @mouseenter="hoverGroup = true"
         @mouseleave="hoverGroup = false">
         <!-- {{ props.parentIds }} -->
+        <!-- {{ props.item.data.parentId }}
+        {{ props.parentIds }} -->
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)"
             @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
