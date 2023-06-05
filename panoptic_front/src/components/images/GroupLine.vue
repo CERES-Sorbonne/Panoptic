@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Group, GroupIndex, PropertyType, ScrollerLine } from '@/data/models'
+import { Group, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, ref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
@@ -9,7 +9,8 @@ import TagBadge from '../TagTree/TagBadge.vue'
 const props = defineProps({
     item: Object as () => ScrollerLine,
     parentIds: Array<string>,
-    hoverBorder: String
+    hoverBorder: String,
+    index: Object as () => {[id:string]: Group}
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll'])
@@ -54,21 +55,24 @@ async function computeClusters() {
 
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
+        let images = globalStore.getOneImagePerSha1(sha1s)
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index), 
             name: 'cluster ' + index.toString(),
-            images: globalStore.getOneImagePerSha1(sha1s),
+            images: images,
             count: sha1s.length,
             groups: undefined,
-            children: [],
-            parentId: group.value.id,
+            children: undefined,
+            parentId: props.item.data.id,
             index: index,
-            depth: props.item.depth+1,
+            depth: (props.item.data.depth+1),
             closed: false
         }
         groups.push(realGroup)
+        props.index[realGroup.id] = realGroup
     }
     props.item.data.groups = groups
+    props.item.data.children = groups.map(g => g.id)
 
 }
 
@@ -100,6 +104,7 @@ function closeChildren() {
 <template>
     <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden" @mouseenter="hoverGroup = true"
         @mouseleave="hoverGroup = false">
+        <!-- {{ props.parentIds }} -->
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)"
             @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
