@@ -30,7 +30,11 @@ function inputType(type: PropertyType) {
 }
 
 onMounted(() => localValue.value = props.modelValue)
-watch(localValue, () => emits('update:modelValue', localValue.value))
+watch(localValue, () => {
+    if (localValue.value != null) {
+        emits('update:modelValue', localValue.value)
+    }
+})
 
 </script>
 

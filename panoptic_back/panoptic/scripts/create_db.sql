@@ -34,7 +34,7 @@ CREATE INDEX idx_image_filepath ON images (folder_id, name, extension);
 CREATE INDEX idx_image_sha1 ON images (sha1);
 
 
-CREATE TABLE image_vectors (
+CREATE TABLE computed_values (
     sha1 TEXT PRIMARY KEY,
     ahash TEXT,
     vector ARRAY
@@ -64,7 +64,7 @@ CREATE TABLE property_values (
     FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );
 
---CREATE TABLE images_properties (
+--CREATE TABLE property_values (
 --    sha1 TEXT NOT NULL,
 --    property_id INTEGER NOT NULL,
 --    value JSON,

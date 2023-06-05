@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import {
-    apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiAddPropertyToImage, apiUpdateTag, apiAddFolder,
+    apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiSetPropertyValue, apiUpdateTag, apiAddFolder,
     apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
     apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile
 } from '../data/api'
@@ -71,8 +71,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.selectedTab = Object.keys(this.tabs)[0]
     },
     imageList: computed(() => {
-        return Object.keys(globalStore.images).map(sha1 => {
-            return { url: globalStore.images[sha1].url, imageName: sha1 }
+        return Object.keys(globalStore.images).map(Number).map(id => {
+            return { url: globalStore.images[id].url, imageName: globalStore.images[id].sha1 }
         })
     }),
 
@@ -120,7 +120,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //         prop.value = moment(prop.value).format()
         //     }
         // }
-        globalStore.images[img.sha1] = img
+        globalStore.images[img.id] = img
     },
     async fetchAllData() {
         let images = await apiGetImages()
@@ -144,12 +144,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
 
         this.importState = await apiGetImportStatus()
-        setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
+        //setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
 
         this.isLoaded = true
     },
     applyImportState(state: ImportState) {
         state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
+        // console.log(state.new_images)
         state.new_images.forEach(globalStore.importImage)
         this.importState = state
     },
@@ -173,9 +174,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async deleteTagParent(tagId: number, parent_id: number) {
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
-        this.tags = await apiGetTags()
         // also reload images since the tag should be removed from their properties
-        this.images = await apiGetImages()
+        let images = await apiGetImages()
+        Object.values(images).forEach(globalStore.importImage)
+        this.tags = await apiGetTags()
     },
 
     async addProperty(name: string, type: PropertyType) {
@@ -183,17 +185,20 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.properties[newProperty.id] = newProperty
     },
 
-    async addOrUpdatePropertyToImage(sha1s: string | string[], propertyId: number, value: any) {
+    async addOrUpdatePropertyToImage(imageIds: number | number[], propertyId: number, value: any) {
+        console.log(imageIds)
+        console.log(propertyId)
+        console.log(value)
         let type = this.properties[propertyId].type
-        if(!Array.isArray(sha1s)){
-            sha1s = [sha1s]
+        if(!Array.isArray(imageIds)){
+            imageIds = [imageIds]
         }
         if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
-        const newValue = await apiAddPropertyToImage(sha1s, propertyId, value)
-        for(let sha1 of sha1s){
-            this.images[sha1].properties[propertyId] = newValue
+        const newValue = await apiSetPropertyValue(imageIds, propertyId, value)
+        for(let id of imageIds){
+            this.images[id].properties[propertyId] = newValue
         }
     },
 
@@ -221,14 +226,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return res
     },
     async computeMLGroups(images: Array<Image> = undefined, nbClusters: number = 10) {
-        let sha1List: [[string]]
+        let res: [[number]]
         if (images) {
-            sha1List = await globalStore.getMLGroups(Math.min(nbClusters, images.length), images)
+            res = await globalStore.getMLGroups(Math.min(nbClusters, images.length), images)
         }
         else {
-            sha1List = await globalStore.getMLGroups(nbClusters)
+            res = await globalStore.getMLGroups(nbClusters)
         }
-        const ml_groups = sha1List.map(group => group.map(sha1 => globalStore.images[sha1]))
+        const ml_groups = res.map(group => group.map(id => globalStore.images[id]))
         return ml_groups
     },
 

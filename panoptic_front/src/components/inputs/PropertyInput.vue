@@ -38,8 +38,8 @@ function setEdit(value: Boolean) {
     }
     else {
         document.removeEventListener('click', handleContainerClick)
-        console.log(props.property.value)
-        globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+        console.log('start here')
+        globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, props.property.value)
         edit.value = false
         if (props.property.value == '') {
             props.property.value = undefined

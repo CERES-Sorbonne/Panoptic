@@ -32,7 +32,7 @@ const imageProperties = computed(() => {
                 propertyId: p.id,
                 type: p.type,
                 value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
-                imageSHA1: props.image.sha1
+                imageId: props.image.id
             }
             res.push(propRef)
         }

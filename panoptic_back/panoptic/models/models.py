@@ -83,6 +83,7 @@ class Image2:
     height: int
 
     properties: Optional[dict[int, PropertyValue2]] = field(default_factory=dict)
+    ahash: Optional[str] = field(default=None)
 
 
 @dataclass(slots=True)
@@ -107,7 +108,7 @@ class ImageVector(BaseModel):
 
 
 @dataclass(slots=True)
-class ImageVector2:
+class ComputedValue:
     sha1: str
     ahash: str
     vector: numpy.ndarray

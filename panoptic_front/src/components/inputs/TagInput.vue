@@ -85,7 +85,7 @@ const selectOption = async function () {
     }
     tagInput.value = ''
     let updatedValue = props.monoTag ? [valueToAdd] : [...props.property.value, valueToAdd]
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, updatedValue)
+    await globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, updatedValue)
     inputElem.value.focus()
 }
 
@@ -139,7 +139,7 @@ function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
 }
 
 const removeTag = async (tag: Tag) => {
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1,
+    await globalStore.addOrUpdatePropertyToImage(props.property.imageId,
         props.property.propertyId,
         props.property.value.filter((id: number) => id !== tag.id));
     if (inputElem.value) {

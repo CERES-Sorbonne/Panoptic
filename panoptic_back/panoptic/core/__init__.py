@@ -1,17 +1,18 @@
-import asyncio
 import atexit
 import json
-from concurrent.futures import ProcessPoolExecutor
 import random
+from concurrent.futures import ProcessPoolExecutor
 from typing import List
 
 import pandas
 from fastapi import HTTPException
 
-from panoptic import compute
 import panoptic.core.db
-from panoptic.models import PropertyType, JSON, Image, Tag, Images, PropertyValue, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload, Folder, ImageVector
+import panoptic.core.db
+from panoptic import compute
+from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
+    UpdateTagPayload, UpdatePropertyPayload, Image2
+from .image_importer import ImageImporter
 from .image_importer import ImageImporter
 
 executor = ProcessPoolExecutor(max_workers=4)
@@ -40,69 +41,75 @@ async def get_properties() -> Properties:
 async def delete_property(property_id: str):
     await db.delete_property(property_id)
 
+#
+# async def get_images():
+#     """
+#     Get all images from database
+#     """
+#     rows = await db.get_images()
+#     result = {}
+#     for row in rows:
+#         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
+#         if sha1 not in result:
+#             result[sha1] = {'sha1': sha1, 'paths': json.loads(paths), 'width': width, 'height': height, 'url': url,
+#                             'name': name,
+#                             'extension': extension, 'ahash': ahash, 'properties': {}}
+#         if property_id:
+#             result[sha1]['properties'][property_id] = {'property_id': property_id, 'value': db.decode_if_json(value)}
+#     return result
 
-async def get_images():
-    """
-    Get all images from database
-    """
-    rows = await db.get_images()
-    result = {}
-    for row in rows:
-        sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
-        if sha1 not in result:
-            result[sha1] = {'sha1': sha1, 'paths': json.loads(paths), 'width': width, 'height': height, 'url': url,
-                            'name': name,
-                            'extension': extension, 'ahash': ahash, 'properties': {}}
-        if property_id:
-            result[sha1]['properties'][property_id] = {'property_id': property_id, 'value': db.decode_if_json(value)}
-    return result
 
-
-async def get_images_with_properties(image_ids: List[int] = None):
+async def get_full_images(image_ids: List[int] = None) -> List[Image2]:
     images = await db.get_images(image_ids)
+    sha1s = list({img.sha1 for img in images})
     property_values = await db.get_property_values(image_ids=image_ids)
-
+    ahashs = await db.get_sha1_ahashs(sha1s=sha1s)
     image_index = {img.id: img for img in images}
-    [setattr(image_index[prop.image_id].properties, prop.property_id, prop) for prop in property_values]
 
-    return image_index
+    def assign_value(prop):
+        image_index[prop.image_id].properties[prop.property_id] = prop
+    [assign_value(prop) for prop in property_values]
+    [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
+    return images
 
-async def get_full_image(sha1: str) -> Image:
-    """
-    Get image from db
-    """
-    rows = await db.get_full_image_with_sha1(sha1)
-    result = None
-    for row in rows:
-        sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
-        result = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
-                       extension=extension, ahash=ahash)
-        if property_id:
-            result.properties[property_id] = PropertyValue(
-                **{'property_id': property_id, 'value': db.decode_if_json(value)})
-        break
-    return result
+# async def get_full_image(sha1: str) -> Image:
+#     """
+#     Get image from db
+#     """
+#     rows = await db.get_full_image_with_sha1(sha1)
+#     result = None
+#     for row in rows:
+#         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
+#         result = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
+#                        extension=extension, ahash=ahash)
+#         if property_id:
+#             result.properties[property_id] = PropertyValue(
+#                 **{'property_id': property_id, 'value': db.decode_if_json(value)})
+#         break
+#     return result
 
 
-async def make_clusters(sensibility: float, image_list: [str]) -> list[list[str]]:
+async def make_clusters(sensibility: float, sha1s: [str]) -> list[list[str]]:
     """
-    Compute clusters and return a list of list of sha1
+    Compute clusters and return a list of lists of sha1
     """
+    if not sha1s:
+        return []
     # TODO: add parameters to compute clusters only on some images
-    images = await db.get_images_with_vectors(image_list)
-    return compute.make_clusters(images, method="kmeans", nb_clusters=sensibility)
+    values = await db.get_sha1_computed_values(sha1s)
+    return compute.make_clusters(values, method="kmeans", nb_clusters=sensibility)
 
 
-async def get_similar_images(sha1_list: list[str]):
-    vectors = [i.vector for i in await db.get_images_with_vectors(sha1_list)]
+async def get_similar_images(sha1s: list[str]):
+    vectors = [i.vector for i in await db.get_sha1_computed_values(sha1s)]
     res = compute.get_similar_images(vectors)
-    return [img for img in res if img['sha1'] not in sha1_list]
+    return [img for img in res if img['sha1'] not in sha1s]
 
 
 async def add_property_to_images(property_id: int, sha1_list: list[str], value: JSON) -> str:
     # first check that the property and the image exist:
     if await db.get_property_by_id(property_id) and await db.get_images_by_sha1s(sha1_list):
-        await db.add_or_update_images_properties(sha1_list, property_id, value)
+        await db.add_or_update_property_values(sha1_list, property_id, value)
         # check if a value already exists
         # if await db.get_image_property(sha1, property_id):
         #     await db.update_image_property(sha1, property_id, value)
@@ -139,14 +146,6 @@ async def read_properties_file(data: pandas.DataFrame):
                 real_value = [tag.id]
             sub_data = data[data[prop] == value]
             await add_property_to_images(property.id, sub_data.sha1.tolist(), real_value)
-
-
-async def delete_image_property(property_id: int, sha1: str):
-    await db.delete_image_property(property_id, sha1)
-
-
-# TODO: confirm lock efficacity
-add_image_lock = asyncio.Lock()
 
 
 # async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
@@ -233,12 +232,12 @@ async def delete_tag(tag_id: int) -> List[int]:
     # and remove parent ref of tag in children
     [modified_tags.extend(await delete_tag_parent(c.id, tag_id)) for c in children]
     # then get all images properties tagged with it
-    image_properties = await db.get_image_properties_with_tag(tag_id)
+    property_values = await db.get_property_values_with_tag(tag_id)
     # and delete the tag ref from them
-    for image_property in image_properties:
-        if tag_id in image_property.value:
-            image_property.value.remove(tag_id)
-        await db.update_image_property(image_property.sha1, image_property.property_id, image_property.value)
+    for data in property_values:
+        if tag_id in data.value:
+            data.value.remove(tag_id)
+            await db.set_property_values(data.property_id, data.value, [data.image_id])
     return modified_tags
 
 

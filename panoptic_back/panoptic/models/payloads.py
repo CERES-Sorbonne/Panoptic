@@ -21,13 +21,13 @@ class UpdatePropertyPayload(CamelModel):
 
 class AddImagePropertyPayload(CamelModel):
     property_id: int
-    sha1_list: list[str]
+    image_ids: list[int]
     value: Any
 
 
 class DeleteImagePropertyPayload(CamelModel):
     property_id: int
-    sha1: str
+    image_id: int
 
 
 class AddTagPayload(CamelModel):

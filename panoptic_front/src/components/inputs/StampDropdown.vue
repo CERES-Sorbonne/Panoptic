@@ -26,7 +26,7 @@ function clear() {
 function apply() {
     Object.keys(stamp).forEach( propId => {
         let value = stamp[propId]
-        globalStore.addOrUpdatePropertyToImage(props.images.map(i => i.sha1), propId, value)
+        globalStore.addOrUpdatePropertyToImage(props.images.map(i => i.id), propId, value)
     });
     close()
 }
