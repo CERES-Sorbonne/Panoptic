@@ -301,7 +301,8 @@ export interface Group {
     propertyId?: number,
     depth: number,
     index: number,
-    closed: boolean
+    closed: boolean,
+    isCluster?: boolean
 }
 
 export interface GroupIndex {[key: string]: Group}
