@@ -205,7 +205,7 @@ onMounted(() => {
             </div>
             <div class="dropdown-menu p-0 overflow-visible icon-margin" ref="tagInputContainer">
 
-                <ul class="list-unstyled mb-0" style="width: 300px;">
+                <ul class="list-unstyled mb-0" style="width: 300px;" v-if="edit">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top">
                         <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" :color="tag.color"
                             v-for="tag in imageTags" />

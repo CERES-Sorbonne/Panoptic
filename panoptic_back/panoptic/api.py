@@ -3,23 +3,22 @@ from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
+import pandas as pd
 from fastapi import FastAPI, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
-import pandas as pd
 
 from panoptic import core
-from panoptic.scripts.to_pca import compute_all_pca
-from panoptic.core import create_property, add_property_to_images, get_images, create_tag, \
-    delete_image_property, \
+from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, get_full_image, read_properties_file, get_images_with_properties
+    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images
 from panoptic.core import db
-from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
+from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload
+from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
 app.add_middleware(
@@ -37,7 +36,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     await db_utils.init()
-    res =await db.get_images()
+    res = await get_full_images()
     print(res)
 
 
@@ -56,10 +55,12 @@ async def get_properties_route() -> Properties:
 async def update_property_route(payload: UpdatePropertyPayload) -> Property:
     return await update_property(payload)
 
+
 @app.post('/property/file')
 async def properties_by_file(file: UploadFile):
     data = pd.read_csv(file.file, sep=";")
     return await read_properties_file(data)
+
 
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
@@ -70,7 +71,7 @@ async def delete_property_route(property_id: str):
 # Route pour récupérer la liste de toutes les images
 @app.get("/images")
 async def get_images_route():
-    images = await get_images_with_properties()
+    images = await get_full_images()
     return images
 
 
@@ -93,14 +94,14 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
-    await add_property_to_images(payload.property_id, payload.sha1_list, payload.value)
+    await db.set_property_values(property_id=payload.property_id, image_ids=payload.image_ids, value=payload.value)
     return payload
 
 
 # Route pour supprimer une property d'une image dans la table de jointure entre image et property
 @app.delete("/image_property")
-async def delete_property_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
-    await delete_image_property(payload.property_id, payload.sha1)
+async def delete_property_value_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
+    await db.delete_property_value(payload.property_id, payload.image_id)
     return payload
 
 
@@ -141,9 +142,18 @@ async def get_folders_route():
 @app.get('/import_status')
 async def get_import_status_route():
     image_import = core.importer
-    new_image = core.get_new_images()
-    update = [await get_full_image(i) for i in new_image]
-    res = {'to_import': image_import.total_import, 'imported': image_import.current_computed, 'new_images': update}
+    new_image = image_import.get_new_images()
+
+    update = []
+    if new_image:
+        update = await get_full_images(new_image)
+
+    res = {
+        'to_import': image_import.total_import,
+        'imported': image_import.current_import,
+        'computed': image_import.current_computed,
+        'new_images': update
+    }
     return res
 
 
@@ -187,9 +197,11 @@ async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
 async def get_similar_images_route(sha1_list: list[str] = Query(None)) -> list:
     return await get_similar_images(sha1_list)
 
+
 @app.post("/pca")
 async def start_pca_route():
     return await compute_all_pca(force=True)
+
 
 if not os.path.exists('mini'):
     os.makedirs('mini')

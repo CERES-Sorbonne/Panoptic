@@ -18,14 +18,14 @@ INSERT INTO tags (property_id, value, parents) VALUES (1, 'Jerome Rodrigues', '[
 INSERT INTO tags (property_id, value, parents) VALUES (2, 'poulet', '[0]');
 INSERT INTO tags (property_id, value, parents) VALUES (2, 'jambon', '[0]');
 
-INSERT INTO images_properties (sha1, property_id, value)
+INSERT INTO property_values (sha1, property_id, value)
 VALUES ('8157a2d13cee861c7a1bc3a01f4bfb8e300bc994', 1, '1');
-INSERT INTO images_properties (sha1, property_id, value)
+INSERT INTO property_values (sha1, property_id, value)
 VALUES ('8157a2d13cee861c7a1bc3a01f4bfb8e300bc994', 4,  '20/03/2022');
-INSERT INTO images_properties (sha1, property_id, value)
+INSERT INTO property_values (sha1, property_id, value)
 VALUES ('0b8274fdf497c1b616f39086ac2d19872bfa51f9', 2, '[1, 2]');
-INSERT INTO images_properties (sha1, property_id, value)
+INSERT INTO property_values (sha1, property_id, value)
 VALUES ('1abced957962d9ffeddbe6d21cf1ebbe0fc44669', 1, '6');
-INSERT INTO images_properties (sha1, property_id, value)
+INSERT INTO property_values (sha1, property_id, value)
 VALUES ('0b8274fdf497c1b616f39086ac2d19872bfa51f9', 3, 'Une longue description dune image');
 

@@ -44,10 +44,11 @@ export interface PropertyValue{
 
 export interface PropertyRef extends PropertyValue {
     type: PropertyType
-    imageSHA1: String
+    imageId: number
 }
 
 export interface Image {
+    id: number
     sha1: string
     ahash: string
     width: number
@@ -64,7 +65,7 @@ export interface Image {
 }
 
 export interface Images {
-    [sha1:string]: Image
+    [id:number]: Image
 }
 
 export interface Folders {
@@ -321,6 +322,7 @@ export interface Folder {
 export interface ImportState {
     to_import: number
     imported: number
+    computed: number
     new_images?: Array<Image>
 }
 
