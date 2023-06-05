@@ -114,14 +114,14 @@ function updateHoverBorder(value) {
 
 function getParents(item) {
     if(!item) {
-        console.log(item)
         return []
     }
+    // console.log(item.groupId, ' ', item.type)
     if (item.groupId != undefined) {
         return [...getParents(props.data.index[item.groupId]), item.groupId]
     }
     if (item.id != undefined) {
-        let group = props.data.index[item.id]
+        let group = item.data
         if (group && group.parentId != undefined) {
             return [...getParents(props.data.index[group.parentId]), group.parentId]
         }

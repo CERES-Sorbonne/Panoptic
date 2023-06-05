@@ -57,7 +57,7 @@ async function computeClusters() {
     for (let [index, sha1s] of mlGroups.entries()) {
         let images = globalStore.getOneImagePerSha1(sha1s)
         let realGroup: Group = {
-            id: props.item.id + '-cluster' + String(index), 
+            id: props.item.id + '-cluster' + String(index),
             name: 'cluster ' + index.toString(),
             images: images,
             count: sha1s.length,
@@ -66,10 +66,10 @@ async function computeClusters() {
             parentId: props.item.data.id,
             index: index,
             depth: (props.item.data.depth+1),
-            closed: false
+            closed: false,
         }
         groups.push(realGroup)
-        props.index[realGroup.id] = realGroup
+        // props.index[realGroup.id] = realGroup
     }
     props.item.data.groups = groups
     props.item.data.children = groups.map(g => g.id)
