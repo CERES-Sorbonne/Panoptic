@@ -49,7 +49,7 @@ const filteredImages = computed(() => {
         let allIds = [...folderIds] as Array<number>
         folderIds.forEach(id => allIds.push(...globalStore.getFolderChildren(id)))
         if (allIds.length > 0) {
-            images = images.filter(img => img.paths.some((p: any) => allIds.includes(Number(p))))
+            images = images.filter(img => allIds.includes(img.folder_id))
         }
     }
 

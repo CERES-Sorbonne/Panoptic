@@ -80,8 +80,8 @@ const setSimilar = async () => {
     <div class="modal" tabindex="-1" role="dialog" ref="modalElem" aria-hidden="true">
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" v-if="isActive">
-                <div class="modal-header">
-                    <h5 class="modal-title">Image: {{ image.sha1 }}</h5>
+                <div class="modal-header" style="height: 40px;">
+                    <h5 class="modal-title">Image: {{ image.name }}</h5>
                     <button type="button" class="btn close" @click="hide">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -92,7 +92,6 @@ const setSimilar = async () => {
                             <div class="text-center mb-2">
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
-                            {{ image }}
                             <div id="similarImages" v-if="similarImages.length > 0">
                                 <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
                                 <StampDropdown
@@ -181,6 +180,6 @@ const setSimilar = async () => {
 <style scoped>
 .image-size {
     max-width: 600px;
-    max-height: 600px;
+    max-height: 400px;
 }
 </style>

@@ -49,6 +49,7 @@ export interface PropertyRef extends PropertyValue {
 
 export interface Image {
     id: number
+    name: string
     sha1: string
     ahash: string
     width: number

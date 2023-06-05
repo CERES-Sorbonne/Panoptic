@@ -114,6 +114,7 @@ function updateHoverBorder(value) {
 
 function getParents(item) {
     if(!item) {
+        console.log(item)
         return []
     }
     if (item.groupId != undefined) {
@@ -149,10 +150,10 @@ watch(() => props.width, () => {
         :buffer="800" :min-item-size="props.imageSize">
         <template v-slot="{ item, index, active }">
             <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]">
-
+                <!-- {{ item.groupId}} -->
                 <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
                 <div v-if="item.type == 'group'">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)"
+                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item)" :index="props.data.index"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
                 </div>
                 <div v-if="item.type == 'images'">

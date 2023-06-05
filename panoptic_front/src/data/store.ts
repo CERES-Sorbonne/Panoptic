@@ -158,7 +158,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.isLoaded = true
     },
     applyImportState(state: ImportState) {
-        state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
+        // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
         // console.log(state.new_images)
         state.new_images.forEach(globalStore.importImage)
         this.importState = state
@@ -195,9 +195,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async addOrUpdatePropertyToImage(imageIds: number | number[], propertyId: number, value: any) {
-        console.log(imageIds)
-        console.log(propertyId)
-        console.log(value)
+        // console.log(imageIds)
+        // console.log(propertyId)
+        // console.log(value)
         let type = this.properties[propertyId].type
         if(!Array.isArray(imageIds)){
             imageIds = [imageIds]
