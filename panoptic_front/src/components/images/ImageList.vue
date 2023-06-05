@@ -31,7 +31,7 @@ defineExpose({
 })
 
 function computeLines() {
-    // console.log('compute lines')
+    console.log('compute lines')
     let group = props.data.root
     let index = props.data.index
     const groupToLines = (group, lines, lineWidth, imgHeight) => {
@@ -47,7 +47,7 @@ function computeLines() {
         group.index = lines.length - 1
         if (!group.closed && Array.isArray(group.groups) && group.groups.length > 0) {
             group.groups.forEach(g => {
-                groupToLines(index[g.id], lines, lineWidth, imgHeight)
+                groupToLines(g, lines, lineWidth, imgHeight)
             })
             return
         }

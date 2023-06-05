@@ -92,6 +92,7 @@ const setSimilar = async () => {
                             <div class="text-center mb-2">
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
+                            {{ image }}
                             <div id="similarImages" v-if="similarImages.length > 0">
                                 <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
                                 <StampDropdown
