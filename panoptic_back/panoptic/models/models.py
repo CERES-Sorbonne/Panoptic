@@ -79,8 +79,8 @@ class Image2:
 
     sha1: str
     url: str
-    width: int
     height: int
+    width: int
 
     properties: Optional[dict[int, PropertyValue2]] = field(default_factory=dict)
     ahash: Optional[str] = field(default=None)
