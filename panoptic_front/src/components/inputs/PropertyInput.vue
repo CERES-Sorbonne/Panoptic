@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Image, Property, PropertyValue } from '@/data/models';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as inputTree from '@/utils/inputTree'
+import TagBadge from '../tagtree/TagBadge.vue'
 
 const props = defineProps({
     property: Object as () => PropertyRef,
@@ -80,9 +80,11 @@ function inputType(type: PropertyType) {
         case PropertyType.color:
             return 'color'
         case PropertyType.checkbox:
-            return 'checkbox'
+            return null
         case PropertyType.url:
             return 'url'
+        case PropertyType.folders:
+            return null
         default:
             return 'text'
     }
@@ -103,24 +105,33 @@ onMounted(() => {
         <div class="d-flex flex-row" @click="setEdit(true)" ref="clickableElem">
             <div class="me-1 text-nowrap text-truncate">
                 <span class="me-1">
+                    <!-- Affichage d'un icone pour désigner la propriété sauf dans le cas d'une checkbox où l'input checkbox prend la place de l'icone -->
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
                         v-model="props.property.value" @change="setEdit(false)" ref="inputElem" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)">
                     <span v-else>
+                        <!-- pour un input de type url l'icone sert à accéder au lien -->
                         <a v-if="type == PropertyType.url" :href="props.property.value" target="_blank">
                             <PropertyIcon :type="property.type" />
                         </a>
                         <PropertyIcon :type="property.type" v-else/>
                     </span>
                 </span>
+                <!-- On affiche la valeur de la propriété -->
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">
                     <span v-if="!isSet" class="text-secondary">None</span>
+                    <span v-else-if="type == PropertyType.folders">
+                        <span v-for="folderId in props.property.value">
+                            <TagBadge :tag="globalStore.folders[folderId].name" color="#c3cfd9" />
+                        </span>
+                    </span>
                     <span v-else-if="type != PropertyType.color">{{ props.property.value }}</span>
                 </span>
             </div>
             <template v-if="type == PropertyType.color && isSet">
                 <input type="color" class="" v-model="props.property.value" />
             </template>
-            <div v-if="edit && type != PropertyType.checkbox" class="w-100">
+            <!-- on affiche l'input pour le type de la propriété sauf si le type n'est pas standard (inputType(type) renvoie null dans ces cas là) -->
+            <div v-if="edit && inputType(type)" class="w-100">
                 <input :type="inputType(type)" class="small-input   " ref="inputElem" v-model="props.property.value" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)"/>
             </div>
             <div v-if="type == PropertyType.checkbox">

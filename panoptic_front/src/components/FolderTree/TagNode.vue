@@ -1,9 +1,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import TagNode from './TagNode.vue'
 import { globalStore } from '../../data/store';
 import TagList from './TagList.vue';
-import TagBadge from '../TagTree/TagBadge.vue';
+import TagBadge from '../tagtree/TagBadge.vue';
 
 const emits = defineEmits(['propagate-unselect'])
 

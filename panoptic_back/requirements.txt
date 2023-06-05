@@ -13,3 +13,4 @@ torch
 transformers
 uvicorn
 python-multipart
+pypika

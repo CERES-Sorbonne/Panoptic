@@ -3,7 +3,7 @@
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import TabContent from '../components/images/TabContent.vue';
 import TabNav from '../components/images/TabNav.vue';
-import Menu from '../components/Menu/Menu.vue';
+import Menu from '../components/menu/Menu.vue';
 import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
@@ -24,7 +24,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-    window.removeEventListener('resize', onResize); 
+    window.removeEventListener('resize', onResize);
 })
 
 function onResize() {
@@ -41,7 +41,7 @@ function onResize() {
         </div>
 
         <div class="w-100" v-if="globalStore.isLoaded">
-            
+
             <div class="ms-3" ref="navElem">
                 <TabNav />
             </div>

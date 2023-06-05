@@ -1,6 +1,8 @@
 import os
 import tkinter as tk
 import webbrowser
+import socket
+import argparse
 from threading import Thread
 from time import sleep
 from tkinter.filedialog import askdirectory
@@ -9,11 +11,11 @@ from panoptic.api import app
 import uvicorn
 import requests
 
-port = 8000
-
+PORT = 8000
+HOST = False
 
 def api(path):
-    return 'http://localhost:' + str(port) + '/' + path
+    return 'http://localhost:' + str(PORT) + '/' + path
 
 
 FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
@@ -38,7 +40,7 @@ class MiniUI:
         self.label = tk.Label(master, textvariable=self._database_name)
         self.label.pack()
 
-        self.label2 = tk.Label(master, textvariable=self.server_status)
+        self.label2 = tk.Entry(master, textvariable=self.server_status, state='readonly')
         self.label2.pack()
 
         # Create a button to add new folders
@@ -64,7 +66,14 @@ class MiniUI:
                     if folder['parent'] is None:
                         self.listbox.insert(tk.END, folder['path'])
                 failed = False
-                ui.server_status.set('running !')
+                message = 'running'
+                if HOST:
+                    try:
+                        ip = socket.gethostbyname(socket.gethostname())
+                        message += f' on {ip}:{PORT}'
+                    except:
+                        pass
+                ui.server_status.set(message)
                 ui.open_button['state'] = "normal"
             except Exception:
                 pass
@@ -94,13 +103,21 @@ def on_fastapi_start():
 def launch_uvicorn():
     app.add_event_handler('startup', on_fastapi_start)
     app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
-    uvicorn.run(app, host='0.0.0.0')
+    if HOST:
+        uvicorn.run(app, host="0.0.0.0")
+    else:
+        uvicorn.run(app)
     # while True:
     #     print("running")
     #     sleep(2)
 
 
 def start():
+    parser = argparse.ArgumentParser(description="Start Panoptic, use --host to share your panoptic across local network")
+    parser.add_argument('--host', action="store_true")
+    args = parser.parse_args()
+    global HOST
+    HOST = args.host
     root = tk.Tk()
     try:
         root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
