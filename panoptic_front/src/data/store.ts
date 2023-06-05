@@ -130,6 +130,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //     }
         // }
         globalStore.images[img.id] = img
+        img.properties[PropertyID.folders] = {propertyId: PropertyID.ahash, value: img.paths}
+        globalStore.images[img.sha1] = img
     },
     async fetchAllData() {
         let images = await apiGetImages()
@@ -141,7 +143,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1 }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash }
+        properties[PropertyID.folders] = {id: PropertyID.folders, name: 'folders', type: PropertyType.folders}
 
+        
         Object.values(images).forEach(this.importImage)
 
 
@@ -159,7 +163,6 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     applyImportState(state: ImportState) {
         state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
-        // console.log(state.new_images)
         state.new_images.forEach(globalStore.importImage)
         this.importState = state
     },
@@ -195,9 +198,6 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async addOrUpdatePropertyToImage(imageIds: number | number[], propertyId: number, value: any) {
-        console.log(imageIds)
-        console.log(propertyId)
-        console.log(value)
         let type = this.properties[propertyId].type
         if(!Array.isArray(imageIds)){
             imageIds = [imageIds]

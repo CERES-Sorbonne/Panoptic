@@ -89,7 +89,7 @@ def transform_image(_image_path: str, ocr=False):
 
     data[sha1] = result
     # can we trigger pca and use it ?
-    if pca is None and can_use_pca(len(data.values()), list(data.values())[0]['vector']):
+    if pca is None and can_compute_pca(len(data.values()), list(data.values())[0]['vector']):
         sha1_list = list(data.keys())
         vector_list = [data[sha1_key]['vector'] for sha1_key in sha1_list]
         create_pca(vector_list)
@@ -159,7 +159,7 @@ def save_pca():
         pickle.dump(pca, f)
 
 
-def can_use_pca(nb_vectors: int, vector_sample: np.array) -> bool:
+def can_compute_pca(nb_vectors: int, vector_sample: np.array) -> bool:
     """
     Can we start training a PCA to reduce vector size ?
     Basically it's: do we have more vectors than 110% the number of dimensions ?
@@ -169,7 +169,7 @@ def can_use_pca(nb_vectors: int, vector_sample: np.array) -> bool:
     """
     if not USE_PCA_IF_POSSIBLE:
         return False
-    if pca is not None:
+    if get_pca() is not None:
         return False
     if nb_vectors > vector_sample.shape[0] + (vector_sample.shape[0] / 10):
         return True

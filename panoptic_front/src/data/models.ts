@@ -15,11 +15,13 @@ export enum PropertyType {
 
     ahash = "average hash",
     sha1 = "sha1",
+    folders = "folders"
 }
 
 export enum PropertyID {
     sha1 = -1,
     ahash = -2,
+    folders = -3
 }
 
 export interface Tag {
