@@ -95,6 +95,10 @@ class ComputeVectorsQueue(ProcessQueue):
         image_id: int = task
         image = (await db.get_images(ids=[image_id]))[0]
 
+        computed = await db.get_sha1_computed_values([image.sha1])
+        if computed:
+            return computed
+
         folder = await db.get_folder(image.folder_id)
         file_path = f"{folder.path}/{image.name}"
 
