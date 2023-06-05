@@ -103,7 +103,8 @@ function mergeGroup(update: Group) {
         return update
     }
 
-    let children = childrenIds.map(id => index[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
+    // let children = childrenIds.map(id => index[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
+    let children = index[id].groups
     if (children.length > 0) {
         update.children = children.map(c => c.id)
         update.groups = children
