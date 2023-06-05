@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 from sklearn.neighbors import KDTree
 
-from panoptic.models import ImageVector
+from panoptic.models import ImageVector, ComputedValue
 
 os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', os.getcwd())
 
@@ -42,7 +42,7 @@ def load_similarity_tree():
 
 
 class SimilarityTreeWithLabel:
-    def __init__(self, images: list[ImageVector]):
+    def __init__(self, images: list[ComputedValue]):
         vectors, sha1_list = zip(*[(i.vector, i.sha1) for i in images])
         self.image_labels = sha1_list
         self.tree = KDTree(vectors)

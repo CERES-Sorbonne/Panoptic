@@ -100,7 +100,7 @@ class ComputeVectorsQueue(ProcessQueue):
 
         ahash, vector = await self._execute_in_process(self.compute_image, file_path)
 
-        res = await db.add_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
+        res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
         print('computed image: ', image_id, '  :  ', res.sha1)
         return res
 

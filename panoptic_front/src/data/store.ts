@@ -11,6 +11,7 @@ import {
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
+    sha1Index: {} as Images,
     tags: {} as Tags,
     tagNodes: {} as Tags,
     properties: {} as Properties,
@@ -111,10 +112,18 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     hideModal() {
         globalStore.openModal = { id: null, data: null }
     },
+    getOneImagePerSha1(sha1s: Array<string>) {
+        return sha1s.map(sha1 => globalStore.sha1Index[sha1][0])
+    },
     importImage(img: Image) {
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.containerRatio = computeContainerRatio(img)
+
+        if(!Array.isArray(globalStore.sha1Index[img.sha1])) {
+            globalStore.sha1Index[img.sha1] = []
+        }
+        globalStore.sha1Index[img.sha1].push(img)
         // for(let [id, prop] of Object.entries(img.properties)){
         //     if(this.properties[parseInt(id)].type == PropertyType.date){
         //         prop.value = moment(prop.value).format()

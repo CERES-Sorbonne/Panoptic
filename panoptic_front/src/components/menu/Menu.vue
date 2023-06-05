@@ -38,6 +38,18 @@ const handleInput = (e: any) => {
                         </div>
                     </div>
                 </div>
+                <div class="p-2"
+                    v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">
+                    <div class="w-100 text-center" style="font-size: 10px;">
+                        {{ globalStore.importState.computed }} / {{ globalStore.importState.to_import }} computed
+                    </div>
+                    <div v-if="globalStore.importState.to_import > 0" class="progress" role="progressbar"
+                        aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
+                        <div class="progress-bar"
+                            :style="`width: ${globalStore.importState.computed / globalStore.importState.to_import * 100}%`">
+                        </div>
+                    </div>
+                </div>
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
                     <b>Properties</b>
