@@ -153,7 +153,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
 
         this.importState = await apiGetImportStatus()
-        //setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
+        setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
 
         this.isLoaded = true
     },
