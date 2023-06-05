@@ -2,7 +2,7 @@
 import { Tag } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, onMounted, ref } from 'vue'
-import TagBadge from '../tagtree/TagBadge.vue'
+import TagBadge from '../TagTree/TagBadge.vue'
 
 
 const props = defineProps({
