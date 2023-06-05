@@ -403,11 +403,12 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
 #     return await cursor.fetchall()
 
 
-async def add_computed_value(sha1: str, ahash: str, vector: np.array):
+async def set_computed_value(sha1: str, ahash: str, vector: np.array):
     t = Table('computed_values')
-    query = Query.into(t).columns('sha1', 'ahash', 'vector').insert(sha1, ahash, Parameter('?')).do_nothing()
+    query = Query.into(t).columns('sha1', 'ahash', 'vector').insert(sha1, ahash, Parameter('?'))
+    query = query.on_conflict('sha1').do_update('vector', Parameter('?'))
     # query = query.get_sql() + " ON CONFLICT(sha1) DO NOTHING"
-    await execute_query(query.get_sql(), (vector,))
+    await execute_query(query.get_sql(), (vector, vector))
     return ComputedValue(sha1, ahash, vector)
 
 

@@ -33,7 +33,7 @@ const imageProperties = computed(() => {
             propertyId: p.id,
             type: p.type,
             value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
-            imageSHA1: image.value.sha1
+            imageId: image.value.id
         }
         res.push(propRef)
     });
@@ -70,8 +70,8 @@ onMounted(() => {
 })
 
 const setSimilar = async () => {
-    similarImages.value = await globalStore.getSimilarImages(image.value.sha1)
-    similarImages.value = similarImages.value.map(i => ({ url: globalStore.images[i.sha1].url, dist: i.dist, sha1: i.sha1 }))
+    const res = await globalStore.getSimilarImages(image.value.sha1)
+    similarImages.value = res.map((i:any) => ({ url: globalStore.sha1Index[i.sha1][0].url, dist: i.dist, sha1: i.sha1, id:globalStore.sha1Index[i.sha1][0].id }))
 }
 </script>
 
@@ -95,10 +95,10 @@ const setSimilar = async () => {
                             <div id="similarImages" v-if="similarImages.length > 0">
                                 <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
                                 <StampDropdown
-                                    :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.sha1])" />
+                                    :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.id])" />
                                 <div class="m-2">
                                     <div class="d-flex flex-wrap">
-                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.sha1])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
+                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.id])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
                                     </div>
 
                                 </div>

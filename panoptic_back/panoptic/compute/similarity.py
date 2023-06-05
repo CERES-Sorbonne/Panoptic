@@ -5,12 +5,12 @@ import numpy as np
 from sklearn.cluster import DBSCAN, KMeans, estimate_bandwidth, MeanShift
 
 from panoptic.compute.utils import load_similarity_tree, SimilarityTreeWithLabel
-from panoptic.models import ImageVector
+from panoptic.models import ImageVector, ComputedValue
 
 SIMILARITY_TREE: SimilarityTreeWithLabel = load_similarity_tree()
 
 
-def create_similarity_tree(images: list[ImageVector]):
+def create_similarity_tree(images: list[ComputedValue]):
     tree = SimilarityTreeWithLabel(images)
     with open(os.path.join(os.getenv('PANOPTIC_DATA'), 'tree.pkl'), 'wb') as f:
         pickle.dump(tree, f)
