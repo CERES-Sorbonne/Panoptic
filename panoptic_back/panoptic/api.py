@@ -15,7 +15,7 @@ from panoptic.scripts.to_pca import compute_all_pca
 from panoptic.core import create_property, add_property_to_images, get_images, create_tag, \
     delete_image_property, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, get_full_image, read_properties_file
+    db_utils, make_clusters, get_similar_images, get_full_image, read_properties_file, get_images_with_properties
 from panoptic.core import db
 from panoptic.models import Property, Images, Tag, Tags, Properties, PropertyPayload, \
     AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
@@ -37,6 +37,8 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     await db_utils.init()
+    res =await db.get_images()
+    print(res)
 
 
 # Route pour créer une property et l'insérer dans la table des properties
@@ -68,7 +70,7 @@ async def delete_property_route(property_id: str):
 # Route pour récupérer la liste de toutes les images
 @app.get("/images")
 async def get_images_route():
-    images = await get_images()
+    images = await get_images_with_properties()
     return images
 
 

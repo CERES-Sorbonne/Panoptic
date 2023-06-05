@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import TypeAlias, Optional, Any, Union, List, Dict
 
@@ -32,6 +33,16 @@ class PropertyValue(BaseModel):
     value: Any
 
 
+@dataclass(slots=True)
+class PropertyValue2:
+    property_id: int
+
+    image_id: int
+    sha1: str
+
+    value: Any
+
+
 class ImageProperty(PropertyValue):
     sha1: str
 
@@ -45,6 +56,7 @@ class Tag(BaseModel):
 
 
 class Image(BaseModel):
+    id: int
     sha1: str
     url: str
     width: int
@@ -53,8 +65,36 @@ class Image(BaseModel):
     extension: str
     properties: Optional[dict[int, PropertyValue]] = {}
     vector: Any
-    ahash: str|None
+    ahash: str | None
     name: str
+
+
+@dataclass(slots=True)
+class Image2:
+    # Should be equal order to SQL
+    id: int
+    folder_id: int
+    name: str
+    extension: str
+
+    sha1: str
+    url: str
+    width: int
+    height: int
+
+    properties: Optional[dict[int, PropertyValue2]] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class ImageImportTask:
+    image_path: str
+    folder_id: int
+
+
+class ImageFileRef(BaseModel):
+    folder_id: int
+    name: str
+    extension: str
 
 
 class ImageVector(BaseModel):
@@ -64,6 +104,13 @@ class ImageVector(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+
+@dataclass(slots=True)
+class ImageVector2:
+    sha1: str
+    ahash: str
+    vector: numpy.ndarray
 
 
 class Parameters(BaseModel):
