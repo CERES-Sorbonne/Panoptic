@@ -131,7 +131,6 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         // }
         globalStore.images[img.id] = img
         img.properties[PropertyID.folders] = {propertyId: PropertyID.ahash, value: img.paths}
-        globalStore.images[img.sha1] = img
     },
     async fetchAllData() {
         let images = await apiGetImages()
