@@ -380,12 +380,6 @@ async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue2]:
 #     return [row for row in await cursor.fetchall()]
 #
 
-# async def add_or_update_property_values(sha1_list: list[str], property_id: int, value):
-#     query = "INSERT into property_values (sha1, property_id, value) " \
-#             "VALUES (?, ?, ?)" \
-#             "ON conflict (sha1, property_id) do update set value=excluded.value"
-#     svalue = json.dumps(value)
-#     return await execute_query_many(query, [(sha1, property_id, svalue) for sha1 in sha1_list])
 
 
 async def set_property_values(property_id: int, value: Any, image_ids: List[int]):
@@ -411,6 +405,15 @@ async def set_computed_value(sha1: str, ahash: str, vector: np.array):
     await execute_query(query.get_sql(), (vector, vector))
     return ComputedValue(sha1, ahash, vector)
 
+async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
+    query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
+    cursor = await execute_query(query, tuple(filenames))
+    return await cursor.fetchall()
+
+
+async def vacuum():
+    query = "VACUUM"
+    await execute_query(query)
 
 async def get_sha1_ahashs(sha1s: list[str] = None):
     t = Table('computed_values')

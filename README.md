@@ -1,7 +1,6 @@
 # Panoptic 👀
 
 ![Preview](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/a1da87bf-1d06-4873-8fd7-686211252461)
-*This image is only a preview and the final product does not look like that for now*
 
 
 Panoptic is a tool for exploring and annotating large image corpora, using image analysis and machine learning tools to facilitate these tasks. 
@@ -9,6 +8,11 @@ Panoptic is a tool for exploring and annotating large image corpora, using image
 Since it requires deep learning libraries, it is recommended to use it with a computer with minimal computing capabilities.
 
 > Caution: Panoptic is still in active development and is currently a prototype, it is likely that you will encounter bugs, so we recommend to use this tool only for testing and not to rely on it for a substantial academic work. 
+
+## Pip installation
+
+- `pip install panoptic`
+- `panoptic`
 
 ## Installation (development)
 The following steps involve cloning the directory and are recommended for users who wish to have access to the development versions, or who wish to modify the code themselves in order to contribute.
@@ -31,11 +35,6 @@ To test and modify the backend operation, we provide an already built frontend i
 3. Run `npm install`.
 4. run `npm run dev`.
 5. before running the backend the `PANOPTIC_ENV` environment variable should be set to `DEV` in order to use the development frontend.
-
-## Pip installation (WIP)
-
-- `pip install panoptic`
-- `panoptic`
 
 ## Windows install (coming soon)
 ## Mac installation (coming soon)
