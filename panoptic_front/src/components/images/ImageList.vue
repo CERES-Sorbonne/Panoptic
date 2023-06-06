@@ -195,11 +195,20 @@ watch(() => props.imageSize, () => {
 })
 
 watch(visiblePropertiesNb, () => {
+    let scroll = scroller.value.getScroll().start
+    let totalSize = scroller.value.totalSize
+    let ratio = scroll / totalSize
     let size = imageLineSize.value
     imageLines.forEach(l => {
         if (l.type == 'images') {
             l.size = size
         }
+    })
+
+    nextTick(() => {
+        let goal = scroller.value.totalSize * ratio
+        // console.log(goal, ratio)
+        scroller.value.scrollToPosition(goal)
     })
 })
 
