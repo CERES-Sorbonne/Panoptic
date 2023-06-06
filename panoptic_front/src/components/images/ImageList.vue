@@ -62,7 +62,7 @@ function computeLines() {
     imageLines.length = 0
     imageLines.push(...lines)
     // console.log(lines)
-    // nextTick(() => scroller.value.forceUpdate())
+    scroller.value.updateVisibleItems(true)
     return lines
 }
 
@@ -146,6 +146,8 @@ function closeGroup(groupId) {
     }
     console.log(index, end)
     imageLines.splice(index+1, end-index)
+    scroller.value.updateVisibleItems(true)
+    
 }
 
 function openGroup(groupId) {
@@ -159,6 +161,7 @@ function openGroup(groupId) {
 }
 
 onMounted(computeLines)
+// onMounted(() => updateListWindow(0, 100))
 
 // watch(() => props.data, () => {
 //     console.log('props.data watch')
@@ -188,29 +191,24 @@ watch(() => props.width, () => {
 </script>
 
 <template>
-    <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
+    <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
         :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="">
         <template v-slot="{ item, index, active }">
-            <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]">
-                <!-- {{ item.groupId}} -->
-                <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
+            <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group'">
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"/>
+                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup" @group:update="computeLines"/>
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
                         :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
                 </div>
-                <div v-else :style="'height: ' + item.size + 'px;'" class="m-0 p-0">
-                    <span v-if="item.size > 1">Loading..</span>
-                </div>
-                <!-- </RecycleScroller> -->
-            </DynamicScrollerItem>
+            <!-- </DynamicScrollerItem> -->
         </template>
-    </DynamicScroller>
+    </RecycleScroller>
+    <!-- </RecycleScroller> -->
 </template>
 
 <style scoped>
