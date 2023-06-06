@@ -6,10 +6,9 @@ import { Image, Modals } from '@/data/models';
 const props = defineProps({
     image: Object as () => Image,
     size: { type: Number, default: 100 },
-    callback: {type: Function},
-    refuse: {type: Function}
 })
 
+const emits = defineEmits(['accept', 'refuse'])
 
 const imageSizes = computed(() => {
     let ratio = props.image.width / props.image.height
@@ -38,10 +37,10 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         </div>
         <div class="row">
             <div class="col">
-                <div class="text-center text-success clickable bouton" style="font-size: 10px;" @click="props.callback(image.sha1)"> ✓ </div>
+                <div class="text-center text-success clickable bouton" style="font-size: 10px;" @click="$emit('accept', props.image)"> ✓ </div>
             </div>
             <div class="col">
-                <div class="text-center text-danger clickable bouton" style="font-size: 10px;" @click="props.refuse(image.sha1)"> ✕ </div>
+                <div class="text-center text-danger clickable bouton" style="font-size: 10px;" @click="$emit('refuse', props.image)"> ✕ </div>
             </div>
         </div>
     </div>

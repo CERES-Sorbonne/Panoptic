@@ -101,6 +101,11 @@ function mergeGroup(update: Group) {
         return update
     }
     // console.log('closed: ' + index[id].closed)
+
+    update.allSimilarSha1s = index[id].allSimilarSha1s
+    update.similarSha1sBlacklist = index[id].similarSha1sBlacklist
+    update.getSimilarImages = index[id].getSimilarImages
+
     update.closed = index[id].closed
     let childrenIds = index[id].children
     if (!childrenIds || childrenIds.length == 0) {
