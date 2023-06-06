@@ -302,7 +302,10 @@ export interface Group {
     depth: number,
     index: number,
     closed: boolean,
-    isCluster?: boolean
+    isCluster?: boolean,
+    getSimilarImages?: () => Array<Images>
+    similarSha1sBlacklist?: Array<string>
+    allSimilarSha1s?: Array<string>
 }
 
 export interface GroupIndex {[key: string]: Group}
@@ -338,6 +341,11 @@ export interface ScrollerLine {
     index: number
     depth: number
     nbClusters: number
+    isSimilarities?: boolean
+}
+
+export interface GroupLine extends ScrollerLine{
+    data: Group
 }
 
 export interface RecomendedLine extends ScrollerLine {

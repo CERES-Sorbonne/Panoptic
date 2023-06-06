@@ -48,9 +48,10 @@ export const apiAddProperty = async(name: string, type: PropertyType):Promise<Pr
 }
 
 export const apiSetPropertyValue = async(imageIds: number[], propertyId:number, value: any):Promise<PropertyValue> => {
-    console.log(imageIds)
-    console.log(propertyId)
-    console.log(value)
+    // only arrays are tags lists
+    if(Array.isArray(value)) {
+        value = value.map(Number)
+    }
     
     const res = await axios.post('/image_property', {imageIds, propertyId, value})
     return res.data

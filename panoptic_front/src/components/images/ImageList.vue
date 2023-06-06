@@ -38,6 +38,10 @@ const imageLineSize = computed(() => {
     return props.imageSize + offset + 10
 })
 
+const simiImageLineSize = computed(() => {
+    return props.imageSize + 40
+})
+
 
 defineExpose({
     scroll,
@@ -65,6 +69,9 @@ function computeLines() {
             })
             return
         }
+        if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
+            computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
+        }
         if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
             computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
@@ -81,7 +88,7 @@ function computeLines() {
     return lines
 }
 
-function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) {
+function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, isSimilarities=false) {
     let lineWidth = totalWidth
     let newLine = []
     let actualWidth = 0
@@ -93,7 +100,8 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) 
             data: line,
             groupId: parentGroup.id,
             depth: parentGroup.depth + 1,
-            size: imageLineSize.value,
+            size: isSimilarities? simiImageLineSize.value : imageLineSize.value,
+            isSimilarities: isSimilarities
         })
     }
 
@@ -232,9 +240,9 @@ watch(() => props.width, () => {
                     @group:close="closeGroup" @group:open="openGroup" @group:update="computeLines" />
             </div>
             <div v-else-if="item.type == 'images'">
-                <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
+                <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item" :index="props.data.index"
                     :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)" @scroll="scrollTo"
-                    @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
+                    @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
             </div>
             <!-- </DynamicScrollerItem> -->
         </template>

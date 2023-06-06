@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Group, PropertyType, ScrollerLine } from '@/data/models'
+import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, ref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
@@ -7,7 +7,7 @@ import TagBadge from '../TagTree/TagBadge.vue'
 
 
 const props = defineProps({
-    item: Object as () => ScrollerLine,
+    item: Object as () => GroupLine,
     parentIds: Array<string>,
     hoverBorder: String,
     index: Object as () => { [id: string]: Group }
@@ -25,6 +25,7 @@ const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
 const closed = computed(() => group.value?.closed)
 const hasOpenChildren = computed(() => group.value.groups.some(g => g.closed != true))
+const similarityMode = computed(() => Array.isArray(group.value.allSimilarSha1s))
 
 const groupName = computed(() => {
     let name = group.value.name
@@ -80,12 +81,29 @@ async function computeClusters() {
 }
 
 function clear() {
-    props.item.data.groups = undefined
+    delete props.item.data.groups
+    delete props.item.data.allSimilarSha1s
+    delete props.item.data.similarSha1sBlacklist
     emits('group:update')
 }
 
-function recommandImages() {
+async function recommandImages() {
+    let sha1s = {} as any
+    group.value.images.forEach(i => sha1s[i.sha1] = true)
 
+    let res = await globalStore.getSimilarImages(Object.keys(sha1s)) as any[]
+    props.item.data.allSimilarSha1s = res.map(r => r.sha1)
+
+    if(!Array.isArray(props.item.data.similarSha1sBlacklist)) {
+        props.item.data.similarSha1sBlacklist = []
+    }
+
+    let all = props.item.data.allSimilarSha1s
+    let blacklist = props.item.data.similarSha1sBlacklist
+
+    props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0,30))
+
+    emits('group:update')
 }
 
 function toggleClosed() {
@@ -135,15 +153,15 @@ function closeChildren() {
         <div class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.count }} Images</div>
         <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{
             group.groups.length }} Groupes</div>
-        <div v-if="hasImages && hasSubgroups" class="ms-2"><button @click="clear">Clear</button></div>
+        <div v-if="hasImages && (hasSubgroups || similarityMode)" class="ms-2"><div class="button" @click="clear">Clear</div></div>
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
             <StampDropdown :images="images" />
         </div>
-        <div class="ms-2" v-if="!hasSubgroups">
-            <button @click="computeClusters">Créer clusters</button>
+        <div class="ms-2" v-if="!hasSubgroups && ! similarityMode">
+            <div class="button" @click="computeClusters">Créer clusters</div>
             <!-- <div class="button">Créer clusters</div> -->
         </div>
-        <div v-if="hasImages && !hasSubgroups" style="margin-left: 2px;">
+        <div v-if="hasImages && !hasSubgroups && !similarityMode" style="margin-left: 2px;">
             <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
         </div>
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
