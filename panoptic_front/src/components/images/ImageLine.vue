@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { watch } from 'vue';
 import Image from './Image.vue';
 
 
@@ -12,6 +13,7 @@ const props = defineProps({
 
 const emits = defineEmits(['hover', 'unhover' ,'scroll'])
 //:style="'padding-left:' + (props.item.depth * MARGIN) + 'px'"
+
 </script>
 
 <template>
