@@ -13,7 +13,7 @@ const props = defineProps({
     index: Object as () => {[id:string]: Group}
 })
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update'])
 
 const hoverGroup = ref(false)
 
@@ -74,11 +74,12 @@ async function computeClusters() {
     }
     props.item.data.groups = groups
     props.item.data.children = groups.map(g => g.id)
-
+    emits('group:update')
 }
 
 function clear() {
     props.item.data.groups = undefined
+    emits('group:update')
 }
 
 function recommandImages() {
