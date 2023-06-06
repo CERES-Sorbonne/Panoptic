@@ -61,8 +61,10 @@ function computeLines() {
     groupToLines(index[group.id], lines, props.width, props.imageSize)
     imageLines.length = 0
     imageLines.push(...lines)
+
     // console.log(lines)
     scroller.value.updateVisibleItems(true)
+    console.log(imageLines.length)
     return lines
 }
 
@@ -77,7 +79,7 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) 
             type: 'images',
             data: line,
             groupId: parentGroup.id,
-            depth: parentGroup.depth+1,
+            depth: parentGroup.depth + 1,
             size: props.imageSize + (visiblePropertiesNb.value * 31) + 10,
         })
     }
@@ -129,30 +131,36 @@ function getImageLineParents(item) {
     return [...getParents(props.data.index[item.groupId]), item.groupId]
 }
 
-function closeGroup(groupId) {
-    let index = imageLines.findIndex(line => line.id == groupId)
-    if(index < 0) {
-        return
+function closeGroup(groupIds) {
+    if (!Array.isArray(groupIds)) {
+        groupIds = [groupIds]
     }
+    groupIds.forEach(groupId => {
+        let index = imageLines.findIndex(line => line.id == groupId)
+        if (index < 0) {
+            return
+        }
 
-    let depth = imageLines[index].depth
-    let end = index
-    // console.log('start', index, depth)
-    for(let i = index+1; i < imageLines.length; i++) {
-        // console.log(imageLines[i].depth)
-        if(imageLines[i].depth <= depth)
-            break
-        end = i
-    }
-    console.log(index, end)
-    imageLines.splice(index+1, end-index)
+        let depth = imageLines[index].depth
+        let end = index
+        // console.log('start', index, depth)
+        for (let i = index + 1; i < imageLines.length; i++) {
+            // console.log(imageLines[i].depth)
+            if (imageLines[i].depth <= depth)
+                break
+            end = i
+        }
+        console.log(index, end)
+        imageLines.splice(index + 1, end - index)
+    })
+
     scroller.value.updateVisibleItems(true)
-    
+
 }
 
 function openGroup(groupId) {
     let index = imageLines.findIndex(line => line.id == groupId)
-    if(index < 0) {
+    if (index < 0) {
         return
     }
 
@@ -175,7 +183,7 @@ watch(() => props.imageSize, () => {
 
 watch(visiblePropertiesNb, () => {
     imageLines.forEach(l => {
-        if(l.type == 'images') {
+        if (l.type == 'images') {
             l.size = props.imageSize + (visiblePropertiesNb.value * 31) + 10
         }
     })
@@ -195,16 +203,16 @@ watch(() => props.width, () => {
         :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="">
         <template v-slot="{ item, index, active }">
             <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
-                <div v-if="item.type == 'group'">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup" @group:update="computeLines"/>
-                </div>
-                <div v-else-if="item.type == 'images'">
-                    <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
-                        :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
-                </div>
+            <div v-if="item.type == 'group'">
+                <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                    :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
+                    @group:close="closeGroup" @group:open="openGroup" @group:update="computeLines" />
+            </div>
+            <div v-else-if="item.type == 'images'">
+                <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
+                    :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)" @scroll="scrollTo"
+                    @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
+            </div>
             <!-- </DynamicScrollerItem> -->
         </template>
     </RecycleScroller>
