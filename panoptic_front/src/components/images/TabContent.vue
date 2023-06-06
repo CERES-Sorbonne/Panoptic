@@ -19,7 +19,7 @@ const props = defineProps({
 
 const filterElem = ref(null)
 const hrElem = ref(null)
-const testElem = ref(null)
+const imageList = ref(null)
 
 const scrollerWidth = ref(0)
 
@@ -86,6 +86,9 @@ function computeGroups(force = false) {
     groupData.root = rootGroup
     groupData.order = []
     sortGroupTree(groupData.root, groupData.order)
+
+    if(imageList.value)
+        imageList.value.computeLines()
 }
 
 function mergeGroup(update: Group) {
@@ -258,10 +261,6 @@ watch(groups, () => computeGroups(true), { deep: true })
 watch(sorts, () => computeGroups(), { deep: true })
 
 
-function log(value: any) {
-    console.log(testElem.value.clientHeight)
-}
-
 </script>
 
 <template>
@@ -271,7 +270,7 @@ function log(value: any) {
     <hr class="custom-hr" ref="hrElem" />
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
     <div v-if="scrollerWidth > 0" style="margin-left: 10px;">
-        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="testElem"
+        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="imageList"
             :width="scrollerWidth - 10" />
     </div>
     <!-- <div class="ms-2 mt-2">

@@ -27,7 +27,8 @@ const visiblePropertiesNb = computed(() => Object.values(globalStore.tabs[global
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
 
 defineExpose({
-    scroll
+    scroll,
+    computeLines
 })
 
 function computeLines() {
@@ -76,7 +77,7 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) 
             type: 'images',
             data: line,
             groupId: parentGroup.id,
-            depth: parentGroup.depth,
+            depth: parentGroup.depth+1,
             size: props.imageSize + (visiblePropertiesNb.value * 31) + 10,
         })
     }
@@ -128,12 +129,53 @@ function getImageLineParents(item) {
     return [...getParents(props.data.index[item.groupId]), item.groupId]
 }
 
+function closeGroup(groupId) {
+    let index = imageLines.findIndex(line => line.id == groupId)
+    if(index < 0) {
+        return
+    }
+
+    let depth = imageLines[index].depth
+    let end = index
+    // console.log('start', index, depth)
+    for(let i = index+1; i < imageLines.length; i++) {
+        // console.log(imageLines[i].depth)
+        if(imageLines[i].depth <= depth)
+            break
+        end = i
+    }
+    console.log(index, end)
+    imageLines.splice(index+1, end-index)
+}
+
+function openGroup(groupId) {
+    let index = imageLines.findIndex(line => line.id == groupId)
+    if(index < 0) {
+        return
+    }
+
+    computeLines()
+
+}
+
 onMounted(computeLines)
 
-watch(() => props.data, computeLines, { deep: true })
+// watch(() => props.data, () => {
+//     console.log('props.data watch')
+//     computeLines()
+// }, { deep: true })
 
 watch(() => props.imageSize, () => {
+    console.log('image size compute')
     computeLines()
+})
+
+watch(visiblePropertiesNb, () => {
+    imageLines.forEach(l => {
+        if(l.type == 'images') {
+            l.size = props.imageSize + (visiblePropertiesNb.value * 31) + 10
+        }
+    })
 })
 
 let resizeWidthHandler = undefined
@@ -142,23 +184,28 @@ watch(() => props.width, () => {
     setTimeout(computeLines, 500)
 })
 
+
 </script>
 
 <template>
     <DynamicScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="800" :min-item-size="props.imageSize">
+        :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="">
         <template v-slot="{ item, index, active }">
             <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]">
                 <!-- {{ item.groupId}} -->
                 <!-- <RecycleScroller class="scroller" :items="imageLines" key-field="id" v-slot="{ item, index, active }"> -->
                 <div v-if="item.type == 'group'">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)" :index="props.data.index"
-                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
+                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                        :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
+                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"/>
                 </div>
-                <div v-if="item.type == 'images'">
+                <div v-else-if="item.type == 'images'">
                     <ImageLine :image-size="props.imageSize" :index="index * maxPerLine" :item="item"
                         :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" />
+                </div>
+                <div v-else :style="'height: ' + item.size + 'px;'" class="m-0 p-0">
+                    <span v-if="item.size > 1">Loading..</span>
                 </div>
                 <!-- </RecycleScroller> -->
             </DynamicScrollerItem>

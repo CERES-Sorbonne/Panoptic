@@ -109,24 +109,26 @@ export default {
     simpleArray,
 
     itemsWithSize () {
-      const result = []
+      // const result = []
       const { items, keyField, simpleArray } = this
-      const sizes = this.vscrollData.sizes
-      const l = items.length
-      for (let i = 0; i < l; i++) {
-        const item = items[i]
-        const id = simpleArray ? i : item[keyField]
-        let size = sizes[id]
-        if (typeof size === 'undefined' && !this.$_undefinedMap[id]) {
-          size = 0
-        }
-        result.push({
-          item,
-          id,
-          size,
-        })
-      }
-      return result
+      return items.map(i => ({id: i.id, item: i, size: i.size}))
+      // const sizes = this.vscrollData.sizes
+      // const l = items.length
+      // console.log('itemsWithSize', l)
+      // for (let i = 0; i < l; i++) {
+      //   const item = items[i]
+      //   const id = simpleArray ? i : item[keyField]
+      //   let size = sizes[id]
+      //   if (typeof size === 'undefined' && !this.$_undefinedMap[id]) {
+      //     size = 0
+      //   }
+      //   result.push({
+      //     item,
+      //     id,
+      //     size,
+      //   })
+      // }
+      // return result
     },
   },
 
