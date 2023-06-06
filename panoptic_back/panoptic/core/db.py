@@ -5,11 +5,11 @@ from typing import List, Any
 import numpy as np
 from pypika import Table, Parameter, PostgreSQLQuery
 
-Query = PostgreSQLQuery
-
 from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many
 from panoptic.models import PropertyValue2, Image2, ComputedValue
 from panoptic.models import Tag, Property, Folder, Tab
+
+Query = PostgreSQLQuery
 
 
 async def add_property(name: str, property_type: str) -> Property:
@@ -29,14 +29,6 @@ async def update_tag(tag: Tag):
     query = "UPDATE tags SET parents = ?, value = ?, color = ? WHERE id = ?"
     await execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
 
-
-# async def add_image(sha1, height, width, name, extension, folder, url):
-#     query = """
-#         INSERT INTO images (sha1, height, width, name, extension, folder, url)
-#         VALUES (?, ?, ?, ?, ?, ?, ?)
-#     """
-#     await execute_query(query, (sha1, height, width, name, extension, folder, url))
-#
 
 async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
     table = Table('images')
@@ -63,15 +55,6 @@ async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: s
                   height=height)
 
 
-# async def add_images(images: List[Image2]):
-#     table = Table('images')
-#     fields = dataclasses.fields(images[0])
-#     query = Query.into(table).columns(*(fields[1:0])).insert([astuple(i)[1:] for i in images])
-#     cursor = await execute_query(query.get_sql())
-#     rows = await cursor.fetchall()
-#     print(rows)
-
-
 async def has_image_file(folder_id, name, extension):
     table = Table('images')
     query = Query.from_(table).select('*').where(table.folder_id == folder_id)
@@ -82,24 +65,6 @@ async def has_image_file(folder_id, name, extension):
     if res:
         return Image2(*res)
     return False
-
-
-# async def get_images_by_sha1s(sha1_list: str | list[str]) -> [Image | list[Image] | None]:
-#     if type(sha1_list) == str:
-#         sha1_list = [sha1_list]
-#     query = """
-#         SELECT *
-#         FROM images
-#     """
-#     query += " WHERE sha1 in (" + ','.join('?' * len(sha1_list)) + ')'
-#     cursor = await execute_query(query, tuple(sha1_list))
-#     images = [Image(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
-#     if len(images) > 1:
-#         return images
-#     elif len(images) == 1:
-#         return images[0]
-#     else:
-#         return None
 
 
 async def get_images(ids: List[int] = None):
@@ -130,53 +95,6 @@ async def get_property_values(property_ids: List[int] = None, image_ids: List[in
     res = [PropertyValue2(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
     return res
 
-
-# async def get_full_image_with_sha1(sha1: str):
-#     query = """
-#             SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
-#             FROM images i
-#             LEFT JOIN property_values i_d ON i.sha1 = i_d.sha1
-#             WHERE i.sha1 = ?
-#             """
-#     cursor = await execute_query(query, (sha1,))
-#     return await cursor.fetchall()
-
-
-# async def get_images(as_image=False):
-#     query = """
-#             SELECT DISTINCT i.sha1, i.paths, i.height, i.width,  i.url, i.extension, i.name, i_d.property_id, i_d.value, i.ahash
-#             FROM images i
-#             LEFT JOIN property_values i_d ON i.sha1 = i_d.sha1
-#             ORDER BY i.name
-#             """
-#     cursor = await execute_query(query)
-#     if as_image:
-#         return [Image(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-#     return await cursor.fetchall()
-
-
-# async def update_image_paths(sha1, new_paths) -> list[str]:
-#     query = """
-#                UPDATE images
-#                SET paths = ?
-#                WHERE sha1 = ?
-#            """
-#     await execute_query(query, (new_paths, sha1))
-#     return new_paths
-
-
-# async def update_image_hashs(sha1, ahash: str, vector: np.array):
-#     query = """UPDATE images SET ahash = ?, vector= ? WHERE sha1 = ?"""
-#     await execute_query(query, (ahash, vector, sha1))
-#
-
-# async def add_image_property(sha1, property_id, value):
-#     query = """
-#             INSERT INTO property_values (property_id, sha1, value)
-#             VALUES (?, ?, ?)
-#     """
-#     return await execute_query(query, (property_id, sha1, json.dumps(value)))
-#
 
 async def delete_property_value(property_id, image_id: int):
     query = 'DELETE FROM property_values WHERE property_id = ? AND image_id = ?'
@@ -272,21 +190,6 @@ async def get_properties() -> list[Property]:
     return [Property(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-# async def get_image_property(sha1: str, property_id: int) -> ImageProperty | None:
-#     query = "SELECT * from property_values WHERE sha1 = ? AND property_id = ?"
-#     cursor = await execute_query(query, (sha1, property_id))
-#     row = await cursor.fetchone()
-#     if not row:
-#         return None
-#     return ImageProperty(**auto_dict(row, cursor))
-
-
-# async def update_image_property(sha1: str, property_id: int, value: JSON) -> str:
-#     query = "UPDATE property_values SET value = ? WHERE sha1 = ? AND property_id = ?"
-#     await execute_query(query, (json.dumps(value), sha1, property_id))
-#     return decode_if_json(value)
-
-
 async def get_folders() -> List[Folder]:
     query = "SELECT * from folders"
     cursor = await execute_query(query)
@@ -352,34 +255,10 @@ async def update_property(new_property: Property):
     await execute_query(query, (new_property.name, new_property.type, new_property.id))
 
 
-# async def get_image_properties_with_tag(tag_id: int) -> list[ImageProperty]:
-#     query = "SELECT * from property_values ip where ip.value like ?"
-#     cursor = await execute_query(query, (f"[%{tag_id}%]",))
-#     return [ImageProperty(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-
-
 async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue2]:
     query = "SELECT * from property_values where value like ?"
     cursor = await execute_query(query, (f"[%{tag_id}%]",))
     return [PropertyValue2(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-
-
-# async def get_images_with_vectors(image_list: list[str] = None):
-#     query = "SELECT sha1, vector, ahash from images WHERE vector is not null "
-#     if image_list and len(image_list) > 0:
-#         query += " AND sha1 in (" + ','.join('?' * len(image_list)) + ')'
-#         cursor = await execute_query(query, tuple(image_list))
-#     else:
-#         cursor = await execute_query(query)
-#     return [ImageVector(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-
-
-# async def get_all_sha1() -> list[str]:
-#     query = "SELECT sha1 from images ORDER BY sha1"
-#     cursor = await execute_query(query)
-#     return [row for row in await cursor.fetchall()]
-#
-
 
 
 async def set_property_values(property_id: int, value: Any, image_ids: List[int]):
@@ -391,12 +270,6 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
     return await execute_query_many(query, [(property_id, image_id, '', svalue) for image_id in image_ids])
 
 
-# async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
-#     query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
-#     cursor = await execute_query(query, tuple(filenames))
-#     return await cursor.fetchall()
-
-
 async def set_computed_value(sha1: str, ahash: str, vector: np.array):
     t = Table('computed_values')
     query = Query.into(t).columns('sha1', 'ahash', 'vector').insert(sha1, ahash, Parameter('?'))
@@ -404,6 +277,7 @@ async def set_computed_value(sha1: str, ahash: str, vector: np.array):
     # query = query.get_sql() + " ON CONFLICT(sha1) DO NOTHING"
     await execute_query(query.get_sql(), (vector, vector))
     return ComputedValue(sha1, ahash, vector)
+
 
 async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
     query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
@@ -414,6 +288,7 @@ async def get_sha1s_by_filenames(filenames: list[str]) -> list[str]:
 async def vacuum():
     query = "VACUUM"
     await execute_query(query)
+
 
 async def get_sha1_ahashs(sha1s: list[str] = None):
     t = Table('computed_values')

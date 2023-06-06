@@ -6,14 +6,13 @@ import os
 import sys
 import traceback
 from concurrent.futures import ProcessPoolExecutor
-from pathlib import Path
 from typing import List, Callable
 
 from PIL import Image
 
 import panoptic.compute as compute
 from panoptic.core import db
-from panoptic.models import Folder, ImageImportTask, Image2
+from panoptic.models import ImageImportTask
 
 logger = logging.getLogger('ProcessQueue')
 

@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { reactive, computed, watch, onMounted, ref, unref, nextTick } from 'vue';
-import ImageGroup from './ImageGroup.vue';
+import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import { Group, GroupIndex, Image, PropertyType, Tab, GroupData } from '@/data/models';
+import { Group, GroupIndex, PropertyType, Tab, GroupData } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
-import PaginatedImages from './PaginatedImages.vue';
 import ContentFilter from './ContentFilter.vue';
 import { sortGroupTree, sortImages } from '@/utils/sort';
 import ImageList from './ImageList.vue';
