@@ -73,11 +73,11 @@ async def get_similar_images(sha1s: list[str]):
     return [img for img in res if img['sha1'] not in sha1s]
 
 
-#TODO: fix import
 async def add_property_to_images(property_id: int, sha1_list: list[str], value: JSON) -> str:
     # first check that the property and the image exist:
-    if await db.get_property_by_id(property_id) and await db.get_images_by_sha1s(sha1_list):
-        await db.add_or_update_property_values(sha1_list, property_id, value)
+    images = await db.get_images(sha1s=sha1_list)
+    if await db.get_property_by_id(property_id) and images:
+        await db.set_property_values(image_ids=[img.id for img in images], property_id=property_id, value=value)
         # check if a value already exists
         # if await db.get_image_property(sha1, property_id):
         #     await db.update_image_property(sha1, property_id, value)
