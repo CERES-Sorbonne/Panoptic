@@ -20,7 +20,7 @@ const props = defineProps({
 
 const edit = ref(false)
 
-
+const localValue = reactive([])
 const tagInput = ref('');
 const showTagList = ref(false);
 const tagInputContainer = ref(null);
@@ -47,12 +47,7 @@ const isCreatePossible = computed(() => tagInput.value.length > 0 && !filteredTa
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const imageTags = computed(() => {
-    if (!props.property.value) {
-        return []
-    }
-    return props.property.value.map((id: number) => tags.value[id])
-})
+const imageTags = computed(() => localValue.map((id: number) => tags.value[id]))
 
 // Ferme la liste de propositions si le clic est effectué en dehors de la liste ou de l'input
 const handleContainerClick = (event: any) => {
@@ -84,8 +79,9 @@ const selectOption = async function () {
         return
     }
     tagInput.value = ''
-    let updatedValue = props.monoTag ? [valueToAdd] : [...props.property.value, valueToAdd]
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, updatedValue)
+    localValue.push(valueToAdd)
+    // let updatedValue = props.monoTag ? [valueToAdd] : [...props.property.value, valueToAdd]
+    // await globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, updatedValue)
     inputElem.value.focus()
 }
 
@@ -116,7 +112,7 @@ function setEdit(value: Boolean) {
     }
     else {
         document.removeEventListener('click', handleContainerClick)
-        // globalStore.addOrUpdatePropertyToImage(props.property.imageSHA1, props.property.propertyId, props.property.value)
+        globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, localValue)
         edit.value = false
         showTagList.value = false;
         if (props.property.value == '') {
@@ -139,12 +135,15 @@ function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
 }
 
 const removeTag = async (tag: Tag) => {
-    await globalStore.addOrUpdatePropertyToImage(props.property.imageId,
-        props.property.propertyId,
-        props.property.value.filter((id: number) => id !== tag.id));
+    let toDel = localValue.indexOf(tag.id)
+    if(toDel >= 0) {
+        localValue.splice(toDel, 1)
+    }
+    // await globalStore.addOrUpdatePropertyToImage(props.property.imageId,
+    //     props.property.propertyId,
+    //     props.property.value.filter((id: number) => id !== tag.id));
     if (inputElem.value) {
         inputElem.value.focus()
-
     }
 };
 
@@ -165,14 +164,21 @@ function hanldeInputEvent(e: any) {
 
 }
 
+function loadDbValue() {
+    localValue.length = 0
+    if(Array.isArray(props.property.value)) {
+        localValue.push(...props.property.value)
+    }
+}
+
 onMounted(() => {
-    // if (!props.property.value) {
-    //     props.property.value = []
-    // }
+    loadDbValue()
     if (props.inputId) {
         inputTree.registerInput(props.inputId, clickableElem.value)
     }
 });
+
+watch(() => props.property, loadDbValue)
 
 watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickableElem.value), { deep: true, immediate: true })
 

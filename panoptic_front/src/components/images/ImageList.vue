@@ -26,6 +26,19 @@ const visiblePropertiesNb = computed(() => Object.values(globalStore.tabs[global
 
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
 
+const imageLineSize = computed(() => {
+    let nb = visiblePropertiesNb.value
+    let offset = 0
+    if (nb > 0) {
+        offset += 31
+    }
+    if (nb > 1) {
+        offset += (nb - 1) * 27
+    }
+    return props.imageSize + offset + 10
+})
+
+
 defineExpose({
     scroll,
     computeLines
@@ -80,7 +93,7 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup) 
             data: line,
             groupId: parentGroup.id,
             depth: parentGroup.depth + 1,
-            size: props.imageSize + (visiblePropertiesNb.value * 31) + 10,
+            size: imageLineSize.value,
         })
     }
 
@@ -182,9 +195,10 @@ watch(() => props.imageSize, () => {
 })
 
 watch(visiblePropertiesNb, () => {
+    let size = imageLineSize.value
     imageLines.forEach(l => {
         if (l.type == 'images') {
-            l.size = props.imageSize + (visiblePropertiesNb.value * 31) + 10
+            l.size = size
         }
     })
 })
