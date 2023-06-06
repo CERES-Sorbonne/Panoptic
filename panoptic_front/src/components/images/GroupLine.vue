@@ -100,6 +100,7 @@ function toggleClosed() {
 
 function closeChildren() {
     props.item.data.groups.forEach((g: Group) => g.closed = true)
+    emits('group:close', props.item.data.groups.map((g: Group) => g.id))
 }
 
 </script>
