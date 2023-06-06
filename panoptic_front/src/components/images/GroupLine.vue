@@ -10,7 +10,7 @@ const props = defineProps({
     item: Object as () => ScrollerLine,
     parentIds: Array<string>,
     hoverBorder: String,
-    index: Object as () => {[id:string]: Group}
+    index: Object as () => { [id: string]: Group }
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update'])
@@ -31,13 +31,15 @@ const groupName = computed(() => {
     if (group.value.propertyId == undefined) {
         return group.value.name
     }
-    if (group.value.name == "undefined") {
+    else if (group.value.name == "undefined") {
         name = "undefined"
     }
     else {
         let type = globalStore.properties[group.value.propertyId].type
         if (type == PropertyType.tag || type == PropertyType.multi_tags) {
             name = globalStore.tags[group.value.propertyId][Number(group.value.name)].value
+        } else if (type == PropertyType.folders) {
+            name = globalStore.folders[Number(group.value.name)].name
         }
     }
 
@@ -65,7 +67,7 @@ async function computeClusters() {
             children: undefined,
             parentId: props.item.data.id,
             index: index,
-            depth: (props.item.data.depth+1),
+            depth: (props.item.data.depth + 1),
             closed: false,
             isCluster: true
         }
@@ -147,7 +149,8 @@ function closeChildren() {
         <div v-if="hasImages && !hasSubgroups" class="ms-2">
             <div class="button" @click="recommandImages">Images Similaires</div>
         </div>
-        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children" @click="closeChildren">
+        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children"
+            @click="closeChildren">
             Reduire
         </div>
     </div>

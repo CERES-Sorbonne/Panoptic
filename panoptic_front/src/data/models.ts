@@ -339,6 +339,11 @@ export interface ScrollerLine {
     depth: number
     nbClusters: number
 }
+
+export interface RecomendedLine extends ScrollerLine {
+    data: Array<Image>
+}
+
 export function buildTabState() {
     return {
         name: 'Tab',
