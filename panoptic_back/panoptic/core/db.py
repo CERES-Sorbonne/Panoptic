@@ -6,7 +6,7 @@ import numpy as np
 from pypika import Table, Parameter, PostgreSQLQuery
 
 from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many
-from panoptic.models import PropertyValue2, Image2, ComputedValue
+from panoptic.models import PropertyValue, Image, ComputedValue
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -51,8 +51,8 @@ async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: s
     cursor = await execute_query(query.get_sql())
     id_ = cursor.lastrowid
 
-    return Image2(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
-                  height=height)
+    return Image(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
+                 height=height)
 
 
 async def has_image_file(folder_id, name, extension):
@@ -63,7 +63,7 @@ async def has_image_file(folder_id, name, extension):
     cursor = await execute_query(query.get_sql())
     res = await cursor.fetchone()
     if res:
-        return Image2(*res)
+        return Image(*res)
     return False
 
 
@@ -77,7 +77,7 @@ async def get_images(ids: List[int] = None, sha1s: List[str] = None):
         query = query.where(img_table.sha1.isin(sha1s))
 
     cursor = await execute_query(query.get_sql())
-    images = [Image2(*image) for image in await cursor.fetchall()]
+    images = [Image(*image) for image in await cursor.fetchall()]
     return images
 
 
@@ -94,7 +94,7 @@ async def get_property_values(property_ids: List[int] = None, image_ids: List[in
         query = query.where(values.sha1.isin(sha1s))
 
     cursor = await execute_query(query.get_sql())
-    res = [PropertyValue2(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
+    res = [PropertyValue(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
     return res
 
 
@@ -257,10 +257,10 @@ async def update_property(new_property: Property):
     await execute_query(query, (new_property.name, new_property.type, new_property.id))
 
 
-async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue2]:
+async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
     query = "SELECT * from property_values where value like ?"
     cursor = await execute_query(query, (f"[%{tag_id}%]",))
-    return [PropertyValue2(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+    return [PropertyValue(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
 async def set_property_values(property_id: int, value: Any, image_ids: List[int]):

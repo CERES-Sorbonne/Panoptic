@@ -2,9 +2,9 @@ import asyncio
 
 from tqdm import tqdm
 
-from panoptic.core import db, db_utils
 from panoptic.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
-from panoptic.models import ImageVector, ComputedValue
+from panoptic.core import db
+from panoptic.models import ComputedValue
 
 
 async def compute_all_pca(force=False):

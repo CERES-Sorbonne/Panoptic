@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias, Optional, Any, Union, List, Dict
+from typing import TypeAlias, Optional, Any, Union, Dict
 
-import numpy as np
 import numpy
 from pydantic import BaseModel
 
@@ -28,23 +27,14 @@ class Property(BaseModel):
     type: str
 
 
-class PropertyValue(BaseModel):
-    property_id: int
-    value: Any
-
-
 @dataclass(slots=True)
-class PropertyValue2:
+class PropertyValue:
     property_id: int
 
     image_id: int
     sha1: str
 
     value: Any
-
-
-class ImageProperty(PropertyValue):
-    sha1: str
 
 
 class Tag(BaseModel):
@@ -55,22 +45,8 @@ class Tag(BaseModel):
     color: Optional[str]
 
 
-class Image(BaseModel):
-    id: int
-    sha1: str
-    url: str
-    width: int
-    height: int
-    paths: list[str]
-    extension: str
-    properties: Optional[dict[int, PropertyValue]] = {}
-    vector: Any
-    ahash: str | None
-    name: str
-
-
 @dataclass(slots=True)
-class Image2:
+class Image:
     # Should be equal order to SQL
     id: int
     folder_id: int
@@ -82,7 +58,7 @@ class Image2:
     height: int
     width: int
 
-    properties: Optional[dict[int, PropertyValue2]] = field(default_factory=dict)
+    properties: Optional[dict[int, PropertyValue]] = field(default_factory=dict)
     ahash: Optional[str] = field(default=None)
 
 
@@ -90,21 +66,6 @@ class Image2:
 class ImageImportTask:
     image_path: str
     folder_id: int
-
-
-class ImageFileRef(BaseModel):
-    folder_id: int
-    name: str
-    extension: str
-
-
-class ImageVector(BaseModel):
-    sha1: str
-    vector: numpy.ndarray
-    ahash: str
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 @dataclass(slots=True)
@@ -133,7 +94,6 @@ class Tab(BaseModel):
     data: dict | None
 
 
-Images: TypeAlias = dict[str, Image]
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
 Properties: TypeAlias = dict[int, Property]

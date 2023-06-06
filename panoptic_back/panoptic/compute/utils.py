@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 from sklearn.neighbors import KDTree
 
-from panoptic.models import ImageVector, ComputedValue
+from panoptic.models import ComputedValue
 
 os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', os.getcwd())
 
