@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import hashlib
 import logging
 import os
@@ -25,7 +26,7 @@ class ProcessQueue:
         self._workers: List[asyncio.Task] = []
         self.done_callback = None
 
-    def start_workers(self, workers=1):
+    def start_workers(self, workers=6):
         if self._workers:
             return
         for i in range(workers):
@@ -71,7 +72,7 @@ class ImportImageQueue(ProcessQueue):
         sha1, url, width, height = await self._execute_in_process(self._import_image, task.image_path)
 
         image = await db.add_image(folder_id, name, extension, sha1, url, width, height)
-        print(f'imported image: {image.id} : {image.sha1}')
+        # print(f'imported image: {image.id} : {image.sha1}')
         return image
 
     @staticmethod
@@ -86,6 +87,10 @@ class ImportImageQueue(ProcessQueue):
         mini = image.copy()
         mini.thumbnail(size=(200, 200))
         mini.save("mini/" + sha1_hash + '.jpeg', optimize=True, quality=30)
+
+        del image
+        del mini
+        gc.collect()
 
         return sha1_hash, url, width, height
 
@@ -105,6 +110,9 @@ class ComputeVectorsQueue(ProcessQueue):
         ahash, vector = await self._execute_in_process(self.compute_image, file_path)
 
         res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
+
+        del vector
+        gc.collect()
         print('computed image: ', image_id, '  :  ', res.sha1)
         return res
 
@@ -115,5 +123,8 @@ class ComputeVectorsQueue(ProcessQueue):
         ahash = str(compute.to_average_hash(image))
         # TODO: find a way to access all the images for PCA
         vector = compute.to_vector(image)
+
+        del image
+        gc.collect()
 
         return ahash, vector

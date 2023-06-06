@@ -13,7 +13,7 @@ const props = defineProps({
     index: Object as () => {[id:string]: Group}
 })
 
-const emits = defineEmits(['hover', 'unhover', 'scroll'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open'])
 
 const hoverGroup = ref(false)
 
@@ -89,9 +89,11 @@ function toggleClosed() {
     if (closed.value) {
         // props.groupIndex[props.item.id].closed = false
         props.item.data.closed = false
+        emits('group:open', props.item.id)
     }
     else {
         props.item.data.closed = true
+        emits('group:close', props.item.id)
     }
 }
 
@@ -111,7 +113,7 @@ function closeChildren() {
             @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <div @click="toggleClosed" class="me-2">
+        <div @click="toggleClosed" class="me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>

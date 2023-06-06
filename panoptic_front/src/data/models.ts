@@ -58,7 +58,7 @@ export interface Image {
     height: number
     url: string
     fullUrl: string
-    paths: [string]
+    folder_id: number
     extension: string
     properties: {
         [id:number]: PropertyValue
