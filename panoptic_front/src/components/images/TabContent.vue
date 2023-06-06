@@ -63,6 +63,7 @@ const filteredImages = computed(() => {
     return filtered
 })
 function computeGroups(force = false) {
+    console.time('compute groups')
     console.log('compute groups')
     let index = {} as GroupIndex
     let rootGroup = generateGroups(index)
@@ -85,8 +86,12 @@ function computeGroups(force = false) {
     groupData.order = []
     sortGroupTree(groupData.root, groupData.order)
 
+    console.timeEnd('compute groups')
+
     if(imageList.value)
         imageList.value.computeLines()
+
+    
 }
 
 function mergeGroup(update: Group) {
