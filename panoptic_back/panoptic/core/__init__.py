@@ -41,23 +41,6 @@ async def get_properties() -> Properties:
 async def delete_property(property_id: str):
     await db.delete_property(property_id)
 
-#
-# async def get_images():
-#     """
-#     Get all images from database
-#     """
-#     rows = await db.get_images()
-#     result = {}
-#     for row in rows:
-#         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
-#         if sha1 not in result:
-#             result[sha1] = {'sha1': sha1, 'paths': json.loads(paths), 'width': width, 'height': height, 'url': url,
-#                             'name': name,
-#                             'extension': extension, 'ahash': ahash, 'properties': {}}
-#         if property_id:
-#             result[sha1]['properties'][property_id] = {'property_id': property_id, 'value': db.decode_if_json(value)}
-#     return result
-
 
 async def get_full_images(image_ids: List[int] = None) -> List[Image2]:
     images = await db.get_images(image_ids)
@@ -71,22 +54,6 @@ async def get_full_images(image_ids: List[int] = None) -> List[Image2]:
     [assign_value(prop) for prop in property_values]
     [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
     return images
-
-# async def get_full_image(sha1: str) -> Image:
-#     """
-#     Get image from db
-#     """
-#     rows = await db.get_full_image_with_sha1(sha1)
-#     result = None
-#     for row in rows:
-#         sha1, paths, height, width, url, extension, name, property_id, value, ahash = row
-#         result = Image(sha1=sha1, paths=json.loads(paths), width=width, height=height, url=url, name=name,
-#                        extension=extension, ahash=ahash)
-#         if property_id:
-#             result.properties[property_id] = PropertyValue(
-#                 **{'property_id': property_id, 'value': db.decode_if_json(value)})
-#         break
-#     return result
 
 
 async def make_clusters(sensibility: float, sha1s: [str]) -> list[list[str]]:
@@ -106,6 +73,7 @@ async def get_similar_images(sha1s: list[str]):
     return [img for img in res if img['sha1'] not in sha1s]
 
 
+#TODO: fix import
 async def add_property_to_images(property_id: int, sha1_list: list[str], value: JSON) -> str:
     # first check that the property and the image exist:
     if await db.get_property_by_id(property_id) and await db.get_images_by_sha1s(sha1_list):
@@ -147,23 +115,6 @@ async def read_properties_file(data: pandas.DataFrame):
             sub_data = data[data[prop] == value]
             await add_property_to_images(property.id, sub_data.sha1.tolist(), real_value)
 
-
-# async def add_image_to_db(file_path, name, extension, width, height, sha1_hash, url) -> Image:
-#     async with add_image_lock:
-#         image = await db.get_images_by_sha1s(sha1_hash)
-#         # Si sha1_hash existe déjà, on ajoute file_path à la liste de paths
-#         if image:
-#             if file_path not in image.paths:
-#                 image.paths.append(file_path)
-#                 # Mise à jour de la liste de paths
-#                 await db.update_image_paths(sha1_hash, json.dumps(image.paths))
-#
-#         # Si sha1_hash n'existe pas, on l'ajoute avec la liste de paths contenant file_path
-#         else:
-#             await db.add_image(sha1_hash, height, width, name, extension, json.dumps([file_path]), url)
-#         return await db.get_images_by_sha1s(sha1_hash)
-
-
 async def add_folder(folder):
     found = await importer.import_folder(folder)
     print(f'found {found} images')
@@ -177,25 +128,6 @@ def get_new_images():
     copy = [i for i in new_images]
     new_images.clear()
     return copy
-
-
-# async def save_callback(image, folder_id: Folder, name, extension, width, height, sha1_hash, url, file_path):
-#     await add_image_to_db(folder_id, name, extension, width, height, sha1_hash, url)
-#     new_images.append(sha1_hash)
-#     importer.compute_image(get_compute_callback(sha1_hash), image_path=file_path)
-
-
-# def get_compute_callback(sha1):
-#     async def callback(ahash, vector, is_last=False):
-#         await db.update_image_hashs(sha1, str(ahash), vector)
-#
-#     return callback
-
-
-# @importer.set_final_callback
-# async def compute_finished_callback():
-#     images: list[ImageVector] = await db.get_images_with_vectors()
-#     compute.create_similarity_tree(images)
 
 
 async def create_tag(property_id, value, parent_id, color: str) -> Tag:

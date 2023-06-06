@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // import TagBadge from '../tagtree/TagBadge.vue';
 
-import { ref, computed, onMounted, onUnmounted, reactive, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 
 import { globalStore } from '../../data/store'
-import { Property, PropertyRef, PropertyType, Tag } from '@/data/models';
+import { Property, PropertyType, Tag } from '@/data/models';
 import TagBadge from '../TagTree/TagBadge.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as boostrap from 'bootstrap'
