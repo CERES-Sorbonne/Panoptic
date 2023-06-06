@@ -11,7 +11,7 @@ import panoptic.core.db
 import panoptic.core.db
 from panoptic import compute
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload, Image2
+    UpdateTagPayload, UpdatePropertyPayload, Image
 from .image_importer import ImageImporter
 from .image_importer import ImageImporter
 
@@ -42,7 +42,7 @@ async def delete_property(property_id: str):
     await db.delete_property(property_id)
 
 
-async def get_full_images(image_ids: List[int] = None) -> List[Image2]:
+async def get_full_images(image_ids: List[int] = None) -> List[Image]:
     images = await db.get_images(image_ids)
     sha1s = list({img.sha1 for img in images})
     property_values = await db.get_property_values(image_ids=image_ids)

@@ -5,7 +5,7 @@ from typing import List
 
 from panoptic.core import db
 from panoptic.core.process_queue import ImportImageQueue, ComputeVectorsQueue
-from panoptic.models import Folder, ImageImportTask, Image2, ComputedValue
+from panoptic.models import Folder, ImageImportTask, Image, ComputedValue
 
 
 class ImageImporter:
@@ -51,7 +51,7 @@ class ImageImporter:
 
         self.status = 'compute'
 
-        def on_import(image: Image2):
+        def on_import(image: Image):
             self.current_import += 1
             self._compute_queue.add_task(image.id)
 

@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.cluster import DBSCAN, KMeans, estimate_bandwidth, MeanShift
 
 from panoptic.compute.utils import load_similarity_tree, SimilarityTreeWithLabel
-from panoptic.models import ImageVector, ComputedValue
+from panoptic.models import ComputedValue
 
 SIMILARITY_TREE: SimilarityTreeWithLabel = load_similarity_tree()
 
@@ -25,7 +25,7 @@ def get_similar_images(vectors: list[np.ndarray]):
     return SIMILARITY_TREE.query(vector)
 
 
-def make_clusters(images: list[ImageVector], *, method='kmeans', **kwargs) -> list[list[str]]:
+def make_clusters(images: list[ComputedValue], *, method='kmeans', **kwargs) -> list[list[str]]:
     res = []
     vectors, sha1, ahashs = zip(*[(i.vector, i.sha1, i.ahash) for i in images])
     sha1 = np.asarray(sha1)

@@ -40,18 +40,6 @@ CREATE TABLE computed_values (
     vector ARRAY
 );
 
---CREATE TABLE images (
---    sha1 TEXT PRIMARY KEY,
---    height INTEGER,
---    width INTEGER,
---    name TEXT,
---    extension TEXT,
---    paths JSON,
---    url TEXT,
---    ahash TEXT,
---    vector ARRAY
---);
-
 CREATE TABLE property_values (
     property_id INTEGER NOT NULL,
     image_id INTEGER NOT NULL,
@@ -64,14 +52,6 @@ CREATE TABLE property_values (
     FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );
 
---CREATE TABLE property_values (
---    sha1 TEXT NOT NULL,
---    property_id INTEGER NOT NULL,
---    value JSON,
---    PRIMARY KEY (sha1, property_id),
---    FOREIGN KEY (sha1) REFERENCES images (sha1) ON DELETE CASCADE,
---    FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
---);
 
 CREATE TABLE tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
