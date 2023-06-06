@@ -67,12 +67,14 @@ async def has_image_file(folder_id, name, extension):
     return False
 
 
-async def get_images(ids: List[int] = None):
+async def get_images(ids: List[int] = None, sha1s: List[str] = None):
     img_table = Table('images')
     query = Query.from_(img_table).select('*')
 
     if ids:
         query = query.where(img_table.id.isin(ids))
+    if sha1s:
+        query = query.where(img_table.sha1.isin(sha1s))
 
     cursor = await execute_query(query.get_sql())
     images = [Image2(*image) for image in await cursor.fetchall()]
