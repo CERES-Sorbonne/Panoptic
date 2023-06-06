@@ -29,9 +29,9 @@ function acceptRecommend(image: Image) {
     let property = globalStore.properties[group.propertyId]
     let type = property.type
 
-    let propertyValue: string | string[] = group.name
+    let propertyValue: string | string[] | number[] = group.name
     if (type == PropertyType.tag || type == PropertyType.multi_tags) {
-        propertyValue = [propertyValue]
+        propertyValue = [Number(propertyValue)]
     }
 
     globalStore.addOrUpdatePropertyToImage(image.id, property.id, propertyValue)
