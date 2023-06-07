@@ -211,7 +211,7 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
     for (let img of images) {
         let value = propertyId in img.properties ? img.properties[propertyId].value : "undefined"
         if (value == null || value == '') {
-            value = undefined
+            value = "undefined"
         }
         else if (type == PropertyType.checkbox && value != true) {
             value = false
