@@ -164,7 +164,7 @@ function closeChildren() {
         <div v-if="hasImages && !hasSubgroups && !similarityMode" style="margin-left: 2px;">
             <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
         </div>
-        <div v-if="hasImages && !hasSubgroups" class="ms-2">
+        <div v-if="hasImages && !hasSubgroups && !group.isCluster" class="ms-2">
             <div class="button" @click="recommandImages">Images Similaires</div>
         </div>
         <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children"

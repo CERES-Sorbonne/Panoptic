@@ -25,6 +25,7 @@ class Property(BaseModel):
     id: int
     name: str
     type: str
+    mode: str
 
 
 @dataclass(slots=True)
