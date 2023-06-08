@@ -55,6 +55,9 @@ class ImageImporter:
             self.current_import += 1
             self._compute_queue.add_task(image.id)
 
+            if self._import_queue.done():
+                self._compute_queue.start_workers(6)
+
         def on_compute(vector: ComputedValue):
             self.current_computed += 1
 
@@ -63,6 +66,8 @@ class ImageImporter:
 
         tasks = [ImageImportTask(folder_id=file_to_folder_id[file], image_path=file) for file in all_images]
         [self._import_queue.add_task(t) for t in tasks]
+
+        self._import_queue.start_workers(6)
 
         return len(all_images)
 

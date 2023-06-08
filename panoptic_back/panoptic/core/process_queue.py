@@ -25,15 +25,17 @@ class ProcessQueue:
         self._workers: List[asyncio.Task] = []
         self.done_callback = None
 
-    def start_workers(self, workers=6):
+    def start_workers(self, workers=1):
         if self._workers:
             return
         for i in range(workers):
             self._workers.append(asyncio.create_task(self._process_queue()))
 
     def add_task(self, task):
-        self.start_workers()
         self._queue.put_nowait(task)
+
+    def done(self):
+        return self._queue.qsize() == 0
 
     async def _process_queue(self):
         while True:
