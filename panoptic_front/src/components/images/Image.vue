@@ -65,7 +65,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
-            <img :src="props.image.url" :style="imageStyle" />
+            <img :src="imageSizes.width < 250 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
         </div>
         <div class="prop-container" v-if="imageProperties.length > 0">
             <div v-for="property, index in imageProperties">

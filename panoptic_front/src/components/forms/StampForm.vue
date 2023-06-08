@@ -2,8 +2,7 @@
 import { PropertyType, propertyDefault } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed } from 'vue';
-import TagDropdown from '../inputs/TagDropdown.vue';
-import PropertyInput2 from '../inputs/PropertyInput2.vue';
+
 import StandaloneTagInput from '../inputs/StandaloneTagInput.vue';
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
 
