@@ -36,6 +36,7 @@ export interface Property {
     id: number
     name: string
     type: PropertyType
+    mode: string
 }
 
 export interface PropertyValue{

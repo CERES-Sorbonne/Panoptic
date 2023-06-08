@@ -15,7 +15,8 @@ CREATE TABLE tabs(
 CREATE TABLE properties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
-    type TEXT
+    type TEXT,
+    mode TEXT DEFAULT 'id'
 );
 
 CREATE TABLE images (
