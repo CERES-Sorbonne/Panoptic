@@ -109,7 +109,7 @@ async def read_properties_file(data: pandas.DataFrame):
             if property.type == PropertyType.tag.value or property.type == PropertyType.multi_tags.value:
                 colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
                           "9daebe"]
-                color = colors[random.randint(0, len(colors) - 1)]
+                color = '#' + colors[random.randint(0, len(colors) - 1)]
                 tag = await create_tag(property.id, value, 0, color)
                 real_value = [tag.id]
             sub_data = data[data[prop] == value]
