@@ -50,7 +50,9 @@ function computeSubgroups(parentGroup: Group, propertyIds: number[]) {
             images: groups[group],
             groups: undefined,
             count: groups[group].length,
-            propertyId: propertyId
+            propertyId: propertyId,
+            depth: parentGroup.depth + 1,
+            parentId: parentGroup.id
         })
     }
 

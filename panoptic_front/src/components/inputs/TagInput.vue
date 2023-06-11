@@ -112,7 +112,8 @@ function setEdit(value: Boolean) {
     }
     else {
         document.removeEventListener('click', handleContainerClick)
-        globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, localValue)
+        let img = globalStore.images[props.property.imageId]
+        globalStore.setPropertyValue(props.property.propertyId, img, localValue)
         edit.value = false
         showTagList.value = false;
         if (props.property.value == '') {

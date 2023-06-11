@@ -39,7 +39,8 @@ function setEdit(value: Boolean) {
     else {
         document.removeEventListener('click', handleContainerClick)
         console.log('start here')
-        globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, props.property.value)
+        const img = globalStore.images[props.property.imageId]
+        globalStore.setPropertyValue(props.property.propertyId, img, props.property.value)
         edit.value = false
         if (props.property.value == '') {
             props.property.value = undefined
@@ -83,7 +84,7 @@ function inputType(type: PropertyType) {
             return null
         case PropertyType.url:
             return 'url'
-        case PropertyType.folders:
+        case PropertyType._folders:
             return null
         default:
             return 'text'
@@ -119,7 +120,7 @@ onMounted(() => {
                 <!-- On affiche la valeur de la propriété -->
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">
                     <span v-if="!isSet" class="text-secondary">None</span>
-                    <span v-else-if="type == PropertyType.folders">
+                    <span v-else-if="type == PropertyType._folders">
                         <span v-for="folderId in props.property.value">
                             <TagBadge :tag="globalStore.folders[folderId].name" color="#c3cfd9" />
                         </span>

@@ -11,7 +11,7 @@ import panoptic.core.db
 import panoptic.core.db
 from panoptic import compute
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload, Image
+    UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue
 from .image_importer import ImageImporter
 from .image_importer import ImageImporter
 
@@ -20,8 +20,8 @@ atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
 
 
-async def create_property(name: str, property_type: PropertyType) -> Property:
-    return await db.add_property(name, property_type.value)
+async def create_property(name: str, property_type: PropertyType, mode='id') -> Property:
+    return await db.add_property(name, property_type.value, mode)
 
 
 async def update_property(payload: UpdatePropertyPayload) -> Property:
@@ -51,7 +51,24 @@ async def get_full_images(image_ids: List[int] = None) -> List[Image]:
 
     def assign_value(prop):
         image_index[prop.image_id].properties[prop.property_id] = prop
-    [assign_value(prop) for prop in property_values]
+
+    [assign_value(prop) for prop in property_values if prop.image_id >= 0]
+
+    sha1_properties = {}
+
+    def register_sha1_value(prop: PropertyValue):
+        if prop.sha1 not in sha1_properties:
+            sha1_properties[prop.sha1] = []
+        sha1_properties[prop.sha1].append(prop)
+
+    [register_sha1_value(prop) for prop in property_values if prop.image_id < 0]
+
+    def assign_sha1_value(image_id, prop: PropertyValue):
+        image_index[image_id].properties[prop.property_id] = prop
+
+    [assign_sha1_value(img.id, prop) for img in images if img.sha1 in sha1_properties for prop in
+     sha1_properties[img.sha1]]
+
     [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
     return images
 
@@ -114,6 +131,7 @@ async def read_properties_file(data: pandas.DataFrame):
                 real_value = [tag.id]
             sub_data = data[data[prop] == value]
             await add_property_to_images(property.id, sub_data.sha1.tolist(), real_value)
+
 
 async def add_folder(folder):
     found = await importer.import_folder(folder)
