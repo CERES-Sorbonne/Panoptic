@@ -253,6 +253,7 @@ button {
   padding-left: 3px;
   padding-right: 3px;
   /* height: 19px; */
+  /* position: relative; */
 }
 
 .button {
@@ -263,8 +264,8 @@ button {
   border-radius: 3px;
   padding: 0px 3px;
   /* position: relative; */
-  /* top: 2px; */
-  cursor: pointer;
+  /* top: 2px;
+  cursor: pointer; */
 }
 
 input[type=number]::-webkit-outer-spin-button,

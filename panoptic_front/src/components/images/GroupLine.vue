@@ -154,7 +154,7 @@ function closeChildren() {
         <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{
             group.groups.length }} Groupes</div>
 
-        <div class="d-flex flex-row" style="position: relative; top: 3px;">
+        <div class="d-flex flex-row" style="padding-top: 3px;">
             <div v-if="hasImages && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
