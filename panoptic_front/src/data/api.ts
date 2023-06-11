@@ -72,8 +72,8 @@ export const apiAddFolder = async(folder: string) => {
     return await axios.post('/folders', {folder})
 }
 
-export const apiUpdateProperty = async(propertyId: number, type?: PropertyType, name?: string):Promise<Property> => {
-    return await axios.patch('/property', {propertyId, type, name})
+export const apiUpdateProperty = async(propertyId: number, name?: string):Promise<Property> => {
+    return await axios.patch('/property', {id:propertyId, name})
 }
 
 export const apiDeleteProperty = async(propertyId: number) => {
