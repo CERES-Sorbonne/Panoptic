@@ -98,7 +98,8 @@ function setGroup() {
 }
 
 function deleteProperty() {
-    globalStore.deleteProperty(props.property.id)
+    if(confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
+        globalStore.deleteProperty(props.property.id)
 }
 
 function renameProperty() {
