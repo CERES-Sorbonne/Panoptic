@@ -50,8 +50,8 @@ const imageSizes = computed(() => {
     let w = h * ratio
 
     if (ratio > 2) {
-        w = props.size
-        h = props.size / ratio
+        w = props.size * 2
+        h = w / ratio
     }
 
     return { width: w, height: h }
@@ -64,6 +64,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
+        <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
             <img :src="imageSizes.width < 250 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
         </div>
