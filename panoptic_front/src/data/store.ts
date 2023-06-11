@@ -400,6 +400,6 @@ function buildFolderNodes(folders: Array<Folder>) {
 }
 
 function computeContainerRatio(img: Image) {
-    let ratio = img.width / img.height
+    let ratio =  img.width / img.height
     return Math.max(Math.min(2, ratio), 1)
 }
