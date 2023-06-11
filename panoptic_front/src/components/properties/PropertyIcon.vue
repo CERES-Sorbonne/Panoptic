@@ -16,7 +16,7 @@ const props = defineProps(['type'])
                 <i v-else-if="props.type == PropertyType.checkbox" class="bi bi-check-square"></i>
                 <i v-else-if="type == PropertyType.tag" class="bi bi-tag-fill"></i>
                 <i v-else-if="type == PropertyType.multi_tags" class="bi bi-tags-fill"></i>
-                <i v-else-if="props.type == PropertyType.folders" class="bi bi-folder"></i>
-                <i v-else-if="props.type == PropertyType.ahash || props.type == PropertyType.sha1" class="bi bi-hash"></i>
+                <i v-else-if="props.type == PropertyType._folders" class="bi bi-folder"></i>
+                <i v-else-if="props.type == PropertyType._ahash || props.type == PropertyType._sha1" class="bi bi-hash"></i>
         </span>
 </template>

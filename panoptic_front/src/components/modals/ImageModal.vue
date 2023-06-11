@@ -6,7 +6,6 @@ import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
-import PaginatedImages from '../images/PaginatedImages.vue';
 import ImageSimi from '../images/ImageSimi.vue'
 import RangeInput from '../inputs/RangeInput.vue';
 
