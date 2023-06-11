@@ -11,6 +11,7 @@ class ImagePayload(CamelModel):
 class PropertyPayload(CamelModel):
     name: str
     type: PropertyType
+    mode: str = 'id'
 
 
 class UpdatePropertyPayload(CamelModel):
@@ -19,9 +20,10 @@ class UpdatePropertyPayload(CamelModel):
     type: Optional[PropertyType]
 
 
-class AddImagePropertyPayload(CamelModel):
+class SetPropertyValuePayload(CamelModel):
     property_id: int
-    image_ids: list[int]
+    image_ids: list[int] | None
+    sha1s: list[str] | None
     value: Any
 
 

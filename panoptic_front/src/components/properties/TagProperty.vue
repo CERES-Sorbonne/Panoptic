@@ -2,10 +2,10 @@
 
 import { reactive, computed, onMounted, watch } from 'vue';
 import { globalStore } from '@/data/store';
-import { Property, TreeTag } from '../../data/models';
-import ExpandOption from '../menu/ExpandOption.vue';
+import { Property, PropertyMode, TreeTag } from '../../data/models';
+import ExpandOption from '../Menu/ExpandOption.vue';
 import { PropertyType } from '../../data/models';
-import TagTree from '../tagtree/TagTree.vue';
+import TagTree from '../TagTree/TagTree.vue';
 import PropertyIcon from './PropertyIcon.vue';
 
 interface NodeState extends TreeTag{
@@ -83,6 +83,7 @@ function toggleVisible() {
         </template>
         <template #icons>
             <!-- <span @click.stop="" class="bi bi-pencil btn-icon me-3"></span> -->
+            <i v-if="props.data.mode == PropertyMode.sha1" class="bi bi-link-45deg me-2"></i>
             <span @click.stop="toggleVisible" :class="'bi bi-eye btn-icon text-' + (visible ? 'primary' : 'secondary')"></span>
         </template>
         <template #content>

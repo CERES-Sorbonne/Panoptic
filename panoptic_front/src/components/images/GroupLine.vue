@@ -39,7 +39,7 @@ const groupName = computed(() => {
         let type = globalStore.properties[group.value.propertyId].type
         if (type == PropertyType.tag || type == PropertyType.multi_tags) {
             name = globalStore.tags[group.value.propertyId][Number(group.value.name)].value
-        } else if (type == PropertyType.folders) {
+        } else if (type == PropertyType._folders) {
             name = globalStore.folders[Number(group.value.name)].name
         }
     }
@@ -94,14 +94,14 @@ async function recommandImages() {
     let res = await globalStore.getSimilarImages(Object.keys(sha1s)) as any[]
     props.item.data.allSimilarSha1s = res.map(r => r.sha1)
 
-    if(!Array.isArray(props.item.data.similarSha1sBlacklist)) {
+    if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
         props.item.data.similarSha1sBlacklist = []
     }
 
     let all = props.item.data.allSimilarSha1s
     let blacklist = props.item.data.similarSha1sBlacklist
 
-    props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0,30))
+    props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0, 30))
 
     emits('group:update')
 }
@@ -153,24 +153,30 @@ function closeChildren() {
         <div class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.count }} Images</div>
         <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{
             group.groups.length }} Groupes</div>
-        <div v-if="hasImages && (hasSubgroups || similarityMode)" class="ms-2"><div class="button" @click="clear">Clear</div></div>
-        <div v-if="hasImages && !hasSubgroups" class="ms-2">
-            <StampDropdown :images="images" />
-        </div>
-        <div class="ms-2" v-if="!hasSubgroups && ! similarityMode">
-            <div class="button" @click="computeClusters">Créer clusters</div>
-            <!-- <div class="button">Créer clusters</div> -->
-        </div>
-        <div v-if="hasImages && !hasSubgroups && !similarityMode" style="margin-left: 2px;">
-            <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
-        </div>
-        <div v-if="hasImages && !hasSubgroups && !group.isCluster" class="ms-2">
-            <div class="button" @click="recommandImages">Images Similaires</div>
+
+        <div class="d-flex flex-row" style="position: relative; top: 3px;">
+            <div v-if="hasImages && !hasSubgroups" class="ms-2">
+                <StampDropdown :images="images" />
+            </div>
+            <div class="ms-2" v-if="!hasSubgroups && !similarityMode">
+                <div class="button" @click="computeClusters">Créer clusters</div>
+                <!-- <div class="button">Créer clusters</div> -->
+            </div>
+            <div v-if="hasImages && !hasSubgroups && !similarityMode" style="margin-left: 2px;">
+                <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
+            </div>
+            <div v-if="hasImages && !hasSubgroups && !group.isCluster" class="ms-2">
+                <div class="button" @click="recommandImages">Images Similaires</div>
+            </div>
+            <div v-if="hasImages && (hasSubgroups || similarityMode)" class="ms-2">
+                <div class="button" @click="clear">Clear</div>
+            </div>
         </div>
         <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children"
             @click="closeChildren">
             Reduire
         </div>
+
     </div>
 </template>
 

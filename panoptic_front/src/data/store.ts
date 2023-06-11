@@ -6,7 +6,7 @@ import {
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode
 } from '../data/models'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
@@ -120,7 +120,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.containerRatio = computeContainerRatio(img)
 
-        if(!Array.isArray(globalStore.sha1Index[img.sha1])) {
+        if (!Array.isArray(globalStore.sha1Index[img.sha1])) {
             globalStore.sha1Index[img.sha1] = []
         }
         globalStore.sha1Index[img.sha1].push(img)
@@ -130,7 +130,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //     }
         // }
         globalStore.images[img.id] = img
-        img.properties[PropertyID.folders] = {propertyId: PropertyID.ahash, value: img.folder_id}
+        img.properties[PropertyID.folders] = { propertyId: PropertyID.ahash, value: img.folder_id }
     },
     async fetchAllData() {
         let images = await apiGetImages()
@@ -140,9 +140,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //console.log(folders)
 
 
-        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType.sha1 }
-        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType.ahash }
-        properties[PropertyID.folders] = {id: PropertyID.folders, name: 'folders', type: PropertyType.folders}
+        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1 }
+        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash }
+        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders }
 
 
         Object.values(images).forEach(this.importImage)
@@ -192,24 +192,72 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.tags = await apiGetTags()
     },
 
-    async addProperty(name: string, type: PropertyType) {
-        const newProperty: Property = await apiAddProperty(name, type)
+    async addProperty(name: string, type: PropertyType, mode: PropertyMode) {
+        const newProperty: Property = await apiAddProperty(name, type, mode)
         this.properties[newProperty.id] = newProperty
     },
 
-    async addOrUpdatePropertyToImage(imageIds: number | number[], propertyId: number, value: any) {
-        let type = this.properties[propertyId].type
-        if(!Array.isArray(imageIds)){
-            imageIds = [imageIds]
+    async setPropertyValue(propertyId: number, images: Image[] | Image, value: any) {
+        if(!Array.isArray(images)) {
+            images = [images]
         }
+
+        let prop = this.properties[propertyId]
+
+        let imageIds = undefined
+        let sha1s = undefined
+        
+        if(prop.mode == PropertyMode.id) {
+            imageIds = Array.from(new Set(images.map(i => i.id)))
+        }
+        if(prop.mode == PropertyMode.sha1) {
+            sha1s = Array.from(new Set(images.map(i => i.sha1)))
+        }
+
+        let type = prop.type
         if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
-        const newValue = await apiSetPropertyValue(imageIds, propertyId, value)
-        for(let id of imageIds){
-            this.images[id].properties[propertyId] = newValue
+
+        const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value)
+        const updatedIds = update.updated_ids
+        value = update.value
+
+        for (let id of updatedIds) {
+            this.images[id].properties[propertyId] = {propertyId, value}
         }
     },
+    // async addOrUpdatePropertyToImage(propertyId: number, imageIds: number | number[], sha1s: string | string[], value: any) {
+    //     let prop = this.properties[propertyId]
+
+    //     if (imageIds != undefined && !Array.isArray(imageIds)) {
+    //         imageIds = [imageIds]
+    //     }
+    //     if (sha1s != undefined && !Array.isArray(sha1s)) {
+    //         sha1s = [sha1s]
+    //     }
+
+    //     let type = prop.type
+    //     if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
+    //         value = undefined
+    //     }
+    //     let update = undefined
+    //     if (prop.mode == PropertyMode.id) {
+    //         update = await apiSetPropertyValue(propertyId, imageIds as number[], undefined, value)
+    //     }
+    //     else {
+    //         update = await apiSetPropertyValue(propertyId, undefined, sha1s as string[], value)
+    //     }
+    //     if(update === undefined) {
+    //         return
+    //     }
+    //     const updatedIds = update.updatedIds
+    //     value = update.value
+
+    //     for (let id of updatedIds) {
+    //         this.images[id].properties[propertyId] = value
+    //     }
+    // },
 
     async updateTag(propId: number, tagId: number, color?: string, parentId?: number, value?: any) {
         const newTag = await apiUpdateTag(tagId, color, parentId, value)

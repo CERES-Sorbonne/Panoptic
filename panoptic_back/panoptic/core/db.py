@@ -12,10 +12,10 @@ from panoptic.models import Tag, Property, Folder, Tab
 Query = PostgreSQLQuery
 
 
-async def add_property(name: str, property_type: str) -> Property:
-    query = 'INSERT INTO properties (name, type) VALUES (?, ?) on conflict do nothing'
-    cursor = await execute_query(query, (name, property_type))
-    prop = Property(id=cursor.lastrowid, name=name, type=property_type)
+async def add_property(name: str, property_type: str, mode: str) -> Property:
+    query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'
+    cursor = await execute_query(query, (name, property_type, mode))
+    prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
     return prop
 
 
@@ -93,14 +93,25 @@ async def get_property_values(property_ids: List[int] = None, image_ids: List[in
     elif sha1s:
         query = query.where(values.sha1.isin(sha1s))
 
+
     cursor = await execute_query(query.get_sql())
     res = [PropertyValue(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
     return res
 
 
-async def delete_property_value(property_id, image_id: int):
-    query = 'DELETE FROM property_values WHERE property_id = ? AND image_id = ?'
-    await execute_query(query, (property_id, image_id))
+async def delete_property_value(property_id, image_ids: List[int] = None, sha1s: List[int] = None):
+    if image_ids and sha1s:
+        raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
+
+    t = Table('property_values')
+    query = Query.from_(t).delete().where(t.property_id == property_id)
+
+    if image_ids:
+        query = query.where(t.image_id.isin(image_ids))
+    elif sha1s:
+        query = query.where(t.sha1.isin(sha1s))
+
+    await execute_query(query.get_sql())
 
 
 async def get_property_by_id(property_id) -> [Property | None]:
@@ -263,13 +274,32 @@ async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
     return [PropertyValue(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-async def set_property_values(property_id: int, value: Any, image_ids: List[int]):
-    query = "INSERT into property_values (property_id, image_id, sha1, value) " \
-            "VALUES (?, ?, ?, ?)" \
-            "ON conflict (property_id, image_id, sha1) do update set value=excluded.value"
-    svalue = json.dumps(value)
-    print(f"{property_id}: {svalue}: {image_ids}")
-    return await execute_query_many(query, [(property_id, image_id, '', svalue) for image_id in image_ids])
+async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
+    if image_ids and sha1s:
+        raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
+
+    prop = await get_property_by_id(property_id)
+    if prop.mode == 'id' and not image_ids:
+        raise TypeError(f'Property {property_id}: {prop.name} needs image ids as key [mode: {prop.mode}]')
+    if prop.mode == 'sha1' and not sha1s:
+        raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
+
+    value = json.dumps(value)
+    t = Table('property_values')
+    query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
+    if image_ids:
+        query = query.insert(*[(property_id, img_id, '', value) for img_id in image_ids])
+    elif sha1s:
+        query = query.insert(*[(property_id, -1, sha1, value) for sha1 in sha1s])
+
+    query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
+    await execute_query(query)
+
+    updated_ids = image_ids
+    if not image_ids:
+        images = await get_images(sha1s=sha1s)
+        updated_ids = [img.id for img in images]
+    return updated_ids, json.loads(value)
 
 
 async def set_computed_value(sha1: str, ahash: str, vector: np.array):

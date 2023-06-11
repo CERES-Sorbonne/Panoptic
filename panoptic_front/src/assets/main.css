@@ -262,8 +262,8 @@ button {
   color: rgb(76, 92, 107);
   border-radius: 3px;
   padding: 0px 3px;
-  position: relative;
-  top: 2px;
+  /* position: relative; */
+  /* top: 2px; */
   cursor: pointer;
 }
 
@@ -286,11 +286,17 @@ input[type=number] {
   text-align: center;
   outline: none;
   height: 20px;
-  position: relative;
-  top: 2px;
+  /* position: relative;
+  top: 2px; */
   color: rgb(76, 92, 107);
 }
 
 .text-dimmed {
   color: #e0e0e0;
+}
+
+.input-lg {
+  font-size: 16px !important;
+  /* line-height: 20px !important; */
+  height: 25px !important;
 }

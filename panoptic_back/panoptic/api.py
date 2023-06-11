@@ -16,8 +16,8 @@ from panoptic.core import create_property, create_tag, \
     db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images
 from panoptic.core import db
 from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
-    AddImagePropertyPayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload
+    SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue
 from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
@@ -36,14 +36,12 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     await db_utils.init()
-    res = await get_full_images()
-    print(res)
 
 
 # Route pour créer une property et l'insérer dans la table des properties
 @app.post("/property")
 async def create_property_route(payload: PropertyPayload) -> Property:
-    return await create_property(payload.name, payload.type)
+    return await create_property(payload.name, payload.type, payload.mode)
 
 
 @app.get("/property")
@@ -93,15 +91,15 @@ async def get_image(file_path: str):
 # Route pour ajouter une property à une image dans la table de jointure entre image et property
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
-async def add_image_property(payload: AddImagePropertyPayload) -> AddImagePropertyPayload:
-    await db.set_property_values(property_id=payload.property_id, image_ids=payload.image_ids, value=payload.value)
-    return payload
+async def add_image_property(payload: SetPropertyValuePayload):
+    updated, value = await db.set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
+    return {'updated_ids': updated, 'value': value}
 
 
 # Route pour supprimer une property d'une image dans la table de jointure entre image et property
 @app.delete("/image_property")
 async def delete_property_value_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
-    await db.delete_property_value(payload.property_id, payload.image_id)
+    await db.delete_property_value(payload.property_id, image_ids=[payload.image_id])
     return payload
 
 

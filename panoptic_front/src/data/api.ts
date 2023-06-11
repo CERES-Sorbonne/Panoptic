@@ -3,7 +3,7 @@
  */
 
 // à virer
-import { Images, Property, PropertyType, PropertyValue, Tab, TabState, Tag } from './models'
+import { Images, Property, PropertyMode, PropertyType, PropertyValue, PropertyValueUpdate, Tab, TabState, Tag } from './models'
 
 import axios from 'axios'
 
@@ -42,18 +42,19 @@ export const apiAddTag = async (
     return res.data
 }
 
-export const apiAddProperty = async(name: string, type: PropertyType):Promise<Property> => {
-    const res = await axios.post('/property', {name, type})
+export const apiAddProperty = async(name: string, type: PropertyType, mode: PropertyMode):Promise<Property> => {
+    const res = await axios.post('/property', {name, type, mode})
     return res.data
 }
 
-export const apiSetPropertyValue = async(imageIds: number[], propertyId:number, value: any):Promise<PropertyValue> => {
+export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] | undefined, sha1s: string[] | undefined, value: any):Promise<PropertyValueUpdate> => {
     // only arrays are tags lists
     if(Array.isArray(value)) {
         value = value.map(Number)
     }
-    
-    const res = await axios.post('/image_property', {imageIds, propertyId, value})
+    // console.log({imageIds, sha1s, propertyId, value})
+    const res = await axios.post('/image_property', {imageIds, sha1s, propertyId, value})
+    console.log(res.data)
     return res.data
 }
 

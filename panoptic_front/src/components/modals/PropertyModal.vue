@@ -4,6 +4,8 @@ import { Property, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
+import PropertyTypeDropdown from '@/components/Dropdowns/PropertyTypeDropdown.vue';
+import PropertyModeDropdown from '../Dropdowns/PropertyModeDropdown.vue';
 
 
 const modalElem = ref(null)
@@ -31,7 +33,7 @@ function show() {
     modal.show()
 }
 
-const newProperty = <Property>reactive({})
+const newProperty = reactive({}) as Property
 const nameError = ref('')
 
 function resetNewProperty() {
@@ -42,17 +44,17 @@ function resetNewProperty() {
 
 async function saveProperty() {
 
-    if(!newProperty.name) {
+    if (!newProperty.name) {
         nameError.value = 'Name is Empty!'
         return
     }
     let propNames = Object.values(globalStore.properties).map(p => p.name)
-    if(propNames.includes(newProperty.name)) {
+    if (propNames.includes(newProperty.name)) {
         nameError.value = 'A Property with same name already exist! Please choose a new name'
         return
     }
 
-    await globalStore.addProperty(newProperty.name, newProperty.type)
+    await globalStore.addProperty(newProperty.name, newProperty.type, newProperty.mode)
 
     hide()
 }
@@ -75,37 +77,38 @@ onMounted(() => {
 
 
 <template>
-    <div class="modal fade text-dark" role="dialog" ref="modalElem">
+    <div class="modal fade text-dark modal-m" role="dialog" ref="modalElem">
         <div class="modal-dialog">
             <div class="modal-content" v-if="isActive">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Add Property</h5>
+                <div class="modal-header m-0 p-2 ps-3 pe-3">
+                    <b class="modal-title" id="exampleModalLabel">Nouvelle propriété</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form @submit.prevent="saveProperty">
-                        <div class="mb-3">
-                            <label for="propertyName" class="form-label">Property Name</label>
-                            <input type="text" :class="'form-control '  + (nameError ? 'is-invalid' : '')" id="propertyName" name="propertyName"
+                    <form @submit.prevent="saveProperty" class="d-flex flex-row">
+                        <div class="me-1">
+                            <PropertyModeDropdown v-model="newProperty.mode" />
+                        </div>
+                        <div class="me-1">
+                            <input type="text" class="text-input input-lg" id="propertyName" name="propertyName"
                                 v-model="newProperty.name" required>
                             <div class="invalid-feedback">
                                 {{ nameError }}
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="propertyType" class="form-label">Property Type</label>
-                            <select class="form-select" id="propertyType" name="propertyType" v-model="newProperty.type"
-                                required>
-                                <option v-for="ptype in globalStore.settings.propertyTypes" :value="ptype" >{{ ptype }}</option>
-                            </select>
+                        <div class="">
+                            <PropertyTypeDropdown v-model="newProperty.type" class="input-lg" />
                         </div>
+
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="hide">Close</button>
-                    <button type="button" class="btn btn-primary" @click="saveProperty">Save changes</button>
+                <div class="modal-footer pt-2 pb-2">
+                    <button type="button" @click="hide">Anuller</button>
+                    <button type="button" @click="saveProperty">Confirmer</button>
                 </div>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped></style>

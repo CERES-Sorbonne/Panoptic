@@ -13,9 +13,31 @@ export enum PropertyType {
     checkbox = "checkbox",
 
 
-    ahash = "average hash",
-    sha1 = "sha1",
-    folders = "folders"
+    _ahash = "average hash",
+    _sha1 = "sha1",
+    _folders = "folders"
+}
+
+export enum PropertyMode {
+    id = 'id',
+    sha1 = 'sha1'
+}
+
+export const PropertyNames = {
+    [PropertyType.string]: 'Texte',
+    [PropertyType.number]: 'Numerique',
+    [PropertyType.tag]: 'Tag unique',
+    [PropertyType.multi_tags]: 'Tag multiples',
+    [PropertyType.image_link]: 'Lien d\'image',
+    [PropertyType.url]: 'URL',
+    [PropertyType.date]: 'Date',
+    [PropertyType.path]: 'Path',
+    [PropertyType.color]: 'Couleur',
+    [PropertyType.checkbox]: 'Case a cocher',
+    [PropertyType._ahash]: 'Hash moyenne',
+    [PropertyType._sha1]: 'Sha1',
+    [PropertyType._folders]: 'Dossier',
+
 }
 
 export enum PropertyID {
@@ -43,6 +65,10 @@ export interface PropertyValue{
     propertyId: number
     // value: string | number | number[] | string[]
     value: any
+}
+
+export interface PropertyValueUpdate extends PropertyValue {
+    updated_ids: number[]
 }
 
 export interface PropertyRef extends PropertyValue {
@@ -211,8 +237,8 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
         case PropertyType.url:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.startsWith]
-        case PropertyType.ahash:
-        case PropertyType.sha1:
+        case PropertyType._ahash:
+        case PropertyType._sha1:
             return [FilterOperator.equal, FilterOperator.equalNot]
             default:
             return []
@@ -232,9 +258,9 @@ export function propertyDefault(type: PropertyType): any {
         case PropertyType.string:
         case PropertyType.image_link:
         case PropertyType.path:
-        case PropertyType.sha1:
+        case PropertyType._sha1:
         case PropertyType.url:
-        case PropertyType.ahash:
+        case PropertyType._ahash:
             return ''
         case PropertyType.multi_tags:
         case PropertyType.tag:
@@ -296,13 +322,13 @@ export interface Group {
     name: string
     images: Array<Image>
     groups: Array<Group>
-    children: Array<string>
+    children?: Array<string>
     parentId: string
     count: number
     propertyId?: number,
     depth: number,
-    index: number,
-    closed: boolean,
+    index?: number,
+    closed?: boolean,
     isCluster?: boolean,
     getSimilarImages?: () => Array<Images>
     similarSha1sBlacklist?: Array<string>
