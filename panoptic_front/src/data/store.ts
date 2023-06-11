@@ -45,6 +45,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         globalStore.selectedTabName = tabName
         globalStore.saveTabState()
     },
+    getTab() {
+        return globalStore.tabs[globalStore.selectedTab]
+    },
     async loadTabState() {
         let tabs = await apiGetTabs()
         // console.log(tabs)
@@ -55,6 +58,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             }
             if (t.data.visibleFolders == undefined) {
                 t.data.visibleFolders = {}
+            }
+            if(t.data.visibleProperties) {
+                let visible = Object.keys(t.data.visibleProperties).map(Number)
+                visible.forEach(k => {
+                    if(globalStore.properties[k] == undefined) {
+                        delete t.data.visibleProperties[k]
+                    }
+                })
             }
             globalStore.tabs[t.id] = t
         })
@@ -276,6 +287,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async deleteProperty(propertyId: number) {
         await apiDeleteProperty(propertyId)
         delete this.properties[propertyId]
+
+        Object.values(globalStore.tabs).forEach((t: Tab) => {
+            Object.keys(t.data.visibleProperties).map(Number).forEach(k => {
+                if(globalStore.properties[k] == undefined) {
+                    delete t.data.visibleProperties[k]
+                }
+            })
+        })
     },
 
     async getMLGroups(nbGroups: number = 50, imageList: string[] = []) {

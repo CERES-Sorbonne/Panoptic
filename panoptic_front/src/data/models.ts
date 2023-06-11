@@ -58,7 +58,7 @@ export interface Property {
     id: number
     name: string
     type: PropertyType
-    mode: string
+    mode: PropertyMode
 }
 
 export interface PropertyValue{
@@ -151,6 +151,7 @@ export interface GlobalStore {
     imageList: ComputedRef<{url: String, imageName: String}[]>
     folders: Folders
     tabs: Tabs
+    getTab: () => Tab
     fetchAllData: () => void
     [otherOptions: string]: any
 }
@@ -166,6 +167,7 @@ export interface ReactiveStore{
     importState: ImportState
     imageList: {url: String, imageName: String}[]
     fetchAllData: () => void
+    getTab: () => Tab
     [otherOptions: string]: any
 }
 

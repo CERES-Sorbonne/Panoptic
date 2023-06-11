@@ -109,8 +109,6 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
     for (let i = 0; i < images.length; i++) {
         let img = images[i]
         let imgWidth = (imageHeight * img.containerRatio) + 10
-        console.log(i, img.containerRatio)
-        console.log(i, 'width', imgWidth)
         if (actualWidth + imgWidth < lineWidth) {
             newLine.push(img)
             actualWidth += imgWidth

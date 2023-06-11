@@ -7,6 +7,7 @@ import Property from '../properties/Property.vue';
 import { Modals } from '../../data/models';
 import { reactive, ref } from 'vue';
 import FolderList from '../FolderTree/FolderList.vue';
+import PropertyOptions from './PropertyOptions.vue';
 
 
 const inputFile = ref(null)
@@ -61,10 +62,11 @@ const handleInput = (e: any) => {
                     <div class="mt-2" v-if="globalStore.isLoaded">
                         <template v-for="property in globalStore.properties">
                             <div class="property-item" v-if="property.id >= 0">
-                                <TagProperty
+                                <!-- <TagProperty
                                     v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag"
                                     :data="property" />
-                                <Property v-else :data="property" />
+                                <Property v-else :data="property" /> -->
+                                <PropertyOptions :property="property" />
                             </div>
                         </template>
 
@@ -82,10 +84,7 @@ const handleInput = (e: any) => {
                     <div class="mt-2" v-if="globalStore.isLoaded">
                         <template v-for="property in globalStore.properties">
                             <div class="property-item" v-if="property.id < 0">
-                                <TagProperty
-                                    v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag"
-                                    :data="property" />
-                                <Property v-else :data="property" />
+                                <PropertyOptions :property="property" />
                             </div>
                         </template>
                     </div>

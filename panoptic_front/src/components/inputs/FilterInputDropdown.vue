@@ -5,7 +5,7 @@ import { globalStore } from '@/data/store';
 import SoloFilterInput from './SoloFilterInput.vue';
 import FilterGroupInput from './FilterGroupInput.vue';
 import * as bootstrap from 'bootstrap'
-import TagBadge from '../tagtree/TagBadge.vue';
+import TagBadge from '../TagTree/TagBadge.vue';
 
 const props = defineProps({
     modelValue: Object as () => Filter | FilterGroup

@@ -63,7 +63,7 @@ async def properties_by_file(file: UploadFile):
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
     await delete_property(property_id)
-    return f"Property {property_id} correctly deleted"
+    return await get_properties()
 
 
 # Route pour récupérer la liste de toutes les images
