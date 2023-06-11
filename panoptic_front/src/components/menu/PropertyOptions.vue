@@ -17,6 +17,7 @@ const props = defineProps({
 
 const opionsOpen = ref(false)
 const valuesOpen = ref(false)
+const localName = ref('')
 
 const tab = computed(() => globalStore.tabs[globalStore.selectedTab])
 const propertyVisible = computed(() => tab.value.data.visibleProperties[props.property.id] == true)
@@ -38,6 +39,7 @@ function toggleOptionsMenu() {
         opionsOpen.value = false
     } else {
         opionsOpen.value = true
+        localName.value = props.property.name
     }
     valuesOpen.value = false
 }
@@ -99,6 +101,12 @@ function deleteProperty() {
     globalStore.deleteProperty(props.property.id)
 }
 
+function renameProperty() {
+    if(localName.value == '') {
+        return
+    }
+    globalStore.updateProperty(props.property.id, localName.value)
+}
 
 </script>
 
@@ -106,7 +114,10 @@ function deleteProperty() {
     <div>
         <div class="d-flex flex-row">
             <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @click="toggleOptionsMenu" />
-            <span class="flex-grow-1">{{ props.property.name }}</span>
+            <span class="flex-grow-1">
+                <span v-if="!opionsOpen">{{ props.property.name }}</span>
+                <span v-else><input type="text" class="text-input" v-model="localName" @change="renameProperty"/></span>
+            </span>
             <div style="width: 20px;" @click="toggleVisible" class="btn-icon text-center">
                 <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')">
                 </span>

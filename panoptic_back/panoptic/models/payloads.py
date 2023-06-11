@@ -16,8 +16,8 @@ class PropertyPayload(CamelModel):
 
 class UpdatePropertyPayload(CamelModel):
     id: int
-    name: Optional[str]
-    type: Optional[PropertyType]
+    name: str
+    # type: Optional[PropertyType]
 
 
 class SetPropertyValuePayload(CamelModel):

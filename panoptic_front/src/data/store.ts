@@ -279,9 +279,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         apiAddFolder(folder).then(() => globalStore.fetchAllData())
     },
 
-    async updateProperty(propertyId: number, type?: PropertyType, name?: string) {
-        const newProperty = await apiUpdateProperty(propertyId, type, name)
-        this.properties[propertyId] = newProperty
+    async updateProperty(propertyId: number, name?: string) {
+        await apiUpdateProperty(propertyId, name)
+        this.properties[propertyId].name = name
     },
 
     async deleteProperty(propertyId: number) {
