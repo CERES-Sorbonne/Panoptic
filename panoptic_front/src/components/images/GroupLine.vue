@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
-import { computed, ref } from 'vue'
+import { computed, ref, unref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
 import TagBadge from '../TagTree/TagBadge.vue'
 
@@ -13,7 +13,7 @@ const props = defineProps({
     index: Object as () => { [id: string]: Group }
 })
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend'])
 
 const hoverGroup = ref(false)
 
@@ -67,6 +67,7 @@ async function computeClusters() {
             groups: undefined,
             children: undefined,
             parentId: props.item.data.id,
+            propertyValues: props.item.data.propertyValues,
             index: index,
             depth: (props.item.data.depth + 1),
             closed: false,
@@ -92,18 +93,23 @@ async function recommandImages() {
     group.value.images.forEach(i => sha1s[i.sha1] = true)
 
     let res = await globalStore.getSimilarImages(Object.keys(sha1s)) as any[]
-    props.item.data.allSimilarSha1s = res.map(r => r.sha1)
+    let resSha1s = res.map(r => r.sha1)
 
-    if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
-        props.item.data.similarSha1sBlacklist = []
-    }
+    const propertyValues = props.item.data.propertyValues.map(unref)
 
-    let all = props.item.data.allSimilarSha1s
-    let blacklist = props.item.data.similarSha1sBlacklist
+    emits('recommend', resSha1s, propertyValues)
 
-    props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0, 30))
 
-    emits('group:update')
+    // if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
+    //     props.item.data.similarSha1sBlacklist = []
+    // }
+
+    // let all = props.item.data.allSimilarSha1s
+    // let blacklist = props.item.data.similarSha1sBlacklist
+
+    // props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0, 30))
+
+    // emits('group:update')
 }
 
 function toggleClosed() {
