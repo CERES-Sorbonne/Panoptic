@@ -191,9 +191,9 @@ async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 
-@app.get("/similar/")
-async def get_similar_images_route(sha1_list: list[str] = Query(None)) -> list:
-    return await get_similar_images(sha1_list)
+@app.post("/similar")
+async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
+    return await get_similar_images(payload.sha1_list)
 
 
 @app.post("/pca")

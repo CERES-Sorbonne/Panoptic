@@ -124,7 +124,7 @@ export const apiGetImportStatus = async() => {
 }
 
 export const apiGetSimilarImages = async(sha1List: string[]) => {
-    let res = await axios.get('/similar/?sha1_list=' + sha1List.join('&sha1_list='))
+    let res = await axios.post('/similar', {sha1List})
     return res.data
 }
 

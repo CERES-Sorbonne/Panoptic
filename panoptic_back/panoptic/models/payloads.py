@@ -49,3 +49,6 @@ class UpdateTagPayload(CamelModel):
 class MakeClusterPayload(CamelModel):
     nb_groups: Optional[int] = 50
     image_list: Optional[list[str]] = []
+
+class GetSimilarImagesPayload(CamelModel):
+    sha1_list: list[str]
