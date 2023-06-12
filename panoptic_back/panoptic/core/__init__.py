@@ -3,7 +3,7 @@ import json
 import random
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
-from typing import List
+from typing import List, Any
 
 import pandas
 from fastapi import HTTPException
@@ -40,6 +40,23 @@ async def get_properties() -> Properties:
 
 async def delete_property(property_id: str):
     await db.delete_property(property_id)
+
+
+async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
+    if image_ids and sha1s:
+        raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
+
+    prop = await db.get_property_by_id(property_id)
+    if prop.mode == 'id' and not image_ids:
+        raise TypeError(f'Property {property_id}: {prop.name} needs image ids as key [mode: {prop.mode}]')
+    if prop.mode == 'sha1' and not sha1s:
+        raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
+
+    if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+        if not isinstance(value, list):
+            value = [value]
+
+    return await db.set_property_values(property_id, value, image_ids, sha1s)
 
 
 async def get_full_images(image_ids: List[int] = None) -> List[Image]:
