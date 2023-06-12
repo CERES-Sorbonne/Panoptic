@@ -324,6 +324,7 @@ export interface Group {
     name: string
     images: Array<Image>
     groups: Array<Group>
+    propertyValues: PropertyValue[]
     children?: Array<string>
     parentId: string
     count: number
@@ -363,22 +364,28 @@ export interface ImportState {
 }
 
 export interface ScrollerLine {
-    id: number
+    id: string
     type: string
     groupId: string
     data: any
     index: number
     depth: number
-    nbClusters: number
-    isSimilarities?: boolean
+    size: number
 }
 
 export interface GroupLine extends ScrollerLine{
     data: Group
+    nbClusters: number
 }
 
-export interface RecomendedLine extends ScrollerLine {
-    data: Array<Image>
+export interface ImageLine extends ScrollerLine {
+    data: Image[]
+}
+
+export interface Recommendation {
+    images: string[]
+    values: PropertyValue[]
+    groupId: string
 }
 
 export function buildTabState() {

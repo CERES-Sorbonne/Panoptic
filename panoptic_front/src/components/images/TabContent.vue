@@ -2,34 +2,45 @@
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import { Group, GroupIndex, PropertyType, Tab, GroupData } from '@/data/models';
+import { Group, GroupIndex, PropertyType, Tab, GroupData, Image, PropertyValue } from '@/data/models';
 import { DefaultDict } from '@/utils/helpers'
 import ContentFilter from './ContentFilter.vue';
 import { sortGroupTree, sortImages } from '@/utils/sort';
 import ImageList from './ImageList.vue';
 
 import moment from 'moment';
+import RecommendedMenu from './RecommendedMenu.vue';
 
 const props = defineProps({
     tab: Object as () => Tab,
     height: Number
 })
 
+const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
+
 const filterElem = ref(null)
-const hrElem = ref(null)
+const boxElem = ref(null)
 const imageList = ref(null)
+
+const scrollerHeight = ref(0)
 
 const scrollerWidth = ref(0)
 
 const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
 const sorts = computed(() => props.tab.data.sortList)
-const scrollerHeight = computed(() => {
-    if (filterElem.value && hrElem.value) {
-        return props.height - filterElem.value.clientHeight - hrElem.value.clientHeight - 5
+
+function updateScrollerHeight() {
+    if (filterElem.value &&  boxElem.value) {
+        scrollerHeight.value = props.height - filterElem.value.clientHeight - boxElem.value.clientHeight - 5
     }
-    return 0
-})
+    else if (filterElem.value) {
+        scrollerHeight.value = props.height - filterElem.value.clientHeight - 5
+    }
+    else {
+        scrollerHeight.value = 0
+    }
+}
 
 const groupData = reactive({
     root: undefined,
@@ -64,7 +75,7 @@ const filteredImages = computed(() => {
 })
 function computeGroups(force = false) {
     console.time('compute groups')
-    console.log('compute groups')
+    // console.log('compute groups')
     let index = {} as GroupIndex
     let rootGroup = generateGroups(index)
 
@@ -73,9 +84,9 @@ function computeGroups(force = false) {
             index[id] = mergeGroup(index[id])
         }
 
-        for(let id in groupData.index) {
+        for (let id in groupData.index) {
             let group = groupData.index[id]
-            if(group.isCluster) {
+            if (group.isCluster) {
                 index[group.id] = group
             }
         }
@@ -88,10 +99,10 @@ function computeGroups(force = false) {
 
     console.timeEnd('compute groups')
 
-    if(imageList.value)
+    if (imageList.value)
         imageList.value.computeLines()
 
-    
+
 }
 
 function mergeGroup(update: Group) {
@@ -186,12 +197,13 @@ function generateGroups(index: GroupIndex) {
     let rootGroup = {
         name: 'All',
         images: filteredImages.value,
-        groups: undefined,
+        groups: undefined as Group[],
         count: filteredImages.value.length,
         propertyId: undefined,
         id: '0',
         depth: 0,
-        parentId: undefined
+        parentId: undefined,
+        propertyValues: []
     } as Group
     if (groups.value.length > 0) {
         rootGroup = computeSubgroups(rootGroup, groups.value, index)
@@ -226,18 +238,19 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
             groups[value].push(img)
         }
     }
-    let res = []
+    let res = [] as Group[]
     for (let group in groups) {
         let newGroup = {
             name: group,
             images: groups[group],
-            groups: undefined,
+            groups: undefined as Group[],
             count: groups[group].length,
             propertyId: propertyId,
             id: parentGroup.id + '-' + propertyId + '-' + group,
             depth: parentGroup.depth + 1,
-            parentId: parentGroup.id
-        } as Group
+            parentId: parentGroup.id,
+            propertyValues: [...parentGroup.propertyValues, { propertyId, value: group }]
+        }
         res.push(newGroup)
     }
 
@@ -252,11 +265,30 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
     return parentGroup
 }
 
+function setRecoImages(images: string[], propertyValues: PropertyValue[], groupId: string) {
+    reco.images.length = 0
+    reco.images.push(...images)
+    reco.values.length = 0
+    reco.values.push(...propertyValues)
+    reco.groupId = groupId
+    nextTick(() => updateScrollerHeight())
+}
+
+function closeReco() {
+    reco.images.length = 0
+    reco.values.length = 0
+    nextTick(() => updateScrollerHeight())
+}
+
 onMounted(computeGroups)
+onMounted(() => nextTick(updateScrollerHeight))
 onMounted(() => {
-    scrollerWidth.value = hrElem.value.clientWidth
+    scrollerWidth.value = filterElem.value.clientWidth
     window.addEventListener('resize', () => {
-        nextTick(() => scrollerWidth.value = hrElem.value.clientWidth)
+        nextTick(() => {
+            scrollerWidth.value = filterElem.value.clientWidth
+            
+        })
     })
 })
 
@@ -265,31 +297,43 @@ watch(props, () => {
 }, { deep: true })
 
 watch(filteredImages, () => computeGroups(), { deep: true })
-watch(groups, () => computeGroups(true), { deep: true })
+watch(groups, () => {
+    computeGroups(true)
+    if(groupData.index[reco.groupId] == undefined) {
+        closeReco()
+    }
+}, { deep: true })
 watch(sorts, () => computeGroups(), { deep: true })
+watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
+
 
 
 </script>
 
 <template>
-    <div class="p-2" ref="filterElem">
+    <div class="" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" />
     </div>
-    <hr class="custom-hr" ref="hrElem" />
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
-    <div v-if="scrollerWidth > 0" style="margin-left: 10px;">
+    <div ref="boxElem" class="m-0 p-0">
+        <div v-if="reco.images.length > 0" class="m-0 p-0">
+            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50" @close="closeReco"
+            @scroll="imageList.scrollTo"/>
+        </div>
+    </div>
+    <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
         <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="imageList"
-            :width="scrollerWidth - 10" />
+            :width="scrollerWidth - 10" @recommend="setRecoImages" />
     </div>
     <!-- <div class="ms-2 mt-2">
-        <div v-if="groupList.length && groupList[0].name == '__all__'">
-            <PaginatedImages :images="groupList[0].images" :imageSize="props.tab.data.imageSize" :groupId="'0'" />
-        </div>
-        <div v-else>
-            <div v-for="(group, index) in groupList">
-                <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize"
-                    :group-id="String(index)" />
+            <div v-if="groupList.length && groupList[0].name == '__all__'">
+                <PaginatedImages :images="groupList[0].images" :imageSize="props.tab.data.imageSize" :groupId="'0'" />
             </div>
-        </div>
-    </div> -->
+            <div v-else>
+                <div v-for="(group, index) in groupList">
+                    <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize"
+                        :group-id="String(index)" />
+                </div>
+            </div>
+        </div> -->
 </template>

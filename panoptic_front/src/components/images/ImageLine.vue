@@ -35,7 +35,7 @@ function acceptRecommend(image: Image) {
     }
 
     globalStore.addOrUpdatePropertyToImage(image.id, property.id, propertyValue)
-    
+
 
     group.allSimilarSha1s.splice(index, 1)
     emits('update', props.item.groupId)
@@ -61,14 +61,8 @@ function refuseRecommend(image: Image) {
             @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <template v-if="props.item.isSimilarities">
-            <ImageRecomended :image="image" :size="props.imageSize" v-for="image, i in props.item.data"
-                @accept="acceptRecommend" @refuse="refuseRecommend" />
-        </template>
-        <template v-else>
-            <ImageVue :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-                v-for="image, i in props.item.data" />
-        </template>
+        <ImageVue :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+            v-for="image, i in props.item.data" />
 
     </div>
 </template>

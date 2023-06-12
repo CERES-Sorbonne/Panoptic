@@ -1,9 +1,6 @@
 <script setup>
 import { globalStore } from '@/data/store';
-import ImageVue from './Image.vue';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
-import DynamicScrollerItem from '@/components/Scroller/src/components/DynamicScrollerItem.vue'
-import DynamicScroller from '@/components/Scroller/src/components/DynamicScroller.vue'
 import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '../Scroller/src/components/RecycleScroller.vue';
@@ -14,6 +11,8 @@ const props = defineProps({
     width: Number,
     data: Object
 })
+
+const emits = defineEmits(['recommend'])
 
 const imageLines = reactive([])
 
@@ -44,8 +43,8 @@ const simiImageLineSize = computed(() => {
 
 
 defineExpose({
-    scroll,
-    computeLines
+    scrollTo,
+    computeLines,
 })
 
 function computeLines() {
@@ -69,9 +68,9 @@ function computeLines() {
             })
             return
         }
-        if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
-            computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
-        }
+        // if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
+        //     computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
+        // }
         if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
             computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
@@ -84,7 +83,7 @@ function computeLines() {
 
     // console.log(lines)
     scroller.value.updateVisibleItems(true)
-    console.log(imageLines.length)
+    // console.log(imageLines.length)
     console.timeEnd('compute lines')
     return lines
 }
@@ -118,8 +117,8 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
             throw 'Images seems to be to big for the line'
         }
         addLine(newLine)
-        newLine = []
-        actualWidth = 0
+        newLine = [img]
+        actualWidth = imgWidth
     }
 
     if (newLine.length > 0) {
@@ -237,7 +236,6 @@ watch(() => props.width, () => {
     setTimeout(computeLines, 500)
 })
 
-
 </script>
 
 <template>
@@ -250,13 +248,16 @@ watch(() => props.width, () => {
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
-                        @group:update="computeLines" />
+                        @group:update="computeLines"  @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)"/>
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
-                        @update="computeLines()" />
+                        @update="computeLines()"/>
+                </div>
+                <div v-else-if="item.type == 'similarity'">
+                    
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->
