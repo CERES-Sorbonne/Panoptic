@@ -275,15 +275,6 @@ async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
 
 
 async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
-    if image_ids and sha1s:
-        raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
-
-    prop = await get_property_by_id(property_id)
-    if prop.mode == 'id' and not image_ids:
-        raise TypeError(f'Property {property_id}: {prop.name} needs image ids as key [mode: {prop.mode}]')
-    if prop.mode == 'sha1' and not sha1s:
-        raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
-
     value = json.dumps(value)
     t = Table('property_values')
     query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')

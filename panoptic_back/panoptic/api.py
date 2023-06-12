@@ -13,7 +13,7 @@ from starlette.staticfiles import StaticFiles
 from panoptic import core
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images
+    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values
 from panoptic.core import db
 from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
@@ -92,7 +92,7 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
-    updated, value = await db.set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
+    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
     return {'updated_ids': updated, 'value': value}
 
 
