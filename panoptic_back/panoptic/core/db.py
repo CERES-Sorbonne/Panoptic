@@ -30,7 +30,7 @@ async def update_tag(tag: Tag):
     await execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
 
 
-async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
+async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int, **kwargs):
     table = Table('images')
     query = Query.into(table).columns(
         'folder_id',

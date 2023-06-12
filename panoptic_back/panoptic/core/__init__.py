@@ -2,13 +2,13 @@ import atexit
 import json
 import random
 from concurrent.futures import ProcessPoolExecutor
+from itertools import islice
 from typing import List
 
 import pandas
 from fastapi import HTTPException
 
-import panoptic.core.db
-import panoptic.core.db
+from panoptic.core import db
 from panoptic import compute
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue
@@ -106,16 +106,26 @@ async def add_property_to_images(property_id: int, sha1_list: list[str], value: 
 
 
 async def read_properties_file(data: pandas.DataFrame):
-    filenames, sha1s = zip(*[(i.name, i.sha1) for i in await db.get_images()])
+    filenames, ids = zip(*[(i.name, i.id) for i in await db.get_images()])
     data = data[data.key.isin(filenames)]
-    data = data.drop_duplicates(subset='key', keep='first')
-    for f, s in zip(filenames, sha1s):
-        data.loc[data.key == f, 'sha1'] = s
+    # data = data.drop_duplicates(subset='key', keep='first')
+    # add property id to the dataframe
+    for f, i in zip(filenames, ids):
+        data.loc[data.key == f, 'panoptic_id'] = i
+
+    # first, create new images where ids are the same
+    for id in list(data.panoptic_id.unique()):
+        sub_data = data[data.panoptic_id == id]
+        image = await get_full_images([id])
+        image = image[0]
+        for _, row in sub_data.iloc[1:].iterrows():
+            new_id = db.add_image(**image)
+            row.panoptic_id = new_id
 
     properties_to_create = data.columns.tolist()
 
     for prop in properties_to_create:
-        if prop == "key" or prop == "sha1":
+        if prop == "key" or prop == "panoptic_id":
             continue
         prop_name, prop_type = prop.split('[')
         prop_type = PropertyType(prop_type.split(']')[0])
@@ -130,7 +140,7 @@ async def read_properties_file(data: pandas.DataFrame):
                 tag = await create_tag(property.id, value, 0, color)
                 real_value = [tag.id]
             sub_data = data[data[prop] == value]
-            await add_property_to_images(property.id, sub_data.sha1.tolist(), real_value)
+            await db.set_property_values(property.id, real_value, sub_data.panoptic_id.tolist())
 
 
 async def add_folder(folder):
