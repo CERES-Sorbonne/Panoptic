@@ -1,9 +1,6 @@
 <script setup>
 import { globalStore } from '@/data/store';
-import ImageVue from './Image.vue';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
-import DynamicScrollerItem from '@/components/Scroller/src/components/DynamicScrollerItem.vue'
-import DynamicScroller from '@/components/Scroller/src/components/DynamicScroller.vue'
 import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '../Scroller/src/components/RecycleScroller.vue';
@@ -46,8 +43,8 @@ const simiImageLineSize = computed(() => {
 
 
 defineExpose({
-    scroll,
-    computeLines
+    scrollTo,
+    computeLines,
 })
 
 function computeLines() {
@@ -86,7 +83,7 @@ function computeLines() {
 
     // console.log(lines)
     scroller.value.updateVisibleItems(true)
-    console.log(imageLines.length)
+    // console.log(imageLines.length)
     console.timeEnd('compute lines')
     return lines
 }
@@ -251,7 +248,7 @@ watch(() => props.width, () => {
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
-                        @group:update="computeLines"  @recommend="(imgs, values) => emits('recommend', imgs, values)"/>
+                        @group:update="computeLines"  @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)"/>
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"

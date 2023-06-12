@@ -97,7 +97,7 @@ async function recommandImages() {
 
     const propertyValues = props.item.data.propertyValues.map(unref)
 
-    emits('recommend', resSha1s, propertyValues)
+    emits('recommend', resSha1s, propertyValues, props.item.data.id)
 
 
     // if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
