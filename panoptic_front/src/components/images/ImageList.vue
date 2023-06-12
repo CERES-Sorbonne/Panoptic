@@ -120,8 +120,8 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
             throw 'Images seems to be to big for the line'
         }
         addLine(newLine)
-        newLine = []
-        actualWidth = 0
+        newLine = [img]
+        actualWidth = imgWidth
     }
 
     if (newLine.length > 0) {
