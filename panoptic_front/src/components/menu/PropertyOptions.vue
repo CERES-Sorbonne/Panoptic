@@ -115,7 +115,7 @@ function renameProperty() {
     <div>
         <div class="d-flex flex-row">
             <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @click="toggleOptionsMenu" />
-            <span class="flex-grow-1">
+            <span class="flex-grow-1 clickable" @click="toggleOptionsMenu">
                 <span v-if="!opionsOpen">{{ props.property.name }}</span>
                 <span v-else><input style="position: relative; top: -1px;" type="text" class="text-input" v-model="localName" @change="renameProperty"/></span>
             </span>
