@@ -17,7 +17,7 @@ from panoptic.core import create_property, create_tag, \
 from panoptic.core import db
 from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload
 from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
