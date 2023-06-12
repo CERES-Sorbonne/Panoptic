@@ -19,8 +19,8 @@ export enum PropertyType {
 }
 
 export enum PropertyMode {
+    sha1 = 'sha1',
     id = 'id',
-    sha1 = 'sha1'
 }
 
 export const PropertyNames = {
