@@ -1,7 +1,7 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import { computed } from 'vue'
 import { globalStore } from '@/data/store';
-import { Image, Modals, RecomendedLine } from '@/data/models';
+import { Image, Modals } from '@/data/models';
 
 // const props = defineProps({
 //     image: Object as () => Image,
@@ -42,4 +42,4 @@ const emits = defineEmits(['hover', 'unhover' ,'scroll'])
 .active {
     border-left: 1px solid blue;
 }
-</style>
+</style> -->

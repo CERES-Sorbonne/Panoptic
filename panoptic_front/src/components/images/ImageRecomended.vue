@@ -10,53 +10,40 @@ const props = defineProps({
 
 const emits = defineEmits(['accept', 'refuse'])
 
-const imageSizes = computed(() => {
-    let ratio = props.image.width / props.image.height
-
-    let h = props.size
-    let w = h * ratio
-
-    if (ratio > 2) {
-        w = props.size
-        h = props.size / ratio
-    }
-
-    return { width: w, height: h }
-})
-
-const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
-const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
-const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
+const imageContainerStyle = computed(() => `width: ${props.size}px; height: ${props.size}px;`)
+const imageStyle = computed(() => `max-width: ${props.size - 2}px; max-height: ${props.size -1}px;`)
 
 </script>
 
 <template>
-    <div class="me-2 mb-2 full-container" :style="widthStyle">
+    <div class="">
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
             <img :src="props.image.url" :style="imageStyle" />
         </div>
-        <div class="row">
-            <div class="col">
-                <div class="text-center text-success clickable bouton" style="font-size: 10px;" @click="$emit('accept', props.image)"> ✓ </div>
-            </div>
-            <div class="col">
-                <div class="text-center text-danger clickable bouton" style="font-size: 10px;" @click="$emit('refuse', props.image)"> ✕ </div>
-            </div>
+        <div class="d-flex flex-row">
+            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-success validate clickable unselectable" style="font-size: 10px;" @click="emits('accept', props.image)"> ✓ </div>
+            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;" @click="emits('refuse', props.image)"> ✕ </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.bouton:hover{
-    background-color: lightsteelblue;
+.validate {
+    padding: 3px;
+    border: 1px solid var(--validate-border);
 }
 
-.bouton{
-    padding: 0.5rem
+.refuse {
+    padding: 3px;
+    border: 1px solid var(--refuse-border);
 }
-.full-container {
-    position: relative;
-    border: 1px solid var(--border-color);
+
+.refuse:hover{
+    background-color: var(--refuse-border);
+}
+
+.validate:hover{
+    background-color: var(--validate-border);
 }
 
 .img-container {
@@ -64,6 +51,9 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
     margin: auto;
     padding: auto;
     cursor: pointer;
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
 }
 
 .prop-container {

@@ -48,7 +48,7 @@ function removeTag(tagId: number) {
     <div v-if="props.modelValue">
         <div class="m-2">
             <span v-for="tagId in props.modelValue">
-                <TagBadge :tag="tags[tagId].value" :show-delete="true" @delete="removeTag(tagId)" />
+                <TagBadge :tag="tags[tagId].value" :show-delete="true" @delete="removeTag(tagId)" class="me-1"/>
             </span>
         </div>
         <input type="text" class="m-2" v-model="tagFilter" ref="searchElem" />

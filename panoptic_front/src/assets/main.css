@@ -1,5 +1,15 @@
 :root {
-  --border-color: rgb(195, 207, 217)
+  --border-color: rgb(195, 207, 217);
+  --validate-border: rgb(163, 208, 209);
+  --refuse-border: rgb(213, 180, 191);
+}
+
+.unselectable {
+  -moz-user-select: -moz-none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+  user-select: none;
 }
 
 .menu {
@@ -267,6 +277,7 @@ button {
   /* position: relative; */
   /* top: 2px;
   cursor: pointer; */
+  cursor: pointer;
 }
 
 input[type=number]::-webkit-outer-spin-button,
