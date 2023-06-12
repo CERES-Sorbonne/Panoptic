@@ -103,7 +103,7 @@ onMounted(() => {
                     </form>
                 </div>
                 <div class="modal-footer pt-2 pb-2">
-                    <button type="button" @click="hide">Anuller</button>
+                    <button type="button" @click="hide">Anuler</button>
                     <button type="button" @click="saveProperty">Confirmer</button>
                 </div>
             </div>
