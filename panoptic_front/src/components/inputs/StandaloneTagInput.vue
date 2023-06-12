@@ -181,7 +181,7 @@ onMounted(() => {
                     </div>
                     <div v-if="!edit" class="w-100">
                         <span v-for="tag in imageTags">
-                            <TagBadge :tag="tag.value" :color="tag.color" />
+                            <TagBadge :tag="tag.value" :color="tag.color"  class="me-1"/>
                         </span>
                         <span v-if="imageTags.length == 0" class="ms-1">None</span>
                     </div>
@@ -208,7 +208,7 @@ onMounted(() => {
                 <ul class="list-unstyled mb-0" style="width: 300px;" v-if="edit">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top">
                         <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" :color="tag.color"
-                            v-for="tag in imageTags" />
+                            v-for="tag in imageTags"  class="me-1"/>
                     </li>
                     <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
                     </p>

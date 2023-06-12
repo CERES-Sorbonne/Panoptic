@@ -385,6 +385,7 @@ export interface ImageLine extends ScrollerLine {
 export interface Recommendation {
     images: string[]
     values: PropertyValue[]
+    groupId: string
 }
 
 export function buildTabState() {

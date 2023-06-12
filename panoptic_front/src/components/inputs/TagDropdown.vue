@@ -62,7 +62,7 @@ onMounted(() => {
                 data-bs-auto-close="outside" aria-expanded="false" ref="buttonElem" >
                 <template v-if="props.modelValue && props.modelValue.length > 0">
                     <span v-for="tagId in props.modelValue">
-                        <TagBadge :tag="tags[tagId].value" :color="tags[tagId].color" />
+                        <TagBadge :tag="tags[tagId].value" :color="tags[tagId].color"  class="me-1"/>
                     </span>
                 </template>
                 <template v-else>
@@ -73,7 +73,7 @@ onMounted(() => {
             <ul class="dropdown-menu m-0 p-0" v-if="props.modelValue">
                 <div class="m-2">
                     <span v-for="tagId in props.modelValue">
-                        <TagBadge :tag="tags[tagId].value" :color="tags[tagId].color" :show-delete="true" @delete="removeTag(tagId)" />
+                        <TagBadge  class="me-1" :tag="tags[tagId].value" :color="tags[tagId].color" :show-delete="true" @delete="removeTag(tagId)" />
                     </span>
                 </div>
                 <input type="text" class="m-2" v-model="tagFilter" ref="searchElem" />

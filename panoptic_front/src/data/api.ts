@@ -54,7 +54,7 @@ export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] |
     }
     // console.log({imageIds, sha1s, propertyId, value})
     const res = await axios.post('/image_property', {imageIds, sha1s, propertyId, value})
-    console.log(res.data)
+    // console.log(res.data)
     return res.data
 }
 

@@ -16,7 +16,7 @@ const props = defineProps({
     height: Number
 })
 
-const reco = reactive({ images: [] as string[], values: [] as PropertyValue[] })
+const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
 
 const filterElem = ref(null)
 const boxElem = ref(null)
@@ -75,7 +75,7 @@ const filteredImages = computed(() => {
 })
 function computeGroups(force = false) {
     console.time('compute groups')
-    console.log('compute groups')
+    // console.log('compute groups')
     let index = {} as GroupIndex
     let rootGroup = generateGroups(index)
 
@@ -265,11 +265,12 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
     return parentGroup
 }
 
-function setRecoImages(images: string[], propertyValues: PropertyValue[]) {
+function setRecoImages(images: string[], propertyValues: PropertyValue[], groupId: string) {
     reco.images.length = 0
     reco.images.push(...images)
     reco.values.length = 0
     reco.values.push(...propertyValues)
+    reco.groupId = groupId
     nextTick(() => updateScrollerHeight())
 }
 
@@ -284,7 +285,10 @@ onMounted(() => nextTick(updateScrollerHeight))
 onMounted(() => {
     scrollerWidth.value = filterElem.value.clientWidth
     window.addEventListener('resize', () => {
-        nextTick(() => scrollerWidth.value = filterElem.value.clientWidth)
+        nextTick(() => {
+            scrollerWidth.value = filterElem.value.clientWidth
+            
+        })
     })
 })
 
@@ -293,7 +297,12 @@ watch(props, () => {
 }, { deep: true })
 
 watch(filteredImages, () => computeGroups(), { deep: true })
-watch(groups, () => computeGroups(true), { deep: true })
+watch(groups, () => {
+    computeGroups(true)
+    if(groupData.index[reco.groupId] == undefined) {
+        closeReco()
+    }
+}, { deep: true })
 watch(sorts, () => computeGroups(), { deep: true })
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 
@@ -308,7 +317,8 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
     <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
-            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50" @close="closeReco"/>
+            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50" @close="closeReco"
+            @scroll="imageList.scrollTo"/>
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
