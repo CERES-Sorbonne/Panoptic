@@ -140,7 +140,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
     border-bottom: 1px solid var(--border-color);
     border-top: 1px solid var(--border-color);
     padding: 0px;
-    padding-bottom: 5px;
+    padding-bottom: 10px;
 }
 
 .image-line {
