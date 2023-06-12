@@ -98,7 +98,6 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
     <div class="reco-container">
         <div class="d-flex flex-row m-0 ps-2 pb-2">
             <span class="text-secondary me-2">Images recommandées</span>
-            {{ props.width }}
             <div class="flex-grow-1">
                 <div class="d-flex flex-row">
                     <template v-for="value, index in props.reco.values">
