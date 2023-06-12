@@ -18,7 +18,7 @@ const emits = defineEmits(['compute-ml'])
 </script>
 
 <template>
-    <div class="d-flex flex-row">
+    <div class="d-flex flex-row p-2">
         <div class="d-flex flex-row search-input me-5">
             <div class="bi bi-search float-start bi-sm"></div>
             <input type="text" class="input-hidden" placeholder="rechercher dans tous les champs..." />
@@ -35,7 +35,7 @@ const emits = defineEmits(['compute-ml'])
         </div>
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
-    <div class="d-flex flex-wrap mb-3 mt-3">
+    <div class="d-flex flex-wrap content-container">
         <FilterForm :filter="props.tab.data.filter" />
         <GroupForm :groupIds="props.tab.data.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
@@ -46,6 +46,13 @@ const emits = defineEmits(['compute-ml'])
 </template>
 
 <style scoped>
+
+.content-container {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+    margin: 0;
+}
+
 .search-input {
     border: 2px solid rgb(197, 206, 213);
     padding: 1px;

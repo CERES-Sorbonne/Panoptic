@@ -267,6 +267,7 @@ button {
   /* position: relative; */
   /* top: 2px;
   cursor: pointer; */
+  cursor: pointer;
 }
 
 input[type=number]::-webkit-outer-spin-button,

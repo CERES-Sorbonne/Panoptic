@@ -15,6 +15,8 @@ const props = defineProps({
     data: Object
 })
 
+const emits = defineEmits(['recommend'])
+
 const imageLines = reactive([])
 
 const hoverGroupBorder = ref('')
@@ -69,9 +71,9 @@ function computeLines() {
             })
             return
         }
-        if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
-            computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
-        }
+        // if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
+        //     computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
+        // }
         if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
             computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
@@ -237,7 +239,6 @@ watch(() => props.width, () => {
     setTimeout(computeLines, 500)
 })
 
-
 </script>
 
 <template>
@@ -250,13 +251,16 @@ watch(() => props.width, () => {
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
-                        @group:update="computeLines" />
+                        @group:update="computeLines"  @recommend="(imgs, values) => emits('recommend', imgs, values)"/>
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
-                        @update="computeLines()" />
+                        @update="computeLines()"/>
+                </div>
+                <div v-else-if="item.type == 'similarity'">
+                    
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->
