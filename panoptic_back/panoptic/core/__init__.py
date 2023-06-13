@@ -53,8 +53,8 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
         raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
 
     if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
-        if not isinstance(value, list):
-            value = [value]
+        if value and not isinstance(value, list):
+            value = [int(value)]
 
     return await db.set_property_values(property_id, value, image_ids, sha1s)
 
