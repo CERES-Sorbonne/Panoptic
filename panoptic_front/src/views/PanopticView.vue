@@ -18,8 +18,8 @@ const contentHeight = computed(() => windowHeight.value - (navElem.value?.client
 
 onMounted(() => {
     nextTick(() => {
-      window.addEventListener('resize', onResize);
-      onResize()
+        window.addEventListener('resize', onResize);
+        onResize()
     })
 })
 
@@ -49,18 +49,20 @@ function onResize() {
             <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" :height="contentHeight"
                 v-if="globalStore.isLoaded && globalStore.tagTrees" />
         </div>
-
+        <div v-else class="loading">
+            <i class="spinner-border" role="status"></i>
+            <span class="ms-1">Loading...</span>
+        </div>
     </div>
 
     <ImageModal :id="Modals.IMAGE" />
     <PropertyModal :id="Modals.PROPERTY" />
 
     <!-- <div class="above bg-info">lalala</div>
-    <div class="above2 bg-warning">lalala</div> -->
+                <div class="above2 bg-warning">lalala</div> -->
 </template>
 
 <style scoped>
-
 .above {
     position: absolute;
     top: 500px;
@@ -72,5 +74,13 @@ function onResize() {
     position: absolute;
     top: 500px;
     left: 500px;
+}
+
+.loading {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 </style>
