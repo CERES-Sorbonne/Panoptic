@@ -3,6 +3,7 @@ import { DefaultDict } from "./helpers"
 import { globalStore } from "@/data/store"
 
 export const UNDEFINED_KEY = '__undefined__'
+export const MAX_GROUPS = 5
 
 // export function computeGroups(images: Array<Image>, propertyIds: number[]) {
 //     let res = []

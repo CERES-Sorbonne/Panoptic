@@ -27,7 +27,7 @@ const selectedProperties = computed(() => props.groupIds.map(id => globalStore.p
             <i class="bi bi-plus"></i>
         </div>
         <div class="dropdown-menu p-0">
-            <PropertySelection @select="prop => props.groupIds.push(prop.id)" :ignore-ids="props.groupIds" />
+            <PropertySelection @select="prop => globalStore.addGrouping(prop.id)" :ignore-ids="props.groupIds" />
         </div>
     </div>
 </template>

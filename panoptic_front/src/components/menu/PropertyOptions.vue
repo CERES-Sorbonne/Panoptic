@@ -93,7 +93,7 @@ function setGroup() {
         groups.splice(index, 1)
     }
     else {
-        groups.push(props.property.id)
+        globalStore.addGrouping(props.property.id)
     }
 }
 
