@@ -26,14 +26,14 @@ const imageList = ref(null)
 const scrollerHeight = ref(0)
 const scrollerWidth = ref(0)
 
-const computeStatus = reactive({ groups: false})
+const computeStatus = reactive({ groups: false })
 
 const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
 const sorts = computed(() => props.tab.data.sortList)
 
 function updateScrollerHeight() {
-    if (filterElem.value &&  boxElem.value) {
+    if (filterElem.value && boxElem.value) {
         scrollerHeight.value = props.height - filterElem.value.clientHeight - boxElem.value.clientHeight - 5
     }
     else if (filterElem.value) {
@@ -77,40 +77,41 @@ const filteredImages = computed(() => {
 })
 
 function computeGroups(force = false) {
-    if(computeStatus.groups) {
+    if (computeStatus.groups) {
         return
     }
     computeStatus.groups = true
 
-    console.time('compute groups')
-    // console.log('compute groups')
-    let index = {} as GroupIndex
-    let rootGroup = generateGroups(index)
+    requestIdleCallback(() => {
+        console.time('compute groups')
+        let index = {} as GroupIndex
+        let rootGroup = generateGroups(index)
 
-    if (!force) {
-        for (let id in index) {
-            index[id] = mergeGroup(index[id])
-        }
+        if (!force) {
+            for (let id in index) {
+                index[id] = mergeGroup(index[id])
+            }
 
-        for (let id in groupData.index) {
-            let group = groupData.index[id]
-            if (group.isCluster) {
-                index[group.id] = group
+            for (let id in groupData.index) {
+                let group = groupData.index[id]
+                if (group.isCluster) {
+                    index[group.id] = group
+                }
             }
         }
-    }
 
-    groupData.index = index
-    groupData.root = rootGroup
-    groupData.order = []
-    sortGroupTree(groupData.root, groupData.order)
+        groupData.index = index
+        groupData.root = rootGroup
+        groupData.order = []
+        sortGroupTree(groupData.root, groupData.order)
 
-    console.timeEnd('compute groups')
+        console.timeEnd('compute groups')
 
-    if (imageList.value)
-        nextTick(imageList.value.computeLines)
-    
-    nextTick(() => computeStatus.groups = false)
+        if (imageList.value)
+            nextTick(imageList.value.computeLines)
+
+        computeStatus.groups = false
+    })
 }
 
 function mergeGroup(update: Group) {
@@ -178,7 +179,7 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
         else if (type == PropertyType.checkbox && value != true) {
             value = false
         }
-        
+
         if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
@@ -249,7 +250,7 @@ watch(props, () => {
 watch(filteredImages, () => computeGroups(), { deep: true })
 watch(groups, () => {
     computeGroups(true)
-    if(groupData.index[reco.groupId] == undefined) {
+    if (groupData.index[reco.groupId] == undefined) {
         closeReco()
     }
 }, { deep: true })
@@ -262,12 +263,12 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus"/>
+        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
-            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50" @close="closeReco"
-            @scroll="imageList.scrollTo"/>
+            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
+                @close="closeReco" @scroll="imageList.scrollTo" />
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
