@@ -4,6 +4,8 @@ import { globalStore } from '@/data/store'
 import { computed, ref, unref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
 import TagBadge from '../TagTree/TagBadge.vue'
+import { UNDEFINED_KEY } from '@/utils/groups'
+import PropertyValue from '../properties/PropertyValue.vue'
 
 
 const props = defineProps({
@@ -25,7 +27,7 @@ const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
 const closed = computed(() => group.value?.closed)
 const hasOpenChildren = computed(() => group.value.groups.some(g => g.closed != true))
-const similarityMode = computed(() => Array.isArray(group.value.allSimilarSha1s))
+
 
 const groupName = computed(() => {
     let name = group.value.name
@@ -46,6 +48,8 @@ const groupName = computed(() => {
 
     return name
 })
+
+const someValue = computed(() => props.item.data.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
 function getTag(propId: number, tagId: number) {
     return globalStore.tags[propId][tagId]
@@ -134,9 +138,6 @@ function closeChildren() {
 <template>
     <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden" @mouseenter="hoverGroup = true"
         @mouseleave="hoverGroup = false">
-        <!-- {{ props.parentIds }} -->
-        <!-- {{ props.item.data.parentId }}
-        {{ props.parentIds }} -->
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)"
             @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
@@ -145,15 +146,8 @@ function closeChildren() {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div v-if="property != undefined && property.type != PropertyType.multi_tags && property.type != PropertyType.tag">
-            <b>{{ property.name }}</b> : {{ groupName }}
-        </div>
-        <div
-            v-else-if="property != undefined && (property.type == PropertyType.multi_tags || property.type == PropertyType.tag)">
-            <b>{{ property.name }}</b> :
-            <TagBadge v-if="!isNaN(Number(group.name))" :tag="getTag(property.id, Number(group.name)).value"
-                :color="getTag(property.id, Number(group.name)).color" />
-            <TagBadge v-else tag="_undefined_" color="#000000" />
+        <div v-if="property != undefined">
+            <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length-1]" />
         </div>
         <div v-else><b>{{ groupName }}</b></div>
         <div class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.count }} Images</div>
@@ -164,17 +158,17 @@ function closeChildren() {
             <div v-if="hasImages && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
-            <div class="ms-2" v-if="!hasSubgroups && !similarityMode">
+            <div class="ms-2" v-if="!hasSubgroups">
                 <div class="button" @click="computeClusters">Créer clusters</div>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
-            <div v-if="hasImages && !hasSubgroups && !similarityMode" style="margin-left: 2px;">
+            <div v-if="hasImages && !hasSubgroups" style="margin-left: 2px;">
                 <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
             </div>
-            <div v-if="hasImages && !hasSubgroups && !group.isCluster" class="ms-2">
+            <div v-if="hasImages && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
                 <div class="button" @click="recommandImages">Images Similaires</div>
             </div>
-            <div v-if="hasImages && (hasSubgroups || similarityMode)" class="ms-2">
+            <div v-if="hasImages && hasSubgroups" class="ms-2">
                 <div class="button" @click="clear">Clear</div>
             </div>
         </div>

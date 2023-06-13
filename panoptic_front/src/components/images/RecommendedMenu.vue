@@ -6,6 +6,7 @@ import { Group, GroupIndex, Image, PropertyType, PropertyValue, Recommendation }
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import { right } from '@popperjs/core';
+import { UNDEFINED_KEY } from '@/utils/groups';
 
 
 const props = defineProps({
@@ -34,7 +35,9 @@ function removeImage(sha1: string) {
 
 function acceptRecommend(image: Image) {
     props.reco.values.forEach(v => {
-        globalStore.setPropertyValue(v.propertyId, image, v.value)
+        if(v.value != UNDEFINED_KEY) {
+            globalStore.setPropertyValue(v.propertyId, image, v.value)
+        }
     })
     removeImage(image.sha1)
 }
@@ -102,7 +105,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
                 <div class="d-flex flex-row">
                     <template v-for="value, index in props.reco.values">
                         <PropertyValueVue class="" :value="value" />
-                        <span v-if="index < props.reco.values.length - 1" class="ms-1 me-1">|</span>
+                        <span v-if="index < props.reco.values.length - 1" class="ms-1 me-1" style=""><i class="bi bi-chevron-right text-secondary"></i></span>
                     </template>
                 </div>
             </div>

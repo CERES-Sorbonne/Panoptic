@@ -10,6 +10,7 @@ import ImageList from './ImageList.vue';
 
 import moment from 'moment';
 import RecommendedMenu from './RecommendedMenu.vue';
+import { UNDEFINED_KEY } from '@/utils/groups';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -221,14 +222,15 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
     let type = globalStore.properties[propertyId].type
 
     for (let img of images) {
-        let value = propertyId in img.properties ? img.properties[propertyId].value : "undefined"
+        let value = propertyId in img.properties ? img.properties[propertyId].value : UNDEFINED_KEY
         if (value == null || value == '') {
-            value = "undefined"
+            value = UNDEFINED_KEY
         }
         else if (type == PropertyType.checkbox && value != true) {
             value = false
         }
-        else if (Array.isArray(value)) {
+        
+        if (Array.isArray(value)) {
             value.forEach((v: any) => groups[v].push(img))
         }
         else if (type == PropertyType.date) {
@@ -239,17 +241,17 @@ function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupI
         }
     }
     let res = [] as Group[]
-    for (let group in groups) {
+    for (let key in groups) {
         let newGroup = {
-            name: group,
-            images: groups[group],
+            name: key,
+            images: groups[key],
             groups: undefined as Group[],
-            count: groups[group].length,
+            count: groups[key].length,
             propertyId: propertyId,
-            id: parentGroup.id + '-' + propertyId + '-' + group,
+            id: parentGroup.id + '-' + propertyId + '-' + key,
             depth: parentGroup.depth + 1,
             parentId: parentGroup.id,
-            propertyValues: [...parentGroup.propertyValues, { propertyId, value: group }]
+            propertyValues: [...parentGroup.propertyValues, { propertyId, value: key }]
         }
         res.push(newGroup)
     }
