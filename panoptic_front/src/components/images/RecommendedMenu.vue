@@ -82,6 +82,10 @@ function computeImageLines(images: Image[], lines: Image[][], maxLines: number, 
             actualWidth = imgWidth
         }
     }
+
+    if(newLine.length > 0 && lines.length < maxLines) {
+        lines.push(newLine)
+    }
 }
 
 onMounted(computeLines)
