@@ -2,6 +2,7 @@ import atexit
 import json
 import random
 from concurrent.futures import ProcessPoolExecutor
+from dataclasses import asdict
 from itertools import islice
 from typing import List, Any
 
@@ -124,20 +125,19 @@ async def add_property_to_images(property_id: int, sha1_list: list[str], value: 
 
 async def read_properties_file(data: pandas.DataFrame):
     filenames, ids = zip(*[(i.name, i.id) for i in await db.get_images()])
+    matcher = dict(zip(filenames, ids))
     data = data[data.key.isin(filenames)]
     # data = data.drop_duplicates(subset='key', keep='first')
     # add property id to the dataframe
-    for f, i in zip(filenames, ids):
-        data.loc[data.key == f, 'panoptic_id'] = i
+    data['panoptic_id'] = data['key'].map(matcher)
 
     # first, create new images where ids are the same
     for id in list(data.panoptic_id.unique()):
         sub_data = data[data.panoptic_id == id]
         image = await get_full_images([id])
         image = image[0]
-        for _, row in sub_data.iloc[1:].iterrows():
-            new_id = db.add_image(**image)
-            row.panoptic_id = new_id
+        new_ids = await db.create_clones(image, sub_data.shape[0] - 1)
+        data.loc[data.panoptic_id == id, "panoptic_id"] = [image.id, *new_ids]
 
     properties_to_create = data.columns.tolist()
 
@@ -157,7 +157,7 @@ async def read_properties_file(data: pandas.DataFrame):
                 tag = await create_tag(property.id, value, 0, color)
                 real_value = [tag.id]
             sub_data = data[data[prop] == value]
-            await db.set_property_values(property.id, real_value, sub_data.panoptic_id.tolist())
+            await set_property_values(property.id, real_value, sub_data.panoptic_id.tolist())
 
 
 async def add_folder(folder):
