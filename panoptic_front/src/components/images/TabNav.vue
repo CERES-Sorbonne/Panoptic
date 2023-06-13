@@ -9,8 +9,6 @@ const newTabName = ref('')
 const inputElem = ref(null)
 
 function select(id: number) {
-    console.log('select')
-    console.log(globalStore.selectedTab, id)
     if (globalStore.selectedTab == id) {
         setEditTab(id)
     }

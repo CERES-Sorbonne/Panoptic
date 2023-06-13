@@ -74,7 +74,14 @@ const filteredImages = computed(() => {
 
     return filtered
 })
+
+let _flagCompute = false 
 function computeGroups(force = false) {
+    if(_flagCompute) {
+        return
+    }
+    _flagCompute = true
+
     console.time('compute groups')
     // console.log('compute groups')
     let index = {} as GroupIndex
@@ -101,9 +108,9 @@ function computeGroups(force = false) {
     console.timeEnd('compute groups')
 
     if (imageList.value)
-        imageList.value.computeLines()
-
-
+        nextTick(imageList.value.computeLines)
+    
+    nextTick(() => _flagCompute = false)
 }
 
 function mergeGroup(update: Group) {
@@ -134,64 +141,6 @@ function mergeGroup(update: Group) {
         update.groups = children
     }
     return update
-}
-
-function isNode(group: Group) {
-    return group.images && group.images.length == 0 && Array.isArray(group.groups) && group.groups.length > 0
-}
-function isLeaf(group: Group) {
-    return group.images && group.images.length > 0
-}
-
-function replaceIfChanged(oldGroup: Group, newGroup: Group) {
-    if (!oldGroup) {
-        return newGroup
-    }
-
-    let changed = false
-    if (isNode(oldGroup) && isNode(newGroup)) {
-        console.log('isnode')
-        if (oldGroup.propertyId != newGroup.propertyId || oldGroup.name != newGroup.name || oldGroup.count != newGroup.count) {
-            changed = true
-        }
-    }
-    else if (isLeaf(oldGroup) && isLeaf(newGroup)) {
-        console.log('isleaf')
-        if (oldGroup.propertyId == newGroup.propertyId && oldGroup.count == newGroup.count && oldGroup.name == oldGroup.name) {
-            let oldImgs = {} as any
-            oldGroup.images.forEach(img => oldImgs[img.sha1] = true)
-            for (let img of newGroup.images) {
-                if (!oldImgs[img.sha1]) {
-                    changed = true
-                    break
-                }
-            }
-        }
-        else {
-            changed = true
-        }
-    }
-    // type of nodes dont match
-    else {
-        changed = true
-    }
-    if (changed) {
-        return newGroup
-    }
-    if (isLeaf(oldGroup)) {
-        let imageOrder = newGroup.images.map(i => i.sha1)
-        let oldImgs = {} as any
-        oldGroup.images.forEach(img => oldImgs[img.sha1] = img)
-        oldGroup.images = imageOrder.map(sha1 => oldImgs[sha1])
-        return oldGroup
-    }
-
-    let oldSubGroups = {} as { [k: string]: Group }
-    oldGroup.groups.forEach(g => oldSubGroups[g.id] = g)
-
-    oldGroup.groups = newGroup.groups.map(g => replaceIfChanged(oldSubGroups[g.id], g))
-
-    return oldGroup
 }
 
 function generateGroups(index: GroupIndex) {

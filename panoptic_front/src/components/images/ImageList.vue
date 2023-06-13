@@ -47,7 +47,12 @@ defineExpose({
     computeLines,
 })
 
+let _flagCompute = false
 function computeLines() {
+    if(_flagCompute) {
+        return
+    }
+    _flagCompute = true
     console.time('compute lines')
     let group = props.data.root
     let index = props.data.index
@@ -85,6 +90,8 @@ function computeLines() {
     scroller.value.updateVisibleItems(true)
     // console.log(imageLines.length)
     console.timeEnd('compute lines')
+
+    nextTick(() => _flagCompute = false)
     return lines
 }
 
@@ -180,7 +187,7 @@ onMounted(computeLines)
 
 watch(() => props.imageSize, () => {
     console.log('image size compute')
-    computeLines()
+    nextTick(computeLines)
 })
 
 watch(visiblePropertiesNb, () => {
