@@ -1,5 +1,6 @@
 import { Group, Image, Property, PropertyType } from "@/data/models";
 import { globalStore } from "@/data/store";
+import { UNDEFINED_KEY } from "./groups";
 
 function getSortFunction(type: PropertyType): any {
     switch(type) {
@@ -7,8 +8,8 @@ function getSortFunction(type: PropertyType): any {
         case PropertyType.url:
         case PropertyType.number:
         case PropertyType.path:
-        case PropertyType.sha1:
-        case PropertyType.ahash:
+        case PropertyType._sha1:
+        case PropertyType._ahash:
         case PropertyType.color:
         case PropertyType.date:
             return (a:any,b:any) => {
@@ -88,12 +89,12 @@ export function sortGroups(groups: Array<Group>, descending=false) {
         let vb = b.name as any
 
         if(type == PropertyType.tag) {
-            if(va == 'undefined' || va == undefined) {
+            if(va == UNDEFINED_KEY) {
                 va = 'zzzzzzzzzzzzzzzzzz'
             } else {
                 va = globalStore.tags[property.id][va].value
             }
-            if(vb == 'undefined' || vb == undefined) {
+            if(vb == UNDEFINED_KEY) {
                 vb = 'zzzzzzzzzzzzzzzzzz'
             } else {
                 vb = globalStore.tags[property.id][vb].value

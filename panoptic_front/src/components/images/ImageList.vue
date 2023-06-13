@@ -172,7 +172,7 @@ function closeGroup(groupIds) {
                 break
             end = i
         }
-        console.log(index, end)
+        // console.log(index, end)
         imageLines.splice(index + 1, end - index)
     })
 
