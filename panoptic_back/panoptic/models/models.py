@@ -24,7 +24,7 @@ class PropertyType(Enum):
 class Property(BaseModel):
     id: int
     name: str
-    type: str
+    type: PropertyType
     mode: str
 
 
