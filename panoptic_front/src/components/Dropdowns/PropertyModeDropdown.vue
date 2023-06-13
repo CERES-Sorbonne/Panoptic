@@ -20,7 +20,7 @@ onMounted(() => {
 
 <template>
     <div class="dropdown">
-        <button class="input-lg text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <button class="input-lg text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled="true">
             <span v-if="props.modelValue == null">Mode..</span>
             <span v-if="props.modelValue == PropertyMode.id">
                 Propriété Image
