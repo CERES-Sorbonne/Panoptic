@@ -154,29 +154,9 @@ function getImageLineParents(item) {
 }
 
 function closeGroup(groupIds) {
-    if (!Array.isArray(groupIds)) {
-        groupIds = [groupIds]
-    }
-    groupIds.forEach(groupId => {
-        let index = imageLines.findIndex(line => line.id == groupId)
-        if (index < 0) {
-            return
-        }
+    computeLines()
 
-        let depth = imageLines[index].depth
-        let end = index
-        // console.log('start', index, depth)
-        for (let i = index + 1; i < imageLines.length; i++) {
-            // console.log(imageLines[i].depth)
-            if (imageLines[i].depth <= depth)
-                break
-            end = i
-        }
-        // console.log(index, end)
-        imageLines.splice(index + 1, end - index)
-    })
-
-    scroller.value.updateVisibleItems(true)
+    // scroller.value.updateVisibleItems(true)
 
 }
 
