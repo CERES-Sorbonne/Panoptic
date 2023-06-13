@@ -49,6 +49,9 @@ defineExpose({
 
 let _flagCompute = false
 function computeLines() {
+    if(props.data.root == undefined) {
+        return
+    }
     if(_flagCompute) {
         return
     }
