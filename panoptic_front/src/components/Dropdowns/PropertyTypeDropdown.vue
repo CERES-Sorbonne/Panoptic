@@ -14,7 +14,7 @@ const types = Object.keys(PropertyType).filter(k => k[0] != '_').map((k:any) => 
 
 <template>
     <div class="dropdown">
-        <button class="input-lg" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <button class="input-lg text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false">
             <span v-if="props.modelValue == null">Type de propriété..</span>
             <span v-else>
                 <PropertyIcon :type="props.modelValue"/>
