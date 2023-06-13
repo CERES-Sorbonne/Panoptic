@@ -142,19 +142,19 @@ function closeChildren() {
             @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <div @click="toggleClosed" class="me-2" style="cursor: pointer;">
+        <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div v-if="property != undefined">
+        <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'" class="align-self-center me-2">
             <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length-1]" />
         </div>
-        <div v-else><b>{{ groupName }}</b></div>
-        <div class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{ group.count }} Images</div>
-        <div v-if="group.groups" class="ms-2 text-secondary" style="font-size: 11px; line-height: 25px;">{{
+        <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.count }} Images</div>
+        <div v-if="group.groups" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             group.groups.length }} Groupes</div>
 
-        <div class="d-flex flex-row" v-if="!closed" style="padding-top: 3px;">
+        <div class="d-flex flex-row align-self-center me-2" v-if="!closed">
             <div v-if="hasImages && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
