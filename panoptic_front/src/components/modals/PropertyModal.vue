@@ -86,12 +86,13 @@ onMounted(() => {
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="saveProperty" class="d-flex flex-row">
-                        <div class="me-1">
+                        <!-- TODO: a remettre quand on laissera le choix de la propriété -->
+                        <!-- <div class="me-1">
                             <PropertyModeDropdown v-model="newProperty.mode" />
-                        </div>
+                        </div> -->
                         <div class="flex-grow-1 me-1">
                             <input type="text" style="width: 100%" class="text-input input-lg" id="propertyName" name="propertyName"
-                                v-model="newProperty.name" required>
+                                v-model="newProperty.name" placeholder="Nom de la propriété" required>
                             <div class="invalid-feedback">
                                 {{ nameError }}
                             </div>
