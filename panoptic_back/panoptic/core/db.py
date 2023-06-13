@@ -1,5 +1,6 @@
 # Connexion à la base de données SQLite
 import json
+from dataclasses import asdict
 from typing import List, Any
 
 import numpy as np
@@ -30,7 +31,8 @@ async def update_tag(tag: Tag):
     await execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
 
 
-async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int, **kwargs):
+def create_query_for_add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int,
+                               nb=1, **kwargs):
     table = Table('images')
     query = Query.into(table).columns(
         'folder_id',
@@ -39,16 +41,29 @@ async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: s
         'sha1',
         'url',
         'width',
-        'height').insert(
+        'height').insert(*[(
         folder_id,
         name,
         extension,
         sha1,
         url,
         width,
-        height
-    )
-    cursor = await execute_query(query.get_sql())
+        height) for _ in range(nb)]
+                         )
+    return query.get_sql()
+
+
+async def create_clones(image: Image, nb_clones: int) -> list[int]:
+    query = create_query_for_add_image(**asdict(image), nb=nb_clones)
+    cursor = await execute_query(query)
+    new_query = "SELECT id FROM images ORDER BY id DESC LIMIT ?"
+    cursor = await execute_query(new_query, (nb_clones, ))
+    return [x[0] for x in await cursor.fetchall()]
+
+
+async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int, **kwargs):
+    query = create_query_for_add_image(folder_id, name, extension, sha1, url, width, height, **kwargs)
+    cursor = await execute_query(query)
     id_ = cursor.lastrowid
 
     return Image(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
@@ -92,7 +107,6 @@ async def get_property_values(property_ids: List[int] = None, image_ids: List[in
         query = query.where(values.image_id.isin(image_ids))
     elif sha1s:
         query = query.where(values.sha1.isin(sha1s))
-
 
     cursor = await execute_query(query.get_sql())
     res = [PropertyValue(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
