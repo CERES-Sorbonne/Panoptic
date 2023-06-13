@@ -24,8 +24,9 @@ const boxElem = ref(null)
 const imageList = ref(null)
 
 const scrollerHeight = ref(0)
-
 const scrollerWidth = ref(0)
+
+const computeStatus = reactive({ groups: false})
 
 const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
@@ -75,12 +76,11 @@ const filteredImages = computed(() => {
     return filtered
 })
 
-let _flagCompute = false 
 function computeGroups(force = false) {
-    if(_flagCompute) {
+    if(computeStatus.groups) {
         return
     }
-    _flagCompute = true
+    computeStatus.groups = true
 
     console.time('compute groups')
     // console.log('compute groups')
@@ -110,7 +110,7 @@ function computeGroups(force = false) {
     if (imageList.value)
         nextTick(imageList.value.computeLines)
     
-    nextTick(() => _flagCompute = false)
+    nextTick(() => computeStatus.groups = false)
 }
 
 function mergeGroup(update: Group) {
@@ -238,7 +238,6 @@ onMounted(() => {
     window.addEventListener('resize', () => {
         nextTick(() => {
             scrollerWidth.value = filterElem.value.clientWidth
-            
         })
     })
 })
@@ -263,9 +262,8 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" />
+        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus"/>
     </div>
-    <!-- <button @click="testElem.scroll()">Scroll to bottom</button> -->
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
             <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50" @close="closeReco"
@@ -276,15 +274,4 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
         <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="imageList"
             :width="scrollerWidth - 10" @recommend="setRecoImages" />
     </div>
-    <!-- <div class="ms-2 mt-2">
-            <div v-if="groupList.length && groupList[0].name == '__all__'">
-                <PaginatedImages :images="groupList[0].images" :imageSize="props.tab.data.imageSize" :groupId="'0'" />
-            </div>
-            <div v-else>
-                <div v-for="(group, index) in groupList">
-                    <ImageGroup :leftAlign="true" :group="group" :imageSize="props.tab.data.imageSize"
-                        :group-id="String(index)" />
-                </div>
-            </div>
-        </div> -->
 </template>

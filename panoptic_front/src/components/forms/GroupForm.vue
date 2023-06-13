@@ -5,7 +5,8 @@ import PropertySelection from '../inputs/PropertySelection.vue';
 
 
 const props = defineProps({
-    groupIds: Array<number>
+    groupIds: Array<number>,
+    isLoading: Boolean
 })
 
 
@@ -19,11 +20,14 @@ const selectedProperties = computed(() => props.groupIds.map(id => globalStore.p
         <div class="bg-medium d-flex flex-row rounded m-0 p-0">
             <template v-for="property, index in selectedProperties">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
-                <div class="btn btn-sm no-border" @click="props.groupIds.splice(index, 1)">{{ property.name }}</div>
+                <div class="btn btn-sm no-border" @click="props.groupIds.splice(index, 1)">
+                    {{ property.name }}
+                </div>
             </template>
+        <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading"></i>
         </div>
         <div class="btn btn-sm no-border me-1 p-1 hover-light text-secondary" data-bs-toggle="dropdown"
-            data-bs-auto-close="true">
+            data-bs-auto-close="true" v-show="!props.isLoading">
             <i class="bi bi-plus"></i>
         </div>
         <div class="dropdown-menu p-0">
@@ -31,3 +35,12 @@ const selectedProperties = computed(() => props.groupIds.map(id => globalStore.p
         </div>
     </div>
 </template>
+
+<style scoped>
+.loading {
+    background-color: rgb(171, 171, 171);
+    margin-top: 7px;
+    margin-right: 5px;
+    margin-left: -3px;
+}
+</style>

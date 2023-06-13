@@ -11,6 +11,7 @@ import {apiStartPCA} from '../../data/api'
 
 const props = defineProps({
     tab: Object as () => Tab,
+    computeStatus: Object as () => {groups: boolean}
 })
 
 const emits = defineEmits(['compute-ml'])
@@ -37,7 +38,7 @@ const emits = defineEmits(['compute-ml'])
     </div>
     <div class="d-flex flex-wrap content-container">
         <FilterForm :filter="props.tab.data.filter" />
-        <GroupForm :groupIds="props.tab.data.groups" />
+        <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups"/>
         <SortForm :sortList="props.tab.data.sortList" />
         <!-- <div class="ms-2">
             <button @click="$emit('compute-ml')">Compute All Groups</button>
