@@ -89,8 +89,8 @@ onMounted(() => {
                         <div class="me-1">
                             <PropertyModeDropdown v-model="newProperty.mode" />
                         </div>
-                        <div class="me-1">
-                            <input type="text" class="text-input input-lg" id="propertyName" name="propertyName"
+                        <div class="flex-grow-1 me-1">
+                            <input type="text" style="width: 100%" class="text-input input-lg" id="propertyName" name="propertyName"
                                 v-model="newProperty.name" required>
                             <div class="invalid-feedback">
                                 {{ nameError }}
