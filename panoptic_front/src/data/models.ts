@@ -410,3 +410,7 @@ export function buildFilterGroup() {
         isGroup: true 
     } as FilterGroup
 }
+
+export function isTag(type: PropertyType) {
+    return type == PropertyType.tag || type == PropertyType.multi_tags
+}
