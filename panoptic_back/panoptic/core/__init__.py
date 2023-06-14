@@ -1,12 +1,14 @@
 import atexit
 import json
+import logging
 import random
 from concurrent.futures import ProcessPoolExecutor
-from itertools import islice
+import time
 from typing import List, Any
 
 import pandas
 from fastapi import HTTPException
+from tqdm import tqdm
 
 from panoptic.core import db
 from panoptic import compute
@@ -96,7 +98,6 @@ async def make_clusters(sensibility: float, sha1s: [str]) -> list[list[str]]:
     """
     if not sha1s:
         return []
-    # TODO: add parameters to compute clusters only on some images
     values = await db.get_sha1_computed_values(sha1s)
     return compute.make_clusters(values, method="kmeans", nb_clusters=sensibility)
 
@@ -124,40 +125,54 @@ async def add_property_to_images(property_id: int, sha1_list: list[str], value: 
 
 async def read_properties_file(data: pandas.DataFrame):
     filenames, ids = zip(*[(i.name, i.id) for i in await db.get_images()])
+    matcher = dict(zip(filenames, ids))
     data = data[data.key.isin(filenames)]
     # data = data.drop_duplicates(subset='key', keep='first')
     # add property id to the dataframe
-    for f, i in zip(filenames, ids):
-        data.loc[data.key == f, 'panoptic_id'] = i
+    data.loc[data.index, 'panoptic_id'] = data['key'].map(matcher)
 
     # first, create new images where ids are the same
-    for id in list(data.panoptic_id.unique()):
+    unique_ids = list(data.panoptic_id.unique())
+    clones_created = 0
+    # TODO: create clones all at once ? it's tricky with the ids to update
+    for id in tqdm(unique_ids):
         sub_data = data[data.panoptic_id == id]
-        image = await get_full_images([id])
+        image = await db.get_images([id])
         image = image[0]
-        for _, row in sub_data.iloc[1:].iterrows():
-            new_id = db.add_image(**image)
-            row.panoptic_id = new_id
-
+        new_ids = await db.create_clones(image, sub_data.shape[0] - 1)
+        clones_created += len(new_ids)
+        data.loc[data.panoptic_id == id, "panoptic_id"] = [image.id, *new_ids]
+    logging.getLogger('panoptic').info(f"created {clones_created} new images")
     properties_to_create = data.columns.tolist()
 
+    # then for each property to create
     for prop in properties_to_create:
         if prop == "key" or prop == "panoptic_id":
             continue
+        # create the property
         prop_name, prop_type = prop.split('[')
         prop_type = PropertyType(prop_type.split(']')[0])
         property = await create_property(prop_name, prop_type)
+        # then get all possible values to insert
         prop_values = list(data[prop].unique())
-        for value in prop_values:
-            real_value = value
-            if property.type == PropertyType.tag.value or property.type == PropertyType.multi_tags.value:
-                colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
-                          "9daebe"]
-                color = '#' + colors[random.randint(0, len(colors) - 1)]
-                tag = await create_tag(property.id, value, 0, color)
-                real_value = [tag.id]
-            sub_data = data[data[prop] == value]
-            await db.set_property_values(property.id, real_value, sub_data.panoptic_id.tolist())
+
+        # if it's a tag property let's create the tags in the db
+        if property.type == PropertyType.tag or property.type == PropertyType.multi_tags:
+            tag_matcher = {}
+            # TODO: can we optimize to create all tags at once ?
+            for value in tqdm(prop_values):
+                created_tags = []
+                # if it's multi tag, assume tags are separated by a comma and create them separately
+                for single_tag in value.split(','):
+                    colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
+                              "9daebe"]
+                    color = '#' + colors[random.randint(0, len(colors) - 1)]
+                    tag = await create_tag(property.id, single_tag, 0, color)
+                    created_tags.append(tag.id)
+                tag_matcher[value] = created_tags
+            # now change all values in the dataframe with the real value that we are going to insert
+            data.loc[data.index, prop] = data[prop].map(tag_matcher)
+        await db.set_multiple_property_values(property.id, list(data[prop]), list(data.panoptic_id))
 
 
 async def add_folder(folder):
