@@ -1,3 +1,4 @@
+import logging
 import os
 from sys import platform
 from typing import Optional
@@ -6,6 +7,7 @@ import aiofiles as aiofiles
 import pandas as pd
 from fastapi import FastAPI, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
@@ -67,10 +69,10 @@ async def delete_property_route(property_id: str):
 
 
 # Route pour récupérer la liste de toutes les images
-@app.get("/images")
+@app.get("/images", response_class=ORJSONResponse)
 async def get_images_route():
     images = await get_full_images()
-    return images
+    return ORJSONResponse(images)
 
 
 @app.get('/images/{file_path:path}')
@@ -110,10 +112,10 @@ async def add_tag(payload: AddTagPayload) -> Tag:
     return await create_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
 
 
-@app.get("/tags")
-async def get_tags_route(property: Optional[str] = None) -> Tags:
-    return await get_tags(property)
-
+@app.get("/tags", response_class=ORJSONResponse)
+async def get_tags_route(property: Optional[str] = None):
+    tags = await get_tags(property)
+    return ORJSONResponse(tags)
 
 @app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
@@ -206,3 +208,12 @@ if not os.path.exists('mini'):
 
 app.mount("/small/images/", StaticFiles(directory='mini'), name="static")
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
+
+
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find("/import_status") == -1
+
+
+# Filter out /endpoint
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
