@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Property, PropertyType } from '@/data/models';
+import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed, ref } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
@@ -93,7 +93,7 @@ function setGroup() {
         groups.splice(index, 1)
     }
     else {
-        groups.push(props.property.id)
+        globalStore.addGrouping(props.property.id)
     }
 }
 
@@ -119,6 +119,9 @@ function renameProperty() {
                 <span v-if="!opionsOpen">{{ props.property.name }}</span>
                 <span v-else><input style="position: relative; top: -1px;" type="text" class="text-input" v-model="localName" @change="renameProperty"/></span>
             </span>
+            <div style="width: 20px;" class="text-center">
+                <i v-if="props.property.mode == PropertyMode.id" class="bi bi-link-45deg"></i>
+            </div>
             <div style="width: 20px;" @click="toggleVisible" class="btn-icon text-center">
                 <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')">
                 </span>

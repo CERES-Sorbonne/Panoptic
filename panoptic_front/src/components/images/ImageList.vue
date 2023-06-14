@@ -47,7 +47,15 @@ defineExpose({
     computeLines,
 })
 
+let _flagCompute = false
 function computeLines() {
+    if(props.data.root == undefined) {
+        return
+    }
+    if(_flagCompute) {
+        return
+    }
+    _flagCompute = true
     console.time('compute lines')
     let group = props.data.root
     let index = props.data.index
@@ -85,6 +93,8 @@ function computeLines() {
     scroller.value.updateVisibleItems(true)
     // console.log(imageLines.length)
     console.timeEnd('compute lines')
+
+    nextTick(() => _flagCompute = false)
     return lines
 }
 
@@ -154,29 +164,9 @@ function getImageLineParents(item) {
 }
 
 function closeGroup(groupIds) {
-    if (!Array.isArray(groupIds)) {
-        groupIds = [groupIds]
-    }
-    groupIds.forEach(groupId => {
-        let index = imageLines.findIndex(line => line.id == groupId)
-        if (index < 0) {
-            return
-        }
+    computeLines()
 
-        let depth = imageLines[index].depth
-        let end = index
-        // console.log('start', index, depth)
-        for (let i = index + 1; i < imageLines.length; i++) {
-            // console.log(imageLines[i].depth)
-            if (imageLines[i].depth <= depth)
-                break
-            end = i
-        }
-        // console.log(index, end)
-        imageLines.splice(index + 1, end - index)
-    })
-
-    scroller.value.updateVisibleItems(true)
+    // scroller.value.updateVisibleItems(true)
 
 }
 
@@ -200,7 +190,7 @@ onMounted(computeLines)
 
 watch(() => props.imageSize, () => {
     console.log('image size compute')
-    computeLines()
+    nextTick(computeLines)
 })
 
 watch(visiblePropertiesNb, () => {

@@ -8,6 +8,7 @@ import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
     Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode
 } from '../data/models'
+import { MAX_GROUPS } from '@/utils/groups'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -330,8 +331,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async uploadPropFile(file: any) {
         apiUploadPropFile(file)
+    },
+    addGrouping(propertyId: number) {
+        const groups = globalStore.getTab().data.groups
+        if(groups.length >= MAX_GROUPS) {
+            groups.pop()
+        }
+        groups.push(propertyId)
     }
-
 })
 
 

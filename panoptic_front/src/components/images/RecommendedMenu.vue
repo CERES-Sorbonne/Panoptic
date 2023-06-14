@@ -109,7 +109,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
                 <div class="d-flex flex-row">
                     <template v-for="value, index in props.reco.values">
                         <PropertyValueVue class="" :value="value" />
-                        <span v-if="index < props.reco.values.length - 1" class="ms-1 me-1" style=""><i class="bi bi-chevron-right text-secondary"></i></span>
+                        <div v-if="index < props.reco.values.length - 1" class="separator"></div>
                     </template>
                 </div>
             </div>
@@ -129,6 +129,11 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
 </template>
 
 <style scoped>
+
+.separator {
+    border-left: 2px solid var(--border-color);
+    margin: 3px 4px;
+}
 .close {
     border-right: 2px solid var(--border-color);
     border-bottom: 2px solid var(--border-color);

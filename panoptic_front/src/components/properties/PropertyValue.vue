@@ -17,9 +17,8 @@ const type = computed(() => property.value.type)
 const isTag = computed(() => type.value == PropertyType.tag || type.value == PropertyType.multi_tags)
 
 function mapTag(id: number | string): Tag[] {
-    console.log(id)
+    // console.log(id)
     if (id == UNDEFINED_KEY) {
-        console.log('go here')
         return [{value: 'indéfini', color: '#ced4da'} as Tag]
     }
     return [globalStore.tags[props.value.propertyId][id as number]]
