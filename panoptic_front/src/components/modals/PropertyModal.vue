@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { Property, PropertyType } from '@/data/models';
+import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
@@ -39,6 +39,7 @@ const nameError = ref('')
 function resetNewProperty() {
     newProperty.name = ''
     newProperty.type = PropertyType.string
+    newProperty.mode = PropertyMode.sha1
     nameError.value = ''
 }
 

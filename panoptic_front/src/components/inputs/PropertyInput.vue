@@ -121,9 +121,7 @@ onMounted(() => {
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">
                     <span v-if="!isSet" class="text-secondary">None</span>
                     <span v-else-if="type == PropertyType._folders">
-                        <span v-for="folderId in props.property.value">
-                            <TagBadge :tag="globalStore.folders[folderId].name" color="#c3cfd9" />
-                        </span>
+                            <TagBadge :tag="globalStore.folders[props.property.value].name" color="#c3cfd9" />
                     </span>
                     <span v-else-if="type != PropertyType.color">{{ props.property.value }}</span>
                 </span>
