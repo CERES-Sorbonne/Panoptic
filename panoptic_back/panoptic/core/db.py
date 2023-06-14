@@ -1,6 +1,5 @@
 # Connexion à la base de données SQLite
 import json
-from dataclasses import asdict
 from typing import List, Any
 
 import numpy as np
@@ -31,8 +30,7 @@ async def update_tag(tag: Tag):
     await execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
 
 
-def create_query_for_add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int,
-                               nb=1, **kwargs):
+async def create_clones(image: Image, nb_clones: int) -> list[int]:
     table = Table('images')
     query = Query.into(table).columns(
         'folder_id',
@@ -41,28 +39,31 @@ def create_query_for_add_image(folder_id: int, name: str, extension: str, sha1: 
         'sha1',
         'url',
         'width',
-        'height').insert(*[(
-        folder_id,
-        name,
-        extension,
-        sha1,
-        url,
-        width,
-        height) for _ in range(nb)]
-                         )
-    return query.get_sql()
-
-
-async def create_clones(image: Image, nb_clones: int) -> list[int]:
-    query = create_query_for_add_image(**asdict(image), nb=nb_clones)
-    cursor = await execute_query(query)
+        'height').insert(*[Parameter('?') for _ in range(7)])
+    data = [(image.folder_id, image.name, image.extension, image.sha1, image.url, image.width, image.height)] * nb_clones
+    await execute_query_many(query.get_sql(), data)
     new_query = "SELECT id FROM images ORDER BY id DESC LIMIT ?"
     cursor = await execute_query(new_query, (nb_clones, ))
     return [x[0] for x in await cursor.fetchall()]
 
 
 async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int, **kwargs):
-    query = create_query_for_add_image(folder_id, name, extension, sha1, url, width, height, **kwargs)
+    table = Table('images')
+    query = Query.into(table).columns(
+        'folder_id',
+        'name',
+        'extension',
+        'sha1',
+        'url',
+        'width',
+        'height').insert((
+        folder_id,
+        name,
+        extension,
+        sha1,
+        url,
+        width,
+        height))
     cursor = await execute_query(query)
     id_ = cursor.lastrowid
 
@@ -289,6 +290,9 @@ async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
 
 
 async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
+    """
+    Set property values for several image_ids / sha1 but with only one possible value !
+    """
     value = json.dumps(value)
     t = Table('property_values')
     query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
@@ -305,6 +309,18 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
         images = await get_images(sha1s=sha1s)
         updated_ids = [img.id for img in images]
     return updated_ids, json.loads(value)
+
+
+async def set_multiple_property_values(property_id: int, values: list[Any], images_ids: List[int] = None):
+    """
+    Set property values for several image_ids and several values, there must be as much ids than values
+    Should we update this function to accept also a list of sha1s ? maybe if we import a sha1 property file ?
+    """
+    t = Table('property_values')
+    query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
+    query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
+    query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
+    await execute_query_many(query, [(id, json.dumps(value)) for id, value in zip(images_ids, values)])
 
 
 async def set_computed_value(sha1: str, ahash: str, vector: np.array):
