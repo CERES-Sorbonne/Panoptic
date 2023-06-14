@@ -38,7 +38,8 @@ class PropertyValue:
     value: Any
 
 
-class Tag(BaseModel):
+@dataclass(slots=True)
+class Tag:
     id: int
     property_id: int
     parents: list[int]
