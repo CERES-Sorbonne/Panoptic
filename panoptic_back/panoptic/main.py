@@ -34,23 +34,73 @@ class MiniUI:
 
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
-        x = (screen_width // 2) - (500 // 2)
-        y = (screen_height // 2) - (300 // 2)
+        x = (screen_width // 2) - (700 // 2)
+        y = (screen_height // 2) - (350 // 2)
 
-        master.geometry(f"500x300+{x}+{y}")
+        master.geometry(f"700x350+{x}+{y}")
 
-        # Label "Choisir un projet existant"
-        self.label = tk.Label(master, text="Choisir un projet existant")
-        self.label.pack()
+        # Frame pour la partie A
+        frame_a = ttk.Frame(master)
+        frame_a.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        # Créer une liste déroulante
-        self.combobox = ttk.Combobox(master)
-        self.combobox.pack()
+        # Frame pour la partie A.1
+        frame_a1 = ttk.Frame(frame_a)
+        frame_a1.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
 
-        # Bouton "Créer un nouveau projet"
-        self.new_project_button = tk.Button(master, text="Créer un nouveau projet", command=self.create_project)
-        self.new_project_button.pack()
+        # Label, combobox et bouton dans la partie A.1
+        self.label = tk.Label(frame_a1, text="Choisir Projet existant")
+        self.label.pack(pady=10)
 
+        self.combo_box = ttk.Combobox(frame_a1)
+        self.combo_box.pack(pady=10, padx=5)
+
+        self.new_project_button = tk.Button(frame_a1, text="Nouveau projet",  command=self.create_project)
+        self.new_project_button.pack(pady=10)
+
+        # Espacement entre A.1 et A.2
+        spacer = tk.Label(frame_a, width=2)
+        spacer.pack(side=tk.LEFT)
+
+        # Barre de séparation entre A.1 et A.2
+        separator = ttk.Frame(frame_a, width=2, relief=tk.SUNKEN)
+        separator.pack(side=tk.LEFT, fill=tk.Y)
+
+        # Frame pour la partie A.2
+        frame_a2 = ttk.Frame(frame_a)
+        frame_a2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Label et listbox dans la partie A.2
+        self.label2 = tk.Label(frame_a2, text="Dossiers")
+        self.label2.pack(pady=10)
+
+        self.listbox = tk.Listbox(frame_a2)
+        self.listbox.pack(fill=tk.BOTH, expand=True)
+
+        # Button en bas de la partie A.2
+        self.button = tk.Button(frame_a2, text="Ajouter Dossier", command=self.add_folder)
+        self.button.pack(side=tk.BOTTOM, pady=10)
+
+        # Barre de séparation entre A et B
+        separator2 = ttk.Frame(master, height=2, relief=tk.SUNKEN)
+        separator2.pack(side=tk.TOP, fill=tk.X)
+
+        # Frame pour la partie B
+        frame_b = ttk.Frame(master)
+        frame_b.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Label2 centré dans la partie B
+        self.server_status = tk.StringVar(value='starting...')
+        self.label2 = tk.Entry(frame_b, textvariable=self.server_status, state='readonly')
+        self.label2.pack(pady=10)
+
+        # Button centré dans la partie B
+        self.open_button = tk.Button(frame_b, text="Ouvrir Panoptic", width=20, command=self.open_panoptic)
+        self.open_button['state'] = "disabled"
+        self.open_button.pack(pady=10)
+
+        self.init_projects()
+
+    def init_projects(self):
         # TODO: si tout marche bien sortir tout le code suivant dans une fonction à part
         # Vérifier et créer les répertoires parents si nécessaire
         os.makedirs(os.path.dirname(PROJECT_PATH), exist_ok=True)
@@ -66,44 +116,25 @@ class MiniUI:
             with open(PROJECT_PATH, 'w') as json_file:
                 json.dump(self.projects, json_file)
 
-        self.combobox.bind("<<ComboboxSelected>>", self.load_project)
+        self.combo_box.bind("<<ComboboxSelected>>", self.load_project)
 
         # Récupérer les noms des projets dans une liste
         project_names = [project['name'] for project in self.projects['projects']]
 
         if project_names:
             # Mettre à jour la liste déroulante
-            self.combobox['values'] = project_names
+            self.combo_box['values'] = project_names
             # Sélectionner le premier projet par défaut s'il existe
-            self.combobox.current(0)
+            self.combo_box.current(0)
             self.selected_project = self.projects['projects'][0]
 
         if self.projects['last_opened'] is not None:
             index = project_names.index(self.projects['last_opened']['name'])
-            self.combobox.current(index)
+            self.combo_box.current(index)
             self.selected_project = self.projects['projects'][index]
 
         if self.selected_project:
             self.load_project()
-
-        self.server_status = tk.StringVar(value='starting...')
-
-        self.label2 = tk.Entry(master, textvariable=self.server_status, state='readonly')
-        self.label2.pack()
-
-        # Create a button to add new folders
-        self.button = tk.Button(master, text="Add Folder", command=self.add_folder)
-        self.button.pack()
-
-        # Create a listbox to display imported folders
-        self.listbox = tk.Listbox(master)
-        # self.listbox.insert(tk.END, "path/lala/lolo")
-        self.listbox.pack(fill=tk.BOTH, expand=True)
-
-        # Create a button to
-        self.open_button = tk.Button(master, text="Open Panoptic", command=self.open_panoptic)
-        self.open_button['state'] = "disabled"
-        self.open_button.pack()
 
     def init_folders(self):
         self.listbox.delete(0, tk.END)
@@ -164,16 +195,16 @@ class MiniUI:
 
         # Mettre à jour la liste déroulante
         project_names = [project['name'] for project in self.projects['projects']]
-        self.combobox['values'] = project_names
+        self.combo_box['values'] = project_names
 
         # Sélectionner le nouveau projet dans la liste déroulante
-        self.combobox.current(len(project_names) - 1)
+        self.combo_box.current(len(project_names) - 1)
         self.load_project()
 
     def load_project(self, event=None):
         if len(self.projects['projects']) == 0:
             return
-        self.selected_project = self.projects['projects'][self.combobox.current()]
+        self.selected_project = self.projects['projects'][self.combo_box.current()]
         os.environ['PANOPTIC_DATA'] = self.selected_project['path']
         path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini')
         if not os.path.exists(path):
