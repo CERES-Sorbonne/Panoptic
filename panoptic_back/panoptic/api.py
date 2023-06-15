@@ -19,7 +19,8 @@ from panoptic.core import create_property, create_tag, \
 from panoptic.core import db
 from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload, \
+    ChangeProjectPayload
 from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
@@ -203,10 +204,24 @@ async def start_pca_route():
     return await compute_all_pca(force=True)
 
 
-if not os.path.exists('mini'):
-    os.makedirs('mini')
+@app.post("/project")
+async def change_project_route(payload: ChangeProjectPayload):
+    os.environ['PANOPTIC_DATA'] = payload.project
+    await db_utils.init()
+    return f"changed project to {payload.project}"
 
-app.mount("/small/images/", StaticFiles(directory='mini'), name="static")
+@app.get('/small/images/{file_path:path}')
+async def get_image(file_path: str):
+    path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini', file_path)
+    async with aiofiles.open(path, 'rb') as f:
+        data = await f.read()
+
+    ext = path.split('.')[-1]
+
+    # # media_type here sets the media type of the actual response sent to the client.
+    return Response(content=data, media_type="image/" + ext)
+
+# app.mount("/small/images/", StaticFiles(directory=os.path.join('PANOPTIC_DATA', 'mini')), name="static")
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
 
 
