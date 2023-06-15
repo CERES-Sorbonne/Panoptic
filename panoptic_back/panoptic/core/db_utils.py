@@ -16,7 +16,7 @@ conn: aiosqlite.Connection | None = None
 
 async def init():
     global conn
-    conn = await aiosqlite.connect("panoptic.db", detect_types=sqlite3.PARSE_DECLTYPES)
+    conn = await aiosqlite.connect(os.path.join(os.environ['PANOPTIC_DATA'], "panoptic.db"), detect_types=sqlite3.PARSE_DECLTYPES)
     await create_tables_if_db_empty()
 
 

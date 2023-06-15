@@ -13,7 +13,7 @@ import glob
 from PIL import Image
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
-from transformers import AutoImageProcessor, MobileNetV2Model, CLIPVisionModel, CLIPProcessor
+from transformers import AutoImageProcessor, MobileNetV2Model
 # from .ocr import full_ocr
 from .utils import load_data
 

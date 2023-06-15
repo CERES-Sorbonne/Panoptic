@@ -8,6 +8,7 @@ from panoptic.models import ComputedValue
 
 os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', os.getcwd())
 
+
 def load_data(data_path=os.getenv('PANOPTIC_DATA')):
     if not data_path:
         raise ValueError("PANOPTIC_DATA was not set")
