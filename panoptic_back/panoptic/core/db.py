@@ -64,7 +64,7 @@ async def add_image(folder_id: int, name: str, extension: str, sha1: str, url: s
         url,
         width,
         height))
-    cursor = await execute_query(query)
+    cursor = await execute_query(query.get_sql())
     id_ = cursor.lastrowid
 
     return Image(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,

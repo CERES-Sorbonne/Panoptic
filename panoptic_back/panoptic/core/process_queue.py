@@ -87,7 +87,7 @@ class ImportImageQueue(ProcessQueue):
         image = image.convert('RGB')
         mini = image.copy()
         mini.thumbnail(size=(200, 200))
-        mini.save("mini/" + sha1_hash + '.jpeg', optimize=True, quality=30)
+        mini.save(os.path.join(os.environ['PANOPTIC_DATA'], "mini", sha1_hash + '.jpeg'), optimize=True, quality=30)
 
         del image
         del mini

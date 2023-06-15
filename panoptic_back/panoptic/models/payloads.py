@@ -52,3 +52,6 @@ class MakeClusterPayload(CamelModel):
 
 class GetSimilarImagesPayload(CamelModel):
     sha1_list: list[str]
+
+class ChangeProjectPayload(CamelModel):
+    project: str
