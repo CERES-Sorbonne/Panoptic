@@ -7,7 +7,7 @@ opencv-python
 pandas
 pytesseract
 scikit-learn
-tk
+pyqt5
 torch
 transformers
 uvicorn
