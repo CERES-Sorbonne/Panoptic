@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// import TagBadge from '../tagtree/TagBadge.vue';
 
 import { ref, computed, onMounted, onUnmounted, reactive, nextTick, watch } from 'vue'
 

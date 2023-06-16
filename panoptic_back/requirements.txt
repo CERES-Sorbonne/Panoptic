@@ -3,7 +3,6 @@ aiosqlite
 fastapi-camelcase
 fastapi
 imagehash
-numpy
 opencv-python
 pandas
 pytesseract
