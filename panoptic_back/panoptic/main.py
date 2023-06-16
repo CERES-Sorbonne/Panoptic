@@ -1,5 +1,7 @@
 import json
 import os
+import pathlib
+import sys
 import tkinter as tk
 import webbrowser
 import socket
@@ -12,6 +14,8 @@ from tkinter.filedialog import askdirectory
 import uvicorn
 import requests
 
+from panoptic.utils import get_datadir
+
 PORT = 8000
 HOST = False
 THREAD = None
@@ -21,8 +25,8 @@ def api(path):
 
 
 FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
-PROJECT_PATH = os.path.join(os.getenv("APPDATA"), "panoptic", "projects.json")
-
+PROJECT_PATH = get_datadir() / "panoptic" / "projects.json"
+PROJECT_PATH = PROJECT_PATH.as_posix()
 
 class MiniUI:
     def __init__(self, master):
