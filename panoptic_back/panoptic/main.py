@@ -94,7 +94,7 @@ class MiniUI:
 
         # Label2 centré dans la partie B
         self.server_status = tk.StringVar(value='starting...')
-        self.label2 = tk.Entry(frame_b, textvariable=self.server_status, state='readonly')
+        self.label2 = tk.Entry(frame_b, textvariable=self.server_status, state='readonly', width=30)
         self.label2.pack(pady=10)
 
         # Button centré dans la partie B
