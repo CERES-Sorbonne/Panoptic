@@ -3,7 +3,6 @@ import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, ref, unref } from 'vue'
 import StampDropdown from '../inputs/StampDropdown.vue'
-import TagBadge from '../tagtree/TagBadge.vue'
 import { UNDEFINED_KEY } from '@/utils/groups'
 import PropertyValue from '../properties/PropertyValue.vue'
 

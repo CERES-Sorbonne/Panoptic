@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
-import ImageVue from './Image.vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Group, GroupIndex, Image, PropertyType, PropertyValue, Recommendation } from '@/data/models';
+import { Image, Recommendation } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
-import { right } from '@popperjs/core';
 import { UNDEFINED_KEY } from '@/utils/groups';
 
 
