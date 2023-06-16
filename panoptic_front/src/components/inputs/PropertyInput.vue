@@ -5,7 +5,7 @@ import { globalStore } from '@/data/store';
 import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as inputTree from '@/utils/inputTree'
-import TagBadge from '../TagTree/TagBadge.vue'
+import TagBadge from '../tagtree/TagBadge.vue'
 
 const props = defineProps({
     property: Object as () => PropertyRef,

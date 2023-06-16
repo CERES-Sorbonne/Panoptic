@@ -2,7 +2,7 @@
 import { PropertyType, Tag } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { ref, computed, onMounted, nextTick } from 'vue';
-import TagBadge from '../TagTree/TagBadge.vue';
+import TagBadge from '../tagtree/TagBadge.vue';
 
 const props = defineProps({
     propertyId: { type: Number, required: true },
