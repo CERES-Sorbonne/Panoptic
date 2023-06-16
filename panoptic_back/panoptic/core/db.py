@@ -311,16 +311,18 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
     return updated_ids, json.loads(value)
 
 
-async def set_multiple_property_values(property_id: int, values: list[Any], images_ids: List[int] = None):
+async def set_multiple_property_values(property_id: int, values: list[Any], images_ids_or_sha1: List[int | str] = None):
     """
-    Set property values for several image_ids and several values, there must be as much ids than values
-    Should we update this function to accept also a list of sha1s ? maybe if we import a sha1 property file ?
+    Set property values for several image_ids / sha1 and several values, there must be as much ids / sha1 than values
     """
     t = Table('property_values')
     query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
-    query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
+    if isinstance(images_ids_or_sha1[0], str):
+        query = query.insert((property_id, -1, Parameter('?'), Parameter('?')))
+    else:
+        query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
     query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
-    await execute_query_many(query, [(id, json.dumps(value)) for id, value in zip(images_ids, values)])
+    await execute_query_many(query, [(id, json.dumps(value)) for id, value in zip(images_ids_or_sha1, values)])
 
 
 async def set_computed_value(sha1: str, ahash: str, vector: np.array):
