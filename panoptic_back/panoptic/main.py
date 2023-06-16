@@ -20,6 +20,7 @@ PORT = 8000
 HOST = False
 THREAD = None
 
+
 def api(path):
     return 'http://localhost:' + str(PORT) + '/' + path
 
@@ -27,6 +28,7 @@ def api(path):
 FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
 PROJECT_PATH = get_datadir() / "panoptic" / "projects.json"
 PROJECT_PATH = PROJECT_PATH.as_posix()
+
 
 class MiniUI:
     def __init__(self, master):
@@ -58,7 +60,7 @@ class MiniUI:
         self.combo_box = ttk.Combobox(frame_a1)
         self.combo_box.pack(pady=10, padx=5)
 
-        self.new_project_button = tk.Button(frame_a1, text="Nouveau projet",  command=self.create_project)
+        self.new_project_button = tk.Button(frame_a1, text="Nouveau projet", command=self.create_project)
         self.new_project_button.pack(pady=10)
 
         # Espacement entre A.1 et A.2
@@ -244,7 +246,8 @@ def start_thread():
 
 
 def start():
-    parser = argparse.ArgumentParser(description="Start Panoptic, use --host to share your panoptic across local network")
+    parser = argparse.ArgumentParser(
+        description="Start Panoptic, use --host to share your panoptic across local network")
     parser.add_argument('--host', action="store_true")
     args = parser.parse_args()
     global HOST
@@ -260,5 +263,7 @@ def start():
 
     root.mainloop()
 
+
 if __name__ == '__main__':
     start()
+
