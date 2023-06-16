@@ -121,7 +121,6 @@ class MiniUI(QMainWindow):
             with open(PROJECT_PATH, 'w') as json_file:
                 json.dump(self.projects, json_file)
 
-        self.combo_box.currentIndexChanged.connect(self.load_project)
 
         # Récupérer les noms des projets dans une liste
         project_names = [project['name'] for project in self.projects['projects']]
@@ -137,6 +136,8 @@ class MiniUI(QMainWindow):
             index = project_names.index(self.projects['last_opened']['name'])
             self.combo_box.setCurrentIndex(index)
             self.selected_project = self.projects['projects'][index]
+
+        self.combo_box.currentIndexChanged.connect(self.load_project)
 
         if self.selected_project:
             self.load_project()
@@ -159,6 +160,11 @@ class MiniUI(QMainWindow):
                     except:
                         pass
                 self.server_status.setText(message)
+                self.server_status.setStyleSheet("""
+                    QWidget {
+                        background-color: "green"
+                    }
+                """)
                 self.open_button.setEnabled(True)
             except Exception:
                 pass
