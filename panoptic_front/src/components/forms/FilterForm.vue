@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { Filter, FilterGroup, FilterOperator, Property } from '@/data/models';
-import FilterInputDropdown from '../inputs/FilterInputDropdown.vue';
 import GlobalFilterInputDropdown from '../inputs/GlobalFilterInputDropdown.vue';
-import { globalStore } from '@/data/store';
 import { defaultOperator } from '@/utils/filter';
 import PropertySelection from '../inputs/PropertySelection.vue';
-import { computed } from 'vue';
 
 const props = defineProps({
     filter: Object as () => FilterGroup

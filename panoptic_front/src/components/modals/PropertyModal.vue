@@ -4,8 +4,7 @@ import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
-import PropertyTypeDropdown from '@/components/Dropdowns/PropertyTypeDropdown.vue';
-import PropertyModeDropdown from '../Dropdowns/PropertyModeDropdown.vue';
+import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
 
 
 const modalElem = ref(null)

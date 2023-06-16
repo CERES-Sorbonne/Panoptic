@@ -2,7 +2,7 @@
 
 import { Tab } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { onMounted, reactive, ref, nextTick, unref } from 'vue';
+import {reactive, ref, nextTick } from 'vue';
 
 const editTab = ref(-1)
 const newTabName = ref('')

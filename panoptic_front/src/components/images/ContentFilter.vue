@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { Tab, TabState } from '@/data/models';
+import { Tab } from '@/data/models';
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
-import { computed } from 'vue';
-import axios from 'axios'
 import {apiStartPCA} from '../../data/api'
 
 

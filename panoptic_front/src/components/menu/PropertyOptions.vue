@@ -3,12 +3,10 @@ import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed, ref } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import TagTree from '../tagtree/TagTree.vue';
 import TagProperty from '../properties/TagProperty.vue';
 import { Filter } from '@/data/models';
 import { availableOperators } from '@/data/models';
 import { defaultOperator } from '@/utils/filter';
-import { Sort } from '@/data/models';
 
 
 const props = defineProps({

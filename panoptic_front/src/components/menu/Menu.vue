@@ -1,12 +1,9 @@
 <script setup lang="ts">
 
 import { globalStore } from '../../data/store';
-import * as models from '../../data/models'
-import TagProperty from '../properties/TagProperty.vue';
-import Property from '../properties/Property.vue';
 import { Modals } from '../../data/models';
 import { reactive, ref } from 'vue';
-import FolderList from '../FolderTree/FolderList.vue';
+import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
 
 

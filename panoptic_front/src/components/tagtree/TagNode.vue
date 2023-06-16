@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import TagNode from './TagNode.vue'
 import { globalStore } from '../../data/store';
 
 const emits = defineEmits(['propagate-unselect'])
