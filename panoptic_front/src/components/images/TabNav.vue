@@ -10,7 +10,7 @@ const inputElem = ref(null)
 
 function select(id: number) {
     if (globalStore.selectedTab == id) {
-        setEditTab(id)
+        // setEditTab(id)
     }
     else {
         endEdit()
@@ -52,8 +52,11 @@ const editId = ref(-1)
                 @mouseleave="e => hover[tab.id] = false">
                 <!-- <i class="btn-icon bi bi-pencil tab-icon me-2" :class="hover[tab.id] ? '' : 'hidden'" style="font-size: 9px;"></i> -->
                 <template v-if="editTab != tab.id">
+                    <i @click="setEditTab(tab.id)" class="bi bi-pencil me-1 tab-icon" :class="(hover[tab.id] && globalStore.selectedTab == tab.id)? '' : 'hidden'" style="font-size: 10px;"></i>
                     <div class="tab-button" :class="(tab.id == globalStore.selectedTab ? ' active' : '')"
-                        @click="select(tab.id)"><span>{{ tab.name }}</span></div>
+                        @click="select(tab.id)">
+                        <span>{{ tab.name }}</span>
+                    </div>
                     <i @click="deleteTab(tab)" class="btn-icon bi bi-x tab-icon" style="font-size: 15px;"
                         :class="hover[tab.id] ? '' : 'hidden'"></i>
                 </template>
