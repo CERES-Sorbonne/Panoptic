@@ -124,35 +124,47 @@ async def add_property_to_images(property_id: int, sha1_list: list[str], value: 
 
 
 async def read_properties_file(data: pandas.DataFrame):
-    filenames, ids = zip(*[(i.name, i.id) for i in await db.get_images()])
-    matcher = dict(zip(filenames, ids))
+    filenames, ids, sha1 = zip(*[(i.name, i.id, i.sha1) for i in await db.get_images()])
+
+    # if there are no duplicates them lets assume the props are sha1
+    if data.duplicated('key').sum() == 0:
+        prop_mode = "sha1"
+        matcher = dict(zip(filenames, sha1))
+    else:
+        prop_mode = "id"
+        matcher = dict(zip(filenames, ids))
     data = data[data.key.isin(filenames)]
     # data = data.drop_duplicates(subset='key', keep='first')
-    # add property id to the dataframe
+    # add panoptic id or sha1 to the dataframe
     data.loc[data.index, 'panoptic_id'] = data['key'].map(matcher)
 
     # first, create new images where ids are the same
     unique_ids = list(data.panoptic_id.unique())
     clones_created = 0
     # TODO: create clones all at once ? it's tricky with the ids to update
-    for id in tqdm(unique_ids):
-        sub_data = data[data.panoptic_id == id]
-        image = await db.get_images([id])
-        image = image[0]
-        new_ids = await db.create_clones(image, sub_data.shape[0] - 1)
-        clones_created += len(new_ids)
-        data.loc[data.panoptic_id == id, "panoptic_id"] = [image.id, *new_ids]
-    logging.getLogger('panoptic').info(f"created {clones_created} new images")
+    if prop_mode == "id":
+        for id in tqdm(unique_ids):
+            sub_data = data[data.panoptic_id == id]
+            # create clones only if needed
+            if len(list(sub_data.panoptic_id)) == 0:
+                continue
+            image = await db.get_images([id])
+            image = image[0]
+            new_ids = await db.create_clones(image, sub_data.shape[0] - 1)
+            clones_created += len(new_ids)
+            data.loc[data.panoptic_id == id, "panoptic_id"] = [image.id, *new_ids]
+        logging.getLogger('panoptic').info(f"created {clones_created} new images")
     properties_to_create = data.columns.tolist()
 
     # then for each property to create
     for prop in properties_to_create:
         if prop == "key" or prop == "panoptic_id":
             continue
+
         # create the property
         prop_name, prop_type = prop.split('[')
         prop_type = PropertyType(prop_type.split(']')[0])
-        property = await create_property(prop_name, prop_type)
+        property = await create_property(prop_name, prop_type, prop_mode)
         # then get all possible values to insert
         prop_values = list(data[prop].unique())
 

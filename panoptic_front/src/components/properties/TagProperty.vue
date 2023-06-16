@@ -3,7 +3,7 @@
 import { reactive, computed, onMounted, watch } from 'vue';
 import { globalStore } from '@/data/store';
 import { Property, TreeTag } from '../../data/models';
-import TagTree from '../TagTree/TagTree.vue';
+import TagTree from '../tagtree/TagTree.vue';
 
 interface NodeState extends TreeTag{
     expanded: boolean
