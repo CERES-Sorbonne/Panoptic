@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onUnmounted, reactive, nextTick, watch } from
 
 import { globalStore } from '../../data/store'
 import { PropertyRef, Tag } from '@/data/models';
-import TagBadge from '../TagTree/TagBadge.vue';
+import TagBadge from '../tagtree/TagBadge.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as boostrap from 'bootstrap'
 import * as inputTree from '@/utils/inputTree'
