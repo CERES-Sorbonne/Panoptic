@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { globalStore } from '@/data/store';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
+import { Sort } from '@/data/models';
 
 
 const props = defineProps({
     groupIds: Array<number>,
+    sorts: Array<Sort>,
     isLoading: Boolean
 })
 
 
 const selectedProperties = computed(() => props.groupIds.map(id => globalStore.properties[id]))
+
+onMounted(() => {
+    if(props.groupIds) {
+        props.groupIds.forEach(id => globalStore.addGrouping(id))
+    }
+})
 
 </script>
 
@@ -20,7 +28,7 @@ const selectedProperties = computed(() => props.groupIds.map(id => globalStore.p
         <div class="bg-medium d-flex flex-row rounded m-0 p-0">
             <template v-for="property, index in selectedProperties">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
-                <div class="btn btn-sm no-border" @click="props.groupIds.splice(index, 1)">
+                <div class="btn btn-sm no-border" @click="globalStore.delGrouping(property.id)">
                     {{ property.name }}
                 </div>
             </template>

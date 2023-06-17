@@ -337,7 +337,28 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         if(groups.length >= MAX_GROUPS) {
             groups.pop()
         }
-        groups.push(propertyId)
+        let index = groups.indexOf(propertyId)
+        if(index < 0) {
+            groups.push(propertyId)
+            index = groups.length - 1
+        }
+        
+        const sorts = globalStore.getTab().data.sortList
+        if(!sorts[index] || sorts[index].property_id != propertyId || !sorts[index].isGroup) {
+            const newSort = {property_id: propertyId, ascending: true, isGroup: true, byGroupSize: false}
+            globalStore.getTab().data.sortList = [...sorts.slice(0, index).filter(s => s.property_id != propertyId), newSort, ...sorts.slice(index).filter(s => s.property_id != propertyId)]
+        }
+    },
+    delGrouping(property_id: number) {
+        const groups = globalStore.getTab().data.groups
+        const index = groups.indexOf(property_id)
+        if(index < 0) {
+            return
+        }
+
+
+        groups.splice(index, 1)
+        globalStore.getTab().data.sortList.splice(index,1)
     }
 })
 
