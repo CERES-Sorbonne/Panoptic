@@ -316,7 +316,13 @@ export interface TabRequest {
 
 export interface Sort {
     property_id: number,
-    ascending: boolean
+    ascending: boolean,
+    isGroup?: boolean
+    byGroupSize?: boolean
+}
+
+export interface SortIndex {
+    [key: number] : Sort
 }
 
 export interface Group {

@@ -2,7 +2,7 @@
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import { Group, Tab, GroupData, PropertyValue } from '@/data/models';
+import { Group, Tab, GroupData, PropertyValue, SortIndex } from '@/data/models';
 import ContentFilter from './ContentFilter.vue';
 import { sortGroupTree, sortImages } from '@/utils/sort';
 import ImageList from './ImageList.vue';
@@ -63,14 +63,6 @@ const filteredImages = computed(() => {
     }
 
     let filtered = images.filter(img => computeGroupFilter(img, filters.value))
-
-    if (sorts.value.length > 0) {
-        filtered = sortImages(filtered, globalStore.properties[sorts.value[0].property_id])
-        if (!sorts.value[0].ascending) {
-            filtered.reverse()
-        }
-    }
-
     return filtered
 })
 
@@ -101,7 +93,8 @@ function computeGroups(force = false) {
         groupData.index = index
         groupData.root = rootGroup
         groupData.order = []
-        sortGroupTree(groupData.root, groupData.order)
+
+        sortGroups()
 
         console.timeEnd('compute groups')
 
@@ -109,6 +102,20 @@ function computeGroups(force = false) {
             nextTick(imageList.value.computeLines)
 
         computeStatus.groups = false
+    })
+}
+
+function sortGroups() {
+    const sortIndex: SortIndex = {}
+    sorts.value.forEach(s => sortIndex[s.property_id] = s)
+
+    sortGroupTree(groupData.root, groupData.order, sortIndex)
+
+    Object.keys(groupData.index).forEach(key => {
+        const group = groupData.index[key]
+        if (Array.isArray(group.images) && group.images.length > 0) {
+            sortImages(group.images, sorts.value.slice(groups.value.length))
+        }
     })
 }
 
@@ -149,7 +156,10 @@ watch(groups, () => {
         closeReco()
     }
 }, { deep: true })
-watch(sorts, () => computeGroups(), { deep: true })
+watch(sorts, () => {
+    sortGroups()
+    imageList.value.computeLines()
+}, { deep: true })
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 
 
