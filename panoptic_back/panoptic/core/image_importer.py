@@ -62,7 +62,7 @@ class ImageImporter:
             self._compute_queue.add_task(image.id)
 
             if self._import_queue.done():
-                self._compute_queue.start_workers(6)
+                self._compute_queue.start_workers(12)
 
         def on_compute(vector: ComputedValue):
             self.current_computed += 1
