@@ -91,7 +91,7 @@ class ImportImageQueue(ProcessQueue):
 
         del image
         del mini
-        gc.collect()
+        # gc.collect()
 
         return sha1_hash, url, width, height
 
@@ -113,7 +113,7 @@ class ComputeVectorsQueue(ProcessQueue):
         res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
 
         del vector
-        gc.collect()
+        # gc.collect()
         print('computed image: ', image_id, '  :  ', res.sha1)
         return res
 
@@ -126,6 +126,6 @@ class ComputeVectorsQueue(ProcessQueue):
         vector = compute.to_vector(image)
 
         del image
-        gc.collect()
+        # gc.collect()
 
         return ahash, vector
