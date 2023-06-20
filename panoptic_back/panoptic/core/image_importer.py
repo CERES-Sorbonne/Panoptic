@@ -1,3 +1,4 @@
+import asyncio
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -6,6 +7,7 @@ from typing import List
 from panoptic.core import db
 from panoptic.core.process_queue import ImportImageQueue, ComputeVectorsQueue
 from panoptic.models import Folder, ImageImportTask, Image, ComputedValue
+from panoptic.scripts.to_pca import compute_all_pca
 
 
 class ImageImporter:
@@ -23,6 +25,8 @@ class ImageImporter:
 
         self._import_queue = ImportImageQueue(executor)
         self._compute_queue = ComputeVectorsQueue(executor)
+        self._pca_task: asyncio.Task | None = None
+        self._auto_pca = False
 
         self._new_images = []
     # def _reset_counters(self):
@@ -40,6 +44,8 @@ class ImageImporter:
             self.current_computed = 0
             self.total_import = 0
             self.current_import = 0
+
+        self._auto_pca = False
 
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
@@ -60,6 +66,10 @@ class ImageImporter:
 
         def on_compute(vector: ComputedValue):
             self.current_computed += 1
+            if self._compute_queue.done() and not self._auto_pca:
+                self._auto_pca = True
+                print('would run pca now')
+                # self._pca_task = asyncio.create_task(compute_all_pca(force=False))
 
         self._import_queue.done_callback = on_import
         self._compute_queue.done_callback = on_compute
