@@ -233,7 +233,7 @@ def launch_uvicorn():
     app.add_event_handler('startup', on_fastapi_start)
     app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
     if HOST:
-        uvicorn.run(app, host="0.0.0.0")
+        uvicorn.run(app, host="0.0.0.0", port=PORT)
     else:
         uvicorn.run(app)
 
