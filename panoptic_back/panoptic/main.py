@@ -1,7 +1,5 @@
 import json
 import os
-import pathlib
-import sys
 import tkinter as tk
 import webbrowser
 import socket

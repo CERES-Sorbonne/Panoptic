@@ -13,7 +13,7 @@ from tqdm import tqdm
 from panoptic.core import db
 from panoptic import compute
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue
+    UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue, Clusters
 from .image_importer import ImageImporter
 from .image_importer import ImageImporter
 
@@ -92,14 +92,15 @@ async def get_full_images(image_ids: List[int] = None) -> List[Image]:
     return images
 
 
-async def make_clusters(sensibility: float, sha1s: [str]) -> list[list[str]]:
+async def make_clusters(sensibility: float, sha1s: [str]) -> Clusters:
     """
     Compute clusters and return a list of lists of sha1
     """
     if not sha1s:
         return []
     values = await db.get_sha1_computed_values(sha1s)
-    return compute.make_clusters(values, method="kmeans", nb_clusters=sensibility)
+    clusters, distances = compute.make_clusters(values, method="kmeans", nb_clusters=sensibility)
+    return Clusters(clusters=clusters, distances=distances)
 
 
 async def get_similar_images(sha1s: list[str]):
