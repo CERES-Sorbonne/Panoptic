@@ -20,7 +20,7 @@ from panoptic.core import db
 from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload, \
-    ChangeProjectPayload
+    ChangeProjectPayload, Clusters
 from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
@@ -190,7 +190,7 @@ async def delete_tab_route(tab_id: int):
 
 
 @app.post("/clusters")
-async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
+async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 

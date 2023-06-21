@@ -96,6 +96,11 @@ class Tab(BaseModel):
     data: dict | None
 
 
+@dataclass(slots=True)
+class Clusters:
+    clusters: list[list[str]]
+    distances: list[int]
+
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
 Properties: TypeAlias = dict[int, Property]

@@ -57,6 +57,8 @@ function getTag(propId: number, tagId: number) {
 async function computeClusters() {
     let sha1 = group.value.images.map(img => img.sha1)
     let mlGroups = await globalStore.computeMLGroups(sha1, props.item.nbClusters)
+    let distances = mlGroups.distances
+    mlGroups = mlGroups.clusters
     // props.item.data.groups = []
 
     let groups = []
@@ -64,7 +66,7 @@ async function computeClusters() {
         let images = globalStore.getOneImagePerSha1(sha1s)
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index),
-            name: 'cluster ' + index.toString(),
+            name: 'cluster ' + index.toString() + (distances.length > 0 ? ' ' + distances[index].toString() : ''),
             images: images,
             count: sha1s.length,
             groups: undefined,
