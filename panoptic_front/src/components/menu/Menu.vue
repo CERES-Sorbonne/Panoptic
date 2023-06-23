@@ -2,7 +2,7 @@
 
 import { globalStore } from '../../data/store';
 import { Modals } from '../../data/models';
-import { reactive, ref } from 'vue';
+import { ref } from 'vue';
 import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
 
