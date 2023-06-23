@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pickle
+import sys
 
 import faiss
 import numpy as np
@@ -11,7 +12,7 @@ from panoptic.core import db, db_utils
 from panoptic.models import ComputedValue
 
 async def compute_faiss_index(force=False):
-    os.environ['PANOPTIC_DATA'] = 'D:\\Alie\\Documents\\panoptic_GJ\\'
+    os.environ['PANOPTIC_DATA'] = '/Users/david/panoptic-projects/faiss'
     await db_utils.init()
     all_images: list[ComputedValue] = await db.get_sha1_computed_values()
     create_similarity_tree_faiss(all_images)

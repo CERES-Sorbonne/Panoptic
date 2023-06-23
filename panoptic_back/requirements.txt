@@ -14,4 +14,4 @@ uvicorn
 python-multipart
 pypika
 orjson
-faiss
+faiss-cpu
