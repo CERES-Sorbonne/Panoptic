@@ -57,19 +57,18 @@ class ImageImporter:
 
         self.status = 'compute'
 
-        def on_import(image: Image):
+        def on_import(image: Image, is_last):
             self.current_import += 1
             self._compute_queue.add_task(image.id)
 
             if self._import_queue.done():
                 self._compute_queue.start_workers(12)
 
-        def on_compute(vector: ComputedValue):
+        def on_compute(vector: ComputedValue, is_last):
             self.current_computed += 1
-            if self._compute_queue.done() and not self._auto_pca:
-                self._auto_pca = True
-                print('would run pca now')
-                # self._pca_task = asyncio.create_task(compute_all_pca(force=False))
+            if is_last:
+                # print('would run pca now')
+                self._pca_task = asyncio.create_task(compute_all_pca(force=False))
 
         self._import_queue.done_callback = on_import
         self._compute_queue.done_callback = on_compute

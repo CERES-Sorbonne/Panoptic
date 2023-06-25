@@ -26,9 +26,9 @@ const emits = defineEmits(['compute-ml'])
         <div>
             <RangeInput :min="50" :max="500" v-model="props.tab.data.imageSize" />
         </div>
-        <div class="ms-5">
+        <!-- <div class="ms-5">
             <button class="me-2" @click="apiStartPCA">PCA</button>
-        </div>
+        </div> -->
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
     <div class="d-flex flex-wrap content-container">
