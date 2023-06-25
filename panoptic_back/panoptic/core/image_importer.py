@@ -7,7 +7,7 @@ from typing import List
 from panoptic.core import db
 from panoptic.core.process_queue import ImportImageQueue, ComputeVectorsQueue
 from panoptic.models import Folder, ImageImportTask, Image, ComputedValue
-from panoptic.scripts.to_pca import compute_all_pca
+from panoptic.scripts.create_faiss_index import compute_faiss_index
 
 
 class ImageImporter:
@@ -62,13 +62,13 @@ class ImageImporter:
             self._compute_queue.add_task(image.id)
 
             if self._import_queue.done():
-                self._compute_queue.start_workers(12)
+                self._compute_queue.start_workers(6)
 
         def on_compute(vector: ComputedValue, is_last):
             self.current_computed += 1
             if is_last:
                 # print('would run pca now')
-                self._pca_task = asyncio.create_task(compute_all_pca(force=False))
+                self._pca_task = asyncio.create_task(compute_faiss_index())
 
         self._import_queue.done_callback = on_import
         self._compute_queue.done_callback = on_compute

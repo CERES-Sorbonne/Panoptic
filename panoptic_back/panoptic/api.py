@@ -199,9 +199,9 @@ async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
     return await get_similar_images(payload.sha1_list)
 
 
-@app.post("/pca")
-async def start_pca_route():
-    return await compute_all_pca(force=True)
+# @app.post("/pca")
+# async def start_pca_route():
+#     return await compute_all_pca(force=True)
 
 
 @app.post("/project")
