@@ -35,7 +35,7 @@ export function computeSubgroups(parentGroup: Group, groupList: number[], index:
 
     for (let img of images) {
         let value = propertyId in img.properties ? img.properties[propertyId].value : UNDEFINED_KEY
-        if (value == null || value == '') {
+        if (value == null || value === '') {
             value = UNDEFINED_KEY
         }
         else if (type == PropertyType.checkbox && value != true) {
