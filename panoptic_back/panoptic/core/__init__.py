@@ -58,6 +58,9 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
         if value and not isinstance(value, list):
             value = [int(value)]
 
+    if prop.type == PropertyType.checkbox:
+        value = True if value == 'true' or value is True else False
+
     return await db.set_property_values(property_id, value, image_ids, sha1s)
 
 
