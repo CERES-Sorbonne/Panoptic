@@ -1,8 +1,10 @@
+import math
 import os
 import pickle
 
 import faiss
 import numpy as np
+from faiss import index_factory
 from sklearn.neighbors import KDTree
 
 from panoptic.models import ComputedValue
@@ -59,8 +61,19 @@ class SimilarityTreeWithLabel:
 class SimilarityFaissWithLabel:
     def __init__(self, images: list[ComputedValue]):
         vectors, sha1_list = zip(*[(i.vector, i.sha1) for i in images])
+        vectors = np.asarray(vectors)
         self.image_labels = sha1_list
-        self.tree = faiss.IndexFlatL2(len(vectors[0]))
+        # create the faiss index based on this post: https://anttihavanko.medium.com/building-image-search-with-openai-clip-5a1deaa7a6e2
+        nb_vectors = vectors.shape[0]
+        vector_size = vectors.shape[1]
+        # reduce vector size only if we have more than 100k images otherwise it's not worth it since we lose accuracy
+        if nb_vectors < 100000:
+            index = faiss.IndexFlatL2(vector_size)
+        else:
+            cells = min(round(math.sqrt(nb_vectors)), int(nb_vectors / 39))
+            index = index_factory(vector_size, f"IVF{cells},PQ16np")
+            index.train(vectors)
+        self.tree = index
         self.tree.add(np.asarray(vectors))
 
     def query(self, image: np.ndarray):
