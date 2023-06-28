@@ -1,16 +1,60 @@
+import math
 import os
 import pickle
 from typing import Union
 
 import faiss
 import numpy as np
+from faiss import index_factory
 from sklearn.cluster import DBSCAN, KMeans, estimate_bandwidth, MeanShift
+from sklearn.neighbors import KDTree
 
-from panoptic.compute.utils import load_similarity_tree, SimilarityTreeWithLabel, SimilarityFaissWithLabel
+from panoptic.compute.transform import transformer
+from panoptic.compute.utils import load_similarity_tree
 from panoptic.models import ComputedValue
 
-SIMILARITY_TREE: SimilarityTreeWithLabel = load_similarity_tree()
+class SimilarityTreeWithLabel:
+    def __init__(self, images: list[ComputedValue]):
+        vectors, sha1_list = zip(*[(i.vector, i.sha1) for i in images])
+        self.image_labels = sha1_list
+        self.tree = KDTree(vectors)
 
+    def query(self, image: np.ndarray, k=500):
+        dist, ind = self.tree.query(image.reshape(1, -1), k)
+        indices = [x for x in ind[0]]
+        distances = [x for x in dist[0]]
+        return [{'sha1': self.image_labels[i], 'dist': float('%.2f' % (distances[index]))} for index, i in enumerate(indices)]
+
+
+class SimilarityFaissWithLabel:
+    def __init__(self, images: list[ComputedValue]):
+        vectors, sha1_list = zip(*[(i.vector, i.sha1) for i in images])
+        vectors = np.asarray(vectors)
+        faiss.normalize_L2(vectors)
+        self.image_labels = sha1_list
+        # create the faiss index based on this post: https://anttihavanko.medium.com/building-image-search-with-openai-clip-5a1deaa7a6e2
+        nb_vectors = vectors.shape[0]
+        vector_size = vectors.shape[1]
+        # reduce vector size only if we have more than 100k images otherwise it's not worth it since we lose accuracy
+        if nb_vectors < 100000:
+            index = faiss.IndexFlatIP(vector_size)
+        else:
+            cells = min(round(math.sqrt(nb_vectors)), int(nb_vectors / 39))
+            index = index_factory(vector_size, f"IVF{cells},PQ16np")
+            index.train(vectors)
+            index.nprobe = 10
+        self.tree = index
+        self.tree.add(np.asarray(vectors))
+
+    def query(self, image: np.ndarray, k=500):
+        faiss.normalize_L2(image)
+        vector = image.reshape(1, -1)
+        dist, ind = self.tree.search(vector, k) # len(self.image_labels))
+        indices = [x for x in ind[0]]
+        distances = [x for x in dist[0]]
+        return [{'sha1': self.image_labels[i], 'dist': float('%.2f' % (distances[index]))} for index, i in enumerate(indices)]
+
+SIMILARITY_TREE: SimilarityTreeWithLabel = load_similarity_tree()
 
 def create_similarity_tree(images: list[ComputedValue]):
     tree = SimilarityTreeWithLabel(images)
@@ -28,11 +72,17 @@ def create_similarity_tree_faiss(images: list[ComputedValue]):
     SIMILARITY_TREE = tree
 
 
+async def get_similar_images_from_text(input_text: str):
+    if transformer.can_handle_text:
+        vec = transformer.to_text_vector(input_text)
+        return SIMILARITY_TREE.query(vec)
+
+
 def get_similar_images(vectors: list[np.ndarray]):
     if not SIMILARITY_TREE:
         raise ValueError("Cannot compute image similarity since KDTree was not computed yet")
     vector = np.mean(vectors, axis=0)
-    return SIMILARITY_TREE.query(vector)
+    return SIMILARITY_TREE.query(np.asarray([vector]))
 
 
 def make_clusters(images: list[ComputedValue], *, method='kmeans', **kwargs) -> (list[list[str]], list[int]):

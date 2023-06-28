@@ -13,6 +13,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from panoptic import core
+from panoptic.compute.similarity import get_similar_images_from_text
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values
@@ -20,7 +21,7 @@ from panoptic.core import db
 from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload, \
-    ChangeProjectPayload, Clusters
+    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload
 from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
@@ -194,10 +195,13 @@ async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 
-@app.post("/similar")
+@app.post("/similar/image")
 async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
     return await get_similar_images(payload.sha1_list)
 
+@app.post("/similar/text")
+async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
+    return await get_similar_images_from_text(payload.input_text)
 
 # @app.post("/pca")
 # async def start_pca_route():
@@ -209,6 +213,7 @@ async def change_project_route(payload: ChangeProjectPayload):
     os.environ['PANOPTIC_DATA'] = payload.project
     await db_utils.init()
     return f"changed project to {payload.project}"
+
 
 @app.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
