@@ -2,7 +2,7 @@ import { computed, reactive } from 'vue'
 import {
     apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiSetPropertyValue, apiUpdateTag, apiAddFolder,
     apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
-    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile
+    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile, apiGetSimilarImagesFromText
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
@@ -318,6 +318,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const res = await apiGetSimilarImages(sha1)
         return res
     },
+
+    async getSimilarImagesFromText(inputText: string){
+        return await apiGetSimilarImagesFromText(inputText)
+    },
+
     getFolderChildren(folderId: number) {
         let res = {} as { [key: number]: boolean }
         let children = this.folders[folderId].children
