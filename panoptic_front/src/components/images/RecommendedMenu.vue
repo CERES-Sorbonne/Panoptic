@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, Recommendation } from '@/data/models';
+import { Image, PropertyType, Recommendation } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import { UNDEFINED_KEY } from '@/utils/groups';
@@ -34,7 +34,8 @@ function removeImage(sha1: string) {
 function acceptRecommend(image: Image) {
     props.reco.values.forEach(v => {
         if(v.value != UNDEFINED_KEY) {
-            globalStore.setPropertyValue(v.propertyId, image, v.value)
+            let mode = globalStore.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
+            globalStore.setPropertyValue(v.propertyId, image, v.value, mode)
         }
     })
     removeImage(image.sha1)

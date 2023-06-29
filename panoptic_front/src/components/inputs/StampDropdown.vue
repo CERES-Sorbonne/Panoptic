@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image } from '@/data/models';
+import { Image, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { onMounted, reactive, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
@@ -24,9 +24,10 @@ function clear() {
 }
 
 function apply() {
-    Object.keys(stamp).forEach( propId => {
+    Object.keys(stamp).map(Number).forEach( propId => {
         let value = stamp[propId]
-        globalStore.setPropertyValue(propId, props.images, value)
+        let mode = globalStore.properties[propId].type == PropertyType.multi_tags ? 'add' : null
+        globalStore.setPropertyValue(propId, props.images, value, mode)
     });
     close()
 }
