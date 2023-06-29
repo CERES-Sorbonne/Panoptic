@@ -5,7 +5,7 @@ from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-from fastapi import FastAPI, Query, UploadFile
+from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
@@ -15,13 +15,13 @@ from starlette.staticfiles import StaticFiles
 from panoptic import core
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values
+    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
+    add_property_values
 from panoptic.core import db
-from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
+from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload, \
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
     ChangeProjectPayload, Clusters
-from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
 app.add_middleware(
@@ -95,7 +95,12 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
-    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
+    if payload.mode == 'add':
+        updated, value = await add_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
+                                                   sha1s=payload.sha1s, value=payload.value)
+    else:
+        updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
+                                                   sha1s=payload.sha1s, value=payload.value)
     return {'updated_ids': updated, 'value': value}
 
 
@@ -117,6 +122,7 @@ async def add_tag(payload: AddTagPayload) -> Tag:
 async def get_tags_route(property: Optional[str] = None):
     tags = await get_tags(property)
     return ORJSONResponse(tags)
+
 
 @app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
@@ -210,6 +216,7 @@ async def change_project_route(payload: ChangeProjectPayload):
     await db_utils.init()
     return f"changed project to {payload.project}"
 
+
 @app.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
     path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini', file_path)
@@ -220,6 +227,7 @@ async def get_image(file_path: str):
 
     # # media_type here sets the media type of the actual response sent to the client.
     return Response(content=data, media_type="image/" + ext)
+
 
 # app.mount("/small/images/", StaticFiles(directory=os.path.join('PANOPTIC_DATA', 'mini')), name="static")
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")

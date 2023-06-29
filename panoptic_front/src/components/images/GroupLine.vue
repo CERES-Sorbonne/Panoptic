@@ -173,7 +173,8 @@ function closeChildren() {
                 <div class="button" @click="clear">Clear</div>
             </div>
         </div>
-        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children"
+
+        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-1 text-secondary align-self-center close-children"
             @click="closeChildren">
             Reduire
         </div>
@@ -184,7 +185,6 @@ function closeChildren() {
 <style scoped>
 .close-children {
     font-size: 11px;
-    line-height: 25px;
     cursor: pointer;
 }
 

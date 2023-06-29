@@ -47,13 +47,13 @@ export const apiAddProperty = async(name: string, type: PropertyType, mode: Prop
     return res.data
 }
 
-export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] | undefined, sha1s: string[] | undefined, value: any):Promise<PropertyValueUpdate> => {
+export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] | undefined, sha1s: string[] | undefined, value: any, mode: string = null):Promise<PropertyValueUpdate> => {
     // only arrays are tags lists
     if(Array.isArray(value)) {
         value = value.map(Number)
     }
     // console.log({imageIds, sha1s, propertyId, value})
-    const res = await axios.post('/image_property', {imageIds, sha1s, propertyId, value})
+    const res = await axios.post('/image_property', {imageIds, sha1s, propertyId, value, mode})
     // console.log(res.data)
     return res.data
 }
