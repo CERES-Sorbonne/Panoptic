@@ -1,5 +1,7 @@
 import json
 import os
+import pathlib
+import sys
 import tkinter as tk
 import webbrowser
 import socket
@@ -14,7 +16,7 @@ import requests
 
 from panoptic.utils import get_datadir
 
-PORT = 8000
+PORT = 8123
 HOST = False
 THREAD = None
 
@@ -225,11 +227,23 @@ def on_fastapi_start():
     t1 = Thread(target=ui.init_folders)
     t1.start()
 
+def init_folders_server():
+    os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', (pathlib.Path.home() / 'panoptic').as_posix())
+    path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini')
+    if not os.path.exists(path):
+        os.makedirs(path)
+    # requests.post(api("project"), json={"project": projects['projects'][0]['path']})
+    requests.post(api('folders'), headers={"Content-type": "application/json"}, json={"path": FOLDER}).json()
+
+def on_fastapi_start_server():
+    t1 = Thread(target=init_folders_server)
+    t1.start()
 
 def launch_uvicorn():
     from panoptic.api import app
-    app.add_event_handler('startup', on_fastapi_start)
-    app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
+    app.add_event_handler('startup', on_fastapi_start if not SERVER else on_fastapi_start_server)
+    if not SERVER:
+        app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
     if HOST:
         uvicorn.run(app, host="0.0.0.0", port=PORT)
     else:
@@ -247,19 +261,35 @@ def start():
     parser = argparse.ArgumentParser(
         description="Start Panoptic, use --host to share your panoptic across local network")
     parser.add_argument('--host', action="store_true")
+    parser.add_argument('--server', action="store_true")
+    parser.add_argument('--folder', type=str)
+
     args = parser.parse_args()
     global HOST
+    global SERVER
+    global FOLDER
     HOST = args.host
-    root = tk.Tk()
-    try:
-        root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
-    except:
-        pass
+    SERVER = args.server
+    FOLDER = args.folder
 
-    global ui
-    ui = MiniUI(root)
+    if not SERVER:
+        root = tk.Tk()
+        try:
+            root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
+        except:
+            pass
 
-    root.mainloop()
+        global ui
+        ui = MiniUI(root)
+
+        root.mainloop()
+    else:
+        if not FOLDER:
+            print("folder parameter need to be fullfilled in server mode")
+            sys.exit(0)
+        launch_uvicorn()
+
+
 
 
 if __name__ == '__main__':
