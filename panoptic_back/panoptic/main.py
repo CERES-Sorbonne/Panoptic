@@ -161,8 +161,8 @@ class MiniUI:
                         pass
                 ui.server_status.set(message)
                 ui.open_button['state'] = "normal"
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
             sleep(0.5)
 
     def add_folder(self):
@@ -227,6 +227,7 @@ def on_fastapi_start():
     t1 = Thread(target=ui.init_folders)
     t1.start()
 
+
 def init_folders_server():
     os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', (pathlib.Path.home() / 'panoptic').as_posix())
     path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini')
@@ -235,9 +236,11 @@ def init_folders_server():
     # requests.post(api("project"), json={"project": projects['projects'][0]['path']})
     requests.post(api('folders'), headers={"Content-type": "application/json"}, json={"path": FOLDER}).json()
 
+
 def on_fastapi_start_server():
     t1 = Thread(target=init_folders_server)
     t1.start()
+
 
 def launch_uvicorn():
     from panoptic.api import app
@@ -247,7 +250,7 @@ def launch_uvicorn():
     if HOST:
         uvicorn.run(app, host="0.0.0.0", port=PORT)
     else:
-        uvicorn.run(app)
+        uvicorn.run(app, port=PORT)
 
 
 def start_thread():
@@ -290,8 +293,5 @@ def start():
         launch_uvicorn()
 
 
-
-
 if __name__ == '__main__':
     start()
-
