@@ -16,7 +16,7 @@ import requests
 
 from panoptic.utils import get_datadir
 
-PORT = 8000
+PORT = 8123
 HOST = False
 THREAD = None
 
@@ -228,24 +228,7 @@ def on_fastapi_start():
     t1.start()
 
 def init_folders_server():
-    os.makedirs(os.path.dirname(PROJECT_PATH), exist_ok=True)
-
-    # Vérifier si le fichier JSON existe
-    if os.path.exists(PROJECT_PATH):
-        # Lire le fichier JSON
-        with open(PROJECT_PATH) as json_file:
-            projects = json.load(json_file)
-    else:
-        projects = {'projects': [], 'last_opened': None}
-        # Créer un fichier JSON avec une liste vide
-        with open(PROJECT_PATH, 'w') as json_file:
-            json.dump(projects, json_file)
-    if len(projects['projects']) == 0:
-        with open(PROJECT_PATH, 'w') as f:
-            new_project = {'name': "panoptic", 'path': (pathlib.Path.home() / 'panoptic').as_posix()}
-            projects['projects'].append(new_project)
-            json.dump(projects, f)
-    os.environ['PANOPTIC_DATA'] = projects['projects'][0]['path']
+    os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', (pathlib.Path.home() / 'panoptic').as_posix())
     path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini')
     if not os.path.exists(path):
         os.makedirs(path)

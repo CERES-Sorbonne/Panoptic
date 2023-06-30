@@ -8,7 +8,7 @@ def parse_requirements(req_file):
 
 
 NAME = "panoptic"
-VERSION = "0.1.1.dev2"
+VERSION = "0.1.1.dev3"
 # Get dependencies from requirement files
 SETUP_REQUIRES = ['setuptools', 'setuptools-git', 'wheel']
 INSTALL_REQUIRES = parse_requirements('requirements.txt')
