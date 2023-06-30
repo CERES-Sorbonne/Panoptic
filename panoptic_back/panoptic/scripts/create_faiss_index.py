@@ -18,6 +18,7 @@ async def compute_faiss_index():
 async def start():
     os.environ['PANOPTIC_DATA'] = "D:\\Alie\\Documents\\panoptic_GJ"
     await db_utils.init()
+    await compute_faiss_index()
 
 if __name__ == '__main__':
 
