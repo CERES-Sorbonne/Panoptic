@@ -13,15 +13,15 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from panoptic import core
+from panoptic.compute.similarity import get_similar_images_from_text
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
-    add_property_values
+    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values
 from panoptic.core import db
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
-    ChangeProjectPayload, Clusters
+    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload
 
 app = FastAPI()
 app.add_middleware(
@@ -95,12 +95,7 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
-    if payload.mode == 'add':
-        updated, value = await add_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
-                                                   sha1s=payload.sha1s, value=payload.value)
-    else:
-        updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
-                                                   sha1s=payload.sha1s, value=payload.value)
+    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
     return {'updated_ids': updated, 'value': value}
 
 
@@ -122,7 +117,6 @@ async def add_tag(payload: AddTagPayload) -> Tag:
 async def get_tags_route(property: Optional[str] = None):
     tags = await get_tags(property)
     return ORJSONResponse(tags)
-
 
 @app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
@@ -200,10 +194,13 @@ async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 
-@app.post("/similar")
+@app.post("/similar/image")
 async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
     return await get_similar_images(payload.sha1_list)
 
+@app.post("/similar/text")
+async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
+    return await get_similar_images_from_text(payload.input_text)
 
 # @app.post("/pca")
 # async def start_pca_route():

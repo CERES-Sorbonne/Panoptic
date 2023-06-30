@@ -21,6 +21,9 @@ const filterElem = ref(null)
 const boxElem = ref(null)
 const imageList = ref(null)
 
+// images searched by test
+const searchedImages = ref([])
+
 const scrollerHeight = ref(0)
 const scrollerWidth = ref(0)
 
@@ -48,10 +51,15 @@ const groupData = reactive({
     order: []
 }) as GroupData
 
-const imageGroups = reactive({}) as Group
-
 const filteredImages = computed(() => {
+    
     let images = Object.values(globalStore.images)
+
+    if(searchedImages.value.length > 0){
+        const sha1ToImage:any = {}
+        images.forEach(image => sha1ToImage[image.sha1] = image)
+        return searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
+    }
 
     if (Object.keys(props.tab.data.selectedFolders).length > 0) {
         let folderIds = Object.keys(props.tab.data.selectedFolders).map(Number)
@@ -61,7 +69,7 @@ const filteredImages = computed(() => {
             images = images.filter(img => allIds.includes(img.folder_id))
         }
     }
-
+    // on filtre les images normalement, et aussi en prenant en cmpte que si il y a des images cherchées, ça les renvoie
     let filtered = images.filter(img => computeGroupFilter(img, filters.value))
     return filtered
 })
@@ -128,6 +136,15 @@ function setRecoImages(images: string[], propertyValues: PropertyValue[], groupI
     nextTick(() => updateScrollerHeight())
 }
 
+async function setSearchedImages(textInput: string){
+    if(textInput === ""){
+        searchedImages.value = []
+    }
+    else{
+        searchedImages.value = await globalStore.getSimilarImagesFromText(textInput)
+    }
+}
+
 function closeReco() {
     reco.images.length = 0
     reco.values.length = 0
@@ -168,7 +185,7 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" />
+        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"/>
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">

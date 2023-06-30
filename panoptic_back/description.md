@@ -8,6 +8,12 @@ Since it requires deep learning libraries, it is recommended to use it with a co
 
 > Caution: Panoptic is still in active development and is currently a prototype, it is likely that you will encounter bugs, so we recommend to use this tool only for testing and not to rely on it for a substantial academic work. 
 
+
+## Pip installation (WIP)
+
+- `pip install panoptic`
+- `panoptic`
+
 ## Installation (development)
 The following steps involve cloning the directory and are recommended for users who wish to have access to the development versions, or who wish to modify the code themselves in order to contribute.
 
@@ -30,10 +36,6 @@ To test and modify the backend operation, we provide an already built frontend i
 4. run `npm run dev`.
 5. before running the backend the `PANOPTIC_ENV` environment variable should be set to `DEV` in order to use the development frontend.
 
-## Pip installation (WIP)
-
-- `pip install panoptic`
-- `panoptic`
 
 ## Windows install (coming soon)
 ## Mac installation (coming soon)

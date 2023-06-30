@@ -12,7 +12,7 @@ const props = defineProps({
     computeStatus: Object as () => {groups: boolean}
 })
 
-const emits = defineEmits(['compute-ml'])
+const emits = defineEmits(['compute-ml', 'search-images'])
 
 </script>
 
@@ -20,7 +20,7 @@ const emits = defineEmits(['compute-ml'])
     <div class="d-flex flex-row p-2">
         <div class="d-flex flex-row search-input me-5">
             <div class="bi bi-search float-start bi-sm"></div>
-            <input type="text" class="input-hidden" placeholder="rechercher dans tous les champs..." />
+            <input type="text" class="input-hidden" placeholder="Chercher par texte" @keyup.enter="$emit('search-images',($event.target as HTMLInputElement).value)"/>
         </div>
         <div class="bi bi-aspect-ratio me-1"></div>
         <div>

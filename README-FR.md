@@ -8,6 +8,11 @@ Ayant besoin de librairies de deep learning, il est recommandé de l'utiliser av
 
 > Attention: Panoptic est encore en phase active de développement et n'est pour l'instant qu'un prototype, il est fort probable que vous rencontriez des bugs, aussi nous recommandons de n'utiliser cet outil que pour des tests et ne pas se reposer dessus pour un travail académique conséquent. 
 
+## Installation pip
+
+- `pip install panoptic`
+- `panoptic`
+
 ## Installation (développement)
 Les étapes suivantes impliquent d'avoir cloné le répertoire et sont recommandées pour les utilisateurs souhaitant avoir accès aux versions de développement, ou souhaitant modifier eux même le code afin de constribuer.
 
@@ -29,11 +34,6 @@ Pour tester et modifier le fonctionnement backend, nous fournissons un front-end
 3. lancer `npm install`
 4. lancer `npm run dev`
 5. avant de lancer le backend la variable d'environnement `PANOPTIC_ENV` devra être set à `DEV` afin d'utiliser le frontend de développement.
-
-## Installation pip (WIP)
-
-- `pip install panoptic`
-- `panoptic`
 
 ## Installation Windows (A venir)
 ## Installation Mac (A venir)
