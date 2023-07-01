@@ -79,8 +79,10 @@ function computeGroups(force = false) {
         return
     }
     computeStatus.groups = true
-
-    requestIdleCallback(() => {
+    
+    // compute happens here. Timeout instead of requestIdleCallback for Safari support
+    // allows the ui to draw the spinner before cpu blocking
+    setTimeout(() => {
         console.time('compute groups')
         let index = generateGroups(filteredImages.value, groups.value)
         let rootGroup = index['0']
@@ -110,7 +112,7 @@ function computeGroups(force = false) {
             nextTick(imageList.value.computeLines)
 
         computeStatus.groups = false
-    })
+    }, 10)
 }
 
 function sortGroups() {
