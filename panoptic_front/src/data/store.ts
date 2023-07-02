@@ -241,6 +241,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             }
             else {
                 let old = this.images[id].properties[propertyId] ?? {propertyId: propertyId, value: []}
+                if(!Array.isArray(old.value)) {
+                    old.value = []
+                }
                 old.value.push(...value)
                 old.value = [...new Set(old.value)]
                 this.images[id].properties[propertyId] = old
