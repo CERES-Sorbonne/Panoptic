@@ -4,6 +4,8 @@ import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } fro
 import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '../Scroller/src/components/RecycleScroller.vue';
+import PileLine from './PileLine.vue';
+import { PropertyMode } from '@/data/models';
 
 const props = defineProps({
     imageSize: Number,
@@ -22,11 +24,24 @@ const scroller = ref(null)
 const MARGIN_STEP = 20
 
 const visiblePropertiesNb = computed(() => Object.values(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(v => v).length)
+const visibleSha1PropertiesNb = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([key, value]) => value && globalStore.properties[key] !== undefined).filter(([k,v]) => globalStore.properties[k].mode == PropertyMode.sha1).length)
 
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
 
 const imageLineSize = computed(() => {
     let nb = visiblePropertiesNb.value
+    let offset = 0
+    if (nb > 0) {
+        offset += 31
+    }
+    if (nb > 1) {
+        offset += (nb - 1) * 27
+    }
+    return props.imageSize + offset + 10
+})
+
+const pileLineSize = computed(() => {
+    let nb = visibleSha1PropertiesNb.value
     let offset = 0
     if (nb > 0) {
         offset += 31
@@ -82,6 +97,9 @@ function computeLines() {
         if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
             computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
+        else if (!group.closed && Array.isArray(group.imagePiles) && group.imagePiles.length > 0) {
+            computeImagePileLines(group.imagePiles, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
+        }
     }
 
     let lines = []
@@ -128,6 +146,45 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
         }
         addLine(newLine)
         newLine = [img]
+        actualWidth = imgWidth
+    }
+
+    if (newLine.length > 0) {
+        addLine(newLine)
+    }
+}
+
+function computeImagePileLines(imagesPiles, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
+    let lineWidth = totalWidth
+    let newLine = []
+    let actualWidth = 0
+
+    let addLine = (line) => {
+        lines.push({
+            id: parentGroup.id + '|img-' + lines.length,
+            type: 'piles',
+            data: line,
+            groupId: parentGroup.id,
+            depth: parentGroup.depth + 1,
+            size: pileLineSize.value,
+            isSimilarities: isSimilarities
+        })
+    }
+
+    for (let i = 0; i < imagesPiles.length; i++) {
+        let pile = imagesPiles[i]
+        let img = pile.images[0]
+        let imgWidth = (imageHeight * img.containerRatio) + 10
+        if (actualWidth + imgWidth < lineWidth) {
+            newLine.push(pile)
+            actualWidth += imgWidth
+            continue
+        }
+        if (newLine.length == 0) {
+            throw 'Images seems to be to big for the line'
+        }
+        addLine(newLine)
+        newLine = [pile]
         actualWidth = imgWidth
     }
 
@@ -198,10 +255,13 @@ watch(visiblePropertiesNb, () => {
     let scroll = scroller.value.getScroll().start
     let totalSize = scroller.value.totalSize
     let ratio = scroll / totalSize
-    let size = imageLineSize.value
+
     imageLines.forEach(l => {
         if (l.type == 'images') {
-            l.size = size
+            l.size = imageLineSize.value
+        }
+        else if (l.type == 'piles') {
+            l.size = pileLineSize.value
         }
     })
     // scroller.value.updateVisibleItems(true)
@@ -246,8 +306,11 @@ watch(() => props.width, () => {
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>
-                <div v-else-if="item.type == 'similarity'">
-                    
+                <div v-else-if="item.type == 'piles'">
+                    <PileLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
+                        :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
+                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
+                        @update="computeLines()"/>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->

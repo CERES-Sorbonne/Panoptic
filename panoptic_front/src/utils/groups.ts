@@ -97,7 +97,7 @@ export function mergeGroup(update: Group, index: GroupIndex) {
 
     // let children = childrenIds.map(id => index[id]).filter(c => c != undefined).filter(c => c.propertyId == undefined)
     let children = index[id].groups
-    if (Array.isArray(index[id].images) && index[id].images.length > 0 && children && children.length > 0) {
+    if ((Array.isArray(index[id].images) && index[id].images.length > 0 && children && children.length > 0)) {
         update.children = children.map(c => c.id)
         update.groups = children
     }

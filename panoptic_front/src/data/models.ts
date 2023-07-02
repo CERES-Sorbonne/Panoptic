@@ -98,6 +98,11 @@ export interface Images {
     [id:number]: Image
 }
 
+export interface Sha1Pile {
+    images: Array<Image>
+    sha1: string
+}
+
 export interface Folders {
     [id:number]: Folder
 }
@@ -308,6 +313,7 @@ export interface TabState {
     visibleProperties: {[key: number]: boolean}
     visibleFolders: {[key: number]: boolean}
     selectedFolders: {[key: number]: boolean}
+    sha1Mode: boolean
 }
 
 export interface TabRequest {
@@ -329,6 +335,7 @@ export interface Group {
     id?: string
     name: string
     images: Array<Image>
+    imagePiles?: Array<Sha1Pile>
     groups: Array<Group>
     propertyValues: PropertyValue[]
     children?: Array<string>
@@ -386,6 +393,10 @@ export interface GroupLine extends ScrollerLine{
 
 export interface ImageLine extends ScrollerLine {
     data: Image[]
+}
+
+export interface ScrollerPileLine extends ScrollerLine {
+    data: Sha1Pile[]
 }
 
 export interface Recommendation {
