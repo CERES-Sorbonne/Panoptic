@@ -2,6 +2,17 @@
   --border-color: rgb(195, 207, 217);
   --validate-border: rgb(163, 208, 209);
   --refuse-border: rgb(213, 180, 191);
+  --grey-text: #515151;
+
+  --toggle-width: 40px;
+  --toggle-height: 10px;
+  --toggle-border: 2px;
+  --toggle-font-size: 11px;
+  --toggle-duration: 20ms;
+}
+
+.toggle-container:focus {
+  box-shadow: none !important;
 }
 
 .unselectable {

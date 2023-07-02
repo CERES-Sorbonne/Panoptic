@@ -4,12 +4,13 @@ import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
-import {apiStartPCA} from '../../data/api'
-
+import { apiStartPCA } from '../../data/api'
+import Toggle from '@vueform/toggle'
+import { ref } from 'vue';
 
 const props = defineProps({
     tab: Object as () => Tab,
-    computeStatus: Object as () => {groups: boolean}
+    computeStatus: Object as () => { groups: boolean }
 })
 
 const emits = defineEmits(['compute-ml', 'search-images'])
@@ -20,12 +21,21 @@ const emits = defineEmits(['compute-ml', 'search-images'])
     <div class="d-flex flex-row p-2">
         <div class="d-flex flex-row search-input me-5">
             <div class="bi bi-search float-start bi-sm"></div>
-            <input type="text" class="input-hidden" placeholder="Chercher par texte" @keyup.enter="$emit('search-images',($event.target as HTMLInputElement).value)"/>
+            <input type="text" class="input-hidden" placeholder="Chercher par texte"
+                @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
         </div>
         <div class="bi bi-aspect-ratio me-1"></div>
         <div>
             <RangeInput :min="50" :max="500" v-model="props.tab.data.imageSize" />
         </div>
+        <div class="ms-5">
+            <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle"/>
+            <!-- <div class="form-check form-switch">
+                <input class="form-check-input unique-switch mt-2" type="checkbox" v-model="sha1Mode">
+                <label class="form-check-label" :class="!sha1Mode ? 'text-secondary':''" style="font-size: 10px;">Unique</label>
+            </div> -->
+        </div>
+
         <!-- <div class="ms-5">
             <button class="me-2" @click="apiStartPCA">PCA</button>
         </div> -->
@@ -33,7 +43,7 @@ const emits = defineEmits(['compute-ml', 'search-images'])
     </div>
     <div class="d-flex flex-wrap content-container">
         <FilterForm :filter="props.tab.data.filter" />
-        <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups"/>
+        <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
         <!-- <div class="ms-2">
             <button @click="$emit('compute-ml')">Compute All Groups</button>
@@ -42,12 +52,32 @@ const emits = defineEmits(['compute-ml', 'search-images'])
 </template>
 
 <style scoped>
+.custom-toggle {
+    --toggle-width: 60px !important;
+    --toggle-bg-on: #a5a5a5;
+    --toggle-border-on: #a5a5a5;
+}
+
+.center-block {
+  margin: auto;
+  display: block;
+}
+
+.unique-switch {
+    height: 10px;
+}
+
+.unique-switch:focus {
+    height: 10px;
+    box-shadow: none;
+}
 
 .content-container {
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 5px;
     margin: 0;
 }
+
 
 .search-input {
     border: 2px solid rgb(197, 206, 213);

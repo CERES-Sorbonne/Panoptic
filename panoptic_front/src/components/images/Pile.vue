@@ -1,0 +1,132 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { globalStore } from '@/data/store';
+import { Modals, Property, PropertyMode, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
+import PropertyInput from '../inputs/PropertyInput.vue';
+import TagInput from '../inputs/TagInput.vue';
+
+const props = defineProps({
+    pile: Object as () => Sha1Pile,
+    size: { type: Number, default: 100 },
+    index: Number,
+    groupId: String
+})
+
+const emits = defineEmits(['resize'])
+
+const containerElem = ref(null)
+// const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
+
+const image = computed(() => props.pile.images[0])
+
+function hasProperty(propertyId: number) {
+    return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
+}
+
+const imageProperties = computed(() => {
+
+    let selected = globalStore.tabs[globalStore.selectedTab].data.visibleProperties
+
+    let res: Array<PropertyRef> = []
+    globalStore.propertyList.forEach((p: Property) => {
+        if (selected[p.id] && p.mode == PropertyMode.sha1) {
+            let propRef: PropertyRef = {
+                propertyId: p.id,
+                type: p.type,
+                value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
+                imageId: image.value.id
+            }
+            res.push(propRef)
+        }
+
+    });
+    return res
+})
+
+const imageWidthStyle = computed(() => `max-width: ${Number(props.size) - 4}px; max-height: ${Number(props.size) - 4}px;`)
+
+const imageSizes = computed(() => {
+    let ratio = image.value.width / image.value.height
+
+    let h = props.size
+    let w = h * ratio
+
+    if (ratio > 2) {
+        w = props.size * 2
+        h = w / ratio
+    }
+
+    return { width: w, height: h }
+})
+
+const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
+const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
+const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
+</script>
+
+<template>
+    <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
+        <!-- {{ props.image.containerRatio }} -->
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)">
+            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
+        </div>
+        <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
+        <div class="prop-container" v-if="imageProperties.length > 0">
+            <div v-for="property, index in imageProperties">
+                <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
+                <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
+                    :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
+                <PropertyInput v-else :property="property" :max-size="String(props.size)"
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.full-container {
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.img-container {
+    position: relative;
+    margin: auto;
+    padding: auto;
+    cursor: pointer;
+}
+
+.prop-container {
+    width: 100%;
+    border-top: 1px solid var(--border-color);
+    padding: 2px;
+    font-size: 12px;
+}
+
+img {
+    max-height: 100%;
+    max-width: 100%;
+    /* width: auto;
+    height: auto; */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+}
+
+.image-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+}
+</style>
