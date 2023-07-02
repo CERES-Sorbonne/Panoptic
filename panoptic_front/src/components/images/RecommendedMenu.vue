@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, PropertyType, Recommendation } from '@/data/models';
+import { Image, PropertyType, Recommendation, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import { UNDEFINED_KEY } from '@/utils/groups';
@@ -49,26 +49,27 @@ function refuseRecommend(image: Image) {
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
-    const images = globalStore.getOneImagePerSha1(props.reco.images)
-    computeImageLines(images, lines, maxLines.value, props.imageSize, props.width)
+    const piles = props.reco.images.map((sha1: string) => ({sha1, images: globalStore.sha1Index[sha1]}))
+    computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
 
-function computeImageLines(images: Image[], lines: Image[][], maxLines: number, imageWidth: number, totalWidth: number) {
+function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: number, imageWidth: number, totalWidth: number) {
     let lineWidth = totalWidth
-    let newLine: Image[] = []
+    let newLine: Sha1Pile[] = []
     let actualWidth = 0
 
-    for (let i = 0; i < images.length; i++) {
+    for (let i = 0; i < piles.length; i++) {
         if (lines.length >= maxLines) {
             break
         }
-        let img = images[i]
-        if(blacklist.has(img.sha1)) {
+        let pile = piles[i]
+        let img = pile.images[0]
+        if(blacklist.has(pile.sha1)) {
             continue
         }
         let imgWidth = imageWidth + imageMargin
         if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(img)
+            newLine.push(pile)
             actualWidth += imgWidth
             continue
         }
@@ -77,7 +78,7 @@ function computeImageLines(images: Image[], lines: Image[][], maxLines: number, 
         }
         lines.push(newLine)
         if (lines.length < maxLines) {
-            newLine = [img]
+            newLine = [pile]
             actualWidth = imgWidth
         }
     }
@@ -118,7 +119,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
         <div :style="'margin-left:' + imageMargin + 'px;'">
             <div v-for="line in lines">
                 <div class="d-flex flex-row">
-                    <ImageRecomended :image="image" :size="props.imageSize" v-for="image in line" @accept="acceptRecommend"
+                    <ImageRecomended :pile="pile" :size="props.imageSize" v-for="pile in line" @accept="acceptRecommend"
                         @refuse="refuseRecommend" :style="'margin-right:' + imageMargin + 'px;'" />
                 </div>
             </div>

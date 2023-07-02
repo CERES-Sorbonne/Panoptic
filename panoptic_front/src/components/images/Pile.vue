@@ -116,17 +116,4 @@ img {
     right: 0;
     margin: auto;
 }
-
-.image-count {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0px 4px;
-    background-color: var(--border-color);
-    color: var(--grey-text);
-    font-size: 10px;
-    line-height: 15px;
-    margin: 2px;
-    border-radius: 5px;
-}
 </style>
