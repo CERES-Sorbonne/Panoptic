@@ -5,7 +5,7 @@ from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-from fastapi import FastAPI, Query, UploadFile
+from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
@@ -18,11 +18,10 @@ from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values
 from panoptic.core import db
-from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
+from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload, \
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
     ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload
-from panoptic.scripts.to_pca import compute_all_pca
 
 app = FastAPI()
 app.add_middleware(
@@ -225,6 +224,7 @@ async def get_image(file_path: str):
 
     # # media_type here sets the media type of the actual response sent to the client.
     return Response(content=data, media_type="image/" + ext)
+
 
 # app.mount("/small/images/", StaticFiles(directory=os.path.join('PANOPTIC_DATA', 'mini')), name="static")
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")

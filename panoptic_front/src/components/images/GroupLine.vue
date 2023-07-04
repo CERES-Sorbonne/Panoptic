@@ -20,8 +20,10 @@ const hoverGroup = ref(false)
 
 const group = computed(() => props.item.data as Group)
 const images = computed(() => props.item.data.images)
+const piles = computed(() => props.item.data.imagePiles)
 const subgroups = computed(() => props.item.data.groups)
 const hasImages = computed(() => images.value.length > 0)
+const hasPiles = computed(() => Array.isArray(piles.value))
 const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
 const closed = computed(() => group.value?.closed)
@@ -55,8 +57,14 @@ function getTag(propId: number, tagId: number) {
 }
 
 async function computeClusters() {
-    let sha1 = group.value.images.map(img => img.sha1)
-    let mlGroups = await globalStore.computeMLGroups(sha1, props.item.nbClusters)
+    let sha1s: string[] = []
+    if(hasPiles.value) {
+        sha1s = group.value.imagePiles.map(p => p.sha1)
+    }
+    else if (hasImages.value) {
+        sha1s = [...new Set(group.value.images.map(i => i.sha1))]
+    }
+    let mlGroups = await globalStore.computeMLGroups(sha1s, props.item.nbClusters)
     let distances = mlGroups.distances
     mlGroups = mlGroups.clusters
     // props.item.data.groups = []
@@ -64,10 +72,12 @@ async function computeClusters() {
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
         let images = globalStore.getOneImagePerSha1(sha1s)
+        let piles = sha1s.map((s:string) => ({sha1: s, images: globalStore.sha1Index[s]})) 
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index),
             name: 'cluster ' + index.toString() + (distances.length > 0 ? ' ' + distances[index].toString() : ''),
-            images: images,
+            images: [],
+            imagePiles: piles,
             count: sha1s.length,
             groups: undefined,
             children: undefined,
@@ -94,10 +104,17 @@ function clear() {
 }
 
 async function recommandImages() {
-    let sha1s = {} as any
-    group.value.images.forEach(i => sha1s[i.sha1] = true)
+    let sha1s: string[] = []
+    if(hasPiles.value) {
+        sha1s = group.value.imagePiles.map(p => p.sha1)
+    }
+    else if (hasImages.value) {
+        sha1s = [...new Set(group.value.images.map(i => i.sha1))]
+    }
+    // let sha1s = {} as any
+    // group.value.images.forEach(i => sha1s[i.sha1] = true)
 
-    let res = await globalStore.getSimilarImages(Object.keys(sha1s)) as any[]
+    let res = await globalStore.getSimilarImages(sha1s) as any[]
     let resSha1s = res.map(r => r.sha1)
 
     const propertyValues = props.item.data.propertyValues.map(unref)
@@ -156,24 +173,25 @@ function closeChildren() {
             group.groups.length }} Groupes</div>
 
         <div class="d-flex flex-row align-self-center me-2" v-if="!closed">
-            <div v-if="hasImages && !hasSubgroups" class="ms-2">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
                 <div class="button" @click="computeClusters">Créer clusters</div>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
-            <div v-if="hasImages && !hasSubgroups" style="margin-left: 2px;">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
                 <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
             </div>
-            <div v-if="hasImages && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
                 <div class="button" @click="recommandImages">Images Similaires</div>
             </div>
-            <div v-if="hasImages && hasSubgroups" class="ms-2">
+            <div v-if="(hasImages || hasPiles) && hasSubgroups" class="ms-2">
                 <div class="button" @click="clear">Clear</div>
             </div>
         </div>
-        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children"
+
+        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-1 text-secondary align-self-center close-children"
             @click="closeChildren">
             Reduire
         </div>
@@ -184,7 +202,6 @@ function closeChildren() {
 <style scoped>
 .close-children {
     font-size: 11px;
-    line-height: 25px;
     cursor: pointer;
 }
 

@@ -209,7 +209,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.properties[newProperty.id] = newProperty
     },
 
-    async setPropertyValue(propertyId: number, images: Image[] | Image, value: any) {
+    async setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null) {
         if(!Array.isArray(images)) {
             images = [images]
         }
@@ -231,12 +231,24 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             value = undefined
         }
 
-        const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value)
+        const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value, mode)
         const updatedIds = update.updated_ids
         value = update.value
 
         for (let id of updatedIds) {
-            this.images[id].properties[propertyId] = {propertyId, value}
+            if(mode == null) {
+                this.images[id].properties[propertyId] = {propertyId, value}
+            }
+            else {
+                let old = this.images[id].properties[propertyId] ?? {propertyId: propertyId, value: []}
+                if(!Array.isArray(old.value)) {
+                    old.value = []
+                }
+                old.value.push(...value)
+                old.value = [...new Set(old.value)]
+                this.images[id].properties[propertyId] = old
+            }
+            
         }
     },
     // async addOrUpdatePropertyToImage(propertyId: number, imageIds: number | number[], sha1s: string | string[], value: any) {

@@ -2,7 +2,7 @@
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import { Group, Tab, GroupData, PropertyValue, SortIndex } from '@/data/models';
+import { Group, Tab, GroupData, PropertyValue, SortIndex, Sha1Pile } from '@/data/models';
 import ContentFilter from './ContentFilter.vue';
 import { sortGroupTree, sortImages } from '@/utils/sort';
 import ImageList from './ImageList.vue';
@@ -79,8 +79,10 @@ function computeGroups(force = false) {
         return
     }
     computeStatus.groups = true
-
-    requestIdleCallback(() => {
+    
+    // compute happens here. Timeout instead of requestIdleCallback for Safari support
+    // allows the ui to draw the spinner before cpu blocking
+    setTimeout(() => {
         console.time('compute groups')
         let index = generateGroups(filteredImages.value, groups.value)
         let rootGroup = index['0']
@@ -110,7 +112,7 @@ function computeGroups(force = false) {
             nextTick(imageList.value.computeLines)
 
         computeStatus.groups = false
-    })
+    }, 10)
 }
 
 function sortGroups() {
@@ -123,8 +125,27 @@ function sortGroups() {
         const group = groupData.index[key]
         if (Array.isArray(group.images) && group.images.length > 0) {
             sortImages(group.images, sorts.value.slice(groups.value.length))
+            if(props.tab.data.sha1Mode) {
+                imagesToSha1Piles(group)
+            }
         }
     })
+}
+
+function imagesToSha1Piles(group: Group) {
+    const res: Array<Sha1Pile> = []
+    const order: {[key:string]: number} = {}
+
+    for(let img of group.images) {
+        if(order[img.sha1] === undefined) {
+            order[img.sha1] = res.length
+            res.push({sha1: img.sha1, images: []})
+        }
+        res[order[img.sha1]].images.push(img)
+    }
+
+    group.imagePiles = res
+    group.images = []
 }
 
 function setRecoImages(images: string[], propertyValues: PropertyValue[], groupId: string) {
@@ -178,6 +199,7 @@ watch(sorts, () => {
     imageList.value.computeLines()
 }, { deep: true })
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
+watch(() => props.tab.data.sha1Mode, computeGroups)
 
 
 
@@ -194,7 +216,7 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
-        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 20" ref="imageList"
+        <ImageList :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0" ref="imageList"
             :width="scrollerWidth - 10" @recommend="setRecoImages" />
     </div>
 </template>

@@ -10,8 +10,8 @@ import pandas
 from fastapi import HTTPException
 from tqdm import tqdm
 
-from panoptic.core import db
 from panoptic import compute
+from panoptic.core import db
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue, Clusters
 from .image_importer import ImageImporter
@@ -62,6 +62,43 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
         value = True if value == 'true' or value is True else False
 
     return await db.set_property_values(property_id, value, image_ids, sha1s)
+
+
+async def add_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
+    if image_ids and sha1s:
+        raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
+
+    prop = await db.get_property_by_id(property_id)
+    if prop.mode == 'id' and not image_ids:
+        raise TypeError(f'Property {property_id}: {prop.name} needs image ids as key [mode: {prop.mode}]')
+    if prop.mode == 'sha1' and not sha1s:
+        raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
+
+    if prop.type != PropertyType.multi_tags:
+        raise TypeError('add_property_values is only supported for multi_tag properties')
+
+    if value and not isinstance(value, list):
+        value = [int(value)]
+
+    current_values = await db.get_property_values(property_ids=[property_id], image_ids=image_ids, sha1s=sha1s)
+    if image_ids:
+        value_index = {v.image_id: v.value for v in current_values}
+        [value_index.update({id_: []}) for id_ in image_ids if id_ not in value_index]
+        [value_index[id_].extend(value) for id_ in image_ids]
+        values = [list(set(value_index[id_])) for id_ in image_ids]
+        await db.set_multiple_property_values(property_id, values, image_ids)
+    else:
+        value_index = {v.sha1: v.value for v in current_values}
+        [value_index.update({sha1: []}) for sha1 in sha1s if sha1 not in value_index]
+        [value_index[sha1].extend(value) for sha1 in sha1s]
+        values = [list(set(value_index[sha1])) for sha1 in sha1s]
+        await db.set_multiple_property_values(property_id, values, sha1s)
+
+    updated_ids = image_ids
+    if not image_ids:
+        images = await db.get_images(sha1s=sha1s)
+        updated_ids = [img.id for img in images]
+    return updated_ids, value
 
 
 async def get_full_images(image_ids: List[int] = None) -> List[Image]:
@@ -147,16 +184,16 @@ async def read_properties_file(data: pandas.DataFrame):
     clones_created = 0
     # TODO: create clones all at once ? it's tricky with the ids to update
     if prop_mode == "id":
-        for id in tqdm(unique_ids):
-            sub_data = data[data.panoptic_id == id]
+        for id_ in tqdm(unique_ids):
+            sub_data = data[data.panoptic_id == id_]
             # create clones only if needed
             if len(list(sub_data.panoptic_id)) == 0:
                 continue
-            image = await db.get_images([id])
+            image = await db.get_images([id_])
             image = image[0]
             new_ids = await db.create_clones(image, sub_data.shape[0] - 1)
             clones_created += len(new_ids)
-            data.loc[data.panoptic_id == id, "panoptic_id"] = [image.id, *new_ids]
+            data.loc[data.panoptic_id == id_, "panoptic_id"] = [image.id, *new_ids]
         logging.getLogger('panoptic').info(f"created {clones_created} new images")
     properties_to_create = data.columns.tolist()
 
@@ -233,6 +270,7 @@ async def update_tag(payload: UpdateTagPayload) -> Tag:
 
 
 async def delete_tag(tag_id: int) -> List[int]:
+    print('delete tag from values')
     # first delete the tag
     modified_tags = [await db.delete_tag_by_id(tag_id)]
     # when deleting a tag, get all children of this tag
@@ -245,7 +283,10 @@ async def delete_tag(tag_id: int) -> List[int]:
     for data in property_values:
         if tag_id in data.value:
             data.value.remove(tag_id)
-            await db.set_property_values(data.property_id, data.value, [data.image_id])
+            if data.image_id >= 0:
+                await db.set_property_values(data.property_id, data.value, image_ids=[data.image_id])
+            else:
+                await db.set_property_values(data.property_id, data.value, sha1s=[data.sha1])
     return modified_tags
 
 

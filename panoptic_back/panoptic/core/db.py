@@ -297,7 +297,7 @@ async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
     return [PropertyValue(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
+async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[str] = None):
     """
     Set property values for several image_ids / sha1 but with only one possible value !
     """
@@ -330,7 +330,7 @@ async def set_multiple_property_values(property_id: int, values: list[Any], imag
     else:
         query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
     query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
-    await execute_query_many(query, [(id, json.dumps(value)) for id, value in zip(images_ids_or_sha1, values)])
+    await execute_query_many(query, [(id_, json.dumps(value)) for id_, value in zip(images_ids_or_sha1, values)])
 
 
 async def set_computed_value(sha1: str, ahash: str, vector: np.array):
