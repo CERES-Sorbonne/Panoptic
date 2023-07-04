@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { globalStore } from '@/data/store';
-import { Image, Modals } from '@/data/models';
+import { Image, Modals, Sha1Pile } from '@/data/models';
 
 const props = defineProps({
-    image: Object as () => Image,
+    pile: Object as () => Sha1Pile,
     size: { type: Number, default: 100 },
 })
 
@@ -12,17 +12,19 @@ const emits = defineEmits(['accept', 'refuse'])
 
 const imageContainerStyle = computed(() => `width: ${props.size}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `max-width: ${props.size - 2}px; max-height: ${props.size -1}px;`)
+const image = computed(() => props.pile.images[0])
 
 </script>
 
 <template>
     <div class="">
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
-            <img :src="props.image.url" :style="imageStyle" />
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)">
+            <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
+            <img :src="image.url" :style="imageStyle" />
         </div>
         <div class="d-flex flex-row">
-            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-success validate clickable unselectable" style="font-size: 10px;" @click="emits('accept', props.image)"> ✓ </div>
-            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;" @click="emits('refuse', props.image)"> ✕ </div>
+            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-success validate clickable unselectable" style="font-size: 10px;" @click="emits('accept', image)"> ✓ </div>
+            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;" @click="emits('refuse', image)"> ✕ </div>
         </div>
     </div>
 </template>

@@ -25,6 +25,7 @@ class SetPropertyValuePayload(CamelModel):
     image_ids: list[int] | None
     sha1s: list[str] | None
     value: Any
+    mode: str | None
 
 
 class DeleteImagePropertyPayload(CamelModel):
