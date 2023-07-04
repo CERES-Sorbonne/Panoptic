@@ -35,20 +35,20 @@ class DeleteImagePropertyPayload(CamelModel):
 class AddTagPayload(CamelModel):
     property_id: int
     value: str
-    parent_id: Optional[int] = None
-    color: Optional[str]
+    parent_id: int = None
+    color: str = ...
 
 
 class UpdateTagPayload(CamelModel):
     id: int
-    value: Optional[str]
-    parent_id: Optional[int]
-    color: Optional[str]
+    value: str
+    parent_id: int
+    color: str
 
 
 class MakeClusterPayload(CamelModel):
-    nb_groups: Optional[int] = 50
-    image_list: Optional[list[str]] = []
+    nb_groups: int = 50
+    image_list: list[str] = []
 
 
 class GetSimilarImagesPayload(CamelModel):

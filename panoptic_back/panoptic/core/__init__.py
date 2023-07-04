@@ -1,9 +1,9 @@
 import atexit
 import json
 import logging
+import os
 import random
-from concurrent.futures import ProcessPoolExecutor
-import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import List, Any
 
 import pandas
@@ -15,9 +15,9 @@ from panoptic import compute
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue, Clusters
 from .image_importer import ImageImporter
-from .image_importer import ImageImporter
 
-executor = ProcessPoolExecutor(max_workers=4)
+nb_workers = 4
+executor = ThreadPoolExecutor(max_workers=nb_workers) if os.getenv('IS_DOCKER', False) else ProcessPoolExecutor(max_workers=nb_workers)
 atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
 

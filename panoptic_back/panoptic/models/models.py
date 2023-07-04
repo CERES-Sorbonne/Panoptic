@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias, Optional, Any, Union, Dict
+from typing import TypeAlias, Any, Union, Dict
 
 import numpy
 from pydantic import BaseModel
@@ -44,7 +44,7 @@ class Tag:
     property_id: int
     parents: list[int]
     value: str
-    color: Optional[str]
+    color: str
 
 
 @dataclass(slots=True)
@@ -60,8 +60,8 @@ class Image:
     height: int
     width: int
 
-    properties: Optional[dict[int, PropertyValue]] = field(default_factory=dict)
-    ahash: Optional[str] = field(default=None)
+    properties: dict[int, PropertyValue] = field(default_factory=dict)
+    ahash: str = field(default=None)
 
 
 @dataclass(slots=True)
@@ -91,9 +91,9 @@ class Folder(BaseModel):
 
 
 class Tab(BaseModel):
-    id: int | None
-    name: str | None
-    data: dict | None
+    id: int | None = None
+    name: str | None = None
+    data: dict | None = None
 
 
 @dataclass(slots=True)
