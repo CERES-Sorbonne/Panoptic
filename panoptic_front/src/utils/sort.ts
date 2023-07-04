@@ -13,6 +13,7 @@ function getSortFunction(type: PropertyType): any {
         case PropertyType.color:
         case PropertyType.date:
             return (a: any, b: any) => {
+                if ((a == undefined || a == '') && (b == undefined || b == '')) return 0
                 if (a == undefined || a == '') return 1
                 if (b == undefined || b == '') return -1
                 return a < b ? -1 : a > b ? 1 : 0
@@ -35,6 +36,7 @@ function getSortFunction(type: PropertyType): any {
             }
         case PropertyType.tag:
             return (a: string, b: string) => {
+                if (a == undefined && b == undefined) return 0
                 if (a == undefined) return -1
                 if (b == undefined) return 1
                 return a < b ? -1 : a > b ? 1 : 0
@@ -72,7 +74,9 @@ function getImageSortFunction2(sortList: Sort[]) {
                 return res * modif
             }
         }
-        return res
+        let id_compare = (img1.id - img2.id) < 0 ? -1 : 1
+
+        return res * id_compare
     }
     return sortImages
 }
