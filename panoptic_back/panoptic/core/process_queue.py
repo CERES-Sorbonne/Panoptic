@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import traceback
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Executor
 from typing import List, Callable, Dict
 
 from PIL import Image
@@ -18,7 +18,7 @@ logger = logging.getLogger('ProcessQueue')
 
 
 class ProcessQueue:
-    def __init__(self, executor: ProcessPoolExecutor):
+    def __init__(self, executor: Executor):
         self.executor = executor
 
         self._queue = asyncio.Queue()
@@ -114,18 +114,14 @@ class ComputeVectorsQueue(ProcessQueue):
     async def _process_task(self, task):
         image_id: int = task
         image = (await db.get_images(ids=[image_id]))[0]
-
         computed = await db.get_sha1_computed_values([image.sha1])
         if computed:
             return computed
 
         folder = await db.get_folder(image.folder_id)
         file_path = f"{folder.path}/{image.name}"
-
         ahash, vector = await self._execute_in_process(self.compute_image, file_path)
-
         res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
-
         del vector
         # gc.collect()
         print('computed image: ', image_id, '  :  ', res.sha1)

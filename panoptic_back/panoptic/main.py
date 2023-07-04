@@ -16,7 +16,7 @@ import requests
 
 from panoptic.utils import get_datadir
 
-PORT = 8123
+PORT = 8000
 HOST = False
 THREAD = None
 

@@ -1,6 +1,6 @@
 import asyncio
 import os
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Executor
 from pathlib import Path
 from typing import List
 
@@ -11,7 +11,7 @@ from panoptic.scripts.create_faiss_index import compute_faiss_index
 
 
 class ImageImporter:
-    def __init__(self, executor: ProcessPoolExecutor):
+    def __init__(self, executor: Executor):
         self.status = 'read'
         self.executor = executor
 
