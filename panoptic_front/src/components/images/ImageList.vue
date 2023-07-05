@@ -94,12 +94,13 @@ function computeLines() {
         // if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
         //     computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
         // }
-        if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
-            computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
-        }
-        else if (!group.closed && Array.isArray(group.imagePiles) && group.imagePiles.length > 0) {
+        if (!group.closed && Array.isArray(group.imagePiles) && group.imagePiles.length > 0) {
             computeImagePileLines(group.imagePiles, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
+        else if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
+            computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
+        }
+
     }
 
     let lines = []
