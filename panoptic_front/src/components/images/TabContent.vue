@@ -145,7 +145,7 @@ function imagesToSha1Piles(group: Group) {
     }
 
     group.imagePiles = res
-    group.images = []
+    // group.images = []
 }
 
 function setRecoImages(images: string[], propertyValues: PropertyValue[], groupId: string) {
