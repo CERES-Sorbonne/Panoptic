@@ -147,9 +147,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //console.log(folders)
 
 
-        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: 'sha1'}
+        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: 'sha1' }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: 'sha1' }
-        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders }
+        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: 'sha1' }
 
 
         Object.values(images).forEach(this.importImage)

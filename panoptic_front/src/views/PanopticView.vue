@@ -8,6 +8,7 @@ import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
+import Sha1PileModal from '@/components/modals/Sha1PileModal.vue';
 
 
 const navElem = ref(null)
@@ -57,6 +58,7 @@ function onResize() {
 
     <ImageModal :id="Modals.IMAGE" />
     <PropertyModal :id="Modals.PROPERTY" />
+    <Sha1PileModal :id="Modals.SHA1PILE" />
 
     <!-- <div class="above bg-info">lalala</div>
                 <div class="above2 bg-warning">lalala</div> -->

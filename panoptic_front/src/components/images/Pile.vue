@@ -34,7 +34,8 @@ const imageProperties = computed(() => {
                 propertyId: p.id,
                 type: p.type,
                 value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
-                imageId: image.value.id
+                imageId: image.value.id,
+                mode: p.mode
             }
             res.push(propRef)
         }
@@ -67,7 +68,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)">
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.SHA1PILE, pile)">
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
         </div>
         <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>

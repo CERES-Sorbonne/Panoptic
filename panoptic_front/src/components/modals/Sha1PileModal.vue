@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
+import { Image, PropertyMode, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
-import StampDropdown from '../inputs/StampDropdown.vue';
-import ImageSimi from '../images/ImageSimi.vue'
-import RangeInput from '../inputs/RangeInput.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -16,27 +13,64 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const image = computed(() => globalStore.openModal.data as Image)
+const pile = computed(() => globalStore.openModal.data as Sha1Pile)
 const isActive = computed(() => globalStore.openModal.id == props.id)
 const similarImages = ref([])
 const nbSimilarImages = ref(10)
 
-function hasProperty(propertyId: number) {
-    return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
+const image = computed(() => pile.value.images[0])
+
+function hasProperty(image: Image, propertyId: number) {
+    return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
 
-const imageProperties = computed(() => {
-    let res: Array<PropertyRef> = []
-    globalStore.propertyList.forEach((p: Property) => {
+function getImageProperties(id: number) {
+    const img = globalStore.images[id]
+    let res = globalStore.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
         let propRef: PropertyRef = {
             propertyId: p.id,
             type: p.type,
-            value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
-            imageId: image.value.id,
+            value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
+            imageId: img.id,
             mode: p.mode
         }
-        res.push(propRef)
-    });
+        return propRef
+    })
+    return res
+}
+
+function getSha1Properties(sha1: string) {
+    const img = globalStore.sha1Index[sha1][0]
+    let res = globalStore.propertyList.filter(p => p.mode == PropertyMode.sha1).map(p => {
+        let propRef: PropertyRef = {
+            propertyId: p.id,
+            type: p.type,
+            value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
+            imageId: img.id,
+            mode: p.mode
+        }
+        return propRef
+    })
+    return res
+}
+
+const properties = computed(() => getSha1Properties(pile.value.sha1))
+
+// let res: Array<PropertyRef> = []
+// globalStore.propertyList.forEach((p: Property) => {
+//     let propRef: PropertyRef = {
+//         propertyId: p.id,
+//         type: p.type,
+//         value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
+//         imageId: image.value.id
+//     }
+//     res.push(propRef)
+// });
+
+const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
+const imgProperties = computed(() => {
+    let res: {[key:number]: PropertyRef[]} = {}
+    pile.value.images.forEach(img => res[img.id] = getImageProperties(img.id))
     return res
 })
 
@@ -71,7 +105,7 @@ onMounted(() => {
 
 const setSimilar = async () => {
     const res = await globalStore.getSimilarImages(image.value.sha1)
-    similarImages.value = res.map((i:any) => ({ url: globalStore.sha1Index[i.sha1][0].url, dist: i.dist, sha1: i.sha1, id:globalStore.sha1Index[i.sha1][0].id }))
+    similarImages.value = res.map((i: any) => ({ url: globalStore.sha1Index[i.sha1][0].url, dist: i.dist, sha1: i.sha1, id: globalStore.sha1Index[i.sha1][0].id }))
 }
 </script>
 
@@ -81,7 +115,7 @@ const setSimilar = async () => {
         <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header" style="height: 40px;">
-                    <h5 class="modal-title">Image: {{ image.name }}</h5>
+                    <h5 class="modal-title">Sha1: {{ image.sha1 }}</h5>
                     <button type="button" class="btn close" @click="hide">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -92,7 +126,7 @@ const setSimilar = async () => {
                             <div class="text-center mb-2">
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
-                            <div id="similarImages" v-if="similarImages.length > 0">
+                            <!-- <div id="similarImages" v-if="similarImages.length > 0">
                                 <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
                                 <StampDropdown
                                     :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.id])" />
@@ -102,33 +136,13 @@ const setSimilar = async () => {
                                     </div>
 
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
                         <div class="col">
                             <div class="mt-2">
-                                <!-- <p class="m-0">Metadata</p>
-                                            <div class="ms-2">
-                                                <div>
-                                                    <i class="bi bi-card-image"></i>
-                                                    <span class="ms-2">{{ image.sha1 }}</span>
-                                                </div>
-
-                                                <div>
-                                                    <i class="bi bi-aspect-ratio"></i>
-                                                    <span class="ms-2">{{ image.width }} x {{ image.height }}</span>
-                                                </div>
-
-                                                <div>
-                                                    <span class="bi bi-folder" v-for="path in image.paths">
-                                                        <span class="ms-2">{{ path }}</span>
-                                                    </span>
-
-                                                </div>
-                                            </div> -->
-                                <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
                                     <b>Proprietés</b>
-                                    <tr v-for="property, index in imageProperties" class="">
+                                    <tr v-for="property, index in sha1Properties" class="">
                                         <template v-if="property.propertyId >= 0">
                                             <td>{{ globalStore.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
@@ -145,7 +159,7 @@ const setSimilar = async () => {
 
                                 <table class="table">
                                     <b>Computed</b>
-                                    <tr v-for="property, index in imageProperties" class="">
+                                    <tr v-for="property, index in sha1Properties" class="">
                                         <template v-if="property.propertyId < 0">
                                             <td>{{ globalStore.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
@@ -156,22 +170,54 @@ const setSimilar = async () => {
                                                 <PropertyInput v-else :property="property" :input-id="[100, index]" />
                                             </td>
                                         </template>
-
                                     </tr>
                                 </table>
-                                <button class="me-2" @click="setSimilar()">Find Similar</button>
+                                <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <b>Instances values</b>
+                        <div class="d-flex flex-row flex-wrap">
+                            <div v-for="img, imgIndex in pile.images" class="m-2">
+                                <!-- <div class="m-2 border" v-if="imgProperties[img.id].length > 0">
+                                    <div v-for="property, index in imgProperties[img.id]">
+                                        <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
+                                        <TagInput
+                                            v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
+                                            :property="property" :max-size="String(200)"
+                                            :mono-tag="property.type == PropertyType.tag"
+                                            :input-id="[99, index, imgIndex]" />
+                                        <PropertyInput v-else :property="property" :max-size="String(200)"
+                                            :input-id="[99, index, imgIndex]" />
+                                    </div>
+                                </div> -->
+
+                                <table class="table border">
+                                    <tr v-for="property, index in imgProperties[img.id]" class="">
+                                        <template v-if="property.propertyId > 0">
+                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td class="w-100">
+                                                <TagInput v-if="property.type == PropertyType.multi_tags"
+                                                    :property="property" :input-id="[100, index]" />
+                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
+                                                    :mono-tag="true" :input-id="[100, index]" />
+                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </table>
                             </div>
                         </div>
                     </div>
 
 
 
-
                 </div>
-                <div class="modal-footer">
-                    <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
-                    <button type="button" class="btn btn-secondary" @click="hide">Close</button>
-                </div>
+                <!-- <div class="modal-footer"> -->
+                <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
+                <!-- <button type="button" class="btn btn-secondary" @click="hide">Close</button> -->
+                <!-- </div> -->
             </div>
         </div>
     </div>

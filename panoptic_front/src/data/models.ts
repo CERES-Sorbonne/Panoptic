@@ -74,6 +74,7 @@ export interface PropertyValueUpdate extends PropertyValue {
 export interface PropertyRef extends PropertyValue {
     type: PropertyType
     imageId: number
+    mode: PropertyMode
 }
 
 export interface Image {
@@ -207,7 +208,8 @@ export interface Filter {
 
 export enum Modals {
     IMAGE = 'image',
-    PROPERTY = 'property'
+    PROPERTY = 'property',
+    SHA1PILE = 'sha1pile'
 }
 
 export interface PropertySetting {
