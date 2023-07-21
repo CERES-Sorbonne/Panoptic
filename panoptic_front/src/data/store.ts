@@ -6,7 +6,7 @@ import {
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode, defaultPropertyOption
 } from '../data/models'
 import { MAX_GROUPS } from '@/utils/groups'
 
@@ -165,6 +165,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.importState = await apiGetImportStatus()
         setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
 
+        this.updatePropertyOptions()
         this.isLoaded = true
     },
     applyImportState(state: ImportState) {
@@ -202,8 +203,22 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async addProperty(name: string, type: PropertyType, mode: PropertyMode) {
         const newProperty: Property = await apiAddProperty(name, type, mode)
         this.properties[newProperty.id] = newProperty
+        this.updatePropertyOptions()
     },
 
+    updatePropertyOptions() {
+        console.log('update property options ' + Object.keys(this.tabs).length)
+        for(let tabId in this.tabs) {
+            const tab = this.tabs[tabId]
+            if(tab.data.propertyOptions == undefined) {
+                tab.data.propertyOptions = {}
+                console.log('add default')
+            }
+            for(let propId in globalStore.properties) {
+                tab.data.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.data.propertyOptions[propId])
+            }
+        }
+    },
     async setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null) {
         if(!Array.isArray(images)) {
             images = [images]
@@ -290,6 +305,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async updateProperty(propertyId: number, name?: string) {
         await apiUpdateProperty(propertyId, name)
         this.properties[propertyId].name = name
+        this.updatePropertyOptions()
     },
 
     async deleteProperty(propertyId: number) {

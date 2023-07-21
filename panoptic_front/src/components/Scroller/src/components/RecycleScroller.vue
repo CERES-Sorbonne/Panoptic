@@ -764,6 +764,10 @@ export default {
   position: relative;
 }
 
+/* .vue-recycle-scroller::-webkit-scrollbar{
+    display: none;
+  } */
+
 .vue-recycle-scroller.direction-vertical:not(.page-mode) {
   overflow-y: auto;
 }

@@ -3,9 +3,10 @@ import { globalStore } from '@/data/store';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
 import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
-import RecycleScroller from '../Scroller/src/components/RecycleScroller.vue';
+import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
 import { PropertyMode } from '@/data/models';
+import { isImageGroup, isPileGroup } from '@/utils/utils';
 
 const props = defineProps({
     imageSize: Number,
@@ -91,13 +92,10 @@ function computeLines() {
             })
             return
         }
-        // if (!group.closed && Array.isArray(group.allSimilarSha1s) && group.allSimilarSha1s.length > 0) {
-        //     computeImageLines(group.getSimilarImages(), lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group, true)
-        // }
-        if (!group.closed && Array.isArray(group.imagePiles) && group.imagePiles.length > 0) {
+        if (!group.closed && isPileGroup(group)) {
             computeImagePileLines(group.imagePiles, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
-        else if (!group.closed && Array.isArray(group.images) && group.images.length > 0) {
+        else if (!group.closed && isImageGroup(group)) {
             computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
         }
 
@@ -239,6 +237,9 @@ function openGroup(groupId) {
 }
 
 onMounted(computeLines)
+onMounted(() => {
+    console.log(props.height, props.width)
+})
 // onMounted(() => updateListWindow(0, 100))
 
 // watch(() => props.data, () => {
@@ -291,7 +292,8 @@ watch(() => props.width, () => {
 
 <template>
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="" :page-mode="false" :prerender="200">
+        :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="" :page-mode="false" :prerender="0"
+        >
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->

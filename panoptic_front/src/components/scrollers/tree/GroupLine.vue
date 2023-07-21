@@ -2,9 +2,9 @@
 import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, ref, unref } from 'vue'
-import StampDropdown from '../inputs/StampDropdown.vue'
+import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import { UNDEFINED_KEY } from '@/utils/groups'
-import PropertyValue from '../properties/PropertyValue.vue'
+import PropertyValue from '@/components/properties/PropertyValue.vue'
 
 
 const props = defineProps({

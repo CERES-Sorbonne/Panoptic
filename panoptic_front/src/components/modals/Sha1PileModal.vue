@@ -5,6 +5,7 @@ import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
+import PropertyValueTable from '../properties/PropertyValueTable.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -177,38 +178,7 @@ const setSimilar = async () => {
                         </div>
                     </div>
                     <div class="row">
-                        <b>Instances values</b>
-                        <div class="d-flex flex-row flex-wrap">
-                            <div v-for="img, imgIndex in pile.images" class="m-2">
-                                <!-- <div class="m-2 border" v-if="imgProperties[img.id].length > 0">
-                                    <div v-for="property, index in imgProperties[img.id]">
-                                        <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
-                                        <TagInput
-                                            v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
-                                            :property="property" :max-size="String(200)"
-                                            :mono-tag="property.type == PropertyType.tag"
-                                            :input-id="[99, index, imgIndex]" />
-                                        <PropertyInput v-else :property="property" :max-size="String(200)"
-                                            :input-id="[99, index, imgIndex]" />
-                                    </div>
-                                </div> -->
-
-                                <table class="table border">
-                                    <tr v-for="property, index in imgProperties[img.id]" class="">
-                                        <template v-if="property.propertyId > 0">
-                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
-                                            <td class="w-100">
-                                                <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" :input-id="[100, index]" />
-                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" :input-id="[100, index]" />
-                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
-                                            </td>
-                                        </template>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
+                        <PropertyValueTable :images="pile.images" />
                     </div>
 
 
