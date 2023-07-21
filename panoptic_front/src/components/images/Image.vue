@@ -9,7 +9,10 @@ const props = defineProps({
     image: Object as () => Image,
     size: { type: Number, default: 100 },
     index: Number,
-    groupId: String
+    groupId: String,
+    hideProperties: Boolean,
+    constraintWidth: Boolean,
+    noBorder: Boolean
 })
 
 const emits = defineEmits(['resize'])
@@ -45,17 +48,36 @@ const imageProperties = computed(() => {
 const imageWidthStyle = computed(() => `max-width: ${Number(props.size) - 4}px; max-height: ${Number(props.size) - 4}px;`)
 
 const imageSizes = computed(() => {
-    let ratio = props.image.width / props.image.height
+    if (!props.constraintWidth) {
+        let ratio = props.image.width / props.image.height
 
-    let h = props.size
-    let w = h * ratio
+        let h = props.size
+        let w = h * ratio
 
-    if (ratio > 2) {
-        w = props.size * 2
-        h = w / ratio
+        if (ratio > 2) {
+            w = props.size * 2
+            h = w / ratio
+        }
+
+        const res = { width: w, height: h }
+        emits('resize', res)
+        return res
     }
 
-    return { width: w, height: h }
+    let ratio = props.image.height / props.image.width
+
+    let w = props.size
+    let h = w * ratio
+
+    if (ratio > 2) {
+        h = props.size * 2
+        w = h / ratio
+    }
+
+    const res = { width: w, height: h }
+    emits('resize', res)
+    return res
+
 })
 
 const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
@@ -64,12 +86,12 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 </script>
 
 <template>
-    <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
+    <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
             <img :src="props.size < 150 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
         </div>
-        <div class="prop-container" v-if="imageProperties.length > 0">
+        <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
                 <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
@@ -85,6 +107,9 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <style scoped>
 .full-container {
     position: relative;
+}
+
+.img-border {
     border: 1px solid var(--border-color);
 }
 

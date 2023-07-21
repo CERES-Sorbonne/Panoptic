@@ -36,7 +36,7 @@ function onResize() {
 </script>
 
 <template>
-    <div class="d-flex flex-row h-100v">
+    <div class="d-flex flex-row m-0 p-0 overflow-hidden">
         <div class="">
             <Menu />
         </div>

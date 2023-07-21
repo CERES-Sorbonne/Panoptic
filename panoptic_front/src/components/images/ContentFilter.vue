@@ -7,6 +7,7 @@ import RangeInput from '../inputs/RangeInput.vue'
 import { apiStartPCA } from '../../data/api'
 import Toggle from '@vueform/toggle'
 import { ref } from 'vue';
+import { globalStore } from '@/data/store';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -24,16 +25,18 @@ const emits = defineEmits(['compute-ml', 'search-images'])
             <input type="text" class="input-hidden" placeholder="Chercher par texte"
                 @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
         </div>
+
+        <div class="me-5">
+            <i class="bi bi-diagram-3-fill me-2 btn-icon" @click="props.tab.data.display = 'tree'"></i>
+            <i class="bi bi-grid-3x3 btn-icon"  @click="props.tab.data.display = 'grid'"></i>
+        </div>
+
         <div class="bi bi-aspect-ratio me-1"></div>
         <div>
             <RangeInput :min="50" :max="500" v-model="props.tab.data.imageSize" />
         </div>
         <div class="ms-5">
-            <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle"/>
-            <!-- <div class="form-check form-switch">
-                <input class="form-check-input unique-switch mt-2" type="checkbox" v-model="sha1Mode">
-                <label class="form-check-label" :class="!sha1Mode ? 'text-secondary':''" style="font-size: 10px;">Unique</label>
-            </div> -->
+            <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
         </div>
 
         <!-- <div class="ms-5">
@@ -59,8 +62,8 @@ const emits = defineEmits(['compute-ml', 'search-images'])
 }
 
 .center-block {
-  margin: auto;
-  display: block;
+    margin: auto;
+    display: block;
 }
 
 .unique-switch {

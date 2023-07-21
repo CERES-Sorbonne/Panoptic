@@ -316,6 +316,17 @@ export interface TabState {
     visibleFolders: {[key: number]: boolean}
     selectedFolders: {[key: number]: boolean}
     sha1Mode: boolean
+    propertyOptions: {[key: number]: PropertyOption}
+}
+
+export interface PropertyOption {
+    size: number
+}
+
+export function defaultPropertyOption() {
+    return {
+        size: 200
+    } as PropertyOption
 }
 
 export interface TabRequest {
@@ -381,10 +392,10 @@ export interface ImportState {
 export interface ScrollerLine {
     id: string
     type: string
-    groupId: string
+    groupId?: string
     data: any
-    index: number
-    depth: number
+    index?: number
+    depth?: number
     size: number
 }
 
@@ -395,6 +406,10 @@ export interface GroupLine extends ScrollerLine{
 
 export interface ImageLine extends ScrollerLine {
     data: Image[]
+}
+
+export interface RowLine extends ScrollerLine {
+    data: Image
 }
 
 export interface ScrollerPileLine extends ScrollerLine {
@@ -418,6 +433,7 @@ export function buildTabState() {
         visibleProperties: {},
         visibleFolders: {},
         selectedFolders: {},
+        propertyOptions: {},
     } as TabState
 }
 
