@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@vueuse/core';
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 
 
 const props = defineProps({
@@ -34,6 +34,8 @@ onMounted(() => {
       emits('resize', elem.value.clientWidth+1)
     })
 })
+
+watch(() => props.startWidth, () => elem.value.style.width = props.startWidth + 'px')
 
 </script>
 

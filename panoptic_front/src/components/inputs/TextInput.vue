@@ -18,7 +18,8 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    width: Number
+    width: Number,
+    minHeight: {type: Number, default: 30}
 
 })
 
@@ -48,20 +49,26 @@ onMounted(() => {
 watch(() => props.width, () => {
     input(props.modelValue)
 })
+watch(() => props.modelValue, () => {
+    input(props.modelValue)
+})
 
 </script>
 
 <template>
     <contenteditable ref="elem" :tag="props.tag" @update:model-value="input"
         :model-value="props.modelValue" :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable"
-        :style="'width: ' + props.width+'px;'" class="contenteditable"/>
+        :style="{width: 'calc(100% - 20px)', minHeight: props.minHeight-6+'px'}" class="contenteditable"
+        @keydown.escape="e => e.target.blur()"
+        />
 </template>
 
 <style scoped>
 
 .contenteditable {
-    white-space: pre-wrap;
-    padding-left: 1px;
+    white-space: break-spaces;
+    padding-left: 2px;
+    padding-right: 2px;
 }
 
 </style>
