@@ -60,7 +60,7 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
         </div>
         <div v-for="property in props.properties" :class="classes" :style="{ width:  tab.data.propertyOptions[property.id].size+'px'}">
             <div v-if="props.item.data.properties[property.id] != undefined">
-                <TextInput @update:height="h => sizes[property.id] = h" v-model="props.item.data.properties[property.id].value" tag="div" :no-html="true" :width="tab.data.propertyOptions[property.id].size-4"/>
+                <TextInput :min-height="rowHeight" @update:height="h => sizes[property.id] = h" v-model="props.item.data.properties[property.id].value" tag="div" :no-html="true" :width="tab.data.propertyOptions[property.id].size-4"/>
             </div>
             <div v-else>None</div>
         </div>
