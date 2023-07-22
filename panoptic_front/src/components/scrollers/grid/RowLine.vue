@@ -58,11 +58,12 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
         <div v-if="showImage" :class="classes" :style="{ width: tab.data.imageSize+'px' }" class="p-0 m-0">
             <ImageVue :image="item.data" :constraint-width="false" :size="tab.data.imageSize" :hide-properties="true" @resize="resizeImage" :no-border="true"/>
         </div>
-        <div v-for="property in props.properties" :class="classes" :style="{ width:  tab.data.propertyOptions[property.id].size+'px'}">
+        <div v-for="property, index in props.properties" :class="classes" :style="{ width:  tab.data.propertyOptions[property.id].size+'px'}">
             <div v-if="props.item.data.properties[property.id] != undefined">
-                <TextInput :min-height="rowHeight" @update:height="h => sizes[property.id] = h" v-model="props.item.data.properties[property.id].value" tag="div" :no-html="true" :width="tab.data.propertyOptions[property.id].size-4"/>
+                <TextInput :min-height="rowHeight" @update:height="h => sizes[property.id] = h" v-model="props.item.data.properties[property.id].value" tag="div" :no-html="true" :width="((tab.data.propertyOptions[property.id].size-4) - (props.properties.length-1 == index ? 15:0))"/>
             </div>
             <div v-else>None</div>
+
         </div>
     </div>
 </template>
