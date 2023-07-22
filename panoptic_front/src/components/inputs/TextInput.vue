@@ -58,7 +58,7 @@ watch(() => props.modelValue, () => {
 <template>
     <contenteditable ref="elem" :tag="props.tag" @update:model-value="input"
         :model-value="props.modelValue" :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable"
-        :style="{width: 'calc(100% - 20px)', minHeight: props.minHeight-6+'px'}" class="contenteditable"
+        :style="{width: props.width+'px', minHeight: props.minHeight-6+'px'}" class="contenteditable"
         @keydown.escape="e => e.target.blur()"
         />
 </template>
