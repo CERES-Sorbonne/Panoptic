@@ -64,6 +64,8 @@ const imageSizes = computed(() => {
         return res
     }
 
+    return {width: props.size-4, height: props.size-4}
+
     let ratio = props.image.height / props.image.width
 
     let w = props.size

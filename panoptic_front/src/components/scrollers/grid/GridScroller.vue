@@ -7,6 +7,7 @@ import GroupLineVue from './GroupLine.vue';
 import TableHeader from './TableHeader.vue';
 import RowLineVue from './RowLine.vue';
 import { globalStore } from '@/data/store';
+import GridScrollerLine from './GridScrollerLine.vue';
 
 
 const props = defineProps({
@@ -86,7 +87,7 @@ function computeImageRow(image: Image, groupId: string, groupIndex) {
 }
 
 function resizeHeight(item, h) {
-    console.log('resize')
+    // console.log('resize')
     item.size = h
     scroller.value.updateVisibleItems(true)
 }
@@ -102,17 +103,18 @@ watch(() => props.data, computeLines)
         <TableHeader :properties="props.selectedProperties" :show-image="props.showImages" class="p-0 m-0" />
 
         <RecycleScroller :items="lines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="200"
-            :emitUpdate="false" @update="" :page-mode="false" :prerender="20" class="p-0 m-0">
+            :emitUpdate="false" @update="" :page-mode="false" :prerender="0" class="p-0 m-0">
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
-                    <div v-if="item.type == 'group'">
+                    <!-- <div v-if="item.type == 'group'">
                         <GroupLineVue :prop-values="item.data.propertyValues" :item="item" :width="scrollerWidth" />
                     </div>
                     <div v-if="item.type == 'image'">
                         <RowLineVue :item="item" :properties="props.selectedProperties" :show-image="props.showImages"
                             @resizeHeight="h => resizeHeight(item, h)" />
-                    </div>
+                    </div> -->
+                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth" @resizeHeight="h => resizeHeight(item, h)" :show-images="true"/>
                 </template>
                 <!-- </DynamicScrollerItem> -->
             </template>

@@ -20,6 +20,19 @@ export function getImageProperties(id: number) {
     return res
 }
 
+export function getImageProperty(imgId: number, propId: number) {
+    const img = globalStore.images[imgId]
+    const p = globalStore.properties[propId]
+    const propRef: PropertyRef = {
+            propertyId: p.id,
+            type: p.type,
+            value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
+            imageId: img.id,
+            mode: p.mode
+        }
+        return propRef
+}
+
 export function isImageGroup(group: Group) {
     return Array.isArray(group.images) && group.images.length > 0
 }

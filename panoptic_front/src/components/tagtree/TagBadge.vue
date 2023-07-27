@@ -2,7 +2,6 @@
 
 const props = defineProps({
   tag: String,
-  number: Number,
   showDelete: { type: Boolean, default: false },
   color: String
 })
