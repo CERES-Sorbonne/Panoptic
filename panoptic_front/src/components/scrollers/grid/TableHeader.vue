@@ -4,6 +4,7 @@ import { globalStore } from '@/data/store';
 import { computed, onMounted, reactive, ref, unref } from 'vue';
 import { useResizeObserver } from '@vueuse/core'
 import Resizable from '@/components/Resizable.vue';
+import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 
 const props = defineProps({
     properties: Array<Property>,
@@ -26,8 +27,8 @@ function resize(propId, w) {
         <div class="left-border" ></div>
         <div v-if="showImage" class="header-cell" :style="{ width: tab.data.imageSize+'px' }">Image</div>
         <Resizable :start-width="tab.data.propertyOptions[property.id].size" v-for="property in props.properties" class="header-cell" @resize="w => resize(property.id, w)" >
+            <PropertyIcon :type="property.type" class="ms-1"/>
             {{ property.name }}
-            {{ tab.data.propertyOptions[property.id].size }}
         </Resizable>
     </div>
 </template>

@@ -17,6 +17,7 @@ const props = defineProps({
     maxSize: Number,
     monoTag: Boolean,
     inputId: Array<number>,
+    minHeight: Number
 })
 
 const emits = defineEmits({ 'update:height': Number })
@@ -32,6 +33,7 @@ const selectedIndex = ref(0)
 const inputElem = ref(null)
 const dropdownElem = ref(null)
 const clickableElem = ref(null)
+const sizeElem = ref(null)
 
 const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
 
@@ -124,7 +126,7 @@ function setEdit(value: Boolean) {
         if (propRef.value.value == '') {
             propRef.value.value = undefined
         }
-        inputElem.value.focus()
+        // inputElem.value.focus()
         let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
         dropdown.hide()
     }
@@ -179,10 +181,10 @@ function loadDbValue() {
 
 function onResize() {
     nextTick(() => {
-        if(!clickableElem.value) {
+        if(!sizeElem.value) {
             return
         }
-        const newH = clickableElem.value.clientHeight + 20
+        const newH = sizeElem.value.clientHeight + 3
         emits('update:height', newH)
     })
 }
@@ -208,20 +210,20 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
 </script>
 
 <template>
-    <div class="pt-1 pb-1 pe-1 input-container" is-input="true">
+    <div class="input-container" is-input="true">
         <div class="dropdown m-0" @click.prevent.stop="setEdit(true)" ref="clickableElem">
             <div class="no-border p-0 text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0"
                 data-ds-toggle="dropdown" data-bs-display="static">
-                <div v-if="!edit" class="overflow-hidden text-wrap" :style="{ width: props.maxSize + 'px' }">
+                <div v-if="!edit" class="overflow-hidden text-wrap" :style="{ width: props.maxSize + 'px', minHeight: props.minHeight+'px' }">
                     <!-- <span class="me-1">
                         <PropertyIcon :type="props.property.type" />
                     </span> -->
-                    <template v-if="!edit">
+                    <div v-if="!edit" ref="sizeElem">
                         <span v-for="tag in imageTags">
                             <TagBadge :tag="tag.value" :color="tag.color" class="me-1" />
                         </span>
                         <span v-if="imageTags.length == 0">None</span>
-                    </template>
+                    </div>
                 </div>
 
                 <div v-else :style="{ width: props.maxSize - 2 + 'px' }">
@@ -274,6 +276,7 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
     position: relative;
     /* top: 0; */
     margin: 0;
+    padding: 0;
 
 }
 

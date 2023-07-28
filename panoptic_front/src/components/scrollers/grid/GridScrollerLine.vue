@@ -28,7 +28,7 @@ watch(() => props.item.id, reload)
 </script>
 
 <template>
-    <template v-if="loaded">
+    <template v-if="loaded" class="container">
         <div v-if="item.type == 'group'">
             <GroupLine :prop-values="item.data.propertyValues" :item="item" :width="props.width" />
         </div>
@@ -38,3 +38,10 @@ watch(() => props.item.id, reload)
         </div>
     </template>
 </template>
+
+<style scoped>
+.container {
+    margin: 0;
+    padding: 0;
+}
+</style>

@@ -13,15 +13,20 @@ const props = defineProps({
         default: false,
     },
     width: Number,
-    minHeight: {type: Number, default: 30}
+    minHeight: { type: Number, default: 30 }
 
 })
-
 const emits = defineEmits({ 'update:height': Number })
 
 const localValue = ref('')
+const elem = ref(null)
+// const inputElem = computed(() => elem.value.inputElem)
 
 const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
+
+function focus() {
+    elem.value.focus()
+}
 
 function updateFromStore() {
     localValue.value = propRef.value.value ?? ''
@@ -31,18 +36,25 @@ onMounted(updateFromStore)
 watch(propRef, updateFromStore)
 watch(localValue, () => globalStore.setPropertyValue(props.property.id, props.image, localValue.value))
 
+
+defineExpose({
+    localValue,
+    // inputElem
+    focus
+})
+
+
 </script>
 
 <template>
-    <TextInput :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width" @update:height="h => emits('update:height', h)"/>
+    <div>
+        <TextInput  class="input" :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width"
+            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"/>
+    </div>
 </template>
 
 <style scoped>
-
-.contenteditable {
-    white-space: break-spaces;
-    padding-left: 2px;
-    padding-right: 2px;
+.input {
+    margin-top: 2px;
 }
-
 </style>

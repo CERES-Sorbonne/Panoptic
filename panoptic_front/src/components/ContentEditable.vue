@@ -8,10 +8,12 @@
     :is="tag"
     :contenteditable="contenteditable"
     @input="update"
-    @blur="update"
+    @blur="blur"
     @paste="onPaste"
     @keypress="onKeypress"
+    @click.capture.stop
     ref="element"
+    @focus="test"
   >
   </component>
 </template>
@@ -20,6 +22,10 @@
 
 
 import { defineProps, ref, computed, onMounted, watch } from 'vue';
+
+function test() {
+  emit('focus')
+}
 
 function replaceAll(str: string, search: string, replacement: string) {
   return str.split(search).join(replacement);
@@ -46,11 +52,32 @@ const props = defineProps({
 const emit = defineEmits({
   'returned' : String,
   'update:modelValue' : Object,
+  'blur': undefined,
+  'focus': undefined
 })
 
-// defineExpose({
-//   element: HTMLElement
-// })
+
+// function focus() {
+//   setEndOfContenteditable(element.value)
+//   // element.value.focus()
+// }
+function setEndOfContenteditable(contentEditableElement)
+{
+    var range,selection;
+    if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
+    {
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+    }
+}
+
+defineExpose({
+  focus
+})
 
 
 const element = ref<HTMLElement | null>()
@@ -77,6 +104,11 @@ function updateContent(newcontent: string){
 function update(event: any) {
   if(!element.value) return
   emit('update:modelValue', currentContent());
+}
+
+function blur(event: any) {
+  emit('blur')
+  update(event)
 }
 
 function onPaste(event: any) {
