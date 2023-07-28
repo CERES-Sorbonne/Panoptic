@@ -25,7 +25,8 @@ const props = defineProps({
 const emit = defineEmits({
     'returned': String,
     'update:modelValue': Object,
-    'update:height': String
+    'update:height': String,
+    'blur': undefined
 })
 const elem = ref(null)
 const isFocus = ref(false)
@@ -75,7 +76,7 @@ watch(() => props.modelValue, () => {
     <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="props.modelValue"
         :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable"
         :style="{ width: props.width + 'px', minHeight: minHeight}" class="contenteditable"
-        @keydown.escape="e => e.target.blur()" @focus="isFocus = true" @blur="isFocus = false"/>
+        @keydown.escape="e => e.target.blur()" @focus="isFocus = true" @blur="isFocus = false; emit('blur');"/>
 </template>
 
 <style scoped>
