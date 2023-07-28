@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import ContentEditable from '../ContentEditable.vue';
 
 const props = defineProps({
@@ -27,8 +27,22 @@ const emit = defineEmits({
     'update:modelValue': Object,
     'update:height': String
 })
-
 const elem = ref(null)
+const isFocus = ref(false)
+const minHeight = computed(() => {
+    return (props.minHeight - 6)+'px'
+})
+
+
+function focus() {
+    elem.value.focus()
+}
+
+defineExpose({
+    focus,
+})
+
+
 
 let height = 0
 
@@ -44,6 +58,8 @@ function input(value: string) {
     })
 }
 
+
+
 onMounted(() => {
     input(props.modelValue)
 })
@@ -53,14 +69,13 @@ watch(() => props.width, () => {
 watch(() => props.modelValue, () => {
     input(props.modelValue)
 })
-
 </script>
 
 <template>
     <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="props.modelValue"
         :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable"
-        :style="{ width: props.width + 'px', minHeight: props.minHeight - 6 + 'px' }" class="contenteditable"
-        @keydown.escape="e => e.target.blur()" />
+        :style="{ width: props.width + 'px', minHeight: minHeight}" class="contenteditable"
+        @keydown.escape="e => e.target.blur()" @focus="isFocus = true" @blur="isFocus = false"/>
 </template>
 
 <style scoped>
