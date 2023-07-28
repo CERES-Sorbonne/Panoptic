@@ -57,10 +57,10 @@ const emit = defineEmits({
 })
 
 
-// function focus() {
-//   setEndOfContenteditable(element.value)
-//   // element.value.focus()
-// }
+function focus() {
+  setEndOfContenteditable(element.value)
+  // element.value.focus()
+}
 function setEndOfContenteditable(contentEditableElement)
 {
     var range,selection;
