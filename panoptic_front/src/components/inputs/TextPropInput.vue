@@ -32,9 +32,13 @@ function updateFromStore() {
     localValue.value = propRef.value.value ?? ''
 }
 
+function save() {
+    globalStore.setPropertyValue(props.property.id, props.image, localValue.value)
+}
+
+
 onMounted(updateFromStore)
 watch(propRef, updateFromStore)
-watch(localValue, () => globalStore.setPropertyValue(props.property.id, props.image, localValue.value))
 
 
 defineExpose({
@@ -49,7 +53,7 @@ defineExpose({
 <template>
     <div>
         <TextInput  class="input" :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width"
-            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"/>
+            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight" @blur="save"/>
     </div>
 </template>
 
