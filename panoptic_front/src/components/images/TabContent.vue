@@ -37,7 +37,7 @@ const sorts = computed(() => props.tab.data.sortList)
 const visibleProperties = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([k, v]) => v).map(([k, v]) => Number(k)).map(k => globalStore.properties[k]))
 
 function updateScrollerHeight() {
-    console.log('update height')
+    // console.log('update height')
     if (filterElem.value && boxElem.value) {
         scrollerHeight.value = props.height - filterElem.value.clientHeight - boxElem.value.clientHeight - 5
     }
@@ -191,8 +191,8 @@ watch(props, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
 
-// UNDO
-// watch(filteredImages, () => computeGroups(), { deep: true })
+
+watch(filteredImages, () => computeGroups(), { deep: true })
 watch(groups, () => {
     computeGroups(true)
     if (groupData.index[reco.groupId] == undefined) {

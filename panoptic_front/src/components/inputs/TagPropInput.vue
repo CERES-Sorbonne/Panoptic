@@ -5,10 +5,9 @@ import { ref, computed, onMounted, reactive, nextTick, watch, onUnmounted } from
 import { globalStore } from '../../data/store'
 import { Image, Property, Tag } from '@/data/models';
 import TagBadge from '../tagtree/TagBadge.vue';
-import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as boostrap from 'bootstrap'
 import * as inputTree from '@/utils/inputTree'
-import { getImageProperties, getImageProperty } from '@/utils/utils';
+import { getImageProperty } from '@/utils/utils';
 
 // contains the tag property of this image
 const props = defineProps({
@@ -99,16 +98,16 @@ const optionClass = (id: number) => {
 }
 
 function setEdit(value: Boolean) {
-    console.log('set edit: ' + value)
+    // console.log('set edit: ' + value)
     if (value == edit.value) {
-        console.log('set edit: double')
+        // console.log('set edit: double')
         return
     }
     if (value) {
         edit.value = true
         document.addEventListener('click', handleContainerClick, true)
         nextTick(() => {
-            console.log(inputElem.value)
+            // console.log(inputElem.value)
             if (!inputElem.value) {
                 return
             }
@@ -215,9 +214,6 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
             <div class="no-border p-0 text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0"
                 data-ds-toggle="dropdown" data-bs-display="static">
                 <div v-if="!edit" class="overflow-hidden text-wrap" :style="{ width: props.maxSize + 'px', minHeight: props.minHeight+'px' }">
-                    <!-- <span class="me-1">
-                        <PropertyIcon :type="props.property.type" />
-                    </span> -->
                     <div v-if="!edit" ref="sizeElem">
                         <span v-for="tag in imageTags">
                             <TagBadge :tag="tag.value" :color="tag.color" class="me-1" />
@@ -226,7 +222,7 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
                     </div>
                 </div>
 
-                <div v-else :style="{ width: props.maxSize - 2 + 'px' }">
+                <div v-else :style="{ width: props.maxSize - 2 + 'px', marginTop: '1px' }">
                     <input class="m-0 me-1 ps-1 no-border bg-light small-input" ref="inputElem" v-model="tagInput"
                         @keydown.down.prevent="moveSelected(1)" @keydown.up.prevent="moveSelected(-1)"
                         @keydown.enter="selectOption" @keydown.escape.prevent.stop="setEdit(false)"

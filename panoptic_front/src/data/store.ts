@@ -207,12 +207,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     updatePropertyOptions() {
-        console.log('update property options ' + Object.keys(this.tabs).length)
+        // console.log('update property options ' + Object.keys(this.tabs).length)
         for(let tabId in this.tabs) {
             const tab = this.tabs[tabId]
             if(tab.data.propertyOptions == undefined) {
                 tab.data.propertyOptions = {}
-                console.log('add default')
+                // console.log('add default')
             }
             for(let propId in globalStore.properties) {
                 tab.data.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.data.propertyOptions[propId])

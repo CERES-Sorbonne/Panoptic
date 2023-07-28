@@ -53,6 +53,10 @@ let height = 0
 
 function input(value: string) {
     emit('update:modelValue', value)
+    updateHeight()
+}
+
+function updateHeight() {
     nextTick(() => {
         if (!elem.value) return
         let newHeight = elem.value.$refs.element.clientHeight
@@ -66,10 +70,10 @@ function input(value: string) {
 
 
 onMounted(() => {
-    input(props.modelValue)
+    updateHeight()
 })
 watch(() => props.width, () => {
-    input(props.modelValue)
+    updateHeight()
 })
 watch(() => props.modelValue, () => {
     input(props.modelValue)
