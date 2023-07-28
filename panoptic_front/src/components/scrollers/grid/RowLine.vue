@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ImageVue from '@/components/images/Image.vue';
-import TagInput3 from '@/components/inputs/TagInput3.vue';
+import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
+import TagPropInput from '@/components/inputs/TagPropInput.vue';
 import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
 import { Image, Property, PropertyType, RowLine, isTag } from '@/data/models';
@@ -95,12 +96,16 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
             :style="{ width: (tab.data.propertyOptions[property.id].size) + 'px' }">
             <!-- {{ rowHeight }} -->
             <!-- <template v-if="props.item.data.properties[property.id] != undefined"> -->
-            <TextPropInput v-if="property.type == PropertyType.string" :min-height="propMinRowHeight[property.id]" ref="inputElems"
-                @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+            <TextPropInput v-if="property.type == PropertyType.string" :min-height="propMinRowHeight[property.id]"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TagInput3 v-if="isTag(property.type)" :property="property" :image="item.data" ref="inputElems"
-                :min-height="rowHeight - 4" :input-id="[0, index]" @update:height="h => sizes[property.id] = h"
-                :max-size="(tab.data.propertyOptions[property.id].size - 4) - (props.properties.length - 1 == index ? 15 : 0)" />
+            <TagPropInput v-if="isTag(property.type)" :property="property" :image="item.data" ref="inputElems"
+                :min-height="propMinRowHeight[property.id]" :input-id="[0, index]"
+                @update:height="h => sizes[property.id] = h"
+                :max-size="(tab.data.propertyOptions[property.id].size - 5) - (props.properties.length - 1 == index ? 13 : 0)" />
+            <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <!-- </template> -->
             <!-- <template v-else>None</template> -->
         </div>

@@ -11,9 +11,9 @@
     @blur="blur"
     @paste="onPaste"
     @keypress="onKeypress"
-    @click.capture.stop
+    @click.stop
     ref="element"
-    @focus="test"
+    @focus="emit('focus')"
   >
   </component>
 </template>
@@ -23,9 +23,6 @@
 
 import { defineProps, ref, computed, onMounted, watch } from 'vue';
 
-function test() {
-  emit('focus')
-}
 
 function replaceAll(str: string, search: string, replacement: string) {
   return str.split(search).join(replacement);

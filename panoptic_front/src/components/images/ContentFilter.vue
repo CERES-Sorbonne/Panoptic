@@ -33,7 +33,7 @@ const emits = defineEmits(['compute-ml', 'search-images'])
 
         <div class="bi bi-aspect-ratio me-1"></div>
         <div>
-            <RangeInput :min="50" :max="500" v-model="props.tab.data.imageSize" />
+            <RangeInput :min="30" :max="500" v-model="props.tab.data.imageSize" />
         </div>
         <div class="ms-5">
             <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
