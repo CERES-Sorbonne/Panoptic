@@ -23,8 +23,10 @@ const elem = ref(null)
 // const inputElem = computed(() => elem.value.inputElem)
 
 const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
+const isFocus = computed(() => elem.value?.isFocus)
 
 function focus() {
+    console.log(elem.value)
     elem.value.focus()
 }
 
@@ -53,14 +55,15 @@ watch(localValue, save)
 </script>
 
 <template>
-    <div>
-        <TextInput  class="input" :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width"
-            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"/>
+    <div class="container">
+        <TextInput  class="container" :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width"
+            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight" />
     </div>
 </template>
 
 <style scoped>
-.input {
-    margin-top: 2px;
+.container {
+    padding-top: 2px;
 }
+
 </style>
