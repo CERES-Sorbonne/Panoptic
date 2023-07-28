@@ -38,7 +38,7 @@ function save() {
 
 
 onMounted(updateFromStore)
-watch(propRef, updateFromStore)
+// watch(propRef, updateFromStore)
 
 
 defineExpose({
@@ -47,13 +47,15 @@ defineExpose({
     focus
 })
 
+watch(localValue, save)
+
 
 </script>
 
 <template>
     <div>
         <TextInput  class="input" :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width"
-            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight" @blur="save"/>
+            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"/>
     </div>
 </template>
 
