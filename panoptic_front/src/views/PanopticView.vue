@@ -9,6 +9,7 @@ import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
 import Sha1PileModal from '@/components/modals/Sha1PileModal.vue';
+import { keyState } from '@/data/keyState';
 
 
 const navElem = ref(null)
@@ -21,6 +22,22 @@ onMounted(() => {
     nextTick(() => {
         window.addEventListener('resize', onResize);
         onResize()
+    })
+
+    window.addEventListener('keydown', (ev) => {
+        if(ev.key == 'Control') keyState.ctrl = true;
+        if(ev.key == 'Alt') keyState.alt = true;
+        if(ev.key == 'Shift') keyState.shift = true;
+    })
+    window.addEventListener('keyup', (ev) => {
+        if(ev.key == 'Control') keyState.ctrl = false;
+        if(ev.key == 'Alt') keyState.alt = false;
+        if(ev.key == 'Shift') keyState.shift = false;
+    })
+    window.addEventListener('mousemove', (ev) => {
+        keyState.ctrl = ev.ctrlKey
+        keyState.alt = ev.altKey
+        keyState.shift = ev.shiftKey
     })
 })
 

@@ -101,6 +101,14 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
             <TextPropInput v-if="property.type == PropertyType.string" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+            <TextPropInput v-if="property.type == PropertyType.url" :min-height="propMinRowHeight[property.id]"
+                :no-nl="true" ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data"
+                :property="property" :url-mode="true"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+            <TextPropInput v-if="property.type == PropertyType.path" :min-height="propMinRowHeight[property.id]"
+                :no-nl="true" ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data"
+                :property="property" :url-mode="false"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <TagPropInput v-if="isTag(property.type)" :property="property" :image="item.data" ref="inputElems"
                 :min-height="propMinRowHeight[property.id]" :input-id="[0, index]"
                 @update:height="h => sizes[property.id] = h"

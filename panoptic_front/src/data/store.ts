@@ -26,6 +26,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     openModal: { id: null, data: null },
     isLoaded: false,
+    pressedKeys: {} as any,
 
     selectedTab: 0,
     async addTab(tabName: string) {

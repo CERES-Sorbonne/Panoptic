@@ -99,6 +99,10 @@ export interface Images {
     [id:number]: Image
 }
 
+// export interface KeyIndex {
+//     [key: ]
+// }
+
 export interface Sha1Pile {
     images: Array<Image>
     sha1: string
