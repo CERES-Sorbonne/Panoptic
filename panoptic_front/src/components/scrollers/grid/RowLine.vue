@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import ImageVue from '@/components/images/Image.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
+import DatePropInput from '@/components/inputs/DatePropInput.vue';
+import NumberPropInput from '@/components/inputs/NumberPropInput.vue';
 import TagPropInput from '@/components/inputs/TagPropInput.vue';
 import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
@@ -106,6 +108,15 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
             <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+
+            <NumberPropInput v-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+
+            <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+
             <!-- </template> -->
             <!-- <template v-else>None</template> -->
         </div>
