@@ -13,7 +13,8 @@ const props = defineProps({
         default: false,
     },
     width: Number,
-    minHeight: { type: Number, default: 30 }
+    minHeight: { type: Number, default: 30 },
+    urlMode: Boolean
 
 })
 const emits = defineEmits({ 'update:height': Number })
@@ -52,13 +53,16 @@ defineExpose({
 
 watch(localValue, save)
 
+function log(e) {
+    console.log(e)
+}
 
 </script>
 
 <template>
     <div class="container">
         <TextInput  class="container" :contenteditable="true" tag="div" :no-html="true" v-model="localValue" :width="props.width"
-            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight" />
+            @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight" :no-nl="props.noNl" :url-mode="props.urlMode"/>
     </div>
 </template>
 

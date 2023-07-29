@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import ContentEditable from '../ContentEditable.vue';
+import { globalStore } from '@/data/store';
+import { keyState } from '@/data/keyState';
 
 const props = defineProps({
     'tag': String,
@@ -18,7 +20,8 @@ const props = defineProps({
         default: false,
     },
     width: Number,
-    minHeight: { type: Number, default: 30 }
+    minHeight: { type: Number, default: 30 },
+    urlMode: Boolean
 
 })
 
@@ -31,11 +34,13 @@ const emit = defineEmits({
 })
 const elem = ref(null)
 const isFocus = ref(false)
+const isHover = ref(false)
 const minHeight = computed(() => {
     // return '0px'
     return (props.minHeight - 4) + 'px'
 })
 
+const urlMode = computed(() => props.urlMode && keyState.alt && isHover.value)
 
 function focus() {
     elem.value.focus()
@@ -67,7 +72,11 @@ function updateHeight() {
     })
 }
 
-
+function contentClick() {
+    if(props.urlMode && keyState.alt && props.modelValue) {
+        window.open(props.modelValue, '_blank').focus();
+    }
+}
 
 onMounted(() => {
     updateHeight()
@@ -81,21 +90,27 @@ watch(() => props.modelValue, () => {
 </script>
 
 <template>
-    <div :style="{ width: props.width + 'px', minHeight: minHeight }" class="container m-0 p-0" :class="isFocus ? 'focus':'container'" @click="elem.focus()">
+    <div :style="{
+        width: props.width + 'px',
+        minHeight: minHeight,
+        cursor: urlMode ? 'pointer' : 'inherit',
+        color: urlMode ? 'blue' : ''
+    }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
+        :class="isFocus ? 'focus' : 'container'" @click="focus">
         <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="props.modelValue"
-            :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable"
-            :style="{ width: props.width + 'px'}" class="contenteditable"
-            @keydown.escape="e => e.target.blur()" @focus="isFocus = true; emit('focus')"
-            @blur="isFocus = false; emit('blur');" />
+            :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable && !(urlMode)"
+            :style="{ width: (props.width - 5) + 'px' }" class="contenteditable" @keydown.escape="e => e.target.blur()"
+            @focus="isFocus = true; emit('focus')" @blur="isFocus = false; emit('blur');" @click="contentClick"/>
     </div>
 </template>
 
 <style scoped>
 .contenteditable {
     white-space: break-spaces;
+    overflow-wrap: break-word;
     padding-left: 2px;
     padding-right: 2px;
-    box-sizing:content-box;
+    box-sizing: content-box;
 }
 
 [contenteditable]:focus {
@@ -112,5 +127,4 @@ watch(() => props.modelValue, () => {
     border: 2px solid blue;
     border-radius: 5px;
 }
-
 </style>
