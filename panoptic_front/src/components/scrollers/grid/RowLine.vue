@@ -33,7 +33,7 @@ const rowHeight = computed(() => {
         }
     }
     if (props.showImage) {
-        return Math.max(max, tab.value.data.imageSize) + 3
+        return Math.max(max, tab.value.data.imageSize) + 4
     }
     return Math.max(max, 30)
 })
@@ -79,9 +79,19 @@ function log(value: any) {
     console.log(Object.keys(value))
 }
 
-onMounted(() => emits('resizeHeight', rowHeight.value))
-watch(props, () => emits('resizeHeight', rowHeight.value))
-watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
+let _emitResize = false
+function emitResizeOnce() {
+    if(_emitResize) return
+    _emitResize = true
+    nextTick(() => {
+        emits('resizeHeight', rowHeight.value)
+        _emitResize = false
+    })
+}
+
+onMounted(emitResizeOnce)
+watch(props, emitResizeOnce)
+watch(rowHeight, emitResizeOnce)
 
 </script>
 
@@ -89,7 +99,9 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
 <template>
     <div class="container" :style="{ height: props.item.size + 'px' }">
         <div class="left-border"></div>
-        <div v-if="showImage" :class="classes" :style="{ width: (tab.data.imageSize + 1) + 'px' }" class="p-0 m-0">
+        <div v-if="showImage" :class="classes" :style="{
+            width: (tab.data.imageSize) + 'px',
+        }" class="p-0 m-0">
             <ImageVue :image="item.data" :constraint-width="true" :size="tab.data.imageSize - 2" :hide-properties="true"
                 :no-border="true" />
         </div>
@@ -158,7 +170,8 @@ watch(rowHeight, () => emits('resizeHeight', rowHeight.value))
     padding-left: 3px;
     margin: 0;
     display: table-cell;
-    height: 100%;
+    /* height: 100%; */
+    /* box-sizing: content-box; */
     /* cursor:text; */
     /* border-top: 1px solid red; */
 }

@@ -61,6 +61,7 @@ function computeLines() {
         console.log('compute lines')
         recursive(props.data.root)
     }
+    scroller.value.updateVisibleItems(true)
 }
 
 function computeGroupLine(group: Group) {
@@ -80,7 +81,7 @@ function computeImageRow(image: Image, groupId: string, groupIndex) {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
-        size: 30,
+        size: globalStore.getTab().data.imageSize,
         index: groupIndex
     }
     return res
@@ -88,8 +89,10 @@ function computeImageRow(image: Image, groupId: string, groupIndex) {
 
 function resizeHeight(item, h) {
     // console.log('resize')
+    if(item.size == h) return
+    console.log(item.data.id, item.size, h)
     item.size = h
-    scroller.value.updateVisibleItems(true)
+    // scroller.value.updateVisibleItems(true)
 }
 
 onMounted(computeLines)
@@ -103,7 +106,7 @@ watch(() => props.data, computeLines)
         <TableHeader :properties="props.selectedProperties" :show-image="props.showImages" class="p-0 m-0" />
 
         <RecycleScroller :items="lines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="200"
-            :emitUpdate="false" @update="" :page-mode="false" :prerender="0" class="p-0 m-0">
+            :emitUpdate="false" @update="" :page-mode="false" :prerender="20" class="p-0 m-0">
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
