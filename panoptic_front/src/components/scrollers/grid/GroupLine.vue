@@ -12,7 +12,7 @@ const props = defineProps({
 </script>
 
 <template>
-    <div class="d-flex flex-row group-row m-0" :style="{width: props.width-1+'px', height: props.item.size+'px'}">
+    <div class="d-flex flex-row group-row m-0" :style="{width: (props.width-2)+'px', height: props.item.size+'px'}">
         <template v-for="value, index in props.propValues">
             <PropertyValueVue class="" :value="value" />
             <div v-if="index < props.propValues.length - 1" class="separator"></div>

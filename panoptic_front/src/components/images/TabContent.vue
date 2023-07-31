@@ -211,27 +211,31 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 </script>
 
 <template>
-    <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"/>
-    </div>
-    <div ref="boxElem" class="m-0 p-0">
-        <div v-if="reco.images.length > 0" class="m-0 p-0">
-            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
-                @close="closeReco" @scroll="imageList.scrollTo" />
+    <div>
+        <div class="" ref="filterElem">
+            <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus"
+                @search-images="setSearchedImages" />
         </div>
-    </div>
-    <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
-        <template v-if="tab.data.display == 'tree'">
-            <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
-                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
-        </template>
-        <template v-if="tab.data.display == 'grid'">
-            <div :style="{ width: (scrollerWidth - 10) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
-                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"/>
+        <div ref="boxElem" class="m-0 p-0">
+            <div v-if="reco.images.length > 0" class="m-0 p-0">
+                <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
+                    @close="closeReco" @scroll="imageList.scrollTo" />
             </div>
-        </template>
+        </div>
+        <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
+            <template v-if="tab.data.display == 'tree'">
+                <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
+                    ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
+            </template>
+            <template v-if="tab.data.display == 'grid'">
+                <div :style="{ width: (scrollerWidth - 20) + 'px' }" class="p-0 m-0 grid-container">
+                    <GridScroller :data="groupData" :height="scrollerHeight - 20" ref="imageList"
+                        :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
+                        :width="scrollerWidth" />
+                </div>
+            </template>
 
+        </div>
     </div>
 </template>
 
