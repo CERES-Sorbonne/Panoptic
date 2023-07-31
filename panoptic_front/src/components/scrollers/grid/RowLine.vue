@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ImageVue from '@/components/images/Image.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
+import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import DatePropInput from '@/components/inputs/DatePropInput.vue';
 import NumberPropInput from '@/components/inputs/NumberPropInput.vue';
 import TagPropInput from '@/components/inputs/TagPropInput.vue';
@@ -59,6 +60,16 @@ const propMinRowHeight = computed(() => {
 
 const sizes: { [key: string | number]: number } = reactive({})
 
+const propWidth = computed(() => {
+    const res = {} as {[propId: number]: number}
+    props.properties.forEach(p => res[p.id] == tab.value.data.propertyOptions[p.id].size)
+    return res
+})
+
+// const totalPropWidth = computed(() => {
+//     return Object.values(propWidth.value).reduce((a,b) => a+b, 0)
+// })
+
 const classes = computed(() => {
     const res = ['header-cell']
     if (props.item.index == 0) {
@@ -81,7 +92,7 @@ function log(value: any) {
 
 let _emitResize = false
 function emitResizeOnce() {
-    if(_emitResize) return
+    if (_emitResize) return
     _emitResize = true
     nextTick(() => {
         emits('resizeHeight', rowHeight.value)
@@ -128,6 +139,9 @@ watch(rowHeight, emitResizeOnce)
             <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+            <ColorPropInput v-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <NumberPropInput v-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
@@ -153,10 +167,11 @@ watch(rowHeight, emitResizeOnce)
 }
 
 .container {
-    margin: 0;
+    margin: auto;
     padding: 0;
     display: table;
     table-layout: fixed;
+    
 }
 
 .header-cell {
@@ -168,7 +183,7 @@ watch(rowHeight, emitResizeOnce)
     /* resize: horizontal; */
     padding-top: 3px;
     padding-left: 3px;
-    margin: 0;
+    /* margin: 0; */
     display: table-cell;
     /* height: 100%; */
     /* box-sizing: content-box; */

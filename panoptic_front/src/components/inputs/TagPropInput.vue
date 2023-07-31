@@ -230,7 +230,7 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
                         @keydown.tab.prevent="inputTree.nextInput(props.inputId)" />
                 </div>
             </div>
-            <div class="dropdown-menu m-0 p-0 overflow-visible" ref="tagInputContainer" data-bs-display="static">
+            <div class="dropdown-menu m-0 p-0" ref="tagInputContainer" data-bs-display="static">
 
                 <ul class="list-unstyled mb-0" v-if="edit">
                     <li v-if="imageTags" class="bg-light m-0 p-0 pb-1 pt-1 ps-1 rounded-top text-wrap"
