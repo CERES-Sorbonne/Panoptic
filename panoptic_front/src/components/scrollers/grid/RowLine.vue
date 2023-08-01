@@ -98,9 +98,9 @@ watch(rowHeight, emitResizeOnce)
 
 <template>
     <div class="container" :style="{ height: props.item.size + 'px' }">
-        <div class="left-border"></div>
+        <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.data.imageSize) + 'px',
+            width: (tab.data.imageSize) + 'px', height: props.item.size + 'px'
         }" class="p-0 m-0">
             <ImageVue :image="item.data" :constraint-width="true" :size="tab.data.imageSize - 2" :hide-properties="true"
                 :no-border="true" />
@@ -110,7 +110,7 @@ watch(rowHeight, emitResizeOnce)
             :style="{ width: (tab.data.propertyOptions[property.id].size) + 'px' }">
             <!-- {{ rowHeight }} -->
             <!-- <template v-if="props.item.data.properties[property.id] != undefined"> -->
-            <TextPropInput v-if="property.type == PropertyType.string" :min-height="propMinRowHeight[property.id]"
+            <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <TextPropInput v-if="property.type == PropertyType.url" :min-height="propMinRowHeight[property.id]"
@@ -149,7 +149,7 @@ watch(rowHeight, emitResizeOnce)
     border-left: 1px solid var(--border-color);
     display: inline-block;
     width: 1px;
-    height: 100%;
+    /* height: 100%; */
 }
 
 .container {
@@ -164,13 +164,12 @@ watch(rowHeight, emitResizeOnce)
     border-left: none;
     border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
-    /* overflow: scroll; */
+    /* overflow: hidden; */
     /* resize: horizontal; */
     padding-top: 3px;
     padding-left: 3px;
     margin: 0;
-    display: table-cell;
-    /* height: 100%; */
+    display: inline-block;
     /* box-sizing: content-box; */
     /* cursor:text; */
     /* border-top: 1px solid red; */
