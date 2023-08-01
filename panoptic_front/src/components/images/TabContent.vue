@@ -226,7 +226,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
                 ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tab.data.display == 'grid'">
-            <div :style="{ width: (scrollerWidth - 10) + 'px' }" class="p-0 m-0 grid-container">
+            <div :style="{ width: (scrollerWidth - 0) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"/>
             </div>
@@ -238,6 +238,6 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 <style scoped>
 .grid-container {
     overflow-y: hidden;
-    overflow-x: scroll;
+    overflow-x: overlay;
 }
 </style>
