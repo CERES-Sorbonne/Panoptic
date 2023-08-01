@@ -50,12 +50,12 @@ watch(localValue, save)
 </script>
 
 <template>
-    <div :style="{ height: props.minHeight + 'px' }" @click="focus" class="container">
+    <div :style="{ height: props.minHeight + 'px', width: props.width+'px', overflow: 'hidden' }" class="container">
         <input type="date" v-model="localValue" :style="{
             width: (isFirefox ? 120 : 95) + 'px',
             paddingTop: (isFirefox ? 4 : 3) + 'px',
             fontSize: '15px',
-            color: (localValue != null ? 'black' : 'grey')
+            color: (localValue != null ? 'black' : 'grey'),
         }" ref="elem" />
     </div>
 </template>
