@@ -31,7 +31,7 @@ const scroller = ref(null)
 const scrollerWidth = computed(() => {
     const options = globalStore.getTab().data.propertyOptions
     const propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
-    return propSum + globalStore.getTab().data.imageSize + 2
+    return propSum + globalStore.getTab().data.imageSize + 1
 })
 
 const scrollerHeight = computed(() => props.height - hearderHeight.value)
@@ -39,7 +39,7 @@ const scrollerHeight = computed(() => props.height - hearderHeight.value)
 const scrollerStyle = computed(() => ({
     height: scrollerHeight.value + 'px',
     width: scrollerWidth.value + 'px',
-    // overflow: 'hidden'
+    // overflowX: 'hidden'
 }))
 
 function computeLines() {
@@ -126,6 +126,7 @@ watch(() => props.data, computeLines)
 </template>
 
 <style>
+
 .grid-container {
     white-space: nowrap;
 }
