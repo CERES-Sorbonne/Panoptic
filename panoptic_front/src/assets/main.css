@@ -2,6 +2,7 @@
   --border-color: rgb(195, 207, 217);
   --validate-border: rgb(163, 208, 209);
   --refuse-border: rgb(213, 180, 191);
+  --light-grey: rgb(233, 233, 233);
   --grey-text: #515151;
 
   --toggle-width: 40px;
@@ -337,4 +338,8 @@ input[type=number] {
   margin: 2px;
   border-radius: 5px;
   z-index: 100;
+}
+
+.hr {
+  border-bottom: 1px solid var(--border-color);
 }

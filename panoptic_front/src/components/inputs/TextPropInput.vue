@@ -35,9 +35,12 @@ function updateFromStore() {
 }
 
 function save() {
-    if (propRef.value.value != localValue.value) {
-        globalStore.setPropertyValue(props.property.id, props.image, localValue.value)
-    }
+    if (!propRef.value.value && localValue.value == '') return
+    if (propRef.value.value == localValue.value) return
+
+    // console.log(propRef.value.value, localValue.value)
+    globalStore.setPropertyValue(props.property.id, props.image, localValue.value)
+
 }
 
 
@@ -60,15 +63,16 @@ function log(e) {
 </script>
 
 <template>
-    <div class="container">
+    <div class="container" :style="{ minHeight: (props.minHeight - 4) + 'px' }">
         <TextInput class="container" :contenteditable="true" tag="div" :no-html="true" v-model="localValue"
             :width="props.width" @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"
-            :no-nl="props.noNl" :url-mode="props.urlMode"  @blur="save"/>
+            :no-nl="props.noNl" :url-mode="props.urlMode" @blur="save" />
     </div>
 </template>
 
 <style scoped>
 .container {
-    padding-top: 2px;
+    padding: 0;
+    margin: 0;
 }
 </style>

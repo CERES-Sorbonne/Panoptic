@@ -63,4 +63,8 @@ defineExpose({
     padding-top: 0px;
 }
 
+input {
+    margin-left: 4px;
+}
+
 </style>

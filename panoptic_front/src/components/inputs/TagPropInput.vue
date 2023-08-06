@@ -183,7 +183,7 @@ function onResize() {
         if(!sizeElem.value) {
             return
         }
-        const newH = sizeElem.value.clientHeight + 3
+        const newH = sizeElem.value.clientHeight
         emits('update:height', newH)
     })
 }

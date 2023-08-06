@@ -28,12 +28,12 @@ function updateFromStore() {
 }
 
 function save() {
+    if(propRef.value == localValue.value) return
     globalStore.setPropertyValue(props.property.id, props.image, localValue.value)
 }
 
 
 onMounted(updateFromStore)
-// watch(propRef, updateFromStore)
 
 
 defineExpose({
@@ -42,14 +42,12 @@ defineExpose({
     focus
 })
 
-watch(localValue, save)
-
 
 </script>
 
 <template>
     <div :style="{height: props.minHeight+'px'}" @click="focus" class="container">
-        <input type="number" v-model="localValue" :style="{width: (props.width-0)+'px'}" ref="elem"/>
+        <input type="number" v-model="localValue" :style="{width: (props.width-0)+'px'}" ref="elem" @blur="save"/>
     </div>
 </template>
 

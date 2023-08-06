@@ -37,7 +37,7 @@ const isFocus = ref(false)
 const isHover = ref(false)
 const minHeight = computed(() => {
     // return '0px'
-    return (props.minHeight - 4) + 'px'
+    return (props.minHeight - 6) + 'px'
 })
 
 const urlMode = computed(() => props.urlMode && keyState.alt && isHover.value)
@@ -66,7 +66,7 @@ function updateHeight() {
         if (!elem.value) return
         let newHeight = elem.value.$refs.element.clientHeight
         if (height != newHeight) {
-            emit('update:height', newHeight + 8)
+            emit('update:height', newHeight + 6)
         }
         height = newHeight
     })
