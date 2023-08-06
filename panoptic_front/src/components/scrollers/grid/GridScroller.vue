@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { Group, GroupData, GroupLine, Image, RowLine, Property } from '@/data/models';
+import { Group, GroupData, GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine } from '@/data/models';
 import { isImageGroup } from '@/utils/utils';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import GroupLineVue from './GroupLine.vue';
@@ -26,6 +26,7 @@ defineExpose({
 
 const hearderHeight = ref(30)
 const lines = reactive([])
+const lineSizes: {[id: string]: number} = {}
 const scroller = ref(null)
 
 const scrollerWidth = computed(() => {
@@ -81,17 +82,21 @@ function computeImageRow(image: Image, groupId: string, groupIndex) {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
-        size: globalStore.getTab().data.imageSize,
+        size: lineSizes[image.id] ?? globalStore.getTab().data.imageSize,
         index: groupIndex
     }
     return res
 }
 
-function resizeHeight(item, h) {
+function resizeHeight(item: ScrollerLine, h) {
     // console.log('resize')
     if(item.size == h) return
-    console.log(item.data.id, item.size, h)
+    // console.log(item.data.id, item.size, h)
     item.size = h
+    
+    if(item.type == 'image') {
+        lineSizes[item.data.id] = item.size
+    }
     // scroller.value.updateVisibleItems(true)
 }
 

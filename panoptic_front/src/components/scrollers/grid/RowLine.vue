@@ -124,11 +124,11 @@ watch(rowHeight, emitResizeOnce)
             <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TextPropInput v-if="property.type == PropertyType.url" :min-height="propMinRowHeight[property.id]"
+            <TextPropInput v-if="property.type == PropertyType.url" :min-height="props.item.size"
                 :no-nl="true" ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data"
                 :property="property" :url-mode="true"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TextPropInput v-if="property.type == PropertyType.path" :min-height="propMinRowHeight[property.id]"
+            <TextPropInput v-if="property.type == PropertyType.path" :min-height="props.item.size"
                 :no-nl="true" ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data"
                 :property="property" :url-mode="false"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />

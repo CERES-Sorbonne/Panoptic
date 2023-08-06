@@ -44,7 +44,7 @@ defineExpose({
     focus
 })
 
-watch(localValue, save)
+// watch(localValue, save)
 
 
 </script>
@@ -56,7 +56,7 @@ watch(localValue, save)
             paddingTop: (isFirefox ? 4 : 3) + 'px',
             fontSize: '15px',
             color: (localValue != null ? 'black' : 'grey'),
-        }" ref="elem" />
+        }" ref="elem" @blur="save"/>
     </div>
 </template>
 

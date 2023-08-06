@@ -25,7 +25,7 @@ function resize(propId, w) {
 <template>
     <div style="height: 30px;">
         <div class="left-border" ></div>
-        <div v-if="showImage" class="header-cell" :style="{ width: (tab.data.imageSize-1)+'px' }"><i class="bi bi-image ms-1 me-1"></i> Image</div>
+        <div v-if="showImage" class="header-cell" :style="{ width: (tab.data.imageSize)+'px' }"><i class="bi bi-image ms-1 me-1"></i> Image</div>
         <Resizable :start-width="tab.data.propertyOptions[property.id].size" v-for="property in props.properties" class="header-cell" @resize="w => resize(property.id, w)" >
             <PropertyIcon :type="property.type" class="ms-1"/>
             {{ property.name }}
