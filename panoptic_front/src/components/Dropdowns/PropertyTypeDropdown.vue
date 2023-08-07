@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PropertyType, PropertyNames } from '@/data/models';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 const props = defineProps({
     modelValue: String as () => PropertyType
@@ -9,7 +9,7 @@ const props = defineProps({
 const emits = defineEmits(['update:modelValue'])
 
 const types = Object.keys(PropertyType).filter(k => k[0] != '_').map((k:any) => (PropertyType as any)[k] as PropertyType) as PropertyType[]
-
+const filtered = computed(() => types.filter(t => t != PropertyType.image_link))
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const types = Object.keys(PropertyType).filter(k => k[0] != '_').map((k:any) => 
             </span>
         </button>
         <ul class="dropdown-menu">
-            <li v-for="type_ in types" @click="emits('update:modelValue', type_)">
+            <li v-for="type_ in filtered" @click="emits('update:modelValue', type_)">
                 <a class="dropdown-item" href="#">
                     <PropertyIcon :type="type_"/>
                     {{ PropertyNames[type_] }}

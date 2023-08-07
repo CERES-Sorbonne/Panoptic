@@ -3,7 +3,7 @@
 import { ref, computed, onMounted, reactive, nextTick, watch, onUnmounted } from 'vue'
 
 import { globalStore } from '../../data/store'
-import { Image, Property, Tag } from '@/data/models';
+import { Image, Property, PropertyType, Tag } from '@/data/models';
 import TagBadge from '../tagtree/TagBadge.vue';
 import * as boostrap from 'bootstrap'
 import * as inputTree from '@/utils/inputTree'
@@ -14,7 +14,6 @@ const props = defineProps({
     property: { type: Object as () => Property, required: true },
     image: { type: Object as () => Image, required: true },
     maxSize: Number,
-    monoTag: Boolean,
     inputId: Array<number>,
     minHeight: Number
 })
@@ -44,7 +43,7 @@ const filteredTagList = computed(() => {
     if (!propRef.value.value) {
         propRef.value.value = []
     }
-    let filtered = Object.values(tags.value).filter((tag: Tag) => !propRef.value.value.includes(tag.id) && tag.value.toLowerCase().includes(tagInput.value.toLowerCase()));
+    let filtered = Object.values(tags.value).filter((tag: Tag) => !localValue.includes(tag.id) && tag.value.toLowerCase().includes(tagInput.value.toLowerCase()));
     return filtered
 
 })
@@ -85,8 +84,14 @@ const selectOption = async function () {
         return
     }
     tagInput.value = ''
-    localValue.push(valueToAdd)
-    // let updatedValue = props.monoTag ? [valueToAdd] : [...props.property.value, valueToAdd]
+    if(props.property.type == PropertyType.tag) {
+        localValue.length = 0
+        localValue.push(valueToAdd)
+    }
+    else {
+        localValue.push(valueToAdd)
+    }
+    // localValue.push(valueToAdd)
     // await globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, updatedValue)
     inputElem.value.focus()
 }
@@ -128,6 +133,7 @@ function setEdit(value: Boolean) {
         // inputElem.value.focus()
         let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
         dropdown.hide()
+        onResize()
     }
 }
 
