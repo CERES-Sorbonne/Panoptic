@@ -10,7 +10,8 @@ const props = defineProps({
     property: Object as () => Property,
     image: Object as () => Image,
     width: Number,
-    minHeight: { type: Number, default: 30 }
+    minHeight: { type: Number, default: 30 },
+    rounded: Boolean
 
 })
 const emits = defineEmits({ 'update:height': Number })
@@ -82,11 +83,11 @@ const colors = [
 </script>
 
 <template>
-    <div :style="{ height: props.minHeight + 'px' }" class="container dropdown">
+    <div :style="{ height: props.minHeight + 'px' }" class="container">
         <!-- <input type="color" v-model="localValue" :style="{
             width: props.width+ 'px',
         }" ref="elem" @focusin="isFocus = true" @focusout="isFocus = false"/> -->
-        <div :ref="(el) => saveDropdownRef(el)" :style="{ width: props.width + 'px', backgroundColor: (propRef.value ?? 'white'), height: 'calc(100% - 3px)' }"
+        <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded': ''" :style="{ width: props.width + 'px', backgroundColor: (propRef.value ?? 'white'), height: 'calc(100% - 3px)' }"
             data-bs-toggle="dropdown" aria-expanded="false">
         <div class="dropdown-menu">
             <div v-if="isFocus" class="">
@@ -106,6 +107,11 @@ const colors = [
 </template>
 
 <style scoped>
+
+.container {
+    padding: 0;
+}
+
 .color-name {
     text-transform: capitalize;
     line-height: 20px;
