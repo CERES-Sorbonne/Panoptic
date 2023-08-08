@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CenteredImage from '@/components/images/CenteredImage.vue';
 import ImageVue from '@/components/images/Image.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
@@ -113,8 +114,7 @@ watch(rowHeight, emitResizeOnce)
         <div v-if="showImage" :class="classes" :style="{
             width: (tab.data.imageSize) + 'px', height: props.item.size + 'px'
         }" class="p-0 m-0">
-            <ImageVue :image="item.data" :constraint-width="true" :size="tab.data.imageSize - 2" :hide-properties="true"
-                :no-border="true" />
+            <CenteredImage :image="item.data" :width="tab.data.imageSize - 2" :height="tab.data.imageSize - 2"/>
         </div>
         <!-- <div class=""> -->
         <div v-for="property, index in props.properties" :class="classes"

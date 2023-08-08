@@ -6,6 +6,7 @@ import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as inputTree from '@/utils/inputTree'
 import TagBadge from '../tagtree/TagBadge.vue'
+import ColorPropInput from './ColorPropInput.vue';
 
 const props = defineProps({
     property: Object as () => PropertyRef,
@@ -126,9 +127,6 @@ onMounted(() => {
                     <span v-else-if="type != PropertyType.color">{{ props.property.value }}</span>
                 </span>
             </div>
-            <template v-if="type == PropertyType.color && isSet">
-                <input type="color" class="" v-model="props.property.value" />
-            </template>
             <!-- on affiche l'input pour le type de la propriété sauf si le type n'est pas standard (inputType(type) renvoie null dans ces cas là) -->
             <div v-if="edit && inputType(type)" class="w-100">
                 <input :type="inputType(type)" class="small-input   " ref="inputElem" v-model="props.property.value" @keydown.shift.tab.capture.stop.prevent="inputTree.prevInput(props.inputId)" @keydown.tab.prevent="inputTree.nextInput(props.inputId)"/>
