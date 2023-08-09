@@ -31,8 +31,11 @@ const scroller = ref(null)
 
 const scrollerWidth = computed(() => {
     const options = globalStore.getTab().data.propertyOptions
-    const propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
-    return propSum + globalStore.getTab().data.imageSize + 1
+    let propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
+    if(props.showImages) {
+        propSum += globalStore.getTab().data.imageSize
+    }
+    return propSum + 1
 })
 
 const scrollerHeight = computed(() => props.height - hearderHeight.value)
@@ -71,7 +74,7 @@ function computeGroupLine(group: Group) {
         id: group.id,
         data: group,
         type: 'group',
-        size: 30,
+        size: 35,
         nbClusters: 10
     }
     return res
@@ -91,6 +94,7 @@ function computeImageRow(image: Image, groupId: string, groupIndex) {
 function resizeHeight(item: ScrollerLine, h) {
     // console.log('resize')
     if(item.size == h) return
+    // if(h < 35) return
     // console.log(item.data.id, item.size, h)
     item.size = h
     
@@ -122,7 +126,7 @@ watch(() => props.data, computeLines)
                         <RowLineVue :item="item" :properties="props.selectedProperties" :show-image="props.showImages"
                             @resizeHeight="h => resizeHeight(item, h)" />
                     </div> -->
-                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth" @resizeHeight="h => resizeHeight(item, h)" :show-images="true"/>
+                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth" @resizeHeight="h => resizeHeight(item, h)" :show-images="props.showImages"/>
                 </template>
                 <!-- </DynamicScrollerItem> -->
             </template>
