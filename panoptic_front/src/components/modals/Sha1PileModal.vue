@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Image, PropertyMode, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
+import { Group, GroupData, Image, PropertyMode, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import PropertyValueTable from '../properties/PropertyValueTable.vue';
+import GridScroller from '../scrollers/grid/GridScroller.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -70,9 +71,28 @@ const properties = computed(() => getSha1Properties(pile.value.sha1))
 
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
 const imgProperties = computed(() => {
-    let res: {[key:number]: PropertyRef[]} = {}
+    let res: { [key: number]: PropertyRef[] } = {}
     pile.value.images.forEach(img => res[img.id] = getImageProperties(img.id))
     return res
+})
+const groupData = computed(() => {
+    let group: Group = {
+        id: '0',
+        name: '__all__',
+        images: pile.value.images,
+        groups: undefined,
+        depth: 0,
+        propertyValues: [],
+        parentId: undefined,
+        count: pile.value.images.length
+    }
+    let index = {}
+    index[group.id] = group
+    return {
+        root: group,
+        index,
+        order: [group.id]
+    } as GroupData
 })
 
 function onHide() {
@@ -121,7 +141,7 @@ const setSimilar = async () => {
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body overflow-scroll" style="max-height: calc(100vh - 100px);">
+                <div class="modal-body" style="max-height: calc(100vh - 100px); overflow-x: hidden; overflow-y: scroll;">
                     <div class="row">
                         <div class="col">
                             <div class="text-center mb-2">
@@ -177,8 +197,8 @@ const setSimilar = async () => {
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <PropertyValueTable :images="pile.images" />
+                    <div class="m-0 p-0" style="width: 1100px; overflow-x: overlay; overflow-y: hidden;">
+                        <GridScroller :show-images="false" :data="groupData" :height="500" :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)"/>
                     </div>
 
 

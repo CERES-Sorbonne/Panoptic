@@ -94,6 +94,9 @@ const selectOption = async function () {
     // localValue.push(valueToAdd)
     // await globalStore.addOrUpdatePropertyToImage(props.property.imageId, props.property.propertyId, updatedValue)
     inputElem.value.focus()
+    if(props.property.type == PropertyType.tag) {
+        setEdit(false)
+    }
 }
 
 const optionClass = (id: number) => {
@@ -217,8 +220,8 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
 <template>
     <div class="input-container" is-input="true">
         <div class="dropdown m-0" @click.prevent.stop="setEdit(true)" ref="clickableElem">
-            <div class="no-border p-0 text-secondary" type="button" ref="dropdownElem" data-bs-offset="20,0"
-                data-ds-toggle="dropdown" data-bs-display="static">
+            <div class="no-border p-0 text-secondary" type="button" ref="dropdownElem"
+                data-ds-toggle="dropdown" >
                 <div v-if="!edit" class="overflow-hidden text-wrap" :style="{ width: props.maxSize + 'px', minHeight: props.minHeight+'px' }">
                     <div v-if="!edit" ref="sizeElem">
                         <span v-for="tag in imageTags">
