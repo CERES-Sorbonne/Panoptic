@@ -27,9 +27,10 @@ const props = defineProps({
     border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     box-sizing: border-box;
-    background-color: rgb(243, 243, 243);
+    background-color: rgb(249, 249, 249);
     padding-top: 2px;
     padding-left: 2px;
+    line-height: 30px;
 }
 
 .separator {
