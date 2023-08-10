@@ -4,6 +4,8 @@ import { globalStore } from '@/data/store';
 import { Modals, Property, PropertyMode, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
+import ColorPropInput from '../inputs/ColorPropInput.vue';
+import PropertyIcon from '../properties/PropertyIcon.vue';
 
 const props = defineProps({
     pile: Object as () => Sha1Pile,
@@ -62,6 +64,7 @@ const imageSizes = computed(() => {
 
 const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
+const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 </script>
 
@@ -78,6 +81,11 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
                     :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
+                <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
+                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
+                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="pile.images[0]"
+                        :property="globalStore.properties[property.propertyId]" :width="width - 22" :min-height="20" />
+                </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
             </div>
