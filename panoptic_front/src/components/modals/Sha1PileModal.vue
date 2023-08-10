@@ -5,7 +5,6 @@ import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
-import PropertyValueTable from '../properties/PropertyValueTable.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 
 const modalElem = ref(null)
@@ -57,17 +56,6 @@ function getSha1Properties(sha1: string) {
 }
 
 const properties = computed(() => getSha1Properties(pile.value.sha1))
-
-// let res: Array<PropertyRef> = []
-// globalStore.propertyList.forEach((p: Property) => {
-//     let propRef: PropertyRef = {
-//         propertyId: p.id,
-//         type: p.type,
-//         value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
-//         imageId: image.value.id
-//     }
-//     res.push(propRef)
-// });
 
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
 const imgProperties = computed(() => {
@@ -124,10 +112,6 @@ onMounted(() => {
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
 
-const setSimilar = async () => {
-    const res = await globalStore.getSimilarImages(image.value.sha1)
-    similarImages.value = res.map((i: any) => ({ url: globalStore.sha1Index[i.sha1][0].url, dist: i.dist, sha1: i.sha1, id: globalStore.sha1Index[i.sha1][0].id }))
-}
 </script>
 
 
@@ -147,17 +131,6 @@ const setSimilar = async () => {
                             <div class="text-center mb-2">
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
-                            <!-- <div id="similarImages" v-if="similarImages.length > 0">
-                                <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
-                                <StampDropdown
-                                    :images="similarImages.slice(1, nbSimilarImages).map(i => globalStore.images[i.id])" />
-                                <div class="m-2">
-                                    <div class="d-flex flex-wrap">
-                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.id])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
-                                    </div>
-
-                                </div>
-                            </div> -->
                         </div>
                         <div class="col">
                             <div class="mt-2">
@@ -193,7 +166,6 @@ const setSimilar = async () => {
                                         </template>
                                     </tr>
                                 </table>
-                                <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             </div>
                         </div>
                     </div>
@@ -201,13 +173,7 @@ const setSimilar = async () => {
                         <GridScroller :show-images="false" :data="groupData" :height="500" :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)"/>
                     </div>
 
-
-
                 </div>
-                <!-- <div class="modal-footer"> -->
-                <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
-                <!-- <button type="button" class="btn btn-secondary" @click="hide">Close</button> -->
-                <!-- </div> -->
             </div>
         </div>
     </div>

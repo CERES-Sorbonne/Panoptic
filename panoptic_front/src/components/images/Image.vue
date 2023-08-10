@@ -66,7 +66,7 @@ const imageSizes = computed(() => {
         return res
     }
 
-    return {width: props.size-4, height: props.size-4}
+    return { width: props.size - 4, height: props.size - 4 }
 
     let ratio = props.image.height / props.image.width
 
@@ -102,11 +102,12 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
                 <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
                     :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
-                <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row" >
+                <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="props.image" :property="globalStore.properties[property.propertyId]" :width="width-22" :min-height="20"/>
+                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="props.image"
+                        :property="globalStore.properties[property.propertyId]" :width="width - 22" :min-height="20" />
                 </div>
-                    <PropertyInput v-else :property="property" :max-size="String(props.size)"
+                <PropertyInput v-else :property="property" :max-size="String(props.size)"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
             </div>
         </div>
