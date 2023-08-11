@@ -119,12 +119,15 @@ watch(() => props.modelValue, () => {
 
 .container {
     cursor: text;
-    border: 2px solid white;
+    /* border: 2px solid white; */
     border-radius: 5px;
 }
 
 .focus {
-    border: 2px solid blue;
-    border-radius: 5px;
+    /* border: 2px solid blue;
+    border-radius: 5px; */
+    box-shadow: 0px 0px 10px 2px var(--border-color);
+    z-index: 99 !important;
+    padding: 20px;
 }
 </style>

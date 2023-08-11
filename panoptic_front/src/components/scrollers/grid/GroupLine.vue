@@ -12,10 +12,10 @@ const props = defineProps({
 </script>
 
 <template>
-    <div class="d-flex flex-row group-row m-0" :style="{width: (props.width-2)+'px', height: props.item.size+'px'}">
+    <div class="d-flex flex-row group-row m-0" :style="{width: (props.width-0)+'px', height: (props.item.size)+'px'}">
         <template v-for="value, index in props.propValues">
             <PropertyValueVue class="" :value="value" />
-            <div v-if="index < props.propValues.length - 1" class="separator"></div>
+            <div v-if="index < props.propValues.length - 1" class="separator">&</div>
         </template>
     </div>
 </template>
@@ -30,12 +30,16 @@ const props = defineProps({
     background-color: rgb(249, 249, 249);
     padding-top: 2px;
     padding-left: 2px;
-    line-height: 30px;
+    line-height: 28px;
+    position: relative;
+    box-shadow: 0px 2px 3px var(--border-color);
+    /* z-index: 5; */
 }
 
 .separator {
-    border-left: 2px solid var(--border-color);
-    margin: 3px 4px;
+    /* border-left: 2px solid var(--border-color); */
+    margin: 0px 10px;
+    color: gray;
 }
 
 </style>

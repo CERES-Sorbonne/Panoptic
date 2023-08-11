@@ -27,19 +27,19 @@ function resize(propId, w) {
 
 <template>
     <div class="m-0 p-0">
-        <div style="height: 30px; background-color: rgb(243, 243, 243); line-height: 30px;" class="d-flex flex-row header-row">
-            <!-- <div class="left-border"></div> -->
-            <span v-if="props.data.root" class="ms-1 me-1">Total: {{ props.data.root.count }}</span>
-            <span v-if="props.currentGroup">| Current: {{ props.currentGroup.count }}</span>
-        </div>
-        <div style="height: 30px; background-color: rgb(243, 243, 243);" class="header-row d-flex flex-row ps-1" >
+        <div class="header-row d-flex flex-row ps-1">
+            <span v-if="props.data.root" class=" me-1">Images: {{ props.data.root.count }}</span>
+            <span v-if="props.currentGroup"> ({{ props.currentGroup.count }})</span>
+            <div class="ms-3 me-1"></div>
             <template v-if="props.currentGroup.id">
                 <template v-for="value, index in currentGroup.propertyValues">
                     <PropertyValue class="" :value="value" />
-                    <div v-if="index < currentGroup.propertyValues.length - 1" class="separator"></div>
+                    <div v-if="index < currentGroup.propertyValues.length - 1" class="separator">&</div>
                 </template>
             </template>
         </div>
+        <div class="empty"></div>
+
         <div style="height: 30px;">
             <div class="left-border"></div>
             <div v-if="showImage" class="header-cell" :style="{ width: (tab.data.imageSize) + 'px' }">
@@ -51,6 +51,7 @@ function resize(propId, w) {
                 {{ property.name }}
             </Resizable>
         </div>
+        
     </div>
 </template>
 
@@ -75,12 +76,20 @@ function resize(propId, w) {
 }
 
 .header-row {
-    border: 1px solid var(--border-color);
-    border-bottom: none;
+    /* border: 1px solid var(--border-color);
+    border-bottom: none; */
+    height: 30px;
+    /* line-height: 30px; */
 }
 
 .separator {
-    border-left: 2px solid var(--border-color);
-    margin: 3px 4px;
+    /* border-left: 2px solid var(--border-color); */
+    margin: 0 16px;
+    color: gray
+}
+
+.empty {
+    height: 0px;
+    /* border-top: 1px solid var(--border-color); */
 }
 </style>

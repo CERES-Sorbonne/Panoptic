@@ -24,7 +24,7 @@ defineExpose({
 })
 
 
-const hearderHeight = ref(90)
+const hearderHeight = ref(60)
 const lines = reactive([])
 const lineSizes: {[id: string]: number} = {}
 const scroller = ref(null)
