@@ -114,7 +114,7 @@ watch(rowHeight, emitResizeOnce)
         <div v-if="showImage" :class="classes" :style="{
             width: (tab.data.imageSize) + 'px', height: props.item.size + 'px'
         }" class="p-0 m-0">
-            <CenteredImage :image="item.data" :width="tab.data.imageSize - 2" :height="tab.data.imageSize - 2"/>
+            <CenteredImage :image="item.data" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2" :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false"/>
         </div>
         <!-- <div class=""> -->
         <div v-for="property, index in props.properties" :class="classes"
@@ -141,6 +141,7 @@ watch(rowHeight, emitResizeOnce)
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <ColorPropInput v-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <NumberPropInput v-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]"
