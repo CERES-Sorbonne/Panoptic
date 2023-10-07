@@ -213,7 +213,8 @@ export interface Filter {
 export enum Modals {
     IMAGE = 'image',
     PROPERTY = 'property',
-    SHA1PILE = 'sha1pile'
+    SHA1PILE = 'sha1pile',
+    FOLDERTOPROP = 'folder_to_property'
 }
 
 export interface PropertySetting {

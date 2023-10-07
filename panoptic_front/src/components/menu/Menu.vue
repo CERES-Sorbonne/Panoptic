@@ -21,7 +21,13 @@ const handleInput = (e: any) => {
         <div class="">
             <div>
                 <div class="p-2">
-                    <b>Dossiers</b>
+                    <div class="d-flex">
+                        <div><b>Dossiers</b></div>
+                        <div class="ms-auto"
+                            @click="globalStore.showModal(Modals.FOLDERTOPROP)">
+                            <i class="bi bi-three-dots"></i></div>
+                    </div>
+                    
                     <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree" :tab="globalStore.tabs[globalStore.selectedTab].data"/>
                 </div>
                 <div class="p-2"

@@ -10,6 +10,7 @@ import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
 import Sha1PileModal from '@/components/modals/Sha1PileModal.vue';
 import { keyState } from '@/data/keyState';
+import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
 
 
 const navElem = ref(null)
@@ -76,6 +77,7 @@ function onResize() {
     <ImageModal :id="Modals.IMAGE" />
     <PropertyModal :id="Modals.PROPERTY" />
     <Sha1PileModal :id="Modals.SHA1PILE" />
+    <FolderToPropertyModal :id="Modals.FOLDERTOPROP" />
 
     <!-- <div class="above bg-info">lalala</div>
                 <div class="above2 bg-warning">lalala</div> -->
