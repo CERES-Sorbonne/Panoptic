@@ -103,6 +103,7 @@ function computeLines() {
 
     let lines = []
     groupToLines(index[group.id], lines, props.width, props.imageSize)
+    lines.push({type:'filler', size: 400, id:'__filler__'})
     imageLines.length = 0
     imageLines.push(...lines)
 
@@ -304,16 +305,20 @@ watch(() => props.width, () => {
                         @group:update="computeLines"  @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)"/>
                 </div>
                 <div v-else-if="item.type == 'images'">
-                    <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
+                    <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
+                    <ImageLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'piles'">
-                    <PileLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
+                    <PileLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
+                </div>
+                <div v-else-if="item.type == 'filler'">
+                    <div :style="{size: item.size+='px'}"></div>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->
