@@ -90,7 +90,7 @@ const colors = [
         <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded': ''" :style="{ width: props.width + 'px', backgroundColor: (propRef.value ?? 'white'), height: 'calc(100% - 3px)' }"
             data-bs-toggle="dropdown" aria-expanded="false">
         <div class="dropdown-menu">
-            <div v-if="isFocus" class="">
+            <div v-if="isFocus" @focusout="unfocus">
                 <div v-for="c in colors" class="d-flex flex-row color-option" @click="set(c.color)">
                     <div :style="{backgroundColor: c.color}" class="color"></div>
                     <div class="color-name"> {{ c.name }}</div>

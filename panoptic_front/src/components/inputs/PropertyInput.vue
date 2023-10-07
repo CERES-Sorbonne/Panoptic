@@ -29,8 +29,8 @@ function setEdit(value: Boolean) {
     }
     if (value) {
         edit.value = true
-        document.addEventListener('click', handleContainerClick, true)
         nextTick(() => {
+            document.addEventListener('click', handleContainerClick, true)
             if (!inputElem.value) {
                 return
             }
