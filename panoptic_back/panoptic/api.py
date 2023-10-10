@@ -230,6 +230,7 @@ async def get_image(file_path: str):
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
 
 
+# virer le status des logs unicorn
 class EndpointFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.getMessage().find("/import_status") == -1
