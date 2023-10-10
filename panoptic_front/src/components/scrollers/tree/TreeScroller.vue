@@ -306,7 +306,7 @@ watch(() => props.width, () => {
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
-                    <ImageLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
+                    <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
@@ -318,7 +318,7 @@ watch(() => props.width, () => {
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'filler'">
-                    <div :style="{size: item.size+='px'}"></div>
+                    <div :style="{size: item.size+'px'}"></div>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->
