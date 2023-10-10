@@ -27,8 +27,8 @@ const emits = defineEmits(['compute-ml', 'search-images'])
         </div>
 
         <div class="me-5">
-            <i class="bi bi-diagram-3-fill me-2 btn-icon" @click="props.tab.data.display = 'tree'"></i>
-            <i class="bi bi-grid-3x3 btn-icon"  @click="props.tab.data.display = 'grid'"></i>
+            <i class="bi bi-grid-3x3-gap-fill me-2 btn-icon" @click="props.tab.data.display = 'tree'"></i>
+            <i class="bi bi-table btn-icon"  @click="props.tab.data.display = 'grid'"></i>
         </div>
 
         <div class="bi bi-aspect-ratio me-1"></div>
