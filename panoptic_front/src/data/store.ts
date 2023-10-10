@@ -61,10 +61,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             if (t.data.visibleFolders == undefined) {
                 t.data.visibleFolders = {}
             }
-            if(t.data.visibleProperties) {
+            if (t.data.visibleProperties) {
                 let visible = Object.keys(t.data.visibleProperties).map(Number)
                 visible.forEach(k => {
-                    if(globalStore.properties[k] == undefined) {
+                    if (globalStore.properties[k] == undefined) {
                         delete t.data.visibleProperties[k]
                     }
                 })
@@ -99,6 +99,15 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     getPropertyVisible(propId: number) {
         //console.log(this.tabs[this.selectedTab])
         return this.tabs[this.selectedTab].data.visibleProperties[propId]
+    },
+    getSha1Mode() {
+        return globalStore.getTab().data.sha1Mode
+    },
+    getVisibleViewProperties() {
+        return Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties)
+            .filter(([k, v]) => v).map(([k, v]) => Number(k))
+            .map(k => globalStore.properties[k])
+            .filter(p => !globalStore.getSha1Mode || p.mode == PropertyMode.sha1)
     },
     tagTrees: computed(() => {
         const tree: TagsTree = {}
@@ -209,19 +218,19 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     updatePropertyOptions() {
         // console.log('update property options ' + Object.keys(this.tabs).length)
-        for(let tabId in this.tabs) {
+        for (let tabId in this.tabs) {
             const tab = this.tabs[tabId]
-            if(tab.data.propertyOptions == undefined) {
+            if (tab.data.propertyOptions == undefined) {
                 tab.data.propertyOptions = {}
                 // console.log('add default')
             }
-            for(let propId in globalStore.properties) {
+            for (let propId in globalStore.properties) {
                 tab.data.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.data.propertyOptions[propId])
             }
         }
     },
     async setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null) {
-        if(!Array.isArray(images)) {
+        if (!Array.isArray(images)) {
             images = [images]
         }
 
@@ -229,11 +238,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         let imageIds = undefined
         let sha1s = undefined
-        
-        if(prop.mode == PropertyMode.id) {
+
+        if (prop.mode == PropertyMode.id) {
             imageIds = Array.from(new Set(images.map(i => i.id)))
         }
-        if(prop.mode == PropertyMode.sha1) {
+        if (prop.mode == PropertyMode.sha1) {
             sha1s = Array.from(new Set(images.map(i => i.sha1)))
         }
 
@@ -247,19 +256,19 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         value = update.value
 
         for (let id of updatedIds) {
-            if(mode == null) {
-                this.images[id].properties[propertyId] = {propertyId, value}
+            if (mode == null) {
+                this.images[id].properties[propertyId] = { propertyId, value }
             }
             else {
-                let old = this.images[id].properties[propertyId] ?? {propertyId: propertyId, value: []}
-                if(!Array.isArray(old.value)) {
+                let old = this.images[id].properties[propertyId] ?? { propertyId: propertyId, value: [] }
+                if (!Array.isArray(old.value)) {
                     old.value = []
                 }
                 old.value.push(...value)
                 old.value = [...new Set(old.value)]
                 this.images[id].properties[propertyId] = old
             }
-            
+
         }
     },
     // async addOrUpdatePropertyToImage(propertyId: number, imageIds: number | number[], sha1s: string | string[], value: any) {
@@ -315,7 +324,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         Object.values(globalStore.tabs).forEach((t: Tab) => {
             Object.keys(t.data.visibleProperties).map(Number).forEach(k => {
-                if(globalStore.properties[k] == undefined) {
+                if (globalStore.properties[k] == undefined) {
                     delete t.data.visibleProperties[k]
                 }
             })
@@ -343,7 +352,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return res
     },
 
-    async getSimilarImagesFromText(inputText: string){
+    async getSimilarImagesFromText(inputText: string) {
         return await apiGetSimilarImagesFromText(inputText)
     },
 
@@ -363,31 +372,31 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     addGrouping(propertyId: number) {
         const groups = globalStore.getTab().data.groups
-        if(groups.length >= MAX_GROUPS) {
+        if (groups.length >= MAX_GROUPS) {
             groups.pop()
         }
         let index = groups.indexOf(propertyId)
-        if(index < 0) {
+        if (index < 0) {
             groups.push(propertyId)
             index = groups.length - 1
         }
-        
+
         const sorts = globalStore.getTab().data.sortList
-        if(!sorts[index] || sorts[index].property_id != propertyId || !sorts[index].isGroup) {
-            const newSort = {property_id: propertyId, ascending: true, isGroup: true, byGroupSize: false}
+        if (!sorts[index] || sorts[index].property_id != propertyId || !sorts[index].isGroup) {
+            const newSort = { property_id: propertyId, ascending: true, isGroup: true, byGroupSize: false }
             globalStore.getTab().data.sortList = [...sorts.slice(0, index).filter(s => s.property_id != propertyId), newSort, ...sorts.slice(index).filter(s => s.property_id != propertyId)]
         }
     },
     delGrouping(property_id: number) {
         const groups = globalStore.getTab().data.groups
         const index = groups.indexOf(property_id)
-        if(index < 0) {
+        if (index < 0) {
             return
         }
 
 
         groups.splice(index, 1)
-        globalStore.getTab().data.sortList.splice(index,1)
+        globalStore.getTab().data.sortList.splice(index, 1)
     }
 })
 
@@ -476,6 +485,6 @@ function buildFolderNodes(folders: Array<Folder>) {
 }
 
 function computeContainerRatio(img: Image) {
-    let ratio =  img.width / img.height
+    let ratio = img.width / img.height
     return Math.max(Math.min(2, ratio), 1)
 }
