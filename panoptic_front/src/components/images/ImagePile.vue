@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { globalStore } from '@/data/store';
-import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
+import { Modals, Property, PropertyMode, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import ColorPropInput from '../inputs/ColorPropInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 
 const props = defineProps({
-    image: Object as () => Image,
+    pile: Object as () => Sha1Pile,
     size: { type: Number, default: 100 },
     index: Number,
     groupId: String,
-    hideProperties: Boolean,
-    constraintWidth: Boolean,
-    noBorder: Boolean
+    properties: Array<Property>
 })
 
 const emits = defineEmits(['resize'])
@@ -22,22 +20,22 @@ const emits = defineEmits(['resize'])
 const containerElem = ref(null)
 // const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
 
+const image = computed(() => props.pile.images[0])
+
 function hasProperty(propertyId: number) {
-    return props.image.properties[propertyId] && props.image.properties[propertyId].value !== undefined
+    return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
 }
 
 const imageProperties = computed(() => {
 
-    let selected = globalStore.tabs[globalStore.selectedTab].data.visibleProperties
-
     let res: Array<PropertyRef> = []
-    globalStore.propertyList.forEach((p: Property) => {
-        if (selected[p.id]) {
+    props.properties.forEach((p: Property) => {
+        if (p.mode == PropertyMode.sha1) {
             let propRef: PropertyRef = {
                 propertyId: p.id,
                 type: p.type,
-                value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
-                imageId: props.image.id,
+                value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
+                imageId: image.value.id,
                 mode: p.mode
             }
             res.push(propRef)
@@ -47,41 +45,34 @@ const imageProperties = computed(() => {
     return res
 })
 
-const imageWidthStyle = computed(() => `max-width: ${Number(props.size) - 4}px; max-height: ${Number(props.size) - 4}px;`)
-
 const imageSizes = computed(() => {
-    if (!props.constraintWidth) {
-        let ratio = props.image.width / props.image.height
+    let ratio = image.value.width / image.value.height
 
-        let h = props.size
-        let w = h * ratio
+    let h = props.size
+    let w = h * ratio
 
-        if (ratio > 2) {
-            w = props.size * 2
-            h = w / ratio
-        }
-
-        const res = { width: w, height: h }
-        emits('resize', res)
-        return res
+    if (ratio > 2) {
+        w = props.size * 2
+        h = w / ratio
     }
 
-    return { width: props.size - 4, height: props.size - 4 }
+    return { width: w, height: h }
 })
 
 const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
-const widthStyle = computed(() => `width: ${width.value}px;`)
+const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 </script>
 
 <template>
-    <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
+    <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
-            <img :src="props.size < 150 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.SHA1PILE, pile)">
+            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
         </div>
-        <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
+        <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
+        <div class="prop-container" v-if="imageProperties.length > 0">
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
                 <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
@@ -89,7 +80,7 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
                 <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="props.image"
+                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="pile.images[0]"
                         :property="globalStore.properties[property.propertyId]" :width="width - 22" :min-height="20" />
                 </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
@@ -102,9 +93,6 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
 <style scoped>
 .full-container {
     position: relative;
-}
-
-.img-border {
     border: 1px solid var(--border-color);
 }
 

@@ -1,18 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { globalStore } from '@/data/store';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
 import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { PropertyMode } from '@/data/models';
+import { GroupData, Property, PropertyMode } from '@/data/models';
 import { isImageGroup, isPileGroup } from '@/utils/utils';
 
 const props = defineProps({
     imageSize: Number,
     height: Number,
     width: Number,
-    data: Object
+    data: Object as () => GroupData,
+    properties: Array<Property>
 })
 
 const emits = defineEmits(['recommend'])
@@ -308,17 +309,19 @@ watch(() => props.width, () => {
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
                     <ImageLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
+                        :properties="props.properties"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
+                        :properties="props.properties"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'filler'">
-                    <div :style="{size: item.size+='px'}"></div>
+                    <div :style="{height: item.size+='px'}"></div>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->

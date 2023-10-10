@@ -24,6 +24,8 @@ const isInFilter = computed(() => tab.value.data.filter.filters.some((f) => !f.i
 const isInGroups = computed(() => tab.value.data.groups.includes(props.property.id))
 const isInSort = computed(() => tab.value.data.sortList.some(s => s.property_id == props.property.id))
 
+const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
+
 function toggleVisible() {
     if (propertyVisible.value) {
         delete tab.value.data.visibleProperties[props.property.id]
@@ -121,8 +123,8 @@ function renameProperty() {
                 <i v-if="props.property.mode == PropertyMode.id" class="bi bi-link-45deg"></i>
             </div>
             <div style="width: 20px;" @click="toggleVisible" class="btn-icon text-center">
-                <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')">
-                </span>
+                <span v-if="sha1Mode && props.property.mode == PropertyMode.id" class="bi bi-eye-slash" @click.stop=""></span>
+                <span v-else :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
             </div>
             <div class="text-center" style="width: 20px;">
                 <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"

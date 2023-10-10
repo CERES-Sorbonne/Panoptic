@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { GroupIndex, ScrollerPileLine } from '@/data/models';
+import { GroupIndex, Property, ScrollerPileLine } from '@/data/models';
 import Pile from '@/components/images/Pile.vue';
+import ImagePile from '@/components/images/ImagePile.vue';
 
 
 const props = defineProps({
@@ -9,7 +10,8 @@ const props = defineProps({
     item: Object as () => ScrollerPileLine,
     parentIds: Array<string>,
     hoverBorder: String,
-    index: Object as () => GroupIndex
+    index: Object as () => GroupIndex,
+    properties: Array<Property>
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update'])
@@ -23,8 +25,8 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update'])
             @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <Pile :pile="pile" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            v-for="pile, i in props.item.data" />
+        <ImagePile :pile="pile" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+            :properties="props.properties" v-for="pile, i in props.item.data" />
 
     </div>
 </template>
