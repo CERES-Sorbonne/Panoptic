@@ -1,18 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { globalStore } from '@/data/store';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
 import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { PropertyMode } from '@/data/models';
+import { GroupData, Property, PropertyMode } from '@/data/models';
 import { isImageGroup, isPileGroup } from '@/utils/utils';
 
 const props = defineProps({
     imageSize: Number,
     height: Number,
     width: Number,
-    data: Object
+    data: Object as () => GroupData,
+    properties: Array<Property>,
+    hideRoot: Boolean
 })
 
 const emits = defineEmits(['recommend'])
@@ -24,8 +26,8 @@ const hoverGroupBorder = ref('')
 const scroller = ref(null)
 const MARGIN_STEP = 20
 
-const visiblePropertiesNb = computed(() => Object.values(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(v => v).length)
-const visibleSha1PropertiesNb = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([key, value]) => value && globalStore.properties[key] !== undefined).filter(([k,v]) => globalStore.properties[k].mode == PropertyMode.sha1).length)
+const visiblePropertiesNb = computed(() => props.properties.length)
+// const visibleSha1PropertiesNb = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([key, value]) => value && globalStore.properties[key] !== undefined).filter(([k,v]) => globalStore.properties[k].mode == PropertyMode.sha1).length)
 
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
 
@@ -42,7 +44,7 @@ const imageLineSize = computed(() => {
 })
 
 const pileLineSize = computed(() => {
-    let nb = visibleSha1PropertiesNb.value
+    let nb = visiblePropertiesNb.value
     let offset = 0
     if (nb > 0) {
         offset += 31
@@ -298,7 +300,7 @@ watch(() => props.width, () => {
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
-                <div v-if="item.type == 'group'">
+                <div v-if="item.type == 'group' && !(props.hideRoot && index == 0)">
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
@@ -308,17 +310,19 @@ watch(() => props.width, () => {
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
                     <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
+                        :properties="props.properties"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
+                        :properties="props.properties"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'filler'">
-                    <div :style="{size: item.size+'px'}"></div>
+                    <div :style="{height: item.size+'px'}"></div>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->

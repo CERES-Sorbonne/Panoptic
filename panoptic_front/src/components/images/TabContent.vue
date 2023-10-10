@@ -2,7 +2,7 @@
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
-import { Group, Tab, GroupData, PropertyValue, SortIndex, Sha1Pile } from '@/data/models';
+import { Group, Tab, GroupData, PropertyValue, SortIndex, Sha1Pile, PropertyMode } from '@/data/models';
 import ContentFilter from './ContentFilter.vue';
 import { sortGroupTree, sortImages } from '@/utils/sort';
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
@@ -34,7 +34,8 @@ const filters = computed(() => props.tab.data.filter)
 const groups = computed(() => props.tab.data.groups)
 const sorts = computed(() => props.tab.data.sortList)
 
-const visibleProperties = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([k, v]) => v).map(([k, v]) => Number(k)).map(k => globalStore.properties[k]))
+const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
+const visibleProperties = computed(() => globalStore.getVisibleViewProperties())
 
 function updateScrollerHeight() {
     // console.log('update height')
@@ -223,6 +224,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
+                :properties="visibleProperties"
                 ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tab.data.display == 'grid'">

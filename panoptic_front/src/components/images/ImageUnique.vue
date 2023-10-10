@@ -14,40 +14,34 @@ const props = defineProps({
     groupId: String,
     hideProperties: Boolean,
     constraintWidth: Boolean,
-    noBorder: Boolean
+    noBorder: Boolean,
+    properties: Array<Property>
 })
 
 const emits = defineEmits(['resize'])
 
 const containerElem = ref(null)
-// const properties = computed(() => globalStore.propertyList.filter((p: any) => p.show))
 
 function hasProperty(propertyId: number) {
     return props.image.properties[propertyId] && props.image.properties[propertyId].value !== undefined
 }
 
 const imageProperties = computed(() => {
-
-    let selected = globalStore.tabs[globalStore.selectedTab].data.visibleProperties
-
     let res: Array<PropertyRef> = []
-    globalStore.propertyList.forEach((p: Property) => {
-        if (selected[p.id]) {
-            let propRef: PropertyRef = {
-                propertyId: p.id,
-                type: p.type,
-                value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
-                imageId: props.image.id,
-                mode: p.mode
-            }
-            res.push(propRef)
+    props.properties.forEach((p: Property) => {
+        console.log(p)
+        let propRef: PropertyRef = {
+            propertyId: p.id,
+            type: p.type,
+            value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
+            imageId: props.image.id,
+            mode: p.mode
         }
+        res.push(propRef)
 
     });
     return res
 })
-
-const imageWidthStyle = computed(() => `max-width: ${Number(props.size) - 4}px; max-height: ${Number(props.size) - 4}px;`)
 
 const imageSizes = computed(() => {
     if (!props.constraintWidth) {

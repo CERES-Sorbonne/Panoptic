@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
+import { GroupData, Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
 import ImageSimi from '../images/ImageSimi.vue'
 import RangeInput from '../inputs/RangeInput.vue';
+import GridScroller from '../scrollers/grid/GridScroller.vue';
+import { generateGroups } from '@/utils/groups';
+import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -20,6 +23,15 @@ const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
 const similarImages = ref([])
 const nbSimilarImages = ref(10)
+const availableHeight = ref(100)
+const availableWidth = ref(100)
+const scroller = ref(null)
+
+const groupData = reactive({
+    root: undefined,
+    index: {},
+    order: []
+}) as GroupData
 
 function hasProperty(propertyId: number) {
     return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
@@ -52,6 +64,9 @@ function hide() {
 
 function show() {
     modal.show()
+    availableHeight.value = modalElem.value.clientHeight
+    availableWidth.value = modalElem.value.clientWidth
+    console.log(availableWidth.value)
 }
 
 watch(() => globalStore.openModal.id, (id) => {
@@ -71,7 +86,19 @@ onMounted(() => {
 
 const setSimilar = async () => {
     const res = await globalStore.getSimilarImages(image.value.sha1)
+    // console.log(res)
+    // console.log(globalStore.sha1Index)
     similarImages.value = res.map((i:any) => ({ url: globalStore.sha1Index[i.sha1][0].url, dist: i.dist, sha1: i.sha1, id:globalStore.sha1Index[i.sha1][0].id }))
+    
+    // for(let img of res) {
+    //     console.log(img.sha1, globalStore.sha1Index[img.sha1])
+    // }
+    var imgs = res.map(r => globalStore.sha1Index[r.sha1][0])
+    var index = generateGroups(imgs, [])
+    groupData.index = index
+    groupData.root = index[0]
+    groupData.order = ['0']
+    scroller.value.computeLines()
 }
 </script>
 
@@ -92,39 +119,8 @@ const setSimilar = async () => {
                             <div class="text-center mb-2">
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
-                            <div id="similarImages" v-if="similarImages.length > 0">
-                                <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
-                                <StampDropdown
-                                    :images="[image, ...similarImages.slice(0, nbSimilarImages).map(i => globalStore.images[i.id])]" />
-                                <div class="m-2">
-                                    <div class="d-flex flex-wrap">
-                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.id])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
-                                    </div>
 
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="mt-2">
-                                <!-- <p class="m-0">Metadata</p>
-                                            <div class="ms-2">
-                                                <div>
-                                                    <i class="bi bi-card-image"></i>
-                                                    <span class="ms-2">{{ image.sha1 }}</span>
-                                                </div>
-
-                                                <div>
-                                                    <i class="bi bi-aspect-ratio"></i>
-                                                    <span class="ms-2">{{ image.width }} x {{ image.height }}</span>
-                                                </div>
-
-                                                <div>
-                                                    <span class="bi bi-folder" v-for="path in image.paths">
-                                                        <span class="ms-2">{{ path }}</span>
-                                                    </span>
-
-                                                </div>
-                                            </div> -->
+                            <div class="mt-2" :style="{height: (availableHeight - 550)+'px', overflow: 'scroll'}">
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
                                     <b>Proprietés</b>
@@ -159,18 +155,28 @@ const setSimilar = async () => {
 
                                     </tr>
                                 </table>
-                                <button class="me-2" @click="setSimilar()">Find Similar</button>
                             </div>
+                            <!-- <div id="similarImages" v-if="similarImages.length > 0">
+                                <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
+                                <StampDropdown
+                                    :images="[image, ...similarImages.slice(0, nbSimilarImages).map(i => globalStore.images[i.id])]" />
+                                <div class="m-2">
+                                    <div class="d-flex flex-wrap">
+                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.id])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
+                                    </div>
+
+                                </div>
+                            </div> -->
+                        </div>
+                        <div class="col">
+                            <button class="me-2" @click="setSimilar()">Find Similar</button>
+                            <TreeScroller :image-size="80" :height="availableHeight - 170" :width="availableWidth - 1000" :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller" :hideRoot="true"/>
                         </div>
                     </div>
 
 
 
 
-                </div>
-                <div class="modal-footer">
-                    <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
-                    <button type="button" class="btn btn-secondary" @click="hide">Close</button>
                 </div>
             </div>
         </div>

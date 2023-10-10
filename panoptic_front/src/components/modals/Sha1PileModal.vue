@@ -18,6 +18,7 @@ const pile = computed(() => globalStore.openModal.data as Sha1Pile)
 const isActive = computed(() => globalStore.openModal.id == props.id)
 const similarImages = ref([])
 const nbSimilarImages = ref(10)
+const availableHeight = ref(100)
 
 const image = computed(() => pile.value.images[0])
 
@@ -95,6 +96,7 @@ function hide() {
 
 function show() {
     modal.show()
+    availableHeight.value = modalElem.value.clientHeight
 }
 
 watch(() => globalStore.openModal.id, (id) => {
@@ -132,7 +134,7 @@ onMounted(() => {
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
                         </div>
-                        <div class="col">
+                        <div class="col" style="height: 400px; overflow: scroll;">
                             <div class="mt-2">
                                 <table class="table">
                                     <b>Proprietés</b>
@@ -170,7 +172,7 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="m-0 p-0" style="width: 1100px; overflow-x: overlay; overflow-y: hidden;">
-                        <GridScroller :show-images="false" :data="groupData" :height="500" :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)"/>
+                        <GridScroller :show-images="false" :data="groupData" :height="availableHeight - 550" :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)"/>
                     </div>
 
                 </div>
