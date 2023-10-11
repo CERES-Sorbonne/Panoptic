@@ -69,7 +69,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
     <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, pile.images[0])">
-            <div v-if="props.pile.similarity" class="simi-ratio" >{{ props.pile.similarity * 100 }}</div>
+            <div v-if="props.pile.similarity" class="simi-ratio" >{{ Math.floor(props.pile.similarity * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
         </div>
         <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>

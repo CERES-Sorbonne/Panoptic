@@ -2,7 +2,7 @@
 import { GroupData, Image, Modals, Property, PropertyMode, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
+import { ref, onMounted, watch, computed, reactive, nextTick } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
@@ -12,6 +12,8 @@ import GridScroller from '../scrollers/grid/GridScroller.vue';
 import { createGroup, generateGroups, imagesToSha1Piles } from '@/utils/groups';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/data/models';
+import PropInput from '../inputs/PropInput.vue';
+import PropertyIcon from '../properties/PropertyIcon.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -27,6 +29,7 @@ const availableHeight = ref(100)
 const availableWidth = ref(100)
 const scroller = ref(null)
 const minSimilarityDist = ref(80)
+const similarityLoaded = computed(() => groupData.root != undefined)
 
 function hasSha1Property(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -135,9 +138,15 @@ watch(() => globalStore.openModal.id, (id) => {
     }
 })
 
-watch(image, () => { 
+watch(image, () => {
     if (globalStore.openModal.id == props.id) {
         show()
+    }
+})
+
+watch(modalMode, () => {
+    if (modalMode.value == ImageModalMode.Similarity && similarImages.value.length == 0) {
+        setSimilar()
     }
 })
 
@@ -147,6 +156,8 @@ onMounted(() => {
 })
 
 async function setSimilar() {
+    if (modalMode.value != ImageModalMode.Similarity) return
+
     const res = await globalStore.getSimilarImages(image.value.sha1)
     similarImages.value = res
     updateSimilarGroup()
@@ -159,12 +170,15 @@ function updateSimilarGroup() {
     group.imagePiles = []
     filteredSha1s.forEach(r => group.imagePiles.push({ sha1: r.sha1, images: globalStore.sha1Index[r.sha1], similarity: r.dist }))
 
-    groupData.index = {0: group}
+    groupData.index = { 0: group }
     groupData.root = group
     groupData.root.name = 'Similar Images'
     groupData.order = ['0']
 
-    scroller.value.computeLines()
+    if (scroller.value) {
+        scroller.value.computeLines()
+    }
+
 }
 
 watch(minSimilarityDist, updateSimilarGroup)
@@ -197,27 +211,31 @@ watch(minSimilarityDist, updateSimilarGroup)
                     </div>
                     <div class="row" v-if="modalMode == ImageModalMode.Similarity">
                         <div class="col overflow-hidden" style="width: 600px;">
-                            <div class="text-center mb-2">
-                                <img :src="image.fullUrl" class="border image-size" />
+                            <div class="mb-2 image-container">
+                                <img :src="image.fullUrl" class="" />
                             </div>
 
                             <div class="mt-2" :style="{ height: (availableHeight - 550) + 'px', overflow: 'scroll' }">
                                 <!-- <p class="m-0">Properties</p> -->
-                                <table class="table">
-                                    <b>Proprietés</b>
-                                    <tr v-for="property, index in imageProperties" class="">
-                                        <template v-if="property.propertyId >= 0">
-                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
-                                            <td class="w-100">
-                                                <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" :input-id="[100, index]" />
-                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" :input-id="[100, index]" />
-                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
-                                            </td>
-                                        </template>
+                                <table class="table table-bordered table-sm">
 
-                                    </tr>
+                                    <b>Proprietés</b>
+                                    <tbody>
+                                        <tr v-for="property, index in sha1Properties" class="">
+                                            <template v-if="property.propertyId >= 0">
+                                                <td class="text-nowrap">
+                                                    <PropertyIcon :type="property.type" /> {{
+                                                        globalStore.properties[property.propertyId].name }}
+                                                </td>
+                                                <td>
+                                                    <PropInput :property="globalStore.properties[property.propertyId]"
+                                                        :image="image" :width="300" :min-height="20" />
+                                                </td>
+                                                <td class="text-center"><i class="bi bi-eye"></i></td>
+                                                <td class="text-center"><i class="bi bi-paint-bucket"></i></td>
+                                            </template>
+                                        </tr>
+                                    </tbody>
                                 </table>
 
                                 <table class="table">
@@ -226,11 +244,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                         <template v-if="property.propertyId < 0">
                                             <td>{{ globalStore.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
-                                                <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" :input-id="[100, index]" />
-                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" :input-id="[100, index]" />
-                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
+                                                <PropertyInput :property="property" :input-id="[100, index]" />
                                             </td>
                                         </template>
 
@@ -249,15 +263,15 @@ watch(minSimilarityDist, updateSimilarGroup)
                                 </div>
                             </div> -->
                         </div>
-                        <div class="col">
+                        <div class="col" v-if="similarityLoaded">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
                                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
-                                <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist"/>
+                                <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" />
                                 <div>min: {{ minSimilarityDist }}%</div>
                                 <div class="ms-2 text-secondary">({{ groupData.root.imagePiles.length }} images)</div>
                             </div>
-                            
+
                             <TreeScroller :image-size="70" :height="availableHeight - 180" :width="availableWidth - 930"
                                 :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller"
                                 :hide-options="true" :hide-group="true" />
@@ -266,42 +280,41 @@ watch(minSimilarityDist, updateSimilarGroup)
 
                     <div class="row" v-else>
                         <div class="col">
-                            <div class="text-center mb-2">
-                                <img :src="image.fullUrl" class="border image-size" />
+                            <div class="text-center mb-2 image-container">
+                                <img :src="image.fullUrl" class="" />
                             </div>
                         </div>
                         <div class="col" style="height: 400px; overflow: scroll;">
                             <div class="mt-2">
-                                <table class="table">
-                                    <b>Proprietés</b>
-                                    <tr v-for="property, index in sha1Properties" class="">
-                                        <template v-if="property.propertyId >= 0">
-                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
-                                            <td class="w-100">
-                                                <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" :input-id="[100, index]" />
-                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" :input-id="[100, index]" />
-                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
-                                            </td>
-                                        </template>
+                                <table class="table table-bordered table-sm">
 
-                                    </tr>
+                                    <b>Proprietés</b>
+                                    <tbody>
+                                        <tr v-for="property, index in sha1Properties" class="">
+                                            <template v-if="property.propertyId >= 0">
+                                                <td class="text-nowrap">
+                                                    <PropertyIcon :type="property.type" /> {{
+                                                        globalStore.properties[property.propertyId].name }}
+                                                </td>
+                                                <td>
+                                                    <PropInput :property="globalStore.properties[property.propertyId]"
+                                                        :image="image" :width="400" :min-height="20" />
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </tbody>
                                 </table>
 
                                 <table class="table">
                                     <b>Computed</b>
-                                    <tr v-for="property, index in sha1Properties" class="">
+                                    <tr v-for="property, index in imageProperties" class="">
                                         <template v-if="property.propertyId < 0">
                                             <td>{{ globalStore.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
-                                                <TagInput v-if="property.type == PropertyType.multi_tags"
-                                                    :property="property" :input-id="[100, index]" />
-                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
-                                                    :mono-tag="true" :input-id="[100, index]" />
-                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
+                                                <PropertyInput :property="property" :input-id="[100, index]" />
                                             </td>
                                         </template>
+
                                     </tr>
                                 </table>
                             </div>
@@ -318,12 +331,33 @@ watch(minSimilarityDist, updateSimilarGroup)
 </template>
 
 <style scoped>
-.image-size {
-    max-width: 600px;
+/* .image-size {
+    max-width: 500px;
     max-height: 400px;
+} */
+
+.image-container {
+    width: 540px;
+    height: 400px;
+    position: relative;
+    margin: auto;
+    padding: auto;
+    border: 1px solid var(--border-color);
+}
+
+img {
+    max-height: 100%;
+    max-width: 100%;
+    /* width: auto;
+    height: auto; */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
 }
 
 .selected {
     background-color: var(--light-grey);
-}
-</style>
+}</style>

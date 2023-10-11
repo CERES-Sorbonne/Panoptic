@@ -324,7 +324,7 @@ watch(() => props.width, () => {
                         @update="computeLines()"/>
                 </div>
                 <div v-else-if="item.type == 'filler'">
-                    <div :style="{height: item.size+'px'}"></div>
+                    <div :style="{height: item.size+'px'}" class=""></div>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->
