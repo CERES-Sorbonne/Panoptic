@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GroupData, Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
+import { GroupData, Image, Modals, Property, PropertyMode, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
@@ -11,6 +11,7 @@ import RangeInput from '../inputs/RangeInput.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 import { generateGroups, imagesToSha1Piles } from '@/utils/groups';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
+import { Group } from '@/data/models';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -27,11 +28,62 @@ const availableHeight = ref(100)
 const availableWidth = ref(100)
 const scroller = ref(null)
 
+function hasSha1Property(image: Image, propertyId: number) {
+    return image.properties[propertyId] && image.properties[propertyId].value !== undefined
+}
+
+function getSha1Properties(sha1: string) {
+    const img = globalStore.sha1Index[sha1][0]
+    let res = globalStore.propertyList.filter(p => p.mode == PropertyMode.sha1).map(p => {
+        let propRef: PropertyRef = {
+            propertyId: p.id,
+            type: p.type,
+            value: hasSha1Property(img, p.id) ? img.properties[p.id].value : undefined,
+            imageId: img.id,
+            mode: p.mode
+        }
+        return propRef
+    })
+    return res
+}
+
+const pile = computed(() => ({ sha1: image.value.sha1, images: globalStore.sha1Index[image.value.sha1] }))
+const properties = computed(() => getSha1Properties(pile.value.sha1))
+const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
+
+enum ImageModalMode {
+    Similarity = 'similarity',
+    Unique = 'unique'
+}
+
+const modalMode = ref(ImageModalMode.Similarity)
+
 const groupData = reactive({
     root: undefined,
     index: {},
     order: []
 }) as GroupData
+
+const gridData = computed(() => {
+    let group: Group = {
+        id: '0',
+        name: '__all__',
+        images: pile.value.images,
+        groups: undefined,
+        depth: 0,
+        propertyValues: [],
+        parentId: undefined,
+        count: pile.value.images.length
+    }
+    let index = {}
+    index[group.id] = group
+    return {
+        root: group,
+        index,
+        order: [group.id]
+    } as GroupData
+})
+
 
 function hasProperty(propertyId: number) {
     return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
@@ -73,12 +125,19 @@ function show() {
 }
 
 watch(() => globalStore.openModal.id, (id) => {
+    console.log('change')
     if (id == props.id) {
         show()
     }
     else {
         hide()
         similarImages.value = []
+    }
+})
+
+watch(image, () => { 
+    if (globalStore.openModal.id == props.id) {
+        show()
     }
 })
 
@@ -97,7 +156,7 @@ const setSimilar = async () => {
     groupData.order = ['0']
 
     groupData.root.imagePiles = []
-    groupData.root.images.forEach(i => groupData.root.imagePiles.push({ sha1: i.sha1, images: globalStore.sha1Index[i.sha1]}))
+    res.forEach(r => groupData.root.imagePiles.push({ sha1: r.sha1, images: globalStore.sha1Index[r.sha1], similarity: r.dist }))
 
     scroller.value.computeLines()
 }
@@ -114,14 +173,26 @@ const setSimilar = async () => {
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body overflow-scroll" style="max-height: calc(100vh - 100px);">
-                    <div class="row">
-                        <div class="col">
+                <div class="modal-body overflow-scroll pt-1 pb-1" style="max-height: calc(100vh - 100px);">
+                    <div class="d-flex justify-content-center mb-1">
+                        <div class="d-flex border rounded overflow-hidden">
+                            <div class="ps-2 pe-2 btn-icon"
+                                :class="(modalMode == ImageModalMode.Similarity ? 'selected' : '')"
+                                @click="modalMode = ImageModalMode.Similarity">Images Similaires</div>
+                            <div class="border-start"></div>
+                            <div class="ps-2 pe-2 btn-icon" :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
+                                @click="modalMode = ImageModalMode.Unique">
+                                Proprietées uniques</div>
+                        </div>
+
+                    </div>
+                    <div class="row" v-if="modalMode == ImageModalMode.Similarity">
+                        <div class="col overflow-hidden" style="width: 600px;">
                             <div class="text-center mb-2">
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
 
-                            <div class="mt-2" :style="{height: (availableHeight - 550)+'px', overflow: 'scroll'}">
+                            <div class="mt-2" :style="{ height: (availableHeight - 560) + 'px', overflow: 'scroll' }">
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
                                     <b>Proprietés</b>
@@ -171,13 +242,59 @@ const setSimilar = async () => {
                         </div>
                         <div class="col">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
-                            <TreeScroller :image-size="80" :height="availableHeight - 130" :width="availableWidth - 1000" :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller" :hide-options="true"/>
+                            <TreeScroller :image-size="70" :height="availableHeight - 150" :width="availableWidth - 930"
+                                :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller"
+                                :hide-options="true" />
                         </div>
                     </div>
 
+                    <div class="row" v-else>
+                        <div class="col">
+                            <div class="text-center mb-2">
+                                <img :src="image.fullUrl" class="border image-size" />
+                            </div>
+                        </div>
+                        <div class="col" style="height: 400px; overflow: scroll;">
+                            <div class="mt-2">
+                                <table class="table">
+                                    <b>Proprietés</b>
+                                    <tr v-for="property, index in sha1Properties" class="">
+                                        <template v-if="property.propertyId >= 0">
+                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td class="w-100">
+                                                <TagInput v-if="property.type == PropertyType.multi_tags"
+                                                    :property="property" :input-id="[100, index]" />
+                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
+                                                    :mono-tag="true" :input-id="[100, index]" />
+                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
+                                            </td>
+                                        </template>
 
+                                    </tr>
+                                </table>
 
-
+                                <table class="table">
+                                    <b>Computed</b>
+                                    <tr v-for="property, index in sha1Properties" class="">
+                                        <template v-if="property.propertyId < 0">
+                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td class="w-100">
+                                                <TagInput v-if="property.type == PropertyType.multi_tags"
+                                                    :property="property" :input-id="[100, index]" />
+                                                <TagInput v-else-if="property.type == PropertyType.tag" :property="property"
+                                                    :mono-tag="true" :input-id="[100, index]" />
+                                                <PropertyInput v-else :property="property" :input-id="[100, index]" />
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="m-0 p-0" style="width: 1100px; overflow-x: overlay; overflow-y: hidden;">
+                            <GridScroller :show-images="false" :data="gridData" :height="availableHeight - 550"
+                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -188,5 +305,9 @@ const setSimilar = async () => {
 .image-size {
     max-width: 600px;
     max-height: 400px;
+}
+
+.selected {
+    background-color: var(--light-grey);
 }
 </style>
