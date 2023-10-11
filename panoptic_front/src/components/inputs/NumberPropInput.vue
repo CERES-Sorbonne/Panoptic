@@ -46,13 +46,13 @@ defineExpose({
 </script>
 
 <template>
-    <div :style="{height: props.minHeight+'px'}" @click="focus" class="container">
+    <div :style="{height: props.minHeight+'px'}" @click="focus" class="number-container">
         <input type="number" v-model="localValue" :style="{width: (props.width-0)+'px'}" ref="elem" @blur="save"/>
     </div>
 </template>
 
 <style scoped>
-.container {
+.number-container {
     padding-top: 5px !important;
 }
 

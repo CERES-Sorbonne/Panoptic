@@ -31,6 +31,10 @@ const scroller = ref(null)
 const minSimilarityDist = ref(80)
 const similarityLoaded = computed(() => groupData.root != undefined)
 
+const similarityVisibleProps = reactive({})
+const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => globalStore.properties[pId]))
+
+
 function hasSha1Property(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
@@ -128,6 +132,15 @@ function show() {
     setSimilar()
 }
 
+function toggleProperty(propId: Number) {
+    if(similarityVisibleProps[String(propId)]) {
+        delete similarityVisibleProps[String(propId)]
+    }
+    else {
+        similarityVisibleProps[String(propId)] = true
+    }
+}
+
 watch(() => globalStore.openModal.id, (id) => {
     console.log('change')
     if (id == props.id) {
@@ -215,9 +228,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                                 <img :src="image.fullUrl" class="" />
                             </div>
 
-                            <div class="mt-2" :style="{ height: (availableHeight - 550) + 'px', overflow: 'scroll' }">
+                            <div class="mt-2" :style="{ height: (availableHeight - 550) + 'px', overflow: 'scroll', width: '550px' }">
                                 <!-- <p class="m-0">Properties</p> -->
-                                <table class="table table-bordered table-sm">
+                                <table class="table table-bordered table-sm" style="width: 500px;">
 
                                     <b>Proprietés</b>
                                     <tbody>
@@ -227,11 +240,11 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                     <PropertyIcon :type="property.type" /> {{
                                                         globalStore.properties[property.propertyId].name }}
                                                 </td>
-                                                <td>
+                                                <td class="ps-1">
                                                     <PropInput :property="globalStore.properties[property.propertyId]"
-                                                        :image="image" :width="300" :min-height="20" />
+                                                        :image="image" :width="370" :min-height="20" />
                                                 </td>
-                                                <td class="text-center btn-icon"><i class="bi bi-eye"></i></td>
+                                                <td class="text-center btn-icon" @click="toggleProperty(property.propertyId)"><i class="bi bi-eye" :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')"></i></td>
                                                 <td class="text-center btn-icon"><i class="bi bi-paint-bucket"></i></td>
                                             </template>
                                         </tr>
@@ -273,7 +286,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                             </div>
 
                             <TreeScroller :image-size="70" :height="availableHeight - 180" :width="availableWidth - 930"
-                                :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller"
+                                :data="groupData" :properties="similarityVisiblePropsList" ref="scroller"
                                 :hide-options="true" :hide-group="true" />
                         </div>
                     </div>
