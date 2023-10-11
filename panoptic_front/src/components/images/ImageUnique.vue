@@ -62,7 +62,7 @@ const imageSizes = computed(() => {
     return { width: props.size - 4, height: props.size - 4 }
 })
 
-const imageContainerStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${props.size}px;`)
+const imageContainerStyle = computed(() => `width: ${Math.max(imageSizes.value.width, props.size) - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
 const widthStyle = computed(() => `width: ${width.value}px;`)
