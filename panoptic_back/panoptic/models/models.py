@@ -46,6 +46,9 @@ class Tag:
     value: str
     color: str
 
+    def __post_init__(self):
+        self.value = str(self.value)
+
 
 @dataclass(slots=True)
 class Image:

@@ -217,7 +217,7 @@ async def read_properties_file(data: pandas.DataFrame):
                 created_tags = []
                 # if value is empty just create a "null" tag
                 if pandas.isna(value):
-                    value = "null"
+                    value = "unknown"
                 # if it's multi tag, assume tags are separated by a comma and create them separately
                 for single_tag in str(value).split(','):
                     colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
