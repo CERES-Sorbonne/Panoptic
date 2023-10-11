@@ -6,6 +6,22 @@ import moment from "moment"
 export const UNDEFINED_KEY = '__undefined__'
 export const MAX_GROUPS = 5
 
+
+export function createGroup(name = 'All', images = []) {
+    let group = {
+        name: name,
+        images: images,
+        groups: undefined as Group[],
+        count: images.length,
+        propertyId: undefined,
+        id: '0',
+        depth: 0,
+        parentId: undefined,
+        propertyValues: []
+    } as Group
+    return group
+}
+
 export function generateGroups(images: Image[], groups: number[]) {
     const index: GroupIndex = {}
     let rootGroup = {

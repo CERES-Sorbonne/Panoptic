@@ -9,7 +9,7 @@ import StampDropdown from '../inputs/StampDropdown.vue';
 import ImageSimi from '../images/ImageSimi.vue'
 import RangeInput from '../inputs/RangeInput.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { generateGroups, imagesToSha1Piles } from '@/utils/groups';
+import { createGroup, generateGroups, imagesToSha1Piles } from '@/utils/groups';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/data/models';
 
@@ -23,10 +23,10 @@ const props = defineProps({
 const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
 const similarImages = ref([])
-const nbSimilarImages = ref(10)
 const availableHeight = ref(100)
 const availableWidth = ref(100)
 const scroller = ref(null)
+const minSimilarityDist = ref(80)
 
 function hasSha1Property(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -115,6 +115,7 @@ function hide() {
     groupData.root = undefined
     groupData.index = {}
     groupData.order = []
+    similarImages.value = []
 }
 
 function show() {
@@ -131,7 +132,6 @@ watch(() => globalStore.openModal.id, (id) => {
     }
     else {
         hide()
-        similarImages.value = []
     }
 })
 
@@ -146,20 +146,29 @@ onMounted(() => {
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
 
-const setSimilar = async () => {
+async function setSimilar() {
     const res = await globalStore.getSimilarImages(image.value.sha1)
-    var imgs = res.map(r => globalStore.sha1Index[r.sha1][0])
-    var index = generateGroups(imgs, [])
-    groupData.index = index
-    groupData.root = index[0]
+    similarImages.value = res
+    updateSimilarGroup()
+}
+
+function updateSimilarGroup() {
+    let group = createGroup()
+    var filteredSha1s = similarImages.value.filter(i => i.dist >= (minSimilarityDist.value / 100.0))
+
+    group.imagePiles = []
+    filteredSha1s.forEach(r => group.imagePiles.push({ sha1: r.sha1, images: globalStore.sha1Index[r.sha1], similarity: r.dist }))
+
+    groupData.index = {0: group}
+    groupData.root = group
     groupData.root.name = 'Similar Images'
     groupData.order = ['0']
 
-    groupData.root.imagePiles = []
-    res.forEach(r => groupData.root.imagePiles.push({ sha1: r.sha1, images: globalStore.sha1Index[r.sha1], similarity: r.dist }))
-
     scroller.value.computeLines()
 }
+
+watch(minSimilarityDist, updateSimilarGroup)
+
 </script>
 
 
@@ -192,7 +201,7 @@ const setSimilar = async () => {
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
 
-                            <div class="mt-2" :style="{ height: (availableHeight - 540) + 'px', overflow: 'scroll' }">
+                            <div class="mt-2" :style="{ height: (availableHeight - 550) + 'px', overflow: 'scroll' }">
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
                                     <b>Proprietés</b>
@@ -242,9 +251,16 @@ const setSimilar = async () => {
                         </div>
                         <div class="col">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
-                            <TreeScroller :image-size="70" :height="availableHeight - 150" :width="availableWidth - 930"
+                            <div class="d-flex mb-1">
+                                <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
+                                <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist"/>
+                                <div>min: {{ minSimilarityDist }}%</div>
+                                <div class="ms-2 text-secondary">({{ groupData.root.imagePiles.length }} images)</div>
+                            </div>
+                            
+                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="availableWidth - 930"
                                 :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller"
-                                :hide-options="true" />
+                                :hide-options="true" :hide-group="true" />
                         </div>
                     </div>
 
