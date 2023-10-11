@@ -110,7 +110,7 @@ function setEdit(value: Boolean) {
         })
     }
     else {
-        document.removeEventListener('click', handleContainerClick)
+        document.removeEventListener('click', handleContainerClick, true)
         let img = globalStore.images[props.property.imageId]
         if(tagsChanged()) {
             globalStore.setPropertyValue(props.property.propertyId, img, localValue)

@@ -231,8 +231,8 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                     <PropInput :property="globalStore.properties[property.propertyId]"
                                                         :image="image" :width="300" :min-height="20" />
                                                 </td>
-                                                <td class="text-center"><i class="bi bi-eye"></i></td>
-                                                <td class="text-center"><i class="bi bi-paint-bucket"></i></td>
+                                                <td class="text-center btn-icon"><i class="bi bi-eye"></i></td>
+                                                <td class="text-center btn-icon"><i class="bi bi-paint-bucket"></i></td>
                                             </template>
                                         </tr>
                                     </tbody>

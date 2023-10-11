@@ -29,7 +29,6 @@ function hasProperty(propertyId: number) {
 const imageProperties = computed(() => {
     let res: Array<PropertyRef> = []
     props.properties.forEach((p: Property) => {
-        console.log(p)
         let propRef: PropertyRef = {
             propertyId: p.id,
             type: p.type,
