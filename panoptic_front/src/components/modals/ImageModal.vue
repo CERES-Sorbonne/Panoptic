@@ -192,7 +192,7 @@ const setSimilar = async () => {
                                 <img :src="image.fullUrl" class="border image-size" />
                             </div>
 
-                            <div class="mt-2" :style="{ height: (availableHeight - 560) + 'px', overflow: 'scroll' }">
+                            <div class="mt-2" :style="{ height: (availableHeight - 540) + 'px', overflow: 'scroll' }">
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table">
                                     <b>Proprietés</b>
