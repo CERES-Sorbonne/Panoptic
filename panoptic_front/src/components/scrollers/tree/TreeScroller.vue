@@ -14,7 +14,8 @@ const props = defineProps({
     width: Number,
     data: Object as () => GroupData,
     properties: Array<Property>,
-    hideOptions: Boolean
+    hideOptions: Boolean,
+    hideGroup: Boolean
 })
 
 const emits = defineEmits(['recommend'])
@@ -83,7 +84,7 @@ function computeLines() {
             type: 'group',
             data: group,
             depth: group.depth,
-            size: 30,
+            size: props.hideGroup ? 0 : 30,
             nbClusters: 10
             // index: lines.length
         })
@@ -300,7 +301,7 @@ watch(() => props.width, () => {
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
-                <div v-if="item.type == 'group'">
+                <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :hide-options="props.hideOptions"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"

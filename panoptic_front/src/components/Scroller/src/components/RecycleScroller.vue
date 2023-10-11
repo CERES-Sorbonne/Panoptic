@@ -206,7 +206,7 @@ export default {
         let accumulator = 0
         let current
         for (let i = 0, l = items.length; i < l; i++) {
-          current = items[i][field] || minItemSize
+          current = items[i][field] ?? minItemSize
           if (current < computedMinSize) {
             computedMinSize = current
           }
