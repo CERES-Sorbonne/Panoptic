@@ -8,7 +8,7 @@ import { sortGroupTree, sortImages } from '@/utils/sort';
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 
 import RecommendedMenu from './RecommendedMenu.vue';
-import { generateGroups, mergeGroup } from '@/utils/groups';
+import { generateGroups, mergeGroup, imagesToSha1Piles } from '@/utils/groups';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 
 const props = defineProps({
@@ -135,22 +135,6 @@ function sortGroups() {
             }
         }
     })
-}
-
-function imagesToSha1Piles(group: Group) {
-    const res: Array<Sha1Pile> = []
-    const order: { [key: string]: number } = {}
-
-    for (let img of group.images) {
-        if (order[img.sha1] === undefined) {
-            order[img.sha1] = res.length
-            res.push({ sha1: img.sha1, images: [] })
-        }
-        res[order[img.sha1]].images.push(img)
-    }
-
-    group.imagePiles = res
-    // group.images = []
 }
 
 function setRecoImages(images: string[], propertyValues: PropertyValue[], groupId: string) {

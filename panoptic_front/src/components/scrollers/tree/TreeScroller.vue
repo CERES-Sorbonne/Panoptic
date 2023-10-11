@@ -14,7 +14,7 @@ const props = defineProps({
     width: Number,
     data: Object as () => GroupData,
     properties: Array<Property>,
-    hideRoot: Boolean
+    hideOptions: Boolean
 })
 
 const emits = defineEmits(['recommend'])
@@ -300,8 +300,9 @@ watch(() => props.width, () => {
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
-                <div v-if="item.type == 'group' && !(props.hideRoot && index == 0)">
+                <div v-if="item.type == 'group'">
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                        :hide-options="props.hideOptions"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
                         @group:update="computeLines"  @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)"/>

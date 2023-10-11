@@ -1,4 +1,4 @@
-import { Group, GroupIndex, Image, PropertyType } from "@/data/models"
+import { Group, GroupIndex, Image, PropertyType, Sha1Pile } from "@/data/models"
 import { DefaultDict } from "./helpers"
 import { globalStore } from "@/data/store"
 import moment from "moment"
@@ -102,4 +102,20 @@ export function mergeGroup(update: Group, index: GroupIndex) {
         update.groups = children
     }
     return update
+}
+
+export function imagesToSha1Piles(group: Group) {
+    const res: Array<Sha1Pile> = []
+    const order: { [key: string]: number } = {}
+
+    for (let img of group.images) {
+        if (order[img.sha1] === undefined) {
+            order[img.sha1] = res.length
+            res.push({ sha1: img.sha1, images: [] })
+        }
+        res[order[img.sha1]].images.push(img)
+    }
+
+    group.imagePiles = res
+    // group.images = []
 }

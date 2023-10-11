@@ -9,7 +9,7 @@ import StampDropdown from '../inputs/StampDropdown.vue';
 import ImageSimi from '../images/ImageSimi.vue'
 import RangeInput from '../inputs/RangeInput.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { generateGroups } from '@/utils/groups';
+import { generateGroups, imagesToSha1Piles } from '@/utils/groups';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 
 const modalElem = ref(null)
@@ -60,13 +60,16 @@ function onHide() {
 
 function hide() {
     modal.hide()
+    groupData.root = undefined
+    groupData.index = {}
+    groupData.order = []
 }
 
 function show() {
     modal.show()
     availableHeight.value = modalElem.value.clientHeight
     availableWidth.value = modalElem.value.clientWidth
-    console.log(availableWidth.value)
+    setSimilar()
 }
 
 watch(() => globalStore.openModal.id, (id) => {
@@ -86,18 +89,16 @@ onMounted(() => {
 
 const setSimilar = async () => {
     const res = await globalStore.getSimilarImages(image.value.sha1)
-    // console.log(res)
-    // console.log(globalStore.sha1Index)
-    similarImages.value = res.map((i:any) => ({ url: globalStore.sha1Index[i.sha1][0].url, dist: i.dist, sha1: i.sha1, id:globalStore.sha1Index[i.sha1][0].id }))
-    
-    // for(let img of res) {
-    //     console.log(img.sha1, globalStore.sha1Index[img.sha1])
-    // }
     var imgs = res.map(r => globalStore.sha1Index[r.sha1][0])
     var index = generateGroups(imgs, [])
     groupData.index = index
     groupData.root = index[0]
+    groupData.root.name = 'Similar Images'
     groupData.order = ['0']
+
+    groupData.root.imagePiles = []
+    groupData.root.images.forEach(i => groupData.root.imagePiles.push({ sha1: i.sha1, images: globalStore.sha1Index[i.sha1]}))
+
     scroller.value.computeLines()
 }
 </script>
@@ -169,8 +170,8 @@ const setSimilar = async () => {
                             </div> -->
                         </div>
                         <div class="col">
-                            <button class="me-2" @click="setSimilar()">Find Similar</button>
-                            <TreeScroller :image-size="80" :height="availableHeight - 170" :width="availableWidth - 1000" :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller" :hideRoot="true"/>
+                            <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
+                            <TreeScroller :image-size="80" :height="availableHeight - 130" :width="availableWidth - 1000" :data="groupData" :properties="[globalStore.propertyList[1]]" ref="scroller" :hide-options="true"/>
                         </div>
                     </div>
 
