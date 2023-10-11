@@ -11,7 +11,8 @@ const props = defineProps({
     item: Object as () => GroupLine,
     parentIds: Array<string>,
     hoverBorder: String,
-    index: Object as () => { [id: string]: Group }
+    index: Object as () => { [id: string]: Group },
+    hideOptions: Boolean
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend'])
@@ -172,7 +173,7 @@ function closeChildren() {
         <div v-if="group.groups" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             group.groups.length }} Groupes</div>
 
-        <div class="d-flex flex-row align-self-center me-2" v-if="!closed">
+        <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
