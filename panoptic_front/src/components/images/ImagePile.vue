@@ -68,7 +68,8 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.SHA1PILE, pile)">
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, pile.images[0])">
+            <div v-if="props.pile.similarity" class="simi-ratio" >{{ props.pile.similarity * 100 }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
         </div>
         <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
@@ -91,6 +92,34 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 </template>
 
 <style scoped>
+.image-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+.simi-ratio {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
 .full-container {
     position: relative;
     border: 1px solid var(--border-color);

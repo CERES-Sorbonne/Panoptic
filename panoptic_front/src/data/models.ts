@@ -106,6 +106,7 @@ export interface Images {
 export interface Sha1Pile {
     images: Array<Image>
     sha1: string
+    similarity?: number // optional; between 0 and 1
 }
 
 export interface Folders {
