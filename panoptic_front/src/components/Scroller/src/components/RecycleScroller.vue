@@ -65,7 +65,7 @@
       />
     </div>
 
-    <ResizeObserver @notify="handleResize" style="height: 0px; overflow: hidden;"/>
+    <!-- <ResizeObserver @notify="handleResize" class="bg-info"/> -->
   </div>
 </template>
 
