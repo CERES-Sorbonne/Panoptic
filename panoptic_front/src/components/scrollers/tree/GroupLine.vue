@@ -5,6 +5,7 @@ import { computed, ref, unref } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import { UNDEFINED_KEY } from '@/utils/groups'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
+import SelectCircle from '@/components/inputs/SelectCircle.vue'
 
 
 const props = defineProps({
@@ -165,6 +166,7 @@ function closeChildren() {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
+        <div class="me-1"><SelectCircle :small="true"/></div>
         <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'" class="align-self-center me-2">
             <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length-1]" />
         </div>
