@@ -6,6 +6,7 @@ import PropertyInput from '../inputs/PropertyInput.vue';
 import TagInput from '../inputs/TagInput.vue';
 import ColorPropInput from '../inputs/ColorPropInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import SelectCircle from '../inputs/SelectCircle.vue';
 
 const props = defineProps({
     image: Object as () => Image,
@@ -21,6 +22,7 @@ const props = defineProps({
 const emits = defineEmits(['resize'])
 
 const containerElem = ref(null)
+const hover = ref(false)
 
 function hasProperty(propertyId: number) {
     return props.image.properties[propertyId] && props.image.properties[propertyId].value !== undefined
@@ -71,8 +73,11 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)"
+        @mouseenter="hover = true" @mouseleave="hover = false">
             <img :src="props.size < 150 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
+            <div v-if="hover" class="w-100 box-shadow" :style="imageContainerStyle"></div>
+            <SelectCircle v-show="hover" class="select" :light-mode="true"/>
         </div>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">
@@ -126,5 +131,28 @@ img {
     left: 0;
     right: 0;
     margin: auto;
+}
+
+.select {
+    position: absolute;
+    top: 0;
+    left: 5px;
+}
+
+.box-shadow {
+    position: relative;
+}
+
+.box-shadow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-box-shadow: inset 0px 24px 25px -20px rgba(0,0,0,0.3);
+    -moz-box-shadow: inset 0px 24px 25px -20px rgba(0,0,0,0.3);
+    box-shadow: inset 0px 50px 30px -30px rgba(0,0,0,0.5);
+    overflow: hidden;
 }
 </style>

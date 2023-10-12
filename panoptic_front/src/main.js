@@ -12,9 +12,6 @@ import '@vueform/toggle/themes/default.css'
 
 const app = createApp(App)
 
-// Make BootstrapVue available throughout your project
-// Optionally install the BootstrapVue icon components plugin
-
 app.use(router)
 
 app.mount('#app')
