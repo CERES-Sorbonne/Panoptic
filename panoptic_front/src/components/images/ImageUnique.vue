@@ -16,10 +16,11 @@ const props = defineProps({
     hideProperties: Boolean,
     constraintWidth: Boolean,
     noBorder: Boolean,
-    properties: Array<Property>
+    properties: Array<Property>,
+    selected: Boolean
 })
 
-const emits = defineEmits(['resize'])
+const emits = defineEmits(['resize', 'update:selected'])
 
 const containerElem = ref(null)
 const hover = ref(false)
@@ -76,8 +77,8 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)"
         @mouseenter="hover = true" @mouseleave="hover = false">
             <img :src="props.size < 150 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
-            <div v-if="hover" class="w-100 box-shadow" :style="imageContainerStyle"></div>
-            <SelectCircle v-show="hover" class="select" :light-mode="true"/>
+            <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
+            <SelectCircle v-if="hover || props.selected" :model-value="props.selected" @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true"/>
         </div>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">

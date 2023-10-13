@@ -18,6 +18,8 @@ const props = defineProps({
 
 const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
 
+const selectedImages = reactive({}) as {[imgId: string]: boolean}
+
 const filterElem = ref(null)
 const boxElem = ref(null)
 const imageList = ref(null)
@@ -197,7 +199,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"/>
+        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages" :selected-images="selectedImages"/>
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
@@ -208,7 +210,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
-                :properties="visibleProperties"
+                :properties="visibleProperties" :selected-images="selectedImages"
                 ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tab.data.display == 'grid'">

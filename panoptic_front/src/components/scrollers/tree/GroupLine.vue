@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
-import { computed, ref, unref } from 'vue'
+import { computed, ref, unref, watch } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import { UNDEFINED_KEY } from '@/utils/groups'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
@@ -13,7 +13,8 @@ const props = defineProps({
     parentIds: Array<string>,
     hoverBorder: String,
     index: Object as () => { [id: string]: Group },
-    hideOptions: Boolean
+    hideOptions: Boolean,
+    selectedImages: Object as () => { [imgId: string]: boolean }
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend'])
@@ -54,13 +55,53 @@ const groupName = computed(() => {
 
 const someValue = computed(() => props.item.data.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
+const allImagesSelected = computed(() => group.value.allImageSelected)
+
+
+function toggleImageSelection() {
+    let allSelected = allImagesSelected.value
+    selectGroupImages(group.value, !allSelected)
+}
+
+function selectGroupImages(group: Group, select: boolean) {
+    group.allImageSelected = select
+    if (group.images.length > 0) {
+        if (select) {
+            group.images.forEach(i => props.selectedImages[i.id] = true)
+            group.allImageSelected = true
+        } else {
+            group.images.forEach(i => delete props.selectedImages[i.id])
+            group.allImageSelected = false
+        }
+    } else {
+        group.groups.forEach(g => selectGroupImages(g, select))
+    }
+}
+
+function recursiveToggleImageSelection(group: Group, allSelected) {
+    console.log('recursive')
+    if (group.images.length > 0) {
+        if (allSelected) {
+            console.log('remove')
+            group.images.forEach(i => delete props.selectedImages[i.id])
+            group.allImageSelected = false
+        } else {
+            console.log('set it')
+            group.images.forEach(i => props.selectedImages[i.id] = true)
+            group.allImageSelected = true
+        }
+    } else {
+        group.groups.forEach(g => recursiveToggleImageSelection(g, allSelected))
+    }
+}
+
 function getTag(propId: number, tagId: number) {
     return globalStore.tags[propId][tagId]
 }
 
 async function computeClusters() {
     let sha1s: string[] = []
-    if(hasPiles.value) {
+    if (hasPiles.value) {
         sha1s = group.value.imagePiles.map(p => p.sha1)
     }
     else if (hasImages.value) {
@@ -74,7 +115,7 @@ async function computeClusters() {
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
         let images = globalStore.getOneImagePerSha1(sha1s)
-        let piles = sha1s.map((s:string) => ({sha1: s, images: globalStore.sha1Index[s]})) 
+        let piles = sha1s.map((s: string) => ({ sha1: s, images: globalStore.sha1Index[s] }))
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index),
             name: 'cluster ' + index.toString() + (distances.length > 0 ? ' ' + distances[index].toString() : ''),
@@ -107,7 +148,7 @@ function clear() {
 
 async function recommandImages() {
     let sha1s: string[] = []
-    if(hasPiles.value) {
+    if (hasPiles.value) {
         sha1s = group.value.imagePiles.map(p => p.sha1)
     }
     else if (hasImages.value) {
@@ -166,9 +207,12 @@ function closeChildren() {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div class="me-1"><SelectCircle :small="true"/></div>
-        <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'" class="align-self-center me-2">
-            <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length-1]" />
+        <div class="me-1">
+            <SelectCircle :small="true" :model-value="allImagesSelected" @update:model-value="toggleImageSelection" />
+        </div>
+        <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
+            class="align-self-center me-2">
+            <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length - 1]" />
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.count }} Images</div>
@@ -194,8 +238,8 @@ function closeChildren() {
             </div>
         </div>
 
-        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-1 text-secondary align-self-center close-children"
-            @click="closeChildren">
+        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren"
+            class="ms-1 text-secondary align-self-center close-children" @click="closeChildren">
             Reduire
         </div>
 
