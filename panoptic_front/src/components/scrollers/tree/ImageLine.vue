@@ -11,10 +11,12 @@ const props = defineProps({
     parentIds: Array<string>,
     hoverBorder: String,
     index: Object as () => GroupIndex,
-    properties: Array<Property>
+    properties: Array<Property>,
+    selectedImages: Object as () => {[imgId:string]: boolean}
 })
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'update'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
+
 //:style="'padding-left:' + (props.item.depth * MARGIN) + 'px'"
 
 </script>
@@ -26,7 +28,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update'])
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <ImageUnique :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties"
+            :properties="props.properties" :selected="props.selectedImages[image.id]" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
             v-for="image, i in props.item.data" class="me-2 mb-2"/>
 
     </div>

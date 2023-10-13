@@ -15,12 +15,14 @@ const props = defineProps({
     data: Object as () => GroupData,
     properties: Array<Property>,
     hideOptions: Boolean,
-    hideGroup: Boolean
+    hideGroup: Boolean,
+    selectedImages: Object as () => {[imgId: string]: boolean}
 })
 
 const emits = defineEmits(['recommend'])
 
 const imageLines = reactive([])
+// const selectedImages = reactive({}) as {[imgId: string]: boolean}
 
 const hoverGroupBorder = ref('')
 
@@ -240,6 +242,14 @@ function openGroup(groupId) {
 
 }
 
+function updateImageSelection(data: {id: string, value: boolean}) {
+    if(data.value) {
+        props.selectedImages[data.id] = data.value
+    } else {
+        delete props.selectedImages[data.id]
+    }
+}
+
 onMounted(computeLines)
 onMounted(() => {
     console.log(props.height, props.width)
@@ -306,13 +316,14 @@ watch(() => props.width, () => {
                         :hide-options="props.hideOptions"
                         :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
+                        :selected-images="props.selectedImages"
                         @group:update="computeLines"  @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)"/>
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
                     <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
-                        :properties="props.properties"
+                        :properties="props.properties" :selected-images="props.selectedImages" @update:selected-image="updateImageSelection"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
                         @update="computeLines()"/>
                 </div>

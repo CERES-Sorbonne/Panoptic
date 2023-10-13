@@ -190,6 +190,7 @@ function updateSimilarGroup() {
 
     if (scroller.value) {
         scroller.value.computeLines()
+        scroller.value.scrollTo('0')
     }
 
 }

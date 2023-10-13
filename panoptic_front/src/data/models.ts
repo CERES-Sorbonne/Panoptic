@@ -367,7 +367,9 @@ export interface Group {
     isCluster?: boolean,
     getSimilarImages?: () => Array<Images>
     similarSha1sBlacklist?: Array<string>
-    allSimilarSha1s?: Array<string>
+    allSimilarSha1s?: Array<string>,
+    allImageSelected?: boolean  // only leaf groups contains images info and can know if the images are selected or not
+                                // to avoid recomputation we use this variable to notify parents about the selection status
 }
 
 export interface GroupIndex {[key: string]: Group}

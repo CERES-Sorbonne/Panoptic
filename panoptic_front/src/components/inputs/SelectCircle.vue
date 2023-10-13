@@ -6,21 +6,20 @@
 import { computed, ref } from 'vue';
 
 const props = defineProps({
+    modelValue: Boolean,
     lightMode: Boolean,
     small: Boolean
 })
 
-const selected = ref(false)
+// const selected = ref(false)
 const hover = ref(false)
 
-const emits = defineEmits({
-    selected: Boolean,
-})
+const emits = defineEmits(['update:modelValue'])
 
 const circleClass = computed(() => {
     let base = props.small ? 'small-offset' : 'offset'
 
-    if (selected.value) {
+    if (props.modelValue) {
         return [base, 'text-primary']
     }
     if (hover.value && props.lightMode) {
@@ -35,20 +34,19 @@ const circleClass = computed(() => {
 })
 
 function toggleSelect() {
-    if (selected.value) {
-        selected.value = false
+    if (props.modelValue) {
+        emits('update:modelValue', false)
 
     } else {
-        selected.value = true
+        emits('update:modelValue', true)
     }
-    emits('selected', selected.value)
 }
 
 </script>
 
 <template>
     <div class="btn-icon" :class="circleClass" @mouseenter="hover = true" @mouseleave="hover = false">
-        <i v-if="!selected" class="bi bi-check-circle-fill" @click.stop="toggleSelect"></i>
+        <i v-if="!props.modelValue" class="bi bi-check-circle-fill" @click.stop="toggleSelect"></i>
         <i v-else class="bi bi-check-circle-fill" @click.stop="toggleSelect"></i>
     </div>
 </template>
