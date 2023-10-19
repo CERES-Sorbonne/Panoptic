@@ -1,4 +1,4 @@
-import { Group, GroupIndex, Image, PropertyType, Sha1Pile } from "@/data/models"
+import { Group, GroupData, GroupIndex, Image, PropertyType, Sha1Pile} from "@/data/models"
 import { DefaultDict } from "./helpers"
 import { globalStore } from "@/data/store"
 import moment from "moment"
@@ -20,6 +20,34 @@ export function createGroup(name = 'All', images = []) {
         propertyValues: []
     } as Group
     return group
+}
+
+function initArrayIfUndefined(data, key) {
+    if (data[key] === undefined) {
+        data[key] = []
+    }
+}
+
+export function generateGroupData(images: Image[], groups: number[], sha1Mode = false) {
+    let index = generateGroups(images, groups)
+    let root = index['0']
+    let order = Object.keys(index)
+
+    let imageToGroups = {}
+    for (let grpId in index) {
+        if (!index[grpId].images.length) continue
+
+        index[grpId].images.forEach(i => {
+            initArrayIfUndefined(imageToGroups, i.id)
+            imageToGroups[i.id].push(grpId)
+        })
+
+        if (sha1Mode) {
+            imagesToSha1Piles(index[grpId])
+        }
+    }
+
+    return { index, root, order, imageToGroups } as GroupData
 }
 
 export function generateGroups(images: Image[], groups: number[]) {

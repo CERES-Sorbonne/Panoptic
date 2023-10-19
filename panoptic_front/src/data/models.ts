@@ -377,7 +377,8 @@ export interface GroupIndex {[key: string]: Group}
 export interface GroupData {
     root: Group,
     index: GroupIndex,
-    order: Array<string>
+    order: Array<string>,
+    imageToGroups: {[imgId: number]: string[]},
 }
 
 export interface Folder {

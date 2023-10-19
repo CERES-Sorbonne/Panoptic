@@ -15,16 +15,10 @@ const props = defineProps({
     selectedImages: Object as () => {[imgId: string]: boolean}
 })
 
-const emits = defineEmits(['compute-ml', 'search-images'])
+const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
 const selectedImageIds = computed(() => Object.keys(props.selectedImages).map(Number))
 const hasSelectedImages = computed(() => selectedImageIds.value.length > 0)
-
-function removeSelectedImages() {
-    for(let k in props.selectedImages) {
-        delete props.selectedImages[k]
-    }
-}
 
 </script>
 
@@ -49,7 +43,7 @@ function removeSelectedImages() {
             <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
         </div>
         <div v-if="hasSelectedImages" class="ms-5">
-            <i class="bi bi-x-lg me-1 btn-icon" @click="removeSelectedImages"></i>
+            <i class="bi bi-x-lg me-1 btn-icon" @click="emits('remove:selected')"></i>
             {{ selectedImageIds.length }} Images selectionées
         </div>
 

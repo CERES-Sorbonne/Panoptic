@@ -5,7 +5,7 @@ import ImageLine from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { GroupData, Property, PropertyMode } from '@/data/models';
+import { Group, GroupData, Property, PropertyMode } from '@/data/models';
 import { isImageGroup, isPileGroup } from '@/utils/utils';
 
 const props = defineProps({
@@ -16,7 +16,7 @@ const props = defineProps({
     properties: Array<Property>,
     hideOptions: Boolean,
     hideGroup: Boolean,
-    selectedImages: Object as () => {[imgId: string]: boolean}
+    selectedImages: Object as () => { [imgId: string]: boolean }
 })
 
 const emits = defineEmits(['recommend'])
@@ -66,14 +66,15 @@ const simiImageLineSize = computed(() => {
 defineExpose({
     scrollTo,
     computeLines,
+    unselectAll
 })
 
 let _flagCompute = false
 function computeLines() {
-    if(props.data.root == undefined) {
+    if (props.data.root == undefined) {
         return
     }
-    if(_flagCompute) {
+    if (_flagCompute) {
         return
     }
     _flagCompute = true
@@ -108,7 +109,7 @@ function computeLines() {
 
     let lines = []
     groupToLines(index[group.id], lines, props.width, props.imageSize)
-    lines.push({type:'filler', size: 400, id:'__filler__'})
+    lines.push({ type: 'filler', size: 400, id: '__filler__' })
     imageLines.length = 0
     imageLines.push(...lines)
 
@@ -242,12 +243,90 @@ function openGroup(groupId) {
 
 }
 
-function updateImageSelection(data: {id: string, value: boolean}) {
-    if(data.value) {
-        props.selectedImages[data.id] = data.value
+function updateImageSelection(data: { id: number, value: boolean }) {
+    if (data.value) {
+        selectedImage(data.id)
     } else {
-        delete props.selectedImages[data.id]
+        unselectImage(data.id)
     }
+}
+
+function unselectImage(imageId: number) {
+    delete props.selectedImages[imageId]
+    let groups = props.data.imageToGroups[imageId].map(gId => props.data.index[gId])
+    groups.forEach(propagateUnselect)
+}
+
+function selectedImage(imageId: number) {
+    props.selectedImages[imageId] = true
+    let groups = props.data.imageToGroups[imageId].map(gId => props.data.index[gId])
+    groups.forEach(propagateSelect)
+}
+
+function selectImages(imageIds: number[]) {
+    imageIds.forEach(id => props.selectedImages[id] = true)
+
+    let groups = new Set<string>()
+    console.log('llaaa')
+    imageIds.forEach(id => props.data.imageToGroups[id].forEach(gId => groups.add(gId)))
+
+    groups.forEach(gId => propagateSelect(props.data.index[gId]))
+}
+
+function unselectImages(imageIds: number[]) {
+    imageIds.forEach(id => delete props.selectedImages[id])
+    let groups = new Set<string>()
+    imageIds.forEach(id => props.data.imageToGroups[id].forEach(gId => groups.add(gId)))
+
+    groups.forEach(gId => propagateUnselect(props.data.index[gId]))
+}
+
+function propagateUnselect(group: Group) {
+    group.allImageSelected = false
+    if (group.parentId === undefined) return
+
+    propagateUnselect(props.data.index[group.parentId])
+}
+
+function propagateSelect(group: Group) {
+    if (group.images.length) {
+        group.allImageSelected = group.images.every(i => props.selectedImages[i.id])
+    }
+    else {
+        group.allImageSelected = group.groups.every(g => g.allImageSelected)
+    }
+
+    if (group.parentId === undefined) return
+    propagateSelect(props.data.index[group.parentId])
+}
+
+function toggleGroupSelect(groupId: string) {
+    let group = props.data.index[groupId]
+    if (group.allImageSelected) {
+        unselectGroup(group)
+    } else {
+        selectGroup(group)
+    }
+}
+
+function selectGroup(group: Group) {
+    if (group.images.length > 0) {
+        selectImages(group.images.map(i => i.id))
+        return
+    }
+    group.groups.forEach(selectGroup)
+}
+
+function unselectGroup(group: Group) {
+    if (group.images.length > 0) {
+        unselectImages(group.images.map(i => i.id))
+        return
+    }
+    group.groups.forEach(unselectGroup)
+}
+
+function unselectAll() {
+    unselectGroup(props.data.root)
 }
 
 onMounted(computeLines)
@@ -306,36 +385,34 @@ watch(() => props.width, () => {
 
 <template>
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="" :page-mode="false" :prerender="0"
-        >
+        :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :hide-options="props.hideOptions"
-                        :index="props.data.index" @scroll="scrollTo" @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
-                        :selected-images="props.selectedImages"
-                        @group:update="computeLines"  @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)"/>
+                        :hide-options="props.hideOptions" :index="props.data.index" @scroll="scrollTo"
+                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @group:close="closeGroup"
+                        @group:open="openGroup" :selected-images="props.selectedImages" @select="toggleGroupSelect"
+                        @group:update="computeLines"
+                        @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
                     <ImageLine :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
-                        :properties="props.properties" :selected-images="props.selectedImages" @update:selected-image="updateImageSelection"
-                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
-                        @update="computeLines()"/>
+                        :properties="props.properties" :selected-images="props.selectedImages"
+                        @update:selected-image="updateImageSelection" @scroll="scrollTo" @hover="updateHoverBorder"
+                        @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'piles'">
-                    <PileLine :image-size="props.imageSize+1" :input-index="index * maxPerLine" :item="item"
+                    <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
-                        :properties="props.properties"
-                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
-                        @update="computeLines()"/>
+                        :properties="props.properties" @scroll="scrollTo" @hover="updateHoverBorder"
+                        @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'filler'">
-                    <div :style="{height: item.size+'px'}" class=""></div>
+                    <div :style="{ height: item.size + 'px' }" class=""></div>
                 </div>
             </template>
             <!-- </DynamicScrollerItem> -->
