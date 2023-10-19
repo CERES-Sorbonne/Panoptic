@@ -4,11 +4,11 @@ import { globalStore } from '../../data/store';
 import { computeGroupFilter } from '@/utils/filter';
 import { Group, Tab, GroupData, PropertyValue, SortIndex, Sha1Pile, PropertyMode } from '@/data/models';
 import ContentFilter from './ContentFilter.vue';
-import { sortGroupTree, sortImages } from '@/utils/sort';
+import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 
 import RecommendedMenu from './RecommendedMenu.vue';
-import { generateGroups, mergeGroup, imagesToSha1Piles } from '@/utils/groups';
+import { generateGroups, mergeGroup, imagesToSha1Piles, generateGroupData } from '@/utils/groups';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 
 const props = defineProps({
@@ -18,7 +18,7 @@ const props = defineProps({
 
 const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
 
-const selectedImages = reactive({}) as {[imgId: string]: boolean}
+const selectedImages = reactive({}) as { [imgId: string]: boolean }
 
 const filterElem = ref(null)
 const boxElem = ref(null)
@@ -91,9 +91,11 @@ function computeGroups(force = false) {
     // allows the ui to draw the spinner before cpu blocking
     setTimeout(() => {
         console.time('compute groups')
-        let index = generateGroups(filteredImages.value, groups.value)
-        let rootGroup = index['0']
+        // let index = generateGroups(filteredImages.value, groups.value)
+        // let rootGroup = index['0']
 
+        let data = generateGroupData(filteredImages.value, groups.value)
+        let index = data.index
         if (!force) {
             for (let id in index) {
                 index[id] = mergeGroup(index[id], groupData.index)
@@ -107,11 +109,14 @@ function computeGroups(force = false) {
             }
         }
 
-        groupData.index = index
-        groupData.root = rootGroup
-        groupData.order = []
+        // groupData.index = index
+        // groupData.root = rootGroup
+        // groupData.order = []
 
-        sortGroups()
+        // sortGroups()
+        sortGroupData(data, sorts.value)
+
+        Object.assign(groupData, data)
 
         console.timeEnd('compute groups')
 
@@ -163,6 +168,10 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
+function unselectAllFromScroller() {
+    imageList.value.unselectAll()
+}
+
 onMounted(computeGroups)
 onMounted(() => nextTick(updateScrollerHeight))
 onMounted(() => {
@@ -199,7 +208,8 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages" :selected-images="selectedImages"/>
+        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
+            :selected-images="selectedImages" @remove:selected="unselectAllFromScroller"/>
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
@@ -210,13 +220,13 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
-                :properties="visibleProperties" :selected-images="selectedImages"
-                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
+                :properties="visibleProperties" :selected-images="selectedImages" ref="imageList"
+                :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
-                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"/>
+                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true" />
             </div>
         </template>
 

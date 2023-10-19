@@ -1,6 +1,21 @@
-import { Group, Image, Property, PropertyType, Sort, SortIndex } from "@/data/models";
+import { Group, GroupData, Image, Property, PropertyType, Sort, SortIndex } from "@/data/models";
 import { globalStore } from "@/data/store";
 import { UNDEFINED_KEY } from "./groups";
+
+export function sortGroupData(groupData: GroupData, sorts: Sort[]) {
+    groupData.order = []
+    const sortIndex: SortIndex = {}
+    sorts.forEach(s => sortIndex[s.property_id] = s)
+
+    let maxDepth = sortGroupTree(groupData.root, groupData.order, sortIndex)
+
+    Object.keys(groupData.index).forEach(key => {
+        const group = groupData.index[key]
+        if (Array.isArray(group.images) && group.images.length > 0) {
+            sortImages(group.images, sorts.slice(maxDepth))
+        }
+    })
+}
 
 function getSortFunction(type: PropertyType): any {
     switch (type) {
@@ -144,10 +159,13 @@ export function sortGroups(groups: Array<Group>, sortIndex: SortIndex) {
     return groups
 }
 
-export function sortGroupTree(group: Group, order: Array<string>, sortIndex: SortIndex) {
+export function sortGroupTree(group: Group, order: Array<string>, sortIndex: SortIndex, depth=0) {
     order.push(group.id)
     if (group.groups && group.groups.length > 0) {
+        let childDepth = 1
         sortGroups(group.groups, sortIndex)
-        group.groups.forEach(g => sortGroupTree(g, order, sortIndex))
+        group.groups.forEach(g => childDepth = Math.max(depth, sortGroupTree(g, order, sortIndex)))
+        depth += childDepth
     }
+    return depth
 }

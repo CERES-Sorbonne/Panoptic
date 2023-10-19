@@ -17,7 +17,7 @@ const props = defineProps({
     selectedImages: Object as () => { [imgId: string]: boolean }
 })
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
 
 const hoverGroup = ref(false)
 
@@ -208,7 +208,7 @@ function closeChildren() {
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="me-1">
-            <SelectCircle :small="true" :model-value="allImagesSelected" @update:model-value="toggleImageSelection" />
+            <SelectCircle :small="true" :model-value="allImagesSelected" @update:model-value="emits('select', group.id)" />
         </div>
         <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
