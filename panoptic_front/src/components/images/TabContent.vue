@@ -94,7 +94,7 @@ function computeGroups(force = false) {
         // let index = generateGroups(filteredImages.value, groups.value)
         // let rootGroup = index['0']
 
-        let data = generateGroupData(filteredImages.value, groups.value)
+        let data = generateGroupData(filteredImages.value, groups.value, sha1Mode.value)
         let index = data.index
         if (!force) {
             for (let id in index) {
