@@ -17,7 +17,8 @@ const props = defineProps({
     constraintWidth: Boolean,
     noBorder: Boolean,
     properties: Array<Property>,
-    selected: Boolean
+    selected: Boolean,
+    selectedPreview: Boolean
 })
 
 const emits = defineEmits(['resize', 'update:selected'])
@@ -75,10 +76,11 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)"
-        @mouseenter="hover = true" @mouseleave="hover = false">
+            @mouseenter="hover = true" @mouseleave="hover = false">
             <img :src="props.size < 150 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
-            <SelectCircle v-if="hover || props.selected" :model-value="props.selected" @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true"/>
+            <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
+                @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">
@@ -95,6 +97,7 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
             </div>
         </div>
+        <div v-if="props.selectedPreview" class="w-100 h-100" style="position: absolute; top:0; left: 0; background-color: rgba(0, 0, 255, 0.127);"></div>
     </div>
 </template>
 
@@ -151,9 +154,9 @@ img {
     left: 0;
     width: 100%;
     height: 100%;
-    -webkit-box-shadow: inset 0px 24px 25px -20px rgba(0,0,0,0.3);
-    -moz-box-shadow: inset 0px 24px 25px -20px rgba(0,0,0,0.3);
-    box-shadow: inset 0px 50px 30px -30px rgba(0,0,0,0.5);
+    -webkit-box-shadow: inset 0px 24px 25px -20px rgba(0, 0, 0, 0.3);
+    -moz-box-shadow: inset 0px 24px 25px -20px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0px 50px 30px -30px rgba(0, 0, 0, 0.5);
     overflow: hidden;
 }
 </style>
