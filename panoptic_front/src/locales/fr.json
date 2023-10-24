@@ -1,0 +1,118 @@
+{
+    "main": {
+        "nav": {
+            "folders": {
+                "title": "Dossiers"
+            },
+            "properties": {
+                "title": "Propriétés",
+                "properties_tooltip": "Les différents champs associés à chaque image",
+                "import_properties_tooltip": "Importer un fichier de propriétés",
+                "hide_property_tooltip": "Affichage de la propriété dans la vue",
+                "linked_property_tooltip": "Propriété liée à une instance d'image, pour plus d'informations lire la documentation sur les instances",
+                "expand_property_tooltip": "Afficher les tags",
+                "collapse_property_tooltip": "Masquer les tags",
+                "add_property": "Nouvelle propriété",
+                "delete_property": "Supprimer"
+            },
+            "computed": {
+                "title": "Propriétés Panoptic",
+                "computed_tooltip": "Des propriétés non modifiables générées par panoptic",
+                "sha1_tooltip": "Une signature unique, deux images parfaitement identiques auront le même sha1",
+                "ahash_tooltip": "Une signature moyenne, deux images très proches visuellement auront le même ahash",
+                "folders": "dossiers"
+            }
+        },
+        "menu": {
+            "add_tab_tooltip": "Créer une nouvelle vue",
+            "rename_tab_tooltip": "Renommer la vue",
+            "delete_tab_tooltip": "Supprimer la vue",
+            "search": "Chercher par texte",
+            "search_tooltip": "Chercher des images correspondant au text en utilisant le modèle CLIP",
+            "grid_tooltip": "Passer en vue grille d'images",
+            "table_tooltip": "Passer en vue tableau",
+            "image_size_tooltip": "Taille des images",
+            "all_images": "Instances",
+            "sha1_images": "Images",
+            "image_mode_tooltip": "Switcher entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées. Voir la documentation sur les intances pour plus d'informations.",
+            "filters": "Filtrer",
+            "groupby": "Grouper",
+            "sort": "Trier",
+            "selected_images": "images sélectionnées",
+            "tag_selection": "Tagger la sélection"
+        },
+        "view": {
+            "all_group": "Toutes",
+            "group_tag": "Tagger le groupe",
+            "group_clusters": "Groupes IA",
+            "group_clusters_tooltip": "Utilise un algorithme de machine learning (Kmeans) pour proposer des groupes temporaires par similarité d'images. Voir la documentation sur les clusters pour plus d'informations.",
+            "remove_clusters": "Fermer les groupes IA",
+            "cluster_score_tooltip": "Score de cohérence du cluster. Voir la documentation sur les clusters pour plus d'informations."
+        }
+    },
+    "modals": {
+        "image": {
+            "similar_images": "Images similaires",
+            "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante",
+            "unique_properties": "Propriétés uniques",
+            "unique_properties_tooltip": "Affichage des propriétés liées aux instances de cette image.",
+            "similarity_filter_tooltip": "Le pourcentage de similarité minimal que doivent avoir les images affichées ici. Pour plus d'information, voir la documentation sur le score de similarité.",
+            "toggle_property_tooltip": "Afficher / Masquer cette propriété dans la vue 'Images similaires'",
+            "fill_property_tooltip": "Tagger toutes les images similaires avec la valeur de cette propriété"
+
+        },
+        "add_property": {
+            "title": "Nouvelle propriété",
+            "input": "Nom de la propriété",
+            "cancel": "Annuler",
+            "confirm": "Confirmer",
+            "text": "Texte",
+            "text_tooltip": "Du texte, ex: le contenu d'un tweet, la description d'une image",
+            "number": "Numérique",
+            "number_tooltip": "Des nombres, ex: le nombre de likes sur twitter, la largeur d'un tableau",
+            "tag": "Label",
+            "tag_tooltip": "Un label unique choisi parmi une liste, ex: une catégorie d'image, un lieu, une source",
+            "multi_tags": "Labels",
+            "multi_tags_tooltip": "Comme un label mais avec possibilité d'en assigner plusieurs en même temps",
+            "url": "URL",
+            "url_tooltip": "Une URL cliquable, ex: le lien vers la source d'une image",
+            "date": "Date",
+            "date_tooltip": "Une date au format jj / mm / aaaa",
+            "color": "Couleur",
+            "color_tooltip": "Un simple carré de couleur permettant de catégoriser sans assigner de label",
+            "checkbox": "Checkbox",
+            "checkbox_tooltip": "Une case à cocher, ex: 'pertinent' / 'non pertinent', 'sensible / non sensible'"
+        },
+        "filters": {
+            "is_set": "n'est pas vide",
+            "is_not_set": "est vide",
+            "equal": "=",
+            "not_equal": "≠",
+            "lower": "<",
+            "greater": ">",
+            "leq": "≤",
+            "qeq": "≥",
+            "starts_with": "débute par",
+            "like": "contient",
+            "contains any": "contient",
+            "does not contain": "ne contient pas",
+            "and": "et",
+            "or": "ou"
+        },
+        "group_tagging": {
+            "title": "Propriétés",
+            "cancel": "Annuler",
+            "clear": "Clear",
+            "apply": "Appliquer"
+        },
+        "tags": {}
+    },
+    "mini_ui": {
+        "title": "Panoptic",
+        "project_selection": "Charger projet",
+        "new_project": "Nouveau projet",
+        "images_folders": "Dossiers d'images",
+        "add_images_folder": "Ajouter un dossier d'images",
+        "open_panoptic": "Lancer Panoptic"
+    }
+}
