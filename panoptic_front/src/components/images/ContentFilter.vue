@@ -8,6 +8,7 @@ import { apiStartPCA } from '../../data/api'
 import Toggle from '@vueform/toggle'
 import { computed, ref } from 'vue';
 import { globalStore } from '@/data/store';
+import SelectionStamp from '../selection/SelectionStamp.vue';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -42,10 +43,7 @@ const hasSelectedImages = computed(() => selectedImageIds.value.length > 0)
         <div class="ms-5">
             <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
         </div>
-        <div v-if="hasSelectedImages" class="ms-5">
-            <i class="bi bi-x-lg me-1 btn-icon" @click="emits('remove:selected')"></i>
-            {{ selectedImageIds.length }} Images selectionées
-        </div>
+        <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds" @remove:selected="emits('remove:selected')"/>
 
         <!-- <div class="ms-5">
             <button class="me-2" @click="apiStartPCA">PCA</button>

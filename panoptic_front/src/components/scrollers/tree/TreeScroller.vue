@@ -5,9 +5,10 @@ import ImageLineVue from './ImageLine.vue';
 import GroupLine from './GroupLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { Group, GroupData, ImageLine, Property, PropertyMode, ScrollerLine } from '@/data/models';
+import { Group, GroupData, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
 import { isImageGroup, isPileGroup } from '@/utils/utils';
 import { keyState } from '@/data/keyState';
+import { identity } from '@vueuse/core';
 
 const props = defineProps({
     imageSize: Number,
@@ -30,7 +31,16 @@ const hoverGroupBorder = ref('')
 const scroller = ref(null)
 const MARGIN_STEP = 20
 
-const lastSelected = reactive({ groupId: undefined, imageId: undefined })
+// (lineIndex, imageIndex) are needed to access image position in view in O(1)
+// sometimes when resizing, closing/opening groups etc.. the index are wrong 
+// therefore we need (groupId, imageId) to recompute the correct position in the view
+interface ImagePosition {
+    groupId?: string,
+    imageId?: number,
+    lineIndex?: number,
+    imageIndex?: number
+}
+const lastSelected = reactive({}) as ImagePosition
 
 const visiblePropertiesNb = computed(() => props.properties.length)
 // const visibleSha1PropertiesNb = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([key, value]) => value && globalStore.properties[key] !== undefined).filter(([k,v]) => globalStore.properties[k].mode == PropertyMode.sha1).length)
@@ -231,9 +241,7 @@ function getImageLineParents(item) {
 
 function closeGroup(groupIds) {
     computeLines()
-
     // scroller.value.updateVisibleItems(true)
-
 }
 
 function openGroup(groupId) {
@@ -258,6 +266,7 @@ function updateImageSelection(data: { id: number, value: boolean }, item: ImageL
 
         lastSelected.groupId = item.groupId
         lastSelected.imageId = data.id
+        lastSelected.lineIndex = item.index
     } else {
         unselectImage(data.id)
         lastSelected.groupId = undefined
@@ -270,13 +279,42 @@ function findImageLine(groupId: string, imageId: number) {
         let line = imageLines[i]
         if (line.groupId != groupId) continue
 
-        let imgLine = line as ImageLine
-        let index = imgLine.data.findIndex(i => i.id == imageId)
-        if (index >= 0) {
-            return { lineIndex: i, imageIndex: index, imageId: imageId }
+        if (line.type == 'images') {
+            let imgLine = line as ImageLine
+            let index = imgLine.data.findIndex(i => i.id == imageId)
+            if (index >= 0) {
+                return { lineIndex: i, imageIndex: index, imageId: imageId }
+            }
+        } else if (line.type == 'piles') {
+            let pileLine = line as ScrollerPileLine
+
+            let index = pileLine.data.findIndex(p => p.sha1 == globalStore.images[imageId].sha1)
+            if (index >= 0) {
+                return { lineIndex: i, imageIndex: index, imageId: imageId }
+            }
         }
+
     }
     return { lineIndex: -1, imageIndex: -1, imageId: imageId }
+}
+
+
+function computeLineIndex(position: ImagePosition) {
+    for (let i = 0; i < imageLines.length; i++) {
+        let line = imageLines[i]
+        if (line.groupId != position.groupId) continue
+
+        let imgLine = line as ImageLine
+        let index = imgLine.data.findIndex(i => i.id == position.imageId)
+        if (index >= 0) {
+            position.lineIndex = i
+            position.imageIndex = index
+            return position
+        }
+    }
+    position.lineIndex = -1
+    position.imageIndex = -1
+    return position
 }
 
 function shiftSelection(imageId: number, item: ScrollerLine) {
@@ -290,21 +328,25 @@ function shiftSelection(imageId: number, item: ScrollerLine) {
     let last = findImageLine(lastSelected.groupId, lastSelected.imageId)
     let now = findImageLine(item.groupId, imageId)
 
-    let start = last
-    let end = now
+    let start = now
+    let end = last
 
-    if ((start.lineIndex == end.lineIndex && start.imageIndex > end.lineIndex) || start.lineIndex > end.lineIndex) {
-        start = now
-        end = last
+    if ((start.lineIndex == end.lineIndex && start.imageIndex > end.imageIndex) || start.lineIndex > end.lineIndex) {
+        start = end
+        end = now
     }
-
+    console.log(start, end)
     let images: number[] = []
     for (let i = start.lineIndex; i <= end.lineIndex; i++) {
         let line = imageLines[i]
+        // console.log(line, start.lineIndex, end.lineIndex)
         if (line.type == 'group') continue
         if (line.type == 'images') {
             let imgLine = line as ImageLine
             images.push(...imgLine.data.map(i => i.id))
+        } else if (line.type == 'piles') {
+            let pileLine = line as ScrollerPileLine
+            pileLine.data.forEach(pile => images.push(...pile.images.map(i => i.id)))
         }
     }
     while (images.length) {
@@ -405,6 +447,7 @@ function unselectGroup(group: Group) {
 
 function unselectAll() {
     unselectGroup(props.data.root)
+    Object.keys(props.selectedImages).forEach(k => delete props.selectedImages[k])
 }
 
 onMounted(computeLines)
@@ -477,7 +520,7 @@ watch(() => props.width, () => {
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
-                    <ImageLineVue :image-size="props.imageSize" :input-index="index * maxPerLine" :item="item"
+                    <ImageLineVue :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
                         :properties="props.properties" :selected-images="props.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
@@ -486,8 +529,9 @@ watch(() => props.width, () => {
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
-                        :properties="props.properties" @scroll="scrollTo" @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = ''" @update="computeLines()" />
+                        :properties="props.properties" :selected-images="props.selectedImages"
+                        @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
+                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'filler'">
                     <div :style="{ height: item.size + 'px' }" class=""></div>

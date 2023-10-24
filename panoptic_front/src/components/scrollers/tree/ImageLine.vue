@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import ImageVue from '@/components/images/Image.vue';
-import ImageUnique from '@/components/images/ImageUnique.vue';
 import { GroupIndex, Property, ScrollerLine } from '@/data/models';
+import Image from './Image.vue';
 
 
 const props = defineProps({
@@ -17,8 +16,6 @@ const props = defineProps({
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
 
-//:style="'padding-left:' + (props.item.depth * MARGIN) + 'px'"
-
 </script>
 
 <template>
@@ -27,7 +24,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <ImageUnique :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+        <Image :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
             :properties="props.properties" :selected="props.selectedImages[image.id]" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
             v-for="image, i in props.item.data" class="me-2 mb-2"/>
 
