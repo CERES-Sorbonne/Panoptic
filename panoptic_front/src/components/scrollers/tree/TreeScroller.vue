@@ -2,13 +2,13 @@
 import { globalStore } from '@/data/store';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
 import ImageLineVue from './ImageLine.vue';
-import GroupLine from './GroupLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { Group, GroupData, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
+import { Group, GroupData, GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
 import { isImageGroup, isPileGroup } from '@/utils/utils';
 import { keyState } from '@/data/keyState';
 import { identity } from '@vueuse/core';
+import GroupLineVue from './GroupLine.vue';
 
 const props = defineProps({
     imageSize: Number,
@@ -257,7 +257,7 @@ function openGroup(groupId) {
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
     if (data.value) {
         if (keyState.shift && lastSelected.imageId !== undefined) {
-            let imageIds = shiftSelection(data.id, item)
+            let imageIds = shiftSelection(data.id, item.groupId)
             console.log(imageIds)
             selectImages(imageIds)
         } else {
@@ -267,10 +267,12 @@ function updateImageSelection(data: { id: number, value: boolean }, item: ImageL
         lastSelected.groupId = item.groupId
         lastSelected.imageId = data.id
         lastSelected.lineIndex = item.index
+        lastSelectedGroupId.value = undefined
     } else {
         unselectImage(data.id)
         lastSelected.groupId = undefined
         lastSelected.imageId = undefined
+        lastSelectedGroupId.value = undefined
     }
 }
 
@@ -317,7 +319,7 @@ function computeLineIndex(position: ImagePosition) {
     return position
 }
 
-function shiftSelection(imageId: number, item: ScrollerLine) {
+function shiftSelection(imageId: number, groupId: string) {
     if (lastSelected.imageId == undefined) {
         return [imageId]
     }
@@ -326,7 +328,7 @@ function shiftSelection(imageId: number, item: ScrollerLine) {
     // let newIndex = imageLines.findIndex(l => l.id == item.id)
 
     let last = findImageLine(lastSelected.groupId, lastSelected.imageId)
-    let now = findImageLine(item.groupId, imageId)
+    let now = findImageLine(groupId, imageId)
 
     let start = now
     let end = last
@@ -367,6 +369,37 @@ function shiftSelection(imageId: number, item: ScrollerLine) {
         return [imageId]
     }
     return images
+}
+
+const lastSelectedGroupId = ref(undefined)
+
+function shiftGroupSelection(groupId) {
+    if(lastSelectedGroupId.value == undefined) return
+
+    // const group1 = props.data.index[groupId1]
+    // const group2 = props.data.index[groupId2]
+
+    const index1 = imageLines.findIndex(l => l.type == 'group' && l.id == lastSelectedGroupId.value)
+    const index2 = imageLines.findIndex(l => l.type == 'group' && l.id == groupId)
+
+    if(index1 < 0 || index2 < 0) return
+
+    let start = index1
+    let end = index2
+
+    if(index1 > index2) {
+        start = index2
+        end = index1
+    }
+
+    for(let i = start; i <= end; i++) {
+        let line = imageLines[i]
+        if(line.type != 'group') continue
+        let groupLine = line as GroupLine
+        let group = groupLine.data
+        selectGroup(group)
+    }
+    return true
 }
 
 function unselectImage(imageId: number) {
@@ -422,13 +455,23 @@ function toggleGroupSelect(groupId: string) {
     if (group.allImageSelected) {
         unselectGroup(group)
     } else {
-        selectGroup(group)
+        if (keyState.shift) {
+            let success = shiftGroupSelection(groupId)
+            if(!success) {
+                selectGroup(group)
+            }
+        } else {
+            selectGroup(group)
+        }
+        lastSelectedGroupId.value = group.id
     }
 }
 
 function selectGroup(group: Group) {
     if (group.images.length > 0) {
         selectImages(group.images.map(i => i.id))
+        lastSelected.groupId = undefined
+        lastSelected.imageId = undefined
         return
     }
     group.groups.forEach(selectGroup)
@@ -437,6 +480,7 @@ function selectGroup(group: Group) {
 function unselectGroup(group: Group) {
     lastSelected.imageId = undefined
     lastSelected.groupId = undefined
+    lastSelectedGroupId.value = undefined
 
     if (group.images.length > 0) {
         unselectImages(group.images.map(i => i.id))
@@ -511,7 +555,7 @@ watch(() => props.width, () => {
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
-                    <GroupLine :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
+                    <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :hide-options="props.hideOptions" :index="props.data.index" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @group:close="closeGroup"
                         @group:open="openGroup" :selected-images="props.selectedImages" @select="toggleGroupSelect"
