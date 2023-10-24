@@ -556,7 +556,7 @@ watch(() => props.width, () => {
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :hide-options="props.hideOptions" :index="props.data.index" @scroll="scrollTo"
+                        :hide-options="props.hideOptions" :data="props.data" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @group:close="closeGroup"
                         @group:open="openGroup" :selected-images="props.selectedImages" @select="toggleGroupSelect"
                         @group:update="computeLines"
