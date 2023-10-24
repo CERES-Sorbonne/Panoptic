@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
+import { Group, GroupData, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
 import { computed, ref, unref, watch } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
@@ -12,7 +12,7 @@ const props = defineProps({
     item: Object as () => GroupLine,
     parentIds: Array<string>,
     hoverBorder: String,
-    index: Object as () => { [id: string]: Group },
+    data: Object as () => GroupData,
     hideOptions: Boolean,
     selectedImages: Object as () => { [imgId: string]: boolean }
 })
@@ -114,12 +114,13 @@ async function computeClusters() {
 
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
-        let images = globalStore.getOneImagePerSha1(sha1s)
+        let images = []
         let piles = sha1s.map((s: string) => ({ sha1: s, images: globalStore.sha1Index[s] }))
+        piles.forEach(p => images.push(...p.images))
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index),
             name: 'cluster ' + index.toString() + (distances.length > 0 ? ' ' + distances[index].toString() : ''),
-            images: [],
+            images: images,
             imagePiles: piles,
             count: sha1s.length,
             groups: undefined,
@@ -132,7 +133,8 @@ async function computeClusters() {
             isCluster: true
         }
         groups.push(realGroup)
-        props.index[realGroup.id] = realGroup
+        props.data.index[realGroup.id] = realGroup
+        images.forEach(i => props.data.imageToGroups[i.id].push(realGroup.id))
     }
     props.item.data.groups = groups
     props.item.data.children = groups.map(g => g.id)
