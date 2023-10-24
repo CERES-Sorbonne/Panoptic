@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { globalStore } from '@/data/store';
-import { Image, Modals, Property, PropertyRef, PropertyType } from '@/data/models';
-import PropertyInput from '../inputs/PropertyInput.vue';
-import TagInput from '../inputs/TagInput.vue';
-import ColorPropInput from '../inputs/ColorPropInput.vue';
-import PropertyIcon from '../properties/PropertyIcon.vue';
-import SelectCircle from '../inputs/SelectCircle.vue';
+import { Image, Modals, Property, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
+import PropertyInput from '@/components/inputs/PropertyInput.vue';
+import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
+import PropertyIcon from '@/components/properties/PropertyIcon.vue';
+import TagInput from '@/components/inputs/TagInput.vue';
+import SelectCircle from '@/components/inputs/SelectCircle.vue';
 
 const props = defineProps({
     image: Object as () => Image,
+    pile: Object as () => Sha1Pile,
+    similarity: Number,
     size: { type: Number, default: 100 },
     index: Number,
     groupId: String,
@@ -23,11 +25,13 @@ const props = defineProps({
 
 const emits = defineEmits(['resize', 'update:selected'])
 
+const image = computed(() => props.image ?? props.pile.images[0])
+
 const containerElem = ref(null)
 const hover = ref(false)
 
 function hasProperty(propertyId: number) {
-    return props.image.properties[propertyId] && props.image.properties[propertyId].value !== undefined
+    return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
 }
 
 const imageProperties = computed(() => {
@@ -36,8 +40,8 @@ const imageProperties = computed(() => {
         let propRef: PropertyRef = {
             propertyId: p.id,
             type: p.type,
-            value: hasProperty(p.id) ? props.image.properties[p.id].value : undefined,
-            imageId: props.image.id,
+            value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
+            imageId: image.value.id,
             mode: p.mode
         }
         res.push(propRef)
@@ -47,41 +51,38 @@ const imageProperties = computed(() => {
 })
 
 const imageSizes = computed(() => {
-    if (!props.constraintWidth) {
-        let ratio = props.image.width / props.image.height
+    let ratio = image.value.width / image.value.height
 
-        let h = props.size
-        let w = h * ratio
+    let h = props.size
+    let w = h * ratio
 
-        if (ratio > 2) {
-            w = props.size * 2
-            h = w / ratio
-        }
-
-        const res = { width: w, height: h }
-        emits('resize', res)
-        return res
+    if (ratio > 2) {
+        w = props.size * 2
+        h = w / ratio
     }
 
-    return { width: props.size - 4, height: props.size - 4 }
+    return { width: w, height: h }
 })
 
 const imageContainerStyle = computed(() => `width: ${Math.max(imageSizes.value.width, props.size) - 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
-const widthStyle = computed(() => `width: ${width.value}px;`)
+const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 </script>
 
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)"
+        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
-            <img :src="props.size < 150 ? props.image.url : props.image.fullUrl" :style="imageStyle" />
+            <div v-if="props.pile?.similarity" class="simi-ratio" >{{ Math.floor(props.pile.similarity * 100) }}</div>
+            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
+
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
+        <div class="image-count" v-if="props.pile?.images.length > 1">{{ props.pile.images.length }}</div>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
@@ -90,18 +91,48 @@ const widthStyle = computed(() => `width: ${width.value}px;`)
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
                 <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="props.image"
+                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
                         :property="globalStore.properties[property.propertyId]" :width="width - 22" :min-height="20" />
                 </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
             </div>
         </div>
-        <div v-if="props.selectedPreview" class="w-100 h-100" style="position: absolute; top:0; left: 0; background-color: rgba(0, 0, 255, 0.127);"></div>
+        <div v-if="props.selectedPreview" class="w-100 h-100"
+            style="position: absolute; top:0; left: 0; background-color: rgba(0, 0, 255, 0.127);"></div>
     </div>
 </template>
 
 <style scoped>
+
+.image-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+.simi-ratio {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
 .full-container {
     position: relative;
 }
