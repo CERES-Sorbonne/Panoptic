@@ -8,6 +8,7 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TagPropInput from '@/components/inputs/TagPropInput.vue';
 import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
+import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Image, Modals, PileRowLine, Property, PropertyType, RowLine, Sha1Pile, isTag } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { ImageIterator } from '@/utils/groups';
@@ -188,7 +189,9 @@ watch(rowHeight, emitResizeOnce)
                 {{ image.properties[property.id]?.value }}
             </div>
             <div v-if="property.type == PropertyType._folders" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1">
-                {{ image.properties[property.id]?.value }}
+                <span v-if="image.properties[property.id]?.value != undefined">
+                    <TagBadge :tag="globalStore.folders[image.properties[property.id]?.value].name" color="#c3cfd9" />
+                </span>
             </div>
             <div v-if="property.type == PropertyType._sha1" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1">
                 {{ image.properties[property.id]?.value }}
