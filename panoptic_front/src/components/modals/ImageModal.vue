@@ -212,6 +212,14 @@ function updateSimilarGroup() {
 
 }
 
+function paintSelection(property: PropertyRef) {
+    let images = groupData.root.images
+    if(selector.selectedImages.size) {
+        images = Array.from(selector.selectedImages).map(id => globalStore.images[id])
+    }
+    globalStore.setPropertyValue(property.propertyId, images, property.value)
+}
+
 watch(minSimilarityDist, updateSimilarGroup)
 
 </script>
@@ -267,7 +275,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                     @click="toggleProperty(property.propertyId)"><i class="bi bi-eye"
                                                         :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')"></i>
                                                 </td>
-                                                <td class="text-center btn-icon"><i class="bi bi-paint-bucket"></i></td>
+                                                <td class="text-center btn-icon" style="padding: 4px 2px 0px 5px;" @click="paintSelection(property)"><i class="bi bi-paint-bucket"></i></td>
                                             </template>
                                         </tr>
                                     </tbody>
