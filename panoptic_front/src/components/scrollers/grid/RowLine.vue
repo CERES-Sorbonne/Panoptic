@@ -8,9 +8,10 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TagPropInput from '@/components/inputs/TagPropInput.vue';
 import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
-import { Image, PileRowLine, Property, PropertyType, RowLine, Sha1Pile, isTag } from '@/data/models';
+import { Image, Modals, PileRowLine, Property, PropertyType, RowLine, Sha1Pile, isTag } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { ImageIterator } from '@/utils/groups';
+import { Modal } from 'bootstrap';
 import { computed, nextTick, onMounted, reactive, ref, unref, watch } from 'vue';
 import contenteditable from 'vue-contenteditable';
 
@@ -121,6 +122,10 @@ function emitResizeOnce() {
     })
 }
 
+function showModal() {
+    globalStore.showModal(Modals.IMAGE, image.value)
+}
+
 onMounted(emitResizeOnce)
 watch(props, emitResizeOnce)
 watch(rowHeight, emitResizeOnce)
@@ -133,9 +138,9 @@ watch(rowHeight, emitResizeOnce)
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
             width: (tab.data.imageSize) + 'px', height: props.item.size + 'px', position: 'relative'
-        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false">
+        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false"  @click="showModal">
             <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2"
-                :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />
+                :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false"/>
             <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.data.imageSize + 'px' }"
                 style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"

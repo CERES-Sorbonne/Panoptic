@@ -125,10 +125,7 @@ function onHide() {
 }
 
 function hide() {
-    if (scroller.value) {
-        scroller.value.unselectAll()
-    }
-    
+    selector.clear()
     modal.hide()
     
     groupData.root = undefined
@@ -141,10 +138,10 @@ function show() {
     modal.show()
     availableHeight.value = modalElem.value.clientHeight
     availableWidth.value = modalElem.value.clientWidth
-    if (scroller.value) {
-        scroller.value.unselectAll()
-    }
 
+    if(groupData.root) {
+        selector.clear()
+    }
     setSimilar()
 }
 
