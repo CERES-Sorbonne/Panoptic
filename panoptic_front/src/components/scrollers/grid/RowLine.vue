@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import CenteredImage from '@/components/images/CenteredImage.vue';
-import ImageVue from '@/components/images/Image.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import DatePropInput from '@/components/inputs/DatePropInput.vue';
 import NumberPropInput from '@/components/inputs/NumberPropInput.vue';
+import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TagPropInput from '@/components/inputs/TagPropInput.vue';
 import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
@@ -18,13 +18,16 @@ const props = defineProps({
     item: Object as () => RowLine,
     properties: Array<Property>,
     showImage: Boolean,
+    selected: Boolean
     // expandImage: Boolean
 })
 const emits = defineEmits({
-    'resizeHeight': Number
+    'resizeHeight': Number,
+    'update:selected': Object,
 })
 
 const inputElems = reactive([])
+const hover = ref(false)
 
 const tab = computed(() => globalStore.getTab())
 const rowHeight = computed(() => {
@@ -62,7 +65,7 @@ const propMinRowHeight = computed(() => {
 const sizes: { [key: string | number]: number } = reactive({})
 
 const propWidth = computed(() => {
-    const res = {} as {[propId: number]: number}
+    const res = {} as { [propId: number]: number }
     props.properties.forEach(p => res[p.id] == tab.value.data.propertyOptions[p.id].size)
     return res
 })
@@ -112,25 +115,31 @@ watch(rowHeight, emitResizeOnce)
     <div class="container" :style="{ height: props.item.size + 'px' }">
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.data.imageSize) + 'px', height: props.item.size + 'px'
-        }" class="p-0 m-0">
-            <CenteredImage :image="item.data" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2" :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false"/>
+            width: (tab.data.imageSize) + 'px', height: props.item.size + 'px',
+        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false">
+            <CenteredImage :image="item.data" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2"
+                :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />
+            <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{width: tab.data.imageSize+'px'}"
+                style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
+            <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
+                @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
+
         <!-- <div class=""> -->
         <div v-for="property, index in props.properties" :class="classes"
             :style="{ width: (tab.data.propertyOptions[property.id].size) + 'px' }">
             <!-- {{ rowHeight }} -->
             <!-- <template v-if="props.item.data.properties[property.id] != undefined"> -->
-            <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size"
+            <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size" ref="inputElems"
+                @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+            <TextPropInput v-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :url-mode="true"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TextPropInput v-if="property.type == PropertyType.url" :min-height="props.item.size"
-                :no-nl="true" ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data"
-                :property="property" :url-mode="true"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TextPropInput v-if="property.type == PropertyType.path" :min-height="props.item.size"
-                :no-nl="true" ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data"
-                :property="property" :url-mode="false"
+            <TextPropInput v-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                :url-mode="false"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <TagPropInput v-if="isTag(property.type)" :property="property" :image="item.data" ref="inputElems"
                 :min-height="propMinRowHeight[property.id]" :input-id="[0, index]"
@@ -141,7 +150,6 @@ watch(rowHeight, emitResizeOnce)
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <ColorPropInput v-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
-                
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <NumberPropInput v-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]"
@@ -160,6 +168,12 @@ watch(rowHeight, emitResizeOnce)
 </template>
 
 <style scoped>
+.select {
+    position: absolute;
+    top: 0;
+    left: 5px;
+}
+
 .left-border {
     border-left: 1px solid var(--border-color);
     display: inline-block;
@@ -196,5 +210,23 @@ watch(rowHeight, emitResizeOnce)
 
 .top-border {
     border-top: none;
+}
+
+
+.box-shadow {
+    position: relative;
+}
+
+.box-shadow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-box-shadow: inset 0px 24px 25px -20px rgba(0, 0, 0, 0.3);
+    -moz-box-shadow: inset 0px 24px 25px -20px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0px 50px 30px -30px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
 }
 </style>

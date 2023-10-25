@@ -1,18 +1,40 @@
 <script setup lang="ts">
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
-import { PropertyValue, ScrollerLine }from '@/data/models';
+import { GroupData, PropertyValue, ScrollerLine } from '@/data/models';
+import { groupParents } from '@/utils/groups';
+import { getItems } from '@revolist/revogrid/dist/types/store/viewPort/viewport.helpers';
+import { computed } from 'vue';
 
 
 const props = defineProps({
     item: Object as () => ScrollerLine,
     propValues: Array<PropertyValue>,
-    width: Number
+    width: Number,
+    data: Object as () => GroupData
 })
+const emits = defineEmits(['close:group', 'open:group'])
+
+const closed = computed(() => groupParents(props.data.index, props.item.data).some(g => g.closed))
+
+function toggleClosed() {
+    if (closed.value) {
+        emits('open:group', props.item.data.id)
+    }
+    else {
+        emits('close:group', props.item.data.id)
+    }
+}
+
 
 </script>
 
 <template>
-    <div class="d-flex flex-row group-row m-0" :style="{width: (props.width-0)+'px', height: (props.item.size)+'px'}">
+    <div class="d-flex flex-row group-row m-0"
+        :style="{ width: (props.width - 0) + 'px', height: (props.item.size) + 'px' }">
+        <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
+            <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
+            <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
+        </div>
         <template v-for="value, index in props.propValues">
             <PropertyValueVue class="" :value="value" />
             <div v-if="index < props.propValues.length - 1" class="separator">&</div>
@@ -21,7 +43,6 @@ const props = defineProps({
 </template>
 
 <style scoped>
-
 .group-row {
     border-left: 1px solid var(--border-color);
     border-right: 1px solid var(--border-color);
@@ -41,5 +62,4 @@ const props = defineProps({
     margin: 0px 10px;
     color: gray;
 }
-
 </style>

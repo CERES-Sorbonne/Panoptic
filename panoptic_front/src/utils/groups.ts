@@ -163,3 +163,15 @@ export function imagesToSha1Piles(group: Group) {
     group.imagePiles = res
     // group.images = []
 }
+
+export function groupParents(index: GroupIndex, group: Group) {
+    const parents = []
+
+    const recursive = (parent: Group) => {
+        parents.push(parent)
+        if(parent.parentId == undefined) return
+        recursive(index[parent.parentId])
+    }
+    recursive(group)
+    return parents
+}
