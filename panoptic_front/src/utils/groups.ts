@@ -1,4 +1,4 @@
-import { Group, GroupData, GroupIndex, Image, PropertyType, Sha1Pile} from "@/data/models"
+import { Group, GroupData, GroupIndex, Image, PropertyType, Sha1Pile } from "@/data/models"
 import { DefaultDict } from "./helpers"
 import { globalStore } from "@/data/store"
 import moment from "moment"
@@ -46,8 +46,9 @@ export function generateGroupData(images: Image[], groups: number[], sha1Mode = 
             imagesToSha1Piles(index[grpId])
         }
     }
-
-    return { index, root, order, imageToGroups } as GroupData
+    const data = { index, root, order, imageToGroups } as GroupData
+    updateOrder(data)
+    return data
 }
 
 export function generateGroups(images: Image[], groups: number[]) {
@@ -123,6 +124,14 @@ export function computeSubgroups(parentGroup: Group, groupList: number[], index:
     return parentGroup
 }
 
+export function updateOrder(data: GroupData) {
+    for(let i = 0; i < data.order.length; i++) {
+        const groupId = data.order[i]
+        const group = data.index[groupId]
+        group.order = i
+    }
+}
+
 export function mergeGroup(update: Group, index: GroupIndex) {
     // console.log('merge: ' + update.id)
 
@@ -169,9 +178,96 @@ export function groupParents(index: GroupIndex, group: Group) {
 
     const recursive = (parent: Group) => {
         parents.push(parent)
-        if(parent.parentId == undefined) return
+        if (parent.parentId == undefined) return
         recursive(index[parent.parentId])
     }
     recursive(group)
     return parents
+}
+
+export class ImageIterator {
+    groupIndex: number
+    imageIndex: number
+    data: GroupData
+
+    constructor(data: GroupData, groupIndex = 0, imageIndex = 0) {
+        this.data = data
+        this.groupIndex = groupIndex
+        this.imageIndex = imageIndex
+    }
+
+    clone() {
+        return new ImageIterator(this.data, this.groupIndex, this.imageIndex)
+    }
+
+    goToImage(groupId: string, imageId: number) {
+        this.groupIndex = this.data.order.findIndex(gId => gId === groupId)
+        if (this.groupIndex < 0) {
+            return false
+        }
+        this.imageIndex = this.data.index[groupId].images.findIndex(i => i.id === imageId)
+        if (this.imageIndex < 0) {
+            return false
+        }
+        return true
+    }
+
+    getGroup() {
+        return this.data.index[this.data.order[this.groupIndex]]
+    }
+    getImage() {
+        return this.data.index[this.data.order[this.groupIndex]].images[this.imageIndex]
+    }
+    next() {
+        if (this.getGroup().images.length > this.imageIndex + 1) {
+            this.imageIndex += 1
+            return true
+        }
+        if (this.data.order.length <= this.groupIndex) return false
+
+        let minDepth = Infinity
+        for(let i = this.groupIndex+1; i < this.data.order.length; i++) {
+            const group = this.data.index[this.data.order[i]]
+            if(group.closed) {
+                if(group.depth < minDepth) {
+                    minDepth = group.depth
+                    continue
+                }
+            }
+            if(group.depth > minDepth) continue
+            minDepth = Infinity
+            if(group.images.length == 0) continue
+            this.groupIndex = i
+            this.imageIndex = 0
+            return true
+        }
+        return false
+    }
+
+}
+
+export class GroupIterator {
+    groupIndex: number
+    data: GroupData
+
+    constructor(data: GroupData, groupIndex = 0) {
+        this.data = data
+        this.groupIndex = groupIndex
+    }
+
+    clone() {
+        return new GroupIterator(this.data, this.groupIndex)
+    }
+    getGroup() {
+        return this.data.index[this.data.order[this.groupIndex]]
+    }
+    next() {
+        for(let i = this.groupIndex+1; i < this.data.order.length; i++) {
+            const group = this.data.index[this.data.order[i]]
+            if(group.images.length == 0) continue
+            this.groupIndex = i
+            return true
+        }
+        return false
+    }
 }

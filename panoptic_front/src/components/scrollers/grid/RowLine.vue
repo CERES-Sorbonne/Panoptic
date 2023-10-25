@@ -10,6 +10,7 @@ import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
 import { Image, Property, PropertyType, RowLine, isTag } from '@/data/models';
 import { globalStore } from '@/data/store';
+import { ImageIterator } from '@/utils/groups';
 import { computed, nextTick, onMounted, reactive, ref, unref, watch } from 'vue';
 import contenteditable from 'vue-contenteditable';
 
@@ -23,7 +24,7 @@ const props = defineProps({
 })
 const emits = defineEmits({
     'resizeHeight': Number,
-    'update:selected': Object,
+    'toggle:image': Object,
 })
 
 const inputElems = reactive([])
@@ -122,7 +123,7 @@ watch(rowHeight, emitResizeOnce)
             <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{width: tab.data.imageSize+'px'}"
                 style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
-                @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
+                @update:model-value="v => emits('toggle:image', {groupId: item.groupId, imageIndex: item.index})" class="select" :light-mode="true" />
         </div>
 
         <!-- <div class=""> -->
