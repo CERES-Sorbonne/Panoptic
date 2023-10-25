@@ -57,7 +57,7 @@ const handleInput = (e: any) => {
                 </div>
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
-                    <withToolTip message="toto" pos="top" :icon=false><b>{{ $t('main.nav.properties.title') }}</b></withToolTip>
+                    <withToolTip message="main.nav.properties.properties_tooltip" pos="top" :icon=false><b>{{ $t('main.nav.properties.title') }}</b></withToolTip>
                     <span class="float-end me-3">
                         <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden/>
                         <i class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="inputFile.click()"/>

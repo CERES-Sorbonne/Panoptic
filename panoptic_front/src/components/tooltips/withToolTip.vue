@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, useSlots } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import * as boostrap from "bootstrap"
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n({ useScope: 'global' })
 const tooltip = ref()
 
 const props = defineProps({
@@ -16,6 +18,15 @@ const props = defineProps({
     }
 })
 
+const realMessage = computed(() => {
+    if(props.message.slice(0, 4) === 'main'){
+        return t(props.message)
+    }
+    else{
+        return props.message
+    }
+})
+
 onMounted(() => {
     let s = new boostrap.Tooltip(tooltip.value)
 })
@@ -25,12 +36,12 @@ onMounted(() => {
 <template>
     <template v-if="props.icon">
         <slot/>
-        <span class="mytt" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="props.message" ref="tooltip">
+        <span class="mytt" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
             <i class="bi bi-question-circle small-icon"></i>
         </span>
     </template>
     <template v-else>
-        <span class="mytt" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="props.message" ref="tooltip">
+        <span class="mytt" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
             <slot /> 
         </span>
     </template>
