@@ -14,6 +14,7 @@ import '@vueform/toggle/themes/default.css'
 
 
 const i18n = createI18n({
+    legacy: false,
     locale: 'fr', // set locale
     fallbackLocale: 'en', // set fallback locale
     messages,
