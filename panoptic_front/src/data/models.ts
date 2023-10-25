@@ -422,6 +422,10 @@ export interface RowLine extends ScrollerLine {
     data: Image
 }
 
+export interface PileRowLine extends ScrollerLine {
+    data: Sha1Pile
+}
+
 export interface ScrollerPileLine extends ScrollerLine {
     data: Sha1Pile[]
 }

@@ -1,8 +1,8 @@
 import { Group, GroupData, Image, Property, PropertyType, Sort, SortIndex } from "@/data/models";
 import { globalStore } from "@/data/store";
-import { UNDEFINED_KEY, updateOrder } from "./groups";
+import { UNDEFINED_KEY, imagesToSha1Piles, updateOrder } from "./groups";
 
-export function sortGroupData(groupData: GroupData, sorts: Sort[]) {
+export function sortGroupData(groupData: GroupData, sorts: Sort[], sha1Mode: boolean) {
     groupData.order = []
     const sortIndex: SortIndex = {}
     sorts.forEach(s => sortIndex[s.property_id] = s)
@@ -13,9 +13,11 @@ export function sortGroupData(groupData: GroupData, sorts: Sort[]) {
         const group = groupData.index[key]
         if (Array.isArray(group.images) && group.images.length > 0) {
             sortImages(group.images, sorts.slice(maxDepth))
+            if(sha1Mode) {
+                imagesToSha1Piles(group)
+            }
         }
     })
-
     updateOrder(groupData)
 }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { Group, GroupData, GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine } from '@/data/models';
-import { isImageGroup } from '@/utils/utils';
+import { Group, GroupData, GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine, PileRowLine, Sha1Pile } from '@/data/models';
+import { isImageGroup, isPileGroup } from '@/utils/utils';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GroupLineVue from './GroupLine.vue';
 import TableHeader from './TableHeader.vue';
@@ -65,7 +65,15 @@ function computeLines() {
         }
 
         if (group.groups) continue
-        if (isImageGroup(group)) {
+        if (isPileGroup(group)) {
+            if (group.propertyValues.length > 0) {
+                lines.push(computeGroupLine(group))
+            }
+            if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
+            const imageLines = group.imagePiles.map((pile, index) => computePileRow(pile, group.id, index))
+            lines.push(...imageLines)
+        }
+        else if (isImageGroup(group)) {
             if (group.propertyValues.length > 0) {
                 lines.push(computeGroupLine(group))
             }
@@ -97,6 +105,18 @@ function computeImageRow(image: Image, groupId: string, imageIndex) {
         data: image,
         type: 'image',
         size: lineSizes[image.id] ?? (globalStore.getTab().data.imageSize + 4),
+        index: imageIndex,
+        groupId: groupId
+    }
+    return res
+}
+
+function computePileRow(pile: Sha1Pile, groupId: string, imageIndex) {
+    const res: PileRowLine = {
+        id: groupId + '-sha1:' + String(pile.sha1),
+        data: pile,
+        type: 'pile',
+        size: lineSizes[pile.images[0].id] ?? (globalStore.getTab().data.imageSize + 4),
         index: imageIndex,
         groupId: groupId
     }

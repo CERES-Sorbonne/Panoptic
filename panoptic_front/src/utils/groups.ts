@@ -2,6 +2,7 @@ import { Group, GroupData, GroupIndex, Image, PropertyType, Sha1Pile } from "@/d
 import { DefaultDict } from "./helpers"
 import { globalStore } from "@/data/store"
 import moment from "moment"
+import { isPileGroup } from "./utils"
 
 export const UNDEFINED_KEY = '__undefined__'
 export const MAX_GROUPS = 5
@@ -205,21 +206,37 @@ export class ImageIterator {
         if (this.groupIndex < 0) {
             return false
         }
-        this.imageIndex = this.data.index[groupId].images.findIndex(i => i.id === imageId)
-        if (this.imageIndex < 0) {
-            return false
+        const group = this.data.index[groupId]
+        if(isPileGroup(group)) {
+            const sha1 = globalStore.images[imageId].sha1
+            this.imageIndex = group.imagePiles.findIndex(p => p.sha1 == sha1)
+        } else {
+            this.imageIndex = group.images.findIndex(i => i.id == imageId)
+            if (this.imageIndex < 0) {
+                return false
+            }
         }
+
         return true
     }
 
     getGroup() {
         return this.data.index[this.data.order[this.groupIndex]]
     }
-    getImage() {
-        return this.data.index[this.data.order[this.groupIndex]].images[this.imageIndex]
+    getImages() {
+        const group = this.getGroup()
+        
+        if(isPileGroup(group)) return group.imagePiles[this.imageIndex].images
+        
+        return [group.images[this.imageIndex]]
     }
     next() {
-        if (this.getGroup().images.length > this.imageIndex + 1) {
+        const currentGroup = this.getGroup()
+        if (isPileGroup(currentGroup) && currentGroup.imagePiles.length > this.imageIndex + 1) {
+            this.imageIndex += 1
+            return true
+        }
+        else if (!isPileGroup(currentGroup) && currentGroup.images.length > this.imageIndex + 1) {
             this.imageIndex += 1
             return true
         }

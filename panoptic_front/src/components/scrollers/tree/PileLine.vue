@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { GroupIndex, Property, ScrollerPileLine } from '@/data/models';
-import Pile from '@/components/images/Pile.vue';
-import ImagePile from '@/components/images/ImagePile.vue';
 import ImageVue from './Image.vue';
 
 
@@ -13,7 +11,7 @@ const props = defineProps({
     hoverBorder: String,
     index: Object as () => GroupIndex,
     properties: Array<Property>,
-    selectedImages: Object as () => { [imgId: string]: boolean }
+    selectedImages: Set<number>
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
@@ -27,7 +25,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <ImageVue :pile="pile" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[pile.images[0].id]"
+            :properties="props.properties" :selected="props.selectedImages.has(pile.images[0].id)"
             @update:selected="v => emits('update:selected-image', { id: pile.images[0].id, value: v })"
             v-for="pile, i in props.item.data" class="me-2 mb-2" />
 

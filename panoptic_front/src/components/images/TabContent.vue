@@ -118,7 +118,7 @@ function computeGroups(force = false) {
         // groupData.order = []
 
         // sortGroups()
-        sortGroupData(data, sorts.value)
+        sortGroupData(data, sorts.value, sha1Mode.value)
 
         Object.assign(groupData, data)
 
@@ -172,9 +172,6 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
-function unselectAllFromScroller() {
-    imageList.value.unselectAll()
-}
 
 onMounted(computeGroups)
 onMounted(() => nextTick(updateScrollerHeight))
@@ -213,7 +210,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 <template>
     <div class="" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
-            :selected-images="selectedImages" @remove:selected="unselectAllFromScroller"/>
+            :selector="selector" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
@@ -225,7 +222,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
                 :properties="visibleProperties" :selected-images="selectedImages" ref="imageList"
-                :width="scrollerWidth - 10" @recommend="setRecoImages" />
+                :width="scrollerWidth - 10" @recommend="setRecoImages" :selector="selector" />
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">

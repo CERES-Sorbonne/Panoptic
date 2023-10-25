@@ -13,8 +13,7 @@ const props = defineProps({
     parentIds: Array<string>,
     hoverBorder: String,
     data: Object as () => GroupData,
-    hideOptions: Boolean,
-    selectedImages: Object as () => { [imgId: string]: boolean }
+    hideOptions: Boolean
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
@@ -58,42 +57,42 @@ const someValue = computed(() => props.item.data.propertyValues.some(v => v.valu
 const allImagesSelected = computed(() => group.value.allImageSelected)
 
 
-function toggleImageSelection() {
-    let allSelected = allImagesSelected.value
-    selectGroupImages(group.value, !allSelected)
-}
+// function toggleImageSelection() {
+//     let allSelected = allImagesSelected.value
+//     selectGroupImages(group.value, !allSelected)
+// }
 
-function selectGroupImages(group: Group, select: boolean) {
-    group.allImageSelected = select
-    if (group.images.length > 0) {
-        if (select) {
-            group.images.forEach(i => props.selectedImages[i.id] = true)
-            group.allImageSelected = true
-        } else {
-            group.images.forEach(i => delete props.selectedImages[i.id])
-            group.allImageSelected = false
-        }
-    } else {
-        group.groups.forEach(g => selectGroupImages(g, select))
-    }
-}
+// function selectGroupImages(group: Group, select: boolean) {
+//     group.allImageSelected = select
+//     if (group.images.length > 0) {
+//         if (select) {
+//             group.images.forEach(i => props.selectedImages[i.id] = true)
+//             group.allImageSelected = true
+//         } else {
+//             group.images.forEach(i => delete props.selectedImages[i.id])
+//             group.allImageSelected = false
+//         }
+//     } else {
+//         group.groups.forEach(g => selectGroupImages(g, select))
+//     }
+// }
 
-function recursiveToggleImageSelection(group: Group, allSelected) {
-    console.log('recursive')
-    if (group.images.length > 0) {
-        if (allSelected) {
-            console.log('remove')
-            group.images.forEach(i => delete props.selectedImages[i.id])
-            group.allImageSelected = false
-        } else {
-            console.log('set it')
-            group.images.forEach(i => props.selectedImages[i.id] = true)
-            group.allImageSelected = true
-        }
-    } else {
-        group.groups.forEach(g => recursiveToggleImageSelection(g, allSelected))
-    }
-}
+// function recursiveToggleImageSelection(group: Group, allSelected) {
+//     console.log('recursive')
+//     if (group.images.length > 0) {
+//         if (allSelected) {
+//             console.log('remove')
+//             group.images.forEach(i => delete props.selectedImages[i.id])
+//             group.allImageSelected = false
+//         } else {
+//             console.log('set it')
+//             group.images.forEach(i => props.selectedImages[i.id] = true)
+//             group.allImageSelected = true
+//         }
+//     } else {
+//         group.groups.forEach(g => recursiveToggleImageSelection(g, allSelected))
+//     }
+// }
 
 function getTag(propId: number, tagId: number) {
     return globalStore.tags[propId][tagId]

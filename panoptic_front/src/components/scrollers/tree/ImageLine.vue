@@ -11,7 +11,7 @@ const props = defineProps({
     hoverBorder: String,
     index: Object as () => GroupIndex,
     properties: Array<Property>,
-    selectedImages: Object as () => {[imgId:string]: boolean}
+    selectedImages: Set<Number>
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
@@ -25,7 +25,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <Image :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[image.id]" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
+            :properties="props.properties" :selected="props.selectedImages.has(image.id)" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
             v-for="image, i in props.item.data" class="me-2 mb-2"/>
 
     </div>
