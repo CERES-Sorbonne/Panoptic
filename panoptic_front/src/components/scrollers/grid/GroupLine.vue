@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
 import { GroupData, PropertyValue, ScrollerLine } from '@/data/models';
 import { groupParents } from '@/utils/groups';
@@ -12,7 +13,7 @@ const props = defineProps({
     width: Number,
     data: Object as () => GroupData
 })
-const emits = defineEmits(['close:group', 'open:group'])
+const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
 
 const closed = computed(() => groupParents(props.data.index, props.item.data).some(g => g.closed))
 
@@ -35,6 +36,7 @@ function toggleClosed() {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
+        <div class="me-2"><SelectCircle :model-value="props.item.data.allImageSelected" @update:model-value="emits('toggle:group')"/></div>
         <template v-for="value, index in props.propValues">
             <PropertyValueVue class="" :value="value" />
             <div v-if="index < props.propValues.length - 1" class="separator">&</div>

@@ -8,7 +8,9 @@ import TableHeader from './TableHeader.vue';
 import RowLineVue from './RowLine.vue';
 import { globalStore } from '@/data/store';
 import GridScrollerLine from './GridScrollerLine.vue';
-import { groupParents } from '@/utils/groups';
+import { GroupIterator, ImageIterator, groupParents } from '@/utils/groups';
+import { ImageSelector } from '@/utils/selection';
+import { keyState } from '@/data/keyState';
 
 
 const props = defineProps({
@@ -17,7 +19,7 @@ const props = defineProps({
     width: Number,
     selectedProperties: Array<Property>,
     showImages: Boolean,
-    selectedImages: Object as () => { [id: number]: boolean }
+    selector: ImageSelector
 })
 
 defineExpose({
@@ -89,13 +91,13 @@ function computeGroupLine(group: Group) {
     return res
 }
 
-function computeImageRow(image: Image, groupId: string, groupIndex) {
+function computeImageRow(image: Image, groupId: string, imageIndex) {
     const res: RowLine = {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
         size: lineSizes[image.id] ?? (globalStore.getTab().data.imageSize + 4),
-        index: groupIndex,
+        index: imageIndex,
         groupId: groupId
     }
     return res
@@ -160,6 +162,15 @@ function closeGroup(groupId: string) {
     computeLines()
 }
 
+function selectImage(iterator: ImageIterator) {
+    props.selector.toggleImageIterator(iterator, keyState.shift)
+}
+
+function selectGroup(iterator: GroupIterator) {
+    console.log(iterator)
+    props.selector.toggleGroupIterator(iterator, keyState.shift)
+}
+
 onMounted(computeLines)
 watch(() => props.data, computeLines)
 
@@ -179,8 +190,8 @@ watch(() => props.data, computeLines)
                 <template v-if="active">
                     <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
                         @resizeHeight="h => resizeHeight(item, h)" :show-images="props.showImages"
-                        :selected-images="props.selectedImages" :data="props.data"
-                        @open:group="openGroup" @close:group="closeGroup"/>
+                        :selected-images="props.selector.selectedImages" :data="props.data" @open:group="openGroup"
+                        @close:group="closeGroup" @toggle:image="selectImage" @toggle:group="selectGroup"/>
                 </template>
                 <!-- </DynamicScrollerItem> -->
             </template>

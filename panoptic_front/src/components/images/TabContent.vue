@@ -10,15 +10,25 @@ import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 import RecommendedMenu from './RecommendedMenu.vue';
 import { generateGroups, mergeGroup, imagesToSha1Piles, generateGroupData } from '@/utils/groups';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
+import { ImageSelector } from '@/utils/selection';
 
 const props = defineProps({
     tab: Object as () => Tab,
     height: Number
 })
 
+const groupData = reactive({
+    root: undefined,
+    index: {},
+    order: []
+}) as GroupData
+
 const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
 
 const selectedImages = reactive({}) as { [imgId: string]: boolean }
+
+const selectedImages2 = reactive(new Set<number>())
+const selector = new ImageSelector(groupData, selectedImages2)
 
 const filterElem = ref(null)
 const boxElem = ref(null)
@@ -51,12 +61,6 @@ function updateScrollerHeight() {
         scrollerHeight.value = 0
     }
 }
-
-const groupData = reactive({
-    root: undefined,
-    index: {},
-    order: []
-}) as GroupData
 
 const filteredImages = computed(() => {
 
@@ -226,7 +230,8 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
-                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true" :selected-images="selectedImages" />
+                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true" :selected-images="selectedImages" 
+                    :selector="selector"/>
             </div>
         </template>
 

@@ -1,6 +1,6 @@
 import { Group, GroupData, Image, Property, PropertyType, Sort, SortIndex } from "@/data/models";
 import { globalStore } from "@/data/store";
-import { UNDEFINED_KEY } from "./groups";
+import { UNDEFINED_KEY, updateOrder } from "./groups";
 
 export function sortGroupData(groupData: GroupData, sorts: Sort[]) {
     groupData.order = []
@@ -15,6 +15,8 @@ export function sortGroupData(groupData: GroupData, sorts: Sort[]) {
             sortImages(group.images, sorts.slice(maxDepth))
         }
     })
+
+    updateOrder(groupData)
 }
 
 function getSortFunction(type: PropertyType): any {
