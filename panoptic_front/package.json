@@ -24,6 +24,7 @@
     "vue": "^3.2.45",
     "vue-color-kit": "^1.0.6",
     "vue-contenteditable": "^4.1.0",
+    "vue-i18n": "^9.5.0",
     "vue-multipane": "^0.9.5",
     "vue-resizable": "^2.1.7",
     "vue-router": "^4.1.6",

@@ -5,6 +5,7 @@ import { Modals } from '../../data/models';
 import { ref } from 'vue';
 import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
+import withToolTip  from '../tooltips/withToolTip.vue';
 
 
 const inputFile = ref(null)
@@ -22,7 +23,7 @@ const handleInput = (e: any) => {
             <div>
                 <div class="p-2">
                     <div class="d-flex">
-                        <div><b>Dossiers</b></div>
+                        <div><b>{{$t('main.nav.folders.title')}}</b></div>
                         <div class="ms-auto"
                             @click="globalStore.showModal(Modals.FOLDERTOPROP)">
                             <i class="bi bi-three-dots"></i></div>
@@ -56,7 +57,7 @@ const handleInput = (e: any) => {
                 </div>
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
-                    <b>Properties</b>
+                    <withToolTip message="toto" pos="top" :icon=false><b>{{ $t('main.nav.properties.title') }}</b></withToolTip>
                     <span class="float-end me-3">
                         <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden/>
                         <i class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="inputFile.click()"/>
@@ -76,7 +77,7 @@ const handleInput = (e: any) => {
                         <div @click="globalStore.showModal(Modals.PROPERTY)" class="btn-icon property-item"
                             style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
-                            <span>Nouvelle propriété</span>
+                            <span>{{ $t('main.nav.properties.add_property') }}</span>
                         </div>
                     </div>
                 </div>
