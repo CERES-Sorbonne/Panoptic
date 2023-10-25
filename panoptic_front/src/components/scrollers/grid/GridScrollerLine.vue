@@ -45,6 +45,11 @@ watch(() => props.item.id, reload)
                 @resizeHeight="h => emits('resizeHeight', h)" :selected="props.selectedImages.has(item.data.id)"
                 @toggle:image="e => emits('toggle:image', new ImageIterator(props.data, props.data.index[e.groupId].order, e.imageIndex))" />
         </div>
+        <div v-if="item.type == 'pile'">
+            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+                @resizeHeight="h => emits('resizeHeight', h)" :selected="props.selectedImages.has(item.data.images[0].id)"
+                @toggle:image="e => emits('toggle:image', new ImageIterator(props.data, props.data.index[e.groupId].order, e.imageIndex))" />
+        </div>
     </template>
 </template>
 

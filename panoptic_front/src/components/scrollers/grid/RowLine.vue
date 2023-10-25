@@ -8,7 +8,7 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TagPropInput from '@/components/inputs/TagPropInput.vue';
 import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
-import { Image, Property, PropertyType, RowLine, isTag } from '@/data/models';
+import { Image, PileRowLine, Property, PropertyType, RowLine, Sha1Pile, isTag } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { ImageIterator } from '@/utils/groups';
 import { computed, nextTick, onMounted, reactive, ref, unref, watch } from 'vue';
@@ -16,7 +16,7 @@ import contenteditable from 'vue-contenteditable';
 
 
 const props = defineProps({
-    item: Object as () => RowLine,
+    item: Object as () => RowLine | PileRowLine,
     properties: Array<Property>,
     showImage: Boolean,
     selected: Boolean
@@ -30,7 +30,23 @@ const emits = defineEmits({
 const inputElems = reactive([])
 const hover = ref(false)
 
+
+
 const tab = computed(() => globalStore.getTab())
+const image = computed(() => {
+    if (props.item.type == 'pile') {
+        return (props.item as PileRowLine).data.images[0]
+    }
+    return (props.item as RowLine).data
+})
+
+const pile = computed(() => {
+    if (props.item.type == 'pile') {
+        return props.item.data as Sha1Pile
+    }
+    return undefined
+})
+
 const rowHeight = computed(() => {
     let max = 0
     for (let k in sizes) {
@@ -116,49 +132,52 @@ watch(rowHeight, emitResizeOnce)
     <div class="container" :style="{ height: props.item.size + 'px' }">
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.data.imageSize) + 'px', height: props.item.size + 'px',
+            width: (tab.data.imageSize) + 'px', height: props.item.size + 'px', position: 'relative'
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false">
-            <CenteredImage :image="item.data" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2"
+            <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2"
                 :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />
-            <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{width: tab.data.imageSize+'px'}"
+            <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.data.imageSize + 'px' }"
                 style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
-                @update:model-value="v => emits('toggle:image', {groupId: item.groupId, imageIndex: item.index})" class="select" :light-mode="true" />
-        </div>
+                @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
+                class="select" :light-mode="true" />
+        
+            <div class="image-count" v-if="pile?.images.length > 1">{{ pile.images.length }}</div>
+            </div>
 
         <!-- <div class=""> -->
         <div v-for="property, index in props.properties" :class="classes"
             :style="{ width: (tab.data.propertyOptions[property.id].size) + 'px' }">
             <!-- {{ rowHeight }} -->
-            <!-- <template v-if="props.item.data.properties[property.id] != undefined"> -->
+            <!-- <template v-if="image.properties[property.id] != undefined"> -->
             <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size" ref="inputElems"
-                @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <TextPropInput v-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="true"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <TextPropInput v-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="false"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TagPropInput v-if="isTag(property.type)" :property="property" :image="item.data" ref="inputElems"
+            <TagPropInput v-if="isTag(property.type)" :property="property" :image="image" ref="inputElems"
                 :min-height="propMinRowHeight[property.id]" :input-id="[0, index]"
                 @update:height="h => sizes[property.id] = h"
                 :max-size="(tab.data.propertyOptions[property.id].size - 5) - (props.properties.length - 1 == index ? 13 : 0)" />
             <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
             <ColorPropInput v-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <NumberPropInput v-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="item.data" :property="property"
+                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <!-- </template> -->
@@ -169,6 +188,20 @@ watch(rowHeight, emitResizeOnce)
 </template>
 
 <style scoped>
+.image-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0px 4px;
+    background-color: var(--border-color);
+    color: var(--grey-text);
+    font-size: 10px;
+    line-height: 15px;
+    margin: 2px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
 .select {
     position: absolute;
     top: 0;

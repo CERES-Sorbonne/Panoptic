@@ -9,17 +9,18 @@ import Toggle from '@vueform/toggle'
 import { computed, ref } from 'vue';
 import { globalStore } from '@/data/store';
 import SelectionStamp from '../selection/SelectionStamp.vue';
+import { ImageSelector } from '@/utils/selection';
 
 const props = defineProps({
     tab: Object as () => Tab,
     computeStatus: Object as () => { groups: boolean },
-    selectedImages: Object as () => {[imgId: string]: boolean}
+    selector: ImageSelector
 })
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
-const selectedImageIds = computed(() => Object.keys(props.selectedImages).map(Number))
-const hasSelectedImages = computed(() => selectedImageIds.value.length > 0)
+const selectedImageIds = computed(() => Array.from(props.selector.selectedImages))
+const hasSelectedImages = computed(() => props.selector.selectedImages.size)
 
 </script>
 
@@ -43,7 +44,7 @@ const hasSelectedImages = computed(() => selectedImageIds.value.length > 0)
         <div class="ms-5">
             <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
         </div>
-        <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds" @remove:selected="emits('remove:selected')"/>
+        <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds" @remove:selected="props.selector.clear()"/>
 
         <!-- <div class="ms-5">
             <button class="me-2" @click="apiStartPCA">PCA</button>

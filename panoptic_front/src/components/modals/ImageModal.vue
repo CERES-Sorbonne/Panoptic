@@ -15,6 +15,7 @@ import { Group } from '@/data/models';
 import PropInput from '../inputs/PropInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
+import { ImageSelector } from '@/utils/selection';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -35,7 +36,7 @@ const similarityLoaded = computed(() => groupData.root != undefined)
 const similarityVisibleProps = reactive({})
 const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => globalStore.properties[pId]))
 
-const selectedImages = reactive({})
+const selectedImages = reactive(new Set<number>())
 
 function hasSha1Property(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -59,8 +60,8 @@ function getSha1Properties(sha1: string) {
 const pile = computed(() => ({ sha1: image.value.sha1, images: globalStore.sha1Index[image.value.sha1] }))
 const properties = computed(() => getSha1Properties(pile.value.sha1))
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
-const selectedImageIds = computed(() => Object.keys(selectedImages).map(Number))
-const hasSelectedImages = computed(() => selectedImageIds.value.length > 0)
+const selectedImageIds = computed(() => Array.from(selectedImages))
+const hasSelectedImages = computed(() => selector.selectedImages.size > 0)
 
 enum ImageModalMode {
     Similarity = 'similarity',
@@ -74,6 +75,8 @@ const groupData = reactive({
     index: {},
     order: []
 }) as GroupData
+
+const selector = new ImageSelector(groupData, selectedImages)
 
 const gridData = computed(() => {
     let group: Group = {
@@ -310,12 +313,12 @@ watch(minSimilarityDist, updateSimilarGroup)
 
                             <div class="selection-stamp" v-if="hasSelectedImages">
                                 <SelectionStamp :selected-images-ids="selectedImageIds"
-                                    @remove:selected="scroller.unselectAll()" />
+                                    @remove:selected="selector.clear()" />
                             </div>
 
                             <TreeScroller :image-size="70" :height="availableHeight - 180" :width="availableWidth - 930"
                                 :data="groupData" :properties="similarityVisiblePropsList" ref="scroller"
-                                :selected-images="selectedImages" :hide-options="true" :hide-group="true" />
+                                :selector="selector" :hide-options="true" :hide-group="true" />
                         </div>
                     </div>
 

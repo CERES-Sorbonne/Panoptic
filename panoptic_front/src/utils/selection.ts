@@ -21,22 +21,20 @@ export class ImageSelector {
 
     selectImageIterator(iterator: ImageIterator, shift = false) {
         if (shift) {
-            console.log('shift0')
             let res = this._shiftSelect(iterator)
         }
-        console.log(iterator)
-        this.selectImage(iterator.getImage().id)
+        this.selectImages(iterator.getImages().map(i => i.id))
         this.clearLastSelected()
         this.lastSelectedImage = iterator.clone()
     }
 
     unselectImageIterator(iterator: ImageIterator) {
-        this.unselectImage(iterator.getImage().id)
+        this.unselectImages(iterator.getImages().map(i => i.id))
         this.clearLastSelected()
     }
 
     toggleImageIterator(iterator: ImageIterator, shift = false) {
-        const selected = this.selectedImages.has(iterator.getImage().id)
+        const selected = iterator.getImages().every(i => this.selectedImages.has(i.id))
         if (selected) {
             this.unselectImageIterator(iterator)
         } else {
@@ -45,8 +43,6 @@ export class ImageSelector {
     }
 
     private _shiftSelect(iterator: ImageIterator) {
-        console.log('shift select')
-        console.log(this.lastSelectedImage)
         if (this.lastSelectedImage == undefined) return false
 
         const lgi = this.lastSelectedImage.groupIndex
@@ -58,14 +54,11 @@ export class ImageSelector {
 
         let images = []
         let it = start.clone()
-        console.log(start, end)
         while (it.next()) {
-            console.log('next')
             if (it.groupIndex >= end.groupIndex && it.imageIndex > end.imageIndex) {
-                console.log('break')
                 break
             }
-            images.push(it.getImage().id)
+            images.push(...it.getImages().map(i => i.id))
         }
         if (images.length) {
             this.selectImages(images)
@@ -81,7 +74,6 @@ export class ImageSelector {
         let end = start == iterator ? this.lastSelectedGroup : iterator
         let images = []
         let it = start.clone()
-        console.log(start, end)
 
         while (it.next()) {
             if (it.groupIndex >= end.groupIndex) {
@@ -162,7 +154,7 @@ export class ImageSelector {
             this.unselectImages(group.images.map(i => i.id))
             return
         }
-        group.groups.forEach(this.unselectGroup)
+        group.groups.forEach(g => this.unselectGroup(g))
     }
 
     selectGroupIterator(iterator: GroupIterator, shift = false) {
