@@ -150,11 +150,14 @@ export class ImageSelector {
     }
 
     unselectGroup(group: Group) {
+        console.log(group)
         if (group.images.length > 0) {
             this.unselectImages(group.images.map(i => i.id))
             return
         }
-        group.groups.forEach(g => this.unselectGroup(g))
+        if(group.groups) {
+            group.groups.forEach(g => this.unselectGroup(g))
+        }
     }
 
     selectGroupIterator(iterator: GroupIterator, shift = false) {
