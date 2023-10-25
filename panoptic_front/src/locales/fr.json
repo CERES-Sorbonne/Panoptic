@@ -8,7 +8,7 @@
                 "title": "Propriétés",
                 "properties_tooltip": "Les différents champs associés à chaque image",
                 "import_properties_tooltip": "Importer un fichier de propriétés",
-                "hide_property_tooltip": "Affichage de la propriété dans la vue",
+                "hide_property_tooltip": "Afficher / Masquer la propriété dans la vue",
                 "linked_property_tooltip": "Propriété liée à une instance d'image, pour plus d'informations lire la documentation sur les instances",
                 "expand_property_tooltip": "Afficher les tags",
                 "collapse_property_tooltip": "Masquer les tags",
