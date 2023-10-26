@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
-import { globalStore } from '../../data/store';
-import { computeGroupFilter } from '@/utils/filter';
-import { Group, Tab, GroupData, PropertyValue, SortIndex, Sha1Pile, PropertyMode } from '@/data/models';
 import ContentFilter from './ContentFilter.vue';
-import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
-import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 
-import RecommendedMenu from './RecommendedMenu.vue';
-import { generateGroups, mergeGroup, imagesToSha1Piles, generateGroupData } from '@/utils/groups';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
+import { GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
 import { ImageSelector } from '@/utils/selection';
+import { globalStore } from '@/data/store';
+import { computeGroupFilter } from '@/utils/filter';
+import { generateGroupData, imagesToSha1Piles, mergeGroup } from '@/utils/groups';
+import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
+import RecommendedMenu from '../images/RecommendedMenu.vue';
+import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 
 const props = defineProps({
     tab: Object as () => Tab,
