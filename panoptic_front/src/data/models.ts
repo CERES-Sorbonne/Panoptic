@@ -367,7 +367,10 @@ export interface Group {
     isCluster?: boolean,
     getSimilarImages?: () => Array<Images>
     similarSha1sBlacklist?: Array<string>
-    allSimilarSha1s?: Array<string>
+    allSimilarSha1s?: Array<string>,
+    order?: number,
+    allImageSelected?: boolean  // only leaf groups contains images info and can know if the images are selected or not
+                                // to avoid recomputation we use this variable to notify parents about the selection status
 }
 
 export interface GroupIndex {[key: string]: Group}
@@ -375,7 +378,8 @@ export interface GroupIndex {[key: string]: Group}
 export interface GroupData {
     root: Group,
     index: GroupIndex,
-    order: Array<string>
+    order: Array<string>,
+    imageToGroups: {[imgId: number]: string[]},
 }
 
 export interface Folder {
@@ -416,6 +420,10 @@ export interface ImageLine extends ScrollerLine {
 
 export interface RowLine extends ScrollerLine {
     data: Image
+}
+
+export interface PileRowLine extends ScrollerLine {
+    data: Sha1Pile
 }
 
 export interface ScrollerPileLine extends ScrollerLine {
