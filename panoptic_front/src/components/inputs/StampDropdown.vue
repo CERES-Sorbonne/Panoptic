@@ -7,7 +7,9 @@ import { globalStore } from '@/data/store';
 
 
 const props = defineProps({
-    images: Array<Image>
+    images: Array<Image>,
+    noBorder: Boolean,
+    showNumber: Boolean
 })
 
 const stamp = reactive({}) as any
@@ -36,8 +38,9 @@ function apply() {
 
 <template>
     <!-- <div class="btn-group"> -->
-    <div class="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
-        Tagger le groupe
+    <div :class="props.noBorder? '' : 'button'" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
+        <span v-if="props.showNumber">Tagger {{ props.images.length }} Image(s)</span>
+        <span v-else>Tagger le groupe</span>
     </div>
     <div class="dropdown-menu">
         <div class="m-2" style="width: 300px;">

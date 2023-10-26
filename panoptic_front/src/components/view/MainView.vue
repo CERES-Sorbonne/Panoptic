@@ -1,22 +1,34 @@
 <script setup lang="ts">
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
-import { globalStore } from '../../data/store';
-import { computeGroupFilter } from '@/utils/filter';
-import { Group, Tab, GroupData, PropertyValue, SortIndex, Sha1Pile, PropertyMode } from '@/data/models';
 import ContentFilter from './ContentFilter.vue';
-import { sortGroupTree, sortImages } from '@/utils/sort';
-import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 
-import RecommendedMenu from './RecommendedMenu.vue';
-import { generateGroups, mergeGroup, imagesToSha1Piles } from '@/utils/groups';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
+import { GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
+import { ImageSelector } from '@/utils/selection';
+import { globalStore } from '@/data/store';
+import { computeGroupFilter } from '@/utils/filter';
+import { generateGroupData, imagesToSha1Piles, mergeGroup } from '@/utils/groups';
+import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
+import RecommendedMenu from '../images/RecommendedMenu.vue';
+import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 
 const props = defineProps({
     tab: Object as () => Tab,
     height: Number
 })
 
+const groupData = reactive({
+    root: undefined,
+    index: {},
+    order: []
+}) as GroupData
+
 const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
+
+const selectedImages = reactive({}) as { [imgId: string]: boolean }
+
+const selectedImages2 = reactive(new Set<number>())
+const selector = new ImageSelector(groupData, selectedImages2)
 
 const filterElem = ref(null)
 const boxElem = ref(null)
@@ -49,12 +61,6 @@ function updateScrollerHeight() {
         scrollerHeight.value = 0
     }
 }
-
-const groupData = reactive({
-    root: undefined,
-    index: {},
-    order: []
-}) as GroupData
 
 const filteredImages = computed(() => {
 
@@ -89,9 +95,11 @@ function computeGroups(force = false) {
     // allows the ui to draw the spinner before cpu blocking
     setTimeout(() => {
         console.time('compute groups')
-        let index = generateGroups(filteredImages.value, groups.value)
-        let rootGroup = index['0']
+        // let index = generateGroups(filteredImages.value, groups.value)
+        // let rootGroup = index['0']
 
+        let data = generateGroupData(filteredImages.value, groups.value, sha1Mode.value)
+        let index = data.index
         if (!force) {
             for (let id in index) {
                 index[id] = mergeGroup(index[id], groupData.index)
@@ -105,11 +113,14 @@ function computeGroups(force = false) {
             }
         }
 
-        groupData.index = index
-        groupData.root = rootGroup
-        groupData.order = []
+        // groupData.index = index
+        // groupData.root = rootGroup
+        // groupData.order = []
 
-        sortGroups()
+        // sortGroups()
+        sortGroupData(data, sorts.value, sha1Mode.value)
+
+        Object.assign(groupData, data)
 
         console.timeEnd('compute groups')
 
@@ -161,6 +172,7 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
+
 onMounted(computeGroups)
 onMounted(() => nextTick(updateScrollerHeight))
 onMounted(() => {
@@ -197,7 +209,8 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"/>
+        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
+            :selector="selector" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
@@ -208,13 +221,14 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
-                :properties="visibleProperties"
-                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
+                :properties="visibleProperties" :selected-images="selectedImages" ref="imageList"
+                :width="scrollerWidth - 10" @recommend="setRecoImages" :selector="selector" />
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
-                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"/>
+                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true" :selected-images="selectedImages" 
+                    :selector="selector"/>
             </div>
         </template>
 
