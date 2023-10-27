@@ -7,7 +7,7 @@ import TagProperty from '../properties/TagProperty.vue';
 import { Filter } from '@/data/models';
 import { availableOperators } from '@/data/models';
 import { defaultOperator } from '@/utils/filter';
-import WithToolTip from '../tooltips/withToolTip.vue';
+import wTT from '../tooltips/withToolTip.vue';
 
 
 const props = defineProps({
@@ -125,9 +125,9 @@ function renameProperty() {
             </div>
             <div style="width: 20px;" @click="toggleVisible" class="btn-icon text-center">
                 <span v-if="sha1Mode && props.property.mode == PropertyMode.id" class="bi bi-eye-slash" @click.stop=""></span>
-                <WithToolTip pos="right" :icon="false" message="main.nav.properties.hide_property_tooltip" v-else>
+                <wTT pos="right" :icon="false" message="main.nav.properties.hide_property_tooltip" v-else>
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
-                </WithToolTip>
+                </wTT>
             </div>
             <div class="text-center" style="width: 20px;">
                 <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
