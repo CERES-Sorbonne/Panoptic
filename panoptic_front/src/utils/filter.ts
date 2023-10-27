@@ -169,17 +169,16 @@ export class FilterManager {
     filter: FilterGroup
     filterIndex: { [filterId: number]: AFilter }
 
-    constructor(filter: FilterGroup = undefined, filterIndex: { [filterId: number]: AFilter } = undefined) {
+    constructor(filter: FilterGroup = undefined) {
         this.filter = filter
         this.filterIndex = {}
         if (this.filter == undefined) {
             this.filterIndex = {}
             this.addNewFilterGroup()
+        } else {
+            this.recursiveRegister(this.filter)
         }
 
-        if (filterIndex != undefined) {
-            this.filterIndex = filterIndex
-        }
     }
 
     addNewFilterGroup(parentId: number = undefined) {
@@ -188,7 +187,7 @@ export class FilterManager {
 
         if (parentId != undefined) {
             let parent = this.filterIndex[parentId] as FilterGroup
-            if (parent != undefined) throw 'Invalid Parent !'
+            if (parent == undefined) throw 'Invalid Parent !'
             parent.filters.push(group)
             const reactiveGroup = parent.filters[parent.filters.length - 1]
             this.registerFilter(reactiveGroup)
@@ -227,12 +226,23 @@ export class FilterManager {
         return reactiveFilter
     }
 
+    deleteFilter(filterId: number) {
+        Object.values(this.filterIndex).forEach(f => {
+            if(!f.isGroup) return
+            const group = f as FilterGroup
+            group.filters = group.filters.filter(f => f.id != filterId)
+        })
+
+        delete this.filterIndex[filterId]
+    }
+
     private registerFilter(filter: AFilter) {
-        if (filter.id != -1) {
-            throw new Error('Filter is already registered ! id is not -1')
+        if(filter.id >= 0) {
+            console.error('registerFilter should not receive a filter with valid id')
         }
         filter.id = this.nextIndex()
         this.filterIndex[filter.id] = filter
+        return this.filterIndex[filter.id]
     }
 
     private createFilter(propertyId: number) {
@@ -263,5 +273,18 @@ export class FilterManager {
             return 0
         }
         return Math.max(...Object.keys(this.filterIndex).map(Number)) + 1
+    }
+
+    private recursiveRegister(filter: AFilter) {
+        if(filter.id == undefined || filter.id == -1){
+            filter = this.registerFilter(filter)
+        } else {
+            this.filterIndex[filter.id] = filter
+        }
+        
+        if(!filter.isGroup) return
+
+        const group = filter as FilterGroup
+        group.filters.forEach(g => this.recursiveRegister(g))
     }
 }

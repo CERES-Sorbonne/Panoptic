@@ -55,7 +55,7 @@ function onResize() {
 
 <template>
     <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-        <div class="">
+        <div v-if="globalStore.isLoaded">
             <Menu />
         </div>
 

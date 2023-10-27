@@ -32,20 +32,19 @@ onMounted(() => {
 </script>
 
 <template>
-    <div>
-        <div class="btn-group">
-            <div class="btn btn-sm no-border rounded dropdown-toggle p-1 bg-white hover-light " data-bs-toggle="dropdown"
-                data-bs-auto-close="true" aria-expanded="false" ref="buttonElem">
-                <PropertyIcon :type="property.type" />
-                {{ property.name }}
+    <div class="dropdown p-0 m-0">
+        <div class="text-nowrap m-0 p-0" data-bs-toggle="dropdown" data-bs-auto-close="true" disabled="true"
+            aria-expanded="false" ref="buttonElem">
+            <PropertyIcon :type="property.type" />
+            {{ property.name }}
         </div>
-            <ul class="dropdown-menu m-0 p-0">
-                <input class=" m-2 bg-light" type="text" ref="searchElem" v-model="propertyFilter"/>
-                <li v-for="prop in filteredProperties" class="dropdown-item" style="cursor:pointer" @click="$emit('update:modelValue', prop.id)">
-                    <PropertyIcon :type="prop.type" class="me-2"/>
-                    <a>{{ prop.name }}</a>
-                </li>
-            </ul>
-        </div>
+        <ul class="dropdown-menu m-0 p-0">
+            <input class=" m-2 bg-light" type="text" ref="searchElem" v-model="propertyFilter" />
+            <li v-for="prop in filteredProperties" class="dropdown-item" style="cursor:pointer"
+                @click="$emit('update:modelValue', prop.id)">
+                <PropertyIcon :type="prop.type" class="me-2" />
+                <a>{{ prop.name }}</a>
+            </li>
+        </ul>
     </div>
 </template>

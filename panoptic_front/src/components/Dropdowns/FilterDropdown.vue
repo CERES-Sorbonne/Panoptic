@@ -10,6 +10,7 @@ import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import TagDropdown from '../inputs/TagDropdown.vue';
 import PropertyInput2 from '../inputs/PropertyInput2.vue';
 import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
+import * as bootstrap from 'bootstrap'
 
 enum State {
     CLOSED = 0,
@@ -19,7 +20,10 @@ enum State {
 
 const props = defineProps({
     manager: FilterManager,
-    mode: { type: Number, default: 1 }
+    mode: { type: Number, default: 1 },
+    propertyId: Number,
+    parentId: Number,
+    filterId: Number
 })
 
 
@@ -29,10 +33,13 @@ const inputElem = ref(null)
 
 
 const mode = ref(State.CLOSED)
-const filterId = ref(-1)
+
+const localFilterId = ref(-1)
+
+const filterId = computed(() => props.filterId != undefined ? props.filterId : localFilterId.value)
 const filter = computed(() => {
-    if (filterId.value == -1) return
-    return props.manager.filterIndex[filterId.value] as Filter
+    if (filterId.value == undefined || filterId.value == -1) return
+    return (props.manager.filterIndex[filterId.value] as Filter)
 })
 
 const filterProperty = computed(() => {
@@ -43,15 +50,24 @@ const filterProperty = computed(() => {
 
 function show() {
     mode.value = props.mode
+    if(props.mode == State.MODE && props.filterId == undefined) {
+        selectProperty(props.propertyId)
+    }
 }
 function hide() {
     mode.value = State.CLOSED
 }
 
 function selectProperty(propId) {
-    let filter = props.manager.addNewFilter(propId)
-    filterId.value = filter.id
+    let filter = props.manager.addNewFilter(propId, props.parentId)
+    localFilterId.value = filter.id
     mode.value = State.MODE
+}
+
+function deleteFilter() {
+    let dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
+    dropdown.hide()
+    props.manager.deleteFilter(filterId.value)
 }
 
 onMounted(() => {
@@ -68,11 +84,11 @@ watch(() => filter.value?.operator, () => {
 </script>
 
 <template>
-    <div class="" style="position: static; cu">
-        <div data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
+    <div class="p-0 m-0" style="position: static;">
+        <div class="m-0 p-0" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
             <slot></slot>
         </div>
-        <div class="dropdown-menu container-size" aria-labelledby="dropdownMenuOffset">
+        <div class="dropdown-menu container-size bg-white" aria-labelledby="dropdownMenuOffset">
             <template v-if="mode != State.CLOSED">
                 <PropertySelection v-if="mode == State.TYPE" @select="selectProperty" />
                 <div v-if="mode == State.MODE">
@@ -82,7 +98,7 @@ watch(() => filter.value?.operator, () => {
                             v-model="(props.manager.filterIndex[filterId] as Filter).operator" />
                         <div class="flex-fill"></div>
                         <!-- <div><i class="bi bi-three-dots"></i></div> -->
-                        <div><i class="bi bi-trash-fill"></i></div>
+                        <div><i class="bi bi-trash-fill" @click="deleteFilter"></i></div>
                     </div>
                     <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
                         <TagInputNoDropdown v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
