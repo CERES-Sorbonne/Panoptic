@@ -24,6 +24,7 @@ function addNewFilter() {
         propertyId: property.id,
         operator: defaultOperator(property.type),
         value: undefined,
+        id: 0
     }
     props.filter.filters.push(filter)
 }
@@ -33,7 +34,8 @@ function addNewGroupFilter() {
         filters: [],
         groupOperator: FilterOperator.or,
         depth: props.filter.depth + 1,
-        isGroup: true
+        isGroup: true,
+        id: 0
     }
     props.filter.filters.push(filter)
 }

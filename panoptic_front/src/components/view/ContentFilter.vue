@@ -10,11 +10,13 @@ import { computed, ref } from 'vue';
 import { globalStore } from '@/data/store';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { ImageSelector } from '@/utils/selection';
+import { FilterManager } from '@/utils/filter';
 
 const props = defineProps({
     tab: Object as () => Tab,
     computeStatus: Object as () => { groups: boolean },
-    selector: ImageSelector
+    selector: ImageSelector,
+    filterManager: FilterManager
 })
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
@@ -52,7 +54,7 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
     <div class="d-flex flex-wrap content-container">
-        <FilterForm :filter="props.tab.data.filter" />
+        <FilterForm :filter="props.tab.data.filter" :manager="props.filterManager"/>
         <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
         <!-- <div class="ms-2">
