@@ -8,6 +8,7 @@ import { Filter } from '@/data/models';
 import { availableOperators } from '@/data/models';
 import { defaultOperator } from '@/utils/filter';
 import wTT from '../tooltips/withToolTip.vue';
+import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 
 
 const props = defineProps({
@@ -24,7 +25,11 @@ const propertyVisible = computed(() => tab.value.data.visibleProperties[props.pr
 const isInFilter = computed(() => tab.value.data.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
 const isInGroups = computed(() => tab.value.data.groups.includes(props.property.id))
 const isInSort = computed(() => tab.value.data.sortList.some(s => s.property_id == props.property.id))
-
+const filterId = computed(() => {
+    if(!isInFilter.value) return undefined
+    return tab.value.data.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
+})
+const filterManager = () => tab.value.data.filterManager
 const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
 
 function toggleVisible() {
@@ -76,7 +81,7 @@ function setFilter() {
 function setSort() {
     const sort = globalStore.getTab().data.sortList
     const index = sort.findIndex(f => f.property_id == props.property.id)
-    if(index >= 0) {
+    if (index >= 0) {
         sort.splice(index, 1)
     }
     else {
@@ -90,7 +95,7 @@ function setSort() {
 function setGroup() {
     const groups = globalStore.getTab().data.groups
     const index = groups.indexOf(props.property.id)
-    if(index >= 0) {
+    if (index >= 0) {
         groups.splice(index, 1)
     }
     else {
@@ -99,12 +104,12 @@ function setGroup() {
 }
 
 function deleteProperty() {
-    if(confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
+    if (confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
         globalStore.deleteProperty(props.property.id)
 }
 
 function renameProperty() {
-    if(localName.value == '') {
+    if (localName.value == '') {
         return
     }
     globalStore.updateProperty(props.property.id, localName.value)
@@ -118,13 +123,15 @@ function renameProperty() {
             <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @click="toggleOptionsMenu" />
             <span class="flex-grow-1 clickable" @click="toggleOptionsMenu">
                 <span v-if="!opionsOpen">{{ props.property.name }}</span>
-                <span v-else><input style="position: relative; top: -1px;" type="text" class="text-input" v-model="localName" @click.prevent.stop="" @change="renameProperty"/></span>
+                <span v-else><input style="position: relative; top: -1px;" type="text" class="text-input"
+                        v-model="localName" @click.prevent.stop="" @change="renameProperty" /></span>
             </span>
             <div style="width: 20px;" class="text-center">
                 <i v-if="props.property.mode == PropertyMode.id" class="bi bi-link-45deg"></i>
             </div>
             <div style="width: 20px;" @click="toggleVisible" class="btn-icon text-center">
-                <span v-if="sha1Mode && props.property.mode == PropertyMode.id" class="bi bi-eye-slash" @click.stop=""></span>
+                <span v-if="sha1Mode && props.property.mode == PropertyMode.id" class="bi bi-eye-slash"
+                    @click.stop=""></span>
                 <wTT pos="right" :icon="false" message="main.nav.properties.hide_property_tooltip" v-else>
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
@@ -139,10 +146,17 @@ function renameProperty() {
         </div>
         <div>
             <div v-if="opionsOpen" class="ms-3 pt-1">
-                <div class="options" :class="isInFilter ? ' text-primary' : ''" @click="setFilter"><i class="bi bi-funnel-fill me-2"></i>Filtrer</div>
-                <div class="options" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i class="bi bi-filter me-2"></i>Trier</div>
-                <div class="options" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i class="bi bi-collection me-2"></i>Grouper</div>
-                <div v-if="props.property.id >= 0" class="options" @click="deleteProperty"><i class="bi bi-trash me-2"></i>Supprimer</div>
+                <div class="options" :class="isInFilter ? ' text-primary' : ''">
+                    <FilterDropdown :manager="filterManager()" :filter-id="filterId" :mode="2" :property-id="property.id">
+                        <i class="bi bi-funnel-fill me-2"></i>Filtrer
+                    </FilterDropdown>
+                </div>
+                <div class="options" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
+                        class="bi bi-filter me-2"></i>Trier</div>
+                <div class="options" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
+                        class="bi bi-collection me-2"></i>Grouper</div>
+                <div v-if="props.property.id >= 0" class="options" @click="deleteProperty"><i
+                        class="bi bi-trash me-2"></i>Supprimer</div>
             </div>
             <div v-else-if="valuesOpen">
                 <TagProperty :data="props.property" />

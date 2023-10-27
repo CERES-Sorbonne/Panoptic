@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { globalStore } from '@/data/store'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
+import { Property, PropertyType } from '@/data/models'
 
 const props = defineProps({
     ignoreIds: Array<number>
 })
-
+const emits = defineEmits(['select'])
 
 const searchElem = ref(null)
 
@@ -20,13 +21,14 @@ const filteredProperties = computed(() => {
     return properties.filter(p => p.name.includes(propertyFilter.value))
 })
 
+onMounted(() => searchElem.value.focus())
 
 </script>
 
 <template>
     <div>
-        <input class=" m-2 bg-light" type="text" ref="searchElem" v-model="propertyFilter" />
-        <li v-for="prop in filteredProperties" class="dropdown-item" style="cursor:pointer" @click="$emit('select', prop)">
+        <div class="mb-1 ps-2 pe-2"><input class="w-100 bg-light" type="text" ref="searchElem" v-model="propertyFilter" /></div>
+        <li v-for="prop in filteredProperties" class="dropdown-item" style="cursor:pointer" @click="emits('select', prop.id)">
             <PropertyIcon :type="prop.type" class="me-2" />
             <a>{{ prop.name }}</a>
         </li>
