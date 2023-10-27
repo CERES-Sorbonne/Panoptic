@@ -53,7 +53,7 @@ function delSort(index: number) {
             <i class="bi bi-plus"></i>
         </div>
         <div class="dropdown-menu p-0">
-            <PropertySelection @select="prop => addSort(prop.id)" :ignore-ids="selectedIds" />
+            <PropertySelection @select="prop => addSort(prop)" :ignore-ids="selectedIds" />
         </div>
     </div>
 </template>

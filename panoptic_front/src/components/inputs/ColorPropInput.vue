@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, Property } from '@/data/models';
+import { Colors, Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
 import { globalStore } from '@/data/store';
@@ -23,6 +23,13 @@ const elem = ref(null)
 const dropdown = ref(null)
 
 const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
+const color = computed(() => {
+    if(propRef.value.value == undefined) return 'white'
+    
+    let value = Number(propRef.value.value)
+    if(isNaN(value) || value > 12) return 'gray'
+    return Colors[value].color
+})
 const isFocus = ref(false)
 
 function focus() {
@@ -40,7 +47,7 @@ function updateFromStore() {
     localValue.value = propRef.value.value
 }
 
-function set(color: string) {
+function set(color: number) {
     globalStore.setPropertyValue(props.property.id, props.image, color)
 }
 
@@ -62,24 +69,6 @@ defineExpose({
     focus
 })
 
-const colors = [
-    {name: 'grey', color: '#ced4da'},
-    {name: 'red', color: '#ff8787'},
-    {name: 'pink', color: '#f783ac'},
-    {name: 'grape', color: '#da77f2'},
-    {name: 'violet', color: '#9775fa'},
-    {name: 'indigo', color: '#748ffc'},
-    {name: 'blue', color: '#4dabf7'},
-    {name: 'cyan', color: '#3bc9db'},
-    {name: 'teal', color: '#38d9a9'},
-    {name: 'green', color: '#69db7c'},
-    {name: 'lime', color: '#a9e34b'},
-    {name: 'yellow', color: '#ffd43b'},
-    {name: 'orange', color: '#ffa94d'},
-
-]
-
-
 </script>
 
 <template>
@@ -87,11 +76,11 @@ const colors = [
         <!-- <input type="color" v-model="localValue" :style="{
             width: props.width+ 'px',
         }" ref="elem" @focusin="isFocus = true" @focusout="isFocus = false"/> -->
-        <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded': ''" :style="{ width: props.width + 'px', backgroundColor: (propRef.value ?? 'white'), height: 'calc(100% - 3px)' }"
+        <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded': ''" :style="{ width: props.width + 'px', backgroundColor: color, height: 'calc(100% - 3px)' }"
             data-bs-toggle="dropdown" aria-expanded="false">
         <div class="dropdown-menu">
             <div v-if="isFocus" @focusout="unfocus">
-                <div v-for="c in colors" class="d-flex flex-row color-option" @click="set(c.color)">
+                <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index)">
                     <div :style="{backgroundColor: c.color}" class="color"></div>
                     <div class="color-name"> {{ c.name }}</div>
                 </div>
