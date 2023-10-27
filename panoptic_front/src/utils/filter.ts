@@ -22,7 +22,7 @@ export function defaultOperator(propertyType: PropertyType) {
 }
 
 function isEmpty(value: any) {
-    return value == undefined || value == '' || (isArray(value) && value.length == 0)
+    return value === undefined || value === '' || (isArray(value) && value.length === 0)
 }
 
 const operatorMap: { [operator in FilterOperator]?: any } = {
