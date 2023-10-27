@@ -2,18 +2,18 @@ import { FilterManager } from "@/utils/filter";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
+    multi_tags = "multi_tags",
+    tag = "tag",
     string = "string",
     number = "number",
-    tag = "tag",
-    multi_tags = "multi_tags",
-    image_link = "image_link",
-    url = "url",
     date = "date",
-    path = "path",
     color = "color",
+    url = "url",
+
+
     checkbox = "checkbox",
-
-
+    path = "path",
+    image_link = "image_link",
     _ahash = "average hash",
     _sha1 = "sha1",
     _folders = "folders"
