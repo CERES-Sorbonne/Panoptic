@@ -5,6 +5,7 @@ import { computed } from 'vue';
 
 import StandaloneTagInput from '../inputs/StandaloneTagInput.vue';
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
+import StandaloneColorPropInput from '../inputs/StandaloneColorPropInput.vue';
 
 
 const props = defineProps({
@@ -35,6 +36,7 @@ function toggleProperty(id: number) {
                 <td class="w-100">
                     <StandaloneTagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
                         v-model="props.values[property.id]" :property="property" />
+                    <StandaloneColorPropInput v-else-if="property.type == PropertyType.color" v-model="props.values[property.id]"/>
                     <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]" />
                 </td>
             </template>
