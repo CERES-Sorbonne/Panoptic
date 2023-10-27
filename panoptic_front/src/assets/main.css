@@ -115,7 +115,7 @@ body {
 }
 
 .property-item {
-  padding: 5px;
+  padding: 3px;
   padding-right: 0;
   border-top: 1px solid var(--border-color);
 }
