@@ -470,3 +470,18 @@ export function buildFilterGroup() {
 export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
+
+export const Colors = [
+    {name: 'red', color: '#ff8787'},
+    {name: 'pink', color: '#f783ac'},
+    {name: 'grape', color: '#da77f2'},
+    {name: 'violet', color: '#9775fa'},
+    {name: 'indigo', color: '#748ffc'},
+    {name: 'blue', color: '#4dabf7'},
+    {name: 'cyan', color: '#3bc9db'},
+    {name: 'teal', color: '#38d9a9'},
+    {name: 'green', color: '#69db7c'},
+    {name: 'lime', color: '#a9e34b'},
+    {name: 'yellow', color: '#ffd43b'},
+    {name: 'orange', color: '#ffa94d'},
+]

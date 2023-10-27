@@ -15,7 +15,7 @@ const props = defineProps({
 const selectedProperties = computed(() => props.groupIds.map(id => globalStore.properties[id]))
 
 onMounted(() => {
-    if(props.groupIds) {
+    if (props.groupIds) {
         props.groupIds.forEach(id => globalStore.addGrouping(id))
     }
 })
@@ -32,15 +32,18 @@ onMounted(() => {
                     {{ property.name }}
                 </div>
             </template>
-        <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading"></i>
+            <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading"></i>
         </div>
-        <div class="btn btn-sm no-border me-1 p-1 hover-light text-secondary" data-bs-toggle="dropdown"
-            data-bs-auto-close="true" v-show="!props.isLoading">
-            <i class="bi bi-plus"></i>
+        <div class="dropdown">
+            <div class="me-1 p-1 hover-light text-secondary" data-bs-toggle="dropdown"
+                data-bs-auto-close="true" v-show="!props.isLoading">
+                <i class="bi bi-plus"></i>
+            </div>
+            <div class="dropdown-menu p-0">
+                <PropertySelection @select="prop => globalStore.addGrouping(prop)" :ignore-ids="props.groupIds" />
+            </div>
         </div>
-        <div class="dropdown-menu p-0">
-            <PropertySelection @select="prop => globalStore.addGrouping(prop.id)" :ignore-ids="props.groupIds" />
-        </div>
+
     </div>
 </template>
 
