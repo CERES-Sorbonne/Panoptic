@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import PropertyModeDropdown from './PropertyModeDropdown.vue';
 import PropertyTypeDropdown from './PropertyTypeDropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
@@ -9,6 +9,7 @@ import { globalStore } from '@/data/store';
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import TagDropdown from '../inputs/TagDropdown.vue';
 import PropertyInput2 from '../inputs/PropertyInput2.vue';
+import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 
 enum State {
     CLOSED = 0,
@@ -23,6 +24,7 @@ const props = defineProps({
 
 
 const buttonElem = ref(null)
+const inputElem = ref(null)
 
 
 
@@ -57,6 +59,12 @@ onMounted(() => {
     buttonElem.value.addEventListener('hide.bs.dropdown', hide)
 })
 
+watch(() => filter.value?.operator, () => {
+    if(inputElem.value) {
+        inputElem.value.focus()
+    }
+})
+
 </script>
 
 <template>
@@ -77,8 +85,8 @@ onMounted(() => {
                         <div><i class="bi bi-trash-fill"></i></div>
                     </div>
                     <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
-                        <TagDropdown v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
-                            v-model="filter.value" :property-id="filter.propertyId" />
+                        <TagInputNoDropdown v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
+                            v-model="filter.value" :property-id="filter.propertyId" ref="inputElem"/>
                         <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                     </div>
                 </div>
@@ -89,11 +97,13 @@ onMounted(() => {
 
 <style scoped>
 .mode-header {
-    font-size: 12px;
+    font-size: 13px;
+    margin-bottom: 4px;
 }
 
 .container-size {
-    min-width: 250px;
-    padding: 5px;
+    width: 250px;
+
+    padding: 4px 8px;
 }
 </style>
