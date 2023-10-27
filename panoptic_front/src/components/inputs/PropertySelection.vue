@@ -2,7 +2,7 @@
 import { globalStore } from '@/data/store'
 import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
-import { Property } from '@/data/models'
+import { Property, PropertyType } from '@/data/models'
 
 const props = defineProps({
     ignoreIds: Array<number>
@@ -18,7 +18,7 @@ const filteredProperties = computed(() => {
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }
-    return properties.filter(p => p.name.includes(propertyFilter.value))
+    return properties.filter(p => p.name.includes(propertyFilter.value) && p.type != PropertyType._folders)
 })
 
 onMounted(() => searchElem.value.focus())
