@@ -9,6 +9,7 @@ import {
     Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode, defaultPropertyOption
 } from '../data/models'
 import { MAX_GROUPS } from '@/utils/groups'
+import { FilterManager } from '@/utils/filter'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -45,7 +46,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     selectTab(tabName: string) {
         globalStore.selectedTabName = tabName
-        globalStore.saveTabState()
+        globalStore.updateTab()
     },
     getTab() {
         return globalStore.tabs[globalStore.selectedTab]
@@ -70,6 +71,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
                 })
             }
             globalStore.tabs[t.id] = t
+            let filterManager = new FilterManager(t.data.filter)
+            t.data.filterManager = filterManager
         })
 
         if (tabs.length == 0) {
@@ -170,7 +173,6 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.folders = buildFolderNodes(folders)
 
         await this.loadTabState()
-
 
         this.importState = await apiGetImportStatus()
         setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)

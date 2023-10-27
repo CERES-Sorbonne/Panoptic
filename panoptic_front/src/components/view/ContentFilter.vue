@@ -6,15 +6,23 @@ import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
 import { apiStartPCA } from '../../data/api'
 import Toggle from '@vueform/toggle'
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { globalStore } from '@/data/store';
+import SelectionStamp from '../selection/SelectionStamp.vue';
+import { ImageSelector } from '@/utils/selection';
+import { FilterManager } from '@/utils/filter';
 
 const props = defineProps({
     tab: Object as () => Tab,
-    computeStatus: Object as () => { groups: boolean }
+    computeStatus: Object as () => { groups: boolean },
+    selector: ImageSelector,
+    filterManager: FilterManager
 })
 
-const emits = defineEmits(['compute-ml', 'search-images'])
+const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
+
+const selectedImageIds = computed(() => Array.from(props.selector.selectedImages))
+const hasSelectedImages = computed(() => props.selector.selectedImages.size)
 
 </script>
 
@@ -38,14 +46,15 @@ const emits = defineEmits(['compute-ml', 'search-images'])
         <div class="ms-5">
             <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
         </div>
+        <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds" @remove:selected="props.selector.clear()"/>
 
         <!-- <div class="ms-5">
             <button class="me-2" @click="apiStartPCA">PCA</button>
         </div> -->
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
-    <div class="d-flex flex-wrap content-container">
-        <FilterForm :filter="props.tab.data.filter" />
+    <div class="d-flex flex-wrap content-container ps-2">
+        <FilterForm :manager="props.filterManager"/>
         <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
         <!-- <div class="ms-2">

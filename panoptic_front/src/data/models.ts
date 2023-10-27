@@ -1,3 +1,4 @@
+import { FilterManager } from "@/utils/filter";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
@@ -203,7 +204,12 @@ export enum FilterOperator {
     notSet = "is not set"
 }
 
-export interface Filter {
+export interface AFilter {
+    id: number
+    isGroup?: boolean
+}
+
+export interface Filter extends AFilter {
     propertyId: number,
     operator: FilterOperator,
     value: any,
@@ -223,7 +229,7 @@ export interface PropertySetting {
     maxLines: number
 }
 
-export interface FilterGroup {
+export interface FilterGroup extends AFilter {
     filters: Array<Filter | FilterGroup>
     groupOperator: FilterOperator.and | FilterOperator.or
     depth: number
@@ -314,7 +320,8 @@ export interface Tab {
 export interface TabState {
     name: string
     display: string
-    filter: FilterGroup
+    filter: FilterGroup,
+    filterManager?: FilterManager,
     groups: Array<number>
     sortList: Array<Sort>
     imageSize: number
@@ -367,7 +374,10 @@ export interface Group {
     isCluster?: boolean,
     getSimilarImages?: () => Array<Images>
     similarSha1sBlacklist?: Array<string>
-    allSimilarSha1s?: Array<string>
+    allSimilarSha1s?: Array<string>,
+    order?: number,
+    allImageSelected?: boolean  // only leaf groups contains images info and can know if the images are selected or not
+                                // to avoid recomputation we use this variable to notify parents about the selection status
 }
 
 export interface GroupIndex {[key: string]: Group}
@@ -375,7 +385,8 @@ export interface GroupIndex {[key: string]: Group}
 export interface GroupData {
     root: Group,
     index: GroupIndex,
-    order: Array<string>
+    order: Array<string>,
+    imageToGroups: {[imgId: number]: string[]},
 }
 
 export interface Folder {
@@ -416,6 +427,10 @@ export interface ImageLine extends ScrollerLine {
 
 export interface RowLine extends ScrollerLine {
     data: Image
+}
+
+export interface PileRowLine extends ScrollerLine {
+    data: Sha1Pile
 }
 
 export interface ScrollerPileLine extends ScrollerLine {

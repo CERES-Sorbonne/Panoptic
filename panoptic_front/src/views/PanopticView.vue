@@ -1,8 +1,6 @@
 <script setup lang="ts">
 
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
-import TabContent from '../components/images/TabContent.vue';
-import TabNav from '../components/images/TabNav.vue';
 import Menu from '../components/menu/Menu.vue';
 import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
@@ -11,6 +9,8 @@ import { globalStore } from '@/data/store';
 import Sha1PileModal from '@/components/modals/Sha1PileModal.vue';
 import { keyState } from '@/data/keyState';
 import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
+import MainView from '@/components/view/MainView.vue';
+import TabNav from '@/components/view/TabNav.vue';
 
 
 const navElem = ref(null)
@@ -55,7 +55,7 @@ function onResize() {
 
 <template>
     <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-        <div class="">
+        <div v-if="globalStore.isLoaded">
             <Menu />
         </div>
 
@@ -65,7 +65,7 @@ function onResize() {
                 <TabNav />
             </div>
             <div class="custom-hr" />
-            <TabContent :tab="globalStore.tabs[globalStore.selectedTab]" :height="contentHeight"
+            <MainView :tab="globalStore.tabs[globalStore.selectedTab]" :height="contentHeight"
                 v-if="globalStore.isLoaded && globalStore.tagTrees" />
         </div>
         <div v-else class="loading">
