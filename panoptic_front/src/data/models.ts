@@ -275,7 +275,7 @@ export function propertyDefault(type: PropertyType): any {
         case PropertyType.date:
             return ''
         case PropertyType.number:
-            return 0
+            return undefined
         case PropertyType.string:
         case PropertyType.image_link:
         case PropertyType.path:
