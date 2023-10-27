@@ -9,7 +9,7 @@ const props = defineProps({
 const emits = defineEmits(['update:modelValue'])
 
 const types = Object.keys(PropertyType).filter(k => k[0] != '_').map((k:any) => (PropertyType as any)[k] as PropertyType) as PropertyType[]
-const filtered = computed(() => types.filter(t => t != PropertyType.image_link))
+const filtered = computed(() => types.filter(t => t != PropertyType.image_link && t != PropertyType.path))
 </script>
 
 <template>

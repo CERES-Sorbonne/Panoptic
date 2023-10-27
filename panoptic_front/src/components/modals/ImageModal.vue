@@ -125,7 +125,7 @@ function onHide() {
 }
 
 function hide() {
-    selector.clear()
+    if(groupData.root) selector.clear()
     modal.hide()
     
     groupData.root = undefined
