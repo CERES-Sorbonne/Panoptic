@@ -114,6 +114,14 @@ body {
   /* font-style: italic; */
 }
 
+.base-hover {
+  border-radius: 3px;
+}
+
+.base-hover:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
+
 .property-item {
   padding: 3px;
   padding-right: 0;
