@@ -269,7 +269,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                 </td>
                                                 <td class="ps-1">
                                                     <PropInput :property="globalStore.properties[property.propertyId]"
-                                                        :image="image" :width="370" :min-height="20" />
+                                                        :image="image" :width="-1" :min-height="20" />
                                                 </td>
                                                 <td class="text-center btn-icon"
                                                     @click="toggleProperty(property.propertyId)"><i class="bi bi-eye"

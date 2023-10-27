@@ -91,7 +91,7 @@ watch(() => props.modelValue, () => {
 
 <template>
     <div :style="{
-        width: props.width + 'px',
+        width: props.width > 0 ? props.width + 'px' : '100%',
         minHeight: minHeight,
         cursor: urlMode ? 'pointer' : 'inherit',
         color: urlMode ? 'blue' : ''
