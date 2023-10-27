@@ -4,7 +4,7 @@ import PropertyModeDropdown from './PropertyModeDropdown.vue';
 import PropertyTypeDropdown from './PropertyTypeDropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { FilterManager } from '@/utils/filter';
-import { Filter, PropertyType, operatorHasInput } from '@/data/models';
+import { Filter, PropertyID, PropertyType, operatorHasInput } from '@/data/models';
 import { globalStore } from '@/data/store';
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import TagDropdown from '../inputs/TagDropdown.vue';
@@ -90,7 +90,7 @@ watch(() => filter.value?.operator, () => {
         </div>
         <div class="dropdown-menu container-size bg-white" aria-labelledby="dropdownMenuOffset">
             <template v-if="mode != State.CLOSED">
-                <PropertySelection v-if="mode == State.TYPE" @select="selectProperty" />
+                <PropertySelection v-if="mode == State.TYPE" @select="selectProperty" :ignore-ids="[PropertyID.folders]"/>
                 <div v-if="mode == State.MODE">
                     <div class="d-flex mode-header">
                         <div class="me-3">{{ filterProperty.name }}</div>

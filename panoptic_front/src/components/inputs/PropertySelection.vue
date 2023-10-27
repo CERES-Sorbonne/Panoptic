@@ -18,7 +18,7 @@ const filteredProperties = computed(() => {
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }
-    return properties.filter(p => p.name.includes(propertyFilter.value) && p.type != PropertyType._folders)
+    return properties.filter(p => p.name.includes(propertyFilter.value))
 })
 
 onMounted(() => searchElem.value.focus())
