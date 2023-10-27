@@ -49,7 +49,7 @@ const sorts = computed(() => props.tab.data.sortList)
 const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
 const visibleProperties = computed(() => globalStore.getVisibleViewProperties())
 
-const filterManager = new FilterManager(globalStore.getTab().data.filter)
+
 
 function updateScrollerHeight() {
     // console.log('update height')
@@ -212,7 +212,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 <template>
     <div class="" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
-            :selector="selector" :filter-manager="filterManager" />
+            :selector="selector" :filter-manager="props.tab.data.filterManager" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">

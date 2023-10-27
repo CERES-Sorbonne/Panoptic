@@ -1,3 +1,4 @@
+import { FilterManager } from "@/utils/filter";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
@@ -319,7 +320,8 @@ export interface Tab {
 export interface TabState {
     name: string
     display: string
-    filter: FilterGroup
+    filter: FilterGroup,
+    filterManager?: FilterManager,
     groups: Array<number>
     sortList: Array<Sort>
     imageSize: number
