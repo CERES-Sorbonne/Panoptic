@@ -11,6 +11,7 @@ import TagDropdown from '../inputs/TagDropdown.vue';
 import PropertyInput2 from '../inputs/PropertyInput2.vue';
 import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 import * as bootstrap from 'bootstrap'
+import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 
 enum State {
     CLOSED = 0,
@@ -54,7 +55,7 @@ function show() {
         selectProperty(props.propertyId)
     }
 }
-function hide() {
+function onHide() {
     mode.value = State.CLOSED
 }
 
@@ -65,14 +66,18 @@ function selectProperty(propId) {
 }
 
 function deleteFilter() {
+    hide()
+    props.manager.deleteFilter(filterId.value)
+}
+
+function hide() {
     let dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
     dropdown.hide()
-    props.manager.deleteFilter(filterId.value)
 }
 
 onMounted(() => {
     buttonElem.value.addEventListener('show.bs.dropdown', show)
-    buttonElem.value.addEventListener('hide.bs.dropdown', hide)
+    buttonElem.value.addEventListener('hide.bs.dropdown', onHide)
 })
 
 watch(() => filter.value?.operator, () => {
@@ -103,6 +108,7 @@ watch(() => filter.value?.operator, () => {
                     <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
                         <TagInputNoDropdown v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
                             v-model="filter.value" :property-id="filter.propertyId" ref="inputElem"/>
+                        <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color" :property="filterProperty" v-model="filter.value" @update:model-value="hide"/>
                         <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                     </div>
                 </div>
