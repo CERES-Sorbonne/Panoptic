@@ -49,7 +49,7 @@ watch(() => props.manager.filter.filters, () => {
 <template>
     <div class="dropdown m-0 p-0">
         <div style="position: static;" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" ref="buttonElem">
-            <div v-if="selectedFilterSet.length" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light" style="cursor:pointer;">
+            <div v-if="selectedFilterSet.length" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium" style="cursor:pointer;">
                 <div v-for="filter, index in selectedFilterSet">
                     <span v-if="index > 0" class="or-separator">|</span>
                     <span>{{ globalStore.properties[filter.propertyId].name }}</span>
