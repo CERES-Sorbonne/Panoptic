@@ -21,7 +21,7 @@ const filteredOperators = computed(() => {
 
 <template>
     <div class="m-0 p-0">
-        <div class="btn btn-sm no-border rounded dropdown-toggle bg-white hover-light" type="button"
+        <div class="dropdown-toggle bg-white" type="button"
             data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" ref="buttonElem">
             {{ props.modelValue }}
         </div>

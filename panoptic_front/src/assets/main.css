@@ -27,7 +27,8 @@
 .menu {
   font-size: 13px;
   height: 100vh;
-  position: sticky;
+  /* position: sticky; */
+  /* position: relative; */
   top: 0;
   width: 210px;
   border-right: 1px solid var(--border-color);
@@ -35,6 +36,7 @@
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
+  overflow-y: scroll;
 }
 
 .menu::-webkit-scrollbar {

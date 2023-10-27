@@ -203,7 +203,12 @@ export enum FilterOperator {
     notSet = "is not set"
 }
 
-export interface Filter {
+export interface AFilter {
+    id: number
+    isGroup?: boolean
+}
+
+export interface Filter extends AFilter {
     propertyId: number,
     operator: FilterOperator,
     value: any,
@@ -223,7 +228,7 @@ export interface PropertySetting {
     maxLines: number
 }
 
-export interface FilterGroup {
+export interface FilterGroup extends AFilter {
     filters: Array<Filter | FilterGroup>
     groupOperator: FilterOperator.and | FilterOperator.or
     depth: number

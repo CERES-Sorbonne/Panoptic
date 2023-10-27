@@ -171,7 +171,6 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         await this.loadTabState()
 
-
         this.importState = await apiGetImportStatus()
         setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
 

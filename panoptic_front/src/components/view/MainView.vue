@@ -6,7 +6,7 @@ import GridScroller from '../scrollers/grid/GridScroller.vue';
 import { GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
 import { ImageSelector } from '@/utils/selection';
 import { globalStore } from '@/data/store';
-import { computeGroupFilter } from '@/utils/filter';
+import { FilterManager, computeGroupFilter } from '@/utils/filter';
 import { generateGroupData, imagesToSha1Piles, mergeGroup } from '@/utils/groups';
 import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
@@ -48,6 +48,8 @@ const sorts = computed(() => props.tab.data.sortList)
 
 const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
 const visibleProperties = computed(() => globalStore.getVisibleViewProperties())
+
+const filterManager = new FilterManager(globalStore.getTab().data.filter)
 
 function updateScrollerHeight() {
     // console.log('update height')
@@ -210,7 +212,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 <template>
     <div class="" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
-            :selector="selector" />
+            :selector="selector" :filter-manager="filterManager" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="reco.images.length > 0" class="m-0 p-0">
