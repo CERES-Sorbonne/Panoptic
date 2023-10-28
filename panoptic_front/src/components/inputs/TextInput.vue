@@ -57,7 +57,7 @@ defineExpose({
 let height = 0
 
 function input(value: string | number) {
-    if (props.onlyNumber) {
+    if (props.onlyNumber && value != "" && value != undefined) {
         emit('update:modelValue', Number(value))
     } else {
         emit('update:modelValue', value)
