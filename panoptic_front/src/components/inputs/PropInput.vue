@@ -33,7 +33,7 @@ const emits = defineEmits(["update:height"])
     <ColorPropInput v-if="property.type == PropertyType.color" :min-height="minHeight" ref="inputElems"
         @update:height="h => emits('update:height', h)" :image="props.image" :property="property" :width="props.width" />
 
-    <NumberPropInput v-if="property.type == PropertyType.number" :min-height="minHeight" ref="inputElems"
+    <TextPropInput v-if="property.type == PropertyType.number" :min-height="minHeight" ref="inputElems"
         @update:height="h => emits('update:height', h)" :image="props.image" :property="property" :width="props.width" />
 
     <DatePropInput v-if="property.type == PropertyType.date" :min-height="minHeight" ref="inputElems"

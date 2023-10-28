@@ -178,8 +178,8 @@ watch(rowHeight, emitResizeOnce)
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
-            <NumberPropInput v-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
+            <TextPropInput v-if="property.type == PropertyType.number"  :min-height="props.item.size" ref="inputElems"
+                @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
