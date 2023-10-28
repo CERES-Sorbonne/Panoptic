@@ -1,4 +1,4 @@
-import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter } from "@/data/models";
+import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter, propertyDefault } from "@/data/models";
 import { globalStore } from "@/data/store";
 import { isArray } from "@vue/shared";
 import { reactive } from "vue";
@@ -251,7 +251,7 @@ export class FilterManager {
         let filter: Filter = {
             propertyId: property.id,
             operator: defaultOperator(property.type),
-            value: undefined,
+            value: propertyDefault(property.type),
             id: -1
         }
         return filter
