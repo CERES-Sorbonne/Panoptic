@@ -235,7 +235,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body overflow-scroll pt-1 pb-1" style="max-height: calc(100vh - 100px);">
+                <div class="modal-body pt-1 pb-1" style="max-height: calc(100vh - 100px);">
                     <div class="d-flex justify-content-center mb-1">
                         <div class="d-flex border rounded overflow-hidden">
                             <div class="ps-2 pe-2 btn-icon"
@@ -255,7 +255,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                             </div>
 
                             <div class="mt-2"
-                                :style="{ height: (availableHeight - 550) + 'px', overflow: 'scroll', width: '550px' }">
+                                :style="{ height: (availableHeight - 560) + 'px', overflow: 'scroll', width: '550px' }">
                                 <!-- <p class="m-0">Properties</p> -->
                                 <table class="table table-bordered table-sm" style="width: 500px;">
 
@@ -368,9 +368,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                                 </table>
                             </div>
                         </div>
-                        <div class="m-0 p-0" style="width: 1100px; overflow-x: overlay; overflow-y: hidden;">
-                            <GridScroller :show-images="false" :data="gridData" :height="availableHeight - 550"
-                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" />
+                        <div class="m-0 p-0" style="width: 1140px; overflow-x: scroll; overflow-y: hidden;">
+                            <GridScroller :show-images="false" :data="gridData" :height="availableHeight - 570"
+                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" :selector="selector" />
                         </div>
                     </div>
                 </div>
