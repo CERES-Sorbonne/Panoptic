@@ -12,6 +12,7 @@ import PropertyInput2 from '../inputs/PropertyInput2.vue';
 import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 import * as bootstrap from 'bootstrap'
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
+import TextInput from '../inputs/TextInput.vue';
 
 enum State {
     CLOSED = 0,
@@ -51,7 +52,7 @@ const filterProperty = computed(() => {
 
 function show() {
     mode.value = props.mode
-    if(props.mode == State.MODE && props.filterId == undefined) {
+    if (props.mode == State.MODE && props.filterId == undefined) {
         selectProperty(props.propertyId)
     }
 }
@@ -81,7 +82,7 @@ onMounted(() => {
 })
 
 watch(() => filter.value?.operator, () => {
-    if(inputElem.value) {
+    if (inputElem.value) {
         inputElem.value.focus()
     }
 })
@@ -95,7 +96,7 @@ watch(() => filter.value?.operator, () => {
         </div>
         <div class="dropdown-menu container-size bg-white" aria-labelledby="dropdownMenuOffset">
             <template v-if="mode != State.CLOSED">
-                <PropertySelection v-if="mode == State.TYPE" @select="selectProperty" :ignore-ids="[PropertyID.folders]"/>
+                <PropertySelection v-if="mode == State.TYPE" @select="selectProperty" :ignore-ids="[PropertyID.folders]" />
                 <div v-if="mode == State.MODE">
                     <div class="d-flex mode-header">
                         <div class="me-3">{{ filterProperty.name }}</div>
@@ -106,9 +107,17 @@ watch(() => filter.value?.operator, () => {
                         <div><i class="bi bi-trash-fill" @click="deleteFilter"></i></div>
                     </div>
                     <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
-                        <TagInputNoDropdown v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
-                            v-model="filter.value" :property-id="filter.propertyId" ref="inputElem"/>
-                        <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color" :property="filterProperty" v-model="filter.value" @update:model-value="hide"/>
+                        <TagInputNoDropdown
+                            v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
+                            v-model="filter.value" :property-id="filter.propertyId" ref="inputElem" />
+                        <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
+                            :property="filterProperty" v-model="filter.value" @update:model-value="hide" />
+                        <TextInput
+                            v-else-if="[PropertyType.string, PropertyType.number].some(t => t == filterProperty.type)"
+                            :contenteditable="true" tag="div" :no-html="true" v-model="filter.value" :width="-1"
+                            :min-height="20"
+                            :no-nl="filterProperty.type == PropertyType.number" :url-mode="filterProperty.type == PropertyType.url"
+                            :only-number="filterProperty.type == PropertyType.number" />
                         <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                     </div>
                 </div>
@@ -127,5 +136,4 @@ watch(() => filter.value?.operator, () => {
     width: 250px;
 
     padding: 4px 8px;
-}
-</style>
+}</style>

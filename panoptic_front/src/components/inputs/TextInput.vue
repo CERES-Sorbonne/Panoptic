@@ -10,7 +10,7 @@ const props = defineProps({
         type: [Boolean, String],
         default: true,
     },
-    'modelValue': String,
+    'modelValue': undefined,
     'noHtml': {
         type: Boolean,
         default: true,
@@ -21,12 +21,12 @@ const props = defineProps({
     },
     width: Number,
     minHeight: { type: Number, default: 30 },
-    urlMode: Boolean
+    urlMode: Boolean,
+    onlyNumber: Boolean,
 
 })
 
 const emit = defineEmits({
-    'returned': String,
     'update:modelValue': Object,
     'update:height': String,
     'blur': undefined,
@@ -56,8 +56,12 @@ defineExpose({
 
 let height = 0
 
-function input(value: string) {
-    emit('update:modelValue', value)
+function input(value: string | number) {
+    if (props.onlyNumber) {
+        emit('update:modelValue', Number(value))
+    } else {
+        emit('update:modelValue', value)
+    }
     updateHeight()
 }
 
@@ -73,8 +77,8 @@ function updateHeight() {
 }
 
 function contentClick() {
-    if(props.urlMode && keyState.alt && props.modelValue) {
-        window.open(props.modelValue, '_blank').focus();
+    if (props.urlMode && keyState.alt && props.modelValue) {
+        window.open(props.modelValue as string, '_blank').focus();
     }
 }
 
@@ -97,10 +101,11 @@ watch(() => props.modelValue, () => {
         color: urlMode ? 'blue' : ''
     }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
         :class="isFocus ? 'focus' : 'container'" @click="focus">
-        <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="props.modelValue"
-            :no-html="props.noHtml" :no-nl="props.noNl" :contenteditable="props.contenteditable && !(urlMode)"
-            :style="{ width: (props.width - 5) + 'px' }" class="contenteditable" @keydown.escape="e => e.target.blur()"
-            @focus="isFocus = true; emit('focus')" @blur="isFocus = false; emit('blur');" @click="contentClick"/>
+        <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="String(props.modelValue)"
+            :only-number="props.onlyNumber" :no-html="props.noHtml" :no-nl="props.noNl"
+            :contenteditable="props.contenteditable && !(urlMode)" :style="{ width: (props.width - 5) + 'px' }"
+            class="contenteditable" @keydown.escape="e => e.target.blur()" @focus="isFocus = true; emit('focus')"
+            @blur="isFocus = false; emit('blur');" @click="contentClick" />
     </div>
 </template>
 
