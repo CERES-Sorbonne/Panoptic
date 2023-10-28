@@ -185,15 +185,15 @@ watch(rowHeight, emitResizeOnce)
             <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <div v-if="property.type == PropertyType._ahash" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1">
+            <div v-if="property.type == PropertyType._ahash" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>
-            <div v-if="property.type == PropertyType._folders" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1">
+            <div v-if="property.type == PropertyType._folders" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id]?.value != undefined">
                     <TagBadge :tag="globalStore.folders[image.properties[property.id]?.value].name" color="#c3cfd9" />
                 </span>
             </div>
-            <div v-if="property.type == PropertyType._sha1" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1">
+            <div v-if="property.type == PropertyType._sha1" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>
             <!-- </template> -->
