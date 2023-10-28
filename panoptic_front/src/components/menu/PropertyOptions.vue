@@ -123,7 +123,7 @@ function renameProperty() {
     <div :class="fullHover ? 'hover-light': ''">
         <div class="d-flex flex-row" >
             <div v-if="!opionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;" @click="toggleOptionsMenu" >
-                <PropertyIcon :type="props.property.type" class="me-2 btn-icon"/>
+                <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
                 <span>{{ props.property.name }}</span>
                 <!-- <span class="clickable" @click="toggleOptionsMenu">
                     <span v-if="!opionsOpen">{{ props.property.name }}</span>
@@ -133,8 +133,7 @@ function renameProperty() {
 
             <template v-if="opionsOpen">
                 <PropertyIcon :type="props.property.type" class="btn-icon me-1" style="padding: 2px;" @click="toggleOptionsMenu" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
-                <input style="position: relative; top: 1px;" type="text" class="text-input" v-model="localName"
-                    @click.prevent.stop="" @change="renameProperty" />
+                <input style="position: relative; top: 1px;" type="text" class="text-input" v-model="localName" @change="renameProperty" />
             </template>
 
             <div style="width: 20px; margin-top: 2px;" class="text-center">
