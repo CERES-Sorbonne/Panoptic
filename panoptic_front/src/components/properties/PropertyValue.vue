@@ -27,7 +27,7 @@ const color = computed(() => {
 
 function mapTag(id: number | string): Tag[] {
     // console.log(id)
-    if (id == UNDEFINED_KEY) {
+    if (id == undefined) {
         return [{value: 'indéfini', color: '#ced4da'} as Tag]
     }
     return [globalStore.tags[props.value.propertyId][id as number]]
