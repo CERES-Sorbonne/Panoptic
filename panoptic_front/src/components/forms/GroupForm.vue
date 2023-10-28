@@ -32,10 +32,10 @@ onMounted(() => {
                     {{ property.name }}
                 </div>
             </template>
-            <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading"></i>
+            <i  v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading ms-1"></i>
         </div>
         <div class="dropdown">
-            <div class="me-1 p-1 hover-light text-secondary" data-bs-toggle="dropdown"
+            <div class="me-1 mt-1 hover-light text-secondary" data-bs-toggle="dropdown"
                 data-bs-auto-close="true" v-show="!props.isLoading">
                 <i class="bi bi-plus"></i>
             </div>
