@@ -52,7 +52,7 @@ export interface Tag {
     property_id: number;
     parents: number[];
     value: string;
-    color?: string;
+    color?: number;
 }
 
 export interface Property {

@@ -95,7 +95,8 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
-    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
+    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
+                                               sha1s=payload.sha1s, value=payload.value)
     return {'updated_ids': updated, 'value': value}
 
 
@@ -117,6 +118,7 @@ async def add_tag(payload: AddTagPayload) -> Tag:
 async def get_tags_route(property: Optional[str] = None):
     tags = await get_tags(property)
     return ORJSONResponse(tags)
+
 
 @app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
@@ -198,9 +200,11 @@ async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
 async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
     return await get_similar_images(payload.sha1_list)
 
+
 @app.post("/similar/text")
 async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
     return await get_similar_images_from_text(payload.input_text)
+
 
 # @app.post("/pca")
 # async def start_pca_route():
