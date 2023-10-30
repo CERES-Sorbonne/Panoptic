@@ -271,6 +271,8 @@ async def update_tag(payload: UpdateTagPayload) -> Tag:
     # new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
     if payload.color is not None:
         existing_tag.color = payload.color
+    if payload.value is not None:
+        existing_tag.value = payload.value
 
     await db.update_tag(existing_tag)
     return existing_tag

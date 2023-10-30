@@ -32,7 +32,9 @@ function setColor(color: number) {
 }
 
 function setName(name: string) {
-    globalStore.updateTag(props.propertyId, props.tagId, tag.value.color, tag.value.parents, name)
+    if(name == tag.value.value) return
+    console.log('set')
+    globalStore.updateTag(props.propertyId, props.tagId, Number(tag.value.color), tag.value.parents, name)
 }
 
 function deleteTag() {
@@ -46,7 +48,7 @@ onMounted(updateFromStore)
 </script>
 
 <template>
-    <Dropdown ref="dropdown">
+    <Dropdown ref="dropdown" @hide="setName(localName)">
         <template v-slot:button>
             <span class="pe-1"><i class="bi bi-three-dots sm-btn" /></span>
         </template>
@@ -54,7 +56,7 @@ onMounted(updateFromStore)
         <template v-slot:popup>
             <div class="main-box pt-1">
                 <div class="ps-1 pe-1">
-                    <input v-model="localName" ref="nameInput" class="w-100 mb-2" />
+                    <input v-model="localName" ref="nameInput" class="w-100 mb-2" @change="setName(localName)" />
                     <div class="mb-1 base-btn" @click="deleteTag"><i class="bi bi-trash" /> Delete Tag</div>
                 </div>
                 <div class="hr w-100" />

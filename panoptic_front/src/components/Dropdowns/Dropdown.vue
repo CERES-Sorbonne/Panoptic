@@ -17,8 +17,8 @@ function show() {
 }
 
 onMounted(() => {
-    buttonElem.value.addEventListener('show.bs.dropdown', emits('show'))
-    buttonElem.value.addEventListener('hide.bs.dropdown', emits('hide'))
+    buttonElem.value.addEventListener('show.bs.dropdown', () => emits('show'))
+    buttonElem.value.addEventListener('hide.bs.dropdown', () => emits('hide'))
     dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
 })
 

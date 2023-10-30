@@ -207,6 +207,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async deleteTagParent(tagId: number, parent_id: number) {
+        let ok = confirm('Delete tag: ' + tagId)
+        if(!ok) return
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         // also reload images since the tag should be removed from their properties
         this.tags = await apiGetTags()
