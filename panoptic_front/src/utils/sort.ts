@@ -25,7 +25,6 @@ function getSortFunction(type: PropertyType): any {
     switch (type) {
         case PropertyType.string:
         case PropertyType.url:
-        case PropertyType.number:
         case PropertyType.path:
         case PropertyType._sha1:
         case PropertyType._ahash:
@@ -36,6 +35,13 @@ function getSortFunction(type: PropertyType): any {
                 if (a == undefined || a == '') return 1
                 if (b == undefined || b == '') return -1
                 return a < b ? -1 : a > b ? 1 : 0
+            }
+        case PropertyType.number:
+            return (a: any, b: any) => {
+                if(a == undefined && b == undefined) return 0
+                if(a == undefined) return 1
+                if(b == undefined) return -1
+                return Number(a) - Number(b)
             }
         case PropertyType.checkbox:
             return (a: any, b: any) => {
