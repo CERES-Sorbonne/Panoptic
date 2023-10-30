@@ -9,6 +9,7 @@ import { availableOperators } from '@/data/models';
 import { defaultOperator } from '@/utils/filter';
 import WithToolTip from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
+import TagMenu from './TagMenu.vue';
 
 
 const props = defineProps({
@@ -169,7 +170,8 @@ function renameProperty() {
                         class="bi bi-trash me-2"></i>Supprimer</div>
             </div>
             <div v-else-if="valuesOpen">
-                <TagProperty :data="props.property" />
+                <!-- <TagProperty :data="props.property" /> -->
+                <TagMenu :property="props.property"/>
             </div>
         </div>
     </div>

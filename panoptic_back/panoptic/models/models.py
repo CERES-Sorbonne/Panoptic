@@ -44,7 +44,7 @@ class Tag:
     property_id: int
     parents: list[int]
     value: str
-    color: str
+    color: int
 
     def __post_init__(self):
         self.value = str(self.value)

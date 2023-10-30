@@ -30,7 +30,7 @@ export const apiGetProperties = async () => {
 export const apiAddTag = async (
     propertyId: number, 
     value: string, 
-    color?: string, 
+    color?: number, 
     parentId?: number
     ):Promise<Tag> => {
     const res = await axios.post('/tags', {
@@ -58,7 +58,7 @@ export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] |
     return res.data
 }
 
-export const apiUpdateTag = async(id: number, color?:string, parentId?: number, value?: any):Promise<Tag> => {
+export const apiUpdateTag = async(id: number, color?:number, parentId?: number, value?: any):Promise<Tag> => {
     const res = await axios.patch('/tags', {id, color, parentId, value})
     return res.data
 }

@@ -132,10 +132,11 @@ export function sortGroups(groups: Array<Group>, sortIndex: SortIndex) {
     const sort = sortIndex[property.id]
     if (sort && sort.byGroupSize) {
         groups.sort((a: Group, b: Group) => {
-            if (a.groups) {
-                return a.groups.length - b.groups.length
-            }
-            return a.images.length - b.images.length
+            // if (a.groups) {
+            //     return a.groups.length - b.groups.length
+            // }
+            // return a.images.length - b.images.length
+            return a.count - b.count
         })
     }
     else {

@@ -6,7 +6,7 @@ import {
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode, defaultPropertyOption
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode, defaultPropertyOption, Colors
 } from '../data/models'
 import { MAX_GROUPS } from '@/utils/groups'
 import { FilterManager } from '@/utils/filter'
@@ -193,13 +193,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         await this.fetchAllData()
     },
 
-    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
+    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: number): Promise<Tag> {
         //console.log(color)
         if (color == undefined) {
             //console.log("find color")
-            let options = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590", "9daebe"]
-            let r = Math.round(Math.random() * (options.length - 1))
-            color = '#' + options[r]
+            // let options = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590", "9daebe"]
+            let r = Math.round(Math.random() * (Colors.length - 1))
+            color = r
         }
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
         this.tags[propertyId][newTag.id] = newTag
@@ -209,9 +209,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async deleteTagParent(tagId: number, parent_id: number) {
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         // also reload images since the tag should be removed from their properties
+        this.tags = await apiGetTags()
+
         let images = await apiGetImages()
         Object.values(images).forEach(globalStore.importImage)
-        this.tags = await apiGetTags()
     },
 
     async addProperty(name: string, type: PropertyType, mode: PropertyMode) {
@@ -307,7 +308,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     //     }
     // },
 
-    async updateTag(propId: number, tagId: number, color?: string, parentId?: number, value?: any) {
+    async updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
         const newTag = await apiUpdateTag(tagId, color, parentId, value)
         this.tags[propId][tagId] = newTag
     },
