@@ -38,7 +38,7 @@ const props = defineProps({
         <GlobalFilterInputDropdown :model-value="props.manager.filter" :manager="props.manager"/>
       
         <FilterDropdown :manager="props.manager" class="p-1">
-            <span class="hover-light plus-btn"><i class="bi bi-plus"></i></span>
+            <span class="base-hover plus-btn text-secondary "><i class="bi bi-plus"></i></span>
         </FilterDropdown>
     </div>
 </template>

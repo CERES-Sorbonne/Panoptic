@@ -116,9 +116,31 @@ body {
 
 .base-hover {
   border-radius: 3px;
+  cursor: pointer;
 }
 
 .base-hover:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
+
+.base-btn {
+  border-radius: 3px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.base-btn:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
+
+.sm-btn {
+  border-radius: 3px;
+  padding: 0px 2px;
+  margin: 3px;
+  cursor: pointer;
+}
+
+.sm-btn:hover {
   background-color: rgb(240, 240, 240) !important;
 }
 
