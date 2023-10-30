@@ -42,6 +42,11 @@ export const apiAddTag = async (
     return res.data
 }
 
+export const apiAddTagParent = async (tagId: number, parentId: number) => {
+    const res = await axios.post('tag/parent', {tagId, parentId})
+    return res.data
+}
+
 export const apiAddProperty = async(name: string, type: PropertyType, mode: PropertyMode):Promise<Property> => {
     const res = await axios.post('/property', {name, type, mode})
     return res.data

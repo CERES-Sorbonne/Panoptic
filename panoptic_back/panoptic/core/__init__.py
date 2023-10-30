@@ -17,7 +17,8 @@ from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties,
 from .image_importer import ImageImporter
 
 nb_workers = 4
-executor = ThreadPoolExecutor(max_workers=nb_workers) if os.getenv('IS_DOCKER', False) else ProcessPoolExecutor(max_workers=nb_workers)
+executor = ThreadPoolExecutor(max_workers=nb_workers) if os.getenv('IS_DOCKER', False) else ProcessPoolExecutor(
+    max_workers=nb_workers)
 atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
 
@@ -247,7 +248,7 @@ def get_new_images():
     return copy
 
 
-async def create_tag(property_id, value, parent_id, color: str) -> Tag:
+async def create_tag(property_id, value, parent_id, color: int) -> Tag:
     existing_tag = await db.get_tag(property_id, value)
     if existing_tag is not None:
         if await db.tag_in_ancestors(existing_tag.id, parent_id):
@@ -260,6 +261,16 @@ async def create_tag(property_id, value, parent_id, color: str) -> Tag:
         tag_id = await db.add_tag(property_id, value, json.dumps(parents), color)
     return await db.get_tag_by_id(tag_id)
 
+
+async def tag_add_parent(tag_id, parent_id):
+    tag = await db.get_tag_by_id(tag_id)
+    if tag is None:
+        raise HTTPException(status_code=400, detail=f"Tag: {tag_id} doesnt exist")
+    if await db.tag_in_ancestors(tag.id, parent_id):
+        raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
+    tag.parents = list({*tag.parents, parent_id})
+    await db.update_tag(tag)
+    return tag
 
 async def update_tag(payload: UpdateTagPayload) -> Tag:
     existing_tag = await db.get_tag_by_id(payload.id)
