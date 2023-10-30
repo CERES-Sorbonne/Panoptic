@@ -4,6 +4,7 @@ import { globalStore } from '@/data/store';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
+import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 
 
 const props = defineProps({
@@ -95,14 +96,22 @@ const selectOption = async function () {
         <ul class="list-unstyled pb-0">
             <!-- <p class="m-0 ms-2 me-2 text-muted text-nowrap" style="font-size: 14px;">Select a tag or create one
             </p> -->
-            <li @mouseover="selectedIndex = index" :class="optionClass(index)"
-                v-for="tag, index in filteredTagList" style="cursor: pointer;"><a class="ms-2" href="#">
-                    <TagBadge :tag="tag.value" :color="tag.color" />
-                    <span :style="{color: (selectedIndex == index) ? 'var(--text-color)': 'white'}" class="float-end" >
+            <li @mouseover="selectedIndex = index" :class="optionClass(index)" v-for="tag, index in filteredTagList"
+                style="cursor: pointer;">
+                <div class="ms-2 d-flex" href="#">
+                    <div class="flex-grow-1">
+                        <TagBadge :tag="tag.value" :color="tag.color" />
+                    </div>
+                    <div :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
                         <!-- <i class="bi bi-three-dots sm-btn me-1"></i> -->
-                        <TagOptionsDropdown :property-id="property.id" :tag-id="tag.id"/>
-                    </span>
-                </a>
+                        <TagChildSelectDropdown :property-id="tag.property_id" :tag-id="tag.id" />
+                    </div>
+                    <div :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
+
+                        <TagOptionsDropdown :property-id="property.id" :tag-id="tag.id" />
+                    </div>
+
+                </div>
             </li>
             <li @mouseover="selectedIndex = filteredTagList.length" @click.prevent.stop="selectOption"
                 v-if="isCreatePossible" :class="optionClass(filteredTagList.length)" style="cursor: pointer;">

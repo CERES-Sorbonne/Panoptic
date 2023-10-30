@@ -53,6 +53,7 @@ export interface Tag {
     parents: number[];
     value: string;
     color?: number;
+    children?: Set<number>
 }
 
 export interface Property {

@@ -2,7 +2,7 @@ import { computed, reactive } from 'vue'
 import {
     apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiSetPropertyValue, apiUpdateTag, apiAddFolder,
     apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
-    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile, apiGetSimilarImagesFromText
+    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile, apiGetSimilarImagesFromText, apiAddTagParent
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
@@ -206,9 +206,16 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return newTag
     },
 
-    async deleteTagParent(tagId: number, parent_id: number) {
-        let ok = confirm('Delete tag: ' + tagId)
-        if(!ok) return
+    async addTagParent(tagId: number, parentId: number) {
+        const tag = await apiAddTagParent(tagId, parentId) as Tag
+        this.tags[tag.property_id][tag.id] = tag
+    },
+
+    async deleteTagParent(tagId: number, parent_id: number, dontAsk) {
+        if (!dontAsk) {
+            let ok = confirm('Delete tag: ' + tagId)
+            if (!ok) return
+        }
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         // also reload images since the tag should be removed from their properties
         this.tags = await apiGetTags()

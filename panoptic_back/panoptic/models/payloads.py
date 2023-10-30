@@ -40,6 +40,11 @@ class AddTagPayload(CamelModel):
     color: int = 0
 
 
+class AddTagParentPayload(CamelModel):
+    tag_id: int
+    parent_id: int
+
+
 class UpdateTagPayload(CamelModel):
     id: int
     value: str
