@@ -7,33 +7,27 @@ import 'vue-color-kit/dist/vue-color-kit.css'
 import * as bootstrap from 'bootstrap'
 
 const props = defineProps({
-    property: Object as () => Property,
-    image: Object as () => Image,
+    modelValue: Number,
     width: Number,
     minHeight: { type: Number, default: 30 },
     rounded: Boolean
 
 })
-const emits = defineEmits({ 'update:height': Number })
+const emits = defineEmits({ 'update:height': Number, 'update:modelValue': Number })
 
-const isFirefox = navigator.userAgent.indexOf("Firefox") != -1
-
-const localValue = ref(null)
-const elem = ref(null)
 const dropdown = ref(null)
 
-const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
 const color = computed(() => {
-    if(propRef.value.value == undefined) return 'white'
-    
-    let value = Number(propRef.value.value)
-    if(isNaN(value) || value > 12) return 'gray'
+    if (props.modelValue == undefined) return 'white'
+
+    let value = Number(props.modelValue)
+    if (isNaN(value) || value > 12) return 'gray'
     return Colors[value].color
 })
 const isFocus = ref(false)
 
 function focus() {
-    if(isFocus.value) return
+    if (isFocus.value) return
     isFocus.value = true
     dropdown.value.show()
 }
@@ -43,29 +37,18 @@ function unfocus() {
     dropdown.value.hide()
 }
 
-function updateFromStore() {
-    localValue.value = propRef.value.value
-}
-
 function set(color: number) {
-    globalStore.setPropertyValue(props.property.id, props.image, color)
+    emits('update:modelValue', color)
 }
 
 function saveDropdownRef(e) {
-    if(!e) return
+    if (!e) return
 
     e.addEventListener('show.bs.dropdown', () => isFocus.value = true)
     e.addEventListener('hide.bs.dropdown', () => isFocus.value = false)
 }
 
-
-onMounted(updateFromStore)
-// watch(propRef, updateFromStore)
-
-
 defineExpose({
-    // localValue,
-    // inputElem
     focus
 })
 
@@ -76,27 +59,27 @@ defineExpose({
         <!-- <input type="color" v-model="localValue" :style="{
             width: props.width+ 'px',
         }" ref="elem" @focusin="isFocus = true" @focusout="isFocus = false"/> -->
-        <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded': ''" :style="{ width: props.width + 'px', backgroundColor: color, height: 'calc(100% - 3px)' }"
+        <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded' : ''"
+            :style="{ width: props.width + 'px', backgroundColor: color, height: 'calc(100% - 3px)' }"
             data-bs-toggle="dropdown" aria-expanded="false">
-        <div class="dropdown-menu">
-            <div v-if="isFocus" @focusout="unfocus">
-                <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index)">
-                    <div :style="{backgroundColor: c.color}" class="color"></div>
-                    <div class="color-name"> {{ c.name }}</div>
-                </div>
-                <div class="hr m-1"></div>
-                <div class="d-flex flex-row color-option" @click="set(undefined)">
-                    <div :style="{backgroundColor: '#ffffff'}" class="color"></div>
-                    <div class="color-name"> None </div>
+            <div class="dropdown-menu">
+                <div v-if="isFocus" @focusout="unfocus">
+                    <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index)">
+                        <div :style="{ backgroundColor: c.color }" class="color"></div>
+                        <div class="color-name"> {{ c.name }}</div>
+                    </div>
+                    <div class="hr m-1"></div>
+                    <div class="d-flex flex-row color-option" @click="set(undefined)">
+                        <div :style="{ backgroundColor: '#ffffff' }" class="color"></div>
+                        <div class="color-name"> None </div>
+                    </div>
                 </div>
             </div>
-        </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-
 .container {
     padding: 0;
 }
@@ -123,6 +106,7 @@ defineExpose({
     cursor: pointer;
     /* background-color: var(--light-grey); */
 }
+
 .color-option:hover {
     background-color: var(--light-grey);
 }

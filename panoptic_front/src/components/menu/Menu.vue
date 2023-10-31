@@ -24,13 +24,14 @@ const handleInput = (e: any) => {
             <div>
                 <div class="p-2">
                     <div class="d-flex">
-                        <div><b>{{$t('main.nav.folders.title')}}</b></div>
-                        <div class="ms-auto"
-                            @click="globalStore.showModal(Modals.FOLDERTOPROP)">
-                            <i class="bi bi-three-dots"></i></div>
+                        <div><b>{{ $t('main.nav.folders.title') }}</b></div>
+                        <div class="ms-auto" @click="globalStore.showModal(Modals.FOLDERTOPROP)">
+                            <i class="bi bi-three-dots"></i>
+                        </div>
                     </div>
-                    
-                    <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree" :tab="globalStore.tabs[globalStore.selectedTab].data"/>
+
+                    <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
+                        :tab="globalStore.tabs[globalStore.selectedTab].data" />
                 </div>
                 <div class="p-2"
                     v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">
@@ -77,8 +78,8 @@ const handleInput = (e: any) => {
                                 <PropertyOptions :property="property" />
                             </div>
                         </template>
-
-                        <div @click="globalStore.showModal(Modals.PROPERTY)" class="btn-icon property-item"
+                        <div class="property-item m-0 p-0"></div>
+                        <div @click="globalStore.showModal(Modals.PROPERTY)" class="btn-icon base-hover mt-1"
                             style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                             <span>{{ $t('main.nav.properties.add_property') }}</span>
@@ -102,6 +103,6 @@ const handleInput = (e: any) => {
     </div>
 </template>
 
-<style>.option-content {
-    width: 100%
-}</style>
+<style scoped>
+
+</style>
