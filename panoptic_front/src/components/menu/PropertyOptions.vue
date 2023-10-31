@@ -19,6 +19,8 @@ const opionsOpen = ref(false)
 const valuesOpen = ref(false)
 const localName = ref('')
 
+const fullHover = ref(false)
+
 const tab = computed(() => globalStore.tabs[globalStore.selectedTab])
 const propertyVisible = computed(() => tab.value.data.visibleProperties[props.property.id] == true)
 
@@ -26,7 +28,7 @@ const isInFilter = computed(() => tab.value.data.filter.filters.some((f) => !f.i
 const isInGroups = computed(() => tab.value.data.groups.includes(props.property.id))
 const isInSort = computed(() => tab.value.data.sortList.some(s => s.property_id == props.property.id))
 const filterId = computed(() => {
-    if(!isInFilter.value) return undefined
+    if (!isInFilter.value) return undefined
     return tab.value.data.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
 })
 const filterManager = () => tab.value.data.filterManager
@@ -118,25 +120,33 @@ function renameProperty() {
 </script>
 
 <template>
-    <div>
-        <div class="d-flex flex-row">
-            <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @click="toggleOptionsMenu" />
-            <span class="flex-grow-1 clickable" @click="toggleOptionsMenu">
-                <span v-if="!opionsOpen">{{ props.property.name }}</span>
-                <span v-else><input style="position: relative; top: -1px;" type="text" class="text-input"
-                        v-model="localName" @click.prevent.stop="" @change="renameProperty" /></span>
-            </span>
-            <div style="width: 20px;" class="text-center">
+    <div :class="fullHover ? 'hover-light': ''">
+        <div class="d-flex flex-row" >
+            <div v-if="!opionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;" @click="toggleOptionsMenu" >
+                <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
+                <span>{{ props.property.name }}</span>
+                <!-- <span class="clickable" @click="toggleOptionsMenu">
+                    <span v-if="!opionsOpen">{{ props.property.name }}</span>
+                    <span v-else></span>
+                </span> -->
+            </div>
+
+            <template v-if="opionsOpen">
+                <PropertyIcon :type="props.property.type" class="btn-icon me-1" style="padding: 2px;" @click="toggleOptionsMenu" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
+                <input style="position: relative; top: 1px;" type="text" class="text-input" v-model="localName" @change="renameProperty" />
+            </template>
+
+            <div style="width: 20px; margin-top: 2px;" class="text-center">
                 <i v-if="props.property.mode == PropertyMode.id" class="bi bi-link-45deg"></i>
             </div>
-            <div style="width: 20px;" @click="toggleVisible" class="btn-icon text-center">
+            <div style="width: 20px; margin-top: 2px;" @click="toggleVisible" class="btn-icon text-center">
                 <span v-if="sha1Mode && props.property.mode == PropertyMode.id" class="bi bi-eye-slash"
                     @click.stop=""></span>
                 <wTT pos="right" :icon="false" message="main.nav.properties.hide_property_tooltip" v-else>
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
             </div>
-            <div class="text-center" style="width: 20px;">
+            <div class="text-center" style="width: 20px; margin-top: 2px;">
                 <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
                     @click="toggleValuesMenu" style="cursor: pointer;">
                     <i v-if="valuesOpen" class="bi bi-chevron-down"></i>
@@ -146,16 +156,16 @@ function renameProperty() {
         </div>
         <div>
             <div v-if="opionsOpen" class="ms-3 pt-1">
-                <div class="options" :class="isInFilter ? ' text-primary' : ''">
+                <div class="options hover-light" :class="isInFilter ? ' text-primary' : ''">
                     <FilterDropdown :manager="filterManager()" :filter-id="filterId" :mode="2" :property-id="property.id">
                         <i class="bi bi-funnel-fill me-2"></i>Filtrer
                     </FilterDropdown>
                 </div>
-                <div class="options" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
+                <div class="options hover-light" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
                         class="bi bi-filter me-2"></i>Trier</div>
-                <div class="options" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
+                <div class="options hover-light" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
                         class="bi bi-collection me-2"></i>Grouper</div>
-                <div v-if="props.property.id >= 0" class="options" @click="deleteProperty"><i
+                <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i
                         class="bi bi-trash me-2"></i>Supprimer</div>
             </div>
             <div v-else-if="valuesOpen">
@@ -166,6 +176,12 @@ function renameProperty() {
 </template>
 
 <style scoped>
+.option-holder {
+    border-radius: 3px;
+    padding: 2px;
+
+}
+
 .options {
     padding: 3px;
     cursor: pointer;

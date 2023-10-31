@@ -2,18 +2,18 @@ import { FilterManager } from "@/utils/filter";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
+    multi_tags = "multi_tags",
+    tag = "tag",
     string = "string",
     number = "number",
-    tag = "tag",
-    multi_tags = "multi_tags",
-    image_link = "image_link",
-    url = "url",
     date = "date",
-    path = "path",
     color = "color",
+    url = "url",
+
+
     checkbox = "checkbox",
-
-
+    path = "path",
+    image_link = "image_link",
     _ahash = "average hash",
     _sha1 = "sha1",
     _folders = "folders"
@@ -275,7 +275,7 @@ export function propertyDefault(type: PropertyType): any {
         case PropertyType.date:
             return ''
         case PropertyType.number:
-            return 0
+            return undefined
         case PropertyType.string:
         case PropertyType.image_link:
         case PropertyType.path:
@@ -470,3 +470,18 @@ export function buildFilterGroup() {
 export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
+
+export const Colors = [
+    {name: 'red', color: '#ff8787'},
+    {name: 'pink', color: '#f783ac'},
+    {name: 'grape', color: '#da77f2'},
+    {name: 'violet', color: '#9775fa'},
+    {name: 'indigo', color: '#748ffc'},
+    {name: 'blue', color: '#4dabf7'},
+    {name: 'cyan', color: '#3bc9db'},
+    {name: 'teal', color: '#38d9a9'},
+    {name: 'green', color: '#69db7c'},
+    {name: 'lime', color: '#a9e34b'},
+    {name: 'yellow', color: '#ffd43b'},
+    {name: 'orange', color: '#ffa94d'},
+]

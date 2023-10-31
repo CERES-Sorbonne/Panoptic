@@ -32,7 +32,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     selectedTab: 0,
     async addTab(tabName: string) {
         let state = buildTabState()
-        let tab = await apiAddTab({ name: tabName, data: state })
+        let tab = await apiAddTab({ name: tabName, data: state }) as Tab
+
+        tab.data.filterManager = new FilterManager(tab.data.filter)
         this.tabs[tab.id] = tab
         this.selectedTab = tab.id
     },

@@ -109,7 +109,7 @@ export function computeSubgroups(parentGroup: Group, groupList: number[], index:
             id: parentGroup.id + '-' + propertyId + '-' + key,
             depth: parentGroup.depth + 1,
             parentId: parentGroup.id,
-            propertyValues: [...parentGroup.propertyValues, { propertyId, value: key }]
+            propertyValues: [...parentGroup.propertyValues, { propertyId, value: key == UNDEFINED_KEY ? undefined : key }]
         }
         res.push(newGroup)
     }

@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { Property, PropertyMode, PropertyType } from '@/data/models';
+import { Colors, Property, PropertyMode, PropertyType } from '@/data/models';
 import TagPreview from './TagPreview.vue';
+import { computed } from 'vue';
 
 const props = defineProps({
-    value: Object as () => any,
+    value: undefined,
     property: Object as () => Property
 })
+
+const color = computed(() => {
+    if (props.value == undefined) return 'white'
+
+    let value = Number(props.value)
+    if (isNaN(value) || value > 12) return 'gray'
+    return Colors[value].color
+})
+
 </script>
 
 <template>
@@ -23,7 +33,7 @@ const props = defineProps({
             <i v-if="props.value"  class="bi bi-square"></i>
             <i v-else class="bi bi-check-square"></i>
         </div>
-        <div v-if="props.property.type == PropertyType.color" :style="{backgroundColor: (props.value as string)}">
+        <div v-if="props.property.type == PropertyType.color" :style="{backgroundColor: color}" class="w-100 h-100">
         </div>
         <div v-if="props.property.type == PropertyType.date">
             {{ props.value }}

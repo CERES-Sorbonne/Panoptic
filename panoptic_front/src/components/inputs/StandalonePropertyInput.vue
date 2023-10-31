@@ -20,8 +20,6 @@ function inputType(type: PropertyType) {
             return 'number'
         case PropertyType.date:
             return 'date'
-        case PropertyType.color:
-            return 'color'
         case PropertyType.checkbox:
             return 'checkbox'
         default:

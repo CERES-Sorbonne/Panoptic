@@ -37,7 +37,7 @@ const nameError = ref('')
 
 function resetNewProperty() {
     newProperty.name = ''
-    newProperty.type = PropertyType.string
+    newProperty.type = PropertyType.multi_tags
     newProperty.mode = PropertyMode.sha1
     nameError.value = ''
 }

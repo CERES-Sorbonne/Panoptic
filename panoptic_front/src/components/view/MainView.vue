@@ -52,7 +52,6 @@ const visibleProperties = computed(() => globalStore.getVisibleViewProperties())
 
 
 function updateScrollerHeight() {
-    // console.log('update height')
     if (filterElem.value && boxElem.value) {
         scrollerHeight.value = props.height - filterElem.value.clientHeight - boxElem.value.clientHeight - 5
     }
@@ -134,9 +133,9 @@ function computeGroups(force = false) {
 }
 
 function sortGroups() {
+    if(!groupData.root) return
     const sortIndex: SortIndex = {}
     sorts.value.forEach(s => sortIndex[s.property_id] = s)
-
     sortGroupTree(groupData.root, groupData.order, sortIndex)
 
     Object.keys(groupData.index).forEach(key => {
@@ -200,7 +199,7 @@ watch(groups, () => {
 }, { deep: true })
 watch(sorts, () => {
     sortGroups()
-    imageList.value.computeLines()
+    if(imageList.value) imageList.value.computeLines()
 }, { deep: true })
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.tab.data.sha1Mode, computeGroups)

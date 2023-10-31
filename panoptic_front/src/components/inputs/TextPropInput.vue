@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, Property } from '@/data/models';
+import { Image, Property, PropertyType } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
 import TextInput from './TextInput.vue';
@@ -66,7 +66,7 @@ function log(e) {
     <div class="container" :style="{ minHeight: (props.minHeight - 4) + 'px' }">
         <TextInput class="container" :contenteditable="true" tag="div" :no-html="true" v-model="localValue"
             :width="props.width" @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"
-            :no-nl="props.noNl" :url-mode="props.urlMode" @blur="save" />
+            :no-nl="props.noNl" :url-mode="props.urlMode" @blur="save" :only-number="property.type == PropertyType.number" />
     </div>
 </template>
 

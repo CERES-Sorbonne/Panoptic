@@ -105,6 +105,25 @@ const optionClass = (id: number) => {
     return bg + rounded
 }
 
+function tagsChanged() {
+    let oldTags = propRef.value.value
+
+    if (oldTags.length != localValue.length) {
+        return true
+    }
+
+    let set = new Set(localValue)
+    for(let t of oldTags) 
+    {
+        if(!set.has(t)) {
+            return true
+        }
+    }
+
+    return false
+    
+}
+
 function setEdit(value: Boolean) {
     // console.log('set edit: ' + value)
     if (value == edit.value) {
@@ -127,7 +146,10 @@ function setEdit(value: Boolean) {
     else {
         document.removeEventListener('click', handleContainerClick)
         let img = globalStore.images[propRef.value.imageId]
-        globalStore.setPropertyValue(propRef.value.propertyId, img, localValue)
+        if(tagsChanged()) {
+            globalStore.setPropertyValue(propRef.value.propertyId, img, localValue)
+        }
+        
         edit.value = false
         showTagList.value = false;
         if (propRef.value.value == '') {
