@@ -8,6 +8,7 @@
                 "title": "Propriétés",
                 "properties_tooltip": "Les différents champs associés à chaque image",
                 "import_properties_tooltip": "Importer un fichier de propriétés",
+                "export_properties_tooltip": "Exporter un fichier de propriétés",
                 "hide_property_tooltip": "Afficher / Masquer la propriété dans la vue",
                 "linked_property_tooltip": "Propriété liée à une instance d'image, pour plus d'informations lire la documentation sur les instances",
                 "expand_property_tooltip": "Afficher les tags",
@@ -24,9 +25,9 @@
             }
         },
         "menu": {
-            "add_tab_tooltip": "Créer une nouvelle vue",
-            "rename_tab_tooltip": "Renommer la vue",
-            "delete_tab_tooltip": "Supprimer la vue",
+            "add_tab_tooltip": "Créer un nouvel onglet",
+            "rename_tab_tooltip": "Renommer l'onglet",
+            "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
             "search_tooltip": "Chercher des images correspondant au text en utilisant le modèle CLIP",
             "grid_tooltip": "Passer en vue grille d'images",
@@ -105,7 +106,11 @@
             "clear": "Clear",
             "apply": "Appliquer"
         },
-        "tags": {}
+        "tags": {},
+        "export": {
+            "images": "Uniquement les images de l'onget",
+            "properties": "Uniquement les propriétés visibles"
+        }
     },
     "mini_ui": {
         "title": "Panoptic",

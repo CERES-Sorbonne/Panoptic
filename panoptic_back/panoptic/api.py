@@ -64,7 +64,7 @@ async def properties_by_file(file: UploadFile):
     return await read_properties_file(data)
 
 
-@app.get('/property/file')
+@app.post('/export')
 async def export_properties_route(payload: ExportPropertiesPayload) -> StreamingResponse:
     stream = await export_properties(payload.images, payload.properties)
     response = StreamingResponse(iter([stream.getvalue()]),

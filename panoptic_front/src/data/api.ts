@@ -6,6 +6,7 @@
 import { Images, Property, PropertyMode, PropertyType, PropertyValue, PropertyValueUpdate, Tab, TabState, Tag } from './models'
 
 import axios from 'axios'
+import { saveFile } from '@/utils/api'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -151,4 +152,9 @@ export const apiUploadPropFile = async(file: any) => {
         }
       }
     )
+}
+
+export const apiExportProperties = async(images?: number[], properties?: number[]) => {
+    let res = await axios.post('/export', {...(images && {images}), ...(properties && {properties})})
+    saveFile(res, "panoptic_output.csv")
 }
