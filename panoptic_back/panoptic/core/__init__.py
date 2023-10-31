@@ -1,4 +1,5 @@
 import atexit
+import io
 import json
 import logging
 import os
@@ -7,6 +8,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import List, Any
 
 import pandas
+import pandas as pd
 from fastapi import HTTPException
 from tqdm import tqdm
 
@@ -199,7 +201,7 @@ async def read_properties_file(data: pandas.DataFrame):
 
     # then for each property to create
     for prop in properties_to_create:
-        if prop == "key" or prop == "panoptic_id":
+        if prop in ["key", "panoptic_id", "sha1"]:
             continue
 
         # create the property
@@ -230,6 +232,42 @@ async def read_properties_file(data: pandas.DataFrame):
             # now change all values in the dataframe with the real value that we are going to insert
             data.loc[data.index, prop] = data[prop].map(tag_matcher)
         await db.set_multiple_property_values(property.id, list(data[prop]), list(data.panoptic_id))
+
+
+async def export_properties(images_id=None, properties_list=None) -> io.StringIO:
+    """
+    Allow to export selected images and properties into a csv file
+    """
+    images = await get_full_images(images_id)
+    properties = await get_properties()
+    tags = await get_tags()
+
+    # filter properties id that we want to keep
+    properties_list =  list(properties.keys()) if not properties_list else properties_list
+    properties = [properties[pid] for pid in properties_list]
+    columns = ["key", "sha1[string]"] + [f"{p.name}[{p.type.value}]" for p in properties]
+    rows = []
+    for image in images:
+        row = [image.name, image.sha1]
+        for prop in properties:
+            if prop.id in image.properties:
+                value = image.properties[prop.id].value
+                # if it's a tag let's fetch tag value from tag id
+                if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+                    if type(value) != list:
+                        row.append(None)
+                        continue
+                    row.append(",".join([tags[prop.id][t].value for t in value]))
+                else:
+                    row.append(value)
+            else:
+                row.append(None)
+        rows.append(row)
+    df = pd.DataFrame.from_records(rows, columns=columns)
+    buff = io.StringIO()
+    df.to_csv(path_or_buf=buff, index=False, sep=";")
+    buff.seek(0)
+    return buff
 
 
 async def add_folder(folder):
