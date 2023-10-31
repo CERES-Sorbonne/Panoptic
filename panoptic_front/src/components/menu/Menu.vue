@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import { globalStore } from '../../data/store';
+import { apiExportProperties } from '../../data/api';
 import { Modals } from '../../data/models';
 import { ref } from 'vue';
 import FolderList from '../foldertree/FolderList.vue';
@@ -61,6 +62,9 @@ const handleInput = (e: any) => {
                     <span class="float-end me-3">
                         <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden/>
                         <wTT pos="right" :icon="false" message="main.nav.properties.import_properties_tooltip"><i class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="inputFile.click()"/></wTT>
+                    </span>
+                    <span class="float-end me-3">
+                        <wTT pos="right" :icon="false" message="main.nav.properties.export_properties_tooltip"><i class="bi bi-box-arrow-down btn-icon text-secondary" @click="() => apiExportProperties()"/></wTT>
                     </span>
                     <!-- <i class="bi bi-plus btn-icon float-end" style="font-size: 25px;"></i> -->
                     <div class="mt-2" v-if="globalStore.isLoaded">
