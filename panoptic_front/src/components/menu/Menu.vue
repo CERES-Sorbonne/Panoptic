@@ -91,11 +91,13 @@ const handleInput = (e: any) => {
 
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
-                    <b>Computed</b>
+                    <wTT message="main.nav.computed.computed_tooltip"><b>{{ $t("main.nav.computed.title") }}</b></wTT>
                     <div class="mt-2" v-if="globalStore.isLoaded">
                         <template v-for="property in globalStore.properties">
                             <div class="property-item" v-if="property.id < 0">
-                                <PropertyOptions :property="property" />
+                                <wTT pos="bottom" :icon="false" :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">
+                                    <PropertyOptions :property="property" />
+                                </wTT>
                             </div>
                         </template>
                     </div>
