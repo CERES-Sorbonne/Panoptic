@@ -221,7 +221,8 @@ export enum Modals {
     IMAGE = 'image',
     PROPERTY = 'property',
     SHA1PILE = 'sha1pile',
-    FOLDERTOPROP = 'folder_to_property'
+    FOLDERTOPROP = 'folder_to_property',
+    EXPORT = "export"
 }
 
 export interface PropertySetting {

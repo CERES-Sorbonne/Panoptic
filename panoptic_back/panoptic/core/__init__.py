@@ -106,28 +106,36 @@ async def add_property_values(property_id: int, value: Any, image_ids: List[int]
 async def get_full_images(image_ids: List[int] = None) -> List[Image]:
     images = await db.get_images(image_ids)
     sha1s = list({img.sha1 for img in images})
+    # get ids bound property values
     property_values = await db.get_property_values(image_ids=image_ids)
+    # get sha1 bound property values when image_ids is set and therefore property_values only return id bound properties
+    if image_ids:
+        sha1s_values = await db.get_property_values(sha1s=sha1s)
+        property_values += sha1s_values
     ahashs = await db.get_sha1_ahashs(sha1s=sha1s)
     image_index = {img.id: img for img in images}
 
-    def assign_value(prop):
-        image_index[prop.image_id].properties[prop.property_id] = prop
+    def assign_value(prop_value):
+        image_index[prop_value.image_id].properties[prop_value.property_id] = prop_value
 
-    [assign_value(prop) for prop in property_values if prop.image_id >= 0]
+    # fill the index with ids bound property values
+    [assign_value(prop_value) for prop_value in property_values if prop_value.image_id >= 0]
 
     sha1_properties = {}
 
-    def register_sha1_value(prop: PropertyValue):
-        if prop.sha1 not in sha1_properties:
-            sha1_properties[prop.sha1] = []
-        sha1_properties[prop.sha1].append(prop)
+    def register_sha1_value(prop_value: PropertyValue):
+        if prop_value.sha1 not in sha1_properties:
+            sha1_properties[prop_value.sha1] = []
+        sha1_properties[prop_value.sha1].append(prop_value)
 
-    [register_sha1_value(prop) for prop in property_values if prop.image_id < 0]
+    # populate the index of sha1 properties with prop_values that are bound to sha1s
+    [register_sha1_value(prop_values) for prop_values in property_values if prop_values.image_id < 0]
 
-    def assign_sha1_value(image_id, prop: PropertyValue):
-        image_index[image_id].properties[prop.property_id] = prop
+    def assign_sha1_value(image_id, prop_value: PropertyValue):
+        image_index[image_id].properties[prop_value.property_id] = prop_value
 
-    [assign_sha1_value(img.id, prop) for img in images if img.sha1 in sha1_properties for prop in
+    # assign the sha1 bound property values to the images with corresponding sha1s
+    [assign_sha1_value(img.id, prop_value) for img in images if img.sha1 in sha1_properties for prop_value in
      sha1_properties[img.sha1]]
 
     [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
