@@ -108,8 +108,10 @@
         },
         "tags": {},
         "export": {
-            "images": "Uniquement les images de l'onget",
-            "properties": "Uniquement les propriétés visibles"
+            "title": "Exporter les données",
+            "images": "Uniquement les images de l'onglet",
+            "properties": "Uniquement les propriétés visibles",
+            "export": "Exporter"
         }
     },
     "mini_ui": {

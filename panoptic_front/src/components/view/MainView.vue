@@ -86,6 +86,9 @@ const filteredImages = computed(() => {
     return filtered
 })
 
+// on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
+defineExpose({filteredImages})
+
 function computeGroups(force = false) {
     if (computeStatus.groups) {
         return

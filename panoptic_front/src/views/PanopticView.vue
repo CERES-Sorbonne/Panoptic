@@ -7,17 +7,19 @@ import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
 import Sha1PileModal from '@/components/modals/Sha1PileModal.vue';
+import ExportModal from '@/components/modals/ExportModal.vue';
 import { keyState } from '@/data/keyState';
 import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
 import MainView from '@/components/view/MainView.vue';
 import TabNav from '@/components/view/TabNav.vue';
 
 
+const mainViewRef = ref(null)
 const navElem = ref(null)
-
 const windowHeight = ref(400)
 
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
+const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
 onMounted(() => {
     nextTick(() => {
@@ -50,13 +52,16 @@ function onResize() {
     windowHeight.value = window.innerHeight
 }
 
+function showModal(){
+    globalStore.showModal(Modals.EXPORT, filteredImages)
+}
 
 </script>
 
 <template>
     <div class="d-flex flex-row m-0 p-0 overflow-hidden">
         <div v-if="globalStore.isLoaded">
-            <Menu />
+            <Menu @export="showModal()"/>
         </div>
 
         <div class="w-100" v-if="globalStore.isLoaded">
@@ -66,7 +71,7 @@ function onResize() {
             </div>
             <div class="custom-hr" />
             <MainView :tab="globalStore.tabs[globalStore.selectedTab]" :height="contentHeight"
-                v-if="globalStore.isLoaded && globalStore.tagTrees" />
+                v-if="globalStore.isLoaded && globalStore.tagTrees" ref="mainViewRef"/>
         </div>
         <div v-else class="loading">
             <i class="spinner-border" role="status"></i>
@@ -78,6 +83,7 @@ function onResize() {
     <PropertyModal :id="Modals.PROPERTY" />
     <Sha1PileModal :id="Modals.SHA1PILE" />
     <FolderToPropertyModal :id="Modals.FOLDERTOPROP" />
+    <ExportModal :id="Modals.EXPORT"/>
 
     <!-- <div class="above bg-info">lalala</div>
                 <div class="above2 bg-warning">lalala</div> -->
