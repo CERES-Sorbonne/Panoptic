@@ -81,7 +81,7 @@ onMounted(() => {
         <div class="modal-dialog">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header m-0 p-2 ps-3 pe-3">
-                    <b class="modal-title" id="exampleModalLabel">Nouvelle propriété</b>
+                    <b class="modal-title" id="exampleModalLabel">{{ $t("modals.properties.title") }}</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -92,7 +92,7 @@ onMounted(() => {
                         </div> -->
                         <div class="flex-grow-1 me-1">
                             <input type="text" style="width: 100%" class="text-input input-lg" id="propertyName" name="propertyName"
-                                v-model="newProperty.name" placeholder="Nom de la propriété" required>
+                                v-model="newProperty.name" :placeholder="$t('modals.properties.input')" required>
                             <div class="invalid-feedback">
                                 {{ nameError }}
                             </div>
@@ -104,8 +104,8 @@ onMounted(() => {
                     </form>
                 </div>
                 <div class="modal-footer pt-2 pb-2">
-                    <button type="button" @click="hide">Anuler</button>
-                    <button type="button" @click="saveProperty">Confirmer</button>
+                    <button type="button" @click="hide">{{ $t("modals.properties.cancel") }}</button>
+                    <button type="button" @click="saveProperty">{{ $t("modals.properties.confirm") }}</button>
                 </div>
             </div>
         </div>

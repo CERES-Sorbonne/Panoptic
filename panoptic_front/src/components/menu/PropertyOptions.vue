@@ -137,11 +137,14 @@ function renameProperty() {
             </template>
 
             <div style="width: 20px; margin-top: 2px;" class="text-center">
-                <i v-if="props.property.mode == PropertyMode.id" class="bi bi-link-45deg"></i>
+                <wTT v-if="props.property.mode == PropertyMode.id" :icon="false" :click="false" message="main.nav.properties.linked_property_tooltip" >
+                    <i class="bi bi-link-45deg"></i>
+                </wTT>
             </div>
             <div style="width: 20px; margin-top: 2px;" @click="toggleVisible" class="btn-icon text-center">
-                <span v-if="sha1Mode && props.property.mode == PropertyMode.id" class="bi bi-eye-slash"
-                    @click.stop=""></span>
+                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id" :icon="false" message="main.nav.properties.hidden_property_tooltip">
+                    <span class="bi bi-eye-slash" @click.stop=""></span>
+                </wTT>
                 <wTT pos="right" :icon="false" message="main.nav.properties.hide_property_tooltip" v-else>
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
@@ -149,8 +152,8 @@ function renameProperty() {
             <div class="text-center" style="width: 20px; margin-top: 2px;">
                 <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
                     @click="toggleValuesMenu" style="cursor: pointer;">
-                    <i v-if="valuesOpen" class="bi bi-chevron-down"></i>
-                    <i v-else class="bi bi-chevron-right"></i>
+                    <wTT v-if="valuesOpen" :icon="false" message="main.nav.properties.collapse_property_tooltip"><i  class="bi bi-chevron-down"></i></wTT>
+                    <wTT v-else :icon="false" message="main.nav.properties.expand_property_tooltip"><i class="bi bi-chevron-right"></i></wTT>
                 </div>
             </div>
         </div>
@@ -158,15 +161,15 @@ function renameProperty() {
             <div v-if="opionsOpen" class="ms-3 pt-1">
                 <div class="options hover-light" :class="isInFilter ? ' text-primary' : ''">
                     <FilterDropdown :manager="filterManager()" :filter-id="filterId" :mode="2" :property-id="property.id">
-                        <i class="bi bi-funnel-fill me-2"></i>Filtrer
+                        <i class="bi bi-funnel-fill me-2"></i>{{ $t("main.menu.filters") }}
                     </FilterDropdown>
                 </div>
                 <div class="options hover-light" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
-                        class="bi bi-filter me-2"></i>Trier</div>
+                        class="bi bi-filter me-2"></i>{{ $t("main.menu.sort") }}</div>
                 <div class="options hover-light" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
-                        class="bi bi-collection me-2"></i>Grouper</div>
+                        class="bi bi-collection me-2"></i>{{ $t("main.menu.groupby") }}</div>
                 <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i
-                        class="bi bi-trash me-2"></i>Supprimer</div>
+                        class="bi bi-trash me-2"></i>{{ $t("main.nav.properties.delete_property") }}</div>
             </div>
             <div v-else-if="valuesOpen">
                 <TagProperty :data="props.property" />
