@@ -10,6 +10,7 @@ import {
 } from '../data/models'
 import { MAX_GROUPS } from '@/utils/groups'
 import { FilterManager } from '@/utils/filter'
+import { isTagId } from '@/utils/utils'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -143,6 +144,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return sha1s.map(sha1 => globalStore.sha1Index[sha1][0])
     },
     importImage(img: Image) {
+        Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({propertyId: Number(pId)}, img.properties[pId]))
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.containerRatio = computeContainerRatio(img)
@@ -181,6 +183,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         this.updatePropertyOptions()
         this.isLoaded = true
+
+        this.countTags()
     },
     applyImportState(state: ImportState) {
         // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
@@ -192,16 +196,28 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         await apiImportFolder()
         await this.fetchAllData()
     },
+    countTags() {
+        Object.values(this.tags).forEach((tags:Tags) => Object.values(tags).forEach(t => t.count = 0))
 
+        for(let img of Object.values(globalStore.images) as Image[]) {
+            for(let propValue of Object.values(img.properties) as PropertyValue[]) {
+
+                if(!isTagId(propValue.propertyId)) continue
+                if(!propValue.value || !Array.isArray(propValue.value)) continue
+
+                for(let tagId of propValue.value) {
+                    this.tags[propValue.propertyId][tagId].count += 1
+                }
+            }
+        }
+    },
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: number): Promise<Tag> {
-        //console.log(color)
         if (color == undefined) {
-            //console.log("find color")
-            // let options = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590", "9daebe"]
             let r = Math.round(Math.random() * (Colors.length - 1))
             color = r
         }
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
+        newTag.count = 0
         this.tags[propertyId][newTag.id] = newTag
         return newTag
     },
@@ -283,6 +299,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
                 this.images[id].properties[propertyId] = old
             }
 
+        }
+
+        if(isTagId(propertyId)) {
+            this.countTags()
         }
     },
     // async addOrUpdatePropertyToImage(propertyId: number, imageIds: number | number[], sha1s: string | string[], value: any) {

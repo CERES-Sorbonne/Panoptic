@@ -190,7 +190,7 @@ watch(rowHeight, emitResizeOnce)
             </div>
             <div v-if="property.type == PropertyType._folders" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id]?.value != undefined">
-                    <TagBadge :tag="globalStore.folders[image.properties[property.id]?.value].name" color="#c3cfd9" />
+                    <TagBadge :tag="globalStore.folders[image.properties[property.id]?.value].name" :color="-1" />
                 </span>
             </div>
             <div v-if="property.type == PropertyType._sha1" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">

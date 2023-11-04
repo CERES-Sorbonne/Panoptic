@@ -50,7 +50,7 @@ onMounted(updateFromStore)
 <template>
     <Dropdown ref="dropdown" @hide="setName(localName)">
         <template v-slot:button>
-            <span class="pe-1"><i class="bi bi-three-dots sm-btn" /></span>
+            <span class="pe-1"><i class="bi bi-three-dots sm-btn"  style="position: relative; top: 1.5px;"/></span>
         </template>
 
         <template v-slot:popup>
