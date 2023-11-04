@@ -17,9 +17,9 @@ const tag = computed(() => globalStore.tagNodes[props.propertyId][props.tagId])
 const realChildren = computed(() => tag.value?.children ?? [])
 const excluded = computed(() => {
     const res = new Set<number>()
-    
+
     const recursive = (t: Tag) => {
-        if(t == undefined) return
+        if (t == undefined) return
         res.add(t.id)
         t.parents.forEach(p => recursive(globalStore.tags[props.propertyId][p]))
     }
@@ -43,11 +43,15 @@ onMounted(() => localChildren.value.push(...realChildren.value.map(c => c.id)))
 <template>
     <Dropdown>
         <template v-slot:button>
-            <i class="bi bi-node-plus sm-btn"></i>
+            <span class="text-nowrap  sm-btn">
+                <i class="bi bi-node-plus me-1" style="position: relative; top: 1.5px;"></i>
+                <span style="font-size: 10px;">{{ realChildren.length }}</span>
+            </span>
         </template>
         <template v-slot:popup>
             <div class="p-1 main-box">
-                <TagInputNoDropdown v-model="localChildren" :property-id="props.propertyId" :excluded="excluded" @select="addChild" @unselect="deleteChild"/>
+                <TagInputNoDropdown v-model="localChildren" :property-id="props.propertyId" :excluded="excluded"
+                    @select="addChild" @unselect="deleteChild" />
             </div>
         </template>
     </Dropdown>
@@ -58,5 +62,4 @@ onMounted(() => localChildren.value.push(...realChildren.value.map(c => c.id)))
     padding: 4px;
     width: 250px;
 }
-
 </style>

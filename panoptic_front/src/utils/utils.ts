@@ -1,4 +1,4 @@
-import { Group, Image, PropertyMode, PropertyRef } from "@/data/models"
+import { Group, Image, PropertyMode, PropertyRef, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
 
 export function hasProperty(image: Image, propertyId: number) {
@@ -24,13 +24,13 @@ export function getImageProperty(imgId: number, propId: number) {
     const img = globalStore.images[imgId]
     const p = globalStore.properties[propId]
     const propRef: PropertyRef = {
-            propertyId: p.id,
-            type: p.type,
-            value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
-            imageId: img.id,
-            mode: p.mode
-        }
-        return propRef
+        propertyId: p.id,
+        type: p.type,
+        value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
+        imageId: img.id,
+        mode: p.mode
+    }
+    return propRef
 }
 
 export function isImageGroup(group: Group) {
@@ -39,4 +39,9 @@ export function isImageGroup(group: Group) {
 
 export function isPileGroup(group: Group) {
     return Array.isArray(group.imagePiles) && group.imagePiles.length > 0
+}
+
+
+export function isTagId(propId: number) {
+    return isTag(globalStore.properties[propId].type)
 }

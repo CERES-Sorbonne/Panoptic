@@ -54,6 +54,7 @@ export interface Tag {
     value: string;
     color?: number;
     children?: Set<number>
+    count?: number
 }
 
 export interface Property {
