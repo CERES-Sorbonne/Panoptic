@@ -321,7 +321,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                     @remove:selected="selector.clear()" />
                             </div>
 
-                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="availableWidth - 930"
+                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510"
                                 :data="groupData" :properties="similarityVisiblePropsList" ref="scroller"
                                 :selector="selector" :hide-options="true" :hide-group="true" />
                         </div>
