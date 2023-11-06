@@ -279,7 +279,7 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
                         v-if="isCreatePossible" :class="optionClass(filteredTagList.length) + ' rounded-bottom'"
                         style="cursor: pointer;">
                         <span class="text-muted ms-1">Create </span>
-                        <TagBadge :tag="tagInput" color="grey" />
+                        <TagBadge :tag="tagInput" :color="-1" />
                     </li>
                 </ul>
             </div>
