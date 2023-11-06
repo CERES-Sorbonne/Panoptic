@@ -1,7 +1,8 @@
-import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter, propertyDefault } from "@/data/models";
+import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter, propertyDefault, isTag } from "@/data/models";
 import { globalStore } from "@/data/store";
 import { isArray } from "@vue/shared";
 import { reactive } from "vue";
+import { getTagChildren } from "./utils";
 
 
 export function defaultOperator(propertyType: PropertyType) {
@@ -53,15 +54,25 @@ const operatorMap: { [operator in FilterOperator]?: any } = {
         if (isEmpty(a)) return false;
         return a.includes(b)
     },
-    [FilterOperator.containsAll]: (a: any[], b: any[]) => {
+    [FilterOperator.containsAll]: (a: Set<number>, b: number[][]) => {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return false;
-        return b.filter(e => a.includes(e)).length == b.length
+
+        for(let tagList of b) {
+            if(!tagList.some(tId => a.has(tId))) return false
+        }
+        return true
+        // return b.filter(e => a.includes(e)).length == b.length
     },
-    [FilterOperator.containsAny]: (a: any[], b: any[]) => {
+    [FilterOperator.containsAny]: (a: Set<number>, b: number[][]) => {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return false;
-        return a.some(e => b.includes(e))
+        // return a.some(e => b.includes(e))
+
+        for(let tagList of b) {
+            if(tagList.some(tId => a.has(tId))) return true
+        }
+        return false
     },
     [FilterOperator.containsNot]: (a: any[], b: any[]) => {
         if (isEmpty(b)) return true;
@@ -132,33 +143,18 @@ export function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
             let property = image.properties[propId]
             let propertyValue = property ? property.value : undefined
 
-            if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && (propType == PropertyType.tag || propType == PropertyType.multi_tags)) {
+            if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && isTag(propType)) {
                 let filterValue = nfilter.value as number[]
-                // console.log(filterValue)
-                let tags = globalStore.tagNodes[propId]
-                let found = {} as any
-                let toCheck = [] as number[]
-                filterValue.forEach((v: number) => toCheck.push(v))
-                while (toCheck.length > 0) {
-                    let id = toCheck.splice(0, 1)[0]
-                    if (found[id]) {
-                        continue
-                    }
-                    found[id] = true
-                    let tag = tags[id]
-                    if (tag && tag.children != undefined) {
-                        Object.values(tag.children).forEach((c: any) => { toCheck.push(c.id) })
-                    }
-                }
 
-                filterValue = Object.keys(found).map(Number)
-                // console.log('updated to: ' + filterValue)
-                nfilter.value = filterValue
+                const tagSet = filterValue.map((v:number) => Array.from(getTagChildren(globalStore.tags[propId][v])))
+                nfilter.value = tagSet
+                if(propertyValue !== undefined) {
+                    propertyValue = new Set(propertyValue)
+                }
             }
 
             let subRes = computeFilter(nfilter, propertyValue)
             res = groupOperatorFnc(res, subRes)
-            // console.log('subRes : ' + subRes + '  >> ' + res)
         }
     }
     return res
