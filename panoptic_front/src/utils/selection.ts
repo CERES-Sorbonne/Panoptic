@@ -146,11 +146,11 @@ export class ImageSelector {
             this.selectImages(group.images.map(i => i.id))
             return
         }
-        group.groups.forEach(this.selectGroup)
+        group.groups.forEach(g => this.selectGroup(g))
     }
 
     unselectGroup(group: Group) {
-        console.log(group)
+        // console.log(group)
         if (group.images.length > 0) {
             this.unselectImages(group.images.map(i => i.id))
             return
