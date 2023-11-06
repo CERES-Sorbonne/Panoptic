@@ -1,6 +1,7 @@
-from typing import Optional, Any
-from fastapi_camelcase import CamelModel
+from __future__ import annotations
 
+from typing import Any
+from fastapi_camelcase import CamelModel
 from .models import PropertyType, JSON
 
 
@@ -17,7 +18,12 @@ class PropertyPayload(CamelModel):
 class UpdatePropertyPayload(CamelModel):
     id: int
     name: str
-    # type: Optional[PropertyType]
+    # type: PropertyType | None
+
+
+class ExportPropertiesPayload(CamelModel):
+    properties: list[int] | None
+    images: list[int] | None
 
 
 class SetPropertyValuePayload(CamelModel):

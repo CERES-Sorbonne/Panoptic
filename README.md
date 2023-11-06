@@ -14,6 +14,36 @@ Since it requires deep learning libraries, it is recommended to use it with a co
 - `pip install panoptic`
 - `panoptic`
 
+## Docker installation
+
+### Option 1 : One folder to rule them all
+Make a folder for the docker with a subfolder for the images `/path/to/your/folder/images`.
+```bash
+docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
+```
+### Option 2 : separate data and images folders
+Make a folder for the panoptic datas (database, thumbnails, etc.) `/path/to/your/data/`.
+And another one withe your images (could be an existing one) `/path/to/your/images/`.
+```bash
+docker run -it -p 8000:8000 \
+-v /path/to/your/data:/data \
+-v /path/to/your/images:/data/images \
+--name panoptic \
+ceressorbonne/panoptic
+```
+
+### Access
+You can now access panoptic through:
+https://localhost:8000
+As if you were to launch it with the python version
+
+### Restart
+If you happen to stop panoptic, you can re launch it with :
+```bash
+docker start -ia panoptic
+```
+
+
 ## Installation (development)
 The following steps involve cloning the directory and are recommended for users who wish to have access to the development versions, or who wish to modify the code themselves in order to contribute.
 

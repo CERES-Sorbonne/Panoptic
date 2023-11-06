@@ -15,11 +15,17 @@ const props = defineProps({
     icon: {
         type: Boolean,
         default: true
+    },
+    click: {
+        type: Boolean,
+        default: true
     }
 })
 
+const cssClass = props.click ? "cursor":""
+
 const realMessage = computed(() => {
-    if(props.message.slice(0, 4) === 'main'){
+    if(['main', 'modals'].indexOf(props.message.split('.')[0]) > -1){
         return t(props.message)
     }
     else{
@@ -36,12 +42,12 @@ onMounted(() => {
 <template>
     <template v-if="props.icon">
         <slot/>
-        <span class="mytt" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
+        <span :class="cssClass" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
             <i class="bi bi-question-circle small-icon"></i>
         </span>
     </template>
     <template v-else>
-        <span class="mytt" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
+        <span :class="cssClass" data-boundary="window" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
             <slot /> 
         </span>
     </template>
@@ -54,10 +60,7 @@ onMounted(() => {
     margin-left: 5px;
     margin-right:5px;
 }
-.mytt{
-    /* display:contents; */
-}
-.mytt:hover{
+.cursor{
     cursor:pointer;
 }
 </style>
