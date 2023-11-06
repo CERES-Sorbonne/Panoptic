@@ -10,7 +10,7 @@ import {
 } from '../data/models'
 import { MAX_GROUPS } from '@/utils/groups'
 import { FilterManager } from '@/utils/filter'
-import { isTagId } from '@/utils/utils'
+import { getFolderAndParents, isTagId } from '@/utils/utils'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -185,6 +185,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.isLoaded = true
 
         this.countTags()
+        this.countImagePerFolder()
+        
     },
     applyImportState(state: ImportState) {
         // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
@@ -210,6 +212,17 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
                 }
             }
         }
+    },
+    countImagePerFolder() {
+        const folderToParents: {[fId: number]: number[]} = {} 
+        const folderList = Object.values(this.folders) as Folder[]
+        folderList.forEach(folder => {
+            folderToParents[folder.id] = getFolderAndParents(folder)
+            folder.count = 0
+        })
+
+        const images = Object.values(this.images) as Image[]
+        images.forEach(img => folderToParents[img.folder_id].forEach(id => globalStore.folders[id].count += 1))
     },
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: number): Promise<Tag> {
         if (color == undefined) {
