@@ -1,4 +1,4 @@
-import { Group, Image, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
+import { Folder, Group, Image, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
 
 export function hasProperty(image: Image, propertyId: number) {
@@ -60,4 +60,12 @@ export function getTagChildren(tag: Tag) {
     recursive(node)
 
     return children
+}
+
+export function getFolderAndParents(folder: Folder, parents: number[]=[]) {
+    parents.push(folder.id)
+    if(folder.parent != undefined) {
+        parents = getFolderAndParents(globalStore.folders[folder.parent], parents)
+    }
+    return parents
 }

@@ -400,6 +400,7 @@ export interface Folder {
     children: Array<Folder>
     show?: boolean // frontend variable to know if exanded in view or not
     selected?: boolean // frontend variable for smart folder filter
+    count?: number
 }
 
 export interface ImportState {
