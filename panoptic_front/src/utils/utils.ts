@@ -1,4 +1,4 @@
-import { Group, Image, PropertyMode, PropertyRef, isTag } from "@/data/models"
+import { Group, Image, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
 
 export function hasProperty(image: Image, propertyId: number) {
@@ -44,4 +44,20 @@ export function isPileGroup(group: Group) {
 
 export function isTagId(propId: number) {
     return isTag(globalStore.properties[propId].type)
+}
+
+export function getTagChildren(tag: Tag) {
+    const node = globalStore.tagNodes[tag.property_id][tag.id]
+    // console.log(node)
+
+    let children = new Set()
+    const recursive = (t: TreeTag) => {
+        children.add(t.id)
+        if(!t.children) return
+        t.children.forEach(c => children.add(c.id))
+        t.children.forEach(c => recursive(c))
+    }
+    recursive(node)
+
+    return children
 }
