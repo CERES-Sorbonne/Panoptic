@@ -8,8 +8,10 @@
                 "title": "Propriétés",
                 "properties_tooltip": "Les différents champs associés à chaque image",
                 "import_properties_tooltip": "Importer un fichier de propriétés",
+                "export_properties_tooltip": "Exporter un fichier de propriétés",
                 "hide_property_tooltip": "Afficher / Masquer la propriété dans la vue",
                 "linked_property_tooltip": "Propriété liée à une instance d'image, pour plus d'informations lire la documentation sur les instances",
+                "hidden_property_tooltip": "Cette propriété n'est pas visible dans ce mode car liée à une instance d'image",
                 "expand_property_tooltip": "Afficher les tags",
                 "collapse_property_tooltip": "Masquer les tags",
                 "add_property": "Nouvelle propriété",
@@ -18,15 +20,15 @@
             "computed": {
                 "title": "Propriétés Panoptic",
                 "computed_tooltip": "Des propriétés non modifiables générées par panoptic",
-                "sha1_tooltip": "Une signature unique, deux images parfaitement identiques auront le même sha1",
-                "ahash_tooltip": "Une signature moyenne, deux images très proches visuellement auront le même ahash",
-                "folders": "dossiers"
+                "1_tooltip": "Une signature unique, deux images parfaitement identiques auront le même sha1",
+                "2_tooltip": "Une signature moyenne, deux images très proches visuellement auront le même ahash",
+                "3_tooltip": "Dossier contenant l'image source"
             }
         },
         "menu": {
-            "add_tab_tooltip": "Créer une nouvelle vue",
-            "rename_tab_tooltip": "Renommer la vue",
-            "delete_tab_tooltip": "Supprimer la vue",
+            "add_tab_tooltip": "Créer un nouvel onglet",
+            "rename_tab_tooltip": "Renommer l'onglet",
+            "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
             "search_tooltip": "Chercher des images correspondant au text en utilisant le modèle CLIP",
             "grid_tooltip": "Passer en vue grille d'images",
@@ -61,13 +63,13 @@
             "fill_property_tooltip": "Tagger toutes les images similaires avec la valeur de cette propriété"
 
         },
-        "add_property": {
+        "properties": {
             "title": "Nouvelle propriété",
             "input": "Nom de la propriété",
             "cancel": "Annuler",
             "confirm": "Confirmer",
-            "text": "Texte",
-            "text_tooltip": "Du texte, ex: le contenu d'un tweet, la description d'une image",
+            "string": "Texte",
+            "string_tooltip": "Du texte, ex: le contenu d'un tweet, la description d'une image",
             "number": "Numérique",
             "number_tooltip": "Des nombres, ex: le nombre de likes sur twitter, la largeur d'un tableau",
             "tag": "Label",
@@ -105,7 +107,13 @@
             "clear": "Clear",
             "apply": "Appliquer"
         },
-        "tags": {}
+        "tags": {},
+        "export": {
+            "title": "Exporter les données",
+            "images": "Uniquement les images de l'onglet",
+            "properties": "Uniquement les propriétés visibles",
+            "export": "Exporter"
+        }
     },
     "mini_ui": {
         "title": "Panoptic",

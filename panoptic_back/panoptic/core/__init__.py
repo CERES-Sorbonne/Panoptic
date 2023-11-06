@@ -1,4 +1,5 @@
 import atexit
+import io
 import json
 import logging
 import os
@@ -7,6 +8,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import List, Any
 
 import pandas
+import pandas as pd
 from fastapi import HTTPException
 from tqdm import tqdm
 
@@ -105,28 +107,36 @@ async def add_property_values(property_id: int, value: Any, image_ids: List[int]
 async def get_full_images(image_ids: List[int] = None) -> List[Image]:
     images = await db.get_images(image_ids)
     sha1s = list({img.sha1 for img in images})
+    # get ids bound property values
     property_values = await db.get_property_values(image_ids=image_ids)
+    # get sha1 bound property values when image_ids is set and therefore property_values only return id bound properties
+    if image_ids:
+        sha1s_values = await db.get_property_values(sha1s=sha1s)
+        property_values += sha1s_values
     ahashs = await db.get_sha1_ahashs(sha1s=sha1s)
     image_index = {img.id: img for img in images}
 
-    def assign_value(prop):
-        image_index[prop.image_id].properties[prop.property_id] = prop
+    def assign_value(prop_value):
+        image_index[prop_value.image_id].properties[prop_value.property_id] = prop_value
 
-    [assign_value(prop) for prop in property_values if prop.image_id >= 0]
+    # fill the index with ids bound property values
+    [assign_value(prop_value) for prop_value in property_values if prop_value.image_id >= 0]
 
     sha1_properties = {}
 
-    def register_sha1_value(prop: PropertyValue):
-        if prop.sha1 not in sha1_properties:
-            sha1_properties[prop.sha1] = []
-        sha1_properties[prop.sha1].append(prop)
+    def register_sha1_value(prop_value: PropertyValue):
+        if prop_value.sha1 not in sha1_properties:
+            sha1_properties[prop_value.sha1] = []
+        sha1_properties[prop_value.sha1].append(prop_value)
 
-    [register_sha1_value(prop) for prop in property_values if prop.image_id < 0]
+    # populate the index of sha1 properties with prop_values that are bound to sha1s
+    [register_sha1_value(prop_values) for prop_values in property_values if prop_values.image_id < 0]
 
-    def assign_sha1_value(image_id, prop: PropertyValue):
-        image_index[image_id].properties[prop.property_id] = prop
+    def assign_sha1_value(image_id, prop_value: PropertyValue):
+        image_index[image_id].properties[prop_value.property_id] = prop_value
 
-    [assign_sha1_value(img.id, prop) for img in images if img.sha1 in sha1_properties for prop in
+    # assign the sha1 bound property values to the images with corresponding sha1s
+    [assign_sha1_value(img.id, prop_value) for img in images if img.sha1 in sha1_properties for prop_value in
      sha1_properties[img.sha1]]
 
     [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
@@ -200,7 +210,7 @@ async def read_properties_file(data: pandas.DataFrame):
 
     # then for each property to create
     for prop in properties_to_create:
-        if prop == "key" or prop == "panoptic_id":
+        if prop in ["key", "panoptic_id", "sha1"]:
             continue
 
         # create the property
@@ -231,6 +241,42 @@ async def read_properties_file(data: pandas.DataFrame):
             # now change all values in the dataframe with the real value that we are going to insert
             data.loc[data.index, prop] = data[prop].map(tag_matcher)
         await db.set_multiple_property_values(property.id, list(data[prop]), list(data.panoptic_id))
+
+
+async def export_properties(images_id=None, properties_list=None) -> io.StringIO:
+    """
+    Allow to export selected images and properties into a csv file
+    """
+    images = await get_full_images(images_id)
+    properties = await get_properties()
+    tags = await get_tags()
+
+    # filter properties id that we want to keep
+    properties_list =  list(properties.keys()) if not properties_list else properties_list
+    properties = [properties[pid] for pid in properties_list]
+    columns = ["key", "sha1[string]"] + [f"{p.name}[{p.type.value}]" for p in properties]
+    rows = []
+    for image in images:
+        row = [image.name, image.sha1]
+        for prop in properties:
+            if prop.id in image.properties:
+                value = image.properties[prop.id].value
+                # if it's a tag let's fetch tag value from tag id
+                if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+                    if type(value) != list:
+                        row.append(None)
+                        continue
+                    row.append(",".join([tags[prop.id][t].value for t in value]))
+                else:
+                    row.append(value)
+            else:
+                row.append(None)
+        rows.append(row)
+    df = pd.DataFrame.from_records(rows, columns=columns)
+    buff = io.StringIO()
+    df.to_csv(path_or_buf=buff, index=False, sep=";")
+    buff.seek(0)
+    return buff
 
 
 async def add_folder(folder):

@@ -7,7 +7,7 @@ import aiofiles as aiofiles
 import pandas as pd
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, StreamingResponse
 from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
@@ -17,12 +17,12 @@ from panoptic.compute.similarity import get_similar_images_from_text
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
-    tag_add_parent
+    tag_add_parent, export_properties
 from panoptic.core import db
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
-    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload
+    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload
 
 app = FastAPI()
 app.add_middleware(
@@ -63,6 +63,15 @@ async def properties_by_file(file: UploadFile):
     data = pd.read_csv(file.file, sep=";")
     return await read_properties_file(data)
 
+
+@app.post('/export')
+async def export_properties_route(payload: ExportPropertiesPayload) -> StreamingResponse:
+    stream = await export_properties(payload.images, payload.properties)
+    response = StreamingResponse(iter([stream.getvalue()]),
+                                 media_type="text/csv"
+                                 )
+    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+    return response
 
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
