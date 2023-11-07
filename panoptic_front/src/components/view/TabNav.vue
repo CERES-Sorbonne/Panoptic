@@ -9,6 +9,11 @@ const editTab = ref(-1)
 const newTabName = ref('')
 const inputElem = ref(null)
 
+const props = defineProps({
+    reRender: Function
+})
+
+
 function select(id: number) {
     if (globalStore.selectedTab == id) {
         // setEditTab(id)
@@ -45,6 +50,7 @@ async function deleteTab(tab: Tab) {
 
 const hover = reactive({}) as any
 const editId = ref(-1)
+const langs = ['fr', 'en']
 
 </script>
 
@@ -73,6 +79,14 @@ const editId = ref(-1)
                 </template>
             </div>
             <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"><span class="bi bi-plus"></span></button></wTT>
+            <div class="lang">
+                <i class="bi bi-translate" style="margin-right:0.5rem"></i>
+                <select v-model="$i18n.locale" @change="props.reRender()">
+                    <option v-for="(lang, i) in langs" :key="`Lang${i}`" :value="lang">
+                        {{ lang.toUpperCase() }}
+                    </option>
+                </select>
+        </div>
         </div>
     </nav>
 </template>
@@ -84,5 +98,13 @@ const editId = ref(-1)
 
 .hidden {
     visibility: hidden;
+}
+
+.lang{
+    margin-left: auto;
+    order: 2;
+    margin-top: 0.1em;
+    margin-right: 0.5em;
+    font-size:16px
 }
 </style>
