@@ -6,6 +6,7 @@ import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import { UNDEFINED_KEY } from '@/utils/groups'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
+import wTT from '../../tooltips/withToolTip.vue'
 
 
 const props = defineProps({
@@ -218,30 +219,34 @@ function closeChildren() {
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.count }} Images</div>
         <div v-if="group.groups" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
-            group.groups.length }} Groupes</div>
+            group.groups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
-                <div class="button" @click="computeClusters">Créer clusters</div>
+                <wTT message="main.view.group_clusters_tooltip">
+                    <div class="button" @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
+                </wTT>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
                 <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
-                <div class="button" @click="recommandImages">Images Similaires</div>
+                <wTT message="main.recommand.tooltip">
+                    <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
+                </wTT>
             </div>
             <div v-if="(hasImages || hasPiles) && hasSubgroups" class="ms-2">
-                <div class="button" @click="clear">Clear</div>
+                <div class="button" @click="clear">{{ $t('main.view.remove_clusters') }}</div>
             </div>
         </div>
 
         <div v-if="hasSubgroups && hoverGroup && hasOpenChildren"
             class="ms-1 text-secondary align-self-center close-children" @click="closeChildren">
-            Reduire
+            {{ $t('main.view.collapse') }}
         </div>
 
     </div>

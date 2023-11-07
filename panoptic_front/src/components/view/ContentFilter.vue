@@ -4,13 +4,12 @@ import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
-import { apiStartPCA } from '../../data/api'
 import Toggle from '@vueform/toggle'
 import { computed, ref } from 'vue';
-import { globalStore } from '@/data/store';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { ImageSelector } from '@/utils/selection';
 import { FilterManager } from '@/utils/filter';
+import wTT from '../tooltips/withToolTip.vue'
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -28,23 +27,33 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
 
 <template>
     <div class="d-flex flex-row p-2">
-        <div class="d-flex flex-row search-input me-5">
-            <div class="bi bi-search float-start bi-sm"></div>
-            <input type="text" class="input-hidden" placeholder="Chercher par texte"
-                @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
-        </div>
+        <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
+            <div class="d-flex flex-row search-input me-5">
+                <div class="bi bi-search float-start bi-sm"></div>
+                    <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')"
+                        @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
+            </div>
+        </wTT>
 
         <div class="me-5">
-            <i class="bi bi-grid-3x3-gap-fill me-2 btn-icon" @click="props.tab.data.display = 'tree'"></i>
-            <i class="bi bi-table btn-icon"  @click="props.tab.data.display = 'grid'"></i>
+            <wTT message="main.menu.grid_tooltip">
+                <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.data.display=='tree' ? '' : ' text-secondary')" @click="props.tab.data.display = 'tree'"></i>
+            </wTT>
+            <wTT message="main.menu.table_tooltip">
+                <i id="toot" :class="'bi bi-table btn-icon'  + (props.tab.data.display=='grid' ? '' : ' text-secondary')" @click="props.tab.data.display = 'grid'">
+                </i></wTT>
         </div>
 
-        <div class="bi bi-aspect-ratio me-1"></div>
+        <wTT message="main.menu.image_size_tooltip" :click="false">
+            <div class="bi bi-aspect-ratio me-1"></div>
+        </wTT>
         <div>
             <RangeInput :min="30" :max="500" v-model="props.tab.data.imageSize" />
         </div>
         <div class="ms-5">
-            <Toggle v-model="props.tab.data.sha1Mode" on-label="Unique" off-label="All" class="custom-toggle" />
+            <wTT message="main.menu.image_mode_tooltip">
+                <Toggle v-model="props.tab.data.sha1Mode" :on-label="$t('main.menu.sha1_images')" :off-label="$t('main.menu.all_images')" class="custom-toggle" />
+            </wTT>
         </div>
         <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds" @remove:selected="props.selector.clear()"/>
 

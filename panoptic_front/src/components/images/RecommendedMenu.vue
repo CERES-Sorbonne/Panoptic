@@ -5,6 +5,7 @@ import { Image, PropertyType, Recommendation, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import { UNDEFINED_KEY } from '@/utils/groups';
+import wTT from '../tooltips/withToolTip.vue'
 
 
 const props = defineProps({
@@ -104,7 +105,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
 <template>
     <div class="reco-container">
         <div class="d-flex flex-row m-0 ps-2 pb-2">
-            <span class="text-secondary me-2">Images recommandées</span>
+            <wTT icon-pos="left" message="main.recommand.tooltip" icon="true"><span class="text-secondary me-2">{{$t('main.recommand.title')}}</span></wTT>
             <div class="flex-grow-1">
                 <div class="d-flex flex-row">
                     <template v-for="value, index in props.reco.values">
@@ -113,7 +114,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
                     </template>
                 </div>
             </div>
-            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.reco.groupId)">Voir Groupe</span>
+            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.reco.groupId)">{{$t('main.recommand.group')}}</span>
             <span class="text-secondary me-1 close  ps-1 pe-1 clickable" @click="emits('close')"><i class="bi bi-x"></i></span>
         </div>
         <div :style="'margin-left:' + imageMargin + 'px;'">

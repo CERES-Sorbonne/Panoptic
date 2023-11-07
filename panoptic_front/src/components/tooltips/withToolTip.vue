@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, nextTick, useSlots  } from 'vue';
 import * as boostrap from "bootstrap"
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n({ useScope: 'global' })
-const tooltip = ref()
+const tooltipRef = ref()
+
+let tooltip = null
 
 const props = defineProps({
     pos: {
@@ -14,7 +16,11 @@ const props = defineProps({
     message: String,
     icon: {
         type: Boolean,
-        default: true
+        default: false
+    },
+    iconPos: {
+        type: String,
+        default: "right"
     },
     click: {
         type: Boolean,
@@ -22,7 +28,7 @@ const props = defineProps({
     }
 })
 
-const cssClass = props.click ? "cursor":""
+const cssClass = props.click ? "cursor wtt":"wtt"
 
 const realMessage = computed(() => {
     if(['main', 'modals'].indexOf(props.message.split('.')[0]) > -1){
@@ -33,22 +39,27 @@ const realMessage = computed(() => {
     }
 })
 
-onMounted(() => {
-    let s = new boostrap.Tooltip(tooltip.value)
+onMounted(async () => {
+    tooltip = new boostrap.Tooltip(tooltipRef.value, {trigger: 'hover'})
 })
 
+function hide() {
+    // needed to avoid some bug where tooltip wouldnt disapear after a button click 
+    tooltip.hide()
+}
 </script>
 
 <template>
     <template v-if="props.icon">
-        <slot/>
-        <span :class="cssClass" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
+        <slot v-if="props.iconPos==='right'"/>
+        <span :class="cssClass" data-bs-toggle="tooltip" data-bs-trigger="hover" :data-bs-placement="props.pos" :title="realMessage" ref="tooltipRef" @click="hide()">
             <i class="bi bi-question-circle small-icon"></i>
         </span>
+        <slot v-if="props.iconPos==='left'" />
     </template>
     <template v-else>
-        <span :class="cssClass" data-boundary="window" data-bs-toggle="tooltip" :data-bs-placement="props.pos" :title="realMessage" ref="tooltip">
-            <slot /> 
+        <span :class="cssClass" data-bs-toggle="tooltip" data-bs-trigger="hover" :data-bs-placement="props.pos" :title="realMessage" ref="tooltipRef" @click="hide()">
+            <slot/> 
         </span>
     </template>
     
@@ -62,5 +73,13 @@ onMounted(() => {
 }
 .cursor{
     cursor:pointer;
+}
+
+.tooltip{
+    font-size:2px !important;
+}
+
+.wtt{
+    /* display: contents; */
 }
 </style>

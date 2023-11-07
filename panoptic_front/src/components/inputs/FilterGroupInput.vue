@@ -59,7 +59,7 @@ onMounted(() => {
         <table class="table table-sm">
             <tr v-for="filter, index in filters">
                 <td class="align-top ps-2">
-                    <div v-if="index == 0" class="m-0 p-0">Where</div>
+                    <div v-if="index == 0" class="m-0 p-0">{{$t('modals.filters.where')}}</div>
                     <template v-else-if="index == 1">
                         <div class="dropdown-toggle p-0 hover-light ps-1" data-bs-toggle="dropdown"
                             data-bs-auto-close="true" aria-expanded="false"
@@ -68,9 +68,9 @@ onMounted(() => {
                         </div>
                         <ul class="dropdown-menu bg-white">
                             <li><a class="dropdown-item" href="#"
-                                    @click="props.filter.groupOperator = FilterOperator.and">and</a></li>
+                                    @click="props.filter.groupOperator = FilterOperator.and">{{$t('modals.filters.and')}}</a></li>
                             <li><a class="dropdown-item" href="#"
-                                    @click="props.filter.groupOperator = FilterOperator.or">or</a>
+                                    @click="props.filter.groupOperator = FilterOperator.or">{{$t('modals.filters.or')}}</a>
                             </li>
                         </ul>
                     </template>
@@ -92,7 +92,7 @@ onMounted(() => {
                             aria-expanded="false"><i class="bi bi-three-dots btn-icon"></i></div>
                         <ul class="dropdown-menu bg-white m-0 p-0">
                             <li><a class="dropdown-item" href="#" @click="deleteFilter(filter)"><i
-                                        class="bi bi-trash me-1"></i>delete</a></li>
+                                        class="bi bi-trash me-1"></i>{{$t('modals.filters.remove')}}</a></li>
                         </ul>
                     </div>
                 </td>
@@ -116,8 +116,8 @@ onMounted(() => {
         </table>
 
         <div class="d-flex text-secondary ms-2">
-            <FilterDropdown :manager="props.manager" :parent-id="props.filter.id"><div class="add-options hover-light"><i class="bi bi-plus"></i>New Filter</div></FilterDropdown>
-            <div class="add-options hover-light" @click="props.manager.addNewFilterGroup(props.filter.id)"><i class="bi bi-plus"></i>New Group</div>
+            <FilterDropdown :manager="props.manager" :parent-id="props.filter.id"><div class="add-options hover-light"><i class="bi bi-plus"></i>{{$t('modals.filters.new_filter')}}</div></FilterDropdown>
+            <div class="add-options hover-light" @click="props.manager.addNewFilterGroup(props.filter.id)"><i class="bi bi-plus"></i>{{$t('modals.filters.new_group')}}</div>
         </div>
 
     </div>
