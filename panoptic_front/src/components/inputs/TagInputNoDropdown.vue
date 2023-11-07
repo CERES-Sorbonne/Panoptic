@@ -6,10 +6,11 @@ import TagBadge from '../tagtree/TagBadge.vue';
 
 const props = defineProps({
     propertyId: { type: Number, required: true },
-    modelValue: Array<number>
+    modelValue: Array<number>,
+    excluded: Set<number>
 })
 
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'select', 'unselect'])
 
 defineExpose({
     focus
@@ -26,7 +27,10 @@ const property = computed(() => {
 
 const tags = computed(() => globalStore.tags[property.value.id])
 const filteredTagList = computed(() => {
-    let filtered = Object.values(tags.value).filter((tag: Tag) => tag.value.toLowerCase().includes(tagFilter.value.toLowerCase()));
+    let filtered = Object.values(tags.value).filter((tag: Tag) => tag.value.toLowerCase().includes(tagFilter.value.toLowerCase()))
+    if(props.excluded) {
+        filtered = filtered.filter(t => !props.excluded.has(t.id))
+    }
     return filtered
 
 })
@@ -37,10 +41,12 @@ function toggle(tagId: number) {
         return
     }
     emits('update:modelValue', [...props.modelValue, tagId])
+    emits('select', tagId)
 }
 
 function removeTag(tagId: number) {
     emits('update:modelValue', props.modelValue.filter(tag => tag != tagId))
+    emits('unselect', tagId)
 }
 
 function focus() {

@@ -19,7 +19,8 @@ from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties,
 from .image_importer import ImageImporter
 
 nb_workers = 4
-executor = ThreadPoolExecutor(max_workers=nb_workers) if os.getenv('IS_DOCKER', False) else ProcessPoolExecutor(max_workers=nb_workers)
+executor = ThreadPoolExecutor(max_workers=nb_workers) if os.getenv('IS_DOCKER', False) else ProcessPoolExecutor(
+    max_workers=nb_workers)
 atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
 
@@ -293,7 +294,7 @@ def get_new_images():
     return copy
 
 
-async def create_tag(property_id, value, parent_id, color: str) -> Tag:
+async def create_tag(property_id, value, parent_id, color: int) -> Tag:
     existing_tag = await db.get_tag(property_id, value)
     if existing_tag is not None:
         if await db.tag_in_ancestors(existing_tag.id, parent_id):
@@ -307,16 +308,31 @@ async def create_tag(property_id, value, parent_id, color: str) -> Tag:
     return await db.get_tag_by_id(tag_id)
 
 
+async def tag_add_parent(tag_id, parent_id):
+    tag = await db.get_tag_by_id(tag_id)
+    if tag is None:
+        raise HTTPException(status_code=400, detail=f"Tag: {tag_id} doesnt exist")
+    if await db.tag_in_ancestors(tag.id, parent_id):
+        raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
+    tag.parents = list({*tag.parents, parent_id})
+    await db.update_tag(tag)
+    return tag
+
 async def update_tag(payload: UpdateTagPayload) -> Tag:
     existing_tag = await db.get_tag_by_id(payload.id)
     if not existing_tag:
         raise HTTPException(status_code=400, detail="Trying to modify non existent tag")
-    if await db.tag_in_ancestors(existing_tag.id, payload.parent_id):
-        raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
+    # if await db.tag_in_ancestors(existing_tag.id, payload.parent_id):
+    #     raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
     # change only fields of the tags that are set in the payload
-    new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
-    await db.update_tag(new_tag)
-    return new_tag
+    # new_tag = existing_tag.copy(update=payload.dict(exclude_unset=True))
+    if payload.color is not None:
+        existing_tag.color = payload.color
+    if payload.value is not None:
+        existing_tag.value = payload.value
+
+    await db.update_tag(existing_tag)
+    return existing_tag
 
 
 async def delete_tag(tag_id: int) -> List[int]:

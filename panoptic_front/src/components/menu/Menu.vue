@@ -24,7 +24,7 @@ const handleInput = (e: any) => {
     <div class="menu overflow-scroll">
         <div class="">
             <div>
-                <div class="p-2">
+                <div class="ps-2 pe-2" style="padding-bottom: 9.5px; padding-top: 5px;">
                     <div class="d-flex">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
                         <div class="ms-auto" @click="globalStore.showModal(Modals.FOLDERTOPROP)">

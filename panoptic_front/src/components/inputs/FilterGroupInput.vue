@@ -77,7 +77,9 @@ onMounted(() => {
                     <span v-else class="text-secondary">{{ props.filter.groupOperator }}</span>
                 </td>
                 <td v-if="(filter as Filter).propertyId !== undefined" class="ps-2">
-                    <FilterDropdown :manager="manager" :mode="2" :parent-id="props.filter.id" :filter-id="filter.id"><FilterPreview :filter="(filter as Filter)" /></FilterDropdown>
+                    <FilterDropdown :manager="manager" :mode="2" :parent-id="props.filter.id" :filter-id="filter.id">
+                        <FilterPreview :filter="(filter as Filter)" />
+                    </FilterDropdown>
                 </td>
                 <template v-else>
                     <td colspan="3" :style="subGroupStyle">
@@ -86,15 +88,18 @@ onMounted(() => {
                         </div>
                     </td>
                 </template>
-                <td class="align-top">
-                    <div class="m-0 p-0 ms-1 me-1">
+                <td class="">
+                    <span class="base-btn" @click="deleteFilter(filter)">
+                        <i class="bi bi-trash"></i>
+                    </span>
+                    <!-- <div class="m-0 p-0 ms-1 me-1">
                         <div class="text-secondary" data-bs-toggle="dropdown" data-bs-auto-close="true"
                             aria-expanded="false"><i class="bi bi-three-dots btn-icon"></i></div>
                         <ul class="dropdown-menu bg-white m-0 p-0">
                             <li><a class="dropdown-item" href="#" @click="deleteFilter(filter)"><i
                                         class="bi bi-trash me-1"></i>{{$t('modals.filters.remove')}}</a></li>
                         </ul>
-                    </div>
+                    </div> -->
                 </td>
             </tr>
             <!-- <tr>
@@ -116,8 +121,12 @@ onMounted(() => {
         </table>
 
         <div class="d-flex text-secondary ms-2">
-            <FilterDropdown :manager="props.manager" :parent-id="props.filter.id"><div class="add-options hover-light"><i class="bi bi-plus"></i>{{$t('modals.filters.new_filter')}}</div></FilterDropdown>
-            <div class="add-options hover-light" @click="props.manager.addNewFilterGroup(props.filter.id)"><i class="bi bi-plus"></i>{{$t('modals.filters.new_group')}}</div>
+            <FilterDropdown :manager="props.manager" :parent-id="props.filter.id">
+                <div class="add-options hover-light"><i class="bi bi-plus"></i>{{$t('modals.filters.new_filter')}}</div>
+            </FilterDropdown>
+            <div class="add-options hover-light" @click="props.manager.addNewFilterGroup(props.filter.id)">
+                <i class="bi bi-plus"></i>{{$t('modals.filters.new_group')}}
+            </div>
         </div>
 
     </div>
@@ -137,6 +146,4 @@ onMounted(() => {
     cursor: pointer;
     padding-right: 4px;
     border-radius: 3px;
-}
-
-</style>
+}</style>

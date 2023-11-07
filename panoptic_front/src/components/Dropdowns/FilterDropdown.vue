@@ -117,7 +117,7 @@ watch(() => filter.value?.operator, () => {
                             :contenteditable="true" tag="div" :no-html="true" v-model="filter.value" :width="-1"
                             :min-height="20"
                             :no-nl="filterProperty.type == PropertyType.number" :url-mode="filterProperty.type == PropertyType.url"
-                            :only-number="filterProperty.type == PropertyType.number" />
+                            :only-number="filterProperty.type == PropertyType.number" class="border rounded"/>
                         <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                     </div>
                 </div>

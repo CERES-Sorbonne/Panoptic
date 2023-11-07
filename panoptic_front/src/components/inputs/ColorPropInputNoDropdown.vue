@@ -5,14 +5,15 @@ import { computed } from 'vue';
 import { globalStore } from '@/data/store';
 import 'vue-color-kit/dist/vue-color-kit.css'
 const props = defineProps({
-    property: Object as () => Property,
     modelValue: Number,
     width: Number,
     minHeight: { type: Number, default: 30 },
-    rounded: Boolean
+    rounded: Boolean,
+    hidePreview: Boolean,
+    hideWhite: Boolean
 
 })
-const emits = defineEmits({ 'update:modelValue': Number })
+const emits = defineEmits(['update:modelValue'])
 
 const color = computed(() => {
     if (props.modelValue == undefined) return 'white'
@@ -32,10 +33,10 @@ function set(colorId: number) {
     <div :style="{ minHeight: props.minHeight + 'px' }" class="container bg-white">
         <div :class="props.rounded ? 'rounded' : ''"
             :style="{ width: props.width + 'px', height: 'calc(100% - 3px)' }">
-            <div :style="{ backgroundColor: color, height: '30px', width: '100%' }">
+            <div v-if="!props.hidePreview" :style="{ backgroundColor: color, height: '30px', width: '100%' }">
             </div>
 
-            <div class="separator"></div>
+            <div v-if="!props.hidePreview" class="separator"></div>
 
             <div class="bg-white">
                 <div>
@@ -43,8 +44,8 @@ function set(colorId: number) {
                         <div :style="{ backgroundColor: c.color }" class="color"></div>
                         <div class="color-name"> {{ c.name }}</div>
                     </div>
-                    <div class="hr m-1"></div>
-                    <div class="d-flex flex-row color-option" @click="set(undefined)">
+                    <div v-if="!props.hideWhite" class="hr m-1"></div>
+                    <div v-if="!props.hideWhite" class="d-flex flex-row color-option" @click="set(undefined)">
                         <div :style="{ backgroundColor: '#ffffff' }" class="color"></div>
                         <div class="color-name"> None </div>
                     </div>
