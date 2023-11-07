@@ -53,18 +53,21 @@ defineExpose({
 </script>
 
 <template>
-    <div class="container d-flex flex-row" :style="{height: props.minHeight+'px'}">
+    <div class="container2 d-flex flex-row" :style="{height: props.minHeight+'px'}">
         <input type="checkbox" v-model="propRef.value" @click.stop.prevent="toggle"/>
     </div>
 </template>
 
 <style scoped>
-.container {
+.container2 {
+    padding-left: 0;
     padding-top: 0px;
+    margin: 0;
+
 }
 
 input {
-    margin-left: 4px;
+    margin-left: 0px;
 }
 
 </style>

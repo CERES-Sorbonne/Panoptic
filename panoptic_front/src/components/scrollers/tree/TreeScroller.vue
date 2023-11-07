@@ -53,7 +53,7 @@ const imageLineSize = computed(() => {
     let nb = visiblePropertiesNb.value
     let offset = 0
     if (nb > 0) {
-        offset += 31
+        offset += 28
     }
     if (nb > 1) {
         offset += (nb - 1) * 27
