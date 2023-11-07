@@ -1,0 +1,76 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
+import Dropdown from './Dropdown.vue';
+import { globalStore } from '@/data/store';
+import { Tag } from '@/data/models';
+import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
+
+
+const props = defineProps({
+    propertyId: Number,
+    tagId: Number
+})
+
+const dropdown = ref(null)
+const localName = ref('')
+const localColor = ref(null)
+
+const nameInput = ref(null)
+
+const tag = computed(() => globalStore.tags[props.propertyId][props.tagId])
+
+
+function updateFromStore() {
+    localName.value = tag.value.value
+    localColor.value = tag.value.color
+    if (nameInput.value) nameInput.value.focus()
+}
+
+function setColor(color: number) {
+    globalStore.updateTag(props.propertyId, props.tagId, Number(color), tag.value.parents, tag.value.value)
+    dropdown.value.hide()
+}
+
+function setName(name: string) {
+    if(name == tag.value.value) return
+    console.log('set')
+    globalStore.updateTag(props.propertyId, props.tagId, Number(tag.value.color), tag.value.parents, name)
+}
+
+function deleteTag() {
+    globalStore.deleteTagParent(props.tagId, 0)
+    dropdown.value.hide()
+}
+
+onMounted(updateFromStore)
+
+
+</script>
+
+<template>
+    <Dropdown ref="dropdown" @hide="setName(localName)">
+        <template v-slot:button>
+            <span class="pe-1"><i class="bi bi-three-dots sm-btn"  style="position: relative; top: 1.5px;"/></span>
+        </template>
+
+        <template v-slot:popup>
+            <div class="main-box pt-1">
+                <div class="ps-1 pe-1">
+                    <input v-model="localName" ref="nameInput" class="w-100 mb-2" @change="setName(localName)" />
+                    <div class="mb-1 base-btn" @click="deleteTag"><i class="bi bi-trash" /> Delete Tag</div>
+                </div>
+                <div class="hr w-100" />
+                <div class="mt-1" style="height: 317px;">
+                    <ColorPropInputNoDropdown :hide-preview="true" :hide-white="true" :model-value="localColor" @update:model-value="setColor"/>
+                </div>
+            </div>
+        </template>
+
+    </Dropdown>
+</template>
+
+<style scoped>
+.main-box {
+    width: 200px;
+}
+</style>

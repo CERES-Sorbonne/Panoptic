@@ -52,7 +52,9 @@ export interface Tag {
     property_id: number;
     parents: number[];
     value: string;
-    color?: string;
+    color?: number;
+    children?: Set<number>
+    count?: number
 }
 
 export interface Property {
@@ -398,6 +400,7 @@ export interface Folder {
     children: Array<Folder>
     show?: boolean // frontend variable to know if exanded in view or not
     selected?: boolean // frontend variable for smart folder filter
+    count?: number
 }
 
 export interface ImportState {

@@ -131,7 +131,7 @@ watch(() => props.modelValue, () => {
 .focus {
     /* border: 2px solid blue;
     border-radius: 5px; */
-    box-shadow: 0px 0px 10px 2px var(--border-color);
+    box-shadow: 0px 0px 3px 1px var(--border-color);
     z-index: 99 !important;
     padding: 20px;
 }
