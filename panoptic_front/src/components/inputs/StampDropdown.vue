@@ -39,8 +39,8 @@ function apply() {
 <template>
     <!-- <div class="btn-group"> -->
     <div :class="props.noBorder? '' : 'button'" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
-        <span v-if="props.showNumber">Tagger {{ props.images.length }} Image(s)</span>
-        <span v-else>Tagger le groupe</span>
+        <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length  + ' ' + $t('main.menu.selected_images')}}</span>
+        <span v-else>{{$t('modals.tagging.button')}}</span>
     </div>
     <div class="dropdown-menu">
         <div class="m-2" style="width: 300px;">
@@ -48,9 +48,9 @@ function apply() {
         </div>
 
         <div class="d-flex float-end pe-2">
-            <button class="me-2" @click="close">Cancel</button>
-            <button class="me-2" @click="clear">Clear</button>
-            <button class="me" @click="apply">Apply</button>
+            <button class="me-2" @click="close">{{$t('modals.tagging.cancel')}}</button>
+            <button class="me-2" @click="clear">{{$t('modals.tagging.clear')}}</button>
+            <button class="me" @click="apply">{{$t('modals.tagging.apply')}}</button>
         </div>
     </div>
     <!-- </div> -->

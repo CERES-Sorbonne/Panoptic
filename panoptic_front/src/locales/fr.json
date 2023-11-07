@@ -30,38 +30,53 @@
             "rename_tab_tooltip": "Renommer l'onglet",
             "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
-            "search_tooltip": "Chercher des images correspondant au text en utilisant le modèle CLIP",
+            "search_tooltip": "Chercher des images correspondant au texte en utilisant le modèle CLIP",
             "grid_tooltip": "Passer en vue grille d'images",
             "table_tooltip": "Passer en vue tableau",
             "image_size_tooltip": "Taille des images",
             "all_images": "Instances",
             "sha1_images": "Images",
-            "image_mode_tooltip": "Switcher entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées. Voir la documentation sur les intances pour plus d'informations.",
-            "filters": "Filtrer",
-            "groupby": "Grouper",
-            "sort": "Trier",
+            "image_mode_tooltip": "Switcher entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.", 
             "selected_images": "images sélectionnées",
-            "tag_selection": "Tagger la sélection"
+            "tag_selection": "Tagger les ",
+            "remove_selection_tooltip": "Annuler la sélection",
+            "filters": "Filtrer: ",
+            "groupby": "Grouper: ",
+            "sort": {
+                "title": "Trier: ",
+                "group_order_az_tooltip": "Tri des groupes par nom",
+                "group_order_nb_tooltip": "Tri des groupes par nombre d'images",
+                "order_desc": "Tri par ordre décroissant",
+                "order_asc": "Tri par ordre croissant"
+            }
+        },
+        "recommand": {
+            "title": "Propositions d'images",
+            "tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches du groupe sélectionné en utilisant l'algorithme KDTree et des vecteurs d'image",
+            "accept": "Ajouter au groupe sélectionné",
+            "refuse": "Retirer des images similaires",
+            "group": "Aller au groupe"
         },
         "view": {
             "all_group": "Toutes",
-            "group_tag": "Tagger le groupe",
             "group_clusters": "Groupes IA",
+            "groupes_nb": "Groupes",
             "group_clusters_tooltip": "Utilise un algorithme de machine learning (Kmeans) pour proposer des groupes temporaires par similarité d'images. Voir la documentation sur les clusters pour plus d'informations.",
             "remove_clusters": "Fermer les groupes IA",
-            "cluster_score_tooltip": "Score de cohérence du cluster. Voir la documentation sur les clusters pour plus d'informations."
+            "cluster_score_tooltip": "Score de cohérence du cluster. Voir la documentation sur les clusters pour plus d'informations",
+            "instances_tooltip": "Nombre d'instances de cette image",
+            "collapse": "Réduire"
         }
     },
     "modals": {
         "image": {
             "similar_images": "Images similaires",
-            "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante",
+            "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",
             "unique_properties": "Propriétés uniques",
             "unique_properties_tooltip": "Affichage des propriétés liées aux instances de cette image.",
             "similarity_filter_tooltip": "Le pourcentage de similarité minimal que doivent avoir les images affichées ici. Pour plus d'information, voir la documentation sur le score de similarité.",
             "toggle_property_tooltip": "Afficher / Masquer cette propriété dans la vue 'Images similaires'",
             "fill_property_tooltip": "Tagger toutes les images similaires avec la valeur de cette propriété"
-
         },
         "properties": {
             "title": "Nouvelle propriété",
@@ -86,22 +101,31 @@
             "checkbox_tooltip": "Une case à cocher, ex: 'pertinent' / 'non pertinent', 'sensible / non sensible'"
         },
         "filters": {
-            "is_set": "n'est pas vide",
-            "is_not_set": "est vide",
-            "equal": "=",
-            "not_equal": "≠",
-            "lower": "<",
-            "greater": ">",
-            "leq": "≤",
-            "qeq": "≥",
-            "starts_with": "débute par",
-            "like": "contient",
-            "contains any": "contient",
-            "does not contain": "ne contient pas",
+            "title": "Filtres:",
+            "remove": "Supprimer",
             "and": "et",
-            "or": "ou"
+            "or": "ou",
+            "where": "Conditions:",
+            "new_filter": "Filtre",
+            "new_group": "Groupe de filtres",
+            "operators": {
+                "isSet": "n'est pas vide",
+                "notSet": "est vide",
+                "equal": "=",
+                "equalNot": "≠",
+                "lower": "<",
+                "greater": ">",
+                "leq": "≤",
+                "geq": "≥",
+                "startsWith": "débute par",
+                "like": "contient",
+                "containsAny": "contient",
+                "containsNot": "ne contient pas",
+                "containsAll": "contient tous"
+            }
         },
-        "group_tagging": {
+        "tagging": {
+            "button": "Tagger le groupe",
             "title": "Propriétés",
             "cancel": "Annuler",
             "clear": "Clear",
