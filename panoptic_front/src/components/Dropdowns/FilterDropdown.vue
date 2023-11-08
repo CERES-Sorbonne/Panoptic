@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import PropertyModeDropdown from './PropertyModeDropdown.vue';
-import PropertyTypeDropdown from './PropertyTypeDropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { FilterManager } from '@/utils/filter';
 import { Filter, PropertyID, PropertyType, operatorHasInput } from '@/data/models';
 import { globalStore } from '@/data/store';
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
-import TagDropdown from '../inputs/TagDropdown.vue';
 import PropertyInput2 from '../inputs/PropertyInput2.vue';
 import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 import * as bootstrap from 'bootstrap'
