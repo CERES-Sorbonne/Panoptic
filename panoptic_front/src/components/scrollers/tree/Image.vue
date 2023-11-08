@@ -7,6 +7,8 @@ import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import TagInput from '@/components/inputs/TagInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
+import TextInput from '@/components/inputs/monoline/TextInput.vue';
+import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import wTT from '../../tooltips/withToolTip.vue'
 
 const props = defineProps({
@@ -76,7 +78,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
-            <div v-if="props.pile?.similarity" class="simi-ratio" >{{ Math.floor(props.pile.similarity * 100) }}</div>
+            <div v-if="props.pile?.similarity" class="simi-ratio">{{ Math.floor(props.pile.similarity * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
 
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
@@ -97,8 +99,24 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                     <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
                         :property="globalStore.properties[property.propertyId]" :width="width - 22" :min-height="20" />
                 </div>
+                <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">
+                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
+                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :height="26"/>
+                </div>
+                <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
+                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
+                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :height="26" :no-nl="true"/>
+                </div>
+                <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
+                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
+                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :height="26" :no-nl="true"/>
+                </div>
+                <div v-else-if="property.type == PropertyType.checkbox" class="d-flex flex-row overflow-hidden">
+                    <CheckboxPropInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :min-height="26" />
+                    <div style="line-height: 26px; margin-left: 4px;">{{ globalStore.properties[property.propertyId].name }}</div>
+                </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
-                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" style="line-height: 26px;"/>
             </div>
         </div>
         <div v-if="props.selectedPreview" class="w-100 h-100"
@@ -107,7 +125,6 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 </template>
 
 <style scoped>
-
 .image-count {
     position: absolute;
     top: 0;
@@ -155,6 +172,8 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
     width: 100%;
     border-top: 1px solid var(--border-color);
     padding: 2px;
+    padding-top: 0px;
+    padding-bottom: 0px;
     font-size: 12px;
 }
 

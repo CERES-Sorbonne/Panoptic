@@ -87,7 +87,7 @@ const filteredImages = computed(() => {
 })
 
 // on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
-defineExpose({filteredImages})
+defineExpose({ filteredImages })
 
 function computeGroups(force = false) {
     if (computeStatus.groups) {
@@ -136,7 +136,7 @@ function computeGroups(force = false) {
 }
 
 function sortGroups() {
-    if(!groupData.root) return
+    if (!groupData.root) return
     const sortIndex: SortIndex = {}
     sorts.value.forEach(s => sortIndex[s.property_id] = s)
     sortGroupTree(groupData.root, groupData.order, sortIndex)
@@ -202,7 +202,7 @@ watch(groups, () => {
 }, { deep: true })
 watch(sorts, () => {
     sortGroups()
-    if(imageList.value) imageList.value.computeLines()
+    if (imageList.value) imageList.value.computeLines()
 }, { deep: true })
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.tab.data.sha1Mode, computeGroups)
@@ -231,8 +231,8 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
-                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true" :selected-images="selectedImages" 
-                    :selector="selector"/>
+                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
+                    :selected-images="selectedImages" :selector="selector" />
             </div>
         </template>
 

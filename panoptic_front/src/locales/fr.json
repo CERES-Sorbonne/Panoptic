@@ -121,7 +121,9 @@
                 "like": "contient",
                 "containsAny": "contient",
                 "containsNot": "ne contient pas",
-                "containsAll": "contient tous"
+                "containsAll": "contient tous",
+                "isTrue": "oui",
+                "isFalse": "non"
             }
         },
         "tagging": {
