@@ -122,9 +122,9 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                     <div style="line-height: 26px; margin-left: 4px;">{{ globalStore.properties[property.propertyId].name }}
                     </div>
                 </div>
-                <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 2px;">
+                <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 1px;">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <DateInput :property="globalStore.properties[property.propertyId]" :image="image" />
+                    <DateInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" style="line-height: 25px;"/>
                 </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]"

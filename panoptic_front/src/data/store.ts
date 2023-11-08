@@ -290,7 +290,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         }
 
         let type = prop.type
-        if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
+        if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0 || value == null) {
             value = undefined
         }
         // console.log(propertyId, imageIds, sha1s, value, prop.mode)
