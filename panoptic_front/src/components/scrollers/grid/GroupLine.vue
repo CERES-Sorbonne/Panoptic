@@ -3,7 +3,6 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
 import { GroupData, PropertyValue, ScrollerLine } from '@/data/models';
 import { groupParents } from '@/utils/groups';
-import { getItems } from '@revolist/revogrid/dist/types/store/viewPort/viewport.helpers';
 import { computed } from 'vue';
 
 

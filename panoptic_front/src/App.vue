@@ -2,6 +2,7 @@
 import { RouterLink, RouterView } from 'vue-router'
 import { globalStore } from './data/store'
 import { onMounted } from 'vue'
+import '@vuepic/vue-datepicker/dist/main.css';
 import './assets/main.css';
 import * as inputTree from '@/utils/inputTree'
 

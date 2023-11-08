@@ -3,6 +3,7 @@ import { Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
 import { globalStore } from '@/data/store';
+import DateInput from './monoline/DateInput.vue';
 
 const props = defineProps({
     property: Object as () => Property,
@@ -50,13 +51,14 @@ defineExpose({
 </script>
 
 <template>
-    <div :style="{ height: props.minHeight + 'px', width: props.width+'px', overflow: 'hidden' }" class="container">
-        <input type="date" v-model="localValue" :style="{
+    <div :style="{ height: props.minHeight + 'px', width: props.width+'px'}" class="container">
+        <!-- <input type="date" v-model="localValue" :style="{
             width: (isFirefox ? 120 : 95) + 'px',
             paddingTop: (isFirefox ? 4 : 3) + 'px',
             fontSize: '15px',
             color: (localValue != null ? 'black' : 'grey'),
-        }" ref="elem" @blur="save"/>
+        }" ref="elem" @blur="save"/> -->
+        <DateInput :image="props.image" :property="props.property"/>
     </div>
 </template>
 
