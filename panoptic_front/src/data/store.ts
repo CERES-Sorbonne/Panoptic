@@ -293,7 +293,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0) {
             value = undefined
         }
-
+        // console.log(propertyId, imageIds, sha1s, value, prop.mode)
         const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value, mode)
         const updatedIds = update.updated_ids
         value = update.value

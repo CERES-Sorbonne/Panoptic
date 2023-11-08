@@ -9,7 +9,9 @@ import TagInput from '@/components/inputs/TagInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TextInput from '@/components/inputs/monoline/TextInput.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
+import VueDatePicker from '@vuepic/vue-datepicker';
 import wTT from '../../tooltips/withToolTip.vue'
+import DateInput from '@/components/inputs/monoline/DateInput.vue';
 
 const props = defineProps({
     image: Object as () => Image,
@@ -25,7 +27,7 @@ const props = defineProps({
     selected: Boolean,
     selectedPreview: Boolean
 })
-
+const tmpref = ref('')
 const emits = defineEmits(['resize', 'update:selected'])
 
 const image = computed(() => props.image ?? props.pile.images[0])
@@ -101,22 +103,32 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 </div>
                 <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :height="26"/>
+                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                        :height="26" />
                 </div>
                 <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :height="26" :no-nl="true"/>
+                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                        :height="26" :no-nl="true" />
                 </div>
                 <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :height="26" :no-nl="true"/>
+                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                        :height="26" :no-nl="true" />
                 </div>
                 <div v-else-if="property.type == PropertyType.checkbox" class="d-flex flex-row overflow-hidden">
-                    <CheckboxPropInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" :min-height="26" />
-                    <div style="line-height: 26px; margin-left: 4px;">{{ globalStore.properties[property.propertyId].name }}</div>
+                    <CheckboxPropInput :property="globalStore.properties[property.propertyId]" :image="image"
+                        :width="width - 22" :min-height="26" />
+                    <div style="line-height: 26px; margin-left: 4px;">{{ globalStore.properties[property.propertyId].name }}
+                    </div>
+                </div>
+                <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 2px;">
+                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
+                    <DateInput :property="globalStore.properties[property.propertyId]" :image="image" />
                 </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
-                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" style="line-height: 26px;"/>
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]"
+                    style="line-height: 26px;" />
             </div>
         </div>
         <div v-if="props.selectedPreview" class="w-100 h-100"
