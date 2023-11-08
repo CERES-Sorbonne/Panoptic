@@ -29,6 +29,7 @@ PROJECT_PATH = PROJECT_PATH.as_posix()
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, \
     QPushButton, QListView, QLineEdit, QFileDialog, QListWidget
+from PyQt5 import QtCore
 
 
 class MiniUI(QMainWindow):
@@ -74,13 +75,13 @@ class MiniUI(QMainWindow):
         frame_a_layout.addWidget(frame_a2)
         frame_a2_layout = QVBoxLayout(frame_a2)
 
-        label2 = QLabel("Dossiers")
+        label2 = QLabel("Dossiers d'images du projet courant")
         frame_a2_layout.addWidget(label2)
 
         self.listbox = QListWidget()
         frame_a2_layout.addWidget(self.listbox)
 
-        self.button = QPushButton("Ajouter Dossier")
+        self.button = QPushButton("Ajouter un dossier d'images")
         self.button.clicked.connect(self.add_folder)
         frame_a2_layout.addWidget(self.button)
 
@@ -94,8 +95,16 @@ class MiniUI(QMainWindow):
         layout.addWidget(frame_b)
         frame_b_layout = QVBoxLayout(frame_b)
 
-        self.server_status = QLineEdit("starting...")
+        self.server_status = QLineEdit("Démarrage...")
+        self.server_status.setStyleSheet("""
+            QWidget {
+                background-color: "orange";
+                padding: 5px;
+                border-radius: 10px;
+            }
+        """)
         self.server_status.setReadOnly(True)
+        self.server_status.setAlignment(QtCore.Qt.AlignCenter)
         frame_b_layout.addWidget(self.server_status)
 
         self.open_button = QPushButton("Ouvrir Panoptic")
@@ -103,6 +112,8 @@ class MiniUI(QMainWindow):
         self.open_button.setEnabled(False)
         self.open_button.clicked.connect(self.open_panoptic)
         frame_b_layout.addWidget(self.open_button)
+
+        self.setEnabled(False)
 
     def init_projects(self):
         # TODO: si tout marche bien sortir tout le code suivant dans une fonction à part
@@ -151,7 +162,7 @@ class MiniUI(QMainWindow):
                     if folder['parent'] is None:
                         self.listbox.addItem(folder['path'])
                 failed = False
-                message = 'running'
+                message = 'Running !'
                 if HOST:
                     try:
                         ip = socket.gethostbyname(socket.gethostname())
@@ -161,16 +172,20 @@ class MiniUI(QMainWindow):
                 self.server_status.setText(message)
                 self.server_status.setStyleSheet("""
                     QWidget {
-                        background-color: "green"
+                        background-color: "green";
+                        padding: 5px;
+                        border-radius: 10px;
+                        color: white;
                     }
                 """)
-                self.open_button.setEnabled(True)
+                self.setEnabled(True)
+
             except Exception:
                 pass
             sleep(0.5)
 
     def add_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self.master, 'Select a directory')
+        folder_path = QFileDialog.getExistingDirectory(self, "Choisir un dossier d'images")
         print(folder_path)
         res = requests.post(api('folders'), headers={"Content-type": "application/json"},
                             json={"path": folder_path}).json()
@@ -186,15 +201,14 @@ class MiniUI(QMainWindow):
             json.dump(self.projects, json_file)
 
     def create_project(self):
-        folder_path = QFileDialog.getExistingDirectory(self.master, 'Select a directory')
+        folder_path = QFileDialog.getExistingDirectory(self, 'Dossier où stocker les données panoptic')
         project_name = os.path.basename(folder_path)
         new_project = {'name': project_name, 'path': folder_path}
         self.projects['projects'].append(new_project)
         with open(PROJECT_PATH, 'w') as json_file:
             json.dump(self.projects, json_file)
-        project_names = [project['name'] for project in self.projects['projects']]
-        self.combo_box.addItems(project_names)
-        self.combo_box.setCurrentIndex(len(project_names) - 1)
+        self.combo_box.addItem(project_name)
+        self.combo_box.setCurrentIndex(self.combo_box.count() - 1)
         self.load_project()
 
     def load_project(self, event=None):
@@ -213,7 +227,7 @@ class MiniUI(QMainWindow):
 
 
 def on_fastapi_start():
-    ui.server_status.setText('fastapi init...')
+    ui.server_status.setText('Initialisation...')
     t1 = Thread(target=ui.init_folders)
     t1.start()
 
@@ -262,18 +276,23 @@ def start():
     global SERVER
     global FOLDER
     HOST = args.host
-    app = QApplication(sys.argv)
-    # try:
-    #     root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
-    # except:
-    #     pass
+    SERVER = args.server
+    FOLDER = args.folder
 
-    global ui
-    ui = MiniUI()
-    ui.show()
-    ui.init_projects()
-    sys.exit(app.exec_())
-    # root.mainloop()
+    if not SERVER:
+        app = QApplication(sys.argv)
+
+        global ui
+        ui = MiniUI()
+        ui.show()
+        ui.init_projects()
+        sys.exit(app.exec_())
+    else:
+        if not FOLDER:
+            print("folder parameter need to be fullfilled in server mode")
+            sys.exit(0)
+        launch_uvicorn()
+
 
 if __name__ == '__main__':
     start()
