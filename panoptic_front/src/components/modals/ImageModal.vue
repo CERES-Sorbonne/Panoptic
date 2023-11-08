@@ -4,9 +4,6 @@ import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive, nextTick } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
-import TagInput from '../inputs/TagInput.vue';
-import StampDropdown from '../inputs/StampDropdown.vue';
-import ImageSimi from '../images/ImageSimi.vue'
 import RangeInput from '../inputs/RangeInput.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 import { createGroup, generateGroupData, generateGroups, imagesToSha1Piles } from '@/utils/groups';
@@ -16,6 +13,7 @@ import PropInput from '../inputs/PropInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { ImageSelector } from '@/utils/selection';
+import wTT from '../tooltips/withToolTip.vue'
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -238,13 +236,17 @@ watch(minSimilarityDist, updateSimilarGroup)
                 <div class="modal-body pt-1 pb-1" style="max-height: calc(100vh - 100px);">
                     <div class="d-flex justify-content-center mb-1">
                         <div class="d-flex border rounded overflow-hidden">
-                            <div class="ps-2 pe-2 btn-icon"
-                                :class="(modalMode == ImageModalMode.Similarity ? 'selected' : '')"
-                                @click="modalMode = ImageModalMode.Similarity">Images Similaires</div>
+                            <wTT  message="modals.image.similar_images_tooltip">
+                                <div class="ps-2 pe-2 btn-icon"
+                                    :class="(modalMode == ImageModalMode.Similarity ? 'selected' : '')"
+                                    @click="modalMode = ImageModalMode.Similarity">{{ $t('modals.image.similar_images') }}</div>
+                            </wTT>
                             <div class="border-start"></div>
-                            <div class="ps-2 pe-2 btn-icon" :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
-                                @click="modalMode = ImageModalMode.Unique">
-                                Proprietées uniques</div>
+                            <wTT  message="modals.image.unique_properties_tooltip">
+                                <div class="ps-2 pe-2 btn-icon" :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
+                                    @click="modalMode = ImageModalMode.Unique">
+                                    {{ $t('modals.image.unique_properties') }}</div>
+                            </wTT>
                         </div>
 
                     </div>
@@ -271,11 +273,15 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                     <PropInput :property="globalStore.properties[property.propertyId]"
                                                         :image="image" :width="-1" :min-height="20" />
                                                 </td>
-                                                <td class="text-center btn-icon"
-                                                    @click="toggleProperty(property.propertyId)"><i class="bi bi-eye"
-                                                        :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')"></i>
-                                                </td>
-                                                <td class="text-center btn-icon" style="padding: 4px 2px 0px 5px;" @click="paintSelection(property)"><i class="bi bi-paint-bucket"></i></td>
+                                                <wTT  message="modals.image.toggle_property_tooltip">
+                                                    <td class="text-center btn-icon"
+                                                        @click="toggleProperty(property.propertyId)"><i class="bi bi-eye"
+                                                            :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')"></i>
+                                                    </td>
+                                                </wTT>
+                                                <wTT  message="modals.image.fill_property_tooltip">
+                                                    <td class="text-center btn-icon" style="padding: 4px 2px 0px 5px;" @click="paintSelection(property)"><i class="bi bi-paint-bucket"></i></td>
+                                                </wTT>
                                             </template>
                                         </tr>
                                     </tbody>
@@ -310,7 +316,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
                                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
-                                <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" />
+                                <wTT message="modals.image.similarity_filter_tooltip"><RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" /></wTT>
                                 <div>min: {{ minSimilarityDist }}%</div>
                                 <div v-if="groupData.root.imagePiles" class="ms-2 text-secondary">({{
                                     groupData.root.imagePiles.length }} images)</div>

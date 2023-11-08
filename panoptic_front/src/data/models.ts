@@ -187,23 +187,23 @@ export interface ReactiveStore{
 
 export enum FilterOperator {
     equal = "equal",
-    equalNot = "not equal",
+    equalNot = "equalNot",
     like = "like",
     lower = "lower",
-    leq = "lower or equal",
+    leq = "leq",
     greater = "greater",
-    geq = "greater or equal",
-    isTrue = "is true",
-    isFalse = "is false",
+    geq = "geq",
+    isTrue = "isTrue",
+    isFalse = "isFalse",
     contains = "contains",
-    startsWith = "starts with",
-    containsAny = "contains any",
-    containsAll = "contains all",
-    containsNot = "does not contain",
+    startsWith = "startsWith",
+    containsAny = "containsAny",
+    containsAll = "containsAll",
+    containsNot = "containsNot",
     and = "and",
     or = "or",
-    isSet = "is set",
-    notSet = "is not set"
+    isSet = "isSet",
+    notSet = "notSet"
 }
 
 export interface AFilter {

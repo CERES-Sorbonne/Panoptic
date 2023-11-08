@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { globalStore } from '@/data/store';
 import { Image, Modals, Sha1Pile } from '@/data/models';
+import wTT from '../tooltips/withToolTip.vue'
 
 const props = defineProps({
     pile: Object as () => Sha1Pile,
@@ -23,8 +24,12 @@ const image = computed(() => props.pile.images[0])
             <img :src="image.url" :style="imageStyle" />
         </div>
         <div class="d-flex flex-row">
-            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-success validate clickable unselectable" style="font-size: 10px;" @click="emits('accept', image)"> ✓ </div>
-            <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;" @click="emits('refuse', image)"> ✕ </div>
+            <wTT message="main.recommand.accept">
+                <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-success validate clickable unselectable" style="font-size: 10px;" @click="emits('accept', image)"> ✓ </div>
+            </wTT>
+            <wTT message="main.recommand.refuse">
+                <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;" @click="emits('refuse', image)"> ✕ </div>
+            </wTT>
         </div>
     </div>
 </template>
