@@ -2,6 +2,10 @@
 import { onMounted, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
 
+const props = defineProps({
+    offset: { default: '0,0', type: String },
+    noShadow: Boolean
+})
 const emits = defineEmits(['show', 'hide'])
 defineExpose({ hide, show })
 
@@ -23,7 +27,7 @@ function show() {
 function onShow() {
     visible.value = true
     emits('show')
-    
+
 }
 
 function onHide() {
@@ -41,10 +45,11 @@ onMounted(() => {
 
 <template>
     <div class="dropdown p-0 m-0" style="position: static;">
-        <div class="m-0 p-0" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
+        <div class="m-0 p-0" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem"
+            :data-bs-offset="props.offset">
             <slot name="button"></slot>
         </div>
-        <div class="dropdown-menu bg-white m-0 p-0">
+        <div class="dropdown-menu bg-white m-0 p-0" :class="props.noShadow ? '': 'shadow'">
             <slot name="popup" v-if="visible"></slot>
         </div>
     </div>
@@ -52,13 +57,19 @@ onMounted(() => {
 
 <style scoped>
 .dropdown-menu {
+    min-width: 0px;
     font-size: 14px;
-    border: 1px solid var(--border-color);
+    border: none;
     /* box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -webkit-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -moz-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1); */
-box-shadow: 0px 0px 15px 1px var(--border-color);
--webkit-box-shadow: 0px 0px 6px 3px var(--border-color);
--moz-box-shadow: 0px 0px 15px 1px var(--border-color);
+
+}
+
+.shadow {
+    border: 1px solid var(--border-color);
+    box-shadow: 0px 0px 15px 1px var(--border-color);
+    -webkit-box-shadow: 0px 0px 6px 3px var(--border-color);
+    -moz-box-shadow: 0px 0px 15px 1px var(--border-color);
 }
 </style>

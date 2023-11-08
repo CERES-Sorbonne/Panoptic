@@ -106,7 +106,7 @@ const optionClass = (id: number) => {
 }
 
 function tagsChanged() {
-    let oldTags = propRef.value.value
+    let oldTags = propRef.value.value ?? []
 
     if (oldTags.length != localValue.length) {
         return true
