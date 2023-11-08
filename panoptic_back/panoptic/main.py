@@ -11,6 +11,9 @@ from time import sleep
 
 import uvicorn
 import requests
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QCursor
+import qtawesome as qta
 
 from panoptic.utils import get_datadir
 
@@ -28,54 +31,101 @@ PROJECT_PATH = get_datadir() / "panoptic" / "projects.json"
 PROJECT_PATH = PROJECT_PATH.as_posix()
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, \
-    QPushButton, QListView, QLineEdit, QFileDialog, QListWidget
-from PyQt5 import QtCore
+    QPushButton, QListView, QLineEdit, QFileDialog, QListWidget, QDesktopWidget
+from PyQt5 import QtCore, QtGui
+
+
+class IconLabel(QWidget):
+
+    IconSize = QSize(16, 16)
+    HorizontalSpacing = 2
+
+    def __init__(self, qta_id, text, color="blue", final_stretch=True):
+        super(QWidget, self).__init__()
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+        self.icon = QLabel()
+        self.icon.setPixmap(qta.icon(qta_id, color=color).pixmap(self.IconSize))
+
+        layout.addWidget(self.icon)
+        layout.addSpacing(self.HorizontalSpacing)
+        layout.addWidget(QLabel(text))
+
+        if final_stretch:
+            layout.addStretch()
+
+    def setAlignment(self, pos):
+        self.icon.setAlignment(pos)
 
 
 class MiniUI(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "html/favicon.ico")))
         self.selected_project = None
         self.projects = None
+        self.setObjectName("Main")
+        self.setStyleSheet("""
+        #Main{
+            background: white;
+        }
+        QLabel{
+            font-size: 12pt;
+        }
+        QWidget{
+            font-size: 11pt;
+        }
+        QPushButton{
+            padding: 5px;
+            border-radius: 10px;
+            background-color: #d1dde0;
+        }
+        """)
+
 
         self.setWindowTitle("Panoptic Server")
         self.setGeometry(100, 100, 700, 350)
+        self._center()
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QHBoxLayout(central_widget)
+        layout = QVBoxLayout(central_widget)
 
         # Partie A
         frame_a = QWidget()
+        frame_a.setObjectName("A")
+        frame_a.setStyleSheet("""#A{
+            border-bottom: 1px solid lightgrey;
+        }""")
         layout.addWidget(frame_a)
-        frame_a_layout = QVBoxLayout(frame_a)
+        frame_a_layout = QHBoxLayout(frame_a)
 
         # Partie A.1
         frame_a1 = QWidget()
         frame_a_layout.addWidget(frame_a1)
         frame_a1_layout = QVBoxLayout(frame_a1)
-
-        label = QLabel("Choisir Projet existant")
+        frame_a1_layout.setAlignment(QtCore.Qt.AlignTop)
+        label = IconLabel("fa5.folder", "Choisir Projet existant")
+        label.setAlignment(QtCore.Qt.AlignCenter)
         frame_a1_layout.addWidget(label)
-
         self.combo_box = QComboBox()
         frame_a1_layout.addWidget(self.combo_box)
 
         self.new_project_button = QPushButton("Nouveau projet")
         self.new_project_button.clicked.connect(self.create_project)
+        self.new_project_button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         frame_a1_layout.addWidget(self.new_project_button)
-
-        # Espacement entre A.1 et A.2
-        spacer = QLabel()
-        spacer.setFixedSize(2, 20)
-        frame_a_layout.addWidget(spacer)
-
+        frame_a1.setFixedWidth(250)
         # Partie A.2
         frame_a2 = QWidget()
         frame_a_layout.addWidget(frame_a2)
         frame_a2_layout = QVBoxLayout(frame_a2)
 
-        label2 = QLabel("Dossiers d'images du projet courant")
+        label2 = IconLabel("fa5.image", "Dossiers d'images du projet courant")
+        label2.setAlignment(QtCore.Qt.AlignCenter)
         frame_a2_layout.addWidget(label2)
 
         self.listbox = QListWidget()
@@ -83,17 +133,14 @@ class MiniUI(QMainWindow):
 
         self.button = QPushButton("Ajouter un dossier d'images")
         self.button.clicked.connect(self.add_folder)
+        self.button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         frame_a2_layout.addWidget(self.button)
-
-        # Barre de séparation entre A et B
-        separator2 = QLabel()
-        separator2.setFixedSize(2, 20)
-        layout.addWidget(separator2)
 
         # Partie B
         frame_b = QWidget()
         layout.addWidget(frame_b)
         frame_b_layout = QVBoxLayout(frame_b)
+        frame_b_layout.setAlignment(QtCore.Qt.AlignCenter)
 
         self.server_status = QLineEdit("Démarrage...")
         self.server_status.setStyleSheet("""
@@ -105,15 +152,22 @@ class MiniUI(QMainWindow):
         """)
         self.server_status.setReadOnly(True)
         self.server_status.setAlignment(QtCore.Qt.AlignCenter)
+        self.server_status.setFixedWidth(200)
         frame_b_layout.addWidget(self.server_status)
 
         self.open_button = QPushButton("Ouvrir Panoptic")
         self.open_button.setFixedWidth(200)
-        self.open_button.setEnabled(False)
         self.open_button.clicked.connect(self.open_panoptic)
-        frame_b_layout.addWidget(self.open_button)
+        self.open_button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
+        frame_b_layout.addWidget(self.open_button)
         self.setEnabled(False)
+
+    def _center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
     def init_projects(self):
         # TODO: si tout marche bien sortir tout le code suivant dans une fonction à part
