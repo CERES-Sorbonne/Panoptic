@@ -55,7 +55,7 @@ defineExpose({
 </script>
 
 <template>
-    <div :style="{ height: props.minHeight + 'px' }" class="container">
+    <div :style="{ height: props.minHeight + 'px' }" class="container" >
         <!-- <input type="color" v-model="localValue" :style="{
             width: props.width+ 'px',
         }" ref="elem" @focusin="isFocus = true" @focusout="isFocus = false"/> -->
@@ -83,6 +83,7 @@ defineExpose({
 <style scoped>
 .container {
     padding: 0;
+    cursor: pointer;
 }
 
 .color-name {

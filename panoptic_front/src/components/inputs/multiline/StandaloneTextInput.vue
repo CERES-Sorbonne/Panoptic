@@ -41,7 +41,7 @@ function forceFocus() {
 
 <template>
     <div>
-        <span v-show="localValue == '' && !isFocus" class="text-secondary" @click="forceFocus">None...</span>
+        <span v-show="localValue == '' && !isFocus" class="text-secondary" @click="forceFocus" style="cursor: pointer;">None...</span>
         <TextInput v-show="isFocus || localValue != ''" tag="div" :editable="true" :no-html="true" :model-value="localValue"
             @update:model-value="v => emits('update:modelValue', v)" :width="props.width"
             @update:height="h => emits('update:height', h)" :min-height="props.minHeight" :no-nl="props.noNl"
