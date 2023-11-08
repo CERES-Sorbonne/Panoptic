@@ -5,8 +5,8 @@ import logging
 import os
 import sys
 import traceback
-from concurrent.futures import ProcessPoolExecutor
-from typing import List, Callable
+from concurrent.futures import Executor
+from typing import List, Callable, Dict
 
 from PIL import Image
 
@@ -18,18 +18,19 @@ logger = logging.getLogger('ProcessQueue')
 
 
 class ProcessQueue:
-    def __init__(self, executor: ProcessPoolExecutor):
+    def __init__(self, executor: Executor):
         self.executor = executor
 
         self._queue = asyncio.Queue()
         self._workers: List[asyncio.Task] = []
+        self._working: Dict[int, bool] = {}
         self.done_callback = None
 
     def start_workers(self, workers=1):
         if self._workers:
             return
         for i in range(workers):
-            self._workers.append(asyncio.create_task(self._process_queue()))
+            self._workers.append(asyncio.create_task(self._process_queue(i)))
 
     def add_task(self, task):
         self._queue.put_nowait(task)
@@ -37,17 +38,30 @@ class ProcessQueue:
     def done(self):
         return self._queue.qsize() == 0
 
-    async def _process_queue(self):
+    async def _process_queue(self, worker_id: int):
         while True:
             try:
+                # if nothing left to do remove working flag
+                if self.done():
+                    self._working[worker_id] = False
+
                 task = await self._queue.get()
+                # set working flag
+                self._working[worker_id] = True
+
                 res = await self._process_task(task)
                 if self.done_callback:
-                    self.done_callback(res)
+
+                    is_last = self.done() and self.get_working_nb() == 1
+                    self.done_callback(res, is_last)
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logger.error("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                 logger.error(e)
+
+    def get_working_nb(self):
+        working = [v for v in self._working.values() if v]
+        return len(working)
 
     async def _process_task(self, task):
         raise NotImplementedError()
@@ -91,7 +105,7 @@ class ImportImageQueue(ProcessQueue):
 
         del image
         del mini
-        gc.collect()
+        # gc.collect()
 
         return sha1_hash, url, width, height
 
@@ -100,20 +114,16 @@ class ComputeVectorsQueue(ProcessQueue):
     async def _process_task(self, task):
         image_id: int = task
         image = (await db.get_images(ids=[image_id]))[0]
-
         computed = await db.get_sha1_computed_values([image.sha1])
         if computed:
             return computed
 
         folder = await db.get_folder(image.folder_id)
         file_path = f"{folder.path}/{image.name}"
-
         ahash, vector = await self._execute_in_process(self.compute_image, file_path)
-
         res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
-
         del vector
-        gc.collect()
+        # gc.collect()
         print('computed image: ', image_id, '  :  ', res.sha1)
         return res
 
@@ -126,6 +136,6 @@ class ComputeVectorsQueue(ProcessQueue):
         vector = compute.to_vector(image)
 
         del image
-        gc.collect()
+        # gc.collect()
 
         return ahash, vector

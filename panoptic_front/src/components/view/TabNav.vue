@@ -2,15 +2,21 @@
 
 import { Tab } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { onMounted, reactive, ref, nextTick, unref } from 'vue';
+import {reactive, ref, nextTick } from 'vue';
+import wTT from '../tooltips/withToolTip.vue'
 
 const editTab = ref(-1)
 const newTabName = ref('')
 const inputElem = ref(null)
 
+const props = defineProps({
+    reRender: Function
+})
+
+
 function select(id: number) {
     if (globalStore.selectedTab == id) {
-        setEditTab(id)
+        // setEditTab(id)
     }
     else {
         endEdit()
@@ -34,6 +40,8 @@ function addTab(event: any) {
 }
 
 async function deleteTab(tab: Tab) {
+    let ok = confirm('Are you sure to delete Tab: ' + tab.name)
+    if(!ok) return
     if (Object.keys(globalStore.tabs).length == 1) {
         await globalStore.addTab('Tab1')
     }
@@ -42,6 +50,7 @@ async function deleteTab(tab: Tab) {
 
 const hover = reactive({}) as any
 const editId = ref(-1)
+const langs = ['fr', 'en']
 
 </script>
 
@@ -52,10 +61,15 @@ const editId = ref(-1)
                 @mouseleave="e => hover[tab.id] = false">
                 <!-- <i class="btn-icon bi bi-pencil tab-icon me-2" :class="hover[tab.id] ? '' : 'hidden'" style="font-size: 9px;"></i> -->
                 <template v-if="editTab != tab.id">
+                    <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab(tab.id)" class="bi bi-pencil me-1 tab-icon hover-light" :class="(hover[tab.id] && globalStore.selectedTab == tab.id)? '' : 'hidden'" style="font-size: 10px;"></i></wTT>
                     <div class="tab-button" :class="(tab.id == globalStore.selectedTab ? ' active' : '')"
-                        @click="select(tab.id)"><span>{{ tab.name }}</span></div>
-                    <i @click="deleteTab(tab)" class="btn-icon bi bi-x tab-icon" style="font-size: 15px;"
-                        :class="hover[tab.id] ? '' : 'hidden'"></i>
+                        @click="select(tab.id)">
+                        <span>{{ tab.name }}</span>
+                    </div>
+                    <wTT message="main.menu.delete_tab_tooltip">
+                        <i @click="deleteTab(tab)" class="btn-icon bi bi-x tab-icon hover-light" style="font-size: 15px;"
+                            :class="hover[tab.id] ? '' : 'hidden'"></i>
+                    </wTT>
                 </template>
                 <template v-else>
                     <div class="tab-button" :class="(tab.id == globalStore.selectedTab ? ' active' : '')">
@@ -64,7 +78,15 @@ const editId = ref(-1)
                     
                 </template>
             </div>
-            <button class="tab-icon" @click="addTab"><span class="bi bi-plus"></span></button>
+            <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"><span class="bi bi-plus"></span></button></wTT>
+            <div class="lang">
+                <i class="bi bi-translate" style="margin-right:0.5rem"></i>
+                <select v-model="$i18n.locale" @change="props.reRender()">
+                    <option v-for="(lang, i) in langs" :key="`Lang${i}`" :value="lang">
+                        {{ lang.toUpperCase() }}
+                    </option>
+                </select>
+        </div>
         </div>
     </nav>
 </template>
@@ -76,5 +98,13 @@ const editId = ref(-1)
 
 .hidden {
     visibility: hidden;
+}
+
+.lang{
+    margin-left: auto;
+    order: 2;
+    margin-top: 0.1em;
+    margin-right: 0.5em;
+    font-size:16px
 }
 </style>

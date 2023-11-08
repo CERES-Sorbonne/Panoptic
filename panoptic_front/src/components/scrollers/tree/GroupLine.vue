@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { Group, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
+import { Group, GroupData, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
-import { computed, ref, unref } from 'vue'
-import StampDropdown from '../inputs/StampDropdown.vue'
-import TagBadge from '../tagtree/TagBadge.vue'
+import { computed, ref, unref, watch } from 'vue'
+import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import { UNDEFINED_KEY } from '@/utils/groups'
-import PropertyValue from '../properties/PropertyValue.vue'
+import PropertyValue from '@/components/properties/PropertyValue.vue'
+import SelectCircle from '@/components/inputs/SelectCircle.vue'
+import wTT from '../../tooltips/withToolTip.vue'
 
 
 const props = defineProps({
     item: Object as () => GroupLine,
     parentIds: Array<string>,
     hoverBorder: String,
-    index: Object as () => { [id: string]: Group }
+    data: Object as () => GroupData,
+    hideOptions: Boolean
 })
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
 
 const hoverGroup = ref(false)
 
 const group = computed(() => props.item.data as Group)
 const images = computed(() => props.item.data.images)
+const piles = computed(() => props.item.data.imagePiles)
 const subgroups = computed(() => props.item.data.groups)
 const hasImages = computed(() => images.value.length > 0)
+const hasPiles = computed(() => Array.isArray(piles.value))
 const hasSubgroups = computed(() => subgroups.value != undefined)
 const property = computed(() => globalStore.properties[props.item.data.propertyId])
 const closed = computed(() => group.value?.closed)
@@ -51,22 +55,73 @@ const groupName = computed(() => {
 
 const someValue = computed(() => props.item.data.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
+const allImagesSelected = computed(() => group.value.allImageSelected)
+
+
+// function toggleImageSelection() {
+//     let allSelected = allImagesSelected.value
+//     selectGroupImages(group.value, !allSelected)
+// }
+
+// function selectGroupImages(group: Group, select: boolean) {
+//     group.allImageSelected = select
+//     if (group.images.length > 0) {
+//         if (select) {
+//             group.images.forEach(i => props.selectedImages[i.id] = true)
+//             group.allImageSelected = true
+//         } else {
+//             group.images.forEach(i => delete props.selectedImages[i.id])
+//             group.allImageSelected = false
+//         }
+//     } else {
+//         group.groups.forEach(g => selectGroupImages(g, select))
+//     }
+// }
+
+// function recursiveToggleImageSelection(group: Group, allSelected) {
+//     console.log('recursive')
+//     if (group.images.length > 0) {
+//         if (allSelected) {
+//             console.log('remove')
+//             group.images.forEach(i => delete props.selectedImages[i.id])
+//             group.allImageSelected = false
+//         } else {
+//             console.log('set it')
+//             group.images.forEach(i => props.selectedImages[i.id] = true)
+//             group.allImageSelected = true
+//         }
+//     } else {
+//         group.groups.forEach(g => recursiveToggleImageSelection(g, allSelected))
+//     }
+// }
+
 function getTag(propId: number, tagId: number) {
     return globalStore.tags[propId][tagId]
 }
 
 async function computeClusters() {
-    let sha1 = group.value.images.map(img => img.sha1)
-    let mlGroups = await globalStore.computeMLGroups(sha1, props.item.nbClusters)
+    let sha1s: string[] = []
+    if (hasPiles.value) {
+        sha1s = group.value.imagePiles.map(p => p.sha1)
+    }
+    else if (hasImages.value) {
+        sha1s = [...new Set(group.value.images.map(i => i.sha1))]
+    }
+    let mlGroups = await globalStore.computeMLGroups(sha1s, props.item.nbClusters)
+    let distances = mlGroups.distances
+    mlGroups = mlGroups.clusters
     // props.item.data.groups = []
 
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
-        let images = globalStore.getOneImagePerSha1(sha1s)
+        let images = []
+        let piles = sha1s.map((s: string) => ({ sha1: s, images: globalStore.sha1Index[s] }))
+        piles.forEach(p => images.push(...p.images))
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index),
-            name: 'cluster ' + index.toString(),
+            name: 'cluster ' + index.toString() + (distances.length > 0 ? ' ' + distances[index].toString() : ''),
             images: images,
+            imagePiles: piles,
             count: sha1s.length,
             groups: undefined,
             children: undefined,
@@ -78,7 +133,8 @@ async function computeClusters() {
             isCluster: true
         }
         groups.push(realGroup)
-        props.index[realGroup.id] = realGroup
+        props.data.index[realGroup.id] = realGroup
+        images.forEach(i => props.data.imageToGroups[i.id].push(realGroup.id))
     }
     props.item.data.groups = groups
     props.item.data.children = groups.map(g => g.id)
@@ -93,10 +149,17 @@ function clear() {
 }
 
 async function recommandImages() {
-    let sha1s = {} as any
-    group.value.images.forEach(i => sha1s[i.sha1] = true)
+    let sha1s: string[] = []
+    if (hasPiles.value) {
+        sha1s = group.value.imagePiles.map(p => p.sha1)
+    }
+    else if (hasImages.value) {
+        sha1s = [...new Set(group.value.images.map(i => i.sha1))]
+    }
+    // let sha1s = {} as any
+    // group.value.images.forEach(i => sha1s[i.sha1] = true)
 
-    let res = await globalStore.getSimilarImages(Object.keys(sha1s)) as any[]
+    let res = await globalStore.getSimilarImages(sha1s) as any[]
     let resSha1s = res.map(r => r.sha1)
 
     const propertyValues = props.item.data.propertyValues.map(unref)
@@ -146,35 +209,44 @@ function closeChildren() {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'" class="align-self-center me-2">
-            <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length-1]" />
+        <div class="me-1">
+            <SelectCircle :small="true" :model-value="allImagesSelected" @update:model-value="emits('select', group.id)" />
+        </div>
+        <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
+            class="align-self-center me-2">
+            <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length - 1]" />
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.count }} Images</div>
         <div v-if="group.groups" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
-            group.groups.length }} Groupes</div>
+            group.groups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
-        <div class="d-flex flex-row align-self-center me-2" v-if="!closed">
-            <div v-if="hasImages && !hasSubgroups" class="ms-2">
+        <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
-                <div class="button" @click="computeClusters">Créer clusters</div>
+                <wTT message="main.view.group_clusters_tooltip">
+                    <div class="button" @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
+                </wTT>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
-            <div v-if="hasImages && !hasSubgroups" style="margin-left: 2px;">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
                 <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
             </div>
-            <div v-if="hasImages && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
-                <div class="button" @click="recommandImages">Images Similaires</div>
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
+                <wTT message="main.recommand.tooltip">
+                    <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
+                </wTT>
             </div>
-            <div v-if="hasImages && hasSubgroups" class="ms-2">
-                <div class="button" @click="clear">Clear</div>
+            <div v-if="(hasImages || hasPiles) && hasSubgroups" class="ms-2">
+                <div class="button" @click="clear">{{ $t('main.view.remove_clusters') }}</div>
             </div>
         </div>
-        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren" class="ms-2 text-secondary close-children"
-            @click="closeChildren">
-            Reduire
+
+        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren"
+            class="ms-1 text-secondary align-self-center close-children" @click="closeChildren">
+            {{ $t('main.view.collapse') }}
         </div>
 
     </div>
@@ -183,7 +255,6 @@ function closeChildren() {
 <style scoped>
 .close-children {
     font-size: 11px;
-    line-height: 25px;
     cursor: pointer;
 }
 

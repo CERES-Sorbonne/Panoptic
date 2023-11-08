@@ -1,15 +1,17 @@
+import asyncio
 import os
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Executor
 from pathlib import Path
 from typing import List
 
 from panoptic.core import db
 from panoptic.core.process_queue import ImportImageQueue, ComputeVectorsQueue
 from panoptic.models import Folder, ImageImportTask, Image, ComputedValue
+from panoptic.scripts.create_faiss_index import compute_faiss_index
 
 
 class ImageImporter:
-    def __init__(self, executor: ProcessPoolExecutor):
+    def __init__(self, executor: Executor):
         self.status = 'read'
         self.executor = executor
 
@@ -23,6 +25,8 @@ class ImageImporter:
 
         self._import_queue = ImportImageQueue(executor)
         self._compute_queue = ComputeVectorsQueue(executor)
+        self._pca_task: asyncio.Task | None = None
+        self._auto_pca = False
 
         self._new_images = []
     # def _reset_counters(self):
@@ -41,6 +45,8 @@ class ImageImporter:
             self.total_import = 0
             self.current_import = 0
 
+        self._auto_pca = False
+
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
                       i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
@@ -51,15 +57,18 @@ class ImageImporter:
 
         self.status = 'compute'
 
-        def on_import(image: Image):
+        def on_import(image: Image, is_last):
             self.current_import += 1
             self._compute_queue.add_task(image.id)
 
             if self._import_queue.done():
                 self._compute_queue.start_workers(6)
 
-        def on_compute(vector: ComputedValue):
+        def on_compute(vector: ComputedValue, is_last):
             self.current_computed += 1
+            if is_last:
+                # print('would run pca now')
+                self._pca_task = asyncio.create_task(compute_faiss_index())
 
         self._import_queue.done_callback = on_import
         self._compute_queue.done_callback = on_compute

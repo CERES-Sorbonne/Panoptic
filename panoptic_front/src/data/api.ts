@@ -6,6 +6,7 @@
 import { Images, Property, PropertyMode, PropertyType, PropertyValue, PropertyValueUpdate, Tab, TabState, Tag } from './models'
 
 import axios from 'axios'
+import { saveFile } from '@/utils/api'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -30,7 +31,7 @@ export const apiGetProperties = async () => {
 export const apiAddTag = async (
     propertyId: number, 
     value: string, 
-    color?: string, 
+    color?: number, 
     parentId?: number
     ):Promise<Tag> => {
     const res = await axios.post('/tags', {
@@ -42,23 +43,28 @@ export const apiAddTag = async (
     return res.data
 }
 
+export const apiAddTagParent = async (tagId: number, parentId: number) => {
+    const res = await axios.post('tag/parent', {tagId, parentId})
+    return res.data
+}
+
 export const apiAddProperty = async(name: string, type: PropertyType, mode: PropertyMode):Promise<Property> => {
     const res = await axios.post('/property', {name, type, mode})
     return res.data
 }
 
-export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] | undefined, sha1s: string[] | undefined, value: any):Promise<PropertyValueUpdate> => {
+export const apiSetPropertyValue = async(propertyId:number, imageIds: number[] | undefined, sha1s: string[] | undefined, value: any, mode: string = null):Promise<PropertyValueUpdate> => {
     // only arrays are tags lists
     if(Array.isArray(value)) {
         value = value.map(Number)
     }
     // console.log({imageIds, sha1s, propertyId, value})
-    const res = await axios.post('/image_property', {imageIds, sha1s, propertyId, value})
+    const res = await axios.post('/image_property', {imageIds, sha1s, propertyId, value, mode})
     // console.log(res.data)
     return res.data
 }
 
-export const apiUpdateTag = async(id: number, color?:string, parentId?: number, value?: any):Promise<Tag> => {
+export const apiUpdateTag = async(id: number, color?:number, parentId?: number, value?: any):Promise<Tag> => {
     const res = await axios.patch('/tags', {id, color, parentId, value})
     return res.data
 }
@@ -102,6 +108,9 @@ export const apiAddTab = async(tab: Tab) => {
 }
 
 export const apiUpdateTab = async(tab: Tab) => {
+    const toSend = Object.assign({}, tab)
+    toSend.data = Object.assign({}, tab.data)
+    delete toSend.data.filterManager
     let res = await axios.patch('/tab', tab)
     return res.data
 }
@@ -124,7 +133,12 @@ export const apiGetImportStatus = async() => {
 }
 
 export const apiGetSimilarImages = async(sha1List: string[]) => {
-    let res = await axios.post('/similar', {sha1List})
+    let res = await axios.post('/similar/image', {sha1List})
+    return res.data
+}
+
+export const apiGetSimilarImagesFromText = async(inputText: string) => {
+    let res = await axios.post('/similar/text', {inputText})
     return res.data
 }
 
@@ -143,4 +157,9 @@ export const apiUploadPropFile = async(file: any) => {
         }
       }
     )
+}
+
+export const apiExportProperties = async(images?: number[], properties?: number[]) => {
+    let res = await axios.post('/export', {...(images && {images}), ...(properties && {properties})})
+    saveFile(res, "panoptic_output.csv")
 }

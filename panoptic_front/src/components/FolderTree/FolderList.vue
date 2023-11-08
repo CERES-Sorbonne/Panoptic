@@ -83,7 +83,7 @@ function propagateChildUnselect(folder: Folder) {
 <template>
     <ul :class="props.root ? 'tree' : ''" :style="props.root ? 'padding-left:0px;' : ''">
         <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''">
-            <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }}</summary>
+            <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }} <span class="text-secondary">{{ folder.count }}</span></summary>
             <i v-if="folder.children && folder.children.length > 0" @click="toggleFolderVisible(folder.id)"
                 :class="'bi bi-chevron-' + (isVisible[folder.id] ? 'down' : 'right') + ' ms-2 btn-icon'" style="font-size: 9px;"></i>
             <template v-if="folder.children && folder.children.length > 0 && isVisible[folder.id]">

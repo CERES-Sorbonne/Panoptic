@@ -8,8 +8,6 @@ import socket
 import argparse
 from threading import Thread
 from time import sleep
-from tkinter import filedialog, ttk
-from tkinter.filedialog import askdirectory
 
 import uvicorn
 import requests
@@ -19,6 +17,7 @@ from panoptic.utils import get_datadir
 PORT = 8000
 HOST = False
 THREAD = None
+
 
 def api(path):
     return 'http://localhost:' + str(PORT) + '/' + path
@@ -219,14 +218,29 @@ def on_fastapi_start():
     t1.start()
 
 
+def init_folders_server():
+    os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', (pathlib.Path.home() / 'panoptic').as_posix())
+    path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini')
+    if not os.path.exists(path):
+        os.makedirs(path)
+    # requests.post(api("project"), json={"project": projects['projects'][0]['path']})
+    requests.post(api('folders'), headers={"Content-type": "application/json"}, json={"path": FOLDER}).json()
+
+
+def on_fastapi_start_server():
+    t1 = Thread(target=init_folders_server)
+    t1.start()
+
+
 def launch_uvicorn():
     from panoptic.api import app
-    app.add_event_handler('startup', on_fastapi_start)
-    app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
+    app.add_event_handler('startup', on_fastapi_start if not SERVER else on_fastapi_start_server)
+    if not SERVER:
+        app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
     if HOST:
-        uvicorn.run(app, host="0.0.0.0")
+        uvicorn.run(app, host="0.0.0.0", port=PORT)
     else:
-        uvicorn.run(app)
+        uvicorn.run(app, port=PORT)
 
 
 def start_thread():
@@ -237,10 +251,16 @@ def start_thread():
 
 
 def start():
-    parser = argparse.ArgumentParser(description="Start Panoptic, use --host to share your panoptic across local network")
+    parser = argparse.ArgumentParser(
+        description="Start Panoptic, use --host to share your panoptic across local network")
     parser.add_argument('--host', action="store_true")
+    parser.add_argument('--server', action="store_true")
+    parser.add_argument('--folder', type=str)
+
     args = parser.parse_args()
     global HOST
+    global SERVER
+    global FOLDER
     HOST = args.host
     app = QApplication(sys.argv)
     # try:

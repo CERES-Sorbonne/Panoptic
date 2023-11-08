@@ -110,9 +110,11 @@ function setEdit(value: Boolean) {
         })
     }
     else {
-        document.removeEventListener('click', handleContainerClick)
+        document.removeEventListener('click', handleContainerClick, true)
         let img = globalStore.images[props.property.imageId]
-        globalStore.setPropertyValue(props.property.propertyId, img, localValue)
+        if(tagsChanged()) {
+            globalStore.setPropertyValue(props.property.propertyId, img, localValue)
+        }
         edit.value = false
         showTagList.value = false;
         if (props.property.value == '') {
@@ -122,6 +124,25 @@ function setEdit(value: Boolean) {
         let dropdown = boostrap.Dropdown.getOrCreateInstance(dropdownElem.value)
         dropdown.hide()
     }
+}
+
+function tagsChanged() {
+    let oldTags = props.property.value
+
+    if (oldTags.length != localValue.length) {
+        return true
+    }
+
+    let set = new Set(localValue)
+    for(let t of oldTags) 
+    {
+        if(!set.has(t)) {
+            return true
+        }
+    }
+
+    return false
+    
 }
 
 function elemIsInput(elem: HTMLElement, depth: number = 0): Boolean {
@@ -186,7 +207,7 @@ watch(() => props.inputId, () => inputTree.registerInput(props.inputId, clickabl
 
 <template>
     <div class="pt-1 pb-1 pe-1 input-container" is-input="true">
-        <div class="dropdown" @click.prevent.stop="setEdit(true)" ref="clickableElem">
+        <div class="dropdown" @click="setEdit(true)" ref="clickableElem">
             <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem" data-bs-offset="20,0"
                 data-ds-toggle="dropdown" data-bs-display="static">
                 <div v-if="!edit" class="overflow-hidden" :class="!edit ? 'test-wraped' : ''">

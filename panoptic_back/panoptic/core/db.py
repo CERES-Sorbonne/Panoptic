@@ -40,10 +40,11 @@ async def create_clones(image: Image, nb_clones: int) -> list[int]:
         'url',
         'width',
         'height').insert(*[Parameter('?') for _ in range(7)])
-    data = [(image.folder_id, image.name, image.extension, image.sha1, image.url, image.width, image.height)] * nb_clones
+    data = [(
+            image.folder_id, image.name, image.extension, image.sha1, image.url, image.width, image.height)] * nb_clones
     await execute_query_many(query.get_sql(), data)
     new_query = "SELECT id FROM images ORDER BY id DESC LIMIT ?"
-    cursor = await execute_query(new_query, (nb_clones, ))
+    cursor = await execute_query(new_query, (nb_clones,))
     return [x[0] for x in await cursor.fetchall()]
 
 
@@ -95,6 +96,13 @@ async def get_images(ids: List[int] = None, sha1s: List[str] = None):
     cursor = await execute_query(query.get_sql())
     images = [Image(*image) for image in await cursor.fetchall()]
     return images
+
+
+async def get_sha1_count():
+    query = "SELECT count( DISTINCT sha1 ) FROM images"
+    cursor = await execute_query(query)
+    row = await cursor.fetchone()
+    return row[0]
 
 
 async def get_property_values(property_ids: List[int] = None, image_ids: List[int] = None, sha1s: List[str] = None):
@@ -280,7 +288,7 @@ async def delete_property(property_id):
 
 async def update_property(new_property: Property):
     query = "UPDATE properties SET name = ?, type = ? WHERE id = ?"
-    await execute_query(query, (new_property.name, new_property.type, new_property.id))
+    await execute_query(query, (new_property.name, new_property.type.value, new_property.id))
 
 
 async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
@@ -289,7 +297,7 @@ async def get_property_values_with_tag(tag_id: int) -> list[PropertyValue]:
     return [PropertyValue(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
 
-async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[int] = None):
+async def set_property_values(property_id: int, value: Any, image_ids: List[int] = None, sha1s: List[str] = None):
     """
     Set property values for several image_ids / sha1 but with only one possible value !
     """
@@ -311,16 +319,18 @@ async def set_property_values(property_id: int, value: Any, image_ids: List[int]
     return updated_ids, json.loads(value)
 
 
-async def set_multiple_property_values(property_id: int, values: list[Any], images_ids: List[int] = None):
+async def set_multiple_property_values(property_id: int, values: list[Any], images_ids_or_sha1: List[int | str] = None):
     """
-    Set property values for several image_ids and several values, there must be as much ids than values
-    Should we update this function to accept also a list of sha1s ? maybe if we import a sha1 property file ?
+    Set property values for several image_ids / sha1 and several values, there must be as much ids / sha1 than values
     """
     t = Table('property_values')
     query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
-    query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
+    if isinstance(images_ids_or_sha1[0], str):
+        query = query.insert((property_id, -1, Parameter('?'), Parameter('?')))
+    else:
+        query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
     query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
-    await execute_query_many(query, [(id, json.dumps(value)) for id, value in zip(images_ids, values)])
+    await execute_query_many(query, [(id_, json.dumps(value)) for id_, value in zip(images_ids_or_sha1, values)])
 
 
 async def set_computed_value(sha1: str, ahash: str, vector: np.array):

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import PanopticView from '../views/PanopticView.vue'
+import TestView from '../views/TestView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,6 +9,11 @@ const router = createRouter({
       path: '/',
       name: 'compute',
       component: PanopticView
+    },
+    {
+      path: '/test',
+      name: 'test',
+      component: TestView
     }
   ]
 })

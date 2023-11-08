@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
-import ImageVue from './Image.vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Group, GroupIndex, Image, PropertyType, PropertyValue, Recommendation } from '@/data/models';
+import { Image, PropertyType, Recommendation, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
-import { right } from '@popperjs/core';
 import { UNDEFINED_KEY } from '@/utils/groups';
+import wTT from '../tooltips/withToolTip.vue'
 
 
 const props = defineProps({
@@ -36,7 +35,8 @@ function removeImage(sha1: string) {
 function acceptRecommend(image: Image) {
     props.reco.values.forEach(v => {
         if(v.value != UNDEFINED_KEY) {
-            globalStore.setPropertyValue(v.propertyId, image, v.value)
+            let mode = globalStore.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
+            globalStore.setPropertyValue(v.propertyId, image, v.value, mode)
         }
     })
     removeImage(image.sha1)
@@ -50,26 +50,27 @@ function refuseRecommend(image: Image) {
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
-    const images = globalStore.getOneImagePerSha1(props.reco.images)
-    computeImageLines(images, lines, maxLines.value, props.imageSize, props.width)
+    const piles = props.reco.images.map((sha1: string) => ({sha1, images: globalStore.sha1Index[sha1]}))
+    computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
 
-function computeImageLines(images: Image[], lines: Image[][], maxLines: number, imageWidth: number, totalWidth: number) {
+function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: number, imageWidth: number, totalWidth: number) {
     let lineWidth = totalWidth
-    let newLine: Image[] = []
+    let newLine: Sha1Pile[] = []
     let actualWidth = 0
 
-    for (let i = 0; i < images.length; i++) {
+    for (let i = 0; i < piles.length; i++) {
         if (lines.length >= maxLines) {
             break
         }
-        let img = images[i]
-        if(blacklist.has(img.sha1)) {
+        let pile = piles[i]
+        let img = pile.images[0]
+        if(blacklist.has(pile.sha1)) {
             continue
         }
         let imgWidth = imageWidth + imageMargin
         if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(img)
+            newLine.push(pile)
             actualWidth += imgWidth
             continue
         }
@@ -78,7 +79,7 @@ function computeImageLines(images: Image[], lines: Image[][], maxLines: number, 
         }
         lines.push(newLine)
         if (lines.length < maxLines) {
-            newLine = [img]
+            newLine = [pile]
             actualWidth = imgWidth
         }
     }
@@ -104,7 +105,7 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
 <template>
     <div class="reco-container">
         <div class="d-flex flex-row m-0 ps-2 pb-2">
-            <span class="text-secondary me-2">Images recommandées</span>
+            <wTT icon-pos="left" message="main.recommand.tooltip" icon="true"><span class="text-secondary me-2">{{$t('main.recommand.title')}}</span></wTT>
             <div class="flex-grow-1">
                 <div class="d-flex flex-row">
                     <template v-for="value, index in props.reco.values">
@@ -113,13 +114,13 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
                     </template>
                 </div>
             </div>
-            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.reco.groupId)">Voir Groupe</span>
+            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.reco.groupId)">{{$t('main.recommand.group')}}</span>
             <span class="text-secondary me-1 close  ps-1 pe-1 clickable" @click="emits('close')"><i class="bi bi-x"></i></span>
         </div>
         <div :style="'margin-left:' + imageMargin + 'px;'">
             <div v-for="line in lines">
                 <div class="d-flex flex-row">
-                    <ImageRecomended :image="image" :size="props.imageSize" v-for="image in line" @accept="acceptRecommend"
+                    <ImageRecomended :pile="pile" :size="props.imageSize" v-for="pile in line" @accept="acceptRecommend"
                         @refuse="refuseRecommend" :style="'margin-right:' + imageMargin + 'px;'" />
                 </div>
             </div>
