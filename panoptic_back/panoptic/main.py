@@ -8,11 +8,12 @@ import socket
 import argparse
 from threading import Thread
 from time import sleep
-from tkinter import filedialog, ttk
-from tkinter.filedialog import askdirectory
 
 import uvicorn
 import requests
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QCursor
+import qtawesome as qta
 
 from panoptic.utils import get_datadir
 
@@ -29,82 +30,157 @@ FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DE
 PROJECT_PATH = get_datadir() / "panoptic" / "projects.json"
 PROJECT_PATH = PROJECT_PATH.as_posix()
 
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, \
+    QPushButton, QListView, QLineEdit, QFileDialog, QListWidget, QDesktopWidget
+from PyQt5 import QtCore, QtGui
 
-class MiniUI:
-    def __init__(self, master):
-        self.master = master
+
+class IconLabel(QWidget):
+
+    IconSize = QSize(16, 16)
+    HorizontalSpacing = 2
+
+    def __init__(self, qta_id, text, color="blue", final_stretch=True):
+        super(QWidget, self).__init__()
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+        self.icon = QLabel()
+        self.icon.setPixmap(qta.icon(qta_id, color=color).pixmap(self.IconSize))
+
+        layout.addWidget(self.icon)
+        layout.addSpacing(self.HorizontalSpacing)
+        layout.addWidget(QLabel(text))
+
+        if final_stretch:
+            layout.addStretch()
+
+    def setAlignment(self, pos):
+        self.icon.setAlignment(pos)
+
+
+class MiniUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "html/favicon.ico")))
         self.selected_project = None
         self.projects = None
+        self.setObjectName("Main")
+        self.setStyleSheet("""
+        #Main{
+            background: white;
+        }
+        QLabel{
+            font-size: 12pt;
+        }
+        QWidget{
+            font-size: 11pt;
+        }
+        QPushButton{
+            padding: 5px;
+            border-radius: 10px;
+            background-color: #d1dde0;
+        }
+        QComboBox{
+            padding: 5px;
+            border: 1px solid lightgrey
+        }
+        QComboBox::drop-down{
+            border: 0px
+        }
+        QComboBox::down-arrow {
+            image: url(panoptic/assets/arrow.png);
+            width: 11px;
+            height: 11px;
+            margin-right: 5px;
+        }
+        """)
 
-        master.title("Panoptic Server")
 
-        screen_width = master.winfo_screenwidth()
-        screen_height = master.winfo_screenheight()
-        x = (screen_width // 2) - (700 // 2)
-        y = (screen_height // 2) - (350 // 2)
+        self.setWindowTitle("Panoptic Server")
+        self.setGeometry(100, 100, 700, 350)
+        self._center()
 
-        master.geometry(f"700x350+{x}+{y}")
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
 
-        # Frame pour la partie A
-        frame_a = ttk.Frame(master)
-        frame_a.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        # Partie A
+        frame_a = QWidget()
+        frame_a.setObjectName("A")
+        frame_a.setStyleSheet("""#A{
+            border-bottom: 1px solid lightgrey;
+        }""")
+        layout.addWidget(frame_a)
+        frame_a_layout = QHBoxLayout(frame_a)
 
-        # Frame pour la partie A.1
-        frame_a1 = ttk.Frame(frame_a)
-        frame_a1.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
+        # Partie A.1
+        frame_a1 = QWidget()
+        frame_a_layout.addWidget(frame_a1)
+        frame_a1_layout = QVBoxLayout(frame_a1)
+        frame_a1_layout.setAlignment(QtCore.Qt.AlignTop)
+        label = IconLabel("fa5.folder", "Choisir Projet existant")
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        frame_a1_layout.addWidget(label)
+        self.combo_box = QComboBox()
+        frame_a1_layout.addWidget(self.combo_box)
 
-        # Label, combobox et bouton dans la partie A.1
-        self.label = tk.Label(frame_a1, text="Choisir Projet existant")
-        self.label.pack(pady=10)
+        self.new_project_button = QPushButton("Nouveau projet")
+        self.new_project_button.clicked.connect(self.create_project)
+        self.new_project_button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
+        frame_a1_layout.addWidget(self.new_project_button)
+        frame_a1.setFixedWidth(250)
+        # Partie A.2
+        frame_a2 = QWidget()
+        frame_a_layout.addWidget(frame_a2)
+        frame_a2_layout = QVBoxLayout(frame_a2)
 
-        self.combo_box = ttk.Combobox(frame_a1)
-        self.combo_box.pack(pady=10, padx=5)
+        label2 = IconLabel("fa5.image", "Dossiers d'images du projet courant")
+        label2.setAlignment(QtCore.Qt.AlignCenter)
+        frame_a2_layout.addWidget(label2)
 
-        self.new_project_button = tk.Button(frame_a1, text="Nouveau projet", command=self.create_project)
-        self.new_project_button.pack(pady=10)
+        self.listbox = QListWidget()
+        frame_a2_layout.addWidget(self.listbox)
 
-        # Espacement entre A.1 et A.2
-        spacer = tk.Label(frame_a, width=2)
-        spacer.pack(side=tk.LEFT)
+        self.button = QPushButton("Ajouter un dossier d'images")
+        self.button.clicked.connect(self.add_folder)
+        self.button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
+        frame_a2_layout.addWidget(self.button)
 
-        # Barre de séparation entre A.1 et A.2
-        separator = ttk.Frame(frame_a, width=2, relief=tk.SUNKEN)
-        separator.pack(side=tk.LEFT, fill=tk.Y)
+        # Partie B
+        frame_b = QWidget()
+        layout.addWidget(frame_b)
+        frame_b_layout = QVBoxLayout(frame_b)
+        frame_b_layout.setAlignment(QtCore.Qt.AlignCenter)
 
-        # Frame pour la partie A.2
-        frame_a2 = ttk.Frame(frame_a)
-        frame_a2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.server_status = QLineEdit("Démarrage...")
+        self.server_status.setStyleSheet("""
+            QWidget {
+                background-color: "orange";
+                padding: 5px;
+                border-radius: 10px;
+            }
+        """)
+        self.server_status.setReadOnly(True)
+        self.server_status.setAlignment(QtCore.Qt.AlignCenter)
+        self.server_status.setFixedWidth(200)
+        frame_b_layout.addWidget(self.server_status)
 
-        # Label et listbox dans la partie A.2
-        self.label2 = tk.Label(frame_a2, text="Dossiers")
-        self.label2.pack(pady=10)
+        self.open_button = QPushButton("Ouvrir Panoptic")
+        self.open_button.setFixedWidth(200)
+        self.open_button.clicked.connect(self.open_panoptic)
+        self.open_button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
-        self.listbox = tk.Listbox(frame_a2)
-        self.listbox.pack(fill=tk.BOTH, expand=True)
+        frame_b_layout.addWidget(self.open_button)
+        self.setEnabled(False)
 
-        # Button en bas de la partie A.2
-        self.button = tk.Button(frame_a2, text="Ajouter Dossier", command=self.add_folder)
-        self.button.pack(side=tk.BOTTOM, pady=10)
-
-        # Barre de séparation entre A et B
-        separator2 = ttk.Frame(master, height=2, relief=tk.SUNKEN)
-        separator2.pack(side=tk.TOP, fill=tk.X)
-
-        # Frame pour la partie B
-        frame_b = ttk.Frame(master)
-        frame_b.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        # Label2 centré dans la partie B
-        self.server_status = tk.StringVar(value='starting...')
-        self.label2 = tk.Entry(frame_b, textvariable=self.server_status, state='readonly', width=30)
-        self.label2.pack(pady=10)
-
-        # Button centré dans la partie B
-        self.open_button = tk.Button(frame_b, text="Ouvrir Panoptic", width=20, command=self.open_panoptic)
-        self.open_button['state'] = "disabled"
-        self.open_button.pack(pady=10)
-
-        self.init_projects()
+    def _center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
     def init_projects(self):
         # TODO: si tout marche bien sortir tout le code suivant dans une fonction à part
@@ -122,59 +198,68 @@ class MiniUI:
             with open(PROJECT_PATH, 'w') as json_file:
                 json.dump(self.projects, json_file)
 
-        self.combo_box.bind("<<ComboboxSelected>>", self.load_project)
 
         # Récupérer les noms des projets dans une liste
         project_names = [project['name'] for project in self.projects['projects']]
 
         if project_names:
             # Mettre à jour la liste déroulante
-            self.combo_box['values'] = project_names
+            self.combo_box.addItems(project_names)
             # Sélectionner le premier projet par défaut s'il existe
-            self.combo_box.current(0)
+            self.combo_box.setCurrentIndex(0)
             self.selected_project = self.projects['projects'][0]
 
         if self.projects['last_opened'] is not None:
             index = project_names.index(self.projects['last_opened']['name'])
-            self.combo_box.current(index)
+            self.combo_box.setCurrentIndex(index)
             self.selected_project = self.projects['projects'][index]
+
+        self.combo_box.currentIndexChanged.connect(self.load_project)
 
         if self.selected_project:
             self.load_project()
 
     def init_folders(self):
-        self.listbox.delete(0, tk.END)
+        self.listbox.clear()
         failed = True
         while failed:
             try:
                 res = requests.get(api('folders')).json()
                 for folder in res:
                     if folder['parent'] is None:
-                        self.listbox.insert(tk.END, folder['path'])
+                        self.listbox.addItem(folder['path'])
                 failed = False
-                message = 'running'
+                message = 'Running !'
                 if HOST:
                     try:
                         ip = socket.gethostbyname(socket.gethostname())
                         message += f' on {ip}:{PORT}'
                     except:
                         pass
-                ui.server_status.set(message)
-                ui.open_button['state'] = "normal"
-            except Exception as e:
-                print(e)
+                self.server_status.setText(message)
+                self.server_status.setStyleSheet("""
+                    QWidget {
+                        background-color: "green";
+                        padding: 5px;
+                        border-radius: 10px;
+                        color: white;
+                    }
+                """)
+                self.setEnabled(True)
+
+            except Exception:
+                pass
             sleep(0.5)
 
     def add_folder(self):
-        folder_path = askdirectory(parent=self.master, title='Select a directory')
-        # self.listbox.insert(tk.END, folder_path)
+        folder_path = QFileDialog.getExistingDirectory(self, "Choisir un dossier d'images")
         print(folder_path)
         res = requests.post(api('folders'), headers={"Content-type": "application/json"},
                             json={"path": folder_path}).json()
-        self.listbox.delete(0, tk.END)
+        self.listbox.clear()
         for folder in res:
             if folder['parent'] is None:
-                self.listbox.insert(tk.END, folder['path'])
+                self.listbox.addItem(folder['path'])
 
     def open_panoptic(self):
         webbrowser.open(FRONT_URL)
@@ -183,36 +268,20 @@ class MiniUI:
             json.dump(self.projects, json_file)
 
     def create_project(self):
-        # Demander à l'utilisateur de choisir un emplacement pour le projet
-        folder_path = filedialog.askdirectory()
-        if folder_path.strip() == "":
-            return
-
-        # Récupérer le nom du projet depuis le dernier dossier du chemin
+        folder_path = QFileDialog.getExistingDirectory(self, 'Dossier où stocker les données panoptic')
         project_name = os.path.basename(folder_path)
-
-        # Créer un nouvel objet projet
         new_project = {'name': project_name, 'path': folder_path}
-
-        # Ajouter le nouveau projet aux données existantes
         self.projects['projects'].append(new_project)
-
-        # Enregistrer les données dans le fichier JSON
         with open(PROJECT_PATH, 'w') as json_file:
             json.dump(self.projects, json_file)
-
-        # Mettre à jour la liste déroulante
-        project_names = [project['name'] for project in self.projects['projects']]
-        self.combo_box['values'] = project_names
-
-        # Sélectionner le nouveau projet dans la liste déroulante
-        self.combo_box.current(len(project_names) - 1)
+        self.combo_box.addItem(project_name)
+        self.combo_box.setCurrentIndex(self.combo_box.count() - 1)
         self.load_project()
 
     def load_project(self, event=None):
         if len(self.projects['projects']) == 0:
             return
-        self.selected_project = self.projects['projects'][self.combo_box.current()]
+        self.selected_project = self.projects['projects'][self.combo_box.currentIndex()]
         os.environ['PANOPTIC_DATA'] = self.selected_project['path']
         path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini')
         if not os.path.exists(path):
@@ -225,7 +294,7 @@ class MiniUI:
 
 
 def on_fastapi_start():
-    ui.server_status.set('fastapi init...')
+    ui.server_status.setText('Initialisation...')
     t1 = Thread(target=ui.init_folders)
     t1.start()
 
@@ -278,16 +347,13 @@ def start():
     FOLDER = args.folder
 
     if not SERVER:
-        root = tk.Tk()
-        try:
-            root.iconbitmap(os.path.join(os.path.dirname(__file__), "html/favicon.ico"))
-        except:
-            pass
+        app = QApplication(sys.argv)
 
         global ui
-        ui = MiniUI(root)
-
-        root.mainloop()
+        ui = MiniUI()
+        ui.show()
+        ui.init_projects()
+        sys.exit(app.exec_())
     else:
         if not FOLDER:
             print("folder parameter need to be fullfilled in server mode")
