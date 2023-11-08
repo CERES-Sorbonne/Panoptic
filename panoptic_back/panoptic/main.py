@@ -185,6 +185,8 @@ class MiniUI:
     def create_project(self):
         # Demander à l'utilisateur de choisir un emplacement pour le projet
         folder_path = filedialog.askdirectory()
+        if folder_path.strip() == "":
+            return
 
         # Récupérer le nom du projet depuis le dernier dossier du chemin
         project_name = os.path.basename(folder_path)
