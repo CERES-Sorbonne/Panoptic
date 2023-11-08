@@ -83,6 +83,19 @@ class MiniUI(QMainWindow):
             border-radius: 10px;
             background-color: #d1dde0;
         }
+        QComboBox{
+            padding: 5px;
+            border: 1px solid lightgrey
+        }
+        QComboBox::drop-down{
+            border: 0px
+        }
+        QComboBox::down-arrow {
+            image: url(panoptic/assets/arrow.png);
+            width: 11px;
+            height: 11px;
+            margin-right: 5px;
+        }
         """)
 
 
