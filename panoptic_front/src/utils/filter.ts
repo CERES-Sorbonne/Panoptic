@@ -74,10 +74,10 @@ const operatorMap: { [operator in FilterOperator]?: any } = {
         }
         return false
     },
-    [FilterOperator.containsNot]: (a: any[], b: any[]) => {
+    [FilterOperator.containsNot]: (a: Set<number>, b: number[][]) => {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return true;
-        return !a.some(e => b.includes(e))
+        return !b.some(e => e.some(tagId => a.has(tagId)))
     },
     [FilterOperator.equal]: (a: any, b: any) => {
         if (isEmpty(b)) return true;
@@ -148,7 +148,7 @@ export function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
 
                 const tagSet = filterValue.map((v:number) => Array.from(getTagChildren(globalStore.tags[propId][v])))
                 nfilter.value = tagSet
-                if(propertyValue !== undefined) {
+                if(!isEmpty(propertyValue)) {
                     propertyValue = new Set(propertyValue)
                 }
             }
