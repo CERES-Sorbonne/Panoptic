@@ -13,7 +13,7 @@ const props = defineProps({
     rounded: Boolean
 
 })
-const emits = defineEmits({ 'update:height': Number, 'update:modelValue': Number })
+const emits = defineEmits({ 'update:height': Number, 'update:modelValue': undefined })
 
 const dropdown = ref(null)
 
@@ -62,17 +62,18 @@ defineExpose({
         <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded' : ''"
             :style="{ width: props.width + 'px', backgroundColor: color, height: 'calc(100% - 3px)' }"
             data-bs-toggle="dropdown" aria-expanded="false">
-            <div class="dropdown-menu">
-                <div v-if="isFocus" @focusout="unfocus">
-                    <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index)">
-                        <div :style="{ backgroundColor: c.color }" class="color"></div>
-                        <div class="color-name"> {{ c.name }}</div>
-                    </div>
-                    <div class="hr m-1"></div>
-                    <div class="d-flex flex-row color-option" @click="set(undefined)">
-                        <div :style="{ backgroundColor: '#ffffff' }" class="color"></div>
-                        <div class="color-name"> None </div>
-                    </div>
+            <span v-if="props.modelValue == undefined" class="text-secondary">None...</span>
+        </div>
+        <div class="dropdown-menu">
+            <div v-if="isFocus" @focusout="unfocus">
+                <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index)">
+                    <div :style="{ backgroundColor: c.color }" class="color"></div>
+                    <div class="color-name"> {{ c.name }}</div>
+                </div>
+                <div class="hr m-1"></div>
+                <div class="d-flex flex-row color-option" @click="set(undefined)">
+                    <div :style="{ backgroundColor: '#ffffff' }" class="color"></div>
+                    <div class="color-name"> None </div>
                 </div>
             </div>
         </div>

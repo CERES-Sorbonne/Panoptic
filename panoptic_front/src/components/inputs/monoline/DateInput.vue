@@ -14,6 +14,11 @@ const props = defineProps({
 })
 
 const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
+const localValue = computed(() => {
+    if(propRef.value.value) return new Date(propRef.value.value)
+    return undefined
+})
+
 
 function save(date: Date) {
     globalStore.setPropertyValue(props.property.id, props.image, date)
@@ -22,5 +27,5 @@ function save(date: Date) {
 </script>
 
 <template>
-    <StandaloneDateInput :model-value="propRef.value" @update:model-value="save" :width="props.width"/>
+    <StandaloneDateInput :model-value="localValue" @update:model-value="save" :width="props.width"/>
 </template>

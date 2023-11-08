@@ -6,7 +6,7 @@ import { keyState } from '@/data/keyState';
 
 const props = defineProps({
     'tag': String,
-    'contenteditable': {
+    'editable': {
         type: [Boolean, String],
         default: true,
     },
@@ -105,7 +105,7 @@ watch(() => props.modelValue, () => {
         :class="((isFocus && !props.noShadow) || props.alwaysShadow )? 'focus' : 'container'" @click="focus">
         <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="String(props.modelValue)"
             :only-number="props.onlyNumber" :no-html="props.noHtml" :no-nl="props.noNl"
-            :contenteditable="props.contenteditable && !(urlMode)" :style="{ width: (props.width - 5) + 'px' }"
+            :contenteditable="props.editable && !(urlMode)" :style="{ width: (props.width - 5) + 'px' }"
             class="contenteditable" @keydown.escape="e => e.target.blur()" @focus="isFocus = true; emit('focus')"
             @blur="isFocus = false; emit('blur');" @click="contentClick" />
     </div>
@@ -137,4 +137,5 @@ watch(() => props.modelValue, () => {
     z-index: 99 !important;
     padding: 20px;
 }
+
 </style>
