@@ -5,23 +5,24 @@ from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-from fastapi import FastAPI, Query, UploadFile
+from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, StreamingResponse
 from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from panoptic import core
+from panoptic.compute.similarity import get_similar_images_from_text
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values
+    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
+    tag_add_parent, export_properties
 from panoptic.core import db
-from panoptic.models import Property, Tag, Tags, Properties, PropertyPayload, \
+from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, PropertyValue, GetSimilarImagesPayload, \
-    ChangeProjectPayload
-from panoptic.scripts.to_pca import compute_all_pca
+    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
+    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload
 
 app = FastAPI()
 app.add_middleware(
@@ -63,6 +64,15 @@ async def properties_by_file(file: UploadFile):
     return await read_properties_file(data)
 
 
+@app.post('/export')
+async def export_properties_route(payload: ExportPropertiesPayload) -> StreamingResponse:
+    stream = await export_properties(payload.images, payload.properties)
+    response = StreamingResponse(iter([stream.getvalue()]),
+                                 media_type="text/csv"
+                                 )
+    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+    return response
+
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
     await delete_property(property_id)
@@ -95,7 +105,8 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @app.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
-    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,  sha1s=payload.sha1s, value=payload.value)
+    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
+                                               sha1s=payload.sha1s, value=payload.value)
     return {'updated_ids': updated, 'value': value}
 
 
@@ -113,10 +124,16 @@ async def add_tag(payload: AddTagPayload) -> Tag:
     return await create_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
 
 
+@app.post("/tag/parent")
+async def add_tag_parent(payload: AddTagParentPayload) -> Tag:
+    return await tag_add_parent(payload.tag_id, payload.parent_id)
+
+
 @app.get("/tags", response_class=ORJSONResponse)
 async def get_tags_route(property: Optional[str] = None):
     tags = await get_tags(property)
     return ORJSONResponse(tags)
+
 
 @app.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
@@ -190,18 +207,23 @@ async def delete_tab_route(tab_id: int):
 
 
 @app.post("/clusters")
-async def make_clusters_route(payload: MakeClusterPayload) -> list[list[str]]:
+async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 
-@app.post("/similar")
+@app.post("/similar/image")
 async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
     return await get_similar_images(payload.sha1_list)
 
 
-@app.post("/pca")
-async def start_pca_route():
-    return await compute_all_pca(force=True)
+@app.post("/similar/text")
+async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
+    return await get_similar_images_from_text(payload.input_text)
+
+
+# @app.post("/pca")
+# async def start_pca_route():
+#     return await compute_all_pca(force=True)
 
 
 @app.post("/project")
@@ -209,6 +231,7 @@ async def change_project_route(payload: ChangeProjectPayload):
     os.environ['PANOPTIC_DATA'] = payload.project
     await db_utils.init()
     return f"changed project to {payload.project}"
+
 
 @app.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
@@ -220,6 +243,7 @@ async def get_image(file_path: str):
 
     # # media_type here sets the media type of the actual response sent to the client.
     return Response(content=data, media_type="image/" + ext)
+
 
 # app.mount("/small/images/", StaticFiles(directory=os.path.join('PANOPTIC_DATA', 'mini')), name="static")
 app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")

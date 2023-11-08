@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { globalStore } from '../../data/store';
 import TagList from './TagList.vue';
 import TagBadge from '../tagtree/TagBadge.vue';

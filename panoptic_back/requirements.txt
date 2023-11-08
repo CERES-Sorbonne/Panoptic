@@ -1,7 +1,7 @@
 aiofiles
 aiosqlite
 fastapi-camelcase
-fastapi
+fastapi<0.100.0
 imagehash
 opencv-python
 pandas
@@ -14,3 +14,4 @@ uvicorn
 python-multipart
 pypika
 orjson
+faiss-cpu

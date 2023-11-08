@@ -4,9 +4,7 @@ import { globalStore } from '@/data/store';
 // import { filterData } from '@/utils/filter';
 import { computed, watch } from 'vue';
 import OperatorDropdown from './OperatorDropdown.vue';
-import PropertyDropdown from './PropertyDropdown.vue';
 import PropertyInput2 from './PropertyInput2.vue';
-import TagDropdown from './TagDropdown.vue';
 import TagInput2 from './TagInput2.vue';
 
 const props = defineProps({

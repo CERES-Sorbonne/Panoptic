@@ -2,6 +2,21 @@
   --border-color: rgb(195, 207, 217);
   --validate-border: rgb(163, 208, 209);
   --refuse-border: rgb(213, 180, 191);
+  --light-grey: rgb(233, 233, 233);
+  --grey-text: #515151;
+
+  --text-color: rgb(33, 37, 41);
+
+
+  --toggle-width: 40px;
+  --toggle-height: 10px;
+  --toggle-border: 2px;
+  --toggle-font-size: 11px;
+  --toggle-duration: 20ms;
+}
+
+.toggle-container:focus {
+  box-shadow: none !important;
 }
 
 .unselectable {
@@ -15,7 +30,8 @@
 .menu {
   font-size: 13px;
   height: 100vh;
-  position: sticky;
+  /* position: sticky; */
+  /* position: relative; */
   top: 0;
   width: 210px;
   border-right: 1px solid var(--border-color);
@@ -23,6 +39,7 @@
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
+  overflow-y: scroll;
 }
 
 .menu::-webkit-scrollbar {
@@ -100,8 +117,38 @@ body {
   /* font-style: italic; */
 }
 
+.base-hover {
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.base-hover:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
+
+.base-btn {
+  border-radius: 3px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.base-btn:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
+
+.sm-btn {
+  border-radius: 3px;
+  padding: 0px 2px;
+  margin: 3px;
+  cursor: pointer;
+}
+
+.sm-btn:hover {
+  background-color: rgb(240, 240, 240) !important;
+}
+
 .property-item {
-  padding: 5px;
+  padding: 3px;
   padding-right: 0;
   border-top: 1px solid var(--border-color);
 }
@@ -312,4 +359,8 @@ input[type=number] {
   font-size: 16px !important;
   /* line-height: 20px !important; */
   height: 25px !important;
+}
+
+.hr {
+  border-bottom: 1px solid var(--border-color);
 }

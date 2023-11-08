@@ -1,4 +1,6 @@
 import asyncio
+import os
+import pickle
 
 from tqdm import tqdm
 
@@ -16,6 +18,8 @@ async def compute_all_pca(force=False):
     else:
         print("get all images: " + str(len(all_images)))
         vectors = [i.vector for i in all_images]
+        with open(os.path.join(os.getenv('PANOPTIC_DATA'), 'vectors.pkl'), 'wb') as f:
+            pickle.dump(vectors, f)
         print("creating pca")
         create_pca(vectors)
         print("converting vectors")

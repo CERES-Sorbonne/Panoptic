@@ -65,7 +65,7 @@
       />
     </div>
 
-    <ResizeObserver @notify="handleResize" />
+    <!-- <ResizeObserver @notify="handleResize" class="bg-info"/> -->
   </div>
 </template>
 
@@ -206,7 +206,7 @@ export default {
         let accumulator = 0
         let current
         for (let i = 0, l = items.length; i < l; i++) {
-          current = items[i][field] || minItemSize
+          current = items[i][field] ?? minItemSize
           if (current < computedMinSize) {
             computedMinSize = current
           }
@@ -763,6 +763,10 @@ export default {
 .vue-recycle-scroller {
   position: relative;
 }
+
+/* .vue-recycle-scroller::-webkit-scrollbar{
+    display: none;
+  } */
 
 .vue-recycle-scroller.direction-vertical:not(.page-mode) {
   overflow-y: auto;

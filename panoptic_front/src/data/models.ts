@@ -1,18 +1,19 @@
+import { FilterManager } from "@/utils/filter";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
+    multi_tags = "multi_tags",
+    tag = "tag",
     string = "string",
     number = "number",
-    tag = "tag",
-    multi_tags = "multi_tags",
-    image_link = "image_link",
-    url = "url",
     date = "date",
-    path = "path",
     color = "color",
+    url = "url",
+
+
     checkbox = "checkbox",
-
-
+    path = "path",
+    image_link = "image_link",
     _ahash = "average hash",
     _sha1 = "sha1",
     _folders = "folders"
@@ -51,7 +52,9 @@ export interface Tag {
     property_id: number;
     parents: number[];
     value: string;
-    color?: string;
+    color?: number;
+    children?: Set<number>
+    count?: number
 }
 
 export interface Property {
@@ -74,6 +77,7 @@ export interface PropertyValueUpdate extends PropertyValue {
 export interface PropertyRef extends PropertyValue {
     type: PropertyType
     imageId: number
+    mode: PropertyMode
 }
 
 export interface Image {
@@ -96,6 +100,16 @@ export interface Image {
 
 export interface Images {
     [id:number]: Image
+}
+
+// export interface KeyIndex {
+//     [key: ]
+// }
+
+export interface Sha1Pile {
+    images: Array<Image>
+    sha1: string
+    similarity?: number // optional; between 0 and 1
 }
 
 export interface Folders {
@@ -173,26 +187,31 @@ export interface ReactiveStore{
 
 export enum FilterOperator {
     equal = "equal",
-    equalNot = "not equal",
+    equalNot = "equalNot",
     like = "like",
     lower = "lower",
-    leq = "lower or equal",
+    leq = "leq",
     greater = "greater",
-    geq = "greater or equal",
-    isTrue = "is true",
-    isFalse = "is false",
+    geq = "geq",
+    isTrue = "isTrue",
+    isFalse = "isFalse",
     contains = "contains",
-    startsWith = "starts with",
-    containsAny = "contains any",
-    containsAll = "contains all",
-    containsNot = "does not contain",
+    startsWith = "startsWith",
+    containsAny = "containsAny",
+    containsAll = "containsAll",
+    containsNot = "containsNot",
     and = "and",
     or = "or",
-    isSet = "is set",
-    notSet = "is not set"
+    isSet = "isSet",
+    notSet = "notSet"
 }
 
-export interface Filter {
+export interface AFilter {
+    id: number
+    isGroup?: boolean
+}
+
+export interface Filter extends AFilter {
     propertyId: number,
     operator: FilterOperator,
     value: any,
@@ -202,7 +221,10 @@ export interface Filter {
 
 export enum Modals {
     IMAGE = 'image',
-    PROPERTY = 'property'
+    PROPERTY = 'property',
+    SHA1PILE = 'sha1pile',
+    FOLDERTOPROP = 'folder_to_property',
+    EXPORT = "export"
 }
 
 export interface PropertySetting {
@@ -210,7 +232,7 @@ export interface PropertySetting {
     maxLines: number
 }
 
-export interface FilterGroup {
+export interface FilterGroup extends AFilter {
     filters: Array<Filter | FilterGroup>
     groupOperator: FilterOperator.and | FilterOperator.or
     depth: number
@@ -256,7 +278,7 @@ export function propertyDefault(type: PropertyType): any {
         case PropertyType.date:
             return ''
         case PropertyType.number:
-            return 0
+            return undefined
         case PropertyType.string:
         case PropertyType.image_link:
         case PropertyType.path:
@@ -301,13 +323,26 @@ export interface Tab {
 export interface TabState {
     name: string
     display: string
-    filter: FilterGroup
+    filter: FilterGroup,
+    filterManager?: FilterManager,
     groups: Array<number>
     sortList: Array<Sort>
     imageSize: number
     visibleProperties: {[key: number]: boolean}
     visibleFolders: {[key: number]: boolean}
     selectedFolders: {[key: number]: boolean}
+    sha1Mode: boolean
+    propertyOptions: {[key: number]: PropertyOption}
+}
+
+export interface PropertyOption {
+    size: number
+}
+
+export function defaultPropertyOption() {
+    return {
+        size: 200
+    } as PropertyOption
 }
 
 export interface TabRequest {
@@ -316,13 +351,20 @@ export interface TabRequest {
 
 export interface Sort {
     property_id: number,
-    ascending: boolean
+    ascending: boolean,
+    isGroup?: boolean
+    byGroupSize?: boolean
+}
+
+export interface SortIndex {
+    [key: number] : Sort
 }
 
 export interface Group {
     id?: string
     name: string
     images: Array<Image>
+    imagePiles?: Array<Sha1Pile>
     groups: Array<Group>
     propertyValues: PropertyValue[]
     children?: Array<string>
@@ -335,7 +377,10 @@ export interface Group {
     isCluster?: boolean,
     getSimilarImages?: () => Array<Images>
     similarSha1sBlacklist?: Array<string>
-    allSimilarSha1s?: Array<string>
+    allSimilarSha1s?: Array<string>,
+    order?: number,
+    allImageSelected?: boolean  // only leaf groups contains images info and can know if the images are selected or not
+                                // to avoid recomputation we use this variable to notify parents about the selection status
 }
 
 export interface GroupIndex {[key: string]: Group}
@@ -343,7 +388,8 @@ export interface GroupIndex {[key: string]: Group}
 export interface GroupData {
     root: Group,
     index: GroupIndex,
-    order: Array<string>
+    order: Array<string>,
+    imageToGroups: {[imgId: number]: string[]},
 }
 
 export interface Folder {
@@ -354,6 +400,7 @@ export interface Folder {
     children: Array<Folder>
     show?: boolean // frontend variable to know if exanded in view or not
     selected?: boolean // frontend variable for smart folder filter
+    count?: number
 }
 
 export interface ImportState {
@@ -366,10 +413,10 @@ export interface ImportState {
 export interface ScrollerLine {
     id: string
     type: string
-    groupId: string
+    groupId?: string
     data: any
-    index: number
-    depth: number
+    index?: number
+    depth?: number
     size: number
 }
 
@@ -380,6 +427,18 @@ export interface GroupLine extends ScrollerLine{
 
 export interface ImageLine extends ScrollerLine {
     data: Image[]
+}
+
+export interface RowLine extends ScrollerLine {
+    data: Image
+}
+
+export interface PileRowLine extends ScrollerLine {
+    data: Sha1Pile
+}
+
+export interface ScrollerPileLine extends ScrollerLine {
+    data: Sha1Pile[]
 }
 
 export interface Recommendation {
@@ -399,6 +458,7 @@ export function buildTabState() {
         visibleProperties: {},
         visibleFolders: {},
         selectedFolders: {},
+        propertyOptions: {},
     } as TabState
 }
 
@@ -410,3 +470,22 @@ export function buildFilterGroup() {
         isGroup: true 
     } as FilterGroup
 }
+
+export function isTag(type: PropertyType) {
+    return type == PropertyType.tag || type == PropertyType.multi_tags
+}
+
+export const Colors = [
+    {name: 'red', color: '#ff8787'},
+    {name: 'pink', color: '#f783ac'},
+    {name: 'grape', color: '#da77f2'},
+    {name: 'violet', color: '#9775fa'},
+    {name: 'indigo', color: '#748ffc'},
+    {name: 'blue', color: '#4dabf7'},
+    {name: 'cyan', color: '#3bc9db'},
+    {name: 'teal', color: '#38d9a9'},
+    {name: 'green', color: '#69db7c'},
+    {name: 'lime', color: '#a9e34b'},
+    {name: 'yellow', color: '#ffd43b'},
+    {name: 'orange', color: '#ffa94d'},
+]

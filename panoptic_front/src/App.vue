@@ -4,6 +4,7 @@ import { globalStore } from './data/store'
 import { onMounted } from 'vue'
 import './assets/main.css';
 import * as inputTree from '@/utils/inputTree'
+
 onMounted(() => {
   globalStore.fetchAllData()
 })

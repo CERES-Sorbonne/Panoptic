@@ -1,16 +1,27 @@
 <script setup lang="ts">
+import { Colors } from '@/data/models';
+import { computed } from 'vue';
+
 
 const props = defineProps({
   tag: String,
-  number: Number,
   showDelete: { type: Boolean, default: false },
-  color: String
+  color: Number
 })
+
+
+const color = computed(() => {
+  if(props.color != undefined && props.color >= 0 && props.color < 12) {
+    return Colors[props.color].color
+  }
+  return 'gray'
+})
+
 </script>
 
 
 <template>
-  <div class="badge tag-badge" :style="'background: ' + props.color">
+  <div class="badge tag-badge" :style="'background: ' + color">
     <span class="m-0 p-0">
       {{ tag }}
       <span v-if="showDelete" @click.prevent.stop="$emit('delete')" class="bi bi-x ms-1 tag-x"></span>

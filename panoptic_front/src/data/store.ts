@@ -2,13 +2,15 @@ import { computed, reactive } from 'vue'
 import {
     apiGetImages, apiGetProperties, apiGetTags, apiAddTag, apiAddProperty, apiSetPropertyValue, apiUpdateTag, apiAddFolder,
     apiUpdateProperty, apiDeleteProperty, apiDeleteTagParent, apiGetFolders, apiImportFolder, apiGetTabs, apiUpdateTab, apiAddTab,
-    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile
+    apiDeleteTab, apiGetMLGroups, apiGetImportStatus, apiGetSimilarImages, SERVER_PREFIX, apiUploadPropFile, apiGetSimilarImagesFromText, apiAddTagParent
 } from '../data/api'
 import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
-    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode
+    Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode, defaultPropertyOption, Colors
 } from '../data/models'
 import { MAX_GROUPS } from '@/utils/groups'
+import { FilterManager } from '@/utils/filter'
+import { getFolderAndParents, isTagId } from '@/utils/utils'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -26,11 +28,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     openModal: { id: null, data: null },
     isLoaded: false,
+    pressedKeys: {} as any,
 
     selectedTab: 0,
     async addTab(tabName: string) {
         let state = buildTabState()
-        let tab = await apiAddTab({ name: tabName, data: state })
+        let tab = await apiAddTab({ name: tabName, data: state }) as Tab
+
+        tab.data.filterManager = new FilterManager(tab.data.filter)
         this.tabs[tab.id] = tab
         this.selectedTab = tab.id
     },
@@ -44,7 +49,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     selectTab(tabName: string) {
         globalStore.selectedTabName = tabName
-        globalStore.saveTabState()
+        globalStore.updateTab()
     },
     getTab() {
         return globalStore.tabs[globalStore.selectedTab]
@@ -60,15 +65,17 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             if (t.data.visibleFolders == undefined) {
                 t.data.visibleFolders = {}
             }
-            if(t.data.visibleProperties) {
+            if (t.data.visibleProperties) {
                 let visible = Object.keys(t.data.visibleProperties).map(Number)
                 visible.forEach(k => {
-                    if(globalStore.properties[k] == undefined) {
+                    if (globalStore.properties[k] == undefined) {
                         delete t.data.visibleProperties[k]
                     }
                 })
             }
             globalStore.tabs[t.id] = t
+            let filterManager = new FilterManager(t.data.filter)
+            t.data.filterManager = filterManager
         })
 
         if (tabs.length == 0) {
@@ -99,6 +106,15 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //console.log(this.tabs[this.selectedTab])
         return this.tabs[this.selectedTab].data.visibleProperties[propId]
     },
+    getSha1Mode() {
+        return globalStore.getTab().data.sha1Mode
+    },
+    getVisibleViewProperties() {
+        return Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties)
+            .filter(([k, v]) => v).map(([k, v]) => Number(k))
+            .map(k => globalStore.properties[k])
+            .filter(p => !globalStore.getSha1Mode() || p.mode == PropertyMode.sha1)
+    },
     tagTrees: computed(() => {
         const tree: TagsTree = {}
         Object.values(globalStore.properties).forEach((property: Property) => {
@@ -128,6 +144,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return sha1s.map(sha1 => globalStore.sha1Index[sha1][0])
     },
     importImage(img: Image) {
+        Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({propertyId: Number(pId)}, img.properties[pId]))
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.containerRatio = computeContainerRatio(img)
@@ -136,13 +153,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             globalStore.sha1Index[img.sha1] = []
         }
         globalStore.sha1Index[img.sha1].push(img)
-        // for(let [id, prop] of Object.entries(img.properties)){
-        //     if(this.properties[parseInt(id)].type == PropertyType.date){
-        //         prop.value = moment(prop.value).format()
-        //     }
-        // }
         globalStore.images[img.id] = img
-        img.properties[PropertyID.folders] = { propertyId: PropertyID.ahash, value: img.folder_id }
+        img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
     },
     async fetchAllData() {
         let images = await apiGetImages()
@@ -152,9 +164,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         //console.log(folders)
 
 
-        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1 }
-        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash }
-        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders }
+        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: 'sha1' }
+        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: 'sha1' }
+        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: 'sha1' }
 
 
         Object.values(images).forEach(this.importImage)
@@ -166,11 +178,15 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         await this.loadTabState()
 
-
         this.importState = await apiGetImportStatus()
         setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
 
+        this.updatePropertyOptions()
         this.isLoaded = true
+
+        this.countTags()
+        this.countImagePerFolder()
+        
     },
     applyImportState(state: ImportState) {
         // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
@@ -182,35 +198,82 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         await apiImportFolder()
         await this.fetchAllData()
     },
+    countTags() {
+        Object.values(this.tags).forEach((tags:Tags) => Object.values(tags).forEach(t => t.count = 0))
 
-    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: string): Promise<Tag> {
-        //console.log(color)
+        for(let img of Object.values(globalStore.images) as Image[]) {
+            for(let propValue of Object.values(img.properties) as PropertyValue[]) {
+
+                if(!isTagId(propValue.propertyId)) continue
+                if(!propValue.value || !Array.isArray(propValue.value)) continue
+
+                for(let tagId of propValue.value) {
+                    this.tags[propValue.propertyId][tagId].count += 1
+                }
+            }
+        }
+    },
+    countImagePerFolder() {
+        const folderToParents: {[fId: number]: number[]} = {} 
+        const folderList = Object.values(this.folders) as Folder[]
+        folderList.forEach(folder => {
+            folderToParents[folder.id] = getFolderAndParents(folder)
+            folder.count = 0
+        })
+
+        const images = Object.values(this.images) as Image[]
+        images.forEach(img => folderToParents[img.folder_id].forEach(id => globalStore.folders[id].count += 1))
+    },
+    async addTag(propertyId: number, tagValue: string, parentId?: number, color?: number): Promise<Tag> {
         if (color == undefined) {
-            //console.log("find color")
-            let options = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590", "9daebe"]
-            let r = Math.round(Math.random() * (options.length - 1))
-            color = '#' + options[r]
+            let r = Math.round(Math.random() * (Colors.length - 1))
+            color = r
         }
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
+        newTag.count = 0
         this.tags[propertyId][newTag.id] = newTag
         return newTag
     },
 
-    async deleteTagParent(tagId: number, parent_id: number) {
+    async addTagParent(tagId: number, parentId: number) {
+        const tag = await apiAddTagParent(tagId, parentId) as Tag
+        this.tags[tag.property_id][tag.id] = tag
+    },
+
+    async deleteTagParent(tagId: number, parent_id: number, dontAsk) {
+        if (!dontAsk) {
+            let ok = confirm('Delete tag: ' + tagId)
+            if (!ok) return
+        }
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         // also reload images since the tag should be removed from their properties
+        this.tags = await apiGetTags()
+
         let images = await apiGetImages()
         Object.values(images).forEach(globalStore.importImage)
-        this.tags = await apiGetTags()
     },
 
     async addProperty(name: string, type: PropertyType, mode: PropertyMode) {
         const newProperty: Property = await apiAddProperty(name, type, mode)
         this.properties[newProperty.id] = newProperty
+        this.updatePropertyOptions()
     },
 
-    async setPropertyValue(propertyId: number, images: Image[] | Image, value: any) {
-        if(!Array.isArray(images)) {
+    updatePropertyOptions() {
+        // console.log('update property options ' + Object.keys(this.tabs).length)
+        for (let tabId in this.tabs) {
+            const tab = this.tabs[tabId]
+            if (tab.data.propertyOptions == undefined) {
+                tab.data.propertyOptions = {}
+                // console.log('add default')
+            }
+            for (let propId in globalStore.properties) {
+                tab.data.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.data.propertyOptions[propId])
+            }
+        }
+    },
+    async setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null) {
+        if (!Array.isArray(images)) {
             images = [images]
         }
 
@@ -218,11 +281,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         let imageIds = undefined
         let sha1s = undefined
-        
-        if(prop.mode == PropertyMode.id) {
+
+        if (prop.mode == PropertyMode.id) {
             imageIds = Array.from(new Set(images.map(i => i.id)))
         }
-        if(prop.mode == PropertyMode.sha1) {
+        if (prop.mode == PropertyMode.sha1) {
             sha1s = Array.from(new Set(images.map(i => i.sha1)))
         }
 
@@ -231,12 +294,28 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             value = undefined
         }
 
-        const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value)
+        const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value, mode)
         const updatedIds = update.updated_ids
         value = update.value
 
         for (let id of updatedIds) {
-            this.images[id].properties[propertyId] = {propertyId, value}
+            if (mode == null) {
+                this.images[id].properties[propertyId] = { propertyId, value }
+            }
+            else {
+                let old = this.images[id].properties[propertyId] ?? { propertyId: propertyId, value: [] }
+                if (!Array.isArray(old.value)) {
+                    old.value = []
+                }
+                old.value.push(...value)
+                old.value = [...new Set(old.value)]
+                this.images[id].properties[propertyId] = old
+            }
+
+        }
+
+        if(isTagId(propertyId)) {
+            this.countTags()
         }
     },
     // async addOrUpdatePropertyToImage(propertyId: number, imageIds: number | number[], sha1s: string | string[], value: any) {
@@ -271,7 +350,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     //     }
     // },
 
-    async updateTag(propId: number, tagId: number, color?: string, parentId?: number, value?: any) {
+    async updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
         const newTag = await apiUpdateTag(tagId, color, parentId, value)
         this.tags[propId][tagId] = newTag
     },
@@ -283,6 +362,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async updateProperty(propertyId: number, name?: string) {
         await apiUpdateProperty(propertyId, name)
         this.properties[propertyId].name = name
+        this.updatePropertyOptions()
     },
 
     async deleteProperty(propertyId: number) {
@@ -291,7 +371,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         Object.values(globalStore.tabs).forEach((t: Tab) => {
             Object.keys(t.data.visibleProperties).map(Number).forEach(k => {
-                if(globalStore.properties[k] == undefined) {
+                if (globalStore.properties[k] == undefined) {
                     delete t.data.visibleProperties[k]
                 }
             })
@@ -318,6 +398,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const res = await apiGetSimilarImages(sha1)
         return res
     },
+
+    async getSimilarImagesFromText(inputText: string) {
+        return await apiGetSimilarImagesFromText(inputText)
+    },
+
     getFolderChildren(folderId: number) {
         let res = {} as { [key: number]: boolean }
         let children = this.folders[folderId].children
@@ -334,10 +419,31 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
     addGrouping(propertyId: number) {
         const groups = globalStore.getTab().data.groups
-        if(groups.length >= MAX_GROUPS) {
+        if (groups.length >= MAX_GROUPS) {
             groups.pop()
         }
-        groups.push(propertyId)
+        let index = groups.indexOf(propertyId)
+        if (index < 0) {
+            groups.push(propertyId)
+            index = groups.length - 1
+        }
+
+        const sorts = globalStore.getTab().data.sortList
+        if (!sorts[index] || sorts[index].property_id != propertyId || !sorts[index].isGroup) {
+            const newSort = { property_id: propertyId, ascending: true, isGroup: true, byGroupSize: false }
+            globalStore.getTab().data.sortList = [...sorts.slice(0, index).filter(s => s.property_id != propertyId), newSort, ...sorts.slice(index).filter(s => s.property_id != propertyId)]
+        }
+    },
+    delGrouping(property_id: number) {
+        const groups = globalStore.getTab().data.groups
+        const index = groups.indexOf(property_id)
+        if (index < 0) {
+            return
+        }
+
+
+        groups.splice(index, 1)
+        globalStore.getTab().data.sortList.splice(index, 1)
     }
 })
 
@@ -426,6 +532,6 @@ function buildFolderNodes(folders: Array<Folder>) {
 }
 
 function computeContainerRatio(img: Image) {
-    let ratio =  img.width / img.height
+    let ratio = img.width / img.height
     return Math.max(Math.min(2, ratio), 1)
 }
