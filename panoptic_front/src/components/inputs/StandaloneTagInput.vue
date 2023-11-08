@@ -175,14 +175,11 @@ onMounted(() => {
             <div class="no-border p-0 text-secondary text-nowrap" type="button" ref="dropdownElem"
                 data-ds-toggle="dropdown" data-bs-display="static" >
                 <div v-if="!edit" class="overflow-hidden d-flex flex-row" :class="!edit ? 'test-wraped' : ''">
-                    <div class="me-1">
-                        <PropertyIcon :type="props.property.type" />
-                    </div>
                     <div v-if="!edit" class="w-100">
                         <span v-for="tag in imageTags">
                             <TagBadge :tag="tag.value" :color="tag.color"  class="me-1"/>
                         </span>
-                        <span v-if="imageTags.length == 0" class="ms-1">None</span>
+                        <span v-if="imageTags.length == 0" class="">None...</span>
                     </div>
                 </div>
 
@@ -218,7 +215,7 @@ onMounted(() => {
                     <li @mouseover="selectedIndex = filteredTagList.length" @click="selectOption" v-if="isCreatePossible"
                         :class="optionClass(filteredTagList.length) + ' rounded-bottom'" style="cursor: pointer;">
                         <span class="text-muted ms-1">Create </span>
-                        <TagBadge :tag="tagInput" color="grey" />
+                        <TagBadge :tag="tagInput" :color="-1" />
                     </li>
                 </ul>
             </div>

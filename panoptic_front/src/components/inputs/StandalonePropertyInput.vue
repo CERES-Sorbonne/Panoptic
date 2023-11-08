@@ -39,8 +39,8 @@ watch(localValue, () => {
 
 <template>
     <div class="d-flex flex-row">
-        <PropertyIcon :type="props.type" class="me-1" />
-        <input :type="inputType(props.type)" ref="inputElem" class="m-0 p-0 ps-1 bg-light no-border" style="width: 100%;"
+        <!-- <PropertyIcon :type="props.type" class="me-1" /> -->
+        <input :type="inputType(props.type)" ref="inputElem" class="m-0 p-0 ps-1 bg-light no-border"
         v-model="localValue" placeholder="None.." />
     </div>
     

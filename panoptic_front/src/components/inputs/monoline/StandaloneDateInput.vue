@@ -9,7 +9,7 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue';
 
 
 const props = defineProps({
-    modelValue: String,
+    modelValue: Date,
     width: Number
 })
 const emits = defineEmits(['update:modelValue'])
