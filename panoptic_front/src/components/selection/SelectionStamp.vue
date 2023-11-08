@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
 import { globalStore } from '@/data/store';
-
+import wTT from '../tooltips/withToolTip.vue'
 
 
 const props = defineProps({
@@ -17,7 +17,9 @@ const emits = defineEmits(['remove:selected'])
 
 <template>
     <div class="d-flex border rounded p-0 m-0">
-        <div class="btn-cls" @click="emits('remove:selected')"><i class="bi bi-x"></i></div>
+        <wTT message="main.menu.remove_selection_tooltip">
+            <div class="btn-cls" @click="emits('remove:selected')"><i class="bi bi-x"></i></div>
+        </wTT>
         <div class="selection-counter"><StampDropdown :images="images" :no-border="true" :show-number="true"/></div>
     </div>
 </template>

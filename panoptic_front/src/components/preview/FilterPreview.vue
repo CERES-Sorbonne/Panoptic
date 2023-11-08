@@ -23,7 +23,7 @@ const property = computed(() => globalStore.properties[props.filter.propertyId])
     <!-- </td>
     <td> -->
         <div class="m-0 p-0 me-2 text-nowrap">
-            {{props.filter.operator}}
+            {{ $t('modals.filters.operators.' + props.filter.operator) }}
         </div>
     <!-- </td>
     <td class="w-100"> -->

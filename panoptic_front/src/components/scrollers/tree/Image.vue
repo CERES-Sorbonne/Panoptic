@@ -7,10 +7,9 @@ import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import TagInput from '@/components/inputs/TagInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import PropInput from '@/components/inputs/PropInput.vue';
 import TextInput from '@/components/inputs/monoline/TextInput.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
-import DatePropInput from '@/components/inputs/DatePropInput.vue';
+import wTT from '../../tooltips/withToolTip.vue'
 
 const props = defineProps({
     image: Object as () => Image,
@@ -86,7 +85,9 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
-        <div class="image-count" v-if="props.pile?.images.length > 1">{{ props.pile.images.length }}</div>
+        <wTT v-if="props.pile?.images.length > 1" message="main.view.instances_tooltip" :click="false">
+            <div class="image-count">{{ props.pile.images.length }}</div>
+        </wTT>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>

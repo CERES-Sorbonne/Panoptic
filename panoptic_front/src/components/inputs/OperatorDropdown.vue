@@ -24,12 +24,12 @@ const filteredOperators = computed(() => {
     <div class="m-0 p-0">
         <div class="text-nowrap" :class="(props.disabled ? '' : 'dropdown-toggle hover-light button-like')"
             data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" ref="buttonElem" :disabled="props.disabled">
-            <span>{{ props.modelValue }}</span>
+            <span>{{ $t('modals.filters.operators.' + props.modelValue) }}</span>
         </div>
         <ul class="dropdown-menu m-0 p-1">
             <li v-for="op in filteredOperators" class="hover-light p-1 rounded" style="cursor:pointer"
                 @click="$emit('update:modelValue', op)">
-                <a>{{ op }}</a>
+                <a>{{ $t('modals.filters.operators.' + op) }}</a>
             </li>
         </ul>
     </div>

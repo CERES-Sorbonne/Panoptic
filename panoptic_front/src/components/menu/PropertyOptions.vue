@@ -138,23 +138,23 @@ function renameProperty() {
             </template>
 
             <div style="width: 20px; margin-top: 2px;" class="text-center">
-                <wTT v-if="props.property.mode == PropertyMode.id" :icon="false" :click="false" message="main.nav.properties.linked_property_tooltip" >
+                <wTT v-if="props.property.mode == PropertyMode.id"  :click="false" message="main.nav.properties.linked_property_tooltip" >
                     <i class="bi bi-link-45deg"></i>
                 </wTT>
             </div>
             <div style="width: 20px; margin-top: 2px;" @click="toggleVisible" class="btn-icon text-center">
-                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id" :icon="false" message="main.nav.properties.hidden_property_tooltip">
+                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"  message="main.nav.properties.hidden_property_tooltip">
                     <span class="bi bi-eye-slash" @click.stop=""></span>
                 </wTT>
-                <wTT pos="right" :icon="false" message="main.nav.properties.hide_property_tooltip" v-else>
+                <wTT pos="right"  message="main.nav.properties.hide_property_tooltip" v-else>
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
             </div>
             <div class="text-center" style="width: 20px; margin-top: 2px;">
                 <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
                     @click="toggleValuesMenu" style="cursor: pointer;">
-                    <wTT v-if="valuesOpen" :icon="false" message="main.nav.properties.collapse_property_tooltip"><i  class="bi bi-chevron-down"></i></wTT>
-                    <wTT v-else :icon="false" message="main.nav.properties.expand_property_tooltip"><i class="bi bi-chevron-right"></i></wTT>
+                    <wTT v-if="valuesOpen"  message="main.nav.properties.collapse_property_tooltip"><i  class="bi bi-chevron-down"></i></wTT>
+                    <wTT v-else  message="main.nav.properties.expand_property_tooltip"><i class="bi bi-chevron-right"></i></wTT>
                 </div>
             </div>
         </div>

@@ -16,47 +16,55 @@ const color = computed(() => {
     return Colors[value].color
 })
 
+const realValue = computed(() => {
+    if([PropertyType._ahash, PropertyType._folders, PropertyType._sha1, PropertyType.string].indexOf(props.property.type) !== -1){
+        return'"'+ props.value + '"'
+    }
+    else{
+        return props.value
+    }
+})
 </script>
 
 <template>
     <template v-if="value != undefined">
         <div v-if="props.property.type == PropertyType._ahash">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType._folders">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType._sha1">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.checkbox">
-            <i v-if="props.value"  class="bi bi-square"></i>
+            <i v-if="realValue"  class="bi bi-square"></i>
             <i v-else class="bi bi-check-square"></i>
         </div>
         <div v-if="props.property.type == PropertyType.color" :style="{backgroundColor: color}" class="w-100 h-100">
         </div>
         <div v-if="props.property.type == PropertyType.date">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.image_link">
         </div>
         <div v-if="props.property.type == PropertyType.multi_tags">
-            <TagPreview :property-id="props.property.id" :value="props.value" />
+            <TagPreview :property-id="props.property.id" :value="realValue" />
         </div>
         <div v-if="props.property.type == PropertyType.number">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.path">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.string">
-            {{ props.value }}
+            {{ realValue }}
         </div>
         <div v-if="props.property.type == PropertyType.tag">
-            <TagPreview :property-id="props.property.id" :value="props.value" />
+            <TagPreview :property-id="props.property.id" :value="realValue" />
         </div>
         <div v-if="props.property.type == PropertyType.url">
-            {{ props.value }}
+            {{ realValue }}
         </div>
     </template>
     <span v-else class="text-secondary">...</span>

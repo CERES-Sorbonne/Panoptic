@@ -29,7 +29,7 @@ function toggleProperty(id: number) {
 
 <template>
     <table class="table">
-        <b>Proprietés</b>
+        <b>{{$t('modals.tagging.title')}}</b>
         <tr v-for="property in properties">
             <template v-if="property.id >= 0">
                 <td @click="toggleProperty(property.id)" style="cursor: pointer;" :class="(props.values[property.id] == undefined ? 'text-dimmed' : '')">{{ property.name }}</td>
