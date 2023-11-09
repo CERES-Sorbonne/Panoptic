@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 import { globalStore } from '@/data/store';
 import { Tag } from '@/data/models';
 import TagInput from '../tags/TagInput.vue';
-import { useArrayIncludes } from '@vueuse/core';
 
 
 const props = defineProps({
