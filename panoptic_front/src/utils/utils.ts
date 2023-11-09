@@ -1,5 +1,6 @@
-import { Folder, Group, Image, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
+import { Folder, Group, Image, Property, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
+import { computed } from "vue"
 
 export function hasProperty(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -53,7 +54,7 @@ export function getTagChildren(tag: Tag) {
     let children = new Set()
     const recursive = (t: TreeTag) => {
         children.add(t.id)
-        if(!t.children) return
+        if (!t.children) return
         t.children.forEach(c => children.add(c.id))
         t.children.forEach(c => recursive(c))
     }
@@ -62,10 +63,25 @@ export function getTagChildren(tag: Tag) {
     return children
 }
 
-export function getFolderAndParents(folder: Folder, parents: number[]=[]) {
+export function getFolderAndParents(folder: Folder, parents: number[] = []) {
     parents.push(folder.id)
-    if(folder.parent != undefined) {
+    if (folder.parent != undefined) {
         parents = getFolderAndParents(globalStore.folders[folder.parent], parents)
     }
     return parents
+}
+
+export function computedPropValue(property: Property, image: Image) {
+    return computed(() => {
+        if (!hasProperty(image, property.id)) {
+            return undefined
+        }
+        return image.properties[property.id].value
+    })
+}
+
+export function arrayEqual(arr1: any[], arr2: any[]) {
+    const set1 = new Set(arr1)
+    const set2 = new Set(arr2)
+    return set1.size == set2.size && arr2.every(v => set1.has(v))
 }

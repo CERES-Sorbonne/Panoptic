@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { globalStore } from '@/data/store';
 import { Image, Modals, Property, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
 import PropertyInput from '@/components/inputs/PropertyInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
-import TagInput from '@/components/inputs/TagInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TextInput from '@/components/inputs/monoline/TextInput.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
-import VueDatePicker from '@vuepic/vue-datepicker';
 import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
+import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 
 const props = defineProps({
     image: Object as () => Image,
@@ -93,9 +92,15 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
-                <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
+                <!-- <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
                     :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
-                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" />
+                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" /> -->
+                <div v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag" class="d-flex" style="padding-top: 4px; padding-bottom: 4px;">
+                    <PropertyIcon :type="property.type" style="margin-right: 2px;"/>
+                    <TagPropInputDropdown :property="globalStore.properties[property.propertyId]" :image="image"
+                        :can-create="true" :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true"
+                        :no-wrap="true" :width="(width - 22)"/>
+                </div>
                 <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
                     <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
@@ -124,7 +129,8 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 </div>
                 <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 1px;">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <DateInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22" style="line-height: 25px;"/>
+                    <DateInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                        style="line-height: 25px;" />
                 </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]"

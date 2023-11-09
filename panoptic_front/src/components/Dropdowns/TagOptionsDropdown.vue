@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { globalStore } from '@/data/store';
 import { Tag } from '@/data/models';
@@ -8,8 +8,11 @@ import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 
 const props = defineProps({
     propertyId: Number,
-    tagId: Number
+    tagId: Number,
+    canCustomize: Boolean,
+    canDelete: Boolean,
 })
+const emits = defineEmits(['delete', 'hide'])
 
 const dropdown = ref(null)
 const localName = ref('')
@@ -20,10 +23,13 @@ const nameInput = ref(null)
 const tag = computed(() => globalStore.tags[props.propertyId][props.tagId])
 
 
-function updateFromStore() {
+async function updateFromStore() {
     localName.value = tag.value.value
     localColor.value = tag.value.color
-    if (nameInput.value) nameInput.value.focus()
+    await nextTick()
+    if (nameInput.value) {
+        nameInput.value.focus()
+    }
 }
 
 function setColor(color: number) {
@@ -39,16 +45,24 @@ function setName(name: string) {
 
 function deleteTag() {
     globalStore.deleteTagParent(props.tagId, 0)
+    emits('delete', props.tagId)
     dropdown.value.hide()
+    
+}
+
+function onHide() {
+    setName(localName.value)
+    emits('hide')
 }
 
 onMounted(updateFromStore)
+watch(() => props.tagId, updateFromStore)
 
 
 </script>
 
 <template>
-    <Dropdown ref="dropdown" @hide="setName(localName)">
+    <Dropdown ref="dropdown" @hide="onHide" @show="updateFromStore">
         <template v-slot:button>
             <span class="pe-1"><i class="bi bi-three-dots sm-btn"  style="position: relative; top: 1.5px;"/></span>
         </template>
@@ -56,11 +70,11 @@ onMounted(updateFromStore)
         <template v-slot:popup>
             <div class="main-box pt-1">
                 <div class="ps-1 pe-1">
-                    <input v-model="localName" ref="nameInput" class="w-100 mb-2" @change="setName(localName)" />
-                    <div class="mb-1 base-btn" @click="deleteTag"><i class="bi bi-trash" /> Delete Tag</div>
+                    <input v-if="props.canCustomize" v-model="localName" ref="nameInput" class="w-100 mb-2" @change="setName(localName)" />
+                    <div v-if="props.canDelete" class="mb-1 base-btn" @click="deleteTag"><i class="bi bi-trash" /> Delete Tag</div>
                 </div>
                 <div class="hr w-100" />
-                <div class="mt-1" style="height: 317px;">
+                <div v-if="props.canCustomize" class="mt-1" style="height: 317px;">
                     <ColorPropInputNoDropdown :hide-preview="true" :hide-white="true" :model-value="localColor" @update:model-value="setColor"/>
                 </div>
             </div>

@@ -6,10 +6,10 @@ import { Filter, PropertyID, PropertyType, operatorHasInput } from '@/data/model
 import { globalStore } from '@/data/store';
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import PropertyInput2 from '../inputs/PropertyInput2.vue';
-import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 import * as bootstrap from 'bootstrap'
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import TextInput from '../inputs/TextInput.vue';
+import TagInput from '../tags/TagInput.vue';
 
 enum State {
     CLOSED = 0,
@@ -104,17 +104,18 @@ watch(() => filter.value?.operator, () => {
                         <div><i class="bi bi-trash-fill" @click="deleteFilter"></i></div>
                     </div>
                     <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
-                        <TagInputNoDropdown
+                        <TagInput
                             v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
-                            v-model="filter.value" :property-id="filter.propertyId" ref="inputElem" />
+                            v-model="filter.value" :auto-focus="true" :property="globalStore.properties[filter.propertyId]"
+                            ref="inputElem" />
                         <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
                             :property="filterProperty" v-model="filter.value" @update:model-value="hide" />
                         <TextInput
                             v-else-if="[PropertyType.string, PropertyType.number].some(t => t == filterProperty.type)"
                             :contenteditable="true" tag="div" :no-html="true" v-model="filter.value" :width="-1"
-                            :min-height="20"
-                            :no-nl="filterProperty.type == PropertyType.number" :url-mode="filterProperty.type == PropertyType.url"
-                            :only-number="filterProperty.type == PropertyType.number" class="border rounded"/>
+                            :min-height="20" :no-nl="filterProperty.type == PropertyType.number"
+                            :url-mode="filterProperty.type == PropertyType.url"
+                            :only-number="filterProperty.type == PropertyType.number" class="border rounded" />
                         <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                     </div>
                 </div>
@@ -133,4 +134,5 @@ watch(() => filter.value?.operator, () => {
     width: 250px;
 
     padding: 4px 8px;
-}</style>
+}
+</style>

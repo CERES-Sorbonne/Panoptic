@@ -23,8 +23,8 @@ const color = computed(() => {
 <template>
   <div class="badge tag-badge" :style="'background: ' + color">
     <span class="m-0 p-0">
+      <span v-if="showDelete" @click.prevent.stop="$emit('delete')" class="bi bi-x tag-x"></span>
       {{ tag }}
-      <span v-if="showDelete" @click.prevent.stop="$emit('delete')" class="bi bi-x ms-1 tag-x"></span>
     </span>
   </div>
 </template>
