@@ -247,10 +247,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         }
         const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
         // also reload images since the tag should be removed from their properties
-        this.tags = await apiGetTags()
-
-        let images = await apiGetImages()
+        const tags = await apiGetTags()
+        const images = await apiGetImages()
+        this.tags = tags
         Object.values(images).forEach(globalStore.importImage)
+        this.countTags()
+
     },
 
     async addProperty(name: string, type: PropertyType, mode: PropertyMode) {

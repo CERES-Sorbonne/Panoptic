@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 import TagInputNoDropdown from '../inputs/TagInputNoDropdown.vue';
 import { globalStore } from '@/data/store';
 import { Tag } from '@/data/models';
+import TagInput from '../tags/TagInput.vue';
+import { useArrayIncludes } from '@vueuse/core';
 
 
 const props = defineProps({
     propertyId: Number,
     tagId: Number
 })
+const emits = defineEmits(['hide'])
 
 const localChildren = ref([])
 
@@ -24,12 +27,12 @@ const excluded = computed(() => {
         t.parents.forEach(p => recursive(globalStore.tags[props.propertyId][p]))
     }
     recursive(tag.value)
-    return res
+    return Array.from(res)
 })
 
-function addChild(tagId: number) {
-    const childTag = globalStore.tags[props.propertyId][tagId]
-    globalStore.addTagParent(childTag.id, props.tagId)
+function addChild(tag: Tag) {
+    // const childTag = globalStore.tags[props.propertyId][tagId]
+    globalStore.addTagParent(tag.id, props.tagId)
 }
 
 function deleteChild(tagId: number) {
@@ -37,11 +40,17 @@ function deleteChild(tagId: number) {
     globalStore.deleteTagParent(childTag.id, props.tagId, true)
 }
 
-onMounted(() => localChildren.value.push(...realChildren.value.map(c => c.id)))
+function updateLocal() {
+    localChildren.value.length = 0
+    localChildren.value.push(...realChildren.value.map(c => c.id))
+}
+
+onMounted(updateLocal)
+watch(realChildren, updateLocal)
 </script>
 
 <template>
-    <Dropdown>
+    <Dropdown @hide="emits('hide')">
         <template v-slot:button>
             <span class="text-nowrap  sm-btn">
                 <i class="bi bi-node-plus me-1" style="position: relative; top: 1.5px;"></i>
@@ -50,8 +59,8 @@ onMounted(() => localChildren.value.push(...realChildren.value.map(c => c.id)))
         </template>
         <template v-slot:popup>
             <div class="p-1 main-box">
-                <TagInputNoDropdown v-model="localChildren" :property-id="props.propertyId" :excluded="excluded"
-                    @select="addChild" @unselect="deleteChild" />
+                <TagInput v-model="localChildren" :property="globalStore.properties[props.propertyId]" :excluded="excluded"
+                    @select="addChild" @remove="deleteChild" :auto-focus="true"/>
             </div>
         </template>
     </Dropdown>

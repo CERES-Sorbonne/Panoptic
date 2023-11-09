@@ -3,18 +3,13 @@ import CenteredImage from '@/components/images/CenteredImage.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import DatePropInput from '@/components/inputs/DatePropInput.vue';
-import NumberPropInput from '@/components/inputs/NumberPropInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import TagPropInput from '@/components/inputs/TagPropInput.vue';
-import TextInput from '@/components/inputs/TextInput.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
+import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Image, Modals, PileRowLine, Property, PropertyType, RowLine, Sha1Pile, isTag } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { ImageIterator } from '@/utils/groups';
-import { Modal } from 'bootstrap';
-import { computed, nextTick, onMounted, reactive, ref, unref, watch } from 'vue';
-import contenteditable from 'vue-contenteditable';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
 
 const props = defineProps({
@@ -139,17 +134,17 @@ watch(rowHeight, emitResizeOnce)
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
             width: (tab.data.imageSize) + 'px', height: props.item.size + 'px', position: 'relative'
-        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false"  @click="showModal">
+        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2"
-                :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false"/>
+                :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />
             <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.data.imageSize + 'px' }"
                 style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
                 class="select" :light-mode="true" />
-        
+
             <div class="image-count" v-if="pile?.images.length > 1">{{ pile.images.length }}</div>
-            </div>
+        </div>
 
         <!-- <div class=""> -->
         <div v-for="property, index in props.properties" :class="classes"
@@ -167,10 +162,10 @@ watch(rowHeight, emitResizeOnce)
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="false"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <TagPropInput v-if="isTag(property.type)" :property="property" :image="image" ref="inputElems"
-                :min-height="propMinRowHeight[property.id]" :input-id="[0, index]"
-                @update:height="h => sizes[property.id] = h"
-                :max-size="(tab.data.propertyOptions[property.id].size - 5) - (props.properties.length - 1 == index ? 13 : 0)" />
+            <TagPropInputDropdown v-if="isTag(property.type)" :property="property" :image="image" :can-create="true"
+                :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
+                :min-height="propMinRowHeight[property.id]" :width="((tab.data.propertyOptions[property.id].size - 5) - (props.properties.length - 1 == index ? 13 : 0))"
+                @update:height="h => sizes[property.id] = h" />
             <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
@@ -178,22 +173,25 @@ watch(rowHeight, emitResizeOnce)
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
-            <TextPropInput v-if="property.type == PropertyType.number"  :min-height="props.item.size" ref="inputElems"
+            <TextPropInput v-if="property.type == PropertyType.number" :min-height="props.item.size" ref="inputElems"
                 @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
 
             <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
-            <div v-if="property.type == PropertyType._ahash" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
+            <div v-if="property.type == PropertyType._ahash" :style="{ height: propMinRowHeight[property.id] + 'px' }"
+                class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>
-            <div v-if="property.type == PropertyType._folders" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
+            <div v-if="property.type == PropertyType._folders" :style="{ height: propMinRowHeight[property.id] + 'px' }"
+                class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id]?.value != undefined">
                     <TagBadge :tag="globalStore.folders[image.properties[property.id]?.value].name" :color="-1" />
                 </span>
             </div>
-            <div v-if="property.type == PropertyType._sha1" :style="{height: propMinRowHeight[property.id]+'px'}" class="ps-1 overflow-hidden">
+            <div v-if="property.type == PropertyType._sha1" :style="{ height: propMinRowHeight[property.id] + 'px' }"
+                class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>
             <!-- </template> -->

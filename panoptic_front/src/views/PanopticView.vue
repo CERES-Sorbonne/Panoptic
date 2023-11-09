@@ -6,7 +6,6 @@ import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import { globalStore } from '@/data/store';
-import Sha1PileModal from '@/components/modals/Sha1PileModal.vue';
 import ExportModal from '@/components/modals/ExportModal.vue';
 import { keyState } from '@/data/keyState';
 import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
@@ -83,7 +82,6 @@ function reRender(){
         </div>
         <ImageModal :id="Modals.IMAGE" />
         <PropertyModal :id="Modals.PROPERTY" />
-        <Sha1PileModal :id="Modals.SHA1PILE" />
         <FolderToPropertyModal :id="Modals.FOLDERTOPROP" />
         <ExportModal :id="Modals.EXPORT"/>
     </div>

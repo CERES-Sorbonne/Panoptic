@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { PropertyType, propertyDefault } from '@/data/models';
+import { PropertyType, isTag, propertyDefault } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 
-import StandaloneTagInput from '../inputs/StandaloneTagInput.vue';
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
 import StandaloneColorPropInput from '../inputs/StandaloneColorPropInput.vue';
-import TextInput from '../inputs/TextInput.vue';
-import DateInput from '../inputs/monoline/DateInput.vue';
 import StandaloneDateInput from '../inputs/monoline/StandaloneDateInput.vue';
 import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import TagInputDropdown from '../tags/TagInputDropdown.vue';
 
 
 const props = defineProps({
@@ -30,6 +28,18 @@ function toggleProperty(id: number) {
     }
 }
 
+// function init() {
+//     properties.value.forEach(p => {
+//         if (props.values[p.id] == undefined) {
+//             props.values[p.id] = propertyDefault(p.type)
+//             console.log('init to', props.values[p.id])
+//         }
+//     })
+// }
+
+// onMounted(init)
+// watch(properties, init)
+
 </script>
 
 <template>
@@ -44,9 +54,9 @@ function toggleProperty(id: number) {
                         {{ property.name }}
                     </td>
                     <td class="w-100">
-                        <StandaloneTagInput
-                            v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
-                            v-model="props.values[property.id]" :property="property" style="height: 25px; line-height: 20px;" />
+                        <TagInputDropdown v-if="isTag(property.type)"
+                            v-model="props.values[property.id]" :property="property" :can-create="true" :auto-focus="true"
+                            style="height: 25px; line-height: 20px;" />
                         <StandaloneColorPropInput v-else-if="property.type == PropertyType.color"
                             v-model="props.values[property.id]" style="height: 25px; line-height: 20px;" />
                         <StandaloneTextInput
@@ -57,7 +67,8 @@ function toggleProperty(id: number) {
                         <StandaloneDateInput v-else-if="property.type == PropertyType.date"
                             v-model="props.values[property.id]" />
                         <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" /> -->
-                        <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]" style="height: 14px; line-height: 25px; margin-top: 4px;"/>
+                        <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]"
+                            style="height: 14px; line-height: 25px; margin-top: 4px;" />
                     </td>
                 </template>
             </tr>

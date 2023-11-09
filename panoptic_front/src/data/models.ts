@@ -274,9 +274,9 @@ export function propertyDefault(type: PropertyType): any {
         case PropertyType.checkbox:
             return false
         case PropertyType.color:
-            return '#aaaaaa'
+            return undefined
         case PropertyType.date:
-            return ''
+            return undefined
         case PropertyType.number:
             return undefined
         case PropertyType.string:
