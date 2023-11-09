@@ -1,4 +1,10 @@
 <script setup lang="ts">
+
+/**
+ * Base Input to select tags
+ * Uses the TagMenu as base for UI
+ */
+
 import { Property, PropertyType, Tag } from '@/data/models';
 import TagMenu from './TagMenu.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
@@ -33,7 +39,7 @@ function onSelect(tag: Tag) {
     } else {
         emits('update:modelValue', [...safeValue.value, tag.id])
     }
-    
+
     emits('select', tag)
     focus()
 }
