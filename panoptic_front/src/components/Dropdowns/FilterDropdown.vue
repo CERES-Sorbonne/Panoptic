@@ -10,6 +10,7 @@ import * as bootstrap from 'bootstrap'
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import TextInput from '../inputs/TextInput.vue';
 import TagInput from '../tags/TagInput.vue';
+import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 
 enum State {
     CLOSED = 0,
@@ -110,12 +111,11 @@ watch(() => filter.value?.operator, () => {
                             ref="inputElem" />
                         <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
                             :property="filterProperty" v-model="filter.value" @update:model-value="hide" />
-                        <TextInput
-                            v-else-if="[PropertyType.string, PropertyType.number].some(t => t == filterProperty.type)"
-                            :contenteditable="true" tag="div" :no-html="true" v-model="filter.value" :width="-1"
-                            :min-height="20" :no-nl="filterProperty.type == PropertyType.number"
-                            :url-mode="filterProperty.type == PropertyType.url"
-                            :only-number="filterProperty.type == PropertyType.number" class="border rounded" />
+                        <StandaloneTextInput
+                            v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == globalStore.properties[filter.propertyId].type)"
+                            :no-html="true" v-model="filter.value" :width="-1" :min-height="20"
+                            :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number" :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
+                            :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number" @blur="hide"/>
                         <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                     </div>
                 </div>
