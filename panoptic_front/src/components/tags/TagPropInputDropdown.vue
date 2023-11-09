@@ -1,4 +1,10 @@
 <script setup lang="ts">
+
+/**
+ * Input for Tags connected directly to an image property
+ * Selecting tags in this input directly affects the database
+ */
+
 import { Image, Property } from '@/data/models';
 import TagInputDropdown from './TagInputDropdown.vue';
 import { nextTick, onMounted, ref, watch } from 'vue';

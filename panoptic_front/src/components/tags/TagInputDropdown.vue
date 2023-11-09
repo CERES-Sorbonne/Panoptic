@@ -1,4 +1,10 @@
 <script setup lang="ts">
+
+/**
+ * Input to select tags as a Dropdown
+ * Uses the TagInput inside the dropdown popup
+ */
+
 import { Property } from '@/data/models';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import TagInput from './TagInput.vue';
