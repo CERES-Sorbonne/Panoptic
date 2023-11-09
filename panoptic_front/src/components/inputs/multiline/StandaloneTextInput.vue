@@ -37,15 +37,23 @@ function forceFocus() {
     nextTick(() => inputElem.value.focus())
 }
 
+function update(value: String) {
+    if(value == '') {
+        emits('update:modelValue', undefined)
+        return
+    }
+    emits('update:modelValue', value)
+}
+
 </script>
 
 <template>
     <div>
         <span v-show="localValue == '' && !isFocus" class="text-secondary" @click="forceFocus" style="cursor: pointer;">None...</span>
         <TextInput v-show="isFocus || localValue != ''" tag="div" :editable="true" :no-html="true" :model-value="localValue"
-            @update:model-value="v => emits('update:modelValue', v)" :width="props.width"
+            @update:model-value="update" :width="props.width"
             @update:height="h => emits('update:height', h)" :min-height="props.minHeight" :no-nl="props.noNl"
             :url-mode="props.urlMode" @blur="blur" :only-number="props.onlyNumber" :no-shadow="props.noShadow"
-            :always-shadow="props.alwaysShadow" ref="inputElem" @focus="focus"/>
+            :always-shadow="props.alwaysShadow" ref="inputElem" @focus="focus" :blur-on-enter="true"/>
     </div>
 </template>

@@ -131,7 +131,8 @@
             "title": "Propriétés",
             "cancel": "Annuler",
             "clear": "Clear",
-            "apply": "Appliquer"
+            "apply": "Appliquer",
+            "erase": "Effacer"
         },
         "tags": {},
         "export": {

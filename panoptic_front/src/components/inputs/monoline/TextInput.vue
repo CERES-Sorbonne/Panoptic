@@ -32,7 +32,7 @@ const minWidth = computed(() => Math.max(props.width + 1, 100))
         <template v-slot:popup>
             <div class="w-100 " style="font-size: 12px; line-height: 22px;">
                 <TextPropInput :image="props.image" :property="props.property" :auto-focus="true" :min-height="28"
-                    :width="minWidth" :always-shadow="true" :no-nl="props.noNl" />
+                    :width="minWidth" :always-shadow="true" :no-nl="props.noNl" @save="dropdownElem.hide()" :blur-on-enter="true" />
             </div>
         </template>
     </Dropdown>
