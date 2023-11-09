@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Property, Tag } from '@/data/models';
+import { Property, PropertyType, Tag } from '@/data/models';
 import TagMenu from './TagMenu.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { computed, ref } from 'vue';
@@ -28,7 +28,12 @@ const tags = computed(() => safeValue.value.map(id => globalStore.tags[props.pro
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
 function onSelect(tag: Tag) {
-    emits('update:modelValue', [...safeValue.value, tag.id])
+    if(props.property.type == PropertyType.tag) {
+        emits('update:modelValue', [tag.id])
+    } else {
+        emits('update:modelValue', [...safeValue.value, tag.id])
+    }
+    
     emits('select', tag)
     focus()
 }
