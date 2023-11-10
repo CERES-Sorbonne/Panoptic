@@ -54,7 +54,14 @@ class SimilarityFaissWithLabel:
         distances = [x for x in dist[0]]
         return [{'sha1': self.image_labels[i], 'dist': float('%.2f' % (distances[index]))} for index, i in enumerate(indices)]
 
+
 SIMILARITY_TREE: SimilarityTreeWithLabel = load_similarity_tree()
+
+
+def reload_tree():
+    global SIMILARITY_TREE
+    SIMILARITY_TREE = load_similarity_tree()
+
 
 def create_similarity_tree(images: list[ComputedValue]):
     tree = SimilarityTreeWithLabel(images)
