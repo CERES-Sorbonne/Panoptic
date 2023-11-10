@@ -4,6 +4,7 @@ import StampForm from '../forms/StampForm.vue';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
 import { globalStore } from '@/data/store';
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 
 const props = defineProps({
@@ -14,12 +15,11 @@ const props = defineProps({
 
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
-const buttonElem = ref(null)
+const dropdownElem = ref(null)
 const popupElem = ref(null)
 
 function close() {
-    let dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
-    dropdown.hide()
+    dropdownElem.value?.hide()
     clear()
 }
 
@@ -39,7 +39,7 @@ function apply() {
 
 
 function onClick(e) {
-    if(popupElem.value && popupElem.value.contains(e.target)) {
+    if (popupElem.value && popupElem.value.contains(e.target)) {
         console.log('inside')
     }
     else {
@@ -48,13 +48,13 @@ function onClick(e) {
     }
 }
 
-function onShow() {
-    document.addEventListener('click', onClick, true)
-}
+// function onShow() {
+//     document.addEventListener('click', onClick, true)
+// }
 
-function onHide() {
-    document.removeEventListener('click', onClick, true)
-}
+// function onHide() {
+//     document.removeEventListener('click', onClick, true)
+// }
 
 // onMounted(() => {
 //     buttonElem.value.addEventListener('hide.bs.dropdown', onHide)
@@ -64,23 +64,28 @@ function onHide() {
 </script>
 
 <template>
-    <div class="">
-        <div :class="props.noBorder ? '' : 'button'" data-bs-toggle="dropdown" aria-expanded="false"
-            data-bs-auto-close="outside" ref="buttonElem">
-            <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
-                $t('main.menu.selected_images') }}</span>
-            <span v-else>{{ $t('modals.tagging.button') }}</span>
-        </div>
-        <div class="dropdown-menu" ref="popupElem">
-            <div class="m-2" style="width: 300px;">
-                <StampForm :values="stamp" :erase="erase"/>
+    <Dropdown ref="dropdownElem">
+        <template #button>
+            <div :class="props.noBorder ? '' : 'button'">
+                <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
+                    $t('main.menu.selected_images') }}</span>
+                <span v-else>{{ $t('modals.tagging.button') }}</span>
             </div>
+        </template>
+        <template #popup>
+            <div @keydown.escape.prevent.stop="">
+                <div class="m-2" style="width: 300px;">
+                    <StampForm :values="stamp" :erase="erase" />
+                </div>
 
-            <div class="d-flex float-end pe-2">
-                <button class="me-2" @click="close">{{ $t('modals.tagging.cancel') }}</button>
-                <button class="me-2" @click="clear">{{ $t('modals.tagging.clear') }}</button>
-                <button class="me" @click="apply">{{ $t('modals.tagging.apply') }}</button>
+                <div class="d-flex pe-2 mb-2">
+                    <div class="flex-grow-1"></div>
+                    <button class="me-2" @click="close">{{ $t('modals.tagging.cancel') }}</button>
+                    <button class="me-2" @click="clear">{{ $t('modals.tagging.clear') }}</button>
+                    <button class="me" @click="apply">{{ $t('modals.tagging.apply') }}</button>
+                </div>
             </div>
-        </div>
-    </div>
+        </template>
+
+    </Dropdown>
 </template>
