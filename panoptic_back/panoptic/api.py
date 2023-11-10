@@ -13,7 +13,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from panoptic import core
-from panoptic.compute.similarity import get_similar_images_from_text
+from panoptic.compute.similarity import get_similar_images_from_text, reload_tree
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
@@ -230,6 +230,7 @@ async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPa
 async def change_project_route(payload: ChangeProjectPayload):
     os.environ['PANOPTIC_DATA'] = payload.project
     await db_utils.init()
+    reload_tree()
     return f"changed project to {payload.project}"
 
 
