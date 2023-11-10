@@ -116,7 +116,7 @@ watch(() => props.modelValue, () => {
             :only-number="props.onlyNumber" :no-html="props.noHtml" :no-nl="props.noNl"
             :contenteditable="props.editable && !(urlMode)" :style="{ width: (props.width - 5) + 'px' }"
             class="contenteditable" @keydown.escape="e => e.target.blur()" @focus="isFocus = true; emit('focus')"
-            @blur="isFocus = false; emit('blur');" @click="contentClick" @keydown.enter="onEnter"/>
+            @blur="isFocus = false; emit('blur');" @click="contentClick" @keydown.enter="onEnter" />
     </div>
 </template>
 

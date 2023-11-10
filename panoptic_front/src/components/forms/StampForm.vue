@@ -65,7 +65,7 @@ function toggleProperty(id: number) {
         <tbody style="border-top: 1px solid var(--border-color)">
             <tr v-for="property in properties" style="min-height: 20px;">
                 <template v-if="property.id >= 0">
-                    <td @click="toggleProperty(property.id)" style="cursor: pointer; line-height: 20px;"
+                    <td style="line-height: 20px;"
                         :class="propertyColor[property.id]" class="text-nowrap">
                         <PropertyIcon :type="property.type"/>
                         {{ property.name }}
@@ -74,9 +74,9 @@ function toggleProperty(id: number) {
                         <td class="w-100">
                             <TagInputDropdown v-if="isTag(property.type)" v-model="props.values[property.id]"
                                 :property="property" :can-create="true" :auto-focus="true"
-                                style="min-height: 24px; line-height: 20px;" />
+                                style="min-height: 20px; line-height: 20px;" />
                             <StandaloneColorPropInput v-else-if="property.type == PropertyType.color"
-                                v-model="props.values[property.id]" style="height: 24px; line-height: 20px;" />
+                                v-model="props.values[property.id]" style="height: 20px; line-height: 20px;" />
                             <StandaloneTextInput
                                 v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == property.type)"
                                 :no-html="true" v-model="props.values[property.id]" :width="-1" :min-height="20"
