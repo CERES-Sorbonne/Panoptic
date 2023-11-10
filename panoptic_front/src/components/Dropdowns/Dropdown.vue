@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { nextTick, onMounted, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
 import { Popper } from "vue-use-popperjs";
 
@@ -14,15 +14,14 @@ const popperElem = ref(null)
 let dropdown: bootstrap.Dropdown
 
 const visible = ref(false)
+const forceVisible = ref(false)
 
 function hide() {
-    popperElem.value.hide()
-
+    visible.value = false
 }
 
 function show() {
-    popperElem.value.show()
-
+    visible.value = true
 }
 
 function onShow() {
@@ -36,6 +35,16 @@ function onHide() {
     emits('hide')
 }
 
+async function onEsc() {
+    if(!visible.value) {
+        return
+    }
+    forceVisible.value = true
+    await nextTick()
+    forceVisible.value = false
+    console.log('esc')
+}
+
 onMounted(() => {
     // buttonElem.value.addEventListener('show.bs.dropdown', () => onShow())
     // buttonElem.value.addEventListener('hide.bs.dropdown', () => onHide())
@@ -46,14 +55,14 @@ onMounted(() => {
 
 <template>
     <div>
-        <Popper trigger="click-to-toggle" :teleport-props="{to: '#popper-holder'}" @show="onShow" @hide="onHide" ref="popperElem">
+        <Popper trigger="click-to-toggle" :force-show="forceVisible" :teleport-props="{to: '#popper-holder'}" @show="onShow" @hide="onHide" ref="popperElem">
             <template #reference>
                 <div class="m-0 p-0">
                     <slot name="button"></slot>
                 </div>
             </template>
 
-            <div class="popup bg-white m-0 p-0" :class="props.noShadow ? '' : 'shadow'" style="z-index: 999;">
+            <div class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" @keydown.escape="onEsc">
                 <slot name="popup" v-if="visible"></slot>
             </div>
         </Popper>
@@ -71,10 +80,10 @@ onMounted(() => {
 
 }
 
-.shadow {
-    border: 1px solid var(--border-color);
-    box-shadow: 0px 0px 15px 1px var(--border-color);
-    -webkit-box-shadow: 0px 0px 6px 3px var(--border-color);
-    -moz-box-shadow: 0px 0px 15px 1px var(--border-color);
+.shadow2 {
+    border: 2px solid var(--border-color);
+    box-shadow: 0px 0px 2px 2px rgba(0,0,0,0.35);
+    -webkit-box-shadow: 0px 0px 3px 2px rgba(0, 0, 0, 0.185);
+    -moz-box-shadow: 0px 0px 2px 2px rgba(0,0,0,0.35);
 }
 </style>
