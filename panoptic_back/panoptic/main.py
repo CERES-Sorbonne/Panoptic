@@ -15,7 +15,7 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QCursor
 import qtawesome as qta
 
-from panoptic.utils import get_datadir
+from panoptic.utils import get_datadir, get_version
 
 PORT = 8000
 HOST = False
@@ -28,6 +28,7 @@ def api(path):
 
 FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
 PROJECT_PATH = get_datadir() / "panoptic" / "projects.json"
+VERSION = get_version()
 PROJECT_PATH = PROJECT_PATH.as_posix()
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, \
@@ -80,8 +81,8 @@ class MiniUI(QMainWindow):
         }
         QPushButton{
             padding: 5px;
-            border-radius: 10px;
-            background-color: #d1dde0;
+            border: 3px solid lightgrey;
+            border-radius: 3px;
         }
         QComboBox{
             padding: 5px;
@@ -99,7 +100,7 @@ class MiniUI(QMainWindow):
         """)
 
 
-        self.setWindowTitle("Panoptic Server")
+        self.setWindowTitle("Panoptic Server - " + VERSION)
         self.setGeometry(100, 100, 700, 350)
         self._center()
 
@@ -132,6 +133,8 @@ class MiniUI(QMainWindow):
         self.new_project_button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
         frame_a1_layout.addWidget(self.new_project_button)
         frame_a1.setFixedWidth(250)
+
+
         # Partie A.2
         frame_a2 = QWidget()
         frame_a_layout.addWidget(frame_a2)
@@ -156,13 +159,7 @@ class MiniUI(QMainWindow):
         frame_b_layout.setAlignment(QtCore.Qt.AlignCenter)
 
         self.server_status = QLineEdit("Démarrage...")
-        self.server_status.setStyleSheet("""
-            QWidget {
-                background-color: "orange";
-                padding: 5px;
-                border-radius: 10px;
-            }
-        """)
+        self._set_processing(True)
         self.server_status.setReadOnly(True)
         self.server_status.setAlignment(QtCore.Qt.AlignCenter)
         self.server_status.setFixedWidth(200)
@@ -174,7 +171,30 @@ class MiniUI(QMainWindow):
         self.open_button.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
 
         frame_b_layout.addWidget(self.open_button)
-        self.setEnabled(False)
+
+    def _set_processing(self, value: bool, message: str = None):
+        if value:
+            self.server_status.setStyleSheet("""
+                QWidget {
+                    background-color: "orange";
+                    padding: 5px;
+                    border-radius: 10px;
+                }
+            """)
+            self.setEnabled(False)
+        else:
+            self.server_status.setStyleSheet("""
+                QWidget {
+                    background-color: "green";
+                    padding: 5px;
+                    border-radius: 10px;
+                    color: white;
+                }
+            """)
+            self.setEnabled(True)
+        if message:
+            self.server_status.setText(message)
+        QApplication.processEvents()
 
     def _center(self):
         qr = self.frameGeometry()
@@ -219,6 +239,16 @@ class MiniUI(QMainWindow):
         if self.selected_project:
             self.load_project()
 
+    def _get_running_message(self):
+        message = 'Running !'
+        if HOST:
+            try:
+                ip = socket.gethostbyname(socket.gethostname())
+                message += f' on {ip}:{PORT}'
+            except:
+                pass
+        return message
+
     def init_folders(self):
         self.listbox.clear()
         failed = True
@@ -229,27 +259,12 @@ class MiniUI(QMainWindow):
                     if folder['parent'] is None:
                         self.listbox.addItem(folder['path'])
                 failed = False
-                message = 'Running !'
-                if HOST:
-                    try:
-                        ip = socket.gethostbyname(socket.gethostname())
-                        message += f' on {ip}:{PORT}'
-                    except:
-                        pass
-                self.server_status.setText(message)
-                self.server_status.setStyleSheet("""
-                    QWidget {
-                        background-color: "green";
-                        padding: 5px;
-                        border-radius: 10px;
-                        color: white;
-                    }
-                """)
-                self.setEnabled(True)
+                self._set_processing(False, self._get_running_message())
 
             except Exception:
                 pass
             sleep(0.5)
+
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Choisir un dossier d'images")
@@ -279,6 +294,7 @@ class MiniUI(QMainWindow):
         self.load_project()
 
     def load_project(self, event=None):
+        self._set_processing(True, "Chargement des données")
         if len(self.projects['projects']) == 0:
             return
         self.selected_project = self.projects['projects'][self.combo_box.currentIndex()]
