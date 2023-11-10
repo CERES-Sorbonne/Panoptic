@@ -123,9 +123,9 @@ function onHide() {
 }
 
 function hide() {
-    if(groupData.root) selector.clear()
+    if (groupData.root) selector.clear()
     modal.hide()
-    
+
     groupData.root = undefined
     groupData.index = {}
     groupData.order = []
@@ -137,7 +137,7 @@ function show() {
     availableHeight.value = modalElem.value.clientHeight
     availableWidth.value = modalElem.value.clientWidth
 
-    if(groupData.root) {
+    if (groupData.root) {
         selector.clear()
     }
     setSimilar()
@@ -212,7 +212,7 @@ function updateSimilarGroup() {
 
 function paintSelection(property: PropertyRef) {
     let images = groupData.root.images
-    if(selector.selectedImages.size) {
+    if (selector.selectedImages.size) {
         images = Array.from(selector.selectedImages).map(id => globalStore.images[id])
     }
     globalStore.setPropertyValue(property.propertyId, images, property.value)
@@ -236,14 +236,16 @@ watch(minSimilarityDist, updateSimilarGroup)
                 <div class="modal-body pt-1 pb-1" style="max-height: calc(100vh - 100px);">
                     <div class="d-flex justify-content-center mb-1">
                         <div class="d-flex border rounded overflow-hidden">
-                            <wTT  message="modals.image.similar_images_tooltip">
+                            <wTT message="modals.image.similar_images_tooltip">
                                 <div class="ps-2 pe-2 btn-icon"
                                     :class="(modalMode == ImageModalMode.Similarity ? 'selected' : '')"
-                                    @click="modalMode = ImageModalMode.Similarity">{{ $t('modals.image.similar_images') }}</div>
+                                    @click="modalMode = ImageModalMode.Similarity">{{ $t('modals.image.similar_images') }}
+                                </div>
                             </wTT>
                             <div class="border-start"></div>
-                            <wTT  message="modals.image.unique_properties_tooltip">
-                                <div class="ps-2 pe-2 btn-icon" :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
+                            <wTT message="modals.image.unique_properties_tooltip">
+                                <div class="ps-2 pe-2 btn-icon"
+                                    :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
                                     @click="modalMode = ImageModalMode.Unique">
                                     {{ $t('modals.image.unique_properties') }}</div>
                             </wTT>
@@ -269,19 +271,26 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                     <PropertyIcon :type="property.type" /> {{
                                                         globalStore.properties[property.propertyId].name }}
                                                 </td>
-                                                <td class="ps-1">
+                                                <td class="ps-1" style="width: 100%;">
                                                     <PropInput :property="globalStore.properties[property.propertyId]"
                                                         :image="image" :width="-1" :min-height="20" />
                                                 </td>
-                                                <wTT  message="modals.image.toggle_property_tooltip">
-                                                    <td class="text-center btn-icon"
-                                                        @click="toggleProperty(property.propertyId)"><i class="bi bi-eye"
-                                                            :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')"></i>
-                                                    </td>
-                                                </wTT>
-                                                <wTT  message="modals.image.fill_property_tooltip">
-                                                    <td class="text-center btn-icon" style="padding: 4px 2px 0px 5px;" @click="paintSelection(property)"><i class="bi bi-paint-bucket"></i></td>
-                                                </wTT>
+
+                                                <td class="text-center btn-icon" style="width: 20px;"
+                                                    @click="toggleProperty(property.propertyId)">
+                                                    <wTT message="modals.image.toggle_property_tooltip">
+                                                        <i class="bi bi-eye"
+                                                            :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')" />
+                                                    </wTT>
+                                                </td>
+
+
+                                                <td class="text-center btn-icon" style="padding: 4px 2px 0px 5px; width: 20px;"
+                                                    @click="paintSelection(property)">
+                                                    <wTT message="modals.image.fill_property_tooltip">
+                                                        <i class="bi bi-paint-bucket"></i>
+                                                    </wTT>
+                                                </td>
                                             </template>
                                         </tr>
                                     </tbody>
@@ -316,7 +325,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
                                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
-                                <wTT message="modals.image.similarity_filter_tooltip"><RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" /></wTT>
+                                <wTT message="modals.image.similarity_filter_tooltip">
+                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" />
+                                </wTT>
                                 <div>min: {{ minSimilarityDist }}%</div>
                                 <div v-if="groupData.root.imagePiles" class="ms-2 text-secondary">({{
                                     groupData.root.imagePiles.length }} images)</div>
@@ -327,9 +338,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                                     @remove:selected="selector.clear()" />
                             </div>
 
-                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510"
-                                :data="groupData" :properties="similarityVisiblePropsList" ref="scroller"
-                                :selector="selector" :hide-options="true" :hide-group="true" />
+                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510" :data="groupData"
+                                :properties="similarityVisiblePropsList" ref="scroller" :selector="selector"
+                                :hide-options="true" :hide-group="true" />
                         </div>
                     </div>
 
@@ -376,7 +387,8 @@ watch(minSimilarityDist, updateSimilarGroup)
                         </div>
                         <div class="m-0 p-0" style="width: 1140px; overflow-x: scroll; overflow-y: hidden;">
                             <GridScroller :show-images="false" :data="gridData" :height="availableHeight - 570"
-                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" :selector="selector" />
+                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)"
+                                :selector="selector" />
                         </div>
                     </div>
                 </div>
@@ -421,4 +433,5 @@ img {
 
 .selected {
     background-color: var(--light-grey);
-}</style>
+}
+</style>

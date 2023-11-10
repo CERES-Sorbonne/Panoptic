@@ -3,13 +3,12 @@ import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed, ref } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import TagProperty from '../properties/TagProperty.vue';
 import { Filter } from '@/data/models';
 import { availableOperators } from '@/data/models';
 import { defaultOperator } from '@/utils/filter';
 import wTT from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
-import TagMenu from './TagMenu.vue';
+import TagMenu from '../tags/TagMenu.vue';
 
 
 const props = defineProps({
@@ -174,7 +173,7 @@ function renameProperty() {
             </div>
             <div v-else-if="valuesOpen">
                 <!-- <TagProperty :data="props.property" /> -->
-                <TagMenu :property="props.property"/>
+                <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true" :can-link="true"/>
             </div>
         </div>
     </div>

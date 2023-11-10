@@ -59,6 +59,8 @@ function clear() {
 }
 
 function onHide() {
+    if(!dateElem.value) return
+    
     dateElem.value.closeMenu()
     if(_no_reset_flag) {
         _no_reset_flag = false

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
-import { Popper } from "vue-use-popperjs";
 
 const props = defineProps({
     offset: { default: '0,0', type: String },
@@ -10,18 +9,18 @@ const props = defineProps({
 const emits = defineEmits(['show', 'hide'])
 defineExpose({ hide, show })
 
-const popperElem = ref(null)
+const buttonElem = ref(null)
 let dropdown: bootstrap.Dropdown
 
 const visible = ref(false)
 
 function hide() {
-    popperElem.value.hide()
+    dropdown.hide()
 
 }
 
 function show() {
-    popperElem.value.show()
+    dropdown.show()
 
 }
 
@@ -37,31 +36,27 @@ function onHide() {
 }
 
 onMounted(() => {
-    // buttonElem.value.addEventListener('show.bs.dropdown', () => onShow())
-    // buttonElem.value.addEventListener('hide.bs.dropdown', () => onHide())
-    // dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
+    buttonElem.value.addEventListener('show.bs.dropdown', () => onShow())
+    buttonElem.value.addEventListener('hide.bs.dropdown', () => onHide())
+    dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
 })
 
 </script>
 
 <template>
-    <div>
-        <Popper trigger="click-to-toggle" :teleport-props="{to: '#popper-holder'}" @show="onShow" @hide="onHide" ref="popperElem">
-            <template #reference>
-                <div class="m-0 p-0">
-                    <slot name="button"></slot>
-                </div>
-            </template>
-
-            <div class="popup bg-white m-0 p-0" :class="props.noShadow ? '' : 'shadow'" style="z-index: 999;">
-                <slot name="popup" v-if="visible"></slot>
-            </div>
-        </Popper>
+    <div class="dropdown p-0 m-0" style="position: static;">
+        <div class="m-0 p-0" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem"
+            :data-bs-offset="props.offset">
+            <slot name="button"></slot>
+        </div>
+        <div class="dropdown-menu bg-white m-0 p-0" :class="props.noShadow ? '': 'shadow'">
+            <slot name="popup" v-if="visible"></slot>
+        </div>
     </div>
 </template>
 
 <style scoped>
-.popup {
+.dropdown-menu {
     min-width: 0px;
     font-size: 14px;
     border: none;

@@ -63,6 +63,7 @@ function reRender(){
 
 <template>
     <div id="panoptic" :key="panopticKey">
+        <div id="popper-holder" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class=""></div>
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
             <div v-if="globalStore.isLoaded">
                 <Menu @export="showModal()"/>
@@ -84,6 +85,8 @@ function reRender(){
         <PropertyModal :id="Modals.PROPERTY" />
         <FolderToPropertyModal :id="Modals.FOLDERTOPROP" />
         <ExportModal :id="Modals.EXPORT"/>
+
+        
     </div>
     <!-- <div class="above bg-info">lalala</div>
                 <div class="above2 bg-warning">lalala</div> -->
