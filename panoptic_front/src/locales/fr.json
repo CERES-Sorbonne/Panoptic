@@ -149,5 +149,6 @@
         "images_folders": "Dossiers d'images",
         "add_images_folder": "Ajouter un dossier d'images",
         "open_panoptic": "Lancer Panoptic"
-    }
+    },
+    "tmp": "Tooltip to be written"
 }

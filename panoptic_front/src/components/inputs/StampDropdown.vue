@@ -5,6 +5,7 @@ import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
 import { globalStore } from '@/data/store';
 import Dropdown from '../dropdowns/Dropdown.vue';
+import wTT from '../tooltips/withToolTip.vue';
 
 
 const props = defineProps({
@@ -80,12 +81,17 @@ function onClick(e) {
 
                 <div class="d-flex pe-2 mb-2">
                     <div class="flex-grow-1"></div>
-                    <button class="me-2" @click="close">{{ $t('modals.tagging.cancel') }}</button>
-                    <button class="me-2" @click="clear">{{ $t('modals.tagging.clear') }}</button>
-                    <button class="me" @click="apply">{{ $t('modals.tagging.apply') }}</button>
+                    <button class="me-2" @click="close">
+                        <wTT :message="$t('tmp')">{{ $t('modals.tagging.cancel') }}</wTT>
+                    </button>
+                    <button class="me-2" @click="clear">
+                        <wTT :message="$t('tmp')">{{ $t('modals.tagging.clear') }}</wTT>
+                    </button>
+                    <button class="me" @click="apply">
+                        <wTT :message="$t('tmp')">{{ $t('modals.tagging.apply') }}</wTT>
+                    </button>
                 </div>
             </div>
         </template>
 
-    </Dropdown>
-</template>
+</Dropdown></template>
