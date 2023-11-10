@@ -17,6 +17,7 @@ const visible = ref(false)
 const forceVisible = ref(false)
 
 function hide() {
+    console.log('manual hide')
     visible.value = false
 }
 
@@ -31,6 +32,7 @@ function onShow() {
 }
 
 function onHide() {
+    console.log('onHide')
     visible.value = false
     emits('hide')
 }
@@ -62,7 +64,7 @@ onMounted(() => {
                 </div>
             </template>
 
-            <div class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" @keydown.escape="onEsc">
+            <div class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" @keydown.escape="onEsc" @click.stop>
                 <slot name="popup" v-if="visible"></slot>
             </div>
         </Popper>
