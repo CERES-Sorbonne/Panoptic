@@ -5,6 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { globalStore } from '@/data/store';
 import 'vue-color-kit/dist/vue-color-kit.css'
 import * as bootstrap from 'bootstrap'
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 const props = defineProps({
     modelValue: Number,
@@ -13,9 +14,9 @@ const props = defineProps({
     rounded: Boolean
 
 })
-const emits = defineEmits({ 'update:height': Number, 'update:modelValue': undefined })
+const emits = defineEmits({ 'update:height': Number, 'update:modelValue': undefined, 'blur': undefined })
 
-const dropdown = ref(null)
+const dropdownElem = ref(null)
 
 const color = computed(() => {
     if (props.modelValue == undefined) return 'white'
@@ -24,28 +25,11 @@ const color = computed(() => {
     if (isNaN(value) || value > 12) return 'gray'
     return Colors[value].color
 })
-const isFocus = ref(false)
-
-function focus() {
-    if (isFocus.value) return
-    isFocus.value = true
-    dropdown.value.show()
-}
-
-function unfocus() {
-    isFocus.value = false
-    dropdown.value.hide()
-}
 
 function set(color: number) {
     emits('update:modelValue', color)
-}
+    dropdownElem.value.hide()
 
-function saveDropdownRef(e) {
-    if (!e) return
-
-    e.addEventListener('show.bs.dropdown', () => isFocus.value = true)
-    e.addEventListener('hide.bs.dropdown', () => isFocus.value = false)
 }
 
 defineExpose({
@@ -55,17 +39,19 @@ defineExpose({
 </script>
 
 <template>
-    <div :style="{ height: props.minHeight + 'px' }" class="container" >
-        <!-- <input type="color" v-model="localValue" :style="{
+    <Dropdown ref="dropdownElem" @hide="emits('blur')">
+        <template #button>
+            <!-- <input type="color" v-model="localValue" :style="{
             width: props.width+ 'px',
         }" ref="elem" @focusin="isFocus = true" @focusout="isFocus = false"/> -->
-        <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded' : ''"
-            :style="{ width: props.width + 'px', backgroundColor: color, height: 'calc(100% - 3px)' }"
-            data-bs-toggle="dropdown" aria-expanded="false">
-            <span v-if="props.modelValue == undefined" class="text-secondary">None...</span>
-        </div>
-        <div class="dropdown-menu">
-            <div v-if="isFocus" @focusout="unfocus">
+            <div :class="props.rounded ? 'rounded' : ''"
+                :style="{ width: props.width + 'px', backgroundColor: color, height: '20px', cursor: 'pointer' }">
+                <span v-if="props.modelValue == undefined" class="text-secondary">None...</span>
+            </div>
+        </template>
+
+        <template #popup>
+            <div class="p-1">
                 <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index)">
                     <div :style="{ backgroundColor: c.color }" class="color"></div>
                     <div class="color-name"> {{ c.name }}</div>
@@ -76,8 +62,8 @@ defineExpose({
                     <div class="color-name"> None </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </template>
+    </Dropdown>
 </template>
 
 <style scoped>
