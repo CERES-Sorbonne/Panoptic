@@ -52,7 +52,7 @@ const rowHeight = computed(() => {
         }
     }
     if (props.showImage) {
-        return Math.max(max, tab.value.data.imageSize) + 4
+        return Math.max(max, imageSize.value.h) + 4
     }
     return max + 4
 })
@@ -67,7 +67,8 @@ const propMinRowHeight = computed(() => {
             }
         }
         if (props.showImage) {
-            max = Math.max(max, tab.value.data.imageSize)
+            // max = Math.max(max, tab.value.data.imageSize)
+            max = Math.max(max, imageSize.value.h)
         } else {
             max = Math.max(max, 30)
         }
@@ -82,6 +83,18 @@ const propWidth = computed(() => {
     const res = {} as { [propId: number]: number }
     props.properties.forEach(p => res[p.id] == tab.value.data.propertyOptions[p.id].size)
     return res
+})
+
+
+const imageSize = computed(() => {
+    let imgRatio = image.value.width / image.value.height
+    let divRatio = 1
+
+    if (divRatio > imgRatio) {
+        return { w: tab.value.data.imageSize * imgRatio, h: tab.value.data.imageSize }
+    }
+    return { w: tab.value.data.imageSize, h: tab.value.data.imageSize / imgRatio }
+
 })
 
 // const totalPropWidth = computed(() => {
@@ -122,6 +135,8 @@ function showModal() {
     globalStore.showModal(Modals.IMAGE, image.value)
 }
 
+
+
 onMounted(emitResizeOnce)
 watch(props, emitResizeOnce)
 watch(rowHeight, emitResizeOnce)
@@ -133,9 +148,9 @@ watch(rowHeight, emitResizeOnce)
     <div class="container" :style="{ height: props.item.size + 'px' }">
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.data.imageSize) + 'px', height: props.item.size + 'px', position: 'relative'
+            width: (tab.data.imageSize) + 'px', position: 'relative', height: rowHeight+'px'
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
-            <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="tab.data.imageSize - 2"
+            <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="rowHeight - 2"
                 :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />
             <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.data.imageSize + 'px' }"
                 style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
