@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PropertyType, isTag, propertyDefault } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { computed, onMounted, reactive, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
 import StandaloneColorPropInput from '../inputs/StandaloneColorPropInput.vue';
@@ -15,6 +15,7 @@ const props = defineProps({
     values: Object as () => { [propertyId: number]: any },
     erase: Set<number>
 })
+const emits = defineEmits(['blur'])
 
 const properties = computed(() => {
     return globalStore.propertyList.filter(p => p.id >= 0)
@@ -36,13 +37,8 @@ const propertyColor = computed(() => {
     return res
 })
 
-function toggleProperty(id: number) {
-    if (props.values[id] === undefined) {
-        props.values[id] = propertyDefault(globalStore.properties[id].type)
-    }
-    else {
-        delete props.values[id]
-    }
+function test() {
+    console.log('buuurr')
 }
 
 // function init() {
@@ -74,16 +70,17 @@ function toggleProperty(id: number) {
                         <td class="w-100">
                             <TagInputDropdown v-if="isTag(property.type)" v-model="props.values[property.id]"
                                 :property="property" :can-create="true" :auto-focus="true"
-                                style="min-height: 20px; line-height: 20px;" />
+                                style="min-height: 20px; line-height: 20px;" @blur="emits('blur')"/>
                             <StandaloneColorPropInput v-else-if="property.type == PropertyType.color"
-                                v-model="props.values[property.id]" style="height: 20px; line-height: 20px;" />
+                                v-model="props.values[property.id]" style="height: 20px; line-height: 20px;" @blur="emits('blur')"/>
                             <StandaloneTextInput
                                 v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == property.type)"
                                 :no-html="true" v-model="props.values[property.id]" :width="-1" :min-height="20"
                                 :no-nl="property.type == PropertyType.number" :url-mode="property.type == PropertyType.url"
-                                :only-number="property.type == PropertyType.number" />
+                                :only-number="property.type == PropertyType.number" 
+                                @blur="emits('blur')" />
                             <StandaloneDateInput v-else-if="property.type == PropertyType.date"
-                                v-model="props.values[property.id]" />
+                                v-model="props.values[property.id]" @blur="emits('blur')" />
                             <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" /> -->
                             <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]"
                                 style="height: 14px; line-height: 25px; margin-top: 4px; margin-left: 1px;" />

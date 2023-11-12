@@ -8,27 +8,35 @@ const props = defineProps({
     noShadow: Boolean
 })
 const emits = defineEmits(['show', 'hide'])
-defineExpose({ hide, show })
+defineExpose({ hide, show, focus })
 
 const popperElem = ref(null)
+const popupElem = ref(null)
 let dropdown: bootstrap.Dropdown
 
 const visible = ref(false)
 const forceVisible = ref(false)
 
-function hide() {
-    console.log('manual hide')
-    visible.value = false
+async function hide() {
+    console.log('manual hide', visible.value)
+    forceVisible.value = true
+    await nextTick()
+    forceVisible.value = false
 }
 
 function show() {
     visible.value = true
 }
 
-function onShow() {
+function focus() {
+    popupElem.value.focus()
+}
+
+async function onShow() {
     visible.value = true
     emits('show')
-
+    await nextTick()
+    focus()
 }
 
 function onHide() {
@@ -64,7 +72,7 @@ onMounted(() => {
                 </div>
             </template>
 
-            <div class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" @keydown.escape="onEsc" @click.stop>
+            <div class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" tabindex="0" @keydown.escape="onEsc" @click.stop ref="popupElem">
                 <slot name="popup" v-if="visible"></slot>
             </div>
         </Popper>
@@ -76,10 +84,15 @@ onMounted(() => {
     min-width: 0px;
     font-size: 14px;
     border: none;
+
     /* box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -webkit-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -moz-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1); */
 
+}
+
+.popup:focus {
+    outline-width: 0;
 }
 
 .shadow2 {

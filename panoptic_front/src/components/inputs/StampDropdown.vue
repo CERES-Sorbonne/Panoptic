@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Image, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
-import { onMounted, onUnmounted, reactive, ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
 import { globalStore } from '@/data/store';
 import Dropdown from '../dropdowns/Dropdown.vue';
@@ -27,6 +27,7 @@ function close() {
 function clear() {
     Object.keys(stamp).forEach((k: any) => delete stamp[k])
     erase.clear()
+    nextTick(() => dropdownElem.value.focus())
 }
 
 function apply() {
@@ -76,7 +77,7 @@ function onClick(e) {
         <template #popup>
             <div @keydown.escape.prevent.stop="">
                 <div class="m-2" style="width: 300px;">
-                    <StampForm :values="stamp" :erase="erase" />
+                    <StampForm :values="stamp" :erase="erase" @blur="dropdownElem.focus"/>
                 </div>
 
                 <div class="d-flex pe-2 mb-2">

@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import { Image, Property } from '@/data/models';
-import { DeprecationTypes, computed, onMounted, ref, watch } from 'vue';
+import { DeprecationTypes, computed, nextTick, onMounted, ref, watch } from 'vue';
 import VueDatePicker from '@vuepic/vue-datepicker'
 import { globalStore } from '@/data/store';
 import { getImageProperty } from '@/utils/utils';
@@ -12,11 +12,12 @@ const props = defineProps({
     modelValue: Date,
     width: Number
 })
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'blur'])
 
 let _no_reset_flag = false
 
 const dateElem = ref(null)
+const focusElem = ref(null)
 const internal = ref(null)
 const dropdownElem = ref(null)
 
@@ -59,6 +60,7 @@ function clear() {
 }
 
 function onHide() {
+    emits('blur')
     if(!dateElem.value) return
     
     dateElem.value.closeMenu()
@@ -67,6 +69,10 @@ function onHide() {
     } else {
         updateLocalValue()
     }
+}
+
+function onEsc() {
+    console.log('la')
 }
 
 function updateLocalValue() {
@@ -95,7 +101,7 @@ onMounted(() => {
 <template>
     <Dropdown ref="dropdownElem" @hide="onHide">
         <template #button>
-            <div class="drop-btn text-nowrap overflow-hidden" :style="buttonStyle">
+            <div class="drop-btn text-nowrap overflow-hidden" :style="buttonStyle" >
                 <span v-if="internal">{{ datePreview }}</span>
                 <span v-else class="text-secondary">None...</span>
             </div>
