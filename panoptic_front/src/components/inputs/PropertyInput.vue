@@ -105,7 +105,7 @@ onMounted(() => {
 <template>
     <form @submit.prevent="setEdit(false)" is-input="true" class="overflow-hidden p-0 m-0">
         <div class="d-flex flex-row container2" @click="setEdit(true)" ref="clickableElem">
-            <div class="me-1 text-nowrap text-truncate">
+            <div class="me-1 text-nowrap">
                 <span class="me-1">
                     <!-- Affichage d'un icone pour désigner la propriété sauf dans le cas d'une checkbox où l'input checkbox prend la place de l'icone -->
                     <input v-if="type == PropertyType.checkbox" class="small-input" type="checkbox"
