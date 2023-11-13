@@ -9,6 +9,7 @@ import PropertyValue from '@/components/properties/PropertyValue.vue';
 
 const props = defineProps({
     properties: Array<Property>,
+    missingWidth: Number,
     showImage: Boolean,
     data: Object as () => GroupData,
     currentGroup: Object as () => Group
@@ -19,9 +20,17 @@ const tab = computed(() => globalStore.getTab())
 
 const elems = reactive({})
 
+const totalPropertyWidth = computed(() => {
+    return props.properties.map(p => tab.value.data.propertyOptions[p.id].size).reduce((a, b) => a + b, 0) + tab.value.data.imageSize
+})
+
+const isMissingWidth = computed(() => props.missingWidth > 0)
+
 function resize(propId, w) {
     tab.value.data.propertyOptions[propId].size = w
 }
+
+
 </script>
 
 
@@ -42,16 +51,17 @@ function resize(propId, w) {
 
         <div style="height: 30px;">
             <div class="left-border"></div>
-            <div v-if="showImage" class="header-cell" :style="{ width: (tab.data.imageSize) + 'px' }">
+            <div v-if="showImage" class="header-cell right-border" :style="{ width: (tab.data.imageSize) + 'px' }">
                 <i class="bi bi-image ms-1 me-1"></i>
             </div>
-            <Resizable :start-width="tab.data.propertyOptions[property.id].size" v-for="property in props.properties"
-                class="header-cell" @resize="w => resize(property.id, w)">
+            <Resizable :start-width="tab.data.propertyOptions[property.id].size - ((isMissingWidth && index == props.properties.length-1) ? 1 : 0)" v-for="property, index in props.properties"
+                class="header-cell" :class="(isMissingWidth && index == props.properties.length-1) ? '': 'right-border' " @resize="w => resize(property.id, w)">
                 <PropertyIcon :type="property.type" class="ms-1" />
                 {{ property.name }}
             </Resizable>
+            <div v-if="isMissingWidth" class="header-cell right-border" :style="{ width: (props.missingWidth) + 'px', height: '30px' }"></div>
         </div>
-        
+
     </div>
 </template>
 
@@ -63,10 +73,19 @@ function resize(propId, w) {
     height: 30px;
 }
 
+.no-right-border {
+    border-right: 1px solid rgba(255, 255, 255, 0);
+}
+
+.right-border {
+    border-right: 1px solid var(--border-color);
+}
+
+
 .header-cell {
     border-left: none;
     border-top: 1px solid var(--border-color);
-    border-right: 1px solid var(--border-color);
+    /* border-right: 1px solid var(--border-color); */
     border-bottom: 1px solid var(--border-color);
     overflow: hidden;
     /* resize: horizontal; */

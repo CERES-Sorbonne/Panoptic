@@ -34,14 +34,18 @@ const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
 
-const scrollerWidth = computed(() => {
+const totalPropWidth = computed(() => {
     const options = globalStore.getTab().data.propertyOptions
     let propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
     if (props.showImages) {
         propSum += globalStore.getTab().data.imageSize
     }
-    return propSum + 1
+    return propSum
 })
+
+const scrollerWidth = computed(() => Math.max(totalPropWidth.value, props.width))
+
+const missingWidth = computed(() => props.width - totalPropWidth.value)
 
 const scrollerHeight = computed(() => props.height - hearderHeight.value)
 
@@ -198,9 +202,8 @@ watch(() => props.data, computeLines)
 
 <template>
     <div class="grid-container overflow-hidden" :style="{ width: scrollerStyle.width }">
-        <div class="mt-1"></div>
-        <TableHeader :properties="props.selectedProperties" :show-image="props.showImages" :current-group="currentGroup"
-            :data="props.data" class="p-0 m-0" />
+        <TableHeader :properties="props.selectedProperties" :missing-width="missingWidth" :show-image="props.showImages"
+            :current-group="currentGroup" :data="props.data" class="p-0 m-0" />
 
         <RecycleScroller :items="lines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="400"
             :emitUpdate="false" :page-mode="false" :prerender="0" class="p-0 m-0" @scroll="handleUpdate"
@@ -209,9 +212,10 @@ watch(() => props.data, computeLines)
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
                     <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
-                        @resizeHeight="h => resizeHeight(item, h)" :show-images="props.showImages"
-                        :selected-images="props.selector.selectedImages" :data="props.data" @open:group="openGroup"
-                        @close:group="closeGroup" @toggle:image="selectImage" @toggle:group="selectGroup"/>
+                        :show-images="props.showImages" :selected-images="props.selector.selectedImages" :data="props.data"
+                        :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
+                        @toggle:image="selectImage" @toggle:group="selectGroup"
+                        @resizeHeight="h => resizeHeight(item, h)" />
                 </template>
                 <!-- </DynamicScrollerItem> -->
             </template>

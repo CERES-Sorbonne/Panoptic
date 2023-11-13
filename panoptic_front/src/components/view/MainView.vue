@@ -230,9 +230,9 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :data="groupData" :height="scrollerHeight - 15" ref="imageList"
+                <GridScroller :data="groupData" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="selectedImages" :selector="selector" />
+                    :selected-images="selectedImages" :selector="selector" ref="imageList"/>
             </div>
         </template>
 
