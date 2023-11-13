@@ -450,7 +450,7 @@ export interface Recommendation {
 export function buildTabState() {
     return {
         name: 'Tab',
-        display: 'grid',
+        display: 'tree',
         filter: buildFilterGroup(),
         groups: [],
         sortList: [],
