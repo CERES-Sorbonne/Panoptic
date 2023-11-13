@@ -7,7 +7,7 @@
 
 import { Image, Property } from '@/data/models';
 import TagInputDropdown from './TagInputDropdown.vue';
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual, computedPropValue } from '@/utils/utils';
 import { globalStore } from '@/data/store';
 
@@ -28,7 +28,9 @@ const emits = defineEmits(['update:height'])
 const inputElem = ref(null)
 const localValue = ref([])
 
-const propValue = computedPropValue(props.property, props.image)
+const refProps = toRefs(props)
+// const propValue = computed(() => computedPropValue(props.property, props.image))
+const propValue = computedPropValue(refProps.property, refProps.image)
 
 
 function updateLocal() {

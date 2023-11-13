@@ -163,7 +163,7 @@ watch(rowHeight, emitResizeOnce)
     <div class="container" :style="{ height: props.item.size + 'px' }">
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.data.imageSize) + 'px', position: 'relative', height: rowHeight+'px'
+            width: (tab.data.imageSize) + 'px', position: 'relative', height: rowHeight+'px', cursor: 'pointer'
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="rowHeight - 2"
                 :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />

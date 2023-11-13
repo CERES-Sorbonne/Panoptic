@@ -40,7 +40,6 @@ async function onShow() {
 }
 
 function onHide() {
-    console.log('onHide')
     visible.value = false
     emits('hide')
 }
@@ -54,12 +53,6 @@ async function onEsc() {
     forceVisible.value = false
     console.log('esc')
 }
-
-onMounted(() => {
-    // buttonElem.value.addEventListener('show.bs.dropdown', () => onShow())
-    // buttonElem.value.addEventListener('hide.bs.dropdown', () => onHide())
-    // dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
-})
 
 </script>
 
