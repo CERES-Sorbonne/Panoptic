@@ -3,6 +3,7 @@ import CenteredImage from '@/components/images/CenteredImage.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import DatePropInput from '@/components/inputs/DatePropInput.vue';
+import PropertySelection from '@/components/inputs/PropertySelection.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
@@ -16,7 +17,8 @@ const props = defineProps({
     item: Object as () => RowLine | PileRowLine,
     properties: Array<Property>,
     showImage: Boolean,
-    selected: Boolean
+    selected: Boolean,
+    missingWidth: Number,
     // expandImage: Boolean
 })
 const emits = defineEmits({
@@ -97,6 +99,19 @@ const imageSize = computed(() => {
 
 })
 
+const inputWidth = computed(() => {
+    const res = {} as {[propId: string]: number}
+    props.properties.forEach(p => {
+        res[p.id] = tab.value.data.propertyOptions[p.id].size - 7
+        if(p.id == props.properties[props.properties.length-1].id) {
+            if(props.missingWidth > 0) res[p.id] += props.missingWidth
+            
+            res[p.id] -= 15 // remove scrolling bar width
+        }
+    })
+    return res
+})
+
 // const totalPropWidth = computed(() => {
 //     return Object.values(propWidth.value).reduce((a,b) => a+b, 0)
 // })
@@ -163,38 +178,38 @@ watch(rowHeight, emitResizeOnce)
 
         <!-- <div class=""> -->
         <div v-for="property, index in props.properties" :class="classes"
-            :style="{ width: (tab.data.propertyOptions[property.id].size) + 'px' }">
+            :style="{ width: inputWidth[property.id]+7 + 'px' }">
             <!-- {{ rowHeight }} -->
             <!-- <template v-if="image.properties[property.id] != undefined"> -->
             <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size" ref="inputElems"
                 @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
             <TextPropInput v-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="true"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
             <TextPropInput v-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="false"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
             <TagPropInputDropdown v-if="isTag(property.type)" :property="property" :image="image" :can-create="true"
                 :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
-                :min-height="propMinRowHeight[property.id]" :width="((tab.data.propertyOptions[property.id].size - 5) - (props.properties.length - 1 == index ? 13 : 0))"
+                :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]"
                 @update:height="h => sizes[property.id] = h" />
             <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
             <ColorPropInput v-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
 
             <TextPropInput v-if="property.type == PropertyType.number" :min-height="props.item.size" ref="inputElems"
                 @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
 
             <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
-                :width="((tab.data.propertyOptions[property.id].size - 7) - (props.properties.length - 1 == index ? 13 : 0))" />
+                :width="inputWidth[property.id]" />
             <div v-if="property.type == PropertyType._ahash" :style="{ height: propMinRowHeight[property.id] + 'px' }"
                 class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}

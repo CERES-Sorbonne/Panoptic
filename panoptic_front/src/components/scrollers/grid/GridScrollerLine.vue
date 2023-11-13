@@ -9,6 +9,7 @@ import { GroupIterator, ImageIterator } from '@/utils/groups';
 const props = defineProps({
     item: Object as () => ScrollerLine,
     width: Number,
+    missingWidth: Number,
     properties: Array<Property>,
     showImages: Boolean,
     selectedImages: Set<Number>,
@@ -41,12 +42,12 @@ watch(() => props.item.id, reload)
                 @close:group="e => emits('close:group', e)" @open:group="e => emits('open:group', e)" @toggle:group="emits('toggle:group', new GroupIterator(props.data, item.data.order))"/>
         </div>
         <div v-if="item.type == 'image'">
-            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages" :missing-width="props.missingWidth"
                 @resizeHeight="h => emits('resizeHeight', h)" :selected="props.selectedImages.has(item.data.id)"
                 @toggle:image="e => emits('toggle:image', new ImageIterator(props.data, props.data.index[e.groupId].order, e.imageIndex))" />
         </div>
         <div v-if="item.type == 'pile'">
-            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages" :missing-width="props.missingWidth"
                 @resizeHeight="h => emits('resizeHeight', h)" :selected="props.selectedImages.has(item.data.images[0].id)"
                 @toggle:image="e => emits('toggle:image', new ImageIterator(props.data, props.data.index[e.groupId].order, e.imageIndex))" />
         </div>
