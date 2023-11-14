@@ -253,9 +253,9 @@ watch(minSimilarityDist, updateSimilarGroup)
 
                     </div>
                     <div class="row" v-if="modalMode == ImageModalMode.Similarity">
-                        <div class="col overflow-hidden" style="width: 600px;">
+                        <div class="col overflow-hidden image-col" style="width: 600px;">
                             <div class="mb-2 image-container">
-                                <img :src="image.fullUrl" class="" />
+                                <img :src="image.fullUrl" class=""/>
                             </div>
 
                             <div class="mt-2"
@@ -347,7 +347,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                     <div class="row" v-else>
                         <div class="col">
                             <div class="text-center mb-2 image-container">
-                                <img :src="image.fullUrl" class="" />
+                                <img :src="image.fullUrl" />
                             </div>
                         </div>
                         <div class="col" style="height: 400px; overflow: scroll;">
@@ -429,8 +429,20 @@ img {
     left: 0;
     right: 0;
     margin: auto;
+    transition: 0.1s;
 }
 
+img:hover{
+    -ms-transform: scale(3); /* IE 9 */
+    -webkit-transform: scale(3); /* Safari 3-8 */
+    transform: scale(2);
+    z-index: 999;
+    margin-top: 6em
+}
+
+.image-col:hover{
+    overflow: visible !important;
+}
 .selected {
     background-color: var(--light-grey);
 }
