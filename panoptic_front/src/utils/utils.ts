@@ -1,6 +1,6 @@
 import { Folder, Group, Image, Property, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
-import { computed } from "vue"
+import { Ref, computed } from "vue"
 
 export function hasProperty(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -71,14 +71,24 @@ export function getFolderAndParents(folder: Folder, parents: number[] = []) {
     return parents
 }
 
-export function computedPropValue(property: Property, image: Image) {
-    return computed(() => {
-        if (!hasProperty(image, property.id)) {
+export function computedPropValue(property: Ref<Property>, image: Ref<Image>) {
+    const propValue = computed(() => {
+        if (!hasProperty(image.value, property.value.id)) {
             return undefined
         }
-        return image.properties[property.id].value
+        return image.value.properties[property.value.id].value
     })
+    return propValue
 }
+
+// export function computedPropValue(property: Property, image: Image) {
+//     // return computed(() => {
+//         if (!hasProperty(image, property.id)) {
+//             return undefined
+//         }
+//         return image.properties[property.id].value
+//     // })
+// }
 
 export function arrayEqual(arr1: any[], arr2: any[]) {
     const set1 = new Set(arr1)
