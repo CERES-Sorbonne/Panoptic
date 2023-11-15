@@ -9,6 +9,7 @@ import StandaloneDateInput from '../inputs/monoline/StandaloneDateInput.vue';
 import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagInputDropdown from '../tags/TagInputDropdown.vue';
+import wTT from '../tooltips/withToolTip.vue'
 
 
 const props = defineProps({
@@ -85,12 +86,20 @@ function test() {
                             <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]"
                                 style="height: 14px; line-height: 25px; margin-top: 4px; margin-left: 1px;" />
                         </td>
-                        <td v-if="props.values[property.id] == undefined"><i class="bi bi-trash base-btn" @click="erase.add(property.id)"/></td>
+                        <td v-if="props.values[property.id] == undefined">
+                            <wTT message="modals.tagging.erase_tooltip">
+                                <i class="bi bi-trash base-btn" @click="erase.add(property.id)"/>
+                            </wTT>
+                        </td>
                         <td v-else><i class="bi bi-arrow-counterclockwise base-btn" @click="delete props.values[property.id]"></i></td>
                     </template>
                     <template v-else>
                         <td class="text-warning">{{ $t("modals.tagging.erase") }}</td>
-                        <td ><i class="bi bi-arrow-counterclockwise base-btn" @click="erase.delete(property.id)"></i></td>
+                        <td >
+                            <wTT message="modals.tagging.cancel_tooltip">
+                                <i class="bi bi-arrow-counterclockwise base-btn" @click="erase.delete(property.id)"></i>
+                            </wTT>
+                        </td>
                     </template>
 
                 </template>
