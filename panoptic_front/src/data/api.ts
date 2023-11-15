@@ -149,14 +149,14 @@ export const apiStartPCA = async() => {
 
 export const apiUploadPropFile = async(file: any) => {
     let formData = new FormData();
-      formData.append('file', file);
-      axios.post('/property/file',
-      formData, {
+    formData.append('file', file);
+    const res = await axios.post('/property/file',
+        formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+            'Content-Type': 'multipart/form-data'
         }
-      }
-    )
+    })
+    return res
 }
 
 export const apiExportProperties = async(images?: number[], properties?: number[]) => {

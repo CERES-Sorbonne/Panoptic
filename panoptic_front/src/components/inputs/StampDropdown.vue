@@ -83,13 +83,13 @@ function onClick(e) {
                 <div class="d-flex pe-2 mb-2">
                     <div class="flex-grow-1"></div>
                     <button class="me-2" @click="close">
-                        <wTT :message="$t('tmp')">{{ $t('modals.tagging.cancel') }}</wTT>
+                        {{ $t('modals.tagging.cancel') }}
                     </button>
                     <button class="me-2" @click="clear">
-                        <wTT :message="$t('tmp')">{{ $t('modals.tagging.clear') }}</wTT>
+                        {{ $t('modals.tagging.clear') }}
                     </button>
                     <button class="me" @click="apply">
-                        <wTT :message="$t('tmp')">{{ $t('modals.tagging.apply') }}</wTT>
+                        {{ $t('modals.tagging.apply') }}
                     </button>
                 </div>
             </div>
