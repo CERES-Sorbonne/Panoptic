@@ -19,7 +19,7 @@ async def add_property(name: str, property_type: str, mode: str) -> Property:
     return prop
 
 
-async def add_tag(property_id: int, value: str, parents: str, color: str):
+async def add_tag(property_id: int, value: str, parents: str, color: int):
     query = "INSERT INTO tags (property_id, value, parents, color) VALUES (?, ?, ?, ?)"
     cursor = await execute_query(query, (property_id, value, parents, color))
     return cursor.lastrowid
