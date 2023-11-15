@@ -96,6 +96,7 @@ const gridData = computed(() => {
     } as GroupData
 })
 
+const containerStyle = ref("")
 
 function hasProperty(propertyId: number) {
     return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
@@ -253,9 +254,9 @@ watch(minSimilarityDist, updateSimilarGroup)
 
                     </div>
                     <div class="row" v-if="modalMode == ImageModalMode.Similarity">
-                        <div class="col overflow-hidden image-col" style="width: 600px;">
+                        <div class="col overflow-hidden" :style="'width: 600px;' + containerStyle">
                             <div class="mb-2 image-container">
-                                <img :src="image.fullUrl" class=""/>
+                                <img :src="image.fullUrl" class="" @mouseover="containerStyle='overflow: visible !important;'" @mouseleave="containerStyle=''"/>
                             </div>
 
                             <div class="mt-2"
@@ -437,12 +438,11 @@ img:hover{
     -webkit-transform: scale(3); /* Safari 3-8 */
     transform: scale(2);
     z-index: 999;
-    margin-top: 6em
+    margin-top: 6em;
+    box-shadow: 0px 0px 50px 100px rgba(115,115,115,0.53);
+    -webkit-box-shadow: 0px 0px 50px 36px rgba(115,115,115,0.53);
 }
 
-.image-col:hover{
-    overflow: visible !important;
-}
 .selected {
     background-color: var(--light-grey);
 }
