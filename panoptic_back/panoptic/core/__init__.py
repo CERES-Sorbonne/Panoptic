@@ -229,14 +229,16 @@ async def read_properties_file(data: pandas.DataFrame):
                 # if value is empty or empty quotes just create a "null" tag
                 if pandas.isna(value) or str(value).strip() == "":
                     value = "unknown"
-                tags = [value] if property.type == PropertyType.tag else [str(value).split(',')]
+                tags = [value] if property.type == PropertyType.tag else str(value).split(',')
                 # if it's multi tag, assume tags are separated by a comma and create them separately
                 for single_tag in tags:
-                    colors = ["7c1314", "c31d20", "f94144", "f3722c", "f8961e", "f9c74f", "90be6d", "43aa8b", "577590",
-                              "9daebe"]
-                    color = '#' + colors[random.randint(0, len(colors) - 1)]
-                    tag = await create_tag(property.id, single_tag, 0, color)
-                    created_tags.append(tag.id)
+                    colors = range(11)
+                    color = random.randint(0, len(colors) - 1)
+                    parent_node = 0
+                    for child in single_tag.split('>'):
+                        tag = await create_tag(property.id, child, parent_node, color=color)
+                        parent_node = tag.id
+                        created_tags.append(tag.id)
                 tag_matcher[value] = created_tags
             # now change all values in the dataframe with the real value that we are going to insert
             data.loc[data.index, prop] = data[prop].map(tag_matcher)
@@ -317,6 +319,7 @@ async def tag_add_parent(tag_id, parent_id):
     tag.parents = list({*tag.parents, parent_id})
     await db.update_tag(tag)
     return tag
+
 
 async def update_tag(payload: UpdateTagPayload) -> Tag:
     existing_tag = await db.get_tag_by_id(payload.id)
