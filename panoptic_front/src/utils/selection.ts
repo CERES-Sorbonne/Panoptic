@@ -1,5 +1,6 @@
 import { Group, GroupData } from "@/data/models";
 import { GroupIterator, ImageIterator } from "./groups";
+import { computed } from "vue";
 
 export class ImageSelector {
     data: GroupData
@@ -12,6 +13,8 @@ export class ImageSelector {
         this.data = data
         this.selectedImages = selected
     }
+
+    allSelected = computed(() => this.data.root.allImageSelected)
 
     clear() {
         this.unselectGroup(this.data.root)
@@ -40,6 +43,10 @@ export class ImageSelector {
         } else {
             this.selectImageIterator(iterator, shift)
         }
+    }
+    toggleAll() {
+        const iterator = new GroupIterator(this.data, 0)
+        this.toggleGroupIterator(iterator)
     }
 
     private _shiftSelect(iterator: ImageIterator) {

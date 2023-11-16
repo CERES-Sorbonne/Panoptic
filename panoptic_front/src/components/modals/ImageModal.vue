@@ -14,6 +14,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { ImageSelector } from '@/utils/selection';
 import wTT from '../tooltips/withToolTip.vue'
+import SelectCircle from '../inputs/SelectCircle.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -327,9 +328,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                         <div class="col" v-if="similarityLoaded">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
-                                <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
+                                <SelectCircle :model-value="selector.allSelected.value" @update:model-value="v => selector.toggleAll()"/> <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                                 <wTT message="modals.image.similarity_filter_tooltip">
-                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" />
+                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" @update:model-value="selector.clear()" />
                                 </wTT>
                                 <div>min: {{ minSimilarityDist }}%</div>
                                 <div v-if="groupData.root.imagePiles" class="ms-2 text-secondary">({{
