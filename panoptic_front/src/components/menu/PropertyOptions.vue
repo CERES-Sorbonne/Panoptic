@@ -136,7 +136,7 @@ watch(() => props.property, () => {
             </div>
 
             <template v-if="optionsOpen">
-                <PropertyIcon :type="props.property.type" class="btn-icon me-1" style="padding: 2px;" @click="toggleOptionsMenu" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
+                <i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
                 <input style="position: relative; top: 1px;" type="text" class="text-input" v-model="localName" @change="renameProperty" />
             </template>
 
