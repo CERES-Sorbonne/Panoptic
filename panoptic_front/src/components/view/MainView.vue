@@ -3,11 +3,11 @@ import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import ContentFilter from './ContentFilter.vue';
 
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
+import { Group, GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
 import { ImageSelector } from '@/utils/selection';
 import { globalStore } from '@/data/store';
 import { FilterManager, computeGroupFilter } from '@/utils/filter';
-import { createGroup, generateGroupData, imagesToSha1Piles, mergeGroup } from '@/utils/groups';
+import { createGroup, generateGroupData, imagesToSha1Piles, initArrayIfUndefined, mergeGroup } from '@/utils/groups';
 import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
@@ -94,7 +94,7 @@ async function computeGroups(force = false) {
     if (computeStatus.groups) {
         return
     }
-    if(imageList.value) imageList.value.clear()
+    if (imageList.value) imageList.value.clear()
     computeStatus.groups = true
 
     // compute happens here. Timeout instead of requestIdleCallback for Safari support
@@ -114,29 +114,47 @@ async function computeGroups(force = false) {
 
         for (let id in groupData.index) {
             let group = groupData.index[id]
-            if (group.isCluster) {
-                index[group.id] = group
+
+            const recursiveImportCluster = (group: Group) => {
+                if (!group.isCluster) return
+
+                const images = group.imagePiles.map(p => p.images).reduce((p1, p2) => {
+                    p1.push(...p2)
+                    return p1
+                }, [])
+                if (group.isCluster) {
+                    index[group.id] = group
+                    images.forEach(i => {
+                        initArrayIfUndefined(data.imageToGroups, i.id)
+                        data.imageToGroups[i.id].push(group.id)})
+                }
+                if (group.groups) {
+                    group.groups.forEach(g => recursiveImportCluster(g))
+                }
             }
+            recursiveImportCluster(group)
         }
+
+
+
+        // groupData.index = index
+        // groupData.root = rootGroup
+        // groupData.order = []
+
+        // sortGroups()
+        sortGroupData(data, sorts.value, sha1Mode.value)
+
+        Object.assign(groupData, data)
+
+        console.timeEnd('compute groups')
+
+        if (imageList.value) {
+            await nextTick()
+            imageList.value.computeLines()
+        }
+
+        computeStatus.groups = false
     }
-
-    // groupData.index = index
-    // groupData.root = rootGroup
-    // groupData.order = []
-
-    // sortGroups()
-    sortGroupData(data, sorts.value, sha1Mode.value)
-
-    Object.assign(groupData, data)
-
-    console.timeEnd('compute groups')
-
-    if (imageList.value) {
-        await nextTick()
-        imageList.value.computeLines()
-    }
-
-    computeStatus.groups = false
 }
 
 function sortGroups() {
@@ -188,7 +206,7 @@ function sort() {
 
 let _group_recompute_flag = false
 async function safeComputeGroups(force: boolean = false) {
-    if(_group_recompute_flag) return
+    if (_group_recompute_flag) return
     _group_recompute_flag = true
 
     await computeGroups(force)

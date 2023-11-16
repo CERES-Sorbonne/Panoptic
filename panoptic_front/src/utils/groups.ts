@@ -23,7 +23,7 @@ export function createGroup(name = 'All', images = []) {
     return group
 }
 
-function initArrayIfUndefined(data, key) {
+export function initArrayIfUndefined(data, key) {
     if (data[key] === undefined) {
         data[key] = []
     }
