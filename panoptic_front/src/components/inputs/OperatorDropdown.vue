@@ -2,6 +2,7 @@
 import { availableOperators, FilterOperator } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { ref, computed } from 'vue';
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 const props = defineProps({
     propertyId: { type: Number, required: true },
@@ -9,7 +10,9 @@ const props = defineProps({
     disabled: Boolean
 })
 
-const buttonElem = ref(null)
+const emits = defineEmits(['blur', 'update:modelValue'])
+
+const dropdownElem = ref(null)
 
 const property = computed(() => {
     return globalStore.properties[props.propertyId]
@@ -21,27 +24,31 @@ const filteredOperators = computed(() => {
 </script>
 
 <template>
-    <div class="m-0 p-0">
-        <div class="text-nowrap" :class="(props.disabled ? '' : 'dropdown-toggle hover-light button-like')"
-            data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" ref="buttonElem" :disabled="props.disabled">
-            <span>{{ $t('modals.filters.operators.' + props.modelValue) }}</span>
-        </div>
-        <ul class="dropdown-menu m-0 p-1">
-            <li v-for="op in filteredOperators" class="hover-light p-1 rounded" style="cursor:pointer"
-                @click="$emit('update:modelValue', op)">
-                <a>{{ $t('modals.filters.operators.' + op) }}</a>
-            </li>
-        </ul>
-    </div>
+    <Dropdown @hide="emits('blur')" ref="dropdownElem">
+        <template #button>
+            <div class="text-nowrap" :class="(props.disabled ? '' : 'dropdown-toggle hover-light button-like')"
+                :disabled="props.disabled">
+                <span>{{ $t('modals.filters.operators.' + props.modelValue) }}</span>
+            </div>
+        </template>
+        <template #popup>
+
+            <div class="m-0 p-1">
+                <div v-for="op in filteredOperators" class="hover-light p-1 rounded" style="cursor:pointer"
+                    @click="$emit('update:modelValue', op); dropdownElem.hide()">
+                    <a>{{ $t('modals.filters.operators.' + op) }}</a>
+                </div>
+            </div>
+        </template>
+
+    </Dropdown>
 </template>
 
 <style scoped>
-
 .button-like {
     border-radius: 3px;
     cursor: pointer;
     padding-right: 3px;
     padding-left: 3px;
 }
-
 </style>

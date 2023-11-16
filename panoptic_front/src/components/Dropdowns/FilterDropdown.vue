@@ -11,6 +11,7 @@ import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import TextInput from '../inputs/TextInput.vue';
 import TagInput from '../tags/TagInput.vue';
 import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
+import Dropdown from './Dropdown.vue';
 
 enum State {
     CLOSED = 0,
@@ -27,7 +28,7 @@ const props = defineProps({
 })
 
 
-const buttonElem = ref(null)
+const dropdownElem = ref(null)
 const inputElem = ref(null)
 
 
@@ -70,14 +71,8 @@ function deleteFilter() {
 }
 
 function hide() {
-    let dropdown = bootstrap.Dropdown.getOrCreateInstance(buttonElem.value)
-    dropdown.hide()
+    if(dropdownElem.value) dropdownElem.value.hide()
 }
-
-onMounted(() => {
-    buttonElem.value.addEventListener('show.bs.dropdown', show)
-    buttonElem.value.addEventListener('hide.bs.dropdown', onHide)
-})
 
 watch(() => filter.value?.operator, () => {
     if (inputElem.value) {
@@ -88,40 +83,52 @@ watch(() => filter.value?.operator, () => {
 </script>
 
 <template>
-    <div class="p-0 m-0" style="position: static;">
-        <div class="m-0 p-0" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" ref="buttonElem">
-            <slot></slot>
-        </div>
-        <div class="dropdown-menu container-size bg-white" aria-labelledby="dropdownMenuOffset">
-            <template v-if="mode != State.CLOSED">
-                <PropertySelection v-if="mode == State.TYPE" @select="selectProperty" :ignore-ids="[PropertyID.folders]" />
-                <div v-if="mode == State.MODE">
-                    <div class="d-flex mode-header">
-                        <div class="me-3">{{ filterProperty.name }}</div>
-                        <OperatorDropdown :property-id="filter.propertyId"
-                            v-model="(props.manager.filterIndex[filterId] as Filter).operator" />
-                        <div class="flex-fill"></div>
-                        <!-- <div><i class="bi bi-three-dots"></i></div> -->
-                        <div><i class="bi bi-trash-fill" @click="deleteFilter"></i></div>
+    <Dropdown ref="dropdownElem" @show="show" @hide="onHide">
+        <template #button>
+            <div class="m-0 p-0">
+                <slot></slot>
+            </div>
+
+        </template>
+
+        <template #popup>
+            <div class="container-size bg-white">
+                <template v-if="mode != State.CLOSED">
+                    <PropertySelection v-if="mode == State.TYPE" @select="selectProperty"
+                        :ignore-ids="[PropertyID.folders]" />
+                    <div v-if="mode == State.MODE">
+                        <div class="d-flex mode-header">
+                            <div class="me-3">{{ filterProperty.name }}</div>
+                            <OperatorDropdown :property-id="filter.propertyId"
+                                v-model="(props.manager.filterIndex[filterId] as Filter).operator" @blur="dropdownElem.focus()"/>
+                            <div class="flex-fill"></div>
+                            <!-- <div><i class="bi bi-three-dots"></i></div> -->
+                            <div><i class="bi bi-trash-fill" @click="deleteFilter"></i></div>
+                        </div>
+                        <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
+                            <TagInput
+                                v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
+                                v-model="filter.value" :auto-focus="true"
+                                :property="globalStore.properties[filter.propertyId]" ref="inputElem" />
+                            <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
+                                :property="filterProperty" v-model="filter.value" @update:model-value="hide" />
+                            <StandaloneTextInput
+                                v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == globalStore.properties[filter.propertyId].type)"
+                                :no-html="true" v-model="filter.value" :width="-1" :min-height="20"
+                                :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number"
+                                :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
+                                :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number"
+                                @blur="hide" />
+                            <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
+                        </div>
                     </div>
-                    <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
-                        <TagInput
-                            v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
-                            v-model="filter.value" :auto-focus="true" :property="globalStore.properties[filter.propertyId]"
-                            ref="inputElem" />
-                        <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
-                            :property="filterProperty" v-model="filter.value" @update:model-value="hide" />
-                        <StandaloneTextInput
-                            v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == globalStore.properties[filter.propertyId].type)"
-                            :no-html="true" v-model="filter.value" :width="-1" :min-height="20"
-                            :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number" :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
-                            :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number" @blur="hide"/>
-                        <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
-                    </div>
-                </div>
-            </template>
-        </div>
-    </div>
+                </template>
+            </div>
+
+        </template>
+
+
+    </Dropdown>
 </template>
 
 <style scoped>
@@ -134,5 +141,4 @@ watch(() => filter.value?.operator, () => {
     width: 250px;
 
     padding: 4px 8px;
-}
-</style>
+}</style>

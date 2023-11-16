@@ -1,4 +1,4 @@
-import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter, propertyDefault, isTag } from "@/data/models";
+import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter, propertyDefault, isTag, Property } from "@/data/models";
 import { globalStore } from "@/data/store";
 import { isArray } from "@vue/shared";
 import { reactive } from "vue";
@@ -232,6 +232,15 @@ export class FilterManager {
         })
 
         delete this.filterIndex[filterId]
+    }
+
+    changeFilter(filterId: number, propertyId: number) {
+        if(this.filterIndex[filterId] == undefined || this.filterIndex[filterId].isGroup) return
+        const filter = this.filterIndex[filterId] as Filter
+        const newFilter = this.createFilter(propertyId)
+        newFilter.id = filter.id
+        Object.assign(filter, newFilter)
+        // this.filterIndex[filter.id] = filter
     }
 
     verifyFilter() {
