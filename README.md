@@ -18,8 +18,11 @@ Open a terminal and type:
 
 ## Mac installation
 
-Just like the windows installation but you probably will need to also install the xcode tools. 
+Just like the windows installation but you will need to also install the xcode tools first. 
 For this, just use this command in a terminal: `xcode-select –-install`, it should trigger the installation of the command line tools.
+Then run:
+- `pip install panoptic`
+- `panoptic`
 
 ## Docker installation
 
