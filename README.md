@@ -1,5 +1,7 @@
 # Panoptic 👀
 
+This documentation also exist in [French](./README-FR.md)
+
 ![Preview](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/8e6389c7-ee80-4e0f-95d8-790602bd028e)
 
 Panoptic is a tool for exploring and annotating large image corpora, using image analysis and machine learning tools to facilitate these tasks. 
