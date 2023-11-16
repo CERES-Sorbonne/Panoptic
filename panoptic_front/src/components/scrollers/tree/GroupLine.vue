@@ -232,12 +232,15 @@ function closeChildren() {
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
                 <wTT message="main.view.group_clusters_tooltip">
-                    <div class="button" @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
+                    <div class="button d-flex" >
+                        <div @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
+                        <input type="number" class="no-border m-0 p-0" v-model="props.item.nbClusters" style="width: 40px; height: 10px; margin-top: 3.5px !important; color: green;" />
+                    </div>
                 </wTT>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
-                <input class="no-spin" type="number" v-model="props.item.nbClusters" style="width: 30px;" />
+                
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
                 <wTT message="main.recommand.tooltip">
