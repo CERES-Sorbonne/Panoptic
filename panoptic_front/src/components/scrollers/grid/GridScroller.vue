@@ -25,6 +25,7 @@ const props = defineProps({
 defineExpose({
     // scrollTo,
     computeLines,
+    clear
 })
 
 
@@ -193,6 +194,10 @@ function selectImage(iterator: ImageIterator) {
 function selectGroup(iterator: GroupIterator) {
     console.log(iterator)
     props.selector.toggleGroupIterator(iterator, keyState.shift)
+}
+
+function clear() {
+    lines.length = 0
 }
 
 onMounted(computeLines)

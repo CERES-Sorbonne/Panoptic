@@ -80,8 +80,13 @@ const simiImageLineSize = computed(() => {
 
 defineExpose({
     scrollTo,
-    computeLines
+    computeLines,
+    clear
 })
+
+function clear() {
+    imageLines.length = 0
+}
 
 let _flagCompute = false
 function computeLines() {

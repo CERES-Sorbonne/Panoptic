@@ -123,6 +123,7 @@ export function sortGroups(groups: Array<Group>, sortIndex: SortIndex) {
         return groups
     }
 
+    console.log(groups)
     let property = globalStore.properties[groups[0].propertyId]
     let type = property.type
     if (type == PropertyType.multi_tags || type == PropertyType.tag) {
