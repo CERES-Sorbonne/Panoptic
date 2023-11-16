@@ -169,7 +169,7 @@ watch(() => props.property, () => {
                     </FilterDropdown>
                 </div>
                 <div class="options hover-light" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
-                        class="bi bi-filter me-2"></i>{{ $t("main.menu.sort") }}</div>
+                        class="bi bi-filter me-2"></i>{{ $t("main.menu.sort.title") }}</div>
                 <div class="options hover-light" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
                         class="bi bi-collection me-2"></i>{{ $t("main.menu.groupby") }}</div>
                 <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i

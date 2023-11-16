@@ -428,7 +428,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     },
 
     async uploadPropFile(file: any) {
-        apiUploadPropFile(file)
+        const res = await apiUploadPropFile(file)
+        return res
     },
     addGrouping(propertyId: number) {
         const groups = globalStore.getTab().data.groups

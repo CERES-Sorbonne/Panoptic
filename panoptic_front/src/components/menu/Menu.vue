@@ -12,10 +12,22 @@ const emits = defineEmits(['export'])
 
 
 const inputFile = ref(null)
+const isUploading = ref(false)
 
-const handleInput = (e: any) => {
+const handleInput = async (e: any) => {
+    isUploading.value = true
+    console.log(isUploading.value)
     const file = e.target.files[0]
-    globalStore.uploadPropFile(file)
+    let res = await globalStore.uploadPropFile(file)
+    // THIS IS TAKING WAY LONGER THAN THE REAL API CALL, WHY??
+    if(res){
+        isUploading.value = false
+        // HOW TO REFRESH ALL COMPONENTS DEPENDING ON NEW DATA ??
+        globalStore.fetchAllData()
+    }
+    else{
+        // make a code for import error logo
+    }
 }
 
 </script>
@@ -62,7 +74,10 @@ const handleInput = (e: any) => {
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
                     <wTT message="main.nav.properties.properties_tooltip" pos="top" :icon=true><b>{{ $t('main.nav.properties.title') }}</b></wTT>
-                    <span class="float-end me-3">
+                    <span v-if="isUploading" class="spinner-grow spinner-grow-sm float-end" style="width:10px;height:10px;margin-top:5px;">
+                        <span class="sr-only"/>
+                    </span>
+                    <span v-else class="float-end me-3">
                         <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden/>
                         <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="inputFile.click()"/></wTT>
                     </span>

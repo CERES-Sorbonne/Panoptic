@@ -238,6 +238,9 @@ class MiniUI(QMainWindow):
 
         if self.selected_project:
             self.load_project()
+        else:
+            if not THREAD:
+                start_thread()
 
     def _get_running_message(self):
         message = 'Running !'
