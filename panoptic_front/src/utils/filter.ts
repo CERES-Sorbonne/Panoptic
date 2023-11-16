@@ -175,6 +175,8 @@ export class FilterManager {
             this.recursiveRegister(this.filter)
         }
 
+        this.verifyFilter()
+
     }
 
     addNewFilterGroup(parentId: number = undefined) {
@@ -230,6 +232,25 @@ export class FilterManager {
         })
 
         delete this.filterIndex[filterId]
+    }
+
+    verifyFilter() {
+        const recurive = (group: FilterGroup) => {
+            const toRem = new Set()
+            group.filters.forEach(f => {
+                if(f.isGroup) {
+                    recurive(f)
+                }
+                else {
+                    const filter = f as Filter
+                    if(globalStore.properties[filter.propertyId] == undefined) {
+                        toRem.add(filter.id)
+                    }
+                }
+            })
+            group.filters = group.filters.filter(f => !toRem.has(f.id))
+        }
+        recurive(this.filter)
     }
 
     private registerFilter(filter: AFilter) {

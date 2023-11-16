@@ -7,10 +7,11 @@ import { GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
 import { ImageSelector } from '@/utils/selection';
 import { globalStore } from '@/data/store';
 import { FilterManager, computeGroupFilter } from '@/utils/filter';
-import { generateGroupData, imagesToSha1Piles, mergeGroup } from '@/utils/groups';
+import { createGroup, generateGroupData, imagesToSha1Piles, mergeGroup } from '@/utils/groups';
 import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
+import { sleep } from '@/utils/utils'
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -89,50 +90,53 @@ const filteredImages = computed(() => {
 // on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
 defineExpose({ filteredImages })
 
-function computeGroups(force = false) {
+async function computeGroups(force = false) {
     if (computeStatus.groups) {
         return
     }
+    if(imageList.value) imageList.value.clear()
     computeStatus.groups = true
 
     // compute happens here. Timeout instead of requestIdleCallback for Safari support
     // allows the ui to draw the spinner before cpu blocking
-    setTimeout(() => {
-        console.time('compute groups')
-        // let index = generateGroups(filteredImages.value, groups.value)
-        // let rootGroup = index['0']
+    await sleep(10)
 
-        let data = generateGroupData(filteredImages.value, groups.value, sha1Mode.value)
-        let index = data.index
-        if (!force) {
-            for (let id in index) {
-                index[id] = mergeGroup(index[id], groupData.index)
-            }
+    console.time('compute groups')
+    // let index = generateGroups(filteredImages.value, groups.value)
+    // let rootGroup = index['0']
 
-            for (let id in groupData.index) {
-                let group = groupData.index[id]
-                if (group.isCluster) {
-                    index[group.id] = group
-                }
-            }
+    let data = generateGroupData(filteredImages.value, groups.value, sha1Mode.value)
+    let index = data.index
+    if (!force) {
+        for (let id in index) {
+            index[id] = mergeGroup(index[id], groupData.index)
         }
 
-        // groupData.index = index
-        // groupData.root = rootGroup
-        // groupData.order = []
+        for (let id in groupData.index) {
+            let group = groupData.index[id]
+            if (group.isCluster) {
+                index[group.id] = group
+            }
+        }
+    }
 
-        // sortGroups()
-        sortGroupData(data, sorts.value, sha1Mode.value)
+    // groupData.index = index
+    // groupData.root = rootGroup
+    // groupData.order = []
 
-        Object.assign(groupData, data)
+    // sortGroups()
+    sortGroupData(data, sorts.value, sha1Mode.value)
 
-        console.timeEnd('compute groups')
+    Object.assign(groupData, data)
 
-        if (imageList.value)
-            nextTick(imageList.value.computeLines)
+    console.timeEnd('compute groups')
 
-        computeStatus.groups = false
-    }, 10)
+    if (imageList.value) {
+        await nextTick()
+        imageList.value.computeLines()
+    }
+
+    computeStatus.groups = false
 }
 
 function sortGroups() {
@@ -176,6 +180,24 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
+function sort() {
+    // console.log('sort ', sorts.value)
+    sortGroups()
+    if (imageList.value) imageList.value.computeLines()
+}
+
+let _group_recompute_flag = false
+async function safeComputeGroups(force: boolean = false) {
+    if(_group_recompute_flag) return
+    _group_recompute_flag = true
+
+    await computeGroups(force)
+    if (groupData.index[reco.groupId] == undefined) {
+        closeReco()
+    }
+    sort()
+    _group_recompute_flag = false
+}
 
 onMounted(computeGroups)
 onMounted(() => nextTick(updateScrollerHeight))
@@ -193,17 +215,22 @@ watch(props, () => {
 }, { deep: true })
 
 
-watch(filteredImages, () => computeGroups(), { deep: true })
-watch(groups, () => {
-    computeGroups(true)
-    if (groupData.index[reco.groupId] == undefined) {
-        closeReco()
-    }
+watch(filteredImages, () => safeComputeGroups(), { deep: true })
+
+
+watch(groups, async () => {
+    // console.log('watch groups')
+    safeComputeGroups(true)
 }, { deep: true })
-watch(sorts, () => {
-    sortGroups()
-    if (imageList.value) imageList.value.computeLines()
+
+watch(sorts, async () => {
+    await nextTick()
+    if (_group_recompute_flag) return
+    // console.log('watch sort')
+    sort()
+
 }, { deep: true })
+
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.tab.data.sha1Mode, computeGroups)
 
@@ -232,7 +259,7 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="selectedImages" :selector="selector" ref="imageList"/>
+                    :selected-images="selectedImages" :selector="selector" ref="imageList" />
             </div>
         </template>
 

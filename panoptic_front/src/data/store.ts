@@ -186,6 +186,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         this.countTags()
         this.countImagePerFolder()
+        this.verifyData()
         
     },
     applyImportState(state: ImportState) {
@@ -203,7 +204,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         for(let img of Object.values(globalStore.images) as Image[]) {
             for(let propValue of Object.values(img.properties) as PropertyValue[]) {
-
+                if(this.properties[propValue.propertyId] == undefined) continue
                 if(!isTagId(propValue.propertyId)) continue
                 if(!propValue.value || !Array.isArray(propValue.value)) continue
 
@@ -223,6 +224,14 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
         const images = Object.values(this.images) as Image[]
         images.forEach(img => folderToParents[img.folder_id].forEach(id => globalStore.folders[id].count += 1))
+    },
+    verifyData() {
+        const tabs = Object.values(this.tabs) as Tab[]
+        tabs.forEach(t => {
+            t.data.groups = t.data.groups.filter(g => this.properties[g] != undefined)
+            t.data.sortList = t.data.sortList.filter(s => this.properties[s.property_id] != undefined)
+            t.data.filterManager.verifyFilter()
+        })
     },
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: number): Promise<Tag> {
         if (color == undefined) {
@@ -378,6 +387,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
                 }
             })
         })
+
+        this.verifyData()
     },
 
     async getMLGroups(nbGroups: number = 50, imageList: string[] = []) {

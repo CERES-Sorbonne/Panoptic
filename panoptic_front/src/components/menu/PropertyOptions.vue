@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { Filter } from '@/data/models';
 import { availableOperators } from '@/data/models';
@@ -15,7 +15,7 @@ const props = defineProps({
     property: Object as () => Property
 })
 
-const opionsOpen = ref(false)
+const optionsOpen = ref(false)
 const valuesOpen = ref(false)
 const localName = ref('')
 
@@ -43,10 +43,10 @@ function toggleVisible() {
 }
 
 function toggleOptionsMenu() {
-    if (opionsOpen.value) {
-        opionsOpen.value = false
+    if (optionsOpen.value) {
+        optionsOpen.value = false
     } else {
-        opionsOpen.value = true
+        optionsOpen.value = true
         localName.value = props.property.name
     }
     valuesOpen.value = false
@@ -61,7 +61,7 @@ function toggleValuesMenu() {
     } else {
         valuesOpen.value = true
     }
-    opionsOpen.value = false
+    optionsOpen.value = false
 }
 
 function setFilter() {
@@ -117,21 +117,25 @@ function renameProperty() {
     globalStore.updateProperty(props.property.id, localName.value)
 }
 
+watch(() => props.property, () => {
+    optionsOpen.value = false
+})
+
 </script>
 
 <template>
     <div :class="fullHover ? 'hover-light': ''">
         <div class="d-flex flex-row" >
-            <div v-if="!opionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;" @click="toggleOptionsMenu" >
+            <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;" @click="toggleOptionsMenu" >
                 <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
                 <span>{{ props.property.name }}</span>
                 <!-- <span class="clickable" @click="toggleOptionsMenu">
-                    <span v-if="!opionsOpen">{{ props.property.name }}</span>
+                    <span v-if="!optionsOpen">{{ props.property.name }}</span>
                     <span v-else></span>
                 </span> -->
             </div>
 
-            <template v-if="opionsOpen">
+            <template v-if="optionsOpen">
                 <PropertyIcon :type="props.property.type" class="btn-icon me-1" style="padding: 2px;" @click="toggleOptionsMenu" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
                 <input style="position: relative; top: 1px;" type="text" class="text-input" v-model="localName" @change="renameProperty" />
             </template>
@@ -158,7 +162,7 @@ function renameProperty() {
             </div>
         </div>
         <div>
-            <div v-if="opionsOpen" class="ms-3 pt-1">
+            <div v-if="optionsOpen" class="ms-3 pt-1">
                 <div class="options hover-light" :class="isInFilter ? ' text-primary' : ''">
                     <FilterDropdown :manager="filterManager()" :filter-id="filterId" :mode="2" :property-id="property.id">
                         <i class="bi bi-funnel-fill me-2"></i>{{ $t("main.menu.filters") }}

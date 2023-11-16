@@ -95,3 +95,5 @@ export function arrayEqual(arr1: any[], arr2: any[]) {
     const set2 = new Set(arr2)
     return set1.size == set2.size && arr2.every(v => set1.has(v))
 }
+
+export const sleep = m => new Promise(r => setTimeout(r, m))
