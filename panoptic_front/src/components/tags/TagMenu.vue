@@ -52,6 +52,8 @@ const filteredTagList = computed(() => {
         filtered = filtered.filter(t => !props.excluded.includes(t.id))
     }
 
+    filtered.sort((t1, t2) => t2.count - t1.count)
+
     return filtered
 })
 

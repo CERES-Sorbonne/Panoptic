@@ -246,7 +246,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async addTagParent(tagId: number, parentId: number) {
         const tag = await apiAddTagParent(tagId, parentId) as Tag
-        this.tags[tag.property_id][tag.id] = tag
+        Object.assign(this.tags[tag.property_id][tag.id], tag)
     },
 
     async deleteTagParent(tagId: number, parent_id: number, dontAsk) {
@@ -363,7 +363,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
 
     async updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
         const newTag = await apiUpdateTag(tagId, color, parentId, value)
-        this.tags[propId][tagId] = newTag
+        Object.assign(this.tags[newTag.property_id][newTag.id], newTag)
     },
 
     async addFolder(folder: string) {
