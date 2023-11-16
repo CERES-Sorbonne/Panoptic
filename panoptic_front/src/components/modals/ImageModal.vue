@@ -117,6 +117,8 @@ const imageProperties = computed(() => {
     return res
 })
 
+const hasUniqueProperties = computed(() => globalStore.propertyList.some(p => p.mode == PropertyMode.id))
+
 function onHide() {
     if (globalStore.openModal.id == props.id) {
         globalStore.hideModal()
@@ -243,8 +245,8 @@ watch(minSimilarityDist, updateSimilarGroup)
                                     @click="modalMode = ImageModalMode.Similarity">{{ $t('modals.image.similar_images') }}
                                 </div>
                             </wTT>
-                            <div class="border-start"></div>
-                            <wTT message="modals.image.unique_properties_tooltip">
+                            <div class="border-start" v-if="hasUniqueProperties"></div>
+                            <wTT message="modals.image.unique_properties_tooltip" v-if="hasUniqueProperties">
                                 <div class="ps-2 pe-2 btn-icon"
                                     :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
                                     @click="modalMode = ImageModalMode.Unique">
