@@ -25,13 +25,18 @@ Then run:
 - `panoptic`
 
 ## Docker installation
+If you're having issues with the installation (sometimes the packages can be tricky) or if you just prefair to use Docker it's possible:
+Start by installing docker:
+- [On MacOS](https://docs.docker.com/desktop/install/mac-install/)
+- [On Windows](https://docs.docker.com/desktop/install/windows-install/)
+- [On Linux](https://docs.docker.com/desktop/install/linux-install/)
 
 ### Option 1 : One folder to rule them all
 Make a folder for the docker with a subfolder for the images `/path/to/your/folder/images`.
 ```bash
 docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
 ```
-### Option 2 : separate data and images folders
+### Option 2 : Separate data and images folders
 Make a folder for the panoptic datas (database, thumbnails, etc.) `/path/to/your/data/`.
 And another one withe your images (could be an existing one) `/path/to/your/images/`.
 ```bash
