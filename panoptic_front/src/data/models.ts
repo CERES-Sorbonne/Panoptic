@@ -375,6 +375,7 @@ export interface Group {
     index?: number,
     closed?: boolean,
     isCluster?: boolean,
+    clusterDisctance?: number
     getSimilarImages?: () => Array<Images>
     similarSha1sBlacklist?: Array<string>
     allSimilarSha1s?: Array<string>,

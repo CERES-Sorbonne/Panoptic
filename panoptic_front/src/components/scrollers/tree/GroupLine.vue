@@ -7,6 +7,7 @@ import { UNDEFINED_KEY } from '@/utils/groups'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
+import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 
 
 const props = defineProps({
@@ -119,7 +120,7 @@ async function computeClusters() {
         piles.forEach(p => images.push(...p.images))
         let realGroup: Group = {
             id: props.item.id + '-cluster' + String(index),
-            name: 'cluster ' + index.toString() + (distances.length > 0 ? ' ' + distances[index].toString() : ''),
+            name: 'cluster ' + index,
             images: images,
             imagePiles: piles,
             count: sha1s.length,
@@ -130,7 +131,8 @@ async function computeClusters() {
             index: index,
             depth: (props.item.data.depth + 1),
             closed: false,
-            isCluster: true
+            isCluster: true,
+            clusterDisctance: distances[index]
         }
         groups.push(realGroup)
         props.data.index[realGroup.id] = realGroup
@@ -217,6 +219,9 @@ function closeChildren() {
             <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length - 1]" />
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
+        <div v-if="group.isCluster" style="padding-top: 2.5px;" class="me-2">
+            <ClusterBadge :value="group.clusterDisctance" />
+        </div>
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.count }} Images</div>
         <div v-if="group.groups" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             group.groups.length }} {{ $t('main.view.groupes_nb') }}</div>
