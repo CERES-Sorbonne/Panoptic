@@ -1,7 +1,6 @@
 # Panoptic 👀
 
-![Preview](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/a1da87bf-1d06-4873-8fd7-686211252461)
-
+![Preview]([https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/a1da87bf-1d06-4873-8fd7-686211252461](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/8e6389c7-ee80-4e0f-95d8-790602bd028e))
 
 Panoptic is a tool for exploring and annotating large image corpora, using image analysis and machine learning tools to facilitate these tasks. 
 
@@ -9,10 +8,18 @@ Since it requires deep learning libraries, it is recommended to use it with a co
 
 > Caution: Panoptic is still in active development and is currently a prototype, it is likely that you will encounter bugs, so we recommend to use this tool only for testing and not to rely on it for a substantial academic work. 
 
-## Pip installation
+## Windows and Linux installation
+
+Python 3.9 or higher is required, and a custom environnment (venv, pyenv, conda etc.) is recommended.
+Open a terminal and type:
 
 - `pip install panoptic`
 - `panoptic`
+
+## Mac installation
+
+Just like the windows installation but you probably will need to also install the xcode tools. 
+For this, just use this command in a terminal: `xcode-select –-install`, it should trigger the installation of the command line tools.
 
 ## Docker installation
 
