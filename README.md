@@ -75,7 +75,3 @@ To test and modify the backend operation, we provide an already built frontend i
 3. Run `npm install`.
 4. run `npm run dev`.
 5. before running the backend the `PANOPTIC_ENV` environment variable should be set to `DEV` in order to use the development frontend.
-
-## Windows install (coming soon)
-## Mac installation (coming soon)
-## Linux installation (coming soon)
