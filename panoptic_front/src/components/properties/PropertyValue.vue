@@ -39,6 +39,9 @@ function mapTag(id: number | string): Tag[] {
         <div class="me-1">{{ property.name }}: </div>
         <div v-if="property.type == PropertyType.color" :style="{backgroundColor: color}" class="color-holder">
         </div>
+        <div v-else-if="property.type == PropertyType._folders">
+            <TagBadge :tag="globalStore.folders[props.value.value].name" :color="-1" />
+        </div>
         <span v-else-if="!isTag">
             <span v-if="props.value.value != UNDEFINED_KEY">{{ props.value.value }}</span>
             <span v-else class="text-secondary">indéfini</span>
