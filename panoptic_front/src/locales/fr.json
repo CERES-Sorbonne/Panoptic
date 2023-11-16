@@ -132,7 +132,9 @@
             "cancel": "Annuler",
             "clear": "Clear",
             "apply": "Appliquer",
-            "erase": "Effacer"
+            "erase": "Effacer",
+            "erase_tooltip": "Effacer le champ pour toute la sélection",
+            "cancel_tooltip": "Annuler les changements"
         },
         "tags": {},
         "export": {
