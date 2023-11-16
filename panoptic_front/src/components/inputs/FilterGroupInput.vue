@@ -5,6 +5,8 @@ import { computed, onMounted, watch } from 'vue';
 import { FilterManager, defaultOperator } from '@/utils/filter';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
+import PropertySelection from './PropertySelection.vue';
+import PropertyDropdown from '../properties/PropertyDropdown.vue';
 
 const props = defineProps({
     filter: { type: Object as () => FilterGroup, required: true },
@@ -76,7 +78,8 @@ onMounted(() => {
                     </template>
                     <span v-else class="text-secondary">{{ props.filter.groupOperator }}</span>
                 </td>
-                <td v-if="(filter as Filter).propertyId !== undefined" class="ps-2">
+                <td v-if="(filter as Filter).propertyId !== undefined" class="p-0 m-0 ps-2 d-flex">
+                    <PropertyDropdown :model-value="globalStore.properties[(filter as Filter).propertyId]" @update:model-value="p => props.manager.changeFilter(filter.id, p.id)"/>
                     <FilterDropdown :manager="manager" :mode="2" :parent-id="props.filter.id" :filter-id="filter.id">
                         <FilterPreview :filter="(filter as Filter)" />
                     </FilterDropdown>

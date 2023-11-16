@@ -5,6 +5,7 @@ import FilterGroupInput from './FilterGroupInput.vue';
 import { globalStore } from '@/data/store';
 import { FilterManager } from '@/utils/filter';
 import * as bootstrap from 'bootstrap'
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 const props = defineProps({
     // modelValue: Object as () => FilterGroup,
@@ -12,7 +13,7 @@ const props = defineProps({
 })
 
 const emits = defineEmits(['update:modelValue'])
-const buttonElem = ref(null)
+// const buttonElem = ref(null)
 
 const selectedFilterSet = computed(() => {
     let list = recursiveListFilters(props.manager.filter)
@@ -35,9 +36,9 @@ function recursiveListFilters(root: FilterGroup): Array<Filter> {
 }
 
 watch(() => props.manager.filter.filters, () => {
-    if(props.manager.filter.filters.length == 0) {
-        bootstrap.Dropdown.getOrCreateInstance(buttonElem.value).hide()
-    }
+    // if (props.manager.filter.filters.length == 0) {
+    //     bootstrap.Dropdown.getOrCreateInstance(buttonElem.value).hide()
+    // }
 })
 
 // watch(() => props.modelValue, () => {
@@ -47,21 +48,27 @@ watch(() => props.manager.filter.filters, () => {
 </script>
 
 <template>
-    <div class="dropdown m-0 p-0">
-        <div style="position: static;" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" ref="buttonElem">
-            <div v-if="selectedFilterSet.length" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium" style="cursor:pointer;">
-                <div v-for="filter, index in selectedFilterSet">
-                    <span v-if="index > 0" class="or-separator">|</span>
-                    <span>{{ globalStore.properties[filter.propertyId].name }}</span>
+    <Dropdown>
+        <template #button>
+            <div>
+                <div v-if="selectedFilterSet.length" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
+                    style="cursor:pointer;">
+                    <div v-for="filter, index in selectedFilterSet">
+                        <span v-if="index > 0" class="or-separator">|</span>
+                        <span>{{ globalStore.properties[filter.propertyId].name }}</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="dropdown-menu m-0 p-0" aria-labelledby="defaultDropdown">
-            <div class="m-1 p-0" v-if="Object.keys(globalStore.properties).length > 0">
-                <FilterGroupInput :filter="props.manager.filter" :manager="props.manager"/>
+        </template>
+        <template #popup>
+            <div class="m-0 p-0">
+                <div class="m-1 p-0" v-if="Object.keys(globalStore.properties).length > 0">
+                    <FilterGroupInput :filter="props.manager.filter" :manager="props.manager" />
+                </div>
             </div>
-        </div>
-    </div>
+        </template>
+
+    </Dropdown>
 </template>
 
 <style scoped>
@@ -71,5 +78,4 @@ watch(() => props.manager.filter.filters, () => {
 
 .bg {
     border-radius: 3px;
-}
-</style>
+}</style>

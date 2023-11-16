@@ -17,9 +17,9 @@ const property = computed(() => globalStore.properties[props.filter.propertyId])
 </script>
 <template>
     <td class="d-flex hover-light ps-1 overflow-hidden">
-        <div class="m-0 p-0 me-2">
+        <!-- <div class="m-0 p-0 me-2">
             <PropertyPreview v-model="props.filter.propertyId" />
-        </div>
+        </div> -->
     <!-- </td>
     <td> -->
         <div class="m-0 p-0 me-2 text-nowrap">

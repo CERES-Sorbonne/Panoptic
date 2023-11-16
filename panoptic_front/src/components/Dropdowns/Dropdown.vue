@@ -57,7 +57,7 @@ async function onEsc() {
 </script>
 
 <template>
-    <div>
+    <div class="p-0 m-0">
         <Popper trigger="click-to-toggle" :force-show="forceVisible" :teleport-props="{to: '#popper-holder'}" @show="onShow" @hide="onHide" ref="popperElem">
             <template #reference>
                 <div class="m-0 p-0">
@@ -65,7 +65,7 @@ async function onEsc() {
                 </div>
             </template>
 
-            <div class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" tabindex="0" @keydown.escape="onEsc" @click.stop ref="popupElem">
+            <div class="popup bg-white m-0 p-0 rounded overflow-hidden" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" tabindex="0" @keydown.escape="onEsc" @click.stop ref="popupElem">
                 <slot name="popup" v-if="visible"></slot>
             </div>
         </Popper>
