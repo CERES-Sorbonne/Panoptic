@@ -30,6 +30,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     isLoaded: false,
     pressedKeys: {} as any,
     shouldReload: false,
+    renderNumber: 0, // used to manually rerender 
 
     selectedTab: 0,
     async addTab(tabName: string) {
@@ -396,6 +397,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         })
 
         this.verifyData()
+        this.rerender()
+    },
+
+    rerender() {
+        this.renderNumber += 1
     },
 
     async getMLGroups(nbGroups: number = 50, imageList: string[] = []) {
