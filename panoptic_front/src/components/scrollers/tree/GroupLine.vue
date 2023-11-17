@@ -8,6 +8,7 @@ import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
+import ClusterButton from './ClusterButton.vue'
 
 
 const props = defineProps({
@@ -232,10 +233,11 @@ function closeChildren() {
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
                 <wTT message="main.view.group_clusters_tooltip">
-                    <div class="button d-flex" >
+                    <!-- <div class="button d-flex" >
                         <div @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
                         <input type="number" class="no-border m-0 p-0" v-model="props.item.nbClusters" style="width: 40px; height: 10px; margin-top: 3.5px !important; color: green;" />
-                    </div>
+                    </div> -->
+                    <ClusterButton v-model="props.item.nbClusters" @click="computeClusters"/>
                 </wTT>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
