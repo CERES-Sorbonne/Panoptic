@@ -29,6 +29,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     openModal: { id: null, data: null },
     isLoaded: false,
     pressedKeys: {} as any,
+    shouldReload: false,
 
     selectedTab: 0,
     async addTab(tabName: string) {
@@ -192,8 +193,15 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     applyImportState(state: ImportState) {
         // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
         // console.log(state.new_images)
-        state.new_images.forEach(globalStore.importImage)
+        // state.new_images.forEach(globalStore.importImage)
         this.importState = state
+        if(state.imported != state.to_import) {
+            this.shouldReload = true
+        }
+        if(state.imported == state.to_import && this.shouldReload) {
+            globalStore.fetchAllData()
+            this.shouldReload = false
+        }
     },
     async importFolders() {
         await apiImportFolder()
