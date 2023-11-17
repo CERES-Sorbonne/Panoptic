@@ -94,7 +94,7 @@ async function computeGroups(force = false) {
     if (computeStatus.groups) {
         return
     }
-    if (imageList.value) imageList.value.clear()
+    // if (imageList.value) imageList.value.clear()
     computeStatus.groups = true
 
     // compute happens here. Timeout instead of requestIdleCallback for Safari support

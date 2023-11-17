@@ -55,14 +55,13 @@ function showModal(){
     globalStore.showModal(Modals.EXPORT, filteredImages)
 }
 
-let panopticKey = ref(0)
 function reRender(){
-    panopticKey.value += 1
+    globalStore.rerender()
 }
 </script>
 
 <template>
-    <div id="panoptic" :key="panopticKey">
+    <div id="panoptic" :key="globalStore.renderNumber">
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
             <div v-if="globalStore.isLoaded">
