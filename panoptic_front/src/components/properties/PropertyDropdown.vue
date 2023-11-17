@@ -23,7 +23,7 @@ function select(propId) {
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem">
+    <Dropdown ref="dropdownElem" :auto-focus="false">
         <template #button>
             <div class="m-0 base-btn" style="padding: 1px 2px;">
                 <PropertyIcon :type="props.modelValue.type" />
