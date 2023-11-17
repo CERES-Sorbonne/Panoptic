@@ -22,7 +22,8 @@ const props = defineProps({
     canLink: Boolean,
     canDelete: Boolean,
     autoFocus: Boolean,
-    noWrap: Boolean
+    noWrap: Boolean,
+    teleport: Boolean
 })
 const emits = defineEmits(['update:modelValue', 'hide'])
 defineExpose({
@@ -46,7 +47,7 @@ function test() {
 </script>
 
 <template>
-    <Dropdown :auto-focus="false" @hide="emits('hide')">
+    <Dropdown :auto-focus="false" @hide="emits('hide')" :teleport="props.teleport">
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'" ref="heightElem">
                 <span v-for="tag in tags">

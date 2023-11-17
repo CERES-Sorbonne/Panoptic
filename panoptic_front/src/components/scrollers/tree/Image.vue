@@ -99,7 +99,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                     <PropertyIcon :type="property.type" style="margin-right: 2px;"/>
                     <TagPropInputDropdown :property="globalStore.properties[property.propertyId]" :image="image"
                         :can-create="true" :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true"
-                        :no-wrap="true" :width="(width - 22)"/>
+                        :no-wrap="true" :width="(width - 22)" :teleport="true"/>
                 </div>
                 <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />

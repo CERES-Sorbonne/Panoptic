@@ -23,6 +23,7 @@ const props = defineProps({
     noWrap: Boolean,
     minHeight: Number,
     width: Number,
+    teleport: Boolean
 })
 const emits = defineEmits(['update:height'])
 const inputElem = ref(null)
@@ -66,6 +67,6 @@ watch(() => props.width, onResize)
 <template>
     <TagInputDropdown :style="{minHeight: (props.minHeight ? props.minHeight + 'px' : '0'), width: (props.width? props.width+'px': '100%')}" :property="props.property" v-model="localValue" :excluded="props.excluded"
         :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
-        :can-delete="props.canDelete" :auto-focus="props.autoFocus" :no-wrap="props.noWrap" ref="inputElem" 
+        :can-delete="props.canDelete" :auto-focus="props.autoFocus" :no-wrap="props.noWrap" :teleport="props.teleport" ref="inputElem" 
         @hide="save"/>
 </template>

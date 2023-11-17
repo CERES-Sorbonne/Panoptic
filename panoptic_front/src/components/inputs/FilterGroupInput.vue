@@ -10,10 +10,13 @@ import PropertyDropdown from '../properties/PropertyDropdown.vue';
 
 const props = defineProps({
     filter: { type: Object as () => FilterGroup, required: true },
-    manager: FilterManager
+    manager: FilterManager,
+    parent: HTMLElement
 })
 
 const emits = defineEmits(['delete'])
+
+
 
 const filters = computed(() => props.filter.filters)
 const subGroupStyle = computed(() => {
@@ -80,7 +83,7 @@ onMounted(() => {
                 </td>
                 <td v-if="(filter as Filter).propertyId !== undefined" class="p-0 m-0 ps-2 d-flex">
                     <PropertyDropdown :model-value="globalStore.properties[(filter as Filter).propertyId]" @update:model-value="p => props.manager.changeFilter(filter.id, p.id)"/>
-                    <FilterDropdown :manager="manager" :mode="2" :parent-id="props.filter.id" :filter-id="filter.id">
+                    <FilterDropdown :manager="manager" :mode="2" :parent-id="props.filter.id" :filter-id="filter.id" :parent="props.parent">
                         <FilterPreview :filter="(filter as Filter)" />
                     </FilterDropdown>
                 </td>

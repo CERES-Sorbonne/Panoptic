@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
-import * as bootstrap from 'bootstrap'
-import { Popper } from "vue-use-popperjs";
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
-import { sleep } from '@/utils/utils';
 
 const props = defineProps({
     offset: { default: '0,0', type: String },
     noShadow: Boolean,
-    autoFocus: { default: true, type: Boolean }
+    autoFocus: { default: true, type: Boolean },
+    teleport: Boolean
 })
 const emits = defineEmits(['show', 'hide'])
 defineExpose({ hide, show, focus })
 
 const popperElem = ref(null)
 const popupElem = ref(null)
-let dropdown: bootstrap.Dropdown
+const buttonElem = ref(null)
+const globalElem = ref(null)
+
+const tmp = ref(document.getElementsByTagName('body')[0])
 
 const visible = ref(false)
 const forceVisible = ref(false)
@@ -41,32 +42,49 @@ async function onShow() {
     }
     // await sleep(100)
     emits('show')
+    document.addEventListener('click', clickHandler, true)
+    console.log(tmp.value)
 }
 
 function onHide() {
     visible.value = false
     emits('hide')
+    document.removeEventListener('click', clickHandler, true)
 }
+
+function clickHandler(e: Event) {
+    if (popupElem.value.contains(e.target) || buttonElem.value.contains(e.target)) {
+        console.log('inside')
+    }
+    else {
+        console.log('outside')
+        hide()
+    }
+}
+
+onUnmounted(() => {
+    document.removeEventListener('click', clickHandler, true)
+})
 
 </script>
 
 <template>
-    <div class="p-0 m-0">
+    <div class="p-0 m-0" ref="globalElem">
         <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
-        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="2" no-auto-focus
-            :prevent-overflow="false">
+        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="2" no-auto-focus :boundary="tmp"
+            :auto-hide="false" :prevent-overflow="true" :container="props.teleport ? 'body' : globalElem">
             <!-- <template #reference> -->
-            <div class="m-0 p-0">
+            <div class="m-0 p-0" ref="buttonElem">
                 <slot name="button"></slot>
             </div>
             <!-- </template> -->
 
             <template #popper="{ hide }">
                 <!-- <div class="p-1"> -->
-                    <div v-if="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'"
-                        style="z-index: 999;" tabindex="0" ref="popupElem">
-                        <slot name="popup"></slot>
-                    </div>
+                <div v-if="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'"
+                    @keydown.escape.stop="hide" style="z-index: 999;" tabindex="0" ref="popupElem">
+                    <slot name="popup"></slot>
+                </div>
                 <!-- </div> -->
             </template>
         </Dropdown>

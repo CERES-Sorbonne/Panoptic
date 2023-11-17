@@ -48,7 +48,7 @@ watch(realChildren, updateLocal)
 </script>
 
 <template>
-    <Dropdown @hide="emits('hide')">
+    <Dropdown @hide="emits('hide')" :auto-focus="false" :teleport="true">
         <template v-slot:button>
             <span class="text-nowrap  sm-btn">
                 <i class="bi bi-node-plus me-1" style="position: relative; top: 1.5px;"></i>
@@ -68,5 +68,7 @@ watch(realChildren, updateLocal)
 .main-box {
     padding: 4px;
     width: 250px;
+    max-height: 400px;
+    overflow-y: scroll;
 }
 </style>

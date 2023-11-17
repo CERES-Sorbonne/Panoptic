@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TextInput from '@/components/inputs/TextInput.vue'
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 const props = defineProps({
     modelValue: undefined,
@@ -10,10 +10,13 @@ const props = defineProps({
     noShadow: Boolean,
     alwaysShadow: Boolean,
     onlyNumber: Boolean,
-    minHeight: Number
+    minHeight: Number,
+    autoFocus: Boolean,
 })
 
 const emits = defineEmits(['update:height', 'update:modelValue', 'blur', 'focus'])
+defineExpose({focus})
+
 
 const inputElem = ref(null)
 const isFocus = ref(false)
@@ -28,13 +31,14 @@ function blur() {
     emits('blur')
 }
 
-function focus() {
+function onFocus() {
     isFocus.value = true
     emits('focus')
 }
-function forceFocus() {
-    focus()
-    nextTick(() => inputElem.value.focus())
+async function focus() {
+    isFocus.value = true
+    await nextTick()
+    if(inputElem.value) inputElem.value.focus()
 }
 
 function update(value: String) {
@@ -45,15 +49,21 @@ function update(value: String) {
     emits('update:modelValue', value)
 }
 
+onMounted(() => {
+    if(props.autoFocus) {
+        focus()
+    }
+})
+
 </script>
 
 <template>
     <div>
-        <span v-show="localValue == '' && !isFocus" class="text-secondary" @click="forceFocus" style="cursor: pointer;">None...</span>
-        <TextInput v-show="isFocus || localValue != ''" tag="div" :editable="true" :no-html="true" :model-value="localValue"
+        <span v-show="!props.autoFocus && (localValue == '' && !isFocus)" class="text-secondary" @click="focus" style="cursor: pointer;">None...</span>
+        <TextInput v-show="props.autoFocus || isFocus || localValue != ''" tag="div" :editable="true" :no-html="true" :model-value="localValue"
             @update:model-value="update" :width="props.width"
             @update:height="h => emits('update:height', h)" :min-height="props.minHeight" :no-nl="props.noNl"
             :url-mode="props.urlMode" @blur="blur" :only-number="props.onlyNumber" :no-shadow="props.noShadow"
-            :always-shadow="props.alwaysShadow" ref="inputElem" @focus="focus" :blur-on-enter="true"/>
+            :always-shadow="props.alwaysShadow" ref="inputElem" @focus="onFocus" :blur-on-enter="true"/>
     </div>
 </template>
