@@ -408,7 +408,8 @@ export interface ImportState {
     to_import: number
     imported: number
     computed: number
-    new_images?: Array<Image>
+    new_images?: Array<Image>,
+    done: boolean
 }
 
 export interface ScrollerLine {

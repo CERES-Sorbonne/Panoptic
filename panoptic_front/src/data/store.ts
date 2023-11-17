@@ -195,12 +195,12 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         // console.log(state.new_images)
         // state.new_images.forEach(globalStore.importImage)
         this.importState = state
-        if(state.imported != state.to_import) {
+        if(!state.done) {
             this.shouldReload = true
         }
-        if(state.imported == state.to_import && this.shouldReload) {
-            globalStore.fetchAllData()
+        if(state.done && this.shouldReload) {
             this.shouldReload = false
+            globalStore.fetchAllData()
         }
     },
     async importFolders() {

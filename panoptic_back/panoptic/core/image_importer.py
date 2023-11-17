@@ -33,6 +33,9 @@ class ImageImporter:
     #     self.total_import = -1
     #     self.current_import = 0
 
+    def import_done(self):
+        return self._import_queue.done()
+
     def get_new_images(self):
         copy = [id_ for id_ in self._new_images]
         self._new_images.clear()
