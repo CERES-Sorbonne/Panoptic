@@ -140,7 +140,7 @@ watch(() => filter.value?.operator, () => {
 
 .container-size {
     width: 250px;
-
+    border-radius: 5px;
     padding: 4px 8px;
 }
 </style>
