@@ -8,7 +8,7 @@
 import { Property } from '@/data/models';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import TagInput from './TagInput.vue';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { globalStore } from '@/data/store';
 import TagBadge from '../tagtree/TagBadge.vue';
 
@@ -29,6 +29,7 @@ defineExpose({
     getHeight
 })
 const heightElem = ref(null)
+const inputElem = ref(null)
 
 const safeValue = computed(() => props.modelValue ?? [])
 const tags = computed(() => safeValue.value.map(tId => globalStore.tags[props.property.id][tId]))
@@ -38,10 +39,14 @@ function getHeight() {
     return heightElem.value.clientHeight
 }
 
+function test() {
+    inputElem.value.focus()
+}
+
 </script>
 
 <template>
-    <Dropdown @hide="emits('hide')">
+    <Dropdown :auto-focus="false" @hide="emits('hide')">
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'" ref="heightElem">
                 <span v-for="tag in tags">
@@ -56,7 +61,7 @@ function getHeight() {
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus"
-                    @update:model-value="v => emits('update:modelValue', v)" />
+                    @update:model-value="v => emits('update:modelValue', v)" ref="inputElem"/>
             </div>
         </template>
     </Dropdown>

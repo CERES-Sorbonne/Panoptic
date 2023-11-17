@@ -2,10 +2,14 @@
 import { nextTick, onMounted, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
 import { Popper } from "vue-use-popperjs";
+import { Dropdown } from 'floating-vue'
+import 'floating-vue/dist/style.css'
+import { sleep } from '@/utils/utils';
 
 const props = defineProps({
     offset: { default: '0,0', type: String },
-    noShadow: Boolean
+    noShadow: Boolean,
+    autoFocus: { default: true, type: Boolean }
 })
 const emits = defineEmits(['show', 'hide'])
 defineExpose({ hide, show, focus })
@@ -18,25 +22,25 @@ const visible = ref(false)
 const forceVisible = ref(false)
 
 async function hide() {
-    console.log('manual hide', visible.value)
-    forceVisible.value = true
-    await nextTick()
-    forceVisible.value = false
+    popperElem.value.hide()
 }
 
 function show() {
-    visible.value = true
+    popperElem.value.show()
 }
 
-function focus() {
-    popupElem.value.focus()
+async function focus() {
+    if (popupElem.value) popupElem.value.focus()
 }
 
 async function onShow() {
     visible.value = true
+    if (props.autoFocus) {
+        await nextTick()
+        focus()
+    }
+    // await sleep(100)
     emits('show')
-    await nextTick()
-    focus()
 }
 
 function onHide() {
@@ -44,31 +48,28 @@ function onHide() {
     emits('hide')
 }
 
-async function onEsc() {
-    if(!visible.value) {
-        return
-    }
-    forceVisible.value = true
-    await nextTick()
-    forceVisible.value = false
-    console.log('esc')
-}
-
 </script>
 
 <template>
     <div class="p-0 m-0">
-        <Popper trigger="click-to-toggle" :force-show="forceVisible" :teleport-props="{to: '#popper-holder'}" @show="onShow" @hide="onHide" ref="popperElem">
-            <template #reference>
-                <div class="m-0 p-0">
-                    <slot name="button"></slot>
-                </div>
-            </template>
-
-            <div class="popup bg-white m-0 p-0 rounded overflow-hidden" :class="props.noShadow ? '' : 'shadow2'" style="z-index: 999;" tabindex="0" @keydown.escape="onEsc" @click.stop ref="popupElem">
-                <slot name="popup" v-if="visible"></slot>
+        <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
+        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="2" no-auto-focus
+            :prevent-overflow="false">
+            <!-- <template #reference> -->
+            <div class="m-0 p-0">
+                <slot name="button"></slot>
             </div>
-        </Popper>
+            <!-- </template> -->
+
+            <template #popper="{ hide }">
+                <!-- <div class="p-1"> -->
+                    <div v-if="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'"
+                        style="z-index: 999;" tabindex="0" ref="popupElem">
+                        <slot name="popup"></slot>
+                    </div>
+                <!-- </div> -->
+            </template>
+        </Dropdown>
     </div>
 </template>
 
@@ -90,8 +91,8 @@ async function onEsc() {
 
 .shadow2 {
     border: 2px solid var(--border-color);
-    box-shadow: 0px 0px 2px 2px rgba(0,0,0,0.35);
-    -webkit-box-shadow: 0px 0px 3px 2px rgba(0, 0, 0, 0.185);
-    -moz-box-shadow: 0px 0px 2px 2px rgba(0,0,0,0.35);
+    box-shadow: 0px 0px 2px 2px rgba(0, 0, 0, 0.35) !important;
+    -webkit-box-shadow: 0px 0px 3px 2px rgba(0, 0, 0, 0.185) !important;
+    -moz-box-shadow: 0px 0px 2px 2px rgba(0, 0, 0, 0.35) !important;
 }
 </style>

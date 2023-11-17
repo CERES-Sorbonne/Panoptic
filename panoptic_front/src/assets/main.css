@@ -402,3 +402,31 @@ input[type=number] {
   height: 0px;
   visibility: hidden;
 }
+
+.v-popper__arrow-container {
+  box-shadow: none !important;
+  display: none !important;
+  width: 0;
+  height: 0;
+  border: none !important;
+}
+
+.v-popper__arrow-outer {
+  display: none !important;
+  border: none !important;
+}
+
+.v-popper__arrow-inner {
+  border: none !important;
+  display: none !important;
+}
+
+.v-popper--theme-dropdown .v-popper__inner {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.v-popper--theme-dropdown .v-popper__inner {
+  background: none !important;
+  overflow: visible !important;
+}

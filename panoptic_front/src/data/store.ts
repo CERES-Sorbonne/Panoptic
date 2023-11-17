@@ -188,7 +188,6 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.countTags()
         this.countImagePerFolder()
         this.verifyData()
-        
     },
     applyImportState(state: ImportState) {
         // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)

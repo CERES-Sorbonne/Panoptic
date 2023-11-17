@@ -14,6 +14,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
+import { sleep } from '@/utils/utils';
 
 
 const props = defineProps({
@@ -57,11 +58,9 @@ const filteredTagList = computed(() => {
     return filtered
 })
 
-function focus() {
-    nextTick(() => {
-        if (!searchElem.value) return
-        searchElem.value.focus()
-    })
+async function focus() {
+    if (!searchElem.value) return
+    searchElem.value.focus()
 }
 
 onMounted(() => {
@@ -130,7 +129,7 @@ watch(filteredTagList, () => {
     <div class="m-0 p-0">
         <div class="w-100 mb-1">
             <input type="text" class="w-100" v-model="tagFilter" ref="searchElem" style="font-size: 13px;"
-                @keydown.down="moveSelected(1)" @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" />
+                @keydown.down="moveSelected(1)" @keydown.up="moveSelected(-1)" @keydown.enter="selectOption"/>
         </div>
 
         <div class="pb-0" style="max-height: 400px; overflow-y: scroll;">
