@@ -7,6 +7,7 @@ import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
 import PropertySelection from './PropertySelection.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 const props = defineProps({
     filter: { type: Object as () => FilterGroup, required: true },
@@ -66,19 +67,26 @@ onMounted(() => {
                 <td class="align-top ps-2">
                     <div v-if="index == 0" class="m-0 p-0">{{ $t('modals.filters.where') }}</div>
                     <template v-else-if="index == 1">
-                        <div class="dropdown-toggle p-0 hover-light ps-1" data-bs-toggle="dropdown"
-                            data-bs-auto-close="true" aria-expanded="false"
-                            style="width: 50px; cursor: pointer; border-radius: 3px;">
-                            <span class="">{{ props.filter.groupOperator }}</span>
-                        </div>
-                        <ul class="dropdown-menu bg-white">
-                            <li><a class="dropdown-item" href="#"
-                                    @click="props.filter.groupOperator = FilterOperator.and">{{ $t('modals.filters.and') }}</a>
-                            </li>
-                            <li><a class="dropdown-item" href="#"
-                                    @click="props.filter.groupOperator = FilterOperator.or">{{ $t('modals.filters.or') }}</a>
-                            </li>
-                        </ul>
+
+                        <Dropdown>
+                            <template #button>
+                                <div class="p-0 hover-light ps-1" style="width: 50px; cursor: pointer; border-radius: 3px;">
+                                    <span class="">{{ $t('modals.filters.' + props.filter.groupOperator) }}</span>
+                                </div>
+                            </template>
+                            <template #popup="{hide}">
+                                <div class="ps-2 pt-1 pb-1 pe-2" @click="hide">
+                                    <div class="base-btn" @click="props.filter.groupOperator = FilterOperator.and">
+                                        {{ $t('modals.filters.and') }}
+                                    </div>
+                                    <hr class="m-0 p-0 mt-1 mb-1"/>
+                                    <div class="base-btn" @click="props.filter.groupOperator = FilterOperator.or">
+                                        {{ $t('modals.filters.or') }}
+                                    </div>
+                                </div>
+                            </template>
+                        </Dropdown>
+
                     </template>
                     <span v-else class="text-secondary">{{ props.filter.groupOperator }}</span>
                 </td>
@@ -157,4 +165,5 @@ onMounted(() => {
     cursor: pointer;
     padding-right: 4px;
     border-radius: 3px;
-}</style>
+}
+</style>
