@@ -170,7 +170,8 @@ async def get_import_status_route():
         'to_import': image_import.total_import,
         'imported': image_import.current_import,
         'computed': image_import.current_computed,
-        'new_images': update
+        'new_images': update,
+        'done': image_import.import_done()
     }
     return res
 
