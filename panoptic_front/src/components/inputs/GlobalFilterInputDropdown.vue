@@ -13,7 +13,8 @@ const props = defineProps({
 })
 
 const emits = defineEmits(['update:modelValue'])
-// const buttonElem = ref(null)
+const popupElem = ref(null)
+const dropdownElem = ref(null)
 
 const selectedFilterSet = computed(() => {
     let list = recursiveListFilters(props.manager.filter)
@@ -36,9 +37,9 @@ function recursiveListFilters(root: FilterGroup): Array<Filter> {
 }
 
 watch(() => props.manager.filter.filters, () => {
-    // if (props.manager.filter.filters.length == 0) {
-    //     bootstrap.Dropdown.getOrCreateInstance(buttonElem.value).hide()
-    // }
+    if (props.manager.filter.filters.length == 0) {
+        dropdownElem.value.hide()
+    }
 })
 
 // watch(() => props.modelValue, () => {
@@ -48,7 +49,7 @@ watch(() => props.manager.filter.filters, () => {
 </script>
 
 <template>
-    <Dropdown>
+    <Dropdown ref="dropdownElem">
         <template #button>
             <div>
                 <div v-if="selectedFilterSet.length" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
@@ -61,9 +62,9 @@ watch(() => props.manager.filter.filters, () => {
             </div>
         </template>
         <template #popup>
-            <div class="m-0 p-0">
+            <div class="m-0 p-0" ref="popupElem">
                 <div class="m-1 p-0" v-if="Object.keys(globalStore.properties).length > 0">
-                    <FilterGroupInput :filter="props.manager.filter" :manager="props.manager" />
+                    <FilterGroupInput :filter="props.manager.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>
         </template>
@@ -78,4 +79,5 @@ watch(() => props.manager.filter.filters, () => {
 
 .bg {
     border-radius: 3px;
-}</style>
+}
+</style>

@@ -24,13 +24,14 @@ const props = defineProps({
     mode: { type: Number, default: 1 },
     propertyId: Number,
     parentId: Number,
-    filterId: Number
+    filterId: Number,
+    parent: HTMLElement
 })
 
 
 const dropdownElem = ref(null)
 const inputElem = ref(null)
-
+const popupElem = ref(null)
 
 
 const mode = ref(State.CLOSED)
@@ -71,7 +72,7 @@ function deleteFilter() {
 }
 
 function hide() {
-    if(dropdownElem.value) dropdownElem.value.hide()
+    if (dropdownElem.value) dropdownElem.value.hide()
 }
 
 watch(() => filter.value?.operator, () => {
@@ -83,7 +84,7 @@ watch(() => filter.value?.operator, () => {
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem" @show="show" @hide="onHide">
+    <Dropdown ref="dropdownElem" @show="show" @hide="onHide" :parent="props.parent">
         <template #button>
             <div class="m-0 p-0">
                 <slot></slot>
@@ -92,7 +93,7 @@ watch(() => filter.value?.operator, () => {
         </template>
 
         <template #popup>
-            <div class="container-size bg-white">
+            <div class="container-size bg-white" ref="popupElem">
                 <template v-if="mode != State.CLOSED">
                     <PropertySelection v-if="mode == State.TYPE" @select="selectProperty"
                         :ignore-ids="[PropertyID.folders]" />
@@ -100,7 +101,7 @@ watch(() => filter.value?.operator, () => {
                         <div class="d-flex mode-header">
                             <div class="me-3">{{ filterProperty.name }}</div>
                             <OperatorDropdown :property-id="filter.propertyId"
-                                v-model="(props.manager.filterIndex[filterId] as Filter).operator" @blur="dropdownElem.focus()"/>
+                                v-model="(props.manager.filterIndex[filterId] as Filter).operator" :parent="popupElem" />
                             <div class="flex-fill"></div>
                             <!-- <div><i class="bi bi-three-dots"></i></div> -->
                             <div><i class="bi bi-trash-fill" @click="deleteFilter"></i></div>
@@ -109,7 +110,7 @@ watch(() => filter.value?.operator, () => {
                             <TagInput
                                 v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
                                 v-model="filter.value" :auto-focus="true"
-                                :property="globalStore.properties[filter.propertyId]" ref="inputElem" />
+                                :property="globalStore.properties[filter.propertyId]" ref="inputElem" @hide="hide"/>
                             <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
                                 :property="filterProperty" v-model="filter.value" @update:model-value="hide" />
                             <StandaloneTextInput
@@ -118,7 +119,7 @@ watch(() => filter.value?.operator, () => {
                                 :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number"
                                 :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
                                 :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number"
-                                @blur="hide" />
+                                @blur="" :auto-focus="true" ref="inputElem"/>
                             <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" />
                         </div>
                     </div>
@@ -141,4 +142,5 @@ watch(() => filter.value?.operator, () => {
     width: 250px;
 
     padding: 4px 8px;
-}</style>
+}
+</style>
