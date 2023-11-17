@@ -7,6 +7,7 @@ import { ref, defineEmits } from 'vue';
 import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT  from '../tooltips/withToolTip.vue';
+import { sleep } from '@/utils/utils';
 
 const emits = defineEmits(['export'])
 
@@ -22,6 +23,7 @@ const handleInput = async (e: any) => {
     // THIS IS TAKING WAY LONGER THAN THE REAL API CALL, WHY??
     if(res){
         isUploading.value = false
+        await sleep(10) // let vue have time to actualise the uploading visual effect
         // HOW TO REFRESH ALL COMPONENTS DEPENDING ON NEW DATA ??
         globalStore.fetchAllData()
     }
