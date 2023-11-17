@@ -64,7 +64,7 @@ onMounted(() => {
         <table class="table table-sm">
             <tr v-for="filter, index in filters">
                 <td class="align-top ps-2">
-                    <div v-if="index == 0" class="m-0 p-0">{{$t('modals.filters.where')}}</div>
+                    <div v-if="index == 0" class="m-0 p-0">{{ $t('modals.filters.where') }}</div>
                     <template v-else-if="index == 1">
                         <div class="dropdown-toggle p-0 hover-light ps-1" data-bs-toggle="dropdown"
                             data-bs-auto-close="true" aria-expanded="false"
@@ -73,17 +73,22 @@ onMounted(() => {
                         </div>
                         <ul class="dropdown-menu bg-white">
                             <li><a class="dropdown-item" href="#"
-                                    @click="props.filter.groupOperator = FilterOperator.and">{{$t('modals.filters.and')}}</a></li>
+                                    @click="props.filter.groupOperator = FilterOperator.and">{{ $t('modals.filters.and') }}</a>
+                            </li>
                             <li><a class="dropdown-item" href="#"
-                                    @click="props.filter.groupOperator = FilterOperator.or">{{$t('modals.filters.or')}}</a>
+                                    @click="props.filter.groupOperator = FilterOperator.or">{{ $t('modals.filters.or') }}</a>
                             </li>
                         </ul>
                     </template>
                     <span v-else class="text-secondary">{{ props.filter.groupOperator }}</span>
                 </td>
-                <td v-if="(filter as Filter).propertyId !== undefined" class="p-0 m-0 ps-2 d-flex">
-                    <PropertyDropdown :model-value="globalStore.properties[(filter as Filter).propertyId]" @update:model-value="p => props.manager.changeFilter(filter.id, p.id)"/>
-                    <FilterDropdown :manager="manager" :mode="2" :parent-id="props.filter.id" :filter-id="filter.id" :parent="props.parent">
+                <td v-if="(filter as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
+                    <PropertyDropdown :model-value="globalStore.properties[(filter as Filter).propertyId]"
+                        @update:model-value="p => props.manager.changeFilter(filter.id, p.id)" />
+                </td>
+                <td v-if="(filter as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
+                    <FilterDropdown class="flex-grow-1" :manager="manager" :mode="2" :parent-id="props.filter.id"
+                        :filter-id="filter.id" :parent="props.parent">
                         <FilterPreview :filter="(filter as Filter)" />
                     </FilterDropdown>
                 </td>
@@ -128,10 +133,10 @@ onMounted(() => {
 
         <div class="d-flex text-secondary ms-2">
             <FilterDropdown :manager="props.manager" :parent-id="props.filter.id">
-                <div class="add-options hover-light"><i class="bi bi-plus"></i>{{$t('modals.filters.new_filter')}}</div>
+                <div class="add-options hover-light"><i class="bi bi-plus"></i>{{ $t('modals.filters.new_filter') }}</div>
             </FilterDropdown>
             <div class="add-options hover-light" @click="props.manager.addNewFilterGroup(props.filter.id)">
-                <i class="bi bi-plus"></i>{{$t('modals.filters.new_group')}}
+                <i class="bi bi-plus"></i>{{ $t('modals.filters.new_group') }}
             </div>
         </div>
 
