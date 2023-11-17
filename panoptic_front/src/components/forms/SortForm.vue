@@ -4,6 +4,7 @@ import { computed, reactive } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { PropertyType, Sort } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
+import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 
 
 const props = defineProps({
@@ -66,13 +67,7 @@ function delSort(index: number) {
                 </wTT>
             </template>
         </div>
-        <div class="hover-light text-secondary m-1" data-bs-toggle="dropdown"
-            data-bs-auto-close="true">
-            <span class="base-hover plus-btn"><i class="bi bi-plus"></i></span>
-        </div>
-        <div class="dropdown-menu p-0">
-            <PropertySelection @select="prop => addSort(prop)" :ignore-ids="selectedIds" />
-        </div>
+        <PropertyDropdown :group-ids="selectedIds" @select="prop => addSort(prop)" />
     </div>
 </template>
 
