@@ -31,11 +31,14 @@ function clear() {
 }
 
 function apply() {
+
+    erase.forEach(k => stamp[k] = undefined)
+
     Object.keys(stamp).map(Number).forEach(propId => {
         let value = stamp[propId]
-        let mode = globalStore.properties[propId].type == PropertyType.multi_tags ? 'add' : null
+        let mode = (globalStore.properties[propId].type == PropertyType.multi_tags && value) ? 'add' : null
         globalStore.setPropertyValue(propId, props.images, value, mode)
-    });
+    })
     close()
 }
 
