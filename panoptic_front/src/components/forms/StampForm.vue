@@ -71,7 +71,7 @@ function test() {
                         <td class="w-100">
                             <TagInputDropdown v-if="isTag(property.type)" v-model="props.values[property.id]"
                                 :property="property" :can-create="true" :auto-focus="true"
-                                style="min-height: 20px; line-height: 20px;" @blur="emits('blur')"/>
+                                style="min-height: 20px; line-height: 20px;" @hide="emits('blur')"/>
                             <StandaloneColorPropInput v-else-if="property.type == PropertyType.color"
                                 v-model="props.values[property.id]" style="height: 20px; line-height: 20px;" @blur="emits('blur')"/>
                             <StandaloneTextInput

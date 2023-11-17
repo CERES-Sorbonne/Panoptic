@@ -24,7 +24,7 @@ const props = defineProps({
     autoFocus: Boolean,
     noWrap: Boolean
 })
-const emits = defineEmits(['update:modelValue', 'blur'])
+const emits = defineEmits(['update:modelValue', 'hide'])
 defineExpose({
     getHeight
 })
@@ -41,7 +41,7 @@ function getHeight() {
 </script>
 
 <template>
-    <Dropdown @hide="emits('blur')">
+    <Dropdown @hide="emits('hide')">
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'" ref="heightElem">
                 <span v-for="tag in tags">
