@@ -100,12 +100,12 @@ async function computeGroups(force = false) {
     // compute happens here. Timeout instead of requestIdleCallback for Safari support
     // allows the ui to draw the spinner before cpu blocking
     await sleep(10)
-
     console.time('compute groups')
     // let index = generateGroups(filteredImages.value, groups.value)
     // let rootGroup = index['0']
 
     let data = generateGroupData(filteredImages.value, groups.value, sha1Mode.value)
+
     let index = data.index
     if (!force) {
         for (let id in index) {
@@ -126,7 +126,8 @@ async function computeGroups(force = false) {
                     index[group.id] = group
                     images.forEach(i => {
                         initArrayIfUndefined(data.imageToGroups, i.id)
-                        data.imageToGroups[i.id].push(group.id)})
+                        data.imageToGroups[i.id].push(group.id)
+                    })
                 }
                 if (group.groups) {
                     group.groups.forEach(g => recursiveImportCluster(g))
@@ -135,26 +136,24 @@ async function computeGroups(force = false) {
             recursiveImportCluster(group)
         }
 
-
-
-        // groupData.index = index
-        // groupData.root = rootGroup
-        // groupData.order = []
-
-        // sortGroups()
-        sortGroupData(data, sorts.value, sha1Mode.value)
-
-        Object.assign(groupData, data)
-
-        console.timeEnd('compute groups')
-
-        if (imageList.value) {
-            await nextTick()
-            imageList.value.computeLines()
-        }
-
-        computeStatus.groups = false
     }
+
+    // groupData.index = index
+    // groupData.root = rootGroup
+    // groupData.order = []
+
+    // sortGroups()
+    sortGroupData(data, sorts.value, sha1Mode.value)
+    Object.assign(groupData, data)
+
+    console.timeEnd('compute groups')
+
+    if (imageList.value) {
+        await nextTick()
+        imageList.value.computeLines()
+    }
+
+    computeStatus.groups = false
 }
 
 function sortGroups() {
