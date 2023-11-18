@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, nextTick, useSlots } from 'vue';
-import * as boostrap from "bootstrap"
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n'
 import { Tooltip } from 'floating-vue'
 
 const { t } = useI18n({ useScope: 'global' })
-const tooltipRef = ref()
-
-let tooltip = null
 
 const props = defineProps({
     pos: {
