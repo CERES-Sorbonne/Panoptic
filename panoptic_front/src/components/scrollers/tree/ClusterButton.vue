@@ -29,6 +29,7 @@ const inputWidht = computed(() => 10 + String(props.modelValue).length * 6)
     padding-top: 1px;
     padding-left: 3px;
     color: white;
+    cursor: pointer;
 }
 
 .bt:hover {
