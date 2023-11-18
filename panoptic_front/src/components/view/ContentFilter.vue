@@ -35,7 +35,7 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
             </div>
         </wTT>
 
-        <div class="me-5">
+        <div class="me-5 d-flex">
             <wTT message="main.menu.grid_tooltip">
                 <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.data.display == 'tree' ? '' : ' text-secondary')"
                     @click="props.tab.data.display = 'tree'"></i>

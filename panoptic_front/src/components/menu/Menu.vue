@@ -6,7 +6,7 @@ import { Modals } from '../../data/models';
 import { ref, defineEmits } from 'vue';
 import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
-import wTT  from '../tooltips/withToolTip.vue';
+import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
 
 const emits = defineEmits(['export'])
@@ -21,13 +21,13 @@ const handleInput = async (e: any) => {
     const file = e.target.files[0]
     let res = await globalStore.uploadPropFile(file)
     // THIS IS TAKING WAY LONGER THAN THE REAL API CALL, WHY??
-    if(res){
+    if (res) {
         isUploading.value = false
         await sleep(10) // let vue have time to actualise the uploading visual effect
         // HOW TO REFRESH ALL COMPONENTS DEPENDING ON NEW DATA ??
         globalStore.fetchAllData()
     }
-    else{
+    else {
         // make a code for import error logo
     }
 }
@@ -75,17 +75,26 @@ const handleInput = async (e: any) => {
                 </div>
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
-                    <wTT message="main.nav.properties.properties_tooltip" pos="top" :icon=true><b>{{ $t('main.nav.properties.title') }}</b></wTT>
-                    <span v-if="isUploading" class="spinner-grow spinner-grow-sm float-end" style="width:10px;height:10px;margin-top:5px;">
-                        <span class="sr-only"/>
-                    </span>
-                    <span v-else class="float-end me-3">
-                        <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden/>
-                        <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="inputFile.click()"/></wTT>
-                    </span>
-                    <span class="float-end me-3">
-                        <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i class="bi bi-box-arrow-down btn-icon text-secondary" @click="emits('export')"/></wTT>
-                    </span>
+                    <div class="d-flex">
+                        <wTT message="main.nav.properties.properties_tooltip" pos="top" :icon=true><b>{{
+                            $t('main.nav.properties.title') }}</b></wTT>
+                        <span class="flex-grow-1"></span>
+                        <span v-if="isUploading" class="spinner-grow spinner-grow-sm float-end"
+                            style="width:10px;height:10px;margin-top:5px;">
+                            <span class="sr-only" />
+                        </span>
+                        <span v-else class="me-3">
+                            <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden />
+                            <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i
+                                    class="bi bi-file-earmark-arrow-up btn-icon text-secondary"
+                                    @click="inputFile.click()" /></wTT>
+                        </span>
+                        <span class="me-3">
+                            <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
+                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="emits('export')" /></wTT>
+                        </span>
+                    </div>
+
                     <!-- <i class="bi bi-plus btn-icon float-end" style="font-size: 25px;"></i> -->
                     <div class="mt-2" v-if="globalStore.isLoaded">
                         <template v-for="property in globalStore.properties">
@@ -108,11 +117,13 @@ const handleInput = async (e: any) => {
 
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
-                    <wTT message="main.nav.computed.computed_tooltip" :icon="true"><b>{{ $t("main.nav.computed.title") }}</b></wTT>
+                    <wTT message="main.nav.computed.computed_tooltip" :icon="true"><b>{{ $t("main.nav.computed.title")
+                    }}</b></wTT>
                     <div class="mt-2" v-if="globalStore.isLoaded">
                         <template v-for="property in globalStore.properties">
                             <div class="property-item" v-if="property.id < 0">
-                                <wTT pos="bottom" :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">
+                                <wTT pos="bottom"
+                                    :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">
                                     <PropertyOptions :property="property" />
                                 </wTT>
                             </div>
@@ -124,6 +135,4 @@ const handleInput = async (e: any) => {
     </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
