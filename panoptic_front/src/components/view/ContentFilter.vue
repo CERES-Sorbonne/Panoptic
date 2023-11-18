@@ -30,18 +30,21 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
         <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
             <div class="d-flex flex-row search-input me-5">
                 <div class="bi bi-search float-start bi-sm"></div>
-                    <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')"
-                        @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
+                <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')"
+                    @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
             </div>
         </wTT>
 
         <div class="me-5">
             <wTT message="main.menu.grid_tooltip">
-                <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.data.display=='tree' ? '' : ' text-secondary')" @click="props.tab.data.display = 'tree'"></i>
+                <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.data.display == 'tree' ? '' : ' text-secondary')"
+                    @click="props.tab.data.display = 'tree'"></i>
             </wTT>
             <wTT message="main.menu.table_tooltip">
-                <i id="toot" :class="'bi bi-table btn-icon'  + (props.tab.data.display=='grid' ? '' : ' text-secondary')" @click="props.tab.data.display = 'grid'">
-                </i></wTT>
+                <i id="toot" :class="'bi bi-table btn-icon' + (props.tab.data.display == 'grid' ? '' : ' text-secondary')"
+                    @click="props.tab.data.display = 'grid'">
+                </i>
+            </wTT>
         </div>
 
         <wTT message="main.menu.image_size_tooltip" :click="false">
@@ -52,10 +55,12 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
         </div>
         <div class="ms-5">
             <wTT message="main.menu.image_mode_tooltip">
-                <Toggle v-model="props.tab.data.sha1Mode" :on-label="$t('main.menu.sha1_images')" :off-label="$t('main.menu.all_images')" class="custom-toggle" />
+                <Toggle v-model="props.tab.data.sha1Mode" :on-label="$t('main.menu.sha1_images')"
+                    :off-label="$t('main.menu.all_images')" class="custom-toggle" />
             </wTT>
         </div>
-        <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds" @remove:selected="props.selector.clear()"/>
+        <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
+            @remove:selected="props.selector.clear()" />
 
         <!-- <div class="ms-5">
             <button class="me-2" @click="apiStartPCA">PCA</button>
@@ -63,7 +68,7 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
-        <FilterForm :manager="props.filterManager"/>
+        <FilterForm :manager="props.filterManager" />
         <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups" />
         <SortForm :sortList="props.tab.data.sortList" />
         <!-- <div class="ms-2">
@@ -139,5 +144,4 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
     margin-top: 2px;
     margin-right: 4px;
     margin-left: 3px;
-}
-</style>
+}</style>
