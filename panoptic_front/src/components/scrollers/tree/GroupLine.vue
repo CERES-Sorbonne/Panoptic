@@ -237,12 +237,12 @@ function closeChildren() {
                         <div @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
                         <input type="number" class="no-border m-0 p-0" v-model="props.item.nbClusters" style="width: 40px; height: 10px; margin-top: 3.5px !important; color: green;" />
                     </div> -->
-                    <ClusterButton v-model="props.item.nbClusters" @click="computeClusters"/>
+                    <ClusterButton v-model="props.item.nbClusters" @click="computeClusters" />
                 </wTT>
                 <!-- <div class="button">Créer clusters</div> -->
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
-                
+
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
                 <wTT message="main.recommand.tooltip">
@@ -250,7 +250,8 @@ function closeChildren() {
                 </wTT>
             </div>
             <div v-if="(hasImages || hasPiles) && hasSubgroups" class="ms-2">
-                <div class="button" @click="clear">{{ $t('main.view.remove_clusters') }}</div>
+                <!-- <div class="button" @click="clear">{{ $t('main.view.remove_clusters') }}</div> -->
+                <div class="cluster-close" @click="clear"><i class="bi bi-x" />IA</div>
             </div>
         </div>
 
@@ -283,4 +284,20 @@ function closeChildren() {
 .active {
     border-left: 1px solid blue;
 }
+
+.cluster-close {
+    background-color: rgb(186, 90, 184);
+    border-radius: 5px;
+    color: white;
+    height: 20px;
+    font-size: 14px;
+    padding: 0px 3px !important;
+    cursor: pointer;
+    line-height: 20px;
+}
+
+.cluster-close:hover {
+    color: rgb(235, 209, 30);
+}
+
 </style>
