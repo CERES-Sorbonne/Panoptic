@@ -34,7 +34,7 @@ def setup_package():
                     # include_package_data=True,
                     # package_dir="panoptic/html",
                     package_data={
-                        "": ['html/*', 'html/assets/*', 'scripts/create_db.sql'],
+                        "": ['html/*', 'html/assets/*', 'scripts/create_db.sql', "VERSION"],
                     },
                     packages=find_packages())
 
