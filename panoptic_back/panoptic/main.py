@@ -15,7 +15,8 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QCursor
 import qtawesome as qta
 
-from panoptic.utils import get_datadir, get_version
+import panoptic
+from panoptic.utils import get_datadir
 
 PORT = 8000
 HOST = False
@@ -28,7 +29,7 @@ def api(path):
 
 FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("")
 PROJECT_PATH = get_datadir() / "panoptic" / "projects.json"
-VERSION = get_version()
+VERSION = panoptic.__version__
 PROJECT_PATH = PROJECT_PATH.as_posix()
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, \
