@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import panoptic
 import os
 
 
@@ -9,8 +10,7 @@ def parse_requirements(req_file):
 
 
 NAME = "panoptic"
-with open(os.path.join(os.path.dirname(__file__), 'VERSION'), 'r') as f:
-    VERSION = f.read()
+VERSION = panoptic.__version__
 # Get dependencies from requirement files
 SETUP_REQUIRES = ['setuptools', 'setuptools-git', 'wheel']
 INSTALL_REQUIRES = parse_requirements('requirements.txt')
