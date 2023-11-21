@@ -337,7 +337,7 @@ def launch_uvicorn():
     from panoptic.api import app
     app.add_event_handler('startup', on_fastapi_start if not SERVER else on_fastapi_start_server)
     if not SERVER:
-        app.add_event_handler('shutdown', lambda: ui.server_status.set('stopped'))
+        app.add_event_handler('shutdown', lambda: ui.server_status.setText('stopped'))
     if HOST:
         uvicorn.run(app, host="0.0.0.0", port=PORT)
     else:

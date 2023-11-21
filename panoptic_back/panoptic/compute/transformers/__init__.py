@@ -52,10 +52,9 @@ class CLIPTransformer:
 
 
 def get_transformer(model="small"):
-    match model:
-        case "small":
-            return GoogleTransformer()
-        case "clip":
-            return CLIPTransformer()
-        case _:
-            return GoogleTransformer()
+    if model == "small":
+        return GoogleTransformer()
+    elif model == "clip":
+        return CLIPTransformer()
+    else:
+        return GoogleTransformer()

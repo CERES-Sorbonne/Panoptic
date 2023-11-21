@@ -101,17 +101,20 @@ def make_clusters(images: list[ComputedValue], *, method='kmeans', **kwargs) -> 
     clusters: np.ndarray
     distances: np.ndarray | None = None
     method = "faiss"
-    match method:
-        case 'kmeans':
-            clusters = _make_clusters_kmeans(vectors, **kwargs)
-        case 'dbscan':
-            clusters = _make_clusters_dbscan(vectors, **kwargs)
-        case 'meanshift':
-            clusters = _make_clusters_meanshift(vectors, **kwargs)
-        case 'faiss':
-            clusters, distances = _make_clusters_faiss(vectors, **kwargs)
-        case other:
-            return [[]]
+    # for now faiss method is better than the others, and probably this will be refactored with plugin system
+    # so for now the matching is dead code
+    clusters, distances = _make_clusters_faiss(vectors, **kwargs)
+    # match method:
+    #     case 'kmeans':
+    #         clusters = _make_clusters_kmeans(vectors, **kwargs)
+    #     case 'dbscan':
+    #         clusters = _make_clusters_dbscan(vectors, **kwargs)
+    #     case 'meanshift':
+    #         clusters = _make_clusters_meanshift(vectors, **kwargs)
+    #     case 'faiss':
+    #         clusters, distances = _make_clusters_faiss(vectors, **kwargs)
+    #     case other:
+    #         return [[]]
     for cluster in list(set(clusters)):
         sha1_clusters = sha1[clusters == cluster]
         ahashs_clusters = ahashs[clusters == cluster]
