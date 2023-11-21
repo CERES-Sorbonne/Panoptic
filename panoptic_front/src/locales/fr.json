@@ -90,7 +90,7 @@
             "tag": "Label",
             "tag_tooltip": "Un label unique choisi parmi une liste, ex: une catégorie d'image, un lieu, une source",
             "multi_tags": "Labels",
-            "multi_tags_tooltip": "Comme un label mais avec possibilité d'en assigner plusieurs en même temps",
+            "multi_tags_tooltip": "Permet d'assigner un ou plusieurs labels parmi une liste, ex: des catégories, des lieux, des objets",
             "url": "URL",
             "url_tooltip": "Une URL cliquable, ex: le lien vers la source d'une image",
             "date": "Date",
