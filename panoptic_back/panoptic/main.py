@@ -44,7 +44,6 @@ class InitThread(QThread):
 
     def run(self):
         self.ui.init_projects()
-        self.ui.init_folders()
         self.initialization_complete.emit()
 
 class IconLabel(QWidget):
