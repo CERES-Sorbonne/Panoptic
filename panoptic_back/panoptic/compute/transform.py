@@ -1,16 +1,17 @@
 # TODO: conditionnal imports for people who just want base app
+from __future__ import annotations
 
 import os
 import pickle
+from hashlib import sha1 as sha1hash
 
 import numpy as np
-from imagehash import average_hash
-from hashlib import sha1 as sha1hash
 from PIL import Image
+from imagehash import average_hash
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
-from .transformers import get_transformer
 
+from .transformers import get_transformer
 
 PCA_SIZE = 10
 USE_PCA_IF_POSSIBLE = True

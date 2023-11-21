@@ -1,19 +1,18 @@
+import argparse
 import json
 import os
 import pathlib
-import sys
-import tkinter as tk
-import webbrowser
 import socket
-import argparse
+import sys
+import webbrowser
 from threading import Thread
 from time import sleep
 
-import uvicorn
+import qtawesome as qta
 import requests
+import uvicorn
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QCursor
-import qtawesome as qta
 
 import panoptic
 from panoptic.utils import get_datadir
@@ -33,7 +32,7 @@ VERSION = panoptic.__version__
 PROJECT_PATH = PROJECT_PATH.as_posix()
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, \
-    QPushButton, QListView, QLineEdit, QFileDialog, QListWidget, QDesktopWidget
+    QPushButton, QLineEdit, QFileDialog, QListWidget, QDesktopWidget
 from PyQt5 import QtCore, QtGui
 
 

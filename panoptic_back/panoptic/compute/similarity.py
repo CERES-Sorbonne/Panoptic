@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import math
 import os
 import pickle
-from typing import Union
 
 import faiss
 import numpy as np
@@ -12,6 +13,7 @@ from sklearn.neighbors import KDTree
 from panoptic.compute.transform import transformer
 from panoptic.compute.utils import load_similarity_tree
 from panoptic.models import ComputedValue
+
 
 class SimilarityTreeWithLabel:
     def __init__(self, images: list[ComputedValue]):

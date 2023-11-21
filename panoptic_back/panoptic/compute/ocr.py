@@ -1,16 +1,10 @@
 import os
 import sys
 
-import concurrent
-import itertools
-from operator import itemgetter
-
 # import cv2
 import numpy as np
 import pandas as pd
 import pytesseract
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from PIL import Image
 
 os.environ['TESSDATA_PREFIX'] = os.getenv('TESSDATA_PREFIX', os.sep.join([*sys.executable.split(os.sep)[:-1], 'share', 'tessdata']))
 

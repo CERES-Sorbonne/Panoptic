@@ -1,6 +1,8 @@
-from setuptools import setup, find_packages
-import panoptic
 import os
+
+from setuptools import setup, find_packages
+
+import panoptic
 
 
 def parse_requirements(req_file):

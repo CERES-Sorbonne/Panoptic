@@ -1,4 +1,6 @@
 # Connexion à la base de données SQLite
+from __future__ import annotations
+
 import json
 from typing import List, Any
 
