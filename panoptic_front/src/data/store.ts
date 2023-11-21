@@ -276,6 +276,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const newProperty: Property = await apiAddProperty(name, type, mode)
         this.properties[newProperty.id] = newProperty
         this.updatePropertyOptions()
+        this.getTab().data.visibleProperties[newProperty.id] = true
     },
 
     updatePropertyOptions() {
