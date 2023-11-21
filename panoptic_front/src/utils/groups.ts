@@ -74,6 +74,7 @@ export function generateGroups(images: Image[], groups: number[]) {
 
 
 export function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupIndex) {
+    console.log('gen sub', groupList)
     let images = parentGroup.images
     let propertyId = groupList[0]
     let groups = new DefaultDict(Array) as { [k: string | number]: any }
@@ -122,6 +123,7 @@ export function computeSubgroups(parentGroup: Group, groupList: number[], index:
     parentGroup.children = res.map(g => g.id)
     parentGroup.images = []
     res.forEach(g => index[g.id] = g)
+    console.log(parentGroup)
     return parentGroup
 }
 

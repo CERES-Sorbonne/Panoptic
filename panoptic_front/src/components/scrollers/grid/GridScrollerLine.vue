@@ -39,17 +39,23 @@ watch(() => props.item.id, reload)
     <template v-if="loaded" class="container">
         <div v-if="item.type == 'group'">
             <GroupLine :prop-values="item.data.propertyValues" :item="item" :width="props.width" :data="props.data"
-                @close:group="e => emits('close:group', e)" @open:group="e => emits('open:group', e)" @toggle:group="emits('toggle:group', new GroupIterator(props.data, item.data.order))"/>
+                @close:group="e => emits('close:group', e)" @open:group="e => emits('open:group', e)"
+                @toggle:group="emits('toggle:group', new GroupIterator(props.data, item.data.order))" />
         </div>
         <div v-if="item.type == 'image'">
-            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages" :missing-width="props.missingWidth"
-                @resizeHeight="h => emits('resizeHeight', h)" :selected="props.selectedImages.has(item.data.id)"
+            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+                :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
+                :selected="props.selectedImages.has(item.data.id)"
                 @toggle:image="e => emits('toggle:image', new ImageIterator(props.data, props.data.index[e.groupId].order, e.imageIndex))" />
         </div>
         <div v-if="item.type == 'pile'">
-            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages" :missing-width="props.missingWidth"
-                @resizeHeight="h => emits('resizeHeight', h)" :selected="props.selectedImages.has(item.data.images[0].id)"
+            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+                :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
+                :selected="props.selectedImages.has(item.data.images[0].id)"
                 @toggle:image="e => emits('toggle:image', new ImageIterator(props.data, props.data.index[e.groupId].order, e.imageIndex))" />
+        </div>
+        <div v-if="item.type == 'filler'" style="height: 1000px;">
+
         </div>
     </template>
 </template>
@@ -58,5 +64,4 @@ watch(() => props.item.id, reload)
 .container {
     margin: 0;
     padding: 0;
-}
-</style>
+}</style>
