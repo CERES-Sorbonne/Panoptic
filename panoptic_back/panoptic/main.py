@@ -5,7 +5,6 @@ import pathlib
 import socket
 import sys
 import webbrowser
-from multiprocessing import Process
 from threading import Thread
 from time import sleep
 
@@ -14,6 +13,7 @@ import requests
 import uvicorn
 from PyQt5.QtCore import QSize, QThread, pyqtSignal
 from PyQt5.QtGui import QCursor
+
 import panoptic
 from panoptic.utils import get_datadir
 
@@ -322,9 +322,11 @@ class MiniUI(QMainWindow):
             self.init_folders()
 
     def start_init_thread(self):
-        self.init_thread = InitThread(self)
-        self.init_thread.initialization_complete.connect(self.on_initialization_complete)
-        self.init_thread.start()
+        self.init_projects()
+        self.on_initialization_complete()
+        # self.init_thread = InitThread(self)
+        # self.init_thread.initialization_complete.connect(self.on_initialization_complete)
+        # self.init_thread.start()
 
     def on_initialization_complete(self):
         self._set_processing(False, "Initialisation terminée")

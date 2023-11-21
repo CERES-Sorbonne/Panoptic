@@ -1,7 +1,7 @@
 aiofiles
 aiosqlite
 fastapi-camelcase
-fastapi<0.100.0
+fastapi
 imagehash
 opencv-python
 pandas
@@ -17,3 +17,12 @@ pypika
 orjson
 faiss-cpu
 qtawesome
+numpy
+panoptic
+tqdm
+Pillow
+pydantic
+starlette
+requests
+aiohttp
+setuptools
