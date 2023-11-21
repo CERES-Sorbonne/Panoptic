@@ -1,5 +1,4 @@
 import asyncio
-import gc
 import hashlib
 import logging
 import os

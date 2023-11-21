@@ -1,5 +1,6 @@
 import os
 import random
+
 import pandas as pd
 
 # Chemin vers le dossier contenant les images
