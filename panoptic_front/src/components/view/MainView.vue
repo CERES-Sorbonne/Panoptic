@@ -160,6 +160,7 @@ function sortGroups() {
     if (!groupData.root) return
     const sortIndex: SortIndex = {}
     sorts.value.forEach(s => sortIndex[s.property_id] = s)
+    groupData.order = []
     sortGroupTree(groupData.root, groupData.order, sortIndex)
 
     Object.keys(groupData.index).forEach(key => {
