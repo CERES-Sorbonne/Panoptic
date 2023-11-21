@@ -59,10 +59,13 @@ export class ImageSelector {
         let start = (lgi < igi || (lgi == igi && lii < iii)) ? this.lastSelectedImage : iterator
         let end = start == this.lastSelectedImage ? iterator : this.lastSelectedImage
 
+        console.log(start, end)
+
         let images = []
         let it = start.clone()
         while (it.next()) {
-            if (it.groupIndex >= end.groupIndex && it.imageIndex > end.imageIndex) {
+            console.log(it)
+            if ((it.groupIndex >= end.groupIndex && it.imageIndex > end.imageIndex) || it.groupIndex > end.groupIndex) {
                 break
             }
             images.push(...it.getImages().map(i => i.id))
