@@ -15,7 +15,7 @@ NAME = "panoptic"
 VERSION = panoptic.__version__
 # Get dependencies from requirement files
 SETUP_REQUIRES = ['setuptools', 'setuptools-git', 'wheel']
-INSTALL_REQUIRES = parse_requirements('requirements.txt')
+INSTALL_REQUIRES = parse_requirements('freeze.txt')
 
 with open(os.path.join(os.path.dirname(__file__), 'description.md'), 'r') as f:
     LONG_DESCRIPTION = f.read()
