@@ -1,13 +1,14 @@
 aiofiles
 aiosqlite
 fastapi-camelcase
-fastapi<0.100.0
+fastapi
 imagehash
 opencv-python
 pandas
 pytesseract
 scikit-learn
 pyqt5
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 transformers
 uvicorn
@@ -16,3 +17,4 @@ pypika
 orjson
 faiss-cpu
 qtawesome
+requests

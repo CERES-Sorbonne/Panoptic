@@ -172,6 +172,14 @@ class MiniUI(QMainWindow):
 
         frame_b_layout.addWidget(self.open_button)
 
+    def _get_file_dialog(self, message):
+        # this function is a fix when running with pycharm on linux
+        if os.getenv("PANOPTIC_ENV", "PROD") == "DEV":
+            res = QFileDialog.getExistingDirectory(self, message, options=QFileDialog.DontUseNativeDialog)
+        else:
+            res = QFileDialog.getExistingDirectory(self, message)
+        return res
+
     def _set_processing(self, value: bool, message: str = None):
         if value:
             self.server_status.setStyleSheet("""
@@ -181,7 +189,8 @@ class MiniUI(QMainWindow):
                     border-radius: 10px;
                 }
             """)
-            self.setEnabled(False)
+            if not sys.platform.startswith("linux"):
+                self.setEnabled(False)
         else:
             self.server_status.setStyleSheet("""
                 QWidget {
@@ -191,7 +200,8 @@ class MiniUI(QMainWindow):
                     color: white;
                 }
             """)
-            self.setEnabled(True)
+            if not sys.platform.startswith("linux"):
+                self.setEnabled(True)
         if message:
             self.server_status.setText(message)
         QApplication.processEvents()
@@ -270,8 +280,9 @@ class MiniUI(QMainWindow):
 
 
     def add_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Choisir un dossier d'images")
-        print(folder_path)
+        folder_path = self._get_file_dialog("Choisir un dossier d'images")
+        if folder_path == "":
+            return
         res = requests.post(api('folders'), headers={"Content-type": "application/json"},
                             json={"path": folder_path}).json()
         self.listbox.clear()
@@ -286,7 +297,9 @@ class MiniUI(QMainWindow):
             json.dump(self.projects, json_file)
 
     def create_project(self):
-        folder_path = QFileDialog.getExistingDirectory(self, 'Dossier où stocker les données panoptic')
+        folder_path = self._get_file_dialog('Dossier où stocker les données panoptic')
+        if folder_path == "":
+            return
         project_name = os.path.basename(folder_path)
         new_project = {'name': project_name, 'path': folder_path}
         self.projects['projects'].append(new_project)
