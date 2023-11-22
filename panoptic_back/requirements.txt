@@ -8,13 +8,12 @@ pandas
 pytesseract
 scikit-learn
 pyqt5
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
 transformers
 uvicorn
 python-multipart
 pypika
 orjson
+torch
 faiss-cpu
 qtawesome
 requests
