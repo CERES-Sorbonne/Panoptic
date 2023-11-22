@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import random
+import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import List, Any
 
@@ -19,7 +20,8 @@ from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties,
 from .image_importer import ImageImporter
 
 nb_workers = 4
-executor = ProcessPoolExecutor(max_workers=nb_workers)
+executor = ThreadPoolExecutor(max_workers=nb_workers) if any([os.getenv('IS_DOCKER', False), sys.platform.startswith('linux')]) else ProcessPoolExecutor(
+    max_workers=nb_workers)
 atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
 
