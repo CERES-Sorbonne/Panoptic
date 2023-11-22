@@ -11,13 +11,13 @@ from time import sleep
 import qtawesome as qta
 import requests
 import uvicorn
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, QThread, pyqtSignal
 from PyQt5.QtGui import QCursor
 
 import panoptic
 from panoptic.utils import get_datadir
 
-PORT = 8000
+PORT = 2626
 HOST = False
 THREAD = None
 
@@ -35,6 +35,16 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHB
     QPushButton, QLineEdit, QFileDialog, QListWidget, QDesktopWidget
 from PyQt5 import QtCore, QtGui
 
+class InitThread(QThread):
+    initialization_complete = pyqtSignal()
+
+    def __init__(self, ui):
+        super().__init__()
+        self.ui = ui
+
+    def run(self):
+        self.ui.init_projects()
+        self.initialization_complete.emit()
 
 class IconLabel(QWidget):
 
@@ -324,6 +334,15 @@ class MiniUI(QMainWindow):
             requests.post(api("project"), json={"project": os.environ["PANOPTIC_DATA"]})
             self.init_folders()
 
+    def start_init_thread(self):
+        self.init_projects()
+        self.on_initialization_complete()
+        # self.init_thread = InitThread(self)
+        # self.init_thread.initialization_complete.connect(self.on_initialization_complete)
+        # self.init_thread.start()
+
+    def on_initialization_complete(self):
+        self._set_processing(False, "Initialisation terminée")
 
 def on_fastapi_start():
     ui.server_status.setText('Initialisation...')
@@ -384,7 +403,7 @@ def start():
         global ui
         ui = MiniUI()
         ui.show()
-        ui.init_projects()
+        ui.start_init_thread()
         sys.exit(app.exec_())
     else:
         if not FOLDER:

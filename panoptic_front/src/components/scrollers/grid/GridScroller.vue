@@ -65,7 +65,6 @@ function computeLines() {
         if (maxDepth != -1 && maxDepth >= group.depth) maxDepth = -1
         // if closed group all images inside group with depth > maxDeath should be hidden
         if (group.closed) {
-            console.log(group.depth)
             maxDepth = group.depth
         }
 
@@ -88,6 +87,7 @@ function computeLines() {
         }
     }
 
+    // lines.push({id: '__filler__', type: 'fillter', size: 1000})
     scroller.value.updateVisibleItems(true)
 }
 
@@ -192,7 +192,6 @@ function selectImage(iterator: ImageIterator) {
 }
 
 function selectGroup(iterator: GroupIterator) {
-    console.log(iterator)
     props.selector.toggleGroupIterator(iterator, keyState.shift)
 }
 
@@ -200,7 +199,9 @@ function clear() {
     lines.length = 0
 }
 
-onMounted(computeLines)
+onMounted(() => {
+    computeLines()
+})
 watch(() => props.data, computeLines)
 
 </script>
