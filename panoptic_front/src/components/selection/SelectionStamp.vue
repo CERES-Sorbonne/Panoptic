@@ -26,13 +26,13 @@ const emits = defineEmits(['remove:selected'])
 
 <style scoped>
 .border {
-    border: 2px solid var(--border-color) !important;
+    border: 2px solid #007bff !important;
     overflow: hidden;
 }
 
 .btn-cls {
     padding: 1px 3px;
-    border-right: 2px solid var(--border-color);
+    border-right: 2px solid #007bff !important;
     cursor: pointer;
     font-size: 12px;
 }

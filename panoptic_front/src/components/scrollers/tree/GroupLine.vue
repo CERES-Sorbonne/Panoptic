@@ -141,6 +141,11 @@ async function computeClusters() {
     }
     props.item.data.groups = groups
     props.item.data.children = groups.map(g => g.id)
+    // TODO: make logic outside of vue
+    const order = props.data.order
+    const itemIndex = order.findIndex(grpId => grpId == props.item.id)
+    if(itemIndex < 0) throw new Error('itemIndex should not be negative')
+    props.data.order = [...order.slice(0, itemIndex+1), ...groups.map(g => g.id), ...order.slice(itemIndex+1) ]
     emits('group:update')
 }
 
