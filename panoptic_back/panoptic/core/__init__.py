@@ -19,8 +19,7 @@ from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties,
 from .image_importer import ImageImporter
 
 nb_workers = 4
-executor = ThreadPoolExecutor(max_workers=nb_workers) if os.getenv('IS_DOCKER', False) else ProcessPoolExecutor(
-    max_workers=nb_workers)
+executor = ProcessPoolExecutor(max_workers=nb_workers)
 atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
 
