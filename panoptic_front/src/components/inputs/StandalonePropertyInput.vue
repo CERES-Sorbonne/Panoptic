@@ -28,8 +28,13 @@ function inputType(type: PropertyType) {
 }
 
 onMounted(() => localValue.value = props.modelValue)
+watch(() => props.modelValue, () => {
+    if(props.modelValue != localValue.value) {
+        localValue.value = props.modelValue
+    }
+})
 watch(localValue, () => {
-    if (localValue.value != null) {
+    if (localValue.value != null && localValue.value !== props.modelValue) {
         emits('update:modelValue', localValue.value)
     }
 })
