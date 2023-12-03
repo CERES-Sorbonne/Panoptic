@@ -1,11 +1,14 @@
 ---
 name: 'Bug '
-about: Create a report to help us improve
+about: 'You have a bug when installing, launching, or using panoptic ? '
 title: "[BUG]"
 labels: bug
 assignees: ''
 
 ---
+
+**STEP YOU MEET THE BUG**
+[install | launch | at use]
 
 **Describe the bug**
 A clear and concise description of what the bug is.
