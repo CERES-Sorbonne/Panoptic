@@ -237,15 +237,15 @@ onMounted(() => {
     })
 })
 
-// watch(props, () => {
-//     globalStore.updateTab(props.tab)
-// }, { deep: true })
-
-watch(() => props.tab.data, () => {
-    console.log('update state')
-    console.log(props.tab.data.filterState)
+watch(props, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
+
+// watch(() => props.tab.data, () => {
+//     console.log('update state')
+//     console.log(props.tab.data.filterState)
+//     globalStore.updateTab(props.tab)
+// }, { deep: true })
 
 
 watch(filteredImages, () => safeComputeGroups(), { deep: true })

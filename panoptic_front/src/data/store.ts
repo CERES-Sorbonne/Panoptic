@@ -57,7 +57,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return globalStore.tabs[globalStore.selectedTab]
     },
     async loadTabState() {
+        // console.time('getTabs')
         let tabs = await apiGetTabs()
+        // console.timeEnd('getTabs')
         // console.log(tabs)
         tabs.forEach((t: Tab) => {
             // old version compability
@@ -78,7 +80,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             globalStore.tabs[t.id] = t
             let filterManager = new FilterManager(t.data.filterState)
             t.data.filterState = filterManager.state
-            console.log(t.data.filterState)
+            // console.log(t.data.filterState)
             t.data.filterManager = filterManager
         })
 
@@ -161,12 +163,13 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
     },
     async fetchAllData() {
+        // console.log('fetch all data')
         let images = await apiGetImages()
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
         //console.log(folders)
-
+        // console.log('fetch data: receive result...')
 
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: 'sha1' }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: 'sha1' }
@@ -180,7 +183,9 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.properties = properties
         this.folders = buildFolderNodes(folders)
 
+        // console.time('tab state')
         await this.loadTabState()
+        // console.timeEnd('tab state')
 
         this.importState = await apiGetImportStatus()
         setInterval(async () => { globalStore.applyImportState(await apiGetImportStatus()) }, 1000)
@@ -191,6 +196,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         this.countTags()
         this.countImagePerFolder()
         this.verifyData()
+
+        // console.log('end fetch all data')
     },
     applyImportState(state: ImportState) {
         // state.new_images.forEach(img => img.url = SERVER_PREFIX + img.url)
