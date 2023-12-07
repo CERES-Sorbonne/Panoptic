@@ -1,4 +1,5 @@
-import { FilterManager } from "@/utils/filter";
+// import { FilterManager } from "@/utils/filter";
+import { FilterManager, FilterState, createFilterState } from "@/core/FilterManager";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
@@ -57,11 +58,20 @@ export interface Tag {
     count?: number
 }
 
+export interface TagIndex {
+    [tagId: number]: Tag
+}
+
 export interface Property {
     id: number
     name: string
     type: PropertyType
     mode: PropertyMode
+    tags?: TagIndex
+}
+
+export interface TabIndex {
+    [tabId: number]: Tab
 }
 
 export interface PropertyValue{
@@ -110,6 +120,11 @@ export interface Sha1Pile {
     images: Array<Image>
     sha1: string
     similarity?: number // optional; between 0 and 1
+}
+
+export interface ImageStack {
+    images: Image[]
+    score?: number // optional info to qualify a stack.
 }
 
 export interface Folders {
@@ -324,6 +339,7 @@ export interface TabState {
     name: string
     display: string
     filter: FilterGroup,
+    filterState: FilterState
     filterManager?: FilterManager,
     groups: Array<number>
     sortList: Array<Sort>
@@ -449,11 +465,12 @@ export interface Recommendation {
     groupId: string
 }
 
-export function buildTabState() {
+export function buildTabState(): TabState{
     return {
         name: 'Tab',
         display: 'tree',
         filter: buildFilterGroup(),
+        filterState: createFilterState(),
         groups: [],
         sortList: [],
         imageSize: 100,
@@ -461,7 +478,8 @@ export function buildTabState() {
         visibleFolders: {},
         selectedFolders: {},
         propertyOptions: {},
-    } as TabState
+        sha1Mode: true
+    }
 }
 
 export function buildFilterGroup() {

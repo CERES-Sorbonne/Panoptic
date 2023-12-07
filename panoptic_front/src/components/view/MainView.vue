@@ -65,26 +65,35 @@ function updateScrollerHeight() {
 }
 
 const filteredImages = computed(() => {
-
+    const filterManager = props.tab.data.filterManager
     let images = Object.values(globalStore.images)
 
     if (searchedImages.value.length > 0) {
         const sha1ToImage: any = {}
         images.forEach(image => sha1ToImage[image.sha1] = image)
-        return searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
+        images = searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
     }
 
-    if (Object.keys(props.tab.data.selectedFolders).length > 0) {
-        let folderIds = Object.keys(props.tab.data.selectedFolders).map(Number)
-        let allIds = [...folderIds] as Array<number>
-        folderIds.forEach(id => allIds.push(...globalStore.getFolderChildren(id)))
-        if (allIds.length > 0) {
-            images = images.filter(img => allIds.includes(img.folder_id))
-        }
-    }
-    // on filtre les images normalement, et aussi en prenant en cmpte que si il y a des images cherchées, ça les renvoie
-    let filtered = images.filter(img => computeGroupFilter(img, filters.value))
-    return filtered
+    filterManager.filter(images)
+    return filterManager.result.images
+
+    // if (searchedImages.value.length > 0) {
+    //     const sha1ToImage: any = {}
+    //     images.forEach(image => sha1ToImage[image.sha1] = image)
+    //     return searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
+    // }
+
+    // if (Object.keys(props.tab.data.selectedFolders).length > 0) {
+    //     let folderIds = Object.keys(props.tab.data.selectedFolders).map(Number)
+    //     let allIds = [...folderIds] as Array<number>
+    //     folderIds.forEach(id => allIds.push(...globalStore.getFolderChildren(id)))
+    //     if (allIds.length > 0) {
+    //         images = images.filter(img => allIds.includes(img.folder_id))
+    //     }
+    // }
+    // // on filtre les images normalement, et aussi en prenant en cmpte que si il y a des images cherchées, ça les renvoie
+    // let filtered = images.filter(img => computeGroupFilter(img, filters.value))
+    // return filtered
 })
 
 // on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
@@ -228,7 +237,13 @@ onMounted(() => {
     })
 })
 
-watch(props, () => {
+// watch(props, () => {
+//     globalStore.updateTab(props.tab)
+// }, { deep: true })
+
+watch(() => props.tab.data, () => {
+    console.log('update state')
+    console.log(props.tab.data.filterState)
     globalStore.updateTab(props.tab)
 }, { deep: true })
 

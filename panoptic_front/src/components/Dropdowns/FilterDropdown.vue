@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
-import { FilterManager } from '@/utils/filter';
 import { Filter, PropertyID, PropertyType, operatorHasInput } from '@/data/models';
 import { globalStore } from '@/data/store';
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
@@ -12,6 +11,7 @@ import TextInput from '../inputs/TextInput.vue';
 import TagInput from '../tags/TagInput.vue';
 import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import Dropdown from './Dropdown.vue';
+import { FilterManager } from '@/core/FilterManager';
 
 enum State {
     CLOSED = 0,

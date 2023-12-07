@@ -8,8 +8,8 @@ import Toggle from '@vueform/toggle'
 import { computed, ref } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { ImageSelector } from '@/utils/selection';
-import { FilterManager } from '@/utils/filter';
 import wTT from '../tooltips/withToolTip.vue'
+import { FilterManager } from '@/core/FilterManager';
 
 const props = defineProps({
     tab: Object as () => Tab,

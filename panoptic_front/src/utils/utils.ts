@@ -71,6 +71,30 @@ export function getFolderAndParents(folder: Folder, parents: number[] = []) {
     return parents
 }
 
+export function getFolderParents(folderId: number) {
+    const res: Folder[] = []
+    const recursive = (fId: number) => {
+        const parent = globalStore.folders[fId].parent
+        if (parent != undefined) {
+            res.push(globalStore.folders[parent])
+            recursive(parent)
+        }
+    }
+    recursive(folderId)
+    return res
+}
+
+export function getFolderChildren(folderId: number) {
+    let res: Folder[] = []
+    const recursive = (fId: number) => {
+        const children = globalStore.folders[fId].children
+        res.push(...children)
+        children.forEach(c => recursive(c.id))
+    }
+    recursive(folderId)
+    return res
+}
+
 export function computedPropValue(property: Ref<Property>, image: Ref<Image>) {
     const propValue = computed(() => {
         if (!hasProperty(image.value, property.value.id)) {

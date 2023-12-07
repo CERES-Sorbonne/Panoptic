@@ -8,6 +8,7 @@ import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
+import FolderList2 from '../foldertree/FolderList2.vue';
 
 const emits = defineEmits(['export'])
 
@@ -46,8 +47,10 @@ const handleInput = async (e: any) => {
                         </div> -->
                     </div>
 
-                    <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
-                        :tab="globalStore.tabs[globalStore.selectedTab].data" />
+                    <!-- <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
+                        :tab="globalStore.tabs[globalStore.selectedTab].data" /> -->
+                        <FolderList2 v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
+                        :filter-manager="globalStore.tabs[globalStore.selectedTab].data.filterManager" :visible-folders="globalStore.tabs[globalStore.selectedTab].data.visibleFolders" />
                 </div>
                 <div class="p-2"
                     v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">
