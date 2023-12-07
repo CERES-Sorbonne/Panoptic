@@ -45,6 +45,7 @@
     "bootstrap5-toggle": "^5.0.4",
     "eslint": "^8.22.0",
     "eslint-plugin-vue": "^9.3.0",
+    "pinia": "^2.1.7",
     "prettier": "^2.7.1",
     "vite": ">=4.1.5"
   }

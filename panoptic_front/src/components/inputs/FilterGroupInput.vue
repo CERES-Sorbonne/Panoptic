@@ -2,12 +2,13 @@
 import { Filter, FilterGroup, FilterOperator, Property, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed, onMounted, watch } from 'vue';
-import { FilterManager, defaultOperator } from '@/utils/filter';
+import { defaultOperator } from '@/utils/filter';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
 import PropertySelection from './PropertySelection.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
+import { FilterManager } from '@/core/FilterManager';
 
 const props = defineProps({
     filter: { type: Object as () => FilterGroup, required: true },

@@ -3,9 +3,9 @@ import { Filter, FilterGroup, FilterOperator } from '@/data/models';
 import { reactive, watch, computed, ref } from 'vue';
 import FilterGroupInput from './FilterGroupInput.vue';
 import { globalStore } from '@/data/store';
-import { FilterManager } from '@/utils/filter';
 import * as bootstrap from 'bootstrap'
 import Dropdown from '../dropdowns/Dropdown.vue';
+import { FilterManager } from '@/core/FilterManager';
 
 const props = defineProps({
     // modelValue: Object as () => FilterGroup,
@@ -17,7 +17,7 @@ const popupElem = ref(null)
 const dropdownElem = ref(null)
 
 const selectedFilterSet = computed(() => {
-    let list = recursiveListFilters(props.manager.filter)
+    let list = recursiveListFilters(props.manager.state.filter)
     let unique = {} as any
     list.forEach(filter => unique[filter.propertyId] = filter)
     return Object.values(unique) as Array<Filter>
@@ -36,8 +36,8 @@ function recursiveListFilters(root: FilterGroup): Array<Filter> {
     return res
 }
 
-watch(() => props.manager.filter.filters, () => {
-    if (props.manager.filter.filters.length == 0) {
+watch(() => props.manager.state.filter.filters, () => {
+    if (props.manager.state.filter.filters.length == 0) {
         dropdownElem.value.hide()
     }
 })
@@ -64,7 +64,7 @@ watch(() => props.manager.filter.filters, () => {
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
                 <div class="m-1 p-0" v-if="Object.keys(globalStore.properties).length > 0">
-                    <FilterGroupInput :filter="props.manager.filter" :manager="props.manager" :parent="popupElem" />
+                    <FilterGroupInput :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>
         </template>
