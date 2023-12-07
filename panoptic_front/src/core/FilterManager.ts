@@ -229,7 +229,7 @@ export class FilterManager {
 
         if (state) {
             this.state = state
-            console.log(state)
+            // console.log(state)
             // this.state.folders = new Set(this.state.folders)
             this.recursiveRegister(this.state.filter)
         } else {

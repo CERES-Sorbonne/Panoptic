@@ -274,9 +274,9 @@ function toggleGroupSelect(groupId: string) {
 
 
 onMounted(computeLines)
-onMounted(() => {
-    console.log(props.height, props.width)
-})
+// onMounted(() => {
+//     console.log(props.height, props.width)
+// })
 // onMounted(() => updateListWindow(0, 100))
 
 // watch(() => props.data, () => {
