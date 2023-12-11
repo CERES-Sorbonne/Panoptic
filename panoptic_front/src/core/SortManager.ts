@@ -9,11 +9,6 @@ import { PropertyType } from "@/data/models2"
 import { globalStore } from "@/data/store"
 import { reactive } from "vue"
 
-// export enum SortType {
-//     Number = 'number',
-//     Value = 'value'
-// }
-
 export enum SortOrder {
     Ascending = 'asc',
     Descending = 'desc'
@@ -51,39 +46,39 @@ export function buildSortOption(): SortOption {
 
 const safeParser: { [type in PropertyType]?: any } = {
     [PropertyType.checkbox]: (x?: boolean) => {
-        if(!x) return false
+        if (!x) return false
         return true
     },
     [PropertyType.color]: (x?: number) => {
-        if(isNaN(x)) return -1
+        if (isNaN(x)) return -1
         return x
     },
     [PropertyType.date]: (x?: Date) => {
-        if(!x) return 0
+        if (!x) return 0
         return x.getTime()
     },
     [PropertyType.multi_tags]: (x?: number[]) => {
-        if(!x) return 0
+        if (!x) return 0
         return x.length
     },
     [PropertyType.number]: (x?: number) => {
-        if(x == undefined) return Number.NEGATIVE_INFINITY
+        if (x == undefined) return Number.NEGATIVE_INFINITY
         return x
     },
     [PropertyType.path]: (x?: string) => {
-        if(!x) return ''
+        if (!x) return ''
         return x
     },
     [PropertyType.string]: (x?: string) => {
-        if(!x) return ''
+        if (!x) return ''
         return x
     },
     [PropertyType.tag]: (x?: string) => {
-        if(!x) return ''
+        if (!x) return ''
         return x
     },
     [PropertyType.url]: (x?: string) => {
-        if(!x) return ''
+        if (!x) return ''
         return x
     },
     [PropertyType._ahash]: (x: string) => {
@@ -101,8 +96,8 @@ function getSortablePropertyValue(image: Image, property: Property) {
     let value = image.properties[property.id]?.value
     const type = property.type
 
-    if(type == PropertyType.tag) {
-        if(Array.isArray(value) && value.length > 0) {
+    if (type == PropertyType.tag) {
+        if (Array.isArray(value) && value.length > 0) {
             value = globalStore.tags[property.id][value[0]].value
         } else {
             value = undefined
@@ -119,10 +114,10 @@ export class SortManager {
 
     constructor(state?: SortState) {
         this.state = state
-        if(!this.state) {
+        if (!this.state) {
             this.state = createSortState()
         }
-        
+
         this.result = reactive({
             images: [],
             order: {}
@@ -133,9 +128,9 @@ export class SortManager {
         const sortable = this.getSortableImages(images)
         const order = this.state.sortBy.map(id => this.state.options[id].order == SortOrder.Ascending ? 1 : -1)
         sortable.sort((a, b) => {
-            for(let i = 0; i < a.values.length; i++) {
-                if(a.values[i] == b.values[i]) continue
-                if(a.values[i] < b.values[i]) return -1 * order[i]
+            for (let i = 0; i < a.values.length; i++) {
+                if (a.values[i] == b.values[i]) continue
+                if (a.values[i] < b.values[i]) return -1 * order[i]
                 return 1 * order[i]
             }
             return a.imageId - b.imageId
@@ -143,7 +138,7 @@ export class SortManager {
         this.result.images = []
         this.result.order = {}
 
-        for(let i = 0; i < sortable.length; i++) {
+        for (let i = 0; i < sortable.length; i++) {
             this.result.images.push(globalStore.images[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
@@ -151,10 +146,11 @@ export class SortManager {
     }
 
     setSort(propertyId: number, option?: SortOption) {
-        if (!option) {
+        if (option) {
+            this.state.options[propertyId] = option
+        } else if (!option && this.state.options[propertyId] == undefined) {
             option = buildSortOption()
         }
-        this.state.options[propertyId] = option
 
         if (this.state.sortBy.includes(propertyId)) return
         this.state.sortBy.push(propertyId)
@@ -171,8 +167,8 @@ export class SortManager {
         const res = []
         const properties = this.state.sortBy.map(id => globalStore.properties[id])
 
-        for(const image of images) {
-            const sortable: SortableImage = {imageId: image.id, values: []}
+        for (const image of images) {
+            const sortable: SortableImage = { imageId: image.id, values: [] }
             properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p)))
             res.push(sortable)
         }
