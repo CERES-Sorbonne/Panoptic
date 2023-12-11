@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { globalStore } from '@/data/store';
-import { computed, reactive } from 'vue';
-import PropertySelection from '../inputs/PropertySelection.vue';
-import { PropertyType, Sort } from '@/data/models';
+import { computed } from 'vue';
+import { PropertyType } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
-import { SortManager } from '@/core/SortManager';
+import { SortManager, SortOrder } from '@/core/SortManager';
 
 
 const props = defineProps({
-    // sortList: Array<Sort>,
     manager: SortManager
 })
 
@@ -17,7 +15,7 @@ const sortList = computed(() => {
     return props.manager.state.sortBy.map(s => {
         return {
             property_id: s,
-            ascending: true,
+            ascending: props.manager.state.options[s].order == SortOrder.Ascending,
             isGroup: false,
             byGroupSize: false
         }
@@ -27,21 +25,15 @@ const sortList = computed(() => {
 const selectedIds = computed(() => sortList.value.map(p => p.property_id))
 
 function addSort(propertyId: number) {
-    // props.sortList.push({
-    //     property_id: property_id,
-    //     ascending: true
-    // })
     props.manager.setSort(propertyId)
 }
 
 function delSort(propertyId: number) {
-    // const sort = props.sortList[index]
-    // if (sort.isGroup) {
-    //     return
-    // }
-    // props.sortList.splice(index, 1)
-    console.log('del sort')
     props.manager.delSort(propertyId)
+}
+
+function setOrder(propertyId: number, order: SortOrder) {
+    props.manager.setSort(propertyId, {order})
 }
 
 
@@ -78,10 +70,10 @@ function delSort(propertyId: number) {
                 </template>
                 <!-- <i class="me-1"></i> -->
                 <wTT v-if="sort.ascending" message="main.menu.sort.order_asc">
-                    <i class="bi bi-arrow-up sm-btn" @click="sort.ascending = false"></i>
+                    <i class="bi bi-arrow-up sm-btn" @click="setOrder(sort.property_id, SortOrder.Descending)"></i>
                 </wTT>
                 <wTT v-else message="main.menu.sort.order_desc">
-                    <i class="bi bi-arrow-down sm-btn" @click="sort.ascending = true"></i>
+                    <i class="bi bi-arrow-down sm-btn" @click="setOrder(sort.property_id, SortOrder.Ascending)"></i>
                 </wTT>
             </template>
         </div>
