@@ -220,7 +220,6 @@ export class FilterManager {
     state: FilterState
     result: FilterResult
 
-    // filter: FilterGroup
     filterIndex: { [filterId: number]: AFilter }
 
     constructor(state?: FilterState) {
@@ -229,8 +228,6 @@ export class FilterManager {
 
         if (state) {
             this.state = state
-            // console.log(state)
-            // this.state.folders = new Set(this.state.folders)
             this.recursiveRegister(this.state.filter)
         } else {
             this.initFilterState()
@@ -265,11 +262,6 @@ export class FilterManager {
             return reactiveGroup
         }
 
-        // if (this.filter == undefined) {
-        //     this.filter = reactive(group)
-        //     this.registerFilter(this.filter)
-        //     return this.filter
-        // }
         const mainFilter = this.state.filter
         mainFilter.filters.push(group)
         const reactiveGroup = mainFilter.filters[mainFilter.filters.length - 1]
@@ -316,15 +308,9 @@ export class FilterManager {
         const newFilter = this.createFilter(propertyId)
         newFilter.id = filter.id
         Object.assign(filter, newFilter)
-        // this.filterIndex[filter.id] = filter
     }
 
-    private initFilterState() {
-        const state = createFilterState()
-        this.state = state
-        this.registerFilter(this.state.filter)
-    }
-
+    // used to remove properties that doesnt exist anymore from filters 
     public verifyFilter() {
         const recurive = (group: FilterGroup) => {
             const toRem = new Set()
@@ -342,6 +328,12 @@ export class FilterManager {
             group.filters = group.filters.filter(f => !toRem.has(f.id))
         }
         recurive(this.state.filter)
+    }
+
+    private initFilterState() {
+        const state = createFilterState()
+        this.state = state
+        this.registerFilter(this.state.filter)
     }
 
     private registerFilter(filter: AFilter) {

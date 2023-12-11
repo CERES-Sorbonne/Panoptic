@@ -111,6 +111,7 @@ export const apiUpdateTab = async(tab: Tab) => {
     const toSend = Object.assign({}, tab)
     toSend.data = Object.assign({}, tab.data)
     delete toSend.data.filterManager
+    delete toSend.data.sortManager
     let res = await axios.patch('/tab', toSend)
     return res.data
 }
