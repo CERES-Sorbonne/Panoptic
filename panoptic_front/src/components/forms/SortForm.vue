@@ -5,28 +5,46 @@ import PropertySelection from '../inputs/PropertySelection.vue';
 import { PropertyType, Sort } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
+import { SortManager } from '@/core/SortManager';
 
 
 const props = defineProps({
-    sortList: Array<Sort>
+    // sortList: Array<Sort>,
+    manager: SortManager
 })
 
-const selectedIds = computed(() => props.sortList.map(p => p.property_id))
-
-function addSort(property_id: number) {
-    props.sortList.push({
-        property_id: property_id,
-        ascending: true
+const sortList = computed(() => {
+    return props.manager.state.sortBy.map(s => {
+        return {
+            property_id: s,
+            ascending: true,
+            isGroup: false,
+            byGroupSize: false
+        }
     })
+})
+
+const selectedIds = computed(() => sortList.value.map(p => p.property_id))
+
+function addSort(propertyId: number) {
+    // props.sortList.push({
+    //     property_id: property_id,
+    //     ascending: true
+    // })
+    props.manager.setSort(propertyId)
 }
 
-function delSort(index: number) {
-    const sort = props.sortList[index]
-    if (sort.isGroup) {
-        return
-    }
-    props.sortList.splice(index, 1)
+function delSort(propertyId: number) {
+    // const sort = props.sortList[index]
+    // if (sort.isGroup) {
+    //     return
+    // }
+    // props.sortList.splice(index, 1)
+    console.log('del sort')
+    props.manager.delSort(propertyId)
 }
+
+
 
 </script>
 
@@ -34,9 +52,9 @@ function delSort(index: number) {
     <div class="d-flex flex-row sort-form">
         <div class="pt-1 pb-1">{{$t("main.menu.sort.title")}}</div>
         <div class="d-flex flex-row m-0 p-0 bg-medium bg ms-1 align-items-center" v-if="sortList.length">
-            <template v-for="sort, index in props.sortList">
+            <template v-for="sort, index in sortList">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
-                <div class="me-0 ms-1 ps-1 mt-1 mb-1 pe-1" @click="delSort(index)"
+                <div class="me-0 ms-1 ps-1 mt-1 mb-1 pe-1" @click="delSort(sort.property_id)"
                     :class="sort.isGroup ? 'text-secondary' : '  base-hover '">
                     {{ globalStore.properties[sort.property_id].name }}
                 </div>

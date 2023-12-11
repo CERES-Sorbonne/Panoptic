@@ -152,8 +152,9 @@ async function computeGroups(force = false) {
     // groupData.order = []
 
     // sortGroups()
-    sortGroupData(data, sorts.value, sha1Mode.value)
+    // sortGroupData(data, sorts.value, sha1Mode.value)
     Object.assign(groupData, data)
+    sortGroups()
 
     console.timeEnd('compute groups')
 
@@ -172,10 +173,16 @@ function sortGroups() {
     groupData.order = []
     sortGroupTree(groupData.root, groupData.order, sortIndex)
 
+    const sortManager = props.tab.data.sortManager
+    sortManager.sort(filteredImages.value)
+    const order = sortManager.result.order
+
+
     Object.keys(groupData.index).forEach(key => {
         const group = groupData.index[key]
         if (Array.isArray(group.images) && group.images.length > 0) {
-            sortImages(group.images, sorts.value.slice(groups.value.length))
+            // sortImages(group.images, sorts.value.slice(groups.value.length))
+            group.images.sort((a,b) => order[a.id] - order[b.id])
             if (props.tab.data.sha1Mode) {
                 imagesToSha1Piles(group)
             }
@@ -256,7 +263,7 @@ watch(groups, async () => {
     safeComputeGroups(true)
 }, { deep: true })
 
-watch(sorts, async () => {
+watch(() => props.tab.data.sortManager.state, async () => {
     await nextTick()
     if (_group_recompute_flag) return
     // console.log('watch sort')

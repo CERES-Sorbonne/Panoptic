@@ -1,5 +1,6 @@
 // import { FilterManager } from "@/utils/filter";
 import { FilterManager, FilterState, createFilterState } from "@/core/FilterManager";
+import { SortManager, SortState, createSortState } from "@/core/SortManager";
 import { ComputedRef } from "vue";
 
 export enum PropertyType {
@@ -340,7 +341,10 @@ export interface TabState {
     display: string
     filter: FilterGroup,
     filterState: FilterState
+    // TODO: remove from TabState
     filterManager?: FilterManager,
+    sortState: SortState,
+    sortManager?: SortManager
     groups: Array<number>
     sortList: Array<Sort>
     imageSize: number
@@ -471,6 +475,7 @@ export function buildTabState(): TabState{
         display: 'tree',
         filter: buildFilterGroup(),
         filterState: createFilterState(),
+        sortState: createSortState(),
         groups: [],
         sortList: [],
         imageSize: 100,

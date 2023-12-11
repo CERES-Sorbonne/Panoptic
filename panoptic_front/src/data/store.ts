@@ -11,6 +11,7 @@ import {
 import { MAX_GROUPS } from '@/utils/groups'
 import { getFolderAndParents, isTagId } from '@/utils/utils'
 import { FilterManager } from '@/core/FilterManager'
+import { SortManager } from '@/core/SortManager'
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -38,6 +39,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let tab = await apiAddTab({ name: tabName, data: state }) as Tab
 
         tab.data.filterManager = new FilterManager(tab.data.filterState)
+        tab.data.sortManager = new SortManager(tab.data.sortState)
         this.tabs[tab.id] = tab
         this.selectedTab = tab.id
     },
@@ -82,6 +84,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             t.data.filterState = filterManager.state
             // console.log(t.data.filterState)
             t.data.filterManager = filterManager
+            t.data.sortManager = new SortManager(t.data.sortState)
+            t.data.sortState = t.data.sortManager.state
         })
 
         if (tabs.length == 0) {
