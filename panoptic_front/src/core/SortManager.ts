@@ -130,13 +130,13 @@ export class SortManager {
     }
 
     sort(images: Image[]): SortResult {
-        console.log('sort')
         const sortable = this.getSortableImages(images)
+        const order = this.state.sortBy.map(id => this.state.options[id].order == SortOrder.Ascending ? 1 : -1)
         sortable.sort((a, b) => {
             for(let i = 0; i < a.values.length; i++) {
                 if(a.values[i] == b.values[i]) continue
-                if(a.values[i] < b.values[i]) return -1
-                return 1
+                if(a.values[i] < b.values[i]) return -1 * order[i]
+                return 1 * order[i]
             }
             return a.imageId - b.imageId
         })
@@ -151,7 +151,6 @@ export class SortManager {
     }
 
     setSort(propertyId: number, option?: SortOption) {
-        console.log('set sort')
         if (!option) {
             option = buildSortOption()
         }
