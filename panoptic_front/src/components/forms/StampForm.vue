@@ -23,13 +23,13 @@ const properties = computed(() => {
 })
 
 const propertyColor = computed(() => {
-    const res = {} as {[pId: number]: String}
+    const res = {} as { [pId: number]: String }
     properties.value.forEach(p => {
-        if(props.erase.has(p.id)) {
+        if (props.erase.has(p.id)) {
             res[p.id] = 'text-warning'
             return
         }
-        if(props.values[p.id] == undefined) {
+        if (props.values[p.id] == undefined) {
             res[p.id] = 'text-secondary'
             return
         }
@@ -62,24 +62,23 @@ function test() {
         <tbody style="border-top: 1px solid var(--border-color)">
             <tr v-for="property in properties" style="min-height: 20px;">
                 <template v-if="property.id >= 0">
-                    <td style="line-height: 20px;"
-                        :class="propertyColor[property.id]" class="text-nowrap">
-                        <PropertyIcon :type="property.type"/>
+                    <td style="line-height: 20px;" :class="propertyColor[property.id]" class="text-nowrap">
+                        <PropertyIcon :type="property.type" />
                         {{ property.name }}
                     </td>
                     <template v-if="!props.erase.has(property.id)">
                         <td class="w-100">
                             <TagInputDropdown v-if="isTag(property.type)" v-model="props.values[property.id]"
                                 :property="property" :can-create="true" :auto-focus="true"
-                                style="min-height: 20px; line-height: 20px;" @hide="emits('blur')"/>
+                                style="min-height: 20px; line-height: 20px;" @hide="emits('blur')" />
                             <StandaloneColorPropInput v-else-if="property.type == PropertyType.color"
-                                v-model="props.values[property.id]" style="height: 20px; line-height: 20px;" @blur="emits('blur')"/>
+                                v-model="props.values[property.id]" style="height: 20px; line-height: 20px;"
+                                @blur="emits('blur')" />
                             <StandaloneTextInput
                                 v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == property.type)"
                                 :no-html="true" v-model="props.values[property.id]" :width="-1" :min-height="20"
                                 :no-nl="property.type == PropertyType.number" :url-mode="property.type == PropertyType.url"
-                                :only-number="property.type == PropertyType.number" 
-                                @blur="emits('blur')" />
+                                :only-number="property.type == PropertyType.number" @blur="emits('blur')" />
                             <StandaloneDateInput v-else-if="property.type == PropertyType.date"
                                 v-model="props.values[property.id]" @blur="emits('blur')" />
                             <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" /> -->
@@ -88,14 +87,19 @@ function test() {
                         </td>
                         <td v-if="props.values[property.id] == undefined">
                             <wTT message="modals.tagging.erase_tooltip">
-                                <i class="bi bi-trash base-btn" @click="erase.add(property.id)"/>
+                                <i class="bi bi-trash base-btn" @click="erase.add(property.id)" />
                             </wTT>
                         </td>
-                        <td v-else><i class="bi bi-arrow-counterclockwise base-btn" @click="delete props.values[property.id]"></i></td>
+                        <td v-else>
+                            <wTT message="modals.tagging.erase_tooltip">
+                                <i class="bi bi-arrow-counterclockwise base-btn"
+                                    @click="delete props.values[property.id]"></i>
+                            </wTT>
+                        </td>
                     </template>
                     <template v-else>
                         <td class="text-warning">{{ $t("modals.tagging.erase") }}</td>
-                        <td >
+                        <td>
                             <wTT message="modals.tagging.cancel_tooltip">
                                 <i class="bi bi-arrow-counterclockwise base-btn" @click="erase.delete(property.id)"></i>
                             </wTT>
