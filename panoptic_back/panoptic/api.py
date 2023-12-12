@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from sys import platform
 from typing import Optional
 
@@ -247,8 +248,15 @@ async def get_image(file_path: str):
     return Response(content=data, media_type="image/" + ext)
 
 
+if getattr(sys, 'frozen', False):
+    # Le programme est exécuté en mode fichier unique
+    BASE_PATH = sys._MEIPASS
+else:
+    # Le programme est exécuté en mode script
+    BASE_PATH = os.path.dirname(__file__)
+
 # app.mount("/small/images/", StaticFiles(directory=os.path.join('PANOPTIC_DATA', 'mini')), name="static")
-app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
+app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
 
 class EndpointFilter(logging.Filter):

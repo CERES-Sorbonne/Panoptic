@@ -1,5 +1,6 @@
 import argparse
 import json
+import multiprocessing
 import os
 import pathlib
 import socket
@@ -394,4 +395,7 @@ def start():
 
 
 if __name__ == '__main__':
+    # avoid a bug with multiprocessing and pyinstaller on windows
+    if sys.platform == "win32":
+        multiprocessing.freeze_support()
     start()
