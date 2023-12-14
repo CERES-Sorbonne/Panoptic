@@ -31,7 +31,6 @@ async def launch():
         sha1.update(data)
 
     sha1 = sha1.hexdigest()
-    print(sha1)
 
     image = Image.open('tmp.jpg')
     sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()

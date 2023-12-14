@@ -284,7 +284,7 @@ async def export_properties(images_id=None, properties_list=None) -> io.StringIO
 
 async def add_folder(folder):
     found = await importer.import_folder(folder)
-    print(f'found {found} images')
+    logging.info(f'found {found} images')
     return folder
 
 
@@ -340,7 +340,6 @@ async def update_tag(payload: UpdateTagPayload) -> Tag:
 
 
 async def delete_tag(tag_id: int) -> List[int]:
-    print('delete tag from values')
     # first delete the tag
     modified_tags = [await db.delete_tag_by_id(tag_id)]
     # when deleting a tag, get all children of this tag
@@ -361,7 +360,6 @@ async def delete_tag(tag_id: int) -> List[int]:
 
 
 async def delete_tag_parent(tag_id: int, parent_id: int) -> List[int]:
-    print(tag_id, parent_id)
     tag = await db.get_tag_by_id(tag_id)
     tag.parents.remove(parent_id)
     if not tag.parents:
