@@ -52,7 +52,7 @@ function onResize() {
 }
 
 function showModal(){
-    globalStore.showModal(Modals.EXPORT, filteredImages)
+    globalStore.showModal(Modals.FOLDERTOPROP)
 }
 
 function reRender(){
@@ -82,7 +82,7 @@ function reRender(){
         </div>
         <ImageModal :id="Modals.IMAGE" />
         <PropertyModal :id="Modals.PROPERTY" />
-        <FolderToPropertyModal :id="Modals.FOLDERTOPROP" />
+        <FolderToPropertyModal :id="Modals.FOLDERTOPROP"/>
         <ExportModal :id="Modals.EXPORT"/>
 
         

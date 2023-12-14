@@ -74,7 +74,6 @@ class ImportImageQueue(ProcessQueue):
         super().add_task(task)
 
     async def _process_task(self, task: ImageImportTask):
-        # print('process: ', task.image_path, task.folder_id)
         name = task.image_path.split(os.sep)[-1]
         extension = name.split('.')[-1]
         folder_id = task.folder_id
@@ -123,7 +122,7 @@ class ComputeVectorsQueue(ProcessQueue):
         res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
         del vector
         # gc.collect()
-        print('computed image: ', image_id, '  :  ', res.sha1)
+        logging.info('computed image: ', image_id, '  :  ', res.sha1)
         return res
 
     @staticmethod

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 
-import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
-import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
-
+import FileExplorer from './FileExplorer.vue';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -49,20 +47,18 @@ onMounted(() => {
 
 <template>
     <div class="modal fade text-dark modal-m" role="dialog" ref="modalElem">
-        <div class="modal-dialog">
+        <div class="modal-dialog" style="max-width: none;width: 90vw;height: 85vh">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header m-0 p-2 ps-3 pe-3">
-                    <b class="modal-title" id="exampleModalLabel">Nouvelle propriété</b>
+                    <b class="modal-title" id="exampleModalLabel">Choisir un dossier d'images à ajouter</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    test
-                </div>
-                <div class="modal-footer pt-2 pb-2">
-                    <button type="button" @click="hide">Anuler</button>
+                    <FileExplorer />
                 </div>
             </div>
         </div>
+        <!-- <vue-finder id='my_vuefinder' url="http://localhost:8000/finder"></vue-finder> -->
     </div>
 </template>
 

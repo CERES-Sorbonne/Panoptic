@@ -1,12 +1,15 @@
+import glob
 import logging
 import os
+import pathlib
 import sys
 from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-from fastapi import FastAPI, UploadFile
+import psutil
+from fastapi import FastAPI, UploadFile, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -92,7 +95,6 @@ async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
             file_path = '/' + file_path
-    # print(file_path)
     async with aiofiles.open(file_path, 'rb') as f:
         data = await f.read()
 
@@ -247,6 +249,55 @@ async def get_image(file_path: str):
     # # media_type here sets the media type of the actual response sent to the client.
     return Response(content=data, media_type="image/" + ext)
 
+
+class VueFinder:
+    def list_root(self):
+        files = []
+        partitions = psutil.disk_partitions()
+        for partition in partitions:
+            files.append({
+                'path': partition.mountpoint,
+                'extension': 'disk',
+                'name': partition.mountpoint,
+                'images': len(self.images_in_folder(partition.mountpoint))
+            })
+        files += [x for x in self.list_contents(pathlib.Path.home()) if x['name'] in ['Documents', 'Downloads', 'Desktop', 'Images', 'Pictures']]
+        return files
+
+    def list_contents(self, full_path):
+        contents = [x for x in os.listdir(full_path) if not x.startswith('$') and not x.startswith('.')]
+        result = []
+        for item in contents:
+            item_path = os.path.join(full_path, item)
+            if os.path.isdir(item_path):
+                result.append({
+                    'path': item_path,
+                    'extension': 'dir' if os.path.isdir(item_path) else item.split('.')[-1],
+                    'name': item,
+                    'images': len(self.images_in_folder(item_path))
+                })
+        return result
+
+    def index(self, path="/"):
+        if path == "/":
+            return self.list_root()
+        else:
+            return self.list_contents(path)
+
+    def images_in_folder(self, folder_path):
+        types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types
+        image_files = []
+        for type_ in types:
+            image_files.extend(glob.glob(os.path.join(folder_path, type_)))
+
+        return image_files
+
+vue_finder = VueFinder()
+
+
+@app.get("/index")
+def api(path: str = Query("/"), name: str = Query(None)):
+    return vue_finder.index(path)
 
 if getattr(sys, 'frozen', False):
     # Le programme est exécuté en mode fichier unique

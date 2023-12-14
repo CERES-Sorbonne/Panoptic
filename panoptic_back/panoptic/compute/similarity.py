@@ -7,7 +7,9 @@ import pickle
 import faiss
 import numpy as np
 from faiss import index_factory
+from scipy.stats import hmean
 from sklearn.cluster import DBSCAN, KMeans, estimate_bandwidth, MeanShift
+from sklearn.metrics import silhouette_score
 from sklearn.neighbors import KDTree
 
 from panoptic.compute.transform import transformer
@@ -123,7 +125,10 @@ def make_clusters(images: list[ComputedValue], *, method='kmeans', **kwargs) -> 
         # sort by average_hash
         # sorted_cluster = [sha1 for _, sha1 in sorted(zip(ahashs_clusters, sha1_clusters))]
         if distances is not None:
-            res_distances.append(np.mean(distances[clusters == cluster]))
+            # clusters_distances = distances[clusters == cluster]
+            # max_distance = np.max(clusters_distances)
+            # clusters_distances / max_distance
+            res_distances.append(hmean(distances[clusters == cluster]))
         res_clusters.append(list(sha1_clusters))
     # sort clusters by distances
     # TODO: trouver un meilleur indicateur que juste la moyenne des distances ?
@@ -143,11 +148,20 @@ def _make_clusters_kmeans(vectors, nb_clusters=6, *args, **kwargs) -> np.ndarray
 
 
 def _make_clusters_faiss(vectors, nb_clusters=6, *args, **kwargs) -> (np.ndarray, np.ndarray):
+    def _make_single_kmean(vectors, nb_clusters):
+        kmean = faiss.Kmeans(vectors.shape[1], nb_clusters, niter=20, verbose=False)
+        kmean.train(vectors)
+        return kmean.index.search(vectors, 1)
     vectors = np.asarray(vectors)
-    kmean = faiss.Kmeans(vectors.shape[1], nb_clusters, niter=20, verbose=False)
-    kmean.train(vectors)
-    distances, indices = kmean.index.search(vectors, 1)
-    return np.asarray([item for sublist in indices for item in sublist]), np.asarray([item for sublist in distances for item in sublist])
+    if nb_clusters == 0:
+        k_silhouettes = []
+        for k in range(3, 30):
+            distances, indices = _make_single_kmean(vectors, k)
+            indices = indices.flatten()
+            k_silhouettes.append(silhouette_score(vectors, indices))
+        nb_clusters = int(np.argmax(k_silhouettes)) + 3
+    distances, indices = _make_single_kmean(vectors, nb_clusters)
+    return indices.flatten(), distances.flatten()
 
 
 def _make_clusters_meanshift(vectors, *args, **kwargs) -> np.ndarray:

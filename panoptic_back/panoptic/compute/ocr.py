@@ -47,7 +47,6 @@ tess_config = "-c tessedit_char_blacklist='+=*;)(][\{\}@/|_^\\#~&'"
 #
 #
 # def _remove_noise(img):
-#     print(img.shape)
 #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 #     return cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 15)
 
