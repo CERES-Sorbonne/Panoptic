@@ -153,13 +153,13 @@ watch(() => filter.value?.operator, () => {
                             <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
                                 :property="filterProperty" v-model="localValue" @update:model-value="() => {hide(); onBlur()}" />
                             <StandaloneTextInput
-                                v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == globalStore.properties[filter.propertyId].type)"
+                                v-else
                                 :no-html="true" v-model="localValue" :width="-1" :min-height="20"
                                 :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number"
                                 :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
                                 :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number"
                                 @blur="onBlur" :auto-focus="true" ref="inputElem" />
-                            <PropertyInput2 v-else :type="filterProperty.type" v-model="localValue" />
+                            <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="localValue" /> -->
                         </div>
                     </div>
                 </template>
