@@ -2,7 +2,8 @@
     "main": {
         "nav": {
             "folders": {
-                "title": "Folders"
+                "title": "Folders",
+                "add": "Add an images folder"
             },
             "properties": {
                 "title": "Properties",
@@ -69,6 +70,9 @@
         }
     },
     "modals": {
+        "add_folder": {
+            "title": "Select the folder you want to add images from"
+        },
         "image": {
             "similar_images": "Similar images",
             "similar_images_tooltip": "Images considered to be visually and/or semantically close to the current image using the KDTree algorithm and image vectors",

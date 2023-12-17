@@ -223,7 +223,7 @@ export enum Modals {
     IMAGE = 'image',
     PROPERTY = 'property',
     SHA1PILE = 'sha1pile',
-    FOLDERTOPROP = 'folder_to_property',
+    FOLDERSELECTION = 'folder_selection',
     EXPORT = "export"
 }
 

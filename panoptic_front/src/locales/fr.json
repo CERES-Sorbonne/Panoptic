@@ -2,7 +2,8 @@
     "main": {
         "nav": {
             "folders": {
-                "title": "Dossiers"
+                "title": "Dossiers",
+                "add": "Ajouter un dossier d'images"
             },
             "properties": {
                 "title": "Propriétés",
@@ -69,6 +70,9 @@
         }
     },
     "modals": {
+        "add_folder": {
+            "title": "Choisir un dossier d'images à ajouter"
+        },
         "image": {
             "similar_images": "Images similaires",
             "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",

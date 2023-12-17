@@ -50,7 +50,7 @@ onMounted(() => {
         <div class="modal-dialog" style="max-width: none;width: 90vw;height: 85vh">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header m-0 p-2 ps-3 pe-3">
-                    <b class="modal-title" id="exampleModalLabel">Choisir un dossier d'images à ajouter</b>
+                    <b class="modal-title" id="exampleModalLabel">{{$t('modals.add_folder.title')}}</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -58,7 +58,6 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <!-- <vue-finder id='my_vuefinder' url="http://localhost:8000/finder"></vue-finder> -->
     </div>
 </template>
 
