@@ -37,7 +37,7 @@ onMounted(() => {
 
 <template>
     <div class="d-flex flex-row group-form">
-        <div class="pt-1 pb-1">{{ $t('main.menu.groupby') }}</div>
+        <div class="pt-1 pb-1">{{ $t('main.menu.groupby') }}: </div>
         <div class="bg-medium bg d-flex flex-row m-0 ms-1 p-0" v-if="selectedProperties.length">
             <template v-for="property, index in selectedProperties">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>

@@ -24,14 +24,14 @@ const fullHover = ref(false)
 const tab = computed(() => globalStore.tabs[globalStore.selectedTab])
 const propertyVisible = computed(() => tab.value.data.visibleProperties[props.property.id] == true)
 
-const isInFilter = computed(() => tab.value.data.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
-const isInGroups = computed(() => tab.value.data.groups.includes(props.property.id))
-const isInSort = computed(() => tab.value.data.sortList.some(s => s.property_id == props.property.id))
+const isInFilter = computed(() => tab.value.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
+const isInGroups = computed(() => tab.value.collection.groupManager.state.groupBy.includes(props.property.id))
+const isInSort = computed(() => tab.value.collection.sortManager.state.sortBy.includes(props.property.id))
 const filterId = computed(() => {
     if (!isInFilter.value) return undefined
-    return tab.value.data.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
+    return tab.value.collection.filterManager.state.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
 })
-const filterManager = () => tab.value.data.filterManager
+const filterManager = () => tab.value.collection.filterManager
 const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
 
 function toggleVisible() {
@@ -64,45 +64,22 @@ function toggleValuesMenu() {
     optionsOpen.value = false
 }
 
-function setFilter() {
-    const filterGroup = globalStore.getTab().data.filter
-    const index = filterGroup.filters.findIndex((f) => !f.isGroup && (f as Filter).propertyId == props.property.id)
-    if (index >= 0) {
-        filterGroup.filters.splice(index, 1)
-    }
-    else {
-        filterGroup.filters.push({
-            propertyId: props.property.id,
-            operator: availableOperators(props.property.type)[0],
-            value: defaultOperator(props.property.type),
-            isGroup: false
-        } as Filter)
-    }
-}
-
 function setSort() {
-    const sort = globalStore.getTab().data.sortList
-    const index = sort.findIndex(f => f.property_id == props.property.id)
-    if (index >= 0) {
-        sort.splice(index, 1)
+    if(!isInSort.value) {
+        tab.value.collection.sortManager.setSort(props.property.id)
+    } else {
+        tab.value.collection.sortManager.delSort(props.property.id)
     }
-    else {
-        sort.push({
-            property_id: props.property.id,
-            ascending: true
-        })
-    }
+    tab.value.collection.sortManager.update(true)
 }
 
 function setGroup() {
-    const groups = globalStore.getTab().data.groups
-    const index = groups.indexOf(props.property.id)
-    if (index >= 0) {
-        groups.splice(index, 1)
+    if(!isInGroups.value) {
+        tab.value.collection.groupManager.setGroupOption(props.property.id)
+    } else {
+        tab.value.collection.groupManager.delGroupOption(props.property.id)
     }
-    else {
-        globalStore.addGrouping(props.property.id)
-    }
+    tab.value.collection.groupManager.update(true)
 }
 
 function deleteProperty() {

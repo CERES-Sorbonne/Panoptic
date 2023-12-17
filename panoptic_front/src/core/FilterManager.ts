@@ -5,7 +5,7 @@
  * Images are first filtered by folders then by properties
  */
 
-import { Filter, Image, FilterGroup, PropertyType, AFilter, propertyDefault, isTag } from "@/data/models";
+import { Filter, Image, FilterGroup, PropertyType, AFilter, propertyDefault, isTag, availableOperators } from "@/data/models";
 import { globalStore } from "@/data/store";
 import { EventEmitter, getTagChildren } from "@/utils/utils";
 import { reactive } from "vue";
@@ -18,6 +18,12 @@ export interface FilterState {
 
 export interface FilterResult {
     images: Image[]
+}
+
+export interface FilterUpdate {
+    propertyId?: number
+    operator?: FilterOperator
+    value?: any
 }
 
 export enum FilterOperator {
@@ -222,6 +228,7 @@ export class FilterManager {
 
     filterIndex: { [filterId: number]: AFilter }
 
+    lastImages: Image[]
     onChange: EventEmitter
 
     constructor(state?: FilterState) {
@@ -241,17 +248,24 @@ export class FilterManager {
 
     filter(images: Image[], emit?: boolean) {
         console.time('Filter')
+        this.lastImages = images
         let filtered = images
-        if(this.state.folders.length > 0) {
+        if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
             filtered = filtered.filter(img => folderSet.has(img.folder_id))
         }
         this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter))
         console.timeEnd('Filter')
 
-        if(emit) this.onChange.emit(this.result)
+        if (emit) this.onChange.emit(this.result)
 
         return this.result
+    }
+
+    update(emit?: boolean) {
+        if (!this.lastImages) return
+        this.filter(this.lastImages)
+        if (emit) this.onChange.emit(this.result)
     }
 
     setFolders(folderIds: number[]) {
@@ -310,9 +324,29 @@ export class FilterManager {
         delete this.filterIndex[filterId]
     }
 
-    changeFilter(filterId: number, propertyId: number) {
+
+
+    updateFilter(filterId: number, update: FilterUpdate) {
         if (this.filterIndex[filterId] == undefined || this.filterIndex[filterId].isGroup) return
         const filter = this.filterIndex[filterId] as Filter
+
+        if(update.propertyId != undefined) {
+            this.changeFilter(filter, update.propertyId)
+        }
+
+        const type = globalStore.properties[filter.propertyId].type
+        if(update.operator != undefined && availableOperators(type).includes(update.operator)) {
+            filter.operator = update.operator
+        }
+
+        if(update.value) {
+            filter.value = update.value
+        } else {
+            filter.value = propertyDefault(type)
+        }
+    }
+
+    private changeFilter(filter: Filter, propertyId: number) {
         const newFilter = this.createFilter(propertyId)
         newFilter.id = filter.id
         Object.assign(filter, newFilter)

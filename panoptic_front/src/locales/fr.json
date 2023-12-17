@@ -40,10 +40,10 @@
             "selected_images": "images sélectionnées",
             "tag_selection": "Tagger les ",
             "remove_selection_tooltip": "Annuler la sélection",
-            "filters": "Filtrer: ",
-            "groupby": "Grouper: ",
+            "filters": "Filtrer",
+            "groupby": "Grouper",
             "sort": {
-                "title": "Trier: ",
+                "title": "Trier",
                 "group_order_az_tooltip": "Tri des groupes par nom",
                 "group_order_nb_tooltip": "Tri des groupes par nombre d'images",
                 "order_desc": "Tri par ordre décroissant",
