@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { Filter, FilterGroup, FilterOperator } from '@/data/models';
-import { reactive, watch, computed, ref } from 'vue';
+import { Filter, FilterGroup } from '@/data/models';
+import { watch, computed, ref } from 'vue';
 import FilterGroupInput from './FilterGroupInput.vue';
 import { globalStore } from '@/data/store';
-import * as bootstrap from 'bootstrap'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { FilterManager } from '@/core/FilterManager';
 
 const props = defineProps({
-    // modelValue: Object as () => FilterGroup,
     manager: FilterManager
 })
 
@@ -41,10 +39,6 @@ watch(() => props.manager.state.filter.filters, () => {
         dropdownElem.value.hide()
     }
 })
-
-// watch(() => props.modelValue, () => {
-//     emits('update:modelValue', props.modelValue)
-// }, { deep: true })
 
 </script>
 
