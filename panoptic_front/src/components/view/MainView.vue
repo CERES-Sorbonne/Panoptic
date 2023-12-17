@@ -8,7 +8,7 @@ import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import ContentFilter from './ContentFilter.vue';
 
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { PropertyValue, SortIndex, Tab } from '@/data/models';
+import { Tab } from '@/data/models';
 import { ImageSelector } from '@/utils/selection';
 import { globalStore } from '@/data/store';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
