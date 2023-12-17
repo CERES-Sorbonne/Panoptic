@@ -11,7 +11,7 @@ const props = defineProps({
 
 <template>
     <div class="d-flex flex-row filter-form">
-        <div class="pt-1 pb-1">{{ $t("main.menu.filters") }}</div>
+        <div class="pt-1 pb-1">{{ $t("main.menu.filters") }}: </div>
         <GlobalFilterInputDropdown :model-value="props.manager.filter" :manager="props.manager"/>
       
         <FilterDropdown :manager="props.manager" class="p-1">

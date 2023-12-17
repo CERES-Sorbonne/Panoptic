@@ -55,20 +55,23 @@ function updateScrollerHeight() {
     }
 }
 
-const filteredImages = computed(() => {
-    const filterManager = props.tab.collection.filterManager
-    let images = Object.values(globalStore.images)
+// const filteredImages = computed(() => {
+//     const filterManager = props.tab.collection.filterManager
+//     let images = Object.values(globalStore.images)
 
-    if (searchedImages.value.length > 0) {
-        const sha1ToImage: any = {}
-        images.forEach(image => sha1ToImage[image.sha1] = image)
-        images = searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
-    }
+//     if (searchedImages.value.length > 0) {
+//         const sha1ToImage: any = {}
+//         images.forEach(image => sha1ToImage[image.sha1] = image)
+//         images = searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
+//     }
 
-    filterManager.filter(images)
+//     filterManager.filter(images)
 
-    return filterManager.result.images
-})
+//     return filterManager.result.images
+// })
+
+// TODO put back for export
+const filteredImages = computed(() => [])
 
 props.tab.collection.groupManager.onChange.addListener(() => {
     if(imageList.value) {
@@ -78,11 +81,6 @@ props.tab.collection.groupManager.onChange.addListener(() => {
 
 // on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
 defineExpose({ filteredImages })
-
-async function computeGroups(force = false) {
-    const sortResult = props.tab.collection.sortManager.sort(filteredImages.value)
-    const groupResult = props.tab.collection.groupManager.group(sortResult.images, sortResult.order, true)
-}
 
 function setRecoImages(groupId: string) {
     console.log('set reco', groupId)
@@ -104,8 +102,7 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
-
-onMounted(computeGroups)
+onMounted(() => props.tab.collection.updateImages(Object.values(globalStore.images)))
 onMounted(() => nextTick(updateScrollerHeight))
 onMounted(() => {
     scrollerWidth.value = filterElem.value.clientWidth
@@ -116,15 +113,13 @@ onMounted(() => {
     })
 })
 
-watch(filteredImages, () => computeGroups())
-
 watch(props, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
 
 
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
-watch(() => props.tab.data.sha1Mode, computeGroups)
+// watch(() => props.tab.data.sha1Mode, computeGroups)
 
 
 

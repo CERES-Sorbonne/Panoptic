@@ -47,7 +47,7 @@ function setOrder(propertyId: number, direction: SortDirection) {
 
 <template>
     <div class="d-flex flex-row sort-form">
-        <div class="pt-1 pb-1">{{$t("main.menu.sort.title")}}</div>
+        <div class="pt-1 pb-1">{{$t("main.menu.sort.title")}}: </div>
         <div class="d-flex flex-row m-0 p-0 bg-medium bg ms-1 align-items-center" v-if="sortList.length">
             <template v-for="sort, index in sortList">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
