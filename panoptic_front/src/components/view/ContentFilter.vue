@@ -1,4 +1,9 @@
 <script setup lang="ts">
+
+/** ContentFilter
+ *  Main UI to filter/sort/group a list of image
+ */
+
 import { Tab } from '@/data/models';
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
@@ -15,7 +20,6 @@ const props = defineProps({
     tab: Object as () => Tab,
     computeStatus: Object as () => { groups: boolean },
     selector: ImageSelector,
-    filterManager: FilterManager
 })
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
@@ -61,19 +65,11 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
         </div>
         <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
             @remove:selected="props.selector.clear()" />
-
-        <!-- <div class="ms-5">
-            <button class="me-2" @click="apiStartPCA">PCA</button>
-        </div> -->
-        <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
         <FilterForm :manager="props.tab.collection.filterManager" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
         <SortForm :manager="props.tab.collection.sortManager"/>
-        <!-- <div class="ms-2">
-            <button @click="$emit('compute-ml')">Compute All Groups</button>
-        </div> -->
     </div>
 </template>
 

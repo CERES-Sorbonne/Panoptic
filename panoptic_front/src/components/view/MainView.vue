@@ -1,4 +1,9 @@
 <script setup lang="ts">
+
+/** MainView
+ *  MainView of the open Tab
+ */
+
 import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import ContentFilter from './ContentFilter.vue';
 
@@ -55,26 +60,11 @@ function updateScrollerHeight() {
     }
 }
 
-// const filteredImages = computed(() => {
-//     const filterManager = props.tab.collection.filterManager
-//     let images = Object.values(globalStore.images)
-
-//     if (searchedImages.value.length > 0) {
-//         const sha1ToImage: any = {}
-//         images.forEach(image => sha1ToImage[image.sha1] = image)
-//         images = searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
-//     }
-
-//     filterManager.filter(images)
-
-//     return filterManager.result.images
-// })
-
 // TODO put back for export
 const filteredImages = computed(() => [])
 
 props.tab.collection.groupManager.onChange.addListener(() => {
-    if(imageList.value) {
+    if (imageList.value) {
         imageList.value.computeLines()
     }
 })
@@ -116,24 +106,19 @@ onMounted(() => {
 watch(props, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
-
-
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
-// watch(() => props.tab.data.sha1Mode, computeGroups)
-
-
 
 </script>
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
-            :selector="selector" :filter-manager="props.tab.collection.filterManager" />
+        <ContentFilter :tab="props.tab" :compute-status="computeStatus" @search-images="setSearchedImages"
+            :selector="selector" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">
             <RecommendedMenu :group="recoGroup" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
-                @close="closeReco" @scroll="imageList.scrollTo" @update="nextTick(() => updateScrollerHeight())"/>
+                @close="closeReco" @scroll="imageList.scrollTo" @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
