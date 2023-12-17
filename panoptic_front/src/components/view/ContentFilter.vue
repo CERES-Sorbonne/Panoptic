@@ -10,11 +10,10 @@ import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
 import Toggle from '@vueform/toggle'
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { ImageSelector } from '@/utils/selection';
 import wTT from '../tooltips/withToolTip.vue'
-import { FilterManager } from '@/core/FilterManager';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -69,7 +68,7 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
     <div class="d-flex flex-wrap content-container ps-2">
         <FilterForm :manager="props.tab.collection.filterManager" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
-        <SortForm :manager="props.tab.collection.sortManager"/>
+        <SortForm :manager="props.tab.collection.sortManager" />
     </div>
 </template>
 
@@ -140,4 +139,5 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
     margin-top: 2px;
     margin-right: 4px;
     margin-left: 3px;
-}</style>
+}
+</style>

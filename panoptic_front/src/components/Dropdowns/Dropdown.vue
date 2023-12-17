@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { nextTick, onUnmounted, ref } from 'vue';
 import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
 
@@ -20,7 +20,6 @@ const globalElem = ref(null)
 const boudaryElem = ref(document.getElementsByTagName('body')[0])
 
 const visible = ref(false)
-const forceVisible = ref(false)
 
 async function hide() {
     popperElem.value.hide()
