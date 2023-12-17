@@ -9,7 +9,6 @@ import ContentFilter from './ContentFilter.vue';
 
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 import { Tab } from '@/data/models';
-import { ImageSelector } from '@/utils/selection';
 import { globalStore } from '@/data/store';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
@@ -29,9 +28,6 @@ const groupData = reactive({
 const recoGroup = ref({} as Group)
 
 const selectedImages = reactive({}) as { [imgId: string]: boolean }
-
-const selectedImages2 = reactive(new Set<number>())
-const selector = new ImageSelector(groupData, selectedImages2)
 
 const filterElem = ref(null)
 const boxElem = ref(null)
@@ -112,8 +108,7 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" :compute-status="computeStatus" @search-images="setSearchedImages"
-            :selector="selector" />
+        <ContentFilter :tab="props.tab" :compute-status="computeStatus" @search-images="setSearchedImages" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">
@@ -126,13 +121,13 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :group-manager="props.tab.collection.groupManager" :image-size="props.tab.data.imageSize"
                 :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="selectedImages"
-                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" :selector="selector" />
+                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="selectedImages" :selector="selector" ref="imageList" />
+                    :selected-images="selectedImages" :selector="undefined" ref="imageList" />
             </div>
         </template>
 

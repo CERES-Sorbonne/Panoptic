@@ -12,19 +12,17 @@ import RangeInput from '../inputs/RangeInput.vue'
 import Toggle from '@vueform/toggle'
 import { computed } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
-import { ImageSelector } from '@/utils/selection';
 import wTT from '../tooltips/withToolTip.vue'
 
 const props = defineProps({
     tab: Object as () => Tab,
     computeStatus: Object as () => { groups: boolean },
-    selector: ImageSelector,
 })
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
-const selectedImageIds = computed(() => Array.from(props.selector.selectedImages))
-const hasSelectedImages = computed(() => props.selector.selectedImages.size)
+const selectedImageIds = computed(() => Array.from(props.tab.collection.groupManager.selectedImages))
+const hasSelectedImages = computed(() => props.tab.collection.groupManager.selectedImages.size)
 
 </script>
 
@@ -63,7 +61,7 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
             </wTT>
         </div>
         <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
-            @remove:selected="props.selector.clear()" />
+            @remove:selected="props.tab.collection.groupManager.clearSelection()" />
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
         <FilterForm :manager="props.tab.collection.filterManager" />

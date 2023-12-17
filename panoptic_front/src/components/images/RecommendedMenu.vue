@@ -4,9 +4,8 @@ import ImageRecomended from './ImageRecomended.vue';
 import { Image, PropertyType, PropertyValue, Recommendation, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
-import { UNDEFINED_KEY } from '@/utils/groups';
 import wTT from '../tooltips/withToolTip.vue'
-import { Group } from '@/core/GroupManager';
+import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
 
 
 const props = defineProps({

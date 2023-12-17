@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { GroupData, Image, Modals, Property, PropertyMode, PropertyRef, PropertyType } from '@/data/models';
+import { Image, Modals, Property, PropertyMode, PropertyRef, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive, nextTick } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import RangeInput from '../inputs/RangeInput.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { createGroup, generateGroupData, generateGroups, imagesToSha1Piles } from '@/utils/groups';
+// import { createGroup, generateGroupData, generateGroups, imagesToSha1Piles } from '@/utils/groups';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
-import { Group } from '@/data/models';
+// import { Group } from '@/data/models';
 import PropInput from '../inputs/PropInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
-import { ImageSelector } from '@/utils/selection';
 import wTT from '../tooltips/withToolTip.vue'
 import SelectCircle from '../inputs/SelectCircle.vue';
+import { GroupManager } from '@/core/GroupManager';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -22,6 +22,9 @@ let modal: bootstrap.Modal = null
 const props = defineProps({
     id: { type: String, required: true }
 })
+
+
+const groupManager = new GroupManager()
 
 const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
@@ -60,7 +63,7 @@ const pile = computed(() => ({ sha1: image.value.sha1, images: globalStore.sha1I
 const properties = computed(() => getSha1Properties(pile.value.sha1))
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
 const selectedImageIds = computed(() => Array.from(selectedImages))
-const hasSelectedImages = computed(() => selector.selectedImages.size > 0)
+const hasSelectedImages = computed(() => groupManager.selectedImages.size > 0)
 
 enum ImageModalMode {
     Similarity = 'similarity',
@@ -73,12 +76,10 @@ const groupData = reactive({
     root: undefined,
     index: {},
     order: []
-}) as GroupData
-
-const selector = new ImageSelector(groupData, selectedImages)
+})
 
 const gridData = computed(() => {
-    let group: Group = {
+    let group = {
         id: '0',
         name: '__all__',
         images: pile.value.images,
@@ -94,7 +95,7 @@ const gridData = computed(() => {
         root: group,
         index,
         order: [group.id]
-    } as GroupData
+    } 
 })
 
 const containerStyle = ref("")
@@ -127,7 +128,7 @@ function onHide() {
 }
 
 function hide() {
-    if (groupData.root) selector.clear()
+    // if (groupData.root) selector.clear()
     modal.hide()
 
     groupData.root = undefined
@@ -142,7 +143,7 @@ function show() {
     availableWidth.value = modalElem.value.clientWidth
 
     if (groupData.root) {
-        selector.clear()
+        // selector.clear()
     }
     setSimilar()
 }
@@ -199,13 +200,14 @@ function updateSimilarGroup() {
     filteredSha1s.forEach(r => images.push(...globalStore.sha1Index[r.sha1]))
     filteredSha1s.forEach(r => sha1ToDist[r.sha1] = r.dist)
 
-    const data = generateGroupData(images, [], true)
-    if (data.root.imagePiles) {
-        data.root.imagePiles.forEach(p => p.similarity = sha1ToDist[p.sha1])
-    }
+    //TODO FIX
+    // const data = generateGroupData(images, [], true)
+    // if (data.root.imagePiles) {
+    //     data.root.imagePiles.forEach(p => p.similarity = sha1ToDist[p.sha1])
+    // }
 
 
-    Object.assign(groupData, data)
+    // Object.assign(groupData, data)
 
     if (scroller.value) {
         scroller.value.computeLines()
@@ -216,9 +218,9 @@ function updateSimilarGroup() {
 
 function paintSelection(property: PropertyRef) {
     let images = groupData.root.images
-    if (selector.selectedImages.size) {
-        images = Array.from(selector.selectedImages).map(id => globalStore.images[id])
-    }
+    // if (selector.selectedImages.size) {
+    //     images = Array.from(selector.selectedImages).map(id => globalStore.images[id])
+    // }
     globalStore.setPropertyValue(property.propertyId, images, property.value)
 }
 
@@ -328,9 +330,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                         <div class="col" v-if="similarityLoaded">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
-                                <SelectCircle :model-value="selector.allSelected.value" @update:model-value="v => selector.toggleAll()"/> <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
+                                <SelectCircle :model-value="groupManager.result.root.view.selected" @update:model-value="v => groupManager.toggleAll()"/> <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                                 <wTT message="modals.image.similarity_filter_tooltip">
-                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" @update:model-value="selector.clear()" />
+                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" @update:model-value="groupManager.clearSelection()" />
                                 </wTT>
                                 <div>min: {{ minSimilarityDist }}%</div>
                                 <div v-if="groupData.root.imagePiles" class="ms-2 text-secondary">({{
@@ -339,11 +341,11 @@ watch(minSimilarityDist, updateSimilarGroup)
 
                             <div class="selection-stamp" v-if="hasSelectedImages">
                                 <SelectionStamp :selected-images-ids="selectedImageIds"
-                                    @remove:selected="selector.clear()" />
+                                    @remove:selected="groupManager.clearSelection()" />
                             </div>
 
                             <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510" :data="groupData"
-                                :properties="similarityVisiblePropsList" ref="scroller" :selector="selector"
+                                :properties="similarityVisiblePropsList" ref="scroller"
                                 :hide-options="true" :hide-group="true" />
                         </div>
                     </div>
@@ -391,8 +393,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                         </div>
                         <div class="m-0 p-0" style="width: 1140px; overflow-x: scroll; overflow-y: hidden;">
                             <GridScroller :show-images="false" :data="gridData" :height="availableHeight - 570"
-                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)"
-                                :selector="selector" />
+                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" />
                         </div>
                     </div>
                 </div>

@@ -6,8 +6,8 @@ import RecycleScroller from '@/components/Scroller/src/components/RecycleScrolle
 import PileLine from './PileLine.vue';
 import { GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
 import GroupLineVue from './GroupLine.vue';
-import { ImageSelector } from '@/utils/selection';
-import { GroupManager, Group } from '@/core/GroupManager';
+import { GroupManager, Group, GroupIterator } from '@/core/GroupManager';
+import { keyState } from '@/data/keyState';
 
 const props = defineProps({
     imageSize: Number,
@@ -17,7 +17,6 @@ const props = defineProps({
     properties: Array<Property>,
     hideOptions: Boolean,
     hideGroup: Boolean,
-    selector: ImageSelector
 })
 
 const emits = defineEmits(['recommend'])
@@ -128,55 +127,7 @@ function groupToImageLines(group: Group) {
 let _flagCompute = false
 function computeLines() {
     computeLines2()
-    // if (props.data.root == undefined) {
-    //     return
-    // }
-    // if (_flagCompute) {
-    //     return
-    // }
-    // _flagCompute = true
-    // console.time('compute lines')
-    // let group = props.data.root
-    // let index = props.data.index
-    // const groupToLines = (group, lines, lineWidth, imgHeight) => {
-    //     lines.push({
-    //         id: group.id,
-    //         type: 'group',
-    //         data: group,
-    //         depth: group.depth,
-    //         size: props.hideGroup ? 0 : 30,
-    //         nbClusters: 10
-    //         // index: lines.length
-    //     })
-    //     group.index = lines.length - 1
-    //     if (!group.closed && Array.isArray(group.groups) && group.groups.length > 0) {
-    //         group.groups.forEach(g => {
-    //             groupToLines(g, lines, lineWidth, imgHeight)
-    //         })
-    //         return
-    //     }
-    //     if (!group.closed && isPileGroup(group)) {
-    //         computeImagePileLines(group.imagePiles, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
-    //     }
-    //     else if (!group.closed && isImageGroup(group)) {
-    //         computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
-    //     }
 
-    // }
-
-    // let lines = []
-    // groupToLines(index[group.id], lines, props.width, props.imageSize)
-    // lines.push({ type: 'filler', size: 400, id: '__filler__' })
-    // imageLines.length = 0
-    // imageLines.push(...lines)
-
-    // // console.log(lines)
-    // scroller.value.updateVisibleItems(true)
-    // // console.log(imageLines.length)
-    // console.timeEnd('compute lines')
-
-    // nextTick(() => _flagCompute = false)
-    // return lines
 }
 
 function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -299,15 +250,14 @@ function openGroup(groupId) {
 
 // TODO
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
-    // const iterator = new ImageIterator(props.data)
-    // iterator.goToImage(item.groupId, data.id)
-    // props.selector.toggleImageIterator(iterator, keyState.shift)
+    const iterator = props.groupManager.findImageIterator(item.groupId, data.id)
+    props.groupManager.toggleImageIterator(iterator, keyState.shift)
 }
 
 // TODO
 function toggleGroupSelect(groupId: string) {
-    // const iterator = new GroupIterator(props.data, props.data.index[groupId].order)
-    // props.selector.toggleGroupIterator(iterator, keyState.shift)
+    const iterator = props.groupManager.getGroupIterator(groupId)
+    props.groupManager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 
@@ -378,7 +328,7 @@ function scrollToGroup(groupId: string) {
                     <ImageLineVue :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
-                        :selected-images="props.selector.selectedImages"
+                        :selected-images="props.groupManager.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>
@@ -386,7 +336,7 @@ function scrollToGroup(groupId: string) {
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
-                        :selected-images="props.selector.selectedImages"
+                        :selected-images="props.groupManager.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>

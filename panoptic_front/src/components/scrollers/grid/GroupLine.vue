@@ -2,7 +2,7 @@
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
 import { PropertyValue, ScrollerLine } from '@/data/models';
-import { groupParents } from '@/utils/groups';
+import { groupParents } from '@/utils/utils';
 import { computed } from 'vue';
 
 

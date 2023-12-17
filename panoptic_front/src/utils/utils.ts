@@ -124,23 +124,36 @@ export const sleep = m => new Promise(r => setTimeout(r, m))
 
 export class EventEmitter {
     private listeners: Function[];
-  
+
     constructor() {
         this.listeners = []
     }
-  
+
     addListener(listener: Function) {
-      this.listeners.push(listener);
+        this.listeners.push(listener);
     }
-  
+
     removeListener(listener: Function) {
-      const index = this.listeners.indexOf(listener);
-      if (index !== -1) {
-        this.listeners.splice(index, 1);
-      }
+        const index = this.listeners.indexOf(listener);
+        if (index !== -1) {
+            this.listeners.splice(index, 1);
+        }
     }
-  
+
     emit(value?: any) {
-      this.listeners.forEach(listener => listener(value));
+        this.listeners.forEach(listener => listener(value));
     }
-  }
+}
+
+
+export function groupParents(index, group) {
+    const parents = []
+
+    const recursive = (parent) => {
+        parents.push(parent)
+        if (parent.parentId == undefined) return
+        recursive(index[parent.parentId])
+    }
+    recursive(group)
+    return parents
+}
