@@ -7,7 +7,7 @@
 
 import { Filter, Image, FilterGroup, PropertyType, AFilter, propertyDefault, isTag } from "@/data/models";
 import { globalStore } from "@/data/store";
-import { getTagChildren } from "@/utils/utils";
+import { EventEmitter, getTagChildren } from "@/utils/utils";
 import { reactive } from "vue";
 
 
@@ -222,9 +222,12 @@ export class FilterManager {
 
     filterIndex: { [filterId: number]: AFilter }
 
+    onChange: EventEmitter
+
     constructor(state?: FilterState) {
         this.filterIndex = {}
         this.result = { images: [] }
+        this.onChange = new EventEmitter()
 
         if (state) {
             this.state = state
@@ -236,13 +239,18 @@ export class FilterManager {
         this.verifyFilter()
     }
 
-    filter(images: Image[]) {
+    filter(images: Image[], emit?: boolean) {
+        console.time('Filter')
         let filtered = images
         if(this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
             filtered = filtered.filter(img => folderSet.has(img.folder_id))
         }
         this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter))
+        console.timeEnd('Filter')
+
+        if(emit) this.onChange.emit(this.result)
+
         return this.result
     }
 

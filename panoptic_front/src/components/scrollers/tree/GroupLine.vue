@@ -1,21 +1,22 @@
 <script setup lang="ts">
-import { Group, GroupData, GroupLine, PropertyType, ScrollerLine } from '@/data/models'
+import { GroupLine, PropertyType, ScrollerLine } from '@/data/models'
 import { globalStore } from '@/data/store'
-import { computed, ref, unref, watch } from 'vue'
+import { computed, nextTick, ref, unref, watch } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
-import { UNDEFINED_KEY } from '@/utils/groups'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
+import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
 
 
 const props = defineProps({
     item: Object as () => GroupLine,
+    manager: GroupManager,
     parentIds: Array<string>,
     hoverBorder: String,
-    data: Object as () => GroupData,
+    data: Object as () => GroupResult,
     hideOptions: Boolean
 })
 
@@ -23,41 +24,28 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:o
 
 const hoverGroup = ref(false)
 
-const group = computed(() => props.item.data as Group)
-const images = computed(() => props.item.data.images)
-const piles = computed(() => props.item.data.imagePiles)
-const subgroups = computed(() => props.item.data.groups)
+const group = computed(() => props.item.data)
+const images = computed(() => group.value.images)
+const piles = computed(() => undefined /*props.item.data.imagePiles*/)
+const subgroups = computed(() => group.value.children)
 const hasImages = computed(() => images.value.length > 0)
 const hasPiles = computed(() => Array.isArray(piles.value))
-const hasSubgroups = computed(() => subgroups.value != undefined)
-const property = computed(() => globalStore.properties[props.item.data.propertyId])
-const closed = computed(() => group.value?.closed)
-const hasOpenChildren = computed(() => group.value.groups.some(g => g.closed != true))
+const hasSubgroups = computed(() => subgroups.value.length > 0)
+const properties = computed(() => group.value.meta.propertyValues.map(v => globalStore.properties[v.propertyId]))
+const propertyValues = computed(() => group.value.meta.propertyValues)
+const closed = computed(() => group.value.view.closed)
+const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
 
 const groupName = computed(() => {
-    let name = group.value.name
-    if (group.value.propertyId == undefined) {
-        return group.value.name
-    }
-    else if (group.value.name == "undefined") {
-        name = "undefined"
-    }
-    else {
-        let type = globalStore.properties[group.value.propertyId].type
-        if (type == PropertyType.tag || type == PropertyType.multi_tags) {
-            name = globalStore.tags[group.value.propertyId][Number(group.value.name)].value
-        } else if (type == PropertyType._folders) {
-            name = globalStore.folders[Number(group.value.name)].name
-        }
-    }
-
-    return name
+    if(group.value.type == GroupType.All) return 'All'
+    if(group.value.type == GroupType.Cluster) return 'Cluster ' + group.value.parentIdx
+    return 'tmp name'
 })
 
-const someValue = computed(() => props.item.data.propertyValues.some(v => v.value != UNDEFINED_KEY))
+const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
-const allImagesSelected = computed(() => group.value.allImageSelected)
+// const allImagesSelected = computed(() => group.value.allImageSelected)
 
 
 // function toggleImageSelection() {
@@ -102,13 +90,7 @@ function getTag(propId: number, tagId: number) {
 }
 
 async function computeClusters() {
-    let sha1s: string[] = []
-    if (hasPiles.value) {
-        sha1s = group.value.imagePiles.map(p => p.sha1)
-    }
-    else if (hasImages.value) {
-        sha1s = [...new Set(group.value.images.map(i => i.sha1))]
-    }
+    let sha1s: string[] = group.value.images.map(i => i.sha1)
     let mlGroups = await globalStore.computeMLGroups(sha1s, props.item.nbClusters)
     let distances = mlGroups.distances
     mlGroups = mlGroups.clusters
@@ -117,91 +99,54 @@ async function computeClusters() {
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
         let images = []
-        let piles = sha1s.map((s: string) => ({ sha1: s, images: globalStore.sha1Index[s] }))
-        piles.forEach(p => images.push(...p.images))
-        let realGroup: Group = {
-            id: props.item.id + '-cluster' + String(index),
-            name: 'cluster ' + index,
-            images: images,
-            imagePiles: piles,
-            count: sha1s.length,
-            groups: undefined,
-            children: undefined,
-            parentId: props.item.data.id,
-            propertyValues: props.item.data.propertyValues,
-            index: index,
-            depth: (props.item.data.depth + 1),
-            closed: false,
-            isCluster: true,
-            clusterDisctance: distances[index]
-        }
-        groups.push(realGroup)
-        props.data.index[realGroup.id] = realGroup
-        images.forEach(i => props.data.imageToGroups[i.id].push(realGroup.id))
+        sha1s.forEach(sha1 => images.push(...globalStore.sha1Index[sha1]))
+
+        // let piles = sha1s.map((s: string) => ({ sha1: s, images: globalStore.sha1Index[s] }))
+        // piles.forEach(p => images.push(...p.images))
+        const cluster = buildGroup('cluster:' + String(index) + ':' + props.item.id, images, GroupType.Cluster)
+        cluster.meta.score = distances[index]
+
+        groups.push(cluster)
     }
-    props.item.data.groups = groups
-    props.item.data.children = groups.map(g => g.id)
-    // TODO: make logic outside of vue
-    const order = props.data.order
-    const itemIndex = order.findIndex(grpId => grpId == props.item.id)
-    if(itemIndex < 0) throw new Error('itemIndex should not be negative')
-    props.data.order = [...order.slice(0, itemIndex+1), ...groups.map(g => g.id), ...order.slice(itemIndex+1) ]
-    emits('group:update')
+    props.manager.addCustomGroups(group.value.id, groups, true)
 }
 
 function clear() {
-    delete props.item.data.groups
-    delete props.item.data.allSimilarSha1s
-    delete props.item.data.similarSha1sBlacklist
-    emits('group:update')
+    props.manager.delCustomGroups(group.value.id, true)
 }
 
 async function recommandImages() {
-    let sha1s: string[] = []
-    if (hasPiles.value) {
-        sha1s = group.value.imagePiles.map(p => p.sha1)
-    }
-    else if (hasImages.value) {
-        sha1s = [...new Set(group.value.images.map(i => i.sha1))]
-    }
-    // let sha1s = {} as any
-    // group.value.images.forEach(i => sha1s[i.sha1] = true)
 
-    let res = await globalStore.getSimilarImages(sha1s) as any[]
-    let resSha1s = res.map(r => r.sha1)
-
-    const propertyValues = props.item.data.propertyValues.map(unref)
-
-    emits('recommend', resSha1s, propertyValues, props.item.data.id)
+    emits('recommend', props.item.data.id)
 
 
-    // if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
-    //     props.item.data.similarSha1sBlacklist = []
-    // }
+    // // if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
+    // //     props.item.data.similarSha1sBlacklist = []
+    // // }
 
-    // let all = props.item.data.allSimilarSha1s
-    // let blacklist = props.item.data.similarSha1sBlacklist
+    // // let all = props.item.data.allSimilarSha1s
+    // // let blacklist = props.item.data.similarSha1sBlacklist
 
-    // props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0, 30))
+    // // props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0, 30))
 
-    // emits('group:update')
+    // // emits('group:update')
 }
 
 function toggleClosed() {
     if (closed.value) {
         // props.groupIndex[props.item.id].closed = false
-        props.item.data.closed = false
+        props.manager.toggleGroup(group.value.id)
         emits('group:open', props.item.id)
     }
     else {
-        props.item.data.closed = true
+        props.manager.toggleGroup(group.value.id)
         emits('group:close', props.item.id)
     }
 }
 
 function closeChildren() {
-    props.item.data.groups.forEach((g: Group) => g.closed = true)
-    emits('group:close', props.item.data.groups.map((g: Group) => g.id))
+    subgroups.value.forEach((g: Group) => props.manager.closeGroup(g.id))
+    emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 
 </script>
@@ -218,22 +163,25 @@ function closeChildren() {
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="me-1">
-            <SelectCircle :small="true" :model-value="allImagesSelected" @update:model-value="emits('select', group.id)" />
+            <SelectCircle :small="true" :model-value="group.view.selected" @update:model-value="emits('select', group.id)" />
         </div>
-        <div v-if="property != undefined" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
+        <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
-            <PropertyValue :value="props.item.data.propertyValues[props.item.data.propertyValues.length - 1]" />
+            <template v-for="propValue in propertyValues">
+                <PropertyValue :value="propValue" />
+            </template>
+
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
-        <div v-if="group.isCluster" style="padding-top: 2.5px;" class="me-2">
-            <ClusterBadge :value="group.clusterDisctance" />
+        <div v-if="group.type == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
+            <ClusterBadge :value="group.meta.score" />
         </div>
-        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.count }} Images</div>
-        <div v-if="group.groups" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
-            group.groups.length }} {{ $t('main.view.groupes_nb') }}</div>
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.images.length }} Images</div>
+        <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
+            subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
-            <div v-if="(hasImages || hasPiles) && !hasSubgroups" class="ms-2">
+            <div v-if="!hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
@@ -249,12 +197,12 @@ function closeChildren() {
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 
             </div>
-            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !group.isCluster && someValue" class="ms-2">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
                 <wTT message="main.recommand.tooltip">
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>
             </div>
-            <div v-if="(hasImages || hasPiles) && hasSubgroups" class="ms-2">
+            <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
                 <!-- <div class="button" @click="clear">{{ $t('main.view.remove_clusters') }}</div> -->
                 <div class="cluster-close" @click="clear"><i class="bi bi-x" />IA</div>
             </div>
@@ -304,5 +252,4 @@ function closeChildren() {
 .cluster-close:hover {
     color: rgb(235, 209, 30);
 }
-
 </style>

@@ -1,40 +1,44 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, PropertyType, Recommendation, Sha1Pile } from '@/data/models';
+import { Image, PropertyType, PropertyValue, Recommendation, Sha1Pile } from '@/data/models';
 import { globalStore } from '@/data/store';
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import { UNDEFINED_KEY } from '@/utils/groups';
 import wTT from '../tooltips/withToolTip.vue'
+import { Group } from '@/core/GroupManager';
 
 
 const props = defineProps({
     imageSize: Number,
-    reco: Object as () => Recommendation,
+    group: Object as () => Group,
     width: Number,
     height: Number
 })
 
-const emits = defineEmits(['scroll', 'close'])
+const emits = defineEmits(['scroll', 'close', 'update'])
 
 const maxLines = ref(1)
 const lines = reactive([])
 const imageMargin = 10
 
+const sha1s = reactive([]) as string[]
+const propertyValues = reactive([]) as PropertyValue[]
+
 const blacklist = reactive(new Set())
 
 function removeImage(sha1: string) {
-    let index = props.reco.images.indexOf(sha1)
-    if(index < 0) {
+    let index = sha1s.indexOf(sha1)
+    if (index < 0) {
         return
     }
-    props.reco.images.splice(index, 1)
+    sha1s.splice(index, 1)
     computeLines()
 }
 
 function acceptRecommend(image: Image) {
-    props.reco.values.forEach(v => {
-        if(v.value != UNDEFINED_KEY) {
+    propertyValues.forEach(v => {
+        if (v.value != UNDEFINED_KEY) {
             let mode = globalStore.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
             globalStore.setPropertyValue(v.propertyId, image, v.value, mode)
         }
@@ -50,7 +54,7 @@ function refuseRecommend(image: Image) {
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
-    const piles = props.reco.images.map((sha1: string) => ({sha1, images: globalStore.sha1Index[sha1]}))
+    const piles = sha1s.map((sha1: string) => ({ sha1, images: globalStore.sha1Index[sha1] }))
     computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
 
@@ -65,7 +69,7 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
         }
         let pile = piles[i]
         let img = pile.images[0]
-        if(blacklist.has(pile.sha1)) {
+        if (blacklist.has(pile.sha1)) {
             continue
         }
         let imgWidth = imageWidth + imageMargin
@@ -84,38 +88,60 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
         }
     }
 
-    if(newLine.length > 0 && lines.length < maxLines) {
+    if (newLine.length > 0 && lines.length < maxLines) {
         lines.push(newLine)
     }
 }
 
-onMounted(computeLines)
-watch(() => props.reco.images, computeLines, { deep: true })
+async function getReco() {
+    if (!props.group) return
+    console.log('get reco')
+    const requestSha1s = props.group.images.map(i => i.sha1)
+    let res = await globalStore.getSimilarImages(requestSha1s) as any[]
+    const resSha1s = res.map(r => r.sha1)
+
+    propertyValues.length = 0
+    let current = props.group
+    while (current) {
+        propertyValues.push(...current.meta.propertyValues)
+        current = current.parent
+    }
+    sha1s.length = 0
+    sha1s.push(...resSha1s)
+
+    computeLines()
+    blacklist.clear()
+
+    emits('update')
+}
+
+onMounted(getReco)
+watch(() => props.group, () => {
+    getReco()
+    blacklist.clear()
+})
 watch(() => props.imageSize, computeLines)
 watch(() => props.width, computeLines)
-watch(() => props.reco.groupId, (newValue, oldValue) => {
-    if(oldValue != newValue) {
-        blacklist.clear()
-        // console.log('clear')
-    }
-}, {deep: true})
 
 </script>
 
 <template>
     <div class="reco-container">
         <div class="d-flex flex-row m-0 ps-2 pb-2">
-            <wTT icon-pos="left" message="main.recommand.tooltip" icon="true"><span class="text-secondary me-2">{{$t('main.recommand.title')}}</span></wTT>
+            <wTT icon-pos="left" message="main.recommand.tooltip" :icon="true"><span class="text-secondary me-2">{{
+                $t('main.recommand.title') }}</span></wTT>
             <div class="flex-grow-1">
                 <div class="d-flex flex-row">
-                    <template v-for="value, index in props.reco.values">
+                    <template v-for="value, index in propertyValues">
                         <PropertyValueVue class="" :value="value" />
-                        <div v-if="index < props.reco.values.length - 1" class="separator"></div>
+                        <div v-if="index < propertyValues.length - 1" class="separator"></div>
                     </template>
                 </div>
             </div>
-            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.reco.groupId)">{{$t('main.recommand.group')}}</span>
-            <span class="text-secondary me-1 close  ps-1 pe-1 clickable" @click="emits('close')"><i class="bi bi-x"></i></span>
+            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.group.id)">{{
+                $t('main.recommand.group') }}</span>
+            <span class="text-secondary me-1 close  ps-1 pe-1 clickable" @click="emits('close')"><i
+                    class="bi bi-x"></i></span>
         </div>
         <div :style="'margin-left:' + imageMargin + 'px;'">
             <div v-for="line in lines">
@@ -130,11 +156,11 @@ watch(() => props.reco.groupId, (newValue, oldValue) => {
 </template>
 
 <style scoped>
-
 .separator {
     border-left: 2px solid var(--border-color);
     margin: 3px 4px;
 }
+
 .close {
     border-right: 2px solid var(--border-color);
     border-bottom: 2px solid var(--border-color);

@@ -1,8 +1,7 @@
-import { Group, GroupData, GroupIndex, Image, PropertyType, Sha1Pile } from "@/data/models"
+import { Image, PropertyType, Sha1Pile } from "@/data/models"
 import { DefaultDict } from "./helpers"
 import { globalStore } from "@/data/store"
 import moment from "moment"
-import { isPileGroup } from "./utils"
 
 export const UNDEFINED_KEY = '__undefined__'
 export const MAX_GROUPS = 5
@@ -12,14 +11,14 @@ export function createGroup(name = 'All', images = []) {
     let group = {
         name: name,
         images: images,
-        groups: undefined as Group[],
+        groups: undefined,
         count: images.length,
         propertyId: undefined,
         id: '0',
         depth: 0,
         parentId: undefined,
         propertyValues: []
-    } as Group
+    }
     return group
 }
 
@@ -47,24 +46,24 @@ export function generateGroupData(images: Image[], groups: number[], sha1Mode = 
             imagesToSha1Piles(index[grpId])
         }
     }
-    const data = { index, root, order, imageToGroups } as GroupData
+    const data = { index, root, order, imageToGroups }
     updateOrder(data)
     return data
 }
 
 export function generateGroups(images: Image[], groups: number[]) {
-    const index: GroupIndex = {}
+    const index= {}
     let rootGroup = {
         name: 'All',
         images: images,
-        groups: undefined as Group[],
+        groups: undefined,
         count: images.length,
         propertyId: undefined,
         id: '0',
         depth: 0,
         parentId: undefined,
         propertyValues: []
-    } as Group
+    } 
     if (groups.length > 0) {
         rootGroup = computeSubgroups(rootGroup, groups, index)
     }
@@ -73,7 +72,7 @@ export function generateGroups(images: Image[], groups: number[]) {
 }
 
 
-export function computeSubgroups(parentGroup: Group, groupList: number[], index: GroupIndex) {
+export function computeSubgroups(parentGroup, groupList: number[], index) {
     console.log('gen sub', groupList)
     let images = parentGroup.images
     let propertyId = groupList[0]
@@ -99,12 +98,12 @@ export function computeSubgroups(parentGroup: Group, groupList: number[], index:
             groups[value].push(img)
         }
     }
-    let res = [] as Group[]
+    let res = []
     for (let key in groups) {
         let newGroup = {
             name: key,
             images: groups[key],
-            groups: undefined as Group[],
+            groups: undefined,
             count: groups[key].length,
             propertyId: propertyId,
             id: parentGroup.id + '-' + propertyId + '-' + key,
@@ -127,7 +126,7 @@ export function computeSubgroups(parentGroup: Group, groupList: number[], index:
     return parentGroup
 }
 
-export function updateOrder(data: GroupData) {
+export function updateOrder(data) {
     for(let i = 0; i < data.order.length; i++) {
         const groupId = data.order[i]
         const group = data.index[groupId]
@@ -135,7 +134,7 @@ export function updateOrder(data: GroupData) {
     }
 }
 
-export function mergeGroup(update: Group, index: GroupIndex) {
+export function mergeGroup(update, index) {
     // console.log('merge: ' + update.id)
 
     let id = update.id
@@ -160,7 +159,7 @@ export function mergeGroup(update: Group, index: GroupIndex) {
     return update
 }
 
-export function imagesToSha1Piles(group: Group) {
+export function imagesToSha1Piles(group) {
     const res: Array<Sha1Pile> = []
     const order: { [key: string]: number } = {}
 
@@ -176,10 +175,10 @@ export function imagesToSha1Piles(group: Group) {
     // group.images = []
 }
 
-export function groupParents(index: GroupIndex, group: Group) {
+export function groupParents(index, group) {
     const parents = []
 
-    const recursive = (parent: Group) => {
+    const recursive = (parent) => {
         parents.push(parent)
         if (parent.parentId == undefined) return
         recursive(index[parent.parentId])
@@ -191,9 +190,9 @@ export function groupParents(index: GroupIndex, group: Group) {
 export class ImageIterator {
     groupIndex: number
     imageIndex: number
-    data: GroupData
+    data: any
 
-    constructor(data: GroupData, groupIndex = 0, imageIndex = 0) {
+    constructor(data, groupIndex = 0, imageIndex = 0) {
         this.data = data
         this.groupIndex = groupIndex
         this.imageIndex = imageIndex
@@ -209,15 +208,15 @@ export class ImageIterator {
             return false
         }
         const group = this.data.index[groupId]
-        if(isPileGroup(group)) {
-            const sha1 = globalStore.images[imageId].sha1
-            this.imageIndex = group.imagePiles.findIndex(p => p.sha1 == sha1)
-        } else {
-            this.imageIndex = group.images.findIndex(i => i.id == imageId)
-            if (this.imageIndex < 0) {
-                return false
-            }
-        }
+        // if(isPileGroup(group)) {
+        //     const sha1 = globalStore.images[imageId].sha1
+        //     this.imageIndex = group.imagePiles.findIndex(p => p.sha1 == sha1)
+        // } else {
+        //     this.imageIndex = group.images.findIndex(i => i.id == imageId)
+        //     if (this.imageIndex < 0) {
+        //         return false
+        //     }
+        // }
 
         return true
     }
@@ -228,20 +227,20 @@ export class ImageIterator {
     getImages() {
         const group = this.getGroup()
         
-        if(isPileGroup(group)) return group.imagePiles[this.imageIndex].images
+        // if(isPileGroup(group)) return group.imagePiles[this.imageIndex].images
         
         return [group.images[this.imageIndex]]
     }
     next() {
         const currentGroup = this.getGroup()
-        if (isPileGroup(currentGroup) && currentGroup.imagePiles.length > this.imageIndex + 1) {
-            this.imageIndex += 1
-            return true
-        }
-        else if (!isPileGroup(currentGroup) && currentGroup.images.length > this.imageIndex + 1) {
-            this.imageIndex += 1
-            return true
-        }
+        // if (isPileGroup(currentGroup) && currentGroup.imagePiles.length > this.imageIndex + 1) {
+        //     this.imageIndex += 1
+        //     return true
+        // }
+        // else if (!isPileGroup(currentGroup) && currentGroup.images.length > this.imageIndex + 1) {
+        //     this.imageIndex += 1
+        //     return true
+        // }
         if (this.data.order.length <= this.groupIndex) return false
 
         let minDepth = Infinity
@@ -267,9 +266,8 @@ export class ImageIterator {
 
 export class GroupIterator {
     groupIndex: number
-    data: GroupData
-
-    constructor(data: GroupData, groupIndex = 0) {
+    data
+    constructor(data, groupIndex = 0) {
         this.data = data
         this.groupIndex = groupIndex
     }

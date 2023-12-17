@@ -8,10 +8,13 @@ import {
     PropertyType, Tag, Tags, TagsTree, Property, GlobalStore, Properties, Images, ReactiveStore, PropertyValue, TreeTag, IndexedTags,
     Modals, buildTabState, Folders, Folder, Tabs, Tab, ImportState, PropertyID, propertyDefault, Image, PropertyMode, defaultPropertyOption, Colors
 } from '../data/models'
-import { MAX_GROUPS } from '@/utils/groups'
 import { getFolderAndParents, isTagId } from '@/utils/utils'
-import { FilterManager } from '@/core/FilterManager'
-import { SortManager } from '@/core/SortManager'
+import { FilterManager, createFilterState } from '@/core/FilterManager'
+import { SortManager, createSortState } from '@/core/SortManager'
+import { GroupManager, createGroupState } from '@/core/GroupManager'
+import { CollectionManager } from '@/core/CollectionManager'
+
+const MAX_GROUPS = 4
 
 export const globalStore: ReactiveStore = reactive<GlobalStore>({
     images: {} as Images,
@@ -38,8 +41,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         let state = buildTabState()
         let tab = await apiAddTab({ name: tabName, data: state }) as Tab
 
-        tab.data.filterManager = new FilterManager(tab.data.filterState)
-        tab.data.sortManager = new SortManager(tab.data.sortState)
+        tab.collection = new CollectionManager(globalStore.images, state.filterState, state.sortState ,state.groupState)
         this.tabs[tab.id] = tab
         this.selectedTab = tab.id
     },
@@ -80,12 +82,11 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
                 })
             }
             globalStore.tabs[t.id] = t
-            let filterManager = new FilterManager(t.data.filterState)
-            t.data.filterState = filterManager.state
-            // console.log(t.data.filterState)
-            t.data.filterManager = filterManager
-            t.data.sortManager = new SortManager(t.data.sortState)
-            t.data.sortState = t.data.sortManager.state
+
+            t.data.filterState = t.data.filterState ?? createFilterState()
+            t.data.sortState = t.data.sortState ?? createSortState()
+            t.data.groupState = t.data.groupState ?? createGroupState()
+            t.collection = new CollectionManager(undefined, t.data.filterState, t.data.sortState, t.data.groupState)
         })
 
         if (tabs.length == 0) {
@@ -249,9 +250,10 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     verifyData() {
         const tabs = Object.values(this.tabs) as Tab[]
         tabs.forEach(t => {
-            t.data.groups = t.data.groups.filter(g => this.properties[g] != undefined)
-            t.data.sortList = t.data.sortList.filter(s => this.properties[s.property_id] != undefined)
-            t.data.filterManager.verifyFilter()
+            // TODO verify property delete
+            // t.data.groups = t.data.groups.filter(g => this.properties[g] != undefined)
+            // t.data.sortList = t.data.sortList.filter(s => this.properties[s.property_id] != undefined)
+            t.collection.filterManager.verifyFilter()
         })
     },
     async addTag(propertyId: number, tagValue: string, parentId?: number, color?: number): Promise<Tag> {
@@ -458,34 +460,34 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         const res = await apiUploadPropFile(file)
         return res
     },
-    addGrouping(propertyId: number) {
-        const groups = globalStore.getTab().data.groups
-        if (groups.length >= MAX_GROUPS) {
-            groups.pop()
-        }
-        let index = groups.indexOf(propertyId)
-        if (index < 0) {
-            groups.push(propertyId)
-            index = groups.length - 1
-        }
+    // addGrouping(propertyId: number) {
+    //     const groups = globalStore.getTab().data.groups
+    //     if (groups.length >= MAX_GROUPS) {
+    //         groups.pop()
+    //     }
+    //     let index = groups.indexOf(propertyId)
+    //     if (index < 0) {
+    //         groups.push(propertyId)
+    //         index = groups.length - 1
+    //     }
 
-        const sorts = globalStore.getTab().data.sortList
-        if (!sorts[index] || sorts[index].property_id != propertyId || !sorts[index].isGroup) {
-            const newSort = { property_id: propertyId, ascending: true, isGroup: true, byGroupSize: false }
-            globalStore.getTab().data.sortList = [...sorts.slice(0, index).filter(s => s.property_id != propertyId), newSort, ...sorts.slice(index).filter(s => s.property_id != propertyId)]
-        }
-    },
-    delGrouping(property_id: number) {
-        const groups = globalStore.getTab().data.groups
-        const index = groups.indexOf(property_id)
-        if (index < 0) {
-            return
-        }
+    //     const sorts = globalStore.getTab().data.sortList
+    //     if (!sorts[index] || sorts[index].property_id != propertyId || !sorts[index].isGroup) {
+    //         const newSort = { property_id: propertyId, ascending: true, isGroup: true, byGroupSize: false }
+    //         globalStore.getTab().data.sortList = [...sorts.slice(0, index).filter(s => s.property_id != propertyId), newSort, ...sorts.slice(index).filter(s => s.property_id != propertyId)]
+    //     }
+    // },
+    // delGrouping(property_id: number) {
+    //     const groups = globalStore.getTab().data.groups
+    //     const index = groups.indexOf(property_id)
+    //     if (index < 0) {
+    //         return
+    //     }
 
 
-        groups.splice(index, 1)
-        globalStore.getTab().data.sortList.splice(index, 1)
-    }
+    //     groups.splice(index, 1)
+    //     globalStore.getTab().data.sortList.splice(index, 1)
+    // }
 })
 
 

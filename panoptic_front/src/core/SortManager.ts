@@ -7,15 +7,16 @@
 import { Image, Property } from "@/data/models"
 import { PropertyType } from "@/data/models2"
 import { globalStore } from "@/data/store"
+import { EventEmitter } from "@/utils/utils"
 import { reactive } from "vue"
 
-export enum SortOrder {
-    Ascending = 'asc',
-    Descending = 'desc'
+export enum SortDirection {
+    Ascending = 1,
+    Descending = -1
 }
 
 export interface SortOption {
-    order: SortOrder
+    direction?: SortDirection
 }
 
 export interface SortState {
@@ -23,8 +24,10 @@ export interface SortState {
     options: { [propId: number]: SortOption }
 }
 
+export type ImageOrder = { [imageId: number]: number }
+
 export interface SortResult {
-    order: { [imageId: number]: number }
+    order: ImageOrder
     images: Image[]
 }
 
@@ -41,10 +44,10 @@ export function createSortState(): SortState {
 }
 
 export function buildSortOption(): SortOption {
-    return { order: SortOrder.Ascending }
+    return { direction: SortDirection.Ascending }
 }
 
-const safeParser: { [type in PropertyType]?: any } = {
+export const sortParser: { [type in PropertyType]?: any } = {
     [PropertyType.checkbox]: (x?: boolean) => {
         if (!x) return false
         return true
@@ -104,7 +107,7 @@ function getSortablePropertyValue(image: Image, property: Property) {
         }
     }
 
-    value = safeParser[type](value)
+    value = sortParser[type](value)
     return value
 }
 
@@ -112,8 +115,11 @@ export class SortManager {
     state: SortState
     result: SortResult
 
+    onChange: EventEmitter
+
     constructor(state?: SortState) {
         this.state = state
+        this.onChange = new EventEmitter()
         if (!this.state) {
             this.state = createSortState()
         }
@@ -124,9 +130,10 @@ export class SortManager {
         })
     }
 
-    sort(images: Image[]): SortResult {
+    sort(images: Image[], emit?: boolean): SortResult {
+        console.time('Sort')
         const sortable = this.getSortableImages(images)
-        const order = this.state.sortBy.map(id => this.state.options[id].order == SortOrder.Ascending ? 1 : -1)
+        const order = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
         sortable.sort((a, b) => {
             for (let i = 0; i < a.values.length; i++) {
                 if (a.values[i] == b.values[i]) continue
@@ -142,14 +149,22 @@ export class SortManager {
             this.result.images.push(globalStore.images[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
+        console.timeEnd('Sort')
+
+        if(emit) this.onChange.emit(this.result)
         return this.result
+    }
+
+    update(emit?: boolean) {
+        this.sort(this.result.images)
+        if(emit) this.onChange.emit(this.result)
     }
 
     setSort(propertyId: number, option?: SortOption) {
         if (option) {
             this.state.options[propertyId] = option
         } else if (!option && this.state.options[propertyId] == undefined) {
-            option = buildSortOption()
+            this.state.options[propertyId] = buildSortOption()
         }
 
         if (this.state.sortBy.includes(propertyId)) return

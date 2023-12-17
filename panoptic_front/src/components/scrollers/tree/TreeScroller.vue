@@ -4,19 +4,16 @@ import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } fro
 import ImageLineVue from './ImageLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { Group, GroupData, GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
-import { isImageGroup, isPileGroup } from '@/utils/utils';
-import { keyState } from '@/data/keyState';
-import { identity } from '@vueuse/core';
+import { GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
 import GroupLineVue from './GroupLine.vue';
 import { ImageSelector } from '@/utils/selection';
-import { GroupIterator, ImageIterator } from '@/utils/groups';
+import { GroupManager, Group } from '@/core/GroupManager';
 
 const props = defineProps({
     imageSize: Number,
     height: Number,
     width: Number,
-    data: Object as () => GroupData,
+    groupManager: GroupManager,
     properties: Array<Property>,
     hideOptions: Boolean,
     hideGroup: Boolean,
@@ -25,6 +22,7 @@ const props = defineProps({
 
 const emits = defineEmits(['recommend'])
 
+const groupIdx = {}
 const imageLines = reactive([]) as ScrollerLine[]
 // const selectedImages = reactive({}) as {[imgId: string]: boolean}
 
@@ -88,57 +86,97 @@ function clear() {
     imageLines.length = 0
 }
 
+function computeLines2() {
+    if (!props.groupManager.result.root) return
+    clear()
+    // if(props.groupManager.result.root == undefined) return
+    let it = props.groupManager.getGroupIterator()
+    while (it) {
+        const group = it.getGroup()
+        groupIdx[group.id] = imageLines.length
+        imageLines.push(...GroupToLines(group))
+        it = it.nextGroup()
+    }
+
+    scroller.value.updateVisibleItems(true)
+}
+
+function GroupToLines(group: Group) {
+    const lines: Array<GroupLine> = []
+    lines.push({
+        id: group.id,
+        type: 'group',
+        data: group,
+        depth: group.depth,
+        size: props.hideGroup ? 0 : 30,
+        nbClusters: 10
+    })
+
+    if (group.children.length > 0) return lines
+    if (group.view.closed) return lines
+
+    computeImageLines(group.images, lines, props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+
+    return lines
+}
+
+function groupToImageLines(group: Group) {
+    const lines = []
+    return lines
+}
+
 let _flagCompute = false
 function computeLines() {
-    if (props.data.root == undefined) {
-        return
-    }
-    if (_flagCompute) {
-        return
-    }
-    _flagCompute = true
-    console.time('compute lines')
-    let group = props.data.root
-    let index = props.data.index
-    const groupToLines = (group, lines, lineWidth, imgHeight) => {
-        lines.push({
-            id: group.id,
-            type: 'group',
-            data: group,
-            depth: group.depth,
-            size: props.hideGroup ? 0 : 30,
-            nbClusters: 10
-            // index: lines.length
-        })
-        group.index = lines.length - 1
-        if (!group.closed && Array.isArray(group.groups) && group.groups.length > 0) {
-            group.groups.forEach(g => {
-                groupToLines(g, lines, lineWidth, imgHeight)
-            })
-            return
-        }
-        if (!group.closed && isPileGroup(group)) {
-            computeImagePileLines(group.imagePiles, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
-        }
-        else if (!group.closed && isImageGroup(group)) {
-            computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
-        }
+    computeLines2()
+    // if (props.data.root == undefined) {
+    //     return
+    // }
+    // if (_flagCompute) {
+    //     return
+    // }
+    // _flagCompute = true
+    // console.time('compute lines')
+    // let group = props.data.root
+    // let index = props.data.index
+    // const groupToLines = (group, lines, lineWidth, imgHeight) => {
+    //     lines.push({
+    //         id: group.id,
+    //         type: 'group',
+    //         data: group,
+    //         depth: group.depth,
+    //         size: props.hideGroup ? 0 : 30,
+    //         nbClusters: 10
+    //         // index: lines.length
+    //     })
+    //     group.index = lines.length - 1
+    //     if (!group.closed && Array.isArray(group.groups) && group.groups.length > 0) {
+    //         group.groups.forEach(g => {
+    //             groupToLines(g, lines, lineWidth, imgHeight)
+    //         })
+    //         return
+    //     }
+    //     if (!group.closed && isPileGroup(group)) {
+    //         computeImagePileLines(group.imagePiles, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
+    //     }
+    //     else if (!group.closed && isImageGroup(group)) {
+    //         computeImageLines(group.images, lines, imgHeight, lineWidth - (group.depth * MARGIN_STEP), group)
+    //     }
 
-    }
+    // }
 
-    let lines = []
-    groupToLines(index[group.id], lines, props.width, props.imageSize)
-    lines.push({ type: 'filler', size: 400, id: '__filler__' })
-    imageLines.length = 0
-    imageLines.push(...lines)
+    // let lines = []
+    // groupToLines(index[group.id], lines, props.width, props.imageSize)
+    // lines.push({ type: 'filler', size: 400, id: '__filler__' })
+    // imageLines.length = 0
+    // imageLines.push(...lines)
 
-    // console.log(lines)
-    scroller.value.updateVisibleItems(true)
-    // console.log(imageLines.length)
-    console.timeEnd('compute lines')
+    // // console.log(lines)
+    // scroller.value.updateVisibleItems(true)
+    // // console.log(imageLines.length)
+    // console.timeEnd('compute lines')
 
-    nextTick(() => _flagCompute = false)
-    return lines
+    // nextTick(() => _flagCompute = false)
+    // return lines
 }
 
 function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -219,9 +257,8 @@ function computeImagePileLines(imagesPiles, lines, imageHeight, totalWidth, pare
 }
 
 function scrollTo(groupId) {
-    let group = props.data.index[groupId]
-    let i = group.index
-    scroller.value.scrollToItem(i)
+    const idx = groupIdx[groupId]
+    scroller.value.scrollToItem(idx)
     nextTick(() => scroller.value.updateVisibleItems(true))
 }
 
@@ -229,20 +266,20 @@ function updateHoverBorder(value) {
     hoverGroupBorder.value = value
 }
 
-function getParents(group) {
+function getParents(group: Group) {
     // if (item.groupId != undefined) {
     //     return [...getParents(props.data.index[item.groupId]), item.groupId]
     // }
     if (group && group.id != undefined) {
-        if (group.parentId != undefined) {
-            return [...getParents(props.data.index[group.parentId]), group.parentId]
+        if (group.parent != undefined) {
+            return [...getParents(group.parent), group.parent.id]
         }
     }
     return []
 }
 
 function getImageLineParents(item) {
-    return [...getParents(props.data.index[item.groupId]), item.groupId]
+    return [...getParents(props.groupManager.result.index[item.groupId]), item.groupId]
 }
 
 function closeGroup(groupIds) {
@@ -260,29 +297,21 @@ function openGroup(groupId) {
 
 }
 
+// TODO
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
-    const iterator = new ImageIterator(props.data)
-    iterator.goToImage(item.groupId, data.id)
-    props.selector.toggleImageIterator(iterator, keyState.shift)
+    // const iterator = new ImageIterator(props.data)
+    // iterator.goToImage(item.groupId, data.id)
+    // props.selector.toggleImageIterator(iterator, keyState.shift)
 }
 
-
+// TODO
 function toggleGroupSelect(groupId: string) {
-    const iterator = new GroupIterator(props.data, props.data.index[groupId].order)
-    props.selector.toggleGroupIterator(iterator, keyState.shift)
+    // const iterator = new GroupIterator(props.data, props.data.index[groupId].order)
+    // props.selector.toggleGroupIterator(iterator, keyState.shift)
 }
 
 
 onMounted(computeLines)
-// onMounted(() => {
-//     console.log(props.height, props.width)
-// })
-// onMounted(() => updateListWindow(0, 100))
-
-// watch(() => props.data, () => {
-//     console.log('props.data watch')
-//     computeLines()
-// }, { deep: true })
 
 watch(() => props.imageSize, () => {
     console.log('image size compute')
@@ -325,6 +354,10 @@ watch(() => props.width, () => {
     setTimeout(computeLines, 500)
 })
 
+function scrollToGroup(groupId: string) {
+    console.log('scroll', groupId)
+}
+
 </script>
 
 <template>
@@ -335,24 +368,25 @@ watch(() => props.width, () => {
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :hide-options="props.hideOptions" :data="props.data" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @group:close="closeGroup"
-                        @group:open="openGroup" @select="toggleGroupSelect"
-                        @group:update="computeLines"
-                        @recommend="(imgs, values, groupId) => emits('recommend', imgs, values, groupId)" />
+                        :manager="props.groupManager" :hide-options="props.hideOptions" :data="props.groupManager.result"
+                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
+                        @group:close="closeGroup" @group:open="openGroup" @select="toggleGroupSelect"
+                        @recommend="(groupId) => emits('recommend', groupId)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
                     <ImageLineVue :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
-                        :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
-                        :properties="props.properties" :selected-images="props.selector.selectedImages"
+                        :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
+                        :parent-ids="getImageLineParents(item)" :properties="props.properties"
+                        :selected-images="props.selector.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
-                        :index="props.data.index" :hover-border="hoverGroupBorder" :parent-ids="getImageLineParents(item)"
-                        :properties="props.properties" :selected-images="props.selector.selectedImages"
+                        :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
+                        :parent-ids="getImageLineParents(item)" :properties="props.properties"
+                        :selected-images="props.selector.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>

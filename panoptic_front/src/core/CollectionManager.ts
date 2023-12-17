@@ -1,0 +1,49 @@
+/**
+ * CollectionManager
+ * Is responsible to connect the different managers together for reactivity
+ */
+
+import { Image, ImageIndex } from "@/data/models";
+import { FilterManager, FilterResult, FilterState } from "./FilterManager";
+import { SortManager, SortResult, SortState } from "./SortManager";
+import { GroupManager, GroupState } from "./GroupManager";
+
+export class CollectionManager {
+    images: ImageIndex
+    filterManager: FilterManager
+    sortManager: SortManager
+    groupManager: GroupManager
+
+    constructor(images: ImageIndex, filterState: FilterState, sortState: SortState, groupState: GroupState) {
+        this.filterManager = new FilterManager(filterState)
+        this.sortManager = new SortManager(sortState)
+        this.groupManager = new GroupManager(groupState)
+
+        this.filterManager.onChange.addListener(this.onFilter.bind(this))
+        this.sortManager.onChange.addListener(this.onSort.bind(this))
+        this.groupManager.onChange.addListener(this.onGroup.bind(this))
+
+        if(images) this.updateImages(images)
+
+    }
+
+    updateImages(images: ImageIndex) {
+        this.images = images
+        const filterRes = this.filterManager.filter(Object.values(this.images))
+        const sortRes = this.sortManager.sort(filterRes.images)
+        this.groupManager.group(sortRes.images, sortRes.order, true)
+    }
+
+    private onFilter(result: FilterResult) {
+        const sortRes = this.sortManager.sort(result.images)
+        this.groupManager.group(sortRes.images, sortRes.order, true)
+    }
+
+    private onSort(result: SortResult) {
+        this.groupManager.sort(result.order, true)
+    }
+
+    private onGroup() {
+
+    }
+}

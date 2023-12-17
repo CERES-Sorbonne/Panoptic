@@ -50,7 +50,7 @@ const handleInput = async (e: any) => {
                     <!-- <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
                         :tab="globalStore.tabs[globalStore.selectedTab].data" /> -->
                         <FolderList2 v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
-                        :filter-manager="globalStore.tabs[globalStore.selectedTab].data.filterManager" :visible-folders="globalStore.tabs[globalStore.selectedTab].data.visibleFolders" />
+                        :filter-manager="globalStore.tabs[globalStore.selectedTab].collection.filterManager" :visible-folders="globalStore.tabs[globalStore.selectedTab].data.visibleFolders" />
                 </div>
                 <div class="p-2"
                     v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">

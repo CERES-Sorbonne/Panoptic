@@ -1,4 +1,4 @@
-import { Folder, Group, Image, Property, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
+import { Folder, Image, Property, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
 import { Ref, computed } from "vue"
 
@@ -34,13 +34,13 @@ export function getImageProperty(imgId: number, propId: number) {
     return propRef
 }
 
-export function isImageGroup(group: Group) {
-    return Array.isArray(group.images) && group.images.length > 0
-}
+// export function isImageGroup(group: Group) {
+//     return Array.isArray(group.images) && group.images.length > 0
+// }
 
-export function isPileGroup(group: Group) {
-    return Array.isArray(group.imagePiles) && group.imagePiles.length > 0
-}
+// export function isPileGroup(group: Group) {
+//     return Array.isArray(group.imagePiles) && group.imagePiles.length > 0
+// }
 
 
 export function isTagId(propId: number) {
@@ -121,3 +121,26 @@ export function arrayEqual(arr1: any[], arr2: any[]) {
 }
 
 export const sleep = m => new Promise(r => setTimeout(r, m))
+
+export class EventEmitter {
+    private listeners: Function[];
+  
+    constructor() {
+        this.listeners = []
+    }
+  
+    addListener(listener: Function) {
+      this.listeners.push(listener);
+    }
+  
+    removeListener(listener: Function) {
+      const index = this.listeners.indexOf(listener);
+      if (index !== -1) {
+        this.listeners.splice(index, 1);
+      }
+    }
+  
+    emit(value?: any) {
+      this.listeners.forEach(listener => listener(value));
+    }
+  }

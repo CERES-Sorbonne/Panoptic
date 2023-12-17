@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { Group, GroupData, GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine, PileRowLine, Sha1Pile } from '@/data/models';
-import { isImageGroup, isPileGroup } from '@/utils/utils';
+import { GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine, PileRowLine, Sha1Pile } from '@/data/models';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GroupLineVue from './GroupLine.vue';
 import TableHeader from './TableHeader.vue';
@@ -11,10 +10,11 @@ import GridScrollerLine from './GridScrollerLine.vue';
 import { GroupIterator, ImageIterator, groupParents } from '@/utils/groups';
 import { ImageSelector } from '@/utils/selection';
 import { keyState } from '@/data/keyState';
+import { Group } from '@/core/GroupManager';
 
 
 const props = defineProps({
-    data: Object as () => GroupData,
+    data: Object,
     height: Number,
     width: Number,
     selectedProperties: Array<Property>,
@@ -33,7 +33,7 @@ const hearderHeight = ref(60)
 const lines = reactive([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
-const currentGroup = reactive({} as Group)
+const currentGroup = reactive({})
 
 const totalPropWidth = computed(() => {
     const options = globalStore.getTab().data.propertyOptions
@@ -69,22 +69,22 @@ function computeLines() {
         }
 
         if (group.groups) continue
-        if (isPileGroup(group)) {
-            if (group.propertyValues.length > 0) {
-                lines.push(computeGroupLine(group))
-            }
-            if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
-            const imageLines = group.imagePiles.map((pile, index) => computePileRow(pile, group.id, index))
-            lines.push(...imageLines)
-        }
-        else if (isImageGroup(group)) {
-            if (group.propertyValues.length > 0) {
-                lines.push(computeGroupLine(group))
-            }
-            if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
-            const imageLines = group.images.map((img, index) => computeImageRow(img, group.id, index))
-            lines.push(...imageLines)
-        }
+        // if (isPileGroup(group)) {
+        //     if (group.propertyValues.length > 0) {
+        //         lines.push(computeGroupLine(group))
+        //     }
+        //     if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
+        //     const imageLines = group.imagePiles.map((pile, index) => computePileRow(pile, group.id, index))
+        //     lines.push(...imageLines)
+        // }
+        // else if (isImageGroup(group)) {
+        //     if (group.propertyValues.length > 0) {
+        //         lines.push(computeGroupLine(group))
+        //     }
+        //     if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
+        //     const imageLines = group.images.map((img, index) => computeImageRow(img, group.id, index))
+        //     lines.push(...imageLines)
+        // }
     }
 
     // lines.push({id: '__filler__', type: 'fillter', size: 1000})
@@ -169,9 +169,9 @@ function handleUpdate() {
     oldIndex = newIndex
 
     let grpId = lines[newIndex].groupId
-    if (currentGroup.id != grpId) {
-        Object.assign(currentGroup, props.data.index[grpId])
-    }
+    // if (currentGroup.id != grpId) {
+    //     Object.assign(currentGroup, props.data.index[grpId])
+    // }
 }
 
 function openGroup(groupId: string) {

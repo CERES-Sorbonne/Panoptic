@@ -68,9 +68,9 @@ const hasSelectedImages = computed(() => props.selector.selectedImages.size)
         <!-- <span class="ms-2">({{ props.imageSize }}px)</span> -->
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
-        <FilterForm :manager="props.filterManager" />
-        <GroupForm :groupIds="props.tab.data.groups" :is-loading="props.computeStatus.groups" />
-        <SortForm :sortList="props.tab.data.sortList" :manager="props.tab.data.sortManager"/>
+        <FilterForm :manager="props.tab.collection.filterManager" />
+        <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
+        <SortForm :manager="props.tab.collection.sortManager"/>
         <!-- <div class="ms-2">
             <button @click="$emit('compute-ml')">Compute All Groups</button>
         </div> -->
