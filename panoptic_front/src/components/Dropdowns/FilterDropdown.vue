@@ -1,13 +1,17 @@
 <script setup lang="ts">
+
+/**
+ * FilterDropdown view
+ * Interface to FilterManager functions
+ * Allows to create a new Filter from start or modify an existing filter.
+ */
+
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { Filter, PropertyID, PropertyType, isTag, operatorHasInput, propertyDefault } from '@/data/models';
 import { globalStore } from '@/data/store';
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
-import PropertyInput2 from '../inputs/PropertyInput2.vue';
-import * as bootstrap from 'bootstrap'
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
-import TextInput from '../inputs/TextInput.vue';
 import TagInput from '../tags/TagInput.vue';
 import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import Dropdown from './Dropdown.vue';
@@ -15,8 +19,8 @@ import { FilterManager, FilterOperator } from '@/core/FilterManager';
 
 enum State {
     CLOSED = 0,
-    TYPE = 1,
-    MODE = 2
+    TYPE = 1, // chose filter propertyId
+    MODE = 2 // chose operator and value
 }
 
 const props = defineProps({
@@ -51,36 +55,25 @@ const filterProperty = computed(() => {
     return prop
 })
 
+
+// Dropdown functions
+
 function show() {
     mode.value = props.mode
     if (props.mode == State.MODE && props.filterId == undefined) {
-        selectProperty(props.propertyId)
+        updateProperty(props.propertyId)
     }
 }
+
+function hide() {
+    if (dropdownElem.value) dropdownElem.value.hide()
+}
+
 function onHide() {
     mode.value = State.CLOSED
 }
 
-function onBlur() {
-    if (!filter.value) return
-
-    const prop = globalStore.properties[filter.value.propertyId]
-    if (isTag(prop.type)) return
-    // console.log(prop.type)
-    const value = localValue.value ?? propertyDefault(prop.type)
-
-    if (filter.value.value != value) {
-        // console.log('blur', filter.value.value, ':', value)
-        updateValue()
-    }
-}
-
-function selectProperty(propId) {
-    let filter = props.manager.addNewFilter(propId, props.parentId)
-    props.manager.update(true)
-    localFilterId.value = filter.id
-    mode.value = State.MODE
-}
+// FilterManager functions
 
 function deleteFilter() {
     hide()
@@ -88,13 +81,19 @@ function deleteFilter() {
     props.manager.update(true)
 }
 
-function hide() {
-    if (dropdownElem.value) dropdownElem.value.hide()
+function updateProperty(propId) {
+    let filter = props.manager.addNewFilter(propId, props.parentId)
+    props.manager.update(true)
+    localFilterId.value = filter.id
+    mode.value = State.MODE
 }
 
 function updateOperator(operator: FilterOperator) {
     props.manager.updateFilter(filterId.value, { operator })
     props.manager.update(true)
+    if (inputElem.value) {
+        inputElem.value.focus()
+    }
 }
 
 function updateValue() {
@@ -103,22 +102,26 @@ function updateValue() {
     props.manager.update(true)
 }
 
-function updateLocal() {
+function updateIfChanged() {
     if (!filter.value) return
-    const property = globalStore.properties[filter.value.propertyId]
-    localValue.value = filter.value.value ?? propertyDefault(property.type)
+
+    const prop = globalStore.properties[filter.value.propertyId]
+    if (isTag(prop.type)) return
+
+    const value = localValue.value ?? propertyDefault(prop.type)
+    if (filter.value.value != value) {
+        updateValue()
+    }
 }
 
-onMounted(updateLocal)
-watch(() => filter.value?.value, () => {
-    updateLocal()
-})
+// LocalValue reactivity
 
-watch(() => filter.value?.operator, () => {
-    if (inputElem.value) {
-        inputElem.value.focus()
-    }
-})
+function updateLocal() {
+    if (!filter.value) return
+    localValue.value = filter.value.value
+}
+onMounted(updateLocal)
+watch(() => filter.value?.value, () => updateLocal())
 
 </script>
 
@@ -134,7 +137,7 @@ watch(() => filter.value?.operator, () => {
         <template #popup>
             <div class="container-size bg-white" ref="popupElem">
                 <template v-if="mode != State.CLOSED">
-                    <PropertySelection v-if="mode == State.TYPE" @select="selectProperty"
+                    <PropertySelection v-if="mode == State.TYPE" @select="updateProperty"
                         :ignore-ids="[PropertyID.folders]" />
                     <div v-if="mode == State.MODE">
                         <div class="d-flex mode-header">
@@ -149,16 +152,16 @@ watch(() => filter.value?.operator, () => {
                             <TagInput
                                 v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
                                 v-model="localValue" :auto-focus="true"
-                                :property="globalStore.properties[filter.propertyId]" ref="inputElem" @hide="hide" @update:model-value="updateValue" />
+                                :property="globalStore.properties[filter.propertyId]" ref="inputElem" @hide="hide"
+                                @update:model-value="updateValue" />
                             <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
-                                :property="filterProperty" v-model="localValue" @update:model-value="() => {hide(); onBlur()}" />
-                            <StandaloneTextInput
-                                v-else
-                                :no-html="true" v-model="localValue" :width="-1" :min-height="20"
+                                :property="filterProperty" v-model="localValue"
+                                @update:model-value="() => { hide(); updateIfChanged() }" />
+                            <StandaloneTextInput v-else :no-html="true" v-model="localValue" :width="-1" :min-height="20"
                                 :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number"
                                 :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
                                 :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number"
-                                @blur="onBlur" :auto-focus="true" ref="inputElem" />
+                                @blur="updateIfChanged" :auto-focus="true" ref="inputElem" />
                             <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="localValue" /> -->
                         </div>
                     </div>
