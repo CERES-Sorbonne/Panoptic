@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import { GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine, PileRowLine, Sha1Pile } from '@/data/models';
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
-import GroupLineVue from './GroupLine.vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import RowLineVue from './RowLine.vue';
 import { globalStore } from '@/data/store';
 import GridScrollerLine from './GridScrollerLine.vue';
-import { GroupIterator, ImageIterator, groupParents } from '@/utils/groups';
-import { ImageSelector } from '@/utils/selection';
 import { keyState } from '@/data/keyState';
 import { Group } from '@/core/GroupManager';
+import { groupParents } from '@/utils/utils';
 
 
 const props = defineProps({
@@ -19,7 +17,6 @@ const props = defineProps({
     width: Number,
     selectedProperties: Array<Property>,
     showImages: Boolean,
-    selector: ImageSelector
 })
 
 defineExpose({
@@ -27,6 +24,7 @@ defineExpose({
     computeLines,
     clear
 })
+
 
 
 const hearderHeight = ref(60)
@@ -187,12 +185,12 @@ function closeGroup(groupId: string) {
     computeLines()
 }
 
-function selectImage(iterator: ImageIterator) {
-    props.selector.toggleImageIterator(iterator, keyState.shift)
+function selectImage(iterator) {
+    // props..toggleImageIterator(iterator, keyState.shift)
 }
 
-function selectGroup(iterator: GroupIterator) {
-    props.selector.toggleGroupIterator(iterator, keyState.shift)
+function selectGroup(iterator) {
+    // props.selector.toggleGroupIterator(iterator, keyState.shift)
 }
 
 function clear() {
@@ -218,7 +216,7 @@ watch(() => props.data, computeLines)
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
                     <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
-                        :show-images="props.showImages" :selected-images="props.selector.selectedImages" :data="props.data"
+                        :show-images="props.showImages" :selected-images="props.data.collection.groupManager.selectedImages" :data="props.data"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="selectImage" @toggle:group="selectGroup"
                         @resizeHeight="h => resizeHeight(item, h)" />

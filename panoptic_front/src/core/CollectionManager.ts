@@ -6,7 +6,7 @@
 import { Image, ImageIndex } from "@/data/models";
 import { FilterManager, FilterResult, FilterState } from "./FilterManager";
 import { SortManager, SortResult, SortState } from "./SortManager";
-import { GroupManager, GroupState } from "./GroupManager";
+import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
 
 export class CollectionManager {
     images: ImageIndex
@@ -14,10 +14,10 @@ export class CollectionManager {
     sortManager: SortManager
     groupManager: GroupManager
 
-    constructor(images: ImageIndex, filterState: FilterState, sortState: SortState, groupState: GroupState) {
+    constructor(images: ImageIndex, filterState: FilterState, sortState: SortState, groupState: GroupState, selectedImages: SelectedImages) {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
-        this.groupManager = new GroupManager(groupState)
+        this.groupManager = new GroupManager(groupState, selectedImages)
 
         this.filterManager.onChange.addListener(this.onFilter.bind(this))
         this.sortManager.onChange.addListener(this.onSort.bind(this))

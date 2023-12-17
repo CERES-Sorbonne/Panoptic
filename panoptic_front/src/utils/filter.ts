@@ -5,22 +5,22 @@ import { Filter, FilterOperator, Image, FilterGroup, PropertyType, Tag, AFilter,
 // import { getTagChildren } from "./utils";
 
 
-export function defaultOperator(propertyType: PropertyType) {
-    switch (propertyType) {
-        case PropertyType.checkbox:
-            return FilterOperator.isTrue
+// export function defaultOperator(propertyType: PropertyType) {
+//     switch (propertyType) {
+//         case PropertyType.checkbox:
+//             return FilterOperator.isTrue
 
-        case PropertyType.multi_tags:
-        case PropertyType.tag:
-            return FilterOperator.containsAny
+//         case PropertyType.multi_tags:
+//         case PropertyType.tag:
+//             return FilterOperator.containsAny
 
-        case PropertyType.date:
-            return FilterOperator.greater
+//         case PropertyType.date:
+//             return FilterOperator.greater
 
-        default:
-            return FilterOperator.equal
-    }
-}
+//         default:
+//             return FilterOperator.equal
+//     }
+// }
 
 // function isEmpty(value: any) {
 //     return value === undefined || value === '' || (isArray(value) && value.length === 0) || value === null

@@ -40,8 +40,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
     async addTab(tabName: string) {
         let state = buildTabState()
         let tab = await apiAddTab({ name: tabName, data: state }) as Tab
-
-        tab.collection = new CollectionManager(globalStore.images, state.filterState, state.sortState ,state.groupState)
+        const selectedImages = reactive(new Set<number>())
+        tab.collection = new CollectionManager(globalStore.images, state.filterState, state.sortState ,state.groupState, selectedImages)
         this.tabs[tab.id] = tab
         this.selectedTab = tab.id
     },
@@ -86,7 +86,8 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
             t.data.filterState = t.data.filterState ?? createFilterState()
             t.data.sortState = t.data.sortState ?? createSortState()
             t.data.groupState = t.data.groupState ?? createGroupState()
-            t.collection = new CollectionManager(undefined, t.data.filterState, t.data.sortState, t.data.groupState)
+            const selectedImages = reactive(new Set<number>())
+            t.collection = new CollectionManager(undefined, t.data.filterState, t.data.sortState, t.data.groupState, selectedImages)
         })
 
         if (tabs.length == 0) {

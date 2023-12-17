@@ -77,6 +77,9 @@ export interface GroupOption extends SortOption {
     type?: GroupSortType
 }
 
+export type SelectedImages = Set<number>
+
+
 // function isLeaf(group: Group) {
 //     return group.children.length == 0
 // }
@@ -245,12 +248,13 @@ export class GroupManager {
     result: GroupResult
 
     lastOrder: ImageOrder
-
     customGroups: { [parentGroupId: string]: Group[] }
-
     onChange: EventEmitter
 
-    constructor(state?: GroupState) {
+    selectedImages: SelectedImages
+    private selection: { lastImage: ImageIterator, lastGroup: GroupIterator }
+
+    constructor(state?: GroupState, selectedImages?: SelectedImages) {
         if (state) {
             this.state = state
         } else {
@@ -259,6 +263,9 @@ export class GroupManager {
         this.result = { root: undefined, index: {}, imageToGroups: {} }
         this.customGroups = {}
         this.onChange = new EventEmitter()
+
+        this.selectedImages = selectedImages ?? new Set<number>()
+        this.selection = { lastImage: undefined, lastGroup: undefined }
     }
 
     group(images: Image[], order: ImageOrder, emit?: boolean) {
@@ -284,9 +291,23 @@ export class GroupManager {
 
         setOrder(this.result.root)
 
+        for(let group of Object.values(this.result.index)) {
+            if(group.children.length > 0 && group.subGroupType != GroupType.Sha1) continue
+            this.saveImagesToGroup(group)
+        }
+
 
         if (emit) this.onChange.emit(this.result)
         return this.result
+    }
+
+    private saveImagesToGroup(group: Group) {
+        for(let img of group.images) {
+            if(!this.result.imageToGroups[img.id]) {
+                this.result.imageToGroups[img.id] = []
+            }
+            this.result.imageToGroups[img.id].push(group.id)
+        }
     }
 
     update(emit?: boolean) {
@@ -300,7 +321,7 @@ export class GroupManager {
             sortGroupImages(g, order)
         })
 
-        if(emit) this.onChange.emit(this.result)
+        if (emit) this.onChange.emit(this.result)
     }
 
     setGroupOption(propertyId: number, option?: GroupOption) {
@@ -360,12 +381,17 @@ export class GroupManager {
         this.onChange.emit()
     }
 
-    getGroupIterator() {
-        return new GroupIterator(this)
+    getGroupIterator(groupId?: string, options?: GroupIteratorOptions) {
+        return new GroupIterator(this, groupId, options)
     }
 
-    getImageIterator() {
-        return new ImageIterator(this)
+    getImageIterator(groupId?: string, imageIdx?: number, options?: GroupIteratorOptions) {
+        return new ImageIterator(this, groupId, imageIdx, options)
+    }
+
+    findImageIterator(groupId: string, imageId: number) {
+        const idx = this.result.index[groupId].images.findIndex(i => i.id == imageId)
+        return this.getImageIterator(groupId, idx)
     }
 
     private addChildGroup(parent: Group, groups: Group[]) {
@@ -422,6 +448,181 @@ export class GroupManager {
         }
 
         sortGroup(group, option)
+    }
+
+    // Selection
+    clearSelection() {
+        this.unselectGroup(this.result.root)
+        this.selectedImages.clear()
+        this.clearLastSelected()
+    }
+
+    selectImageIterator(iterator: ImageIterator, shift = false) {
+        if (shift) {
+            let res = this._shiftSelect(iterator)
+        }
+        this.selectImages(iterator.getImages().map(i => i.id))
+        this.clearLastSelected()
+        this.selection.lastImage = iterator.clone()
+    }
+
+    unselectImageIterator(iterator: ImageIterator) {
+        this.unselectImages(iterator.getImages().map(i => i.id))
+        this.clearLastSelected()
+    }
+
+    toggleImageIterator(iterator: ImageIterator, shift = false) {
+        const selected = iterator.getImages().every(i => this.selectedImages.has(i.id))
+        if (selected) {
+            this.unselectImageIterator(iterator)
+        } else {
+            this.selectImageIterator(iterator, shift)
+        }
+    }
+    toggleAll() {
+        const iterator = this.getGroupIterator()
+        this.toggleGroupIterator(iterator)
+    }
+
+    private _shiftSelect(iterator: ImageIterator) {
+        if (this.selection.lastImage == undefined) return false
+
+        let start = this.selection.lastImage.isImageBefore(iterator) ? this.selection.lastImage : iterator
+        let end = start == iterator ? this.selection.lastImage : iterator
+
+        console.log(start, end)
+
+        let images = []
+        let it = start.clone()
+        while (it.nextImages()) {
+            console.log(it)
+            if (end.isGroupBefore(it)) {
+                break
+            }
+            images.push(...it.getImages().map(i => i.id))
+        }
+        if (images.length) {
+            this.selectImages(images)
+            return true
+        }
+        return false
+    }
+
+    private _shiftGroup(iterator: GroupIterator) {
+        if (this.selection.lastGroup == undefined) return false
+
+        let start = this.selection.lastGroup.isGroupBefore(iterator) ? this.selection.lastGroup : iterator
+        let end = start == iterator ? this.selection.lastGroup : iterator
+        let images = []
+        let it = start.clone()
+
+        while (it.nextGroup()) {
+            if (end.isGroupBefore(it)) {
+                break
+            }
+            const group = it.getGroup()
+            if(group.images.length) {
+                images.push(...group.images.map(i => i.id))
+            }
+        }
+        if (images.length) {
+            this.selectImages(images)
+            return true
+        }
+        return false
+
+    }
+
+    clearLastSelected() {
+        this.selection.lastGroup = undefined
+        this.selection.lastImage = undefined
+    }
+
+    unselectImage(imageId: number) {
+        this.unselectImages([imageId])
+    }
+
+    selectImage(imageId: number) {
+        this.selectImages([imageId])
+    }
+
+    selectImages(imageIds: number[]) {
+        imageIds.forEach(id => this.selectedImages.add(id))
+
+        let groups = new Set<string>()
+        imageIds.forEach(id => this.result.imageToGroups[id].forEach(gId => groups.add(gId)))
+
+        groups.forEach(gId => this.propagateSelect(this.result.index[gId]))
+    }
+
+    unselectImages(imageIds: number[]) {
+        imageIds.forEach(id => this.selectedImages.delete(id))
+        let groups = new Set<string>()
+        imageIds.forEach(id => this.result.imageToGroups[id].forEach(gId => groups.add(gId)))
+
+        groups.forEach(gId => this.propagateUnselect(this.result.index[gId]))
+    }
+
+    propagateUnselect(group: Group) {
+        group.view.selected = false
+        if (!group.parent) return
+
+        this.propagateUnselect(group.parent)
+    }
+
+    propagateSelect(group: Group) {
+        if (group.children.length == 0) {
+            group.view.selected = group.images.every(i => this.selectedImages.has(i.id))
+        }
+        else {
+            group.view.selected = group.children.every(g => g.view.selected)
+        }
+
+        if (!group.parent) return
+        this.propagateSelect(group.parent)
+    }
+
+    selectGroup(group: Group) {
+        this.selectImages(group.images.map(i => i.id))
+        
+        const recursive = (g: Group) => {
+            g.view.selected = true
+            g.children.forEach(c => recursive(c))
+        }
+        recursive(group)
+    }
+
+    unselectGroup(group: Group) {
+        this.unselectImages(group.images.map(i => i.id))
+        
+        const recursive = (g: Group) => {
+            g.view.selected = false
+            g.children.forEach(c => recursive(c))
+        }
+        recursive(group)
+    }
+
+    selectGroupIterator(iterator: GroupIterator, shift = false) {
+        if (shift) {
+            this._shiftGroup(iterator)
+        }
+        this.selectGroup(iterator.getGroup())
+        this.clearLastSelected()
+        this.selection.lastGroup = iterator.clone()
+    }
+
+    unselectGroupIterator(iterator: GroupIterator) {
+        this.unselectGroup(iterator.getGroup())
+        this.clearLastSelected()
+    }
+
+    toggleGroupIterator(iterator: GroupIterator, shift = false) {
+        const selected = iterator.getGroup().view.selected
+        if (selected) {
+            this.unselectGroupIterator(iterator)
+        } else {
+            this.selectGroupIterator(iterator, shift)
+        }
     }
 }
 
@@ -480,7 +681,7 @@ export class ImageIterator extends GroupIterator {
         super(manager, groupId, options)
         this.imageIdx = imageIdx ?? 0
 
-        if(this.getGroup().children.length > 0) {
+        if (this.getGroup().children.length > 0) {
             const next = this.nextGroup()
             this.groupId = next.groupId
         }
@@ -511,7 +712,7 @@ export class ImageIterator extends GroupIterator {
         while (current) {
             const group = current.getGroup()
             const nextIdx = current.imageIdx + 1
-            if(group.images[nextIdx]) {
+            if (group.images[nextIdx]) {
                 return new ImageIterator(this.manager, current.groupId, nextIdx, this.options)
             }
             current = current.nextGroup()
