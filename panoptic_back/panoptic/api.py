@@ -270,11 +270,13 @@ class VueFinder:
         for item in contents:
             item_path = os.path.join(full_path, item)
             if os.path.isdir(item_path):
+                images = self.images_in_folder(item_path)
                 result.append({
                     'path': item_path,
                     'extension': 'dir' if os.path.isdir(item_path) else item.split('.')[-1],
                     'name': item,
-                    'images': len(self.images_in_folder(item_path))
+                    'images': len(images),
+                    'images_url':  images[0:40]
                 })
         return result
 

@@ -39,13 +39,13 @@ const handleInput = async (e: any) => {
         <div class="">
             <div>
                 <div class="ps-2 pe-2" style="padding-bottom: 9.5px; padding-top: 5px;">
-                    <div class="d-flex">
+                    <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
-                        <!-- <div class="ms-auto" @click="globalStore.showModal(Modals.FOLDERTOPROP)">
-                            <i class="bi bi-three-dots"></i>
-                        </div> -->
+                        <div class="ms-auto plus" @click="globalStore.showModal(Modals.FOLDERSELECTION)">
+                            <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
+                        </div>
                     </div>
-
+                    <div class="custom-hr" />
                     <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
                         :tab="globalStore.tabs[globalStore.selectedTab].data" />
                 </div>
@@ -64,7 +64,7 @@ const handleInput = async (e: any) => {
                 <div class="p-2"
                     v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">
                     <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ globalStore.importState.computed }} / {{ globalStore.importState.to_import }} computed
+                        {{ globalStore.importState.computed }} / {{ globalStore.importState.to_import }} transformées
                     </div>
                     <div v-if="globalStore.importState.to_import > 0" class="progress" role="progressbar"
                         aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
@@ -135,4 +135,11 @@ const handleInput = async (e: any) => {
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.plus{
+    font-size: 1.5em;
+}
+.plus:hover{
+    cursor: pointer;
+}
+</style>

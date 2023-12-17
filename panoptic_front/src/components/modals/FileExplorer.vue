@@ -5,7 +5,7 @@ import axios from 'axios'
 
 const columns = ref([]);
 const scrollContainer = ref(null);
-const activeFolderPath = ref('')
+const activeFolder = ref('')
 
 const fetchFiles = async (path) => {
     let res = await axios.get('http://localhost:8000' + path)
@@ -18,7 +18,7 @@ const handleItemClick = async (file, columnId) => {
     }
     if (!file.active) {
         columns.value[columnId] = columns.value[columnId].map(f => ({ ...f, active: f.name === file.name }))
-        activeFolderPath.value = file.path
+        activeFolder.value = file
     }
     if (file.active) {
         file.active = false
@@ -56,55 +56,71 @@ const sortFiles = (list) => {
     });
 };
 
+const addFolder = () => {
+    console.log(activeFolder.path)
+}
 </script>
 
 <template>
-    <div class="container mt-4" style="margin-left:0;overflow-x: auto;max-height: 75vh;" ref="scrollContainer">
-        <div class="row" style="flex-wrap: nowrap;">
-            <!-- Colonnes suivantes pour les appels suivants -->
-            <div v-for="(column, columnId) in columns" :key="column" class="col-3">
-                <div v-if="columnId == 0" class="row">
-                    <ul class="list-group">
-                        <li class="list-group-item header">
-                            <i class="bi bi-hdd"></i>
-                            Disques
-                        </li>
-                        <FileItem v-for="file in column.filter(el => el.extension === 'disk')" :key="file.path" :file="file"
-                            @itemClicked="handleItemClick(file, columnId)">
-                        </FileItem>
-                    </ul>
-                    <ul class="list-group mt-3">
-                        <li class="list-group-item header">
-                            <i class="bi bi-house"></i>
-                            Documents
-                        </li>
-                        <FileItem v-for="file in column.filter(el => el.extension === 'dir')" :key="file.path" :file="file"
+    <div class="row">
+        <div class="col-9 mt-4" style="margin-left:0;overflow-x: auto;max-height: 75vh;min-height: 75vh;" ref="scrollContainer">
+            <div class="row" style="flex-wrap: nowrap;">
+                <!-- Colonnes suivantes pour les appels suivants -->
+                <div v-for="(column, columnId) in columns" :key="column" class="col-auto" style="max-width: 23vw;">
+                    <div v-if="columnId == 0" class="row">
+                        <ul class="list-group">
+                            <li class="list-group-item header">
+                                <i class="bi bi-hdd"></i>
+                                Disques
+                            </li>
+                            <FileItem v-for="file in column.filter(el => el.extension === 'disk')" :key="file.path" :file="file"
+                                @itemClicked="handleItemClick(file, columnId)">
+                            </FileItem>
+                        </ul>
+                        <ul class="list-group mt-3">
+                            <li class="list-group-item header">
+                                <i class="bi bi-house"></i>
+                                Documents
+                            </li>
+                            <FileItem v-for="file in column.filter(el => el.extension === 'dir')" :key="file.path" :file="file"
+                                @itemClicked="handleItemClick(file, columnId)">
+                            </FileItem>
+                        </ul>
+                    </div>
+                    <ul v-else class="list-group">
+                        <FileItem v-for="file in column" :key="file.path" :file="file" :isLast="columnId === columns.length - 1"
                             @itemClicked="handleItemClick(file, columnId)">
                         </FileItem>
                     </ul>
                 </div>
-                <ul v-else class="list-group">
-                    <FileItem v-for="file in column" :key="file.path" :file="file" :isLast="columnId === columns.length - 1"
-                        @itemClicked="handleItemClick(file, columnId)">
-                    </FileItem>
-                </ul>
             </div>
+        </div>
+        <div class="images col-3">
+            <img v-for="url in activeFolder.images_url" :src="'http://localhost:8000/images/' + url" class="mini"/>
         </div>
     </div>
     <div class="row mt-3">
         <div class="col-12">
             <div class="input-group">
-                <input v-model="activeFolderPath" class="form-control" readonly>
-                <button @click="ajouter" class="btn btn-primary">Ajouter</button>
+                <input v-model="activeFolder.path" class="form-control" readonly>
+                <button @click="addFolder" class="btn btn-primary">{{ $t('modals.add_folder.add') }}</button>
             </div>
         </div>
     </div>
 </template>
   
-<style>
+<style scoped>
 .header {
     background-color: #c3cfd9 !important;
     color: rgb(50, 50, 50);
+}
+
+.images {
+    max-height: 75vh;
+    overflow-y: scroll;
+}
+.mini {
+    max-width: 75px;
 }
 </style>
  

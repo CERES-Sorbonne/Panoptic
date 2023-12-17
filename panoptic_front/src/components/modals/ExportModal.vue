@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
@@ -49,7 +48,6 @@ onMounted(() => {
 })
 
 function exportFile(){
-    console.log(imagesId.value, activeProperties.value)
     let images
     let properties
     if(useOnlyActiveImage.value){
