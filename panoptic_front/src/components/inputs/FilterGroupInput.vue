@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { Filter, FilterGroup, FilterOperator, Property, PropertyType } from '@/data/models';
+import { Filter, FilterGroup, FilterOperator } from '@/data/models';
 import { globalStore } from '@/data/store';
-import { computed, onMounted, watch } from 'vue';
+import { computed } from 'vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
-import PropertySelection from './PropertySelection.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { FilterManager } from '@/core/FilterManager';
 
 const props = defineProps({
-    // filter: { type: Object as () => FilterGroup, required: true },
+    filter: Object as () => FilterGroup,
     manager: FilterManager,
     parent: HTMLElement
 })
@@ -18,7 +17,7 @@ const props = defineProps({
 const emits = defineEmits(['delete'])
 
 
-const filter = computed(() => props.manager.state.filter as FilterGroup)
+const filter = computed(() => props.filter as FilterGroup)
 const filters = computed(() => filter.value.filters)
 const subGroupStyle = computed(() => {
     let val = 255 - ((filter.value.depth + 1) * 5)
@@ -26,7 +25,7 @@ const subGroupStyle = computed(() => {
 })
 
 function updateFilter(filterId: number, propertyId: number) {
-    props.manager.updateFilter(filterId, {propertyId})
+    props.manager.updateFilter(filterId, { propertyId })
     props.manager.update(true)
 }
 
@@ -39,12 +38,6 @@ function addFilterGroup(filterId: number) {
     props.manager.addNewFilterGroup(filterId)
     props.manager.update(true)
 }
-
-// onMounted(() => {
-//     if (props.filter.filters.length == 0 && props.filter.depth > 0) {
-//         addNewFilter()
-//     }
-// })
 
 </script>
 
@@ -62,12 +55,12 @@ function addFilterGroup(filterId: number) {
                                     <span class="">{{ $t('modals.filters.' + filter.groupOperator) }}</span>
                                 </div>
                             </template>
-                            <template #popup="{hide}">
+                            <template #popup="{ hide }">
                                 <div class="ps-2 pt-1 pb-1 pe-2" @click="hide">
                                     <div class="base-btn" @click="filter.groupOperator = FilterOperator.and">
                                         {{ $t('modals.filters.and') }}
                                     </div>
-                                    <hr class="m-0 p-0 mt-1 mb-1"/>
+                                    <hr class="m-0 p-0 mt-1 mb-1" />
                                     <div class="base-btn" @click="filter.groupOperator = FilterOperator.or">
                                         {{ $t('modals.filters.or') }}
                                     </div>
@@ -91,7 +84,7 @@ function addFilterGroup(filterId: number) {
                 <template v-else>
                     <td colspan="3" :style="subGroupStyle">
                         <div class="border rounded">
-                            <FilterGroupInput :filter="(filter as FilterGroup)" :manager="props.manager" />
+                            <FilterGroupInput :filter="(children as FilterGroup)" :manager="props.manager" />
                         </div>
                     </td>
                 </template>
@@ -99,32 +92,8 @@ function addFilterGroup(filterId: number) {
                     <span class="base-btn" @click="deleteFilter(children)">
                         <i class="bi bi-trash"></i>
                     </span>
-                    <!-- <div class="m-0 p-0 ms-1 me-1">
-                        <div class="text-secondary" data-bs-toggle="dropdown" data-bs-auto-close="true"
-                            aria-expanded="false"><i class="bi bi-three-dots btn-icon"></i></div>
-                        <ul class="dropdown-menu bg-white m-0 p-0">
-                            <li><a class="dropdown-item" href="#" @click="deleteFilter(filter)"><i
-                                        class="bi bi-trash me-1"></i>{{$t('modals.filters.remove')}}</a></li>
-                        </ul>
-                    </div> -->
                 </td>
             </tr>
-            <!-- <tr>
-                <td colspan="2" class="text-start">
-                    <span>
-                        <button class="btn dropdown-toggle no-border text-secondary ms-0 ps-0" type="button"
-                            data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false">
-                            <span><i class="bi bi-plus"></i>Add filter rule</span>
-                        </button>
-                        <ul class="dropdown-menu bg-white m-0 p-0">
-                            <li><a class="dropdown-item" href="#" @click="addNewFilter">New Filter</a></li>
-                            <li v-if="props.filter.depth < 2"><a class="dropdown-item" href="#"
-                                    @click="addNewGroupFilter">New Group Filter</a>
-                            </li>
-                        </ul>
-                    </span>
-                </td>
-            </tr> -->
         </table>
 
         <div class="d-flex text-secondary ms-2">
