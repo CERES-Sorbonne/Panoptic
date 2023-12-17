@@ -5,16 +5,27 @@ import PropertySelection from '../inputs/PropertySelection.vue';
 import { Sort } from '@/data/models';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
+import { GroupManager } from '@/core/GroupManager';
 
 
 const props = defineProps({
     groupIds: Array<number>,
     sorts: Array<Sort>,
-    isLoading: Boolean
+    isLoading: Boolean,
+    manager: GroupManager
 })
 
+function add(id: number) {
+    props.manager.setGroupOption(id)
+    props.manager.update(true)
+}
 
-const selectedProperties = computed(() => props.groupIds.map(id => globalStore.properties[id]))
+function del(id: number) {
+    props.manager.delGroupOption(id)
+    props.manager.update(true)
+}
+
+const selectedProperties = computed(() => props.manager.state.groupBy.map(id => globalStore.properties[id]))
 
 onMounted(() => {
     if (props.groupIds) {
@@ -30,13 +41,13 @@ onMounted(() => {
         <div class="bg-medium bg d-flex flex-row m-0 ms-1 p-0" v-if="selectedProperties.length">
             <template v-for="property, index in selectedProperties">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
-                <div class="base-hover m-1 ps-1 pe-1" @click="globalStore.delGrouping(property.id)">
+                <div class="base-hover m-1 ps-1 pe-1" @click="del(property.id)">
                     {{ property.name }}
                 </div>
             </template>
             <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading ms-1"></i>
         </div>
-        <PropertyDropdown :group-ids="props.groupIds" @select="prop => globalStore.addGrouping(prop)"/>
+        <PropertyDropdown :group-ids="props.groupIds" @select="prop => add(prop)"/>
 
     </div>
 </template>

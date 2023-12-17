@@ -17,7 +17,7 @@ const popupElem = ref(null)
 const buttonElem = ref(null)
 const globalElem = ref(null)
 
-const tmp = ref(document.getElementsByTagName('body')[0])
+const boudaryElem = ref(document.getElementsByTagName('body')[0])
 
 const visible = ref(false)
 const forceVisible = ref(false)
@@ -43,7 +43,6 @@ async function onShow() {
     // await sleep(100)
     emits('show')
     document.addEventListener('click', clickHandler, true)
-    console.log(tmp.value)
 }
 
 function onHide() {
@@ -54,10 +53,10 @@ function onHide() {
 
 function clickHandler(e: Event) {
     if (popupElem.value.contains(e.target) || buttonElem.value.contains(e.target)) {
-        console.log('inside')
+        // console.log('inside')
     }
     else {
-        console.log('outside')
+        // console.log('outside')
         hide()
     }
 }
@@ -71,7 +70,7 @@ onUnmounted(() => {
 <template>
     <div class="p-0 m-0" ref="globalElem">
         <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
-        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="2" no-auto-focus :boundary="tmp"
+        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="2" no-auto-focus :boundary="boudaryElem"
             :auto-hide="false" :prevent-overflow="true" :container="props.teleport ? 'body' : globalElem">
             <!-- <template #reference> -->
             <div class="m-0 p-0" ref="buttonElem">

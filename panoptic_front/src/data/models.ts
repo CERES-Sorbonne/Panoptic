@@ -1,7 +1,9 @@
 // import { FilterManager } from "@/utils/filter";
+import { CollectionManager } from "@/core/CollectionManager";
 import { FilterManager, FilterState, createFilterState } from "@/core/FilterManager";
+import { Group, GroupManager, GroupState, createGroupState } from "@/core/GroupManager";
 import { SortManager, SortState, createSortState } from "@/core/SortManager";
-import { ComputedRef } from "vue";
+import { ComputedRef, reactive } from "vue";
 
 export enum PropertyType {
     multi_tags = "multi_tags",
@@ -75,7 +77,7 @@ export interface TabIndex {
     [tabId: number]: Tab
 }
 
-export interface PropertyValue{
+export interface PropertyValue {
     propertyId: number
     // value: string | number | number[] | string[]
     value: any
@@ -103,14 +105,14 @@ export interface Image {
     folder_id: number
     extension: string
     properties: {
-        [id:number]: PropertyValue
+        [id: number]: PropertyValue
     }
     dist?: number
     containerRatio?: number
 }
 
 export interface Images {
-    [id:number]: Image
+    [id: number]: Image
 }
 
 // export interface KeyIndex {
@@ -129,15 +131,15 @@ export interface ImageStack {
 }
 
 export interface Folders {
-    [id:number]: Folder
+    [id: number]: Folder
 }
 
 export interface Properties {
-    [id:number]: Property
+    [id: number]: Property
 }
 
 export interface Tabs {
-    [id:number]: Tab
+    [id: number]: Tab
 }
 
 export interface Params {
@@ -156,7 +158,7 @@ export interface IndexedTags {
 }
 
 // a tag inside a tagstree
-export interface TreeTag{
+export interface TreeTag {
     value: string
     id: number
     children: TreeTag[]
@@ -168,7 +170,7 @@ export interface TagsTree {
 }
 
 export interface PropsTree {
-    [propId:number]: TagsTree
+    [propId: number]: TagsTree
 }
 
 export interface GlobalStore {
@@ -178,7 +180,7 @@ export interface GlobalStore {
     propertyList: ComputedRef<Array<Property>>
     images: Images
     importState: ImportState
-    imageList: ComputedRef<{url: String, imageName: String}[]>
+    imageList: ComputedRef<{ url: String, imageName: String }[]>
     folders: Folders
     tabs: Tabs
     getTab: () => Tab
@@ -186,7 +188,7 @@ export interface GlobalStore {
     [otherOptions: string]: any
 }
 
-export interface ReactiveStore{
+export interface ReactiveStore {
     tags: Tags,
     tagTrees: TagsTree
     properties: Properties
@@ -195,11 +197,13 @@ export interface ReactiveStore{
     tabs: Tabs
     images: Images
     importState: ImportState
-    imageList: {url: String, imageName: String}[]
+    imageList: { url: String, imageName: String }[]
     fetchAllData: () => void
     getTab: () => Tab
     [otherOptions: string]: any
 }
+
+export type ImageIndex = { [imageId: number]: Image }
 
 export enum FilterOperator {
     equal = "equal",
@@ -256,7 +260,7 @@ export interface FilterGroup extends AFilter {
 }
 
 export function availableOperators(propertyType: PropertyType): Array<FilterOperator> {
-    switch(propertyType) {
+    switch (propertyType) {
         case PropertyType.checkbox:
             return [FilterOperator.isTrue, FilterOperator.isFalse]
         case PropertyType.color:
@@ -280,13 +284,13 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
         case PropertyType._ahash:
         case PropertyType._sha1:
             return [FilterOperator.equal, FilterOperator.equalNot]
-            default:
+        default:
             return []
     }
 }
 
 export function propertyDefault(type: PropertyType): any {
-    switch(type) {
+    switch (type) {
         case PropertyType.checkbox:
             return false
         case PropertyType.color:
@@ -311,7 +315,7 @@ export function propertyDefault(type: PropertyType): any {
 }
 
 export function operatorHasInput(operator: FilterOperator) {
-    switch(operator) {
+    switch (operator) {
         case FilterOperator.contains:
         case FilterOperator.containsAll:
         case FilterOperator.containsAny:
@@ -334,25 +338,24 @@ export interface Tab {
     id?: number
     name: string
     data: TabState
+
+    collection?: CollectionManager
 }
 
 export interface TabState {
     name: string
     display: string
-    filter: FilterGroup,
+
     filterState: FilterState
-    // TODO: remove from TabState
-    filterManager?: FilterManager,
     sortState: SortState,
-    sortManager?: SortManager
-    groups: Array<number>
-    sortList: Array<Sort>
+    groupState: GroupState,
+
     imageSize: number
-    visibleProperties: {[key: number]: boolean}
-    visibleFolders: {[key: number]: boolean}
-    selectedFolders: {[key: number]: boolean}
+    visibleProperties: { [key: number]: boolean }
+    visibleFolders: { [key: number]: boolean }
+    selectedFolders: { [key: number]: boolean }
     sha1Mode: boolean
-    propertyOptions: {[key: number]: PropertyOption}
+    propertyOptions: { [key: number]: PropertyOption }
 }
 
 export interface PropertyOption {
@@ -377,41 +380,32 @@ export interface Sort {
 }
 
 export interface SortIndex {
-    [key: number] : Sort
+    [key: number]: Sort
 }
 
-export interface Group {
-    id?: string
-    name: string
-    images: Array<Image>
-    imagePiles?: Array<Sha1Pile>
-    groups: Array<Group>
-    propertyValues: PropertyValue[]
-    children?: Array<string>
-    parentId: string
-    count: number
-    propertyId?: number,
-    depth: number,
-    index?: number,
-    closed?: boolean,
-    isCluster?: boolean,
-    clusterDisctance?: number
-    getSimilarImages?: () => Array<Images>
-    similarSha1sBlacklist?: Array<string>
-    allSimilarSha1s?: Array<string>,
-    order?: number,
-    allImageSelected?: boolean  // only leaf groups contains images info and can know if the images are selected or not
-                                // to avoid recomputation we use this variable to notify parents about the selection status
-}
-
-export interface GroupIndex {[key: string]: Group}
-
-export interface GroupData {
-    root: Group,
-    index: GroupIndex,
-    order: Array<string>,
-    imageToGroups: {[imgId: number]: string[]},
-}
+// export interface Group {
+//     id?: string
+//     name: string
+//     images: Array<Image>
+//     imagePiles?: Array<Sha1Pile>
+//     groups: Array<Group>
+//     propertyValues: PropertyValue[]
+//     children?: Array<string>
+//     parentId: string
+//     count: number
+//     propertyId?: number,
+//     depth: number,
+//     index?: number,
+//     closed?: boolean,
+//     isCluster?: boolean,
+//     clusterDisctance?: number
+//     getSimilarImages?: () => Array<Images>
+//     similarSha1sBlacklist?: Array<string>
+//     allSimilarSha1s?: Array<string>,
+//     order?: number,
+//     allImageSelected?: boolean  // only leaf groups contains images info and can know if the images are selected or not
+//                                 // to avoid recomputation we use this variable to notify parents about the selection status
+// }
 
 export interface Folder {
     id: number
@@ -442,7 +436,7 @@ export interface ScrollerLine {
     size: number
 }
 
-export interface GroupLine extends ScrollerLine{
+export interface GroupLine extends ScrollerLine {
     data: Group
     nbClusters: number
 }
@@ -469,30 +463,28 @@ export interface Recommendation {
     groupId: string
 }
 
-export function buildTabState(): TabState{
-    return {
+export function buildTabState(): TabState {
+    return reactive({
         name: 'Tab',
         display: 'tree',
-        filter: buildFilterGroup(),
         filterState: createFilterState(),
         sortState: createSortState(),
-        groups: [],
-        sortList: [],
+        groupState: createGroupState(),
         imageSize: 100,
         visibleProperties: {},
         visibleFolders: {},
         selectedFolders: {},
         propertyOptions: {},
         sha1Mode: true
-    }
+    })
 }
 
 export function buildFilterGroup() {
-    return { 
-        depth: 0, 
-        filters: [], 
-        groupOperator: FilterOperator.and, 
-        isGroup: true 
+    return {
+        depth: 0,
+        filters: [],
+        groupOperator: FilterOperator.and,
+        isGroup: true
     } as FilterGroup
 }
 
@@ -501,16 +493,16 @@ export function isTag(type: PropertyType) {
 }
 
 export const Colors = [
-    {name: 'red', color: '#ff8787'},
-    {name: 'pink', color: '#f783ac'},
-    {name: 'grape', color: '#da77f2'},
-    {name: 'violet', color: '#9775fa'},
-    {name: 'indigo', color: '#748ffc'},
-    {name: 'blue', color: '#4dabf7'},
-    {name: 'cyan', color: '#3bc9db'},
-    {name: 'teal', color: '#38d9a9'},
-    {name: 'green', color: '#69db7c'},
-    {name: 'lime', color: '#a9e34b'},
-    {name: 'yellow', color: '#ffd43b'},
-    {name: 'orange', color: '#ffa94d'},
+    { name: 'red', color: '#ff8787' },
+    { name: 'pink', color: '#f783ac' },
+    { name: 'grape', color: '#da77f2' },
+    { name: 'violet', color: '#9775fa' },
+    { name: 'indigo', color: '#748ffc' },
+    { name: 'blue', color: '#4dabf7' },
+    { name: 'cyan', color: '#3bc9db' },
+    { name: 'teal', color: '#38d9a9' },
+    { name: 'green', color: '#69db7c' },
+    { name: 'lime', color: '#a9e34b' },
+    { name: 'yellow', color: '#ffd43b' },
+    { name: 'orange', color: '#ffa94d' },
 ]

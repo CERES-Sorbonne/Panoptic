@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GroupIndex, Property, ScrollerPileLine } from '@/data/models';
+import { Property, ScrollerPileLine } from '@/data/models';
 import ImageVue from './Image.vue';
 
 
@@ -9,7 +9,7 @@ const props = defineProps({
     item: Object as () => ScrollerPileLine,
     parentIds: Array<string>,
     hoverBorder: String,
-    index: Object as () => GroupIndex,
+    index: Object,
     properties: Array<Property>,
     selectedImages: Set<number>
 })

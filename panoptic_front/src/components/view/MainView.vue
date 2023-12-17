@@ -3,15 +3,12 @@ import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import ContentFilter from './ContentFilter.vue';
 
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { Group, GroupData, PropertyValue, SortIndex, Tab } from '@/data/models';
+import { PropertyValue, SortIndex, Tab } from '@/data/models';
 import { ImageSelector } from '@/utils/selection';
 import { globalStore } from '@/data/store';
-import { FilterManager, computeGroupFilter } from '@/utils/filter';
-import { createGroup, generateGroupData, imagesToSha1Piles, initArrayIfUndefined, mergeGroup } from '@/utils/groups';
-import { sortGroupData, sortGroupTree, sortImages } from '@/utils/sort';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
-import { sleep } from '@/utils/utils'
+import { Group } from '@/core/GroupManager';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -22,9 +19,9 @@ const groupData = reactive({
     root: undefined,
     index: {},
     order: []
-}) as GroupData
+})
 
-const reco = reactive({ images: [] as string[], values: [] as PropertyValue[], groupId: undefined })
+const recoGroup = ref({} as Group)
 
 const selectedImages = reactive({}) as { [imgId: string]: boolean }
 
@@ -43,14 +40,8 @@ const scrollerWidth = ref(0)
 
 const computeStatus = reactive({ groups: false })
 
-const filters = computed(() => props.tab.data.filter)
-const groups = computed(() => props.tab.data.groups)
-const sorts = computed(() => props.tab.data.sortList)
-
 const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
 const visibleProperties = computed(() => globalStore.getVisibleViewProperties())
-
-
 
 function updateScrollerHeight() {
     if (filterElem.value && boxElem.value) {
@@ -65,7 +56,7 @@ function updateScrollerHeight() {
 }
 
 const filteredImages = computed(() => {
-    const filterManager = props.tab.data.filterManager
+    const filterManager = props.tab.collection.filterManager
     let images = Object.values(globalStore.images)
 
     if (searchedImages.value.length > 0) {
@@ -75,127 +66,27 @@ const filteredImages = computed(() => {
     }
 
     filterManager.filter(images)
+
     return filterManager.result.images
+})
 
-    // if (searchedImages.value.length > 0) {
-    //     const sha1ToImage: any = {}
-    //     images.forEach(image => sha1ToImage[image.sha1] = image)
-    //     return searchedImages.value.filter(el => el.dist > 0.25).map(el => sha1ToImage[el.sha1])
-    // }
-
-    // if (Object.keys(props.tab.data.selectedFolders).length > 0) {
-    //     let folderIds = Object.keys(props.tab.data.selectedFolders).map(Number)
-    //     let allIds = [...folderIds] as Array<number>
-    //     folderIds.forEach(id => allIds.push(...globalStore.getFolderChildren(id)))
-    //     if (allIds.length > 0) {
-    //         images = images.filter(img => allIds.includes(img.folder_id))
-    //     }
-    // }
-    // // on filtre les images normalement, et aussi en prenant en cmpte que si il y a des images cherchées, ça les renvoie
-    // let filtered = images.filter(img => computeGroupFilter(img, filters.value))
-    // return filtered
+props.tab.collection.groupManager.onChange.addListener(() => {
+    if(imageList.value) {
+        imageList.value.computeLines()
+    }
 })
 
 // on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
 defineExpose({ filteredImages })
 
 async function computeGroups(force = false) {
-    if (computeStatus.groups) {
-        return
-    }
-    // if (imageList.value) imageList.value.clear()
-    computeStatus.groups = true
-
-    // compute happens here. Timeout instead of requestIdleCallback for Safari support
-    // allows the ui to draw the spinner before cpu blocking
-    await sleep(10)
-    console.time('compute groups')
-    // let index = generateGroups(filteredImages.value, groups.value)
-    // let rootGroup = index['0']
-
-    let data = generateGroupData(filteredImages.value, groups.value, sha1Mode.value)
-
-    let index = data.index
-    if (!force) {
-        for (let id in index) {
-            index[id] = mergeGroup(index[id], groupData.index)
-        }
-
-        for (let id in groupData.index) {
-            let group = groupData.index[id]
-
-            const recursiveImportCluster = (group: Group) => {
-                if (!group.isCluster) return
-
-                const images = group.imagePiles.map(p => p.images).reduce((p1, p2) => {
-                    p1.push(...p2)
-                    return p1
-                }, [])
-                if (group.isCluster) {
-                    index[group.id] = group
-                    images.forEach(i => {
-                        initArrayIfUndefined(data.imageToGroups, i.id)
-                        data.imageToGroups[i.id].push(group.id)
-                    })
-                }
-                if (group.groups) {
-                    group.groups.forEach(g => recursiveImportCluster(g))
-                }
-            }
-            recursiveImportCluster(group)
-        }
-
-    }
-
-    // groupData.index = index
-    // groupData.root = rootGroup
-    // groupData.order = []
-
-    // sortGroups()
-    // sortGroupData(data, sorts.value, sha1Mode.value)
-    Object.assign(groupData, data)
-    sortGroups()
-
-    console.timeEnd('compute groups')
-
-    if (imageList.value) {
-        await nextTick()
-        imageList.value.computeLines()
-    }
-
-    computeStatus.groups = false
+    const sortResult = props.tab.collection.sortManager.sort(filteredImages.value)
+    const groupResult = props.tab.collection.groupManager.group(sortResult.images, sortResult.order, true)
 }
 
-function sortGroups() {
-    if (!groupData.root) return
-    const sortIndex: SortIndex = {}
-    sorts.value.forEach(s => sortIndex[s.property_id] = s)
-    groupData.order = []
-    sortGroupTree(groupData.root, groupData.order, sortIndex)
-
-    const sortManager = props.tab.data.sortManager
-    sortManager.sort(filteredImages.value)
-    const order = sortManager.result.order
-
-
-    Object.keys(groupData.index).forEach(key => {
-        const group = groupData.index[key]
-        if (Array.isArray(group.images) && group.images.length > 0) {
-            // sortImages(group.images, sorts.value.slice(groups.value.length))
-            group.images.sort((a,b) => order[a.id] - order[b.id])
-            if (props.tab.data.sha1Mode) {
-                imagesToSha1Piles(group)
-            }
-        }
-    })
-}
-
-function setRecoImages(images: string[], propertyValues: PropertyValue[], groupId: string) {
-    reco.images.length = 0
-    reco.images.push(...images)
-    reco.values.length = 0
-    reco.values.push(...propertyValues)
-    reco.groupId = groupId
+function setRecoImages(groupId: string) {
+    console.log('set reco', groupId)
+    recoGroup.value = props.tab.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())
 }
 
@@ -209,29 +100,10 @@ async function setSearchedImages(textInput: string) {
 }
 
 function closeReco() {
-    reco.images.length = 0
-    reco.values.length = 0
+    recoGroup.value = {} as Group
     nextTick(() => updateScrollerHeight())
 }
 
-function sort() {
-    // console.log('sort ', sorts.value)
-    sortGroups()
-    if (imageList.value) imageList.value.computeLines()
-}
-
-let _group_recompute_flag = false
-async function safeComputeGroups(force: boolean = false) {
-    if (_group_recompute_flag) return
-    _group_recompute_flag = true
-
-    await computeGroups(force)
-    if (groupData.index[reco.groupId] == undefined) {
-        closeReco()
-    }
-    sort()
-    _group_recompute_flag = false
-}
 
 onMounted(computeGroups)
 onMounted(() => nextTick(updateScrollerHeight))
@@ -244,32 +116,12 @@ onMounted(() => {
     })
 })
 
+watch(filteredImages, () => computeGroups())
+
 watch(props, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
 
-// watch(() => props.tab.data, () => {
-//     console.log('update state')
-//     console.log(props.tab.data.filterState)
-//     globalStore.updateTab(props.tab)
-// }, { deep: true })
-
-
-watch(filteredImages, () => safeComputeGroups(), { deep: true })
-
-
-watch(groups, async () => {
-    // console.log('watch groups')
-    safeComputeGroups(true)
-}, { deep: true })
-
-watch(() => props.tab.data.sortManager.state, async () => {
-    await nextTick()
-    if (_group_recompute_flag) return
-    // console.log('watch sort')
-    sort()
-
-}, { deep: true })
 
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.tab.data.sha1Mode, computeGroups)
@@ -281,19 +133,20 @@ watch(() => props.tab.data.sha1Mode, computeGroups)
 <template>
     <div class="" ref="filterElem">
         <ContentFilter :tab="props.tab" @compute-ml="" :compute-status="computeStatus" @search-images="setSearchedImages"
-            :selector="selector" :filter-manager="props.tab.data.filterManager" />
+            :selector="selector" :filter-manager="props.tab.collection.filterManager" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
-        <div v-if="reco.images.length > 0" class="m-0 p-0">
-            <RecommendedMenu :reco="reco" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
-                @close="closeReco" @scroll="imageList.scrollTo" />
+        <div v-if="recoGroup.id" class="m-0 p-0">
+            <RecommendedMenu :group="recoGroup" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
+                @close="closeReco" @scroll="imageList.scrollTo" @update="nextTick(() => updateScrollerHeight())"/>
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
+        <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tab.data.display == 'tree'">
-            <TreeScroller :data="groupData" :image-size="props.tab.data.imageSize" :height="scrollerHeight - 0"
-                :properties="visibleProperties" :selected-images="selectedImages" ref="imageList"
-                :width="scrollerWidth - 10" @recommend="setRecoImages" :selector="selector" />
+            <TreeScroller :group-manager="props.tab.collection.groupManager" :image-size="props.tab.data.imageSize"
+                :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="selectedImages"
+                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" :selector="selector" />
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">

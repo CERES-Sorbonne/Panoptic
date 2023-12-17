@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
-import { GroupData, PropertyValue, ScrollerLine } from '@/data/models';
+import { PropertyValue, ScrollerLine } from '@/data/models';
 import { groupParents } from '@/utils/groups';
 import { computed } from 'vue';
 
@@ -10,7 +10,7 @@ const props = defineProps({
     item: Object as () => ScrollerLine,
     propValues: Array<PropertyValue>,
     width: Number,
-    data: Object as () => GroupData
+    data: Object
 })
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
 
