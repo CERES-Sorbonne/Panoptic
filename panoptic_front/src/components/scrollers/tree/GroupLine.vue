@@ -57,8 +57,6 @@ async function computeClusters() {
         let images = []
         sha1s.forEach(sha1 => images.push(...globalStore.sha1Index[sha1]))
 
-        // let piles = sha1s.map((s: string) => ({ sha1: s, images: globalStore.sha1Index[s] }))
-        // piles.forEach(p => images.push(...p.images))
         const cluster = buildGroup('cluster:' + String(index) + ':' + props.item.id, images, GroupType.Cluster)
         cluster.meta.score = distances[index]
 
@@ -130,13 +128,8 @@ function closeChildren() {
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
                 <wTT message="main.view.group_clusters_tooltip">
-                    <!-- <div class="button d-flex" >
-                        <div @click="computeClusters">{{ $t('main.view.group_clusters') }}</div>
-                        <input type="number" class="no-border m-0 p-0" v-model="props.item.nbClusters" style="width: 40px; height: 10px; margin-top: 3.5px !important; color: green;" />
-                    </div> -->
                     <ClusterButton v-model="props.item.nbClusters" @click="computeClusters" />
                 </wTT>
-                <!-- <div class="button">Créer clusters</div> -->
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 
@@ -147,7 +140,6 @@ function closeChildren() {
                 </wTT>
             </div>
             <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
-                <!-- <div class="button" @click="clear">{{ $t('main.view.remove_clusters') }}</div> -->
                 <div class="cluster-close" @click="clear"><i class="bi bi-x" />IA</div>
             </div>
         </div>
