@@ -317,7 +317,7 @@ export class GroupManager {
         for (let group of Object.values(this.result.index) as Group[]) {
             if (group.children.length > 0) continue
             if (group.type == GroupType.Cluster) continue
-                this.groupBySha1(group)
+            this.groupBySha1(group)
         }
     }
 
@@ -330,6 +330,7 @@ export class GroupManager {
     }
 
     private removeChildren(group: Group) {
+        this.removeImageToGroups(group)
         group.children.forEach(c => {
             delete this.result.index[c.id]
         })
@@ -397,25 +398,18 @@ export class GroupManager {
         this.customGroups[targetGroupId] = groups
         this.setChildGroup(parent, groups)
 
-        if(parent.subGroupType == GroupType.Cluster) {
+        if (parent.subGroupType == GroupType.Cluster) {
             groups.forEach(g => {
                 this.groupBySha1(g)
             })
         }
-
+        setOrder(this.result.root)
         if (emit) this.onChange.emit(this.result)
     }
 
     delCustomGroups(targetGroupId: string, emit?: boolean) {
         delete this.customGroups[targetGroupId]
-        const parent = this.result.index[targetGroupId]
-        if (!parent) return
-
-        parent.subGroupType = undefined
-        parent.children.forEach(c => {
-            delete this.result.index[c.id]
-        })
-        parent.children.length = 0
+        this.removeChildren(this.result.index[targetGroupId])
 
         if (emit) this.onChange.emit(this.result)
     }
@@ -465,7 +459,7 @@ export class GroupManager {
         const group = this.result.index[groupId]
         const image = globalStore.images[imageId]
         let idx = 0
-        if(group.subGroupType == GroupType.Sha1) {
+        if (group.subGroupType == GroupType.Sha1) {
             idx = group.children.findIndex(g => g.images[0].sha1 == image.sha1)
         } else {
             idx = group.images.findIndex(i => i.id == imageId)
@@ -480,8 +474,16 @@ export class GroupManager {
             group.parent = parent
             parent.children.push(group)
             this.regsiterGroup(group)
+            if (group.type != GroupType.Sha1) {
+                this.saveImagesToGroup(group)
+            }
         }
         parent.subGroupType = groups[0].type
+        this.removeImageToGroups(parent)
+        if(parent.subGroupType == GroupType.Sha1) {
+            this.saveImagesToGroup(parent)
+        }
+        
     }
 
     private regsiterGroup(group: Group) {
@@ -528,6 +530,16 @@ export class GroupManager {
         }
 
         sortGroup(group, option)
+    }
+
+    private removeImageToGroups(group: Group) {
+        group.images.forEach(img => {
+            if (this.result.imageToGroups[img.id] == undefined) return
+
+            const idx = this.result.imageToGroups[img.id].indexOf(group.id)
+            if (idx < 0) return
+            this.result.imageToGroups[img.id].splice(idx, 1)
+        })
     }
 
     // Selection
@@ -659,7 +671,7 @@ export class GroupManager {
     }
 
     propagateSelect(group: Group) {
-        if (group.children.length == 0) {
+        if (group.children.length == 0 || group.subGroupType == GroupType.Sha1) {
             group.view.selected = group.images.every(i => this.selectedImages[i.id])
         }
         else {
@@ -799,8 +811,8 @@ export class ImageIterator extends GroupIterator {
         let nextIdx = current.imageIdx + 1
         while (current) {
             const group = current.getGroup()
-            if(group.subGroupType == GroupType.Sha1) {
-                if(group.children[nextIdx]) {
+            if (group.subGroupType == GroupType.Sha1) {
+                if (group.children[nextIdx]) {
                     return new ImageIterator(this.manager, current.groupId, nextIdx, this.options)
                 }
             } else {
