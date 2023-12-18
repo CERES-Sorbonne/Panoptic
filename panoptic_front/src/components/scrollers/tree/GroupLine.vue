@@ -30,7 +30,7 @@ const piles = computed(() => undefined /*props.item.data.imagePiles*/)
 const subgroups = computed(() => group.value.children)
 const hasImages = computed(() => images.value.length > 0)
 const hasPiles = computed(() => Array.isArray(piles.value))
-const hasSubgroups = computed(() => subgroups.value.length > 0)
+const hasSubgroups = computed(() => subgroups.value.length > 0 && group.value.subGroupType != GroupType.Sha1)
 const properties = computed(() => group.value.meta.propertyValues.map(v => globalStore.properties[v.propertyId]))
 const propertyValues = computed(() => group.value.meta.propertyValues)
 const closed = computed(() => group.value.view.closed)
@@ -44,50 +44,6 @@ const groupName = computed(() => {
 })
 
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
-
-// const allImagesSelected = computed(() => group.value.allImageSelected)
-
-
-// function toggleImageSelection() {
-//     let allSelected = allImagesSelected.value
-//     selectGroupImages(group.value, !allSelected)
-// }
-
-// function selectGroupImages(group: Group, select: boolean) {
-//     group.allImageSelected = select
-//     if (group.images.length > 0) {
-//         if (select) {
-//             group.images.forEach(i => props.selectedImages[i.id] = true)
-//             group.allImageSelected = true
-//         } else {
-//             group.images.forEach(i => delete props.selectedImages[i.id])
-//             group.allImageSelected = false
-//         }
-//     } else {
-//         group.groups.forEach(g => selectGroupImages(g, select))
-//     }
-// }
-
-// function recursiveToggleImageSelection(group: Group, allSelected) {
-//     console.log('recursive')
-//     if (group.images.length > 0) {
-//         if (allSelected) {
-//             console.log('remove')
-//             group.images.forEach(i => delete props.selectedImages[i.id])
-//             group.allImageSelected = false
-//         } else {
-//             console.log('set it')
-//             group.images.forEach(i => props.selectedImages[i.id] = true)
-//             group.allImageSelected = true
-//         }
-//     } else {
-//         group.groups.forEach(g => recursiveToggleImageSelection(g, allSelected))
-//     }
-// }
-
-function getTag(propId: number, tagId: number) {
-    return globalStore.tags[propId][tagId]
-}
 
 async function computeClusters() {
     let sha1s: string[] = group.value.images.map(i => i.sha1)
@@ -116,36 +72,24 @@ function clear() {
 }
 
 async function recommandImages() {
-
     emits('recommend', props.item.data.id)
-
-
-    // // if (!Array.isArray(props.item.data.similarSha1sBlacklist)) {
-    // //     props.item.data.similarSha1sBlacklist = []
-    // // }
-
-    // // let all = props.item.data.allSimilarSha1s
-    // // let blacklist = props.item.data.similarSha1sBlacklist
-
-    // // props.item.data.getSimilarImages = () => globalStore.getOneImagePerSha1(all.filter(sha1 => !blacklist.includes(sha1)).slice(0, 30))
-
-    // // emits('group:update')
 }
 
 function toggleClosed() {
     if (closed.value) {
         // props.groupIndex[props.item.id].closed = false
-        props.manager.toggleGroup(group.value.id)
+        props.manager.toggleGroup(group.value.id, true)
         emits('group:open', props.item.id)
     }
     else {
-        props.manager.toggleGroup(group.value.id)
+        props.manager.toggleGroup(group.value.id, true)
         emits('group:close', props.item.id)
     }
 }
 
 function closeChildren() {
     subgroups.value.forEach((g: Group) => props.manager.closeGroup(g.id))
+    props.manager.onChange.emit()
     emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 

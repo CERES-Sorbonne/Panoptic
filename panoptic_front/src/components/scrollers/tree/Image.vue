@@ -11,10 +11,11 @@ import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
+import { Group } from '@/core/GroupManager';
 
 const props = defineProps({
     image: Object as () => Image,
-    pile: Object as () => Sha1Pile,
+    group: Object as () => Group,
     similarity: Number,
     size: { type: Number, default: 100 },
     index: Number,
@@ -29,7 +30,7 @@ const props = defineProps({
 const tmpref = ref('')
 const emits = defineEmits(['resize', 'update:selected'])
 
-const image = computed(() => props.image ?? props.pile.images[0])
+const image = computed(() => props.image ?? props.group.images[0])
 
 const containerElem = ref(null)
 const hover = ref(false)
@@ -79,15 +80,15 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
-            <div v-if="props.pile?.similarity" class="simi-ratio">{{ Math.floor(props.pile.similarity * 100) }}</div>
+            <div v-if="props.similarity" class="simi-ratio">{{ Math.floor(props.similarity * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
 
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
-        <wTT v-if="props.pile?.images.length > 1" message="main.view.instances_tooltip" :click="false">
-            <div class="image-count">{{ props.pile.images.length }}</div>
+        <wTT v-if="props.group?.images.length > 1" message="main.view.instances_tooltip" :click="false">
+            <div class="image-count">{{ props.group.images.length }}</div>
         </wTT>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">

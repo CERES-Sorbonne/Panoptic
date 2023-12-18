@@ -454,7 +454,7 @@ export interface PileRowLine extends ScrollerLine {
 }
 
 export interface ScrollerPileLine extends ScrollerLine {
-    data: Sha1Pile[]
+    data: Group[]
 }
 
 export interface Recommendation {

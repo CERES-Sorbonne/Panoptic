@@ -10,9 +10,9 @@ import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
 import Toggle from '@vueform/toggle'
+import wTT from '../tooltips/withToolTip.vue'
 import { computed } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
-import wTT from '../tooltips/withToolTip.vue'
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -21,8 +21,15 @@ const props = defineProps({
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
-const selectedImageIds = computed(() => Array.from(props.tab.collection.groupManager.selectedImages))
-const hasSelectedImages = computed(() => props.tab.collection.groupManager.selectedImages.size)
+const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages).map(Number))
+const hasSelectedImages = computed(() => selectedImageIds.value.length)
+
+
+function updateSha1Mode(value) {
+    console.log(value)
+    props.tab.collection.groupManager.setSha1Mode(value, true)
+}
+
 
 </script>
 
@@ -56,7 +63,7 @@ const hasSelectedImages = computed(() => props.tab.collection.groupManager.selec
         </div>
         <div class="ms-5">
             <wTT message="main.menu.image_mode_tooltip">
-                <Toggle v-model="props.tab.data.sha1Mode" :on-label="$t('main.menu.sha1_images')"
+                <Toggle :model-value="props.tab.collection.groupManager.state.sha1Mode" @update:model-value="updateSha1Mode" :on-label="$t('main.menu.sha1_images')"
                     :off-label="$t('main.menu.all_images')" class="custom-toggle" />
             </wTT>
         </div>

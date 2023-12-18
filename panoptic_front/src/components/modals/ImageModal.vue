@@ -63,7 +63,7 @@ const pile = computed(() => ({ sha1: image.value.sha1, images: globalStore.sha1I
 const properties = computed(() => getSha1Properties(pile.value.sha1))
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
 const selectedImageIds = computed(() => Array.from(selectedImages))
-const hasSelectedImages = computed(() => groupManager.selectedImages.size > 0)
+const hasSelectedImages = computed(() => Object.keys(groupManager.selectedImages).length > 0)
 
 enum ImageModalMode {
     Similarity = 'similarity',
