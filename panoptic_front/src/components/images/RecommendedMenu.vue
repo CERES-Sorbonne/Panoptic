@@ -12,7 +12,7 @@ const props = defineProps({
     imageSize: Number,
     group: Object as () => Group,
     width: Number,
-    height: Number
+    height: Number,
 })
 
 const emits = defineEmits(['scroll', 'close', 'update'])

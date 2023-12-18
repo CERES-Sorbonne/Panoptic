@@ -13,6 +13,7 @@ import { globalStore } from '@/data/store';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
+import { CollectionManager } from '@/core/CollectionManager';
 
 const props = defineProps({
     tab: Object as () => Tab,
@@ -27,7 +28,7 @@ const groupData = reactive({
 
 const recoGroup = ref({} as Group)
 
-const selectedImages = reactive({}) as { [imgId: string]: boolean }
+// const collection = new CollectionManager(undefined, props.tab.data.filterState, props.tab.data.sortState, props.tab.data.groupState, selectedImages)
 
 const filterElem = ref(null)
 const boxElem = ref(null)
@@ -99,7 +100,7 @@ onMounted(() => {
     })
 })
 
-watch(props, () => {
+watch(() => props.tab.data, () => {
     globalStore.updateTab(props.tab)
 }, { deep: true })
 watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
@@ -120,14 +121,14 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tab.data.display == 'tree'">
             <TreeScroller :group-manager="props.tab.collection.groupManager" :image-size="props.tab.data.imageSize"
-                :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="selectedImages"
+                :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="props.tab.collection.groupManager.selectedImages"
                 ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :data="groupData" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="selectedImages" :selector="undefined" ref="imageList" />
+                    :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList" />
             </div>
         </template>
 

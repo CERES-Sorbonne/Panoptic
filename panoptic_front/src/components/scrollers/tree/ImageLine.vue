@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { GroupIndex, Property, ScrollerLine } from '@/data/models';
+import { Property, ScrollerLine } from '@/data/models';
 import Image from './Image.vue';
+import { GroupIndex, SelectedImages } from '@/core/GroupManager';
 
 
 const props = defineProps({
@@ -11,7 +12,7 @@ const props = defineProps({
     hoverBorder: String,
     index: Object as () => GroupIndex,
     properties: Array<Property>,
-    selectedImages: Set<Number>
+    selectedImages: Object as () => SelectedImages
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
@@ -25,7 +26,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <Image :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages.has(image.id)" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
+            :properties="props.properties" :selected="props.selectedImages[image.id] == true" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
             v-for="image, i in props.item.data" class="me-2 mb-2"/>
 
     </div>

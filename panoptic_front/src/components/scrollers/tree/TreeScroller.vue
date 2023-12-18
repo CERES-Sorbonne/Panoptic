@@ -6,7 +6,7 @@ import RecycleScroller from '@/components/Scroller/src/components/RecycleScrolle
 import PileLine from './PileLine.vue';
 import { GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
 import GroupLineVue from './GroupLine.vue';
-import { GroupManager, Group, GroupIterator } from '@/core/GroupManager';
+import { GroupManager, Group, GroupIterator, GroupType } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 
 const props = defineProps({
@@ -85,7 +85,31 @@ function clear() {
     imageLines.length = 0
 }
 
-function computeLines2() {
+function GroupToLines(group: Group) {
+    const lines: Array<GroupLine | ScrollerPileLine> = []
+    lines.push({
+        id: group.id,
+        type: 'group',
+        data: group,
+        depth: group.depth,
+        size: props.hideGroup ? 0 : 30,
+        nbClusters: 10
+    })
+
+    if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) return lines
+    if (group.view.closed) return lines
+
+    if (group.subGroupType != GroupType.Sha1) {
+        computeImageLines(group.images, lines, props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+    } else {
+        computeImagePileLines(group.children, lines as ScrollerPileLine[], props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+    }
+
+
+    return lines
+}
+
+function computeLines() {
     if (!props.groupManager.result.root) return
     clear()
     // if(props.groupManager.result.root == undefined) return
@@ -98,36 +122,6 @@ function computeLines2() {
     }
 
     scroller.value.updateVisibleItems(true)
-}
-
-function GroupToLines(group: Group) {
-    const lines: Array<GroupLine> = []
-    lines.push({
-        id: group.id,
-        type: 'group',
-        data: group,
-        depth: group.depth,
-        size: props.hideGroup ? 0 : 30,
-        nbClusters: 10
-    })
-
-    if (group.children.length > 0) return lines
-    if (group.view.closed) return lines
-
-    computeImageLines(group.images, lines, props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
-
-    return lines
-}
-
-function groupToImageLines(group: Group) {
-    const lines = []
-    return lines
-}
-
-let _flagCompute = false
-function computeLines() {
-    computeLines2()
-
 }
 
 function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -168,29 +162,28 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
     }
 }
 
-function computeImagePileLines(imagesPiles, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
+function computeImagePileLines(imagesGroups: Group[], lines: ScrollerPileLine[], imageHeight, totalWidth, parentGroup) {
     let lineWidth = totalWidth
-    let newLine = []
+    let newLine: Group[] = []
     let actualWidth = 0
 
-    let addLine = (line) => {
+    let addLine = (line: Group[]) => {
         lines.push({
             id: parentGroup.id + '|img-' + lines.length,
             type: 'piles',
             data: line,
             groupId: parentGroup.id,
             depth: parentGroup.depth + 1,
-            size: pileLineSize.value,
-            isSimilarities: isSimilarities
+            size: pileLineSize.value
         })
     }
 
-    for (let i = 0; i < imagesPiles.length; i++) {
-        let pile = imagesPiles[i]
-        let img = pile.images[0]
+    for (let i = 0; i < imagesGroups.length; i++) {
+        let group = imagesGroups[i]
+        let img = group.images[0]
         let imgWidth = (imageHeight * img.containerRatio) + 10
         if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(pile)
+            newLine.push(group)
             actualWidth += imgWidth
             continue
         }
@@ -198,7 +191,7 @@ function computeImagePileLines(imagesPiles, lines, imageHeight, totalWidth, pare
             throw 'Images seems to be to big for the line'
         }
         addLine(newLine)
-        newLine = [pile]
+        newLine = [group]
         actualWidth = imgWidth
     }
 
