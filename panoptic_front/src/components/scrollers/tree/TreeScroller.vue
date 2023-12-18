@@ -30,17 +30,6 @@ const hoverGroupBorder = ref('')
 const scroller = ref(null)
 const MARGIN_STEP = 20
 
-// (lineIndex, imageIndex) are needed to access image position in view in O(1)
-// sometimes when resizing, closing/opening groups etc.. the index are wrong 
-// therefore we need (groupId, imageId) to recompute the correct position in the view
-interface ImagePosition {
-    groupId?: string,
-    imageId?: number,
-    lineIndex?: number,
-    imageIndex?: number
-}
-const lastSelected = reactive({}) as ImagePosition
-
 const visiblePropertiesNb = computed(() => props.properties.length)
 // const visibleSha1PropertiesNb = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([key, value]) => value && globalStore.properties[key] !== undefined).filter(([k,v]) => globalStore.properties[k].mode == PropertyMode.sha1).length)
 
@@ -105,14 +94,12 @@ function GroupToLines(group: Group) {
         computeImagePileLines(group.children, lines as ScrollerPileLine[], props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
     }
 
-
     return lines
 }
 
 function computeLines() {
     if (!props.groupManager.result.root) return
     clear()
-    // if(props.groupManager.result.root == undefined) return
     let it = props.groupManager.getGroupIterator()
     while (it) {
         const group = it.getGroup()
@@ -211,9 +198,6 @@ function updateHoverBorder(value) {
 }
 
 function getParents(group: Group) {
-    // if (item.groupId != undefined) {
-    //     return [...getParents(props.data.index[item.groupId]), item.groupId]
-    // }
     if (group && group.id != undefined) {
         if (group.parent != undefined) {
             return [...getParents(group.parent), group.parent.id]
@@ -228,7 +212,6 @@ function getImageLineParents(item) {
 
 function closeGroup(groupIds) {
     computeLines()
-    // scroller.value.updateVisibleItems(true)
 }
 
 function openGroup(groupId) {
@@ -241,13 +224,11 @@ function openGroup(groupId) {
 
 }
 
-// TODO
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
     const iterator = props.groupManager.findImageIterator(item.groupId, data.id)
     props.groupManager.toggleImageIterator(iterator, keyState.shift)
 }
 
-// TODO
 function toggleGroupSelect(groupId: string) {
     const iterator = props.groupManager.getGroupIterator(groupId)
     props.groupManager.toggleGroupIterator(iterator, keyState.shift)
@@ -296,10 +277,6 @@ watch(() => props.width, () => {
     clearTimeout(resizeWidthHandler)
     setTimeout(computeLines, 500)
 })
-
-function scrollToGroup(groupId: string) {
-    console.log('scroll', groupId)
-}
 
 </script>
 

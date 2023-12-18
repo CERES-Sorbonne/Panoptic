@@ -28,8 +28,6 @@ const groupData = reactive({
 
 const recoGroup = ref({} as Group)
 
-// const collection = new CollectionManager(undefined, props.tab.data.filterState, props.tab.data.sortState, props.tab.data.groupState, selectedImages)
-
 const filterElem = ref(null)
 const boxElem = ref(null)
 const imageList = ref(null)
