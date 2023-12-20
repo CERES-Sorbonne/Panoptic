@@ -78,7 +78,7 @@ export interface GroupOption extends SortOption {
     type?: GroupSortType
 }
 
-export type SelectedImages = { [imgId: number]: boolean }
+export type SelectedImages = {[imageId: number]: boolean}
 
 
 // function isLeaf(group: Group) {
@@ -329,6 +329,18 @@ export class GroupManager {
         }
     }
 
+    hasResult() {
+        return this.result.root != undefined
+    }
+
+    clear() {
+        this.result.imageToGroups = {}
+        this.result.index = {}
+        this.result.root = undefined
+        this.clearLastSelected()
+        this.clearSelection()
+    }
+
     private removeChildren(group: Group) {
         this.removeImageToGroups(group)
         group.children.forEach(c => {
@@ -478,12 +490,11 @@ export class GroupManager {
                 this.saveImagesToGroup(group)
             }
         }
-        parent.subGroupType = groups[0].type
+        parent.subGroupType = parent.children.length ? groups[0].type : undefined
         this.removeImageToGroups(parent)
         if(parent.subGroupType == GroupType.Sha1) {
             this.saveImagesToGroup(parent)
         }
-        
     }
 
     private regsiterGroup(group: Group) {
@@ -544,7 +555,7 @@ export class GroupManager {
 
     // Selection
     clearSelection() {
-        this.unselectGroup(this.result.root)
+        if(this.result.root) this.unselectGroup(this.result.root)
 
         for (let k of Object.keys(this.selectedImages)) {
             delete this.selectedImages[k]

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Property, ScrollerPileLine } from '@/data/models';
+import { Property, ScrollerPileLine, Sha1Scores } from '@/data/models';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
 
@@ -12,7 +12,8 @@ const props = defineProps({
     hoverBorder: String,
     index: Object,
     properties: Array<Property>,
-    selectedImages: Object as () => SelectedImages
+    selectedImages: Object as () => SelectedImages,
+    sha1Scores: Object as () => Sha1Scores
 })
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
@@ -26,7 +27,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <ImageVue :group="group" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[group.images[0].id]"
+            :properties="props.properties" :selected="props.selectedImages[group.images[0].id]" :score="props.sha1Scores[group.images[0].sha1]"
             @update:selected="v => emits('update:selected-image', { id: group.images[0].id, value: v })"
             v-for="group, i in props.item.data" class="me-2 mb-2" />
 

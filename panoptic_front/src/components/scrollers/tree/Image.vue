@@ -16,7 +16,7 @@ import { Group } from '@/core/GroupManager';
 const props = defineProps({
     image: Object as () => Image,
     group: Object as () => Group,
-    similarity: Number,
+    score: Number,
     size: { type: Number, default: 100 },
     index: Number,
     groupId: String,
@@ -80,7 +80,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <!-- {{ props.image.containerRatio }} -->
         <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
-            <div v-if="props.similarity" class="simi-ratio">{{ Math.floor(props.similarity * 100) }}</div>
+            <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
 
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
