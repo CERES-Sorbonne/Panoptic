@@ -3,12 +3,12 @@ import CenteredImage from '@/components/images/CenteredImage.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import DatePropInput from '@/components/inputs/DatePropInput.vue';
-import PropertySelection from '@/components/inputs/PropertySelection.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { Image, Modals, PileRowLine, Property, PropertyType, RowLine, Sha1Pile, isTag } from '@/data/models';
+import { Group } from '@/core/GroupManager';
+import { Modals, PileRowLine, Property, PropertyType, RowLine, isTag } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
@@ -41,7 +41,7 @@ const image = computed(() => {
 
 const pile = computed(() => {
     if (props.item.type == 'pile') {
-        return props.item.data as Sha1Pile
+        return props.item.data as Group
     }
     return undefined
 })

@@ -815,7 +815,7 @@ export class ImageIterator extends GroupIterator {
         let next = super.nextGroup()
         while (next) {
             const group = next.getGroup()
-            if (!group.view.closed && (group.subGroupType == GroupType.Sha1 || group.children.length == 0)) {
+            if ((!group.view.closed || this.options.ignoreClosed) && (group.subGroupType == GroupType.Sha1 || group.children.length == 0)) {
                 return new ImageIterator(this.manager, next.groupId, 0, this.options)
             }
             next = next.nextGroup()

@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { Group, GroupData, Property } from '@/data/models';
 import { globalStore } from '@/data/store';
 import { computed, onMounted, reactive, ref, unref } from 'vue';
 import { useResizeObserver } from '@vueuse/core'
 import Resizable from '@/components/Resizable.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import PropertyValue from '@/components/properties/PropertyValue.vue';
+import { Property } from '@/data/models';
+import { Group, GroupManager } from '@/core/GroupManager';
+import { getFolderParents, getGroupParents } from '@/utils/utils';
+import PropertyOptions from '@/components/menu/PropertyOptions.vue';
 
 const props = defineProps({
     properties: Array<Property>,
     missingWidth: Number,
     showImage: Boolean,
-    data: Object as () => GroupData,
+    manager: GroupManager,
     currentGroup: Object as () => Group
 })
 
@@ -30,6 +33,16 @@ function resize(propId, w) {
     tab.value.data.propertyOptions[propId].size = w
 }
 
+const propertyValues = computed(() => {
+    const res = []
+    if (props.currentGroup.id != undefined) {
+        props.currentGroup.meta.propertyValues
+        const parents = getGroupParents(props.currentGroup)
+        parents.forEach(p => res.push(...p.meta.propertyValues))
+    }
+
+    return res
+})
 
 </script>
 
@@ -37,13 +50,14 @@ function resize(propId, w) {
 <template>
     <div class="m-0 p-0">
         <div class="header-row d-flex flex-row ps-1">
-            <span v-if="props.data.root" class=" me-1">Images: {{ props.data.root.count }}</span>
-            <span v-if="props.currentGroup"> ({{ props.currentGroup.count }})</span>
+            <span v-if="props.manager.hasResult()" class=" me-1">Images: {{ props.manager.result.root.images.length
+            }}</span>
+            <span v-if="props.currentGroup.id != undefined"> ({{ props.currentGroup.images.length }})</span>
             <div class="ms-3 me-1"></div>
             <template v-if="props.currentGroup.id">
-                <template v-for="value, index in currentGroup.propertyValues">
+                <template v-for="value, index in propertyValues">
                     <PropertyValue class="" :value="value" />
-                    <div v-if="index < currentGroup.propertyValues.length - 1" class="separator">&</div>
+                    <div v-if="index < propertyValues.length - 1" class="separator">&</div>
                 </template>
             </template>
         </div>
@@ -54,12 +68,16 @@ function resize(propId, w) {
             <div v-if="showImage" class="header-cell right-border" :style="{ width: (tab.data.imageSize) + 'px' }">
                 <i class="bi bi-image ms-1 me-1"></i>
             </div>
-            <Resizable :start-width="tab.data.propertyOptions[property.id].size - ((isMissingWidth && index == props.properties.length-1) ? 1 : 0)" v-for="property, index in props.properties"
-                class="header-cell" :class="(isMissingWidth && index == props.properties.length-1) ? '': 'right-border' " @resize="w => resize(property.id, w)">
+            <Resizable
+                :start-width="tab.data.propertyOptions[property.id].size - ((isMissingWidth && index == props.properties.length - 1) ? 1 : 0)"
+                v-for="property, index in props.properties" class="header-cell"
+                :class="(isMissingWidth && index == props.properties.length - 1) ? '' : 'right-border'"
+                @resize="w => resize(property.id, w)">
                 <PropertyIcon :type="property.type" class="ms-1" />
                 {{ property.name }}
             </Resizable>
-            <div v-if="isMissingWidth" class="header-cell right-border" :style="{ width: (props.missingWidth) + 'px', height: '30px' }"></div>
+            <div v-if="isMissingWidth" class="header-cell right-border"
+                :style="{ width: (props.missingWidth) + 'px', height: '30px' }"></div>
         </div>
 
     </div>
