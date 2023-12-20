@@ -20,12 +20,6 @@ const props = defineProps({
     height: Number
 })
 
-const groupData = reactive({
-    root: undefined,
-    index: {},
-    order: []
-})
-
 const recoGroup = ref({} as Group)
 
 const filterElem = ref(null)
@@ -124,7 +118,7 @@ watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
         </template>
         <template v-if="tab.data.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :data="groupData" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
+                <GridScroller :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
                     :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList" />
             </div>

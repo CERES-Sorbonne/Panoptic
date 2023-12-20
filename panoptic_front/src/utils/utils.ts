@@ -1,3 +1,4 @@
+import { Group } from "@/core/GroupManager"
 import { Folder, Image, Property, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
 import { globalStore } from "@/data/store"
 import { Ref, computed } from "vue"
@@ -145,15 +146,12 @@ export class EventEmitter {
     }
 }
 
-
-export function groupParents(index, group) {
-    const parents = []
-
-    const recursive = (parent) => {
-        parents.push(parent)
-        if (parent.parentId == undefined) return
-        recursive(index[parent.parentId])
+export function getGroupParents(group: Group): Group[] {
+    const res = []
+    let parent = group.parent
+    while(parent) {
+        res.push(parent)
+        parent = parent.parent
     }
-    recursive(group)
-    return parents
+    return res
 }

@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { GroupLine, Image, RowLine, Property, ScrollerLine, ImageLine, PileRowLine, Sha1Pile } from '@/data/models';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { GroupLine, Image, RowLine, Property, ScrollerLine, PileRowLine } from '@/data/models';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import TableHeader from './TableHeader.vue';
-import RowLineVue from './RowLine.vue';
 import { globalStore } from '@/data/store';
 import GridScrollerLine from './GridScrollerLine.vue';
 import { keyState } from '@/data/keyState';
-import { Group } from '@/core/GroupManager';
-import { groupParents } from '@/utils/utils';
+import { Group, GroupManager, GroupType, ROOT_ID } from '@/core/GroupManager';
 
 
 const props = defineProps({
-    data: Object,
+    manager: GroupManager,
     height: Number,
     width: Number,
     selectedProperties: Array<Property>,
@@ -25,13 +23,11 @@ defineExpose({
     clear
 })
 
-
-
 const hearderHeight = ref(60)
 const lines = reactive([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
-const currentGroup = reactive({})
+const currentGroup = reactive({} as Group)
 
 const totalPropWidth = computed(() => {
     const options = globalStore.getTab().data.propertyOptions
@@ -56,36 +52,30 @@ const scrollerStyle = computed(() => ({
 
 function computeLines() {
     lines.length = 0
-    let maxDepth = -1
-    for (let groupId of props.data.order) {
-        const group = props.data.index[groupId]
 
-        if (maxDepth != -1 && maxDepth >= group.depth) maxDepth = -1
-        // if closed group all images inside group with depth > maxDeath should be hidden
-        if (group.closed) {
-            maxDepth = group.depth
+    let lastGroupId = undefined
+    let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
+
+    while (current) {
+        const group = current.getGroup()
+        if (lastGroupId != group.id && group.id != ROOT_ID) {
+            lines.push(computeGroupLine(group))
+            lastGroupId = group.id
         }
-
-        if (group.groups) continue
-        // if (isPileGroup(group)) {
-        //     if (group.propertyValues.length > 0) {
-        //         lines.push(computeGroupLine(group))
-        //     }
-        //     if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
-        //     const imageLines = group.imagePiles.map((pile, index) => computePileRow(pile, group.id, index))
-        //     lines.push(...imageLines)
-        // }
-        // else if (isImageGroup(group)) {
-        //     if (group.propertyValues.length > 0) {
-        //         lines.push(computeGroupLine(group))
-        //     }
-        //     if (group.closed || (maxDepth < group.depth && maxDepth > -1)) continue
-        //     const imageLines = group.images.map((img, index) => computeImageRow(img, group.id, index))
-        //     lines.push(...imageLines)
-        // }
+        if (!group.view.closed) {
+            const images = current.getImages()
+            if (group.subGroupType != GroupType.Sha1) {
+                lines.push(computeImageLine(images[0], group.id, current.imageIdx))
+            } else {
+                lines.push(computePileLine(group))
+            }
+        }
+        current = current.nextImages()
     }
 
-    // lines.push({id: '__filler__', type: 'fillter', size: 1000})
+
+
+    lines.push({ id: '__filler__', type: 'fillter', size: 1000 })
     scroller.value.updateVisibleItems(true)
 }
 
@@ -102,7 +92,7 @@ function computeGroupLine(group: Group) {
     return res
 }
 
-function computeImageRow(image: Image, groupId: string, imageIndex) {
+function computeImageLine(image: Image, groupId: string, imageIndex) {
     const res: RowLine = {
         id: groupId + '-img:' + String(image.id),
         data: image,
@@ -114,14 +104,12 @@ function computeImageRow(image: Image, groupId: string, imageIndex) {
     return res
 }
 
-function computePileRow(pile: Sha1Pile, groupId: string, imageIndex) {
+function computePileLine(group: Group) {
     const res: PileRowLine = {
-        id: groupId + '-sha1:' + String(pile.sha1),
-        data: pile,
+        id: group.id + '-sha1:' + String(group.images[0].sha1),
+        data: group,
         type: 'pile',
-        size: lineSizes[pile.images[0].id] ?? (globalStore.getTab().data.imageSize + 4),
-        index: imageIndex,
-        groupId: groupId
+        size: lineSizes[group.images[0].id] ?? (globalStore.getTab().data.imageSize + 4),
     }
     return res
 }
@@ -173,41 +161,48 @@ function handleUpdate() {
 }
 
 function openGroup(groupId: string) {
-    const group = props.data.index[groupId]
-    group.closed = false
-    const groups = groupParents(props.data.index, group)
-    groups.forEach(g => g.close = false)
-    computeLines()
+    props.manager.openGroup(groupId, true)
+    // computeLines()
 }
 
 function closeGroup(groupId: string) {
-    props.data.index[groupId].closed = true
-    computeLines()
+    props.manager.closeGroup(groupId, true)
+    // computeLines()
 }
 
-function selectImage(iterator) {
+function selectImage(groupId: string, imageIndex: number) {
+    console.log(groupId, imageIndex)
+    const iterator = props.manager.getImageIterator(groupId, imageIndex)
+    props.manager.toggleImageIterator(iterator, keyState.shift)
     // props..toggleImageIterator(iterator, keyState.shift)
 }
 
-function selectGroup(iterator) {
-    // props.selector.toggleGroupIterator(iterator, keyState.shift)
+function selectGroup(groupId: string) {
+    const iterator = props.manager.getGroupIterator(groupId)
+    props.manager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 function clear() {
     lines.length = 0
 }
 
+const changeHandler = () => computeLines()
 onMounted(() => {
+
+    props.manager.onChange.addListener(changeHandler)
     computeLines()
 })
-watch(() => props.data, computeLines)
+
+onUnmounted(() => {
+    props.manager.onChange.removeListener(changeHandler)
+})
 
 </script>
 
 <template>
     <div class="grid-container overflow-hidden" :style="{ width: scrollerStyle.width }">
-        <TableHeader :properties="props.selectedProperties" :missing-width="missingWidth" :show-image="props.showImages"
-            :current-group="currentGroup" :data="props.data" class="p-0 m-0" />
+        <TableHeader :manager="props.manager" :properties="props.selectedProperties" :missing-width="missingWidth"
+            :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
         <RecycleScroller :items="lines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="400"
             :emitUpdate="false" :page-mode="false" :prerender="0" class="p-0 m-0" @scroll="handleUpdate"
@@ -216,9 +211,9 @@ watch(() => props.data, computeLines)
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
                     <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
-                        :show-images="props.showImages" :selected-images="props.data.collection.groupManager.selectedImages" :data="props.data"
+                        :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
-                        @toggle:image="selectImage" @toggle:group="selectGroup"
+                        @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"
                         @resizeHeight="h => resizeHeight(item, h)" />
                 </template>
                 <!-- </DynamicScrollerItem> -->

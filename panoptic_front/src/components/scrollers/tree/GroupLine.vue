@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { GroupLine, PropertyType, ScrollerLine } from '@/data/models'
+import { GroupLine } from '@/data/models'
 import { globalStore } from '@/data/store'
-import { computed, nextTick, ref, unref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
@@ -38,8 +38,8 @@ const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.vie
 
 
 const groupName = computed(() => {
-    if(group.value.type == GroupType.All) return 'All'
-    if(group.value.type == GroupType.Cluster) return 'Cluster ' + group.value.parentIdx
+    if (group.value.type == GroupType.All) return 'All'
+    if (group.value.type == GroupType.Cluster) return 'Cluster ' + group.value.parentIdx
     return 'tmp name'
 })
 
@@ -105,7 +105,8 @@ function closeChildren() {
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="me-1">
-            <SelectCircle :small="true" :model-value="group.view.selected" @update:model-value="emits('select', group.id)" />
+            <SelectCircle :small="true" :model-value="group.view.selected"
+                @update:model-value="emits('select', group.id)" />
         </div>
         <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
@@ -134,7 +135,8 @@ function closeChildren() {
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 
             </div>
-            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
+                class="ms-2">
                 <wTT message="main.recommand.tooltip">
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>

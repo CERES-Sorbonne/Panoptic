@@ -1,20 +1,19 @@
 <script setup lang="ts">
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
-import { PropertyValue, ScrollerLine } from '@/data/models';
-import { groupParents } from '@/utils/utils';
-import { computed } from 'vue';
+import { GroupLine, PropertyValue, ScrollerLine } from '@/data/models';
+import { getGroupParents } from '@/utils/utils';
+import { computed, guardReactiveProps } from 'vue';
 
 
 const props = defineProps({
-    item: Object as () => ScrollerLine,
-    propValues: Array<PropertyValue>,
+    item: Object as () => GroupLine,
     width: Number,
     data: Object
 })
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
 
-const closed = computed(() => groupParents(props.data.index, props.item.data).some(g => g.closed))
+const closed = computed(() => getGroupParents(props.item.data).some(g => g.view.closed) || props.item.data.view.closed)
 
 function toggleClosed() {
     if (closed.value) {
@@ -25,6 +24,15 @@ function toggleClosed() {
     }
 }
 
+const propertyValues = computed(() => {
+    const res = []
+    if (props.item.data.id != undefined) {
+        res.push(...props.item.data.meta.propertyValues)
+        const parents = getGroupParents(props.item.data)
+        parents.forEach(p => res.push(...p.meta.propertyValues))
+    }
+    return res
+})
 
 </script>
 
@@ -35,10 +43,10 @@ function toggleClosed() {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div class="me-2"><SelectCircle :model-value="props.item.data.allImageSelected" @update:model-value="emits('toggle:group')"/></div>
-        <template v-for="value, index in props.propValues">
+        <div class="me-2"><SelectCircle :model-value="props.item.data.view.selected" @update:model-value="emits('toggle:group', props.item.data.id)"/></div>
+        <template v-for="value, index in propertyValues">
             <PropertyValueVue class="" :value="value" />
-            <div v-if="index < props.propValues.length - 1" class="separator">&</div>
+            <div v-if="index < propertyValues.length - 1" class="separator">&</div>
         </template>
     </div>
 </template>

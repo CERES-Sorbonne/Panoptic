@@ -452,7 +452,7 @@ export interface RowLine extends ScrollerLine {
 }
 
 export interface PileRowLine extends ScrollerLine {
-    data: Sha1Pile
+    data: Group
 }
 
 export interface ScrollerPileLine extends ScrollerLine {
