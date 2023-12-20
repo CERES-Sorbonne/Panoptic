@@ -4,7 +4,7 @@ import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } fro
 import ImageLineVue from './ImageLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine } from '@/data/models';
+import { GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine, Sha1Scores } from '@/data/models';
 import GroupLineVue from './GroupLine.vue';
 import { GroupManager, Group, GroupIterator, GroupType } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
@@ -17,6 +17,7 @@ const props = defineProps({
     properties: Array<Property>,
     hideOptions: Boolean,
     hideGroup: Boolean,
+    sha1Scores: Object as () => Sha1Scores
 })
 
 const emits = defineEmits(['recommend'])
@@ -307,6 +308,7 @@ watch(() => props.width, () => {
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
                         :selected-images="props.groupManager.selectedImages"
+                        :sha1-scores="props.sha1Scores"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>

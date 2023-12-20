@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, Modals, Property, PropertyMode, PropertyRef, PropertyType } from '@/data/models';
+import { Image, Modals, Property, PropertyMode, PropertyRef, PropertyType, Sha1Scores } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive, nextTick } from 'vue';
@@ -15,6 +15,7 @@ import SelectionStamp from '../selection/SelectionStamp.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import SelectCircle from '../inputs/SelectCircle.vue';
 import { GroupManager } from '@/core/GroupManager';
+import { SortManager, sortParser } from '@/core/SortManager';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -23,8 +24,12 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
+const state = reactive({
+    sha1Scores: {} as Sha1Scores
+})
 
 const groupManager = new GroupManager()
+groupManager.setSha1Mode(true)
 
 const image = computed(() => globalStore.openModal.data as Image)
 const isActive = computed(() => globalStore.openModal.id == props.id)
@@ -33,7 +38,7 @@ const availableHeight = ref(100)
 const availableWidth = ref(100)
 const scroller = ref(null)
 const minSimilarityDist = ref(80)
-const similarityLoaded = computed(() => groupData.root != undefined)
+const similarityLoaded = computed(() => groupManager.hasResult() != undefined)
 
 const similarityVisibleProps = reactive({})
 const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => globalStore.properties[pId]))
@@ -72,12 +77,6 @@ enum ImageModalMode {
 
 const modalMode = ref(ImageModalMode.Similarity)
 
-const groupData = reactive({
-    root: undefined,
-    index: {},
-    order: []
-})
-
 const gridData = computed(() => {
     let group = {
         id: '0',
@@ -95,7 +94,7 @@ const gridData = computed(() => {
         root: group,
         index,
         order: [group.id]
-    } 
+    }
 })
 
 const containerStyle = ref("")
@@ -131,9 +130,7 @@ function hide() {
     // if (groupData.root) selector.clear()
     modal.hide()
 
-    groupData.root = undefined
-    groupData.index = {}
-    groupData.order = []
+    groupManager.clear()
     similarImages.value = []
 }
 
@@ -142,8 +139,8 @@ function show() {
     availableHeight.value = modalElem.value.clientHeight
     availableWidth.value = modalElem.value.clientWidth
 
-    if (groupData.root) {
-        // selector.clear()
+    if (groupManager.hasResult()) {
+        groupManager.clear()
     }
     setSimilar()
 }
@@ -195,16 +192,19 @@ async function setSimilar() {
 function updateSimilarGroup() {
     var filteredSha1s = similarImages.value.filter(i => i.dist >= (minSimilarityDist.value / 100.0))
 
-    const images = []
-    const sha1ToDist = {} as { [sha1: string]: number }
+    const images: Image[] = []
+    state.sha1Scores = {}
     filteredSha1s.forEach(r => images.push(...globalStore.sha1Index[r.sha1]))
-    filteredSha1s.forEach(r => sha1ToDist[r.sha1] = r.dist)
+    filteredSha1s.forEach(r => state.sha1Scores[r.sha1] = r.dist)
 
     //TODO FIX
     // const data = generateGroupData(images, [], true)
     // if (data.root.imagePiles) {
     //     data.root.imagePiles.forEach(p => p.similarity = sha1ToDist[p.sha1])
     // }
+    const sorter = new SortManager()
+    const res = sorter.sort(images)
+    groupManager.group(res.images, res.order)
 
 
     // Object.assign(groupData, data)
@@ -217,10 +217,10 @@ function updateSimilarGroup() {
 }
 
 function paintSelection(property: PropertyRef) {
-    let images = groupData.root.images
-    // if (selector.selectedImages.size) {
-    //     images = Array.from(selector.selectedImages).map(id => globalStore.images[id])
-    // }
+    let images = groupManager.result.root.images
+    if (Object.keys(groupManager.selectedImages).length) {
+        images = Object.keys(groupManager.selectedImages).map(id => globalStore.images[id])
+    }
     globalStore.setPropertyValue(property.propertyId, images, property.value)
 }
 
@@ -261,7 +261,9 @@ watch(minSimilarityDist, updateSimilarGroup)
                     <div class="row" v-if="modalMode == ImageModalMode.Similarity">
                         <div class="col overflow-hidden" :style="'width: 600px;' + containerStyle">
                             <div class="mb-2 image-container">
-                                <img :src="image.fullUrl" class="" @mouseover="containerStyle='overflow: visible !important;'" @mouseleave="containerStyle=''"/>
+                                <img :src="image.fullUrl" class=""
+                                    @mouseover="containerStyle = 'overflow: visible !important;'"
+                                    @mouseleave="containerStyle = ''" />
                             </div>
 
                             <div class="mt-2"
@@ -291,7 +293,8 @@ watch(minSimilarityDist, updateSimilarGroup)
                                                 </td>
 
 
-                                                <td class="text-center btn-icon" style="padding: 4px 2px 0px 5px; width: 20px;"
+                                                <td class="text-center btn-icon"
+                                                    style="padding: 4px 2px 0px 5px; width: 20px;"
                                                     @click="paintSelection(property)">
                                                     <wTT message="modals.image.fill_property_tooltip">
                                                         <i class="bi bi-paint-bucket"></i>
@@ -330,23 +333,26 @@ watch(minSimilarityDist, updateSimilarGroup)
                         <div class="col" v-if="similarityLoaded">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
-                                <SelectCircle :model-value="groupManager.result.root.view.selected" @update:model-value="v => groupManager.toggleAll()"/> <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
+                                <SelectCircle v-if="groupManager.hasResult()"
+                                    :model-value="groupManager.result.root.view.selected"
+                                    @update:model-value="v => groupManager.toggleAll()" />
+                                <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                                 <wTT message="modals.image.similarity_filter_tooltip">
-                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist" @update:model-value="groupManager.clearSelection()" />
+                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist"
+                                        @update:model-value="groupManager.clearSelection()" />
                                 </wTT>
                                 <div>min: {{ minSimilarityDist }}%</div>
-                                <div v-if="groupData.root.imagePiles" class="ms-2 text-secondary">({{
-                                    groupData.root.imagePiles.length }} images)</div>
+                                <div v-if="groupManager.hasResult()" class="ms-2 text-secondary">({{
+                                    groupManager.result.root.children.length }} images)</div>
                             </div>
 
                             <div class="selection-stamp" v-if="hasSelectedImages">
                                 <SelectionStamp :selected-images-ids="selectedImageIds"
                                     @remove:selected="groupManager.clearSelection()" />
                             </div>
-
-                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510" :data="groupData"
-                                :properties="similarityVisiblePropsList" ref="scroller"
-                                :hide-options="true" :hide-group="true" />
+                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510"
+                                :group-manager="groupManager" :properties="similarityVisiblePropsList"
+                                :sha1-scores="state.sha1Scores" :hide-options="true" :hide-group="true" ref="scroller" />
                         </div>
                     </div>
 
@@ -437,14 +443,16 @@ img {
     transition: 0.1s;
 }
 
-img:hover{
-    -ms-transform: scale(3); /* IE 9 */
-    -webkit-transform: scale(3); /* Safari 3-8 */
+img:hover {
+    -ms-transform: scale(3);
+    /* IE 9 */
+    -webkit-transform: scale(3);
+    /* Safari 3-8 */
     transform: scale(2);
     z-index: 999;
     margin-top: 6em;
-    box-shadow: 0px 0px 50px 100px rgba(115,115,115,0.53);
-    -webkit-box-shadow: 0px 0px 50px 36px rgba(115,115,115,0.53);
+    box-shadow: 0px 0px 50px 100px rgba(115, 115, 115, 0.53);
+    -webkit-box-shadow: 0px 0px 50px 36px rgba(115, 115, 115, 0.53);
 }
 
 .selected {

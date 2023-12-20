@@ -5,6 +5,8 @@ import { Group, GroupManager, GroupState, createGroupState } from "@/core/GroupM
 import { SortManager, SortState, createSortState } from "@/core/SortManager";
 import { ComputedRef, reactive } from "vue";
 
+export type Sha1Scores = {[sha1: string]: number}
+
 export enum PropertyType {
     multi_tags = "multi_tags",
     tag = "tag",
