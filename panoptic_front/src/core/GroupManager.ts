@@ -307,7 +307,6 @@ export class GroupManager {
         for (let group of Object.values(this.result.index) as Group[]) {
             if (group.subGroupType != GroupType.Property) continue
             if (group.children.length == 0) continue
-            console.log(group)
             sortGroup(group, this.state.options[group.children[0].meta.propertyValues[0].propertyId])
         }
         if (emit) this.onChange.emit()
@@ -444,7 +443,6 @@ export class GroupManager {
             this.groupLeafsBySha1()
         }
         else {
-            console.log('remove')
             this.removeSha1Groups()
         }
 
