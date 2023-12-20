@@ -15,3 +15,30 @@ export enum PropertyType {
     _sha1 = "sha1",
     _folders = "folders"
 }
+
+export interface Property {
+    id: number
+    name: string
+    type: PropertyType
+    mode: PropertyMode
+    tags?: TagIndex
+}
+
+export enum PropertyMode {
+    sha1 = 'sha1',
+    id = 'id',
+}
+
+export interface TagIndex {
+    [tagId: number]: Tag
+}
+
+export interface Tag {
+    id: number;
+    property_id: number;
+    parents: number[];
+    value: string;
+    color?: number;
+    children?: Set<number>
+    count?: number
+}

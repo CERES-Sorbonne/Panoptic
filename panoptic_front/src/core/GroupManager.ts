@@ -78,7 +78,7 @@ export interface GroupOption extends SortOption {
     type?: GroupSortType
 }
 
-export type SelectedImages = {[imageId: number]: boolean}
+export type SelectedImages = { [imageId: number]: boolean }
 
 
 // function isLeaf(group: Group) {
@@ -303,6 +303,16 @@ export class GroupManager {
         return this.result
     }
 
+    sortGroups(emit?: boolean) {
+        for (let group of Object.values(this.result.index) as Group[]) {
+            if (group.subGroupType != GroupType.Property) continue
+            if (group.children.length == 0) continue
+            console.log(group)
+            sortGroup(group, this.state.options[group.children[0].meta.propertyValues[0].propertyId])
+        }
+        if (emit) this.onChange.emit()
+    }
+
     private saveImagesToGroup(group: Group) {
         for (let img of group.images) {
             if (!this.result.imageToGroups[img.id]) {
@@ -484,6 +494,7 @@ export class GroupManager {
         for (let group of groups) {
             group.parentIdx = parent.children.length
             group.parent = parent
+            group.depth = parent.depth + 1
             parent.children.push(group)
             this.regsiterGroup(group)
             if (group.type != GroupType.Sha1) {
@@ -492,7 +503,7 @@ export class GroupManager {
         }
         parent.subGroupType = parent.children.length ? groups[0].type : undefined
         this.removeImageToGroups(parent)
-        if(parent.subGroupType == GroupType.Sha1) {
+        if (parent.subGroupType == GroupType.Sha1) {
             this.saveImagesToGroup(parent)
         }
     }
@@ -527,18 +538,15 @@ export class GroupManager {
                 subGroups[key].images.push(img)
             }
         }
+        const children: Group[] = Object.values(subGroups)
+        this.setChildGroup(group, children)
 
-        for (let key of Object.keys(subGroups)) {
-            const subGroup = subGroups[key]
-            this.regsiterGroup(subGroup)
-            group.children.push(subGroup)
-            subGroup.parent = group
-            subGroup.depth = group.depth + 1
-
-            if (groupBy.length > 1) {
-                this.computePropertySubGroup(subGroup, groupBy.slice(1))
+        if (groupBy.length > 1) {
+            for (let c of children) {
+                this.computePropertySubGroup(c, groupBy.slice(1))
             }
         }
+
 
         sortGroup(group, option)
     }
@@ -555,7 +563,7 @@ export class GroupManager {
 
     // Selection
     clearSelection() {
-        if(this.result.root) this.unselectGroup(this.result.root)
+        if (this.result.root) this.unselectGroup(this.result.root)
 
         for (let k of Object.keys(this.selectedImages)) {
             delete this.selectedImages[k]

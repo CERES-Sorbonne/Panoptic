@@ -1,8 +1,8 @@
 // import { FilterManager } from "@/utils/filter";
 import { CollectionManager } from "@/core/CollectionManager";
-import { FilterManager, FilterState, createFilterState } from "@/core/FilterManager";
-import { Group, GroupManager, GroupState, createGroupState } from "@/core/GroupManager";
-import { SortManager, SortState, createSortState } from "@/core/SortManager";
+import { FilterState, createFilterState } from "@/core/FilterManager";
+import { Group, GroupState, createGroupState } from "@/core/GroupManager";
+import { SortState, createSortState } from "@/core/SortManager";
 import { ComputedRef, reactive } from "vue";
 
 export type Sha1Scores = {[sha1: string]: number}
