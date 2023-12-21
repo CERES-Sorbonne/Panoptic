@@ -63,7 +63,7 @@ function computeLines() {
             lines.push(computeGroupLine(group))
             lastGroupId = group.id
         }
-        if (!group.view.closed) {
+        if (!group.view.closed && group.images.length) {
             const images = current.getImages()
             if (group.subGroupType != GroupType.Sha1) {
                 lines.push(computeImageLine(images[0], group.id, current.imageIdx))
