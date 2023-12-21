@@ -51,6 +51,7 @@ const scrollerStyle = computed(() => ({
 }))
 
 function computeLines() {
+    console.time('Table compute lines')
     lines.length = 0
 
     let lastGroupId = undefined
@@ -67,7 +68,7 @@ function computeLines() {
             if (group.subGroupType != GroupType.Sha1) {
                 lines.push(computeImageLine(images[0], group.id, current.imageIdx))
             } else {
-                lines.push(computePileLine(group))
+                lines.push(computePileLine(group.children[current.imageIdx]))
             }
         }
         current = current.nextImages()
@@ -77,6 +78,7 @@ function computeLines() {
 
     lines.push({ id: '__filler__', type: 'fillter', size: 1000 })
     scroller.value.updateVisibleItems(true)
+    console.timeEnd('Table compute lines')
 }
 
 function computeGroupLine(group: Group) {
@@ -188,9 +190,8 @@ function clear() {
 
 const changeHandler = () => computeLines()
 onMounted(() => {
-
     props.manager.onChange.addListener(changeHandler)
-    computeLines()
+    props.manager.clearCustomGroups(true)
 })
 
 onUnmounted(() => {
