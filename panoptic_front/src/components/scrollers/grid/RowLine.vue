@@ -153,7 +153,7 @@ function showModal() {
 
 
 onMounted(emitResizeOnce)
-watch(props, emitResizeOnce)
+// watch(props, emitResizeOnce)
 watch(rowHeight, emitResizeOnce)
 
 </script>
@@ -172,7 +172,6 @@ watch(rowHeight, emitResizeOnce)
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
                 class="select" :light-mode="true" />
-
             <div class="image-count" v-if="pile?.images.length > 1">{{ pile.images.length }}</div>
         </div>
 

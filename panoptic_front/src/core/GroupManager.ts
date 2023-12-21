@@ -435,6 +435,14 @@ export class GroupManager {
         if (emit) this.onChange.emit(this.result)
     }
 
+    clearCustomGroups(emit?: boolean) {
+        for (let groupId of Object.keys(this.customGroups)) {
+            this.delCustomGroups(groupId)
+        }
+        
+        if (emit) this.onChange.emit()
+    }
+
     setSha1Mode(value: boolean, emit?: boolean) {
         if (this.state.sha1Mode == value) return
 
