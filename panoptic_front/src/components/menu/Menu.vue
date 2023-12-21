@@ -1,10 +1,8 @@
 <script setup lang="ts">
 
 import { globalStore } from '../../data/store';
-import { apiExportProperties } from '../../data/api';
 import { Modals } from '../../data/models';
 import { ref, defineEmits } from 'vue';
-import FolderList from '../foldertree/FolderList.vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
@@ -95,7 +93,7 @@ const handleInput = async (e: any) => {
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
-                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="emits('export')" /></wTT>
+                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="globalStore.showModal(Modals.EXPORT)" /></wTT>
                         </span>
                     </div>
 

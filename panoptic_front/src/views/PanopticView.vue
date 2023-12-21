@@ -18,7 +18,6 @@ const navElem = ref(null)
 const windowHeight = ref(400)
 
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
-const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
 onMounted(() => {
     nextTick(() => {
@@ -51,10 +50,6 @@ function onResize() {
     windowHeight.value = window.innerHeight
 }
 
-function showModal(){
-    globalStore.showModal(Modals.EXPORT, filteredImages)
-}
-
 function reRender(){
     globalStore.rerender()
 }
@@ -65,7 +60,7 @@ function reRender(){
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
             <div v-if="globalStore.isLoaded">
-                <Menu @export="showModal()"/>
+                <Menu />
             </div>
             <div class="w-100" v-if="globalStore.isLoaded">
                 <div class="ms-3" ref="navElem">

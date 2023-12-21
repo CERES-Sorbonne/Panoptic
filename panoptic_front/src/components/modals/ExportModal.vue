@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { Property, PropertyMode, PropertyType } from '@/data/models';
 import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
@@ -15,7 +14,7 @@ const props = defineProps({
 })
 
 const isActive = computed(() => globalStore.openModal.id == props.id)
-const imagesId = computed(() => globalStore.openModal.data as number[])
+const imagesId = computed(() => globalStore.getTab().collection.filterManager.result.images.map(i => i.id))
 const activeProperties = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([k, v]) => v && parseInt(k) > 0).map(el => el[0]))
 const useOnlyActiveImage = ref(false)
 const useOnlyActiveProperties = ref(false)
