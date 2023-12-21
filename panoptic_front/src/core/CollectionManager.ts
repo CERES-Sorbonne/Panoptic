@@ -14,7 +14,7 @@ export class CollectionManager {
     sortManager: SortManager
     groupManager: GroupManager
 
-    constructor(images: ImageIndex, filterState: FilterState, sortState: SortState, groupState: GroupState, selectedImages: SelectedImages) {
+    constructor(images?: ImageIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: SelectedImages) {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
@@ -22,7 +22,7 @@ export class CollectionManager {
         this.filterManager.onChange.addListener(this.onFilter.bind(this))
         this.sortManager.onChange.addListener(this.onSort.bind(this))
         this.groupManager.onChange.addListener(this.onGroup.bind(this))
-
+        
         if(images) this.updateImages(images)
 
     }

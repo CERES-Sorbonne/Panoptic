@@ -233,7 +233,7 @@ export class FilterManager {
 
     constructor(state?: FilterState) {
         this.filterIndex = {}
-        this.result = { images: [] }
+        this.result = reactive({ images: [] })
         this.onChange = new EventEmitter()
 
         if (state) {

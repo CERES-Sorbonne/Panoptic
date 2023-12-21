@@ -13,7 +13,6 @@ import { globalStore } from '@/data/store';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
-import { CollectionManager } from '@/core/CollectionManager';
 
 const props = defineProps({
     tab: Object as () => Tab,
