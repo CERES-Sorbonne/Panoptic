@@ -119,7 +119,7 @@ export const globalStore: ReactiveStore = reactive<GlobalStore>({
         return this.tabs[this.selectedTab].data.visibleProperties[propId]
     },
     getSha1Mode() {
-        return globalStore.getTab().data.sha1Mode
+        return globalStore.getTab().collection.groupManager.state.sha1Mode
     },
     getVisibleViewProperties() {
         return Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties)
