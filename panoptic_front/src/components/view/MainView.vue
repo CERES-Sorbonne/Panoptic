@@ -50,17 +50,11 @@ function updateScrollerHeight() {
     }
 }
 
-// TODO put back for export
-const filteredImages = computed(() => [])
-
 props.tab.collection.groupManager.onChange.addListener(() => {
     if (imageList.value) {
         imageList.value.computeLines()
     }
 })
-
-// on expose les filteredImages pour pouvoir les utiliser dans la modal d'export des données pour n'exporter que les images affichées dans le tab
-defineExpose({ filteredImages })
 
 function setRecoImages(groupId: string) {
     console.log('set reco', groupId)

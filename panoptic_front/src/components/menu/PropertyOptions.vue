@@ -4,8 +4,6 @@ import { globalStore } from '@/data/store';
 import { computed, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { Filter } from '@/data/models';
-import { availableOperators } from '@/data/models';
-import { defaultOperator } from '@/utils/filter';
 import wTT from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import TagMenu from '../tags/TagMenu.vue';
