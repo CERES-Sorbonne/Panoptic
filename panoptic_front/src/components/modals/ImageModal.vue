@@ -16,6 +16,7 @@ import wTT from '../tooltips/withToolTip.vue'
 import SelectCircle from '../inputs/SelectCircle.vue';
 import { GroupManager } from '@/core/GroupManager';
 import { SortManager, sortParser } from '@/core/SortManager';
+import { CollectionManager } from '@/core/CollectionManager';
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -43,7 +44,7 @@ const similarityLoaded = computed(() => groupManager.hasResult() != undefined)
 const similarityVisibleProps = reactive({})
 const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => globalStore.properties[pId]))
 
-const selectedImages = reactive(new Set<number>())
+const selectedImages = reactive({})
 
 function hasSha1Property(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -64,10 +65,10 @@ function getSha1Properties(sha1: string) {
     return res
 }
 
-const pile = computed(() => ({ sha1: image.value.sha1, images: globalStore.sha1Index[image.value.sha1] }))
-const properties = computed(() => getSha1Properties(pile.value.sha1))
+const sha1Images = computed(() => globalStore.sha1Index[image.value.sha1])
+const properties = computed(() => getSha1Properties(image.value.sha1))
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
-const selectedImageIds = computed(() => Array.from(selectedImages))
+const selectedImageIds = computed(() => Object.keys(groupManager.selectedImages).map(Number))
 const hasSelectedImages = computed(() => Object.keys(groupManager.selectedImages).length > 0)
 
 enum ImageModalMode {
@@ -77,25 +78,7 @@ enum ImageModalMode {
 
 const modalMode = ref(ImageModalMode.Similarity)
 
-const gridData = computed(() => {
-    let group = {
-        id: '0',
-        name: '__all__',
-        images: pile.value.images,
-        groups: undefined,
-        depth: 0,
-        propertyValues: [],
-        parentId: undefined,
-        count: pile.value.images.length
-    }
-    let index = {}
-    index[group.id] = group
-    return {
-        root: group,
-        index,
-        order: [group.id]
-    }
-})
+const identiqueImages = new CollectionManager([], undefined, undefined, undefined, {})
 
 const containerStyle = ref("")
 
@@ -138,7 +121,8 @@ function show() {
     modal.show()
     availableHeight.value = modalElem.value.clientHeight
     availableWidth.value = modalElem.value.clientWidth
-
+    
+    identiqueImages.updateImages(sha1Images.value)
     if (groupManager.hasResult()) {
         groupManager.clear()
     }
@@ -398,7 +382,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                             </div>
                         </div>
                         <div class="m-0 p-0" style="width: 1140px; overflow-x: scroll; overflow-y: hidden;">
-                            <GridScroller :show-images="false" :data="gridData" :height="availableHeight - 570"
+                            <GridScroller :show-images="true" :manager="identiqueImages.groupManager" :height="availableHeight - 570"
                                 :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" />
                         </div>
                     </div>
