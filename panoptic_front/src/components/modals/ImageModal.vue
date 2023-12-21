@@ -78,7 +78,7 @@ enum ImageModalMode {
 
 const modalMode = ref(ImageModalMode.Similarity)
 
-const identiqueImages = new CollectionManager([], undefined, undefined, undefined, {})
+const identiqueImages = new CollectionManager()
 
 const containerStyle = ref("")
 

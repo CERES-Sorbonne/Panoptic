@@ -262,11 +262,11 @@ export class GroupManager {
         } else {
             this.state = reactive(createGroupState())
         }
-        this.result = { root: undefined, index: {}, imageToGroups: {} }
+        this.result = reactive({ root: undefined, index: {}, imageToGroups: {} })
         this.customGroups = {}
         this.onChange = new EventEmitter()
 
-        this.selectedImages = selectedImages ?? {}
+        this.selectedImages = selectedImages ?? reactive({})
         this.selection = { lastImage: undefined, lastGroup: undefined }
     }
 
@@ -439,7 +439,7 @@ export class GroupManager {
         for (let groupId of Object.keys(this.customGroups)) {
             this.delCustomGroups(groupId)
         }
-        
+
         if (emit) this.onChange.emit()
     }
 
