@@ -35,7 +35,9 @@ const scrollerWidth = ref(0)
 const computeStatus = reactive({ groups: false })
 
 const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
-const visibleProperties = computed(() => globalStore.getVisibleViewProperties())
+const visibleProperties = computed(() => {
+    console.log(globalStore.getSha1Mode())
+    return globalStore.getVisibleViewProperties()})
 
 function updateScrollerHeight() {
     if (filterElem.value && boxElem.value) {

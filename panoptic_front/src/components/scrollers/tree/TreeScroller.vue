@@ -24,7 +24,6 @@ const emits = defineEmits(['recommend'])
 
 const groupIdx = {}
 const imageLines = reactive([]) as ScrollerLine[]
-// const selectedImages = reactive({}) as {[imgId: string]: boolean}
 
 const hoverGroupBorder = ref('')
 
@@ -32,7 +31,8 @@ const scroller = ref(null)
 const MARGIN_STEP = 20
 
 const visiblePropertiesNb = computed(() => props.properties.length)
-// const visibleSha1PropertiesNb = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([key, value]) => value && globalStore.properties[key] !== undefined).filter(([k,v]) => globalStore.properties[k].mode == PropertyMode.sha1).length)
+const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1))
+const visiblePropertiesClusterNb = computed(() => visiblePropertiesCluster.value.length)
 
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
 
@@ -49,7 +49,7 @@ const imageLineSize = computed(() => {
 })
 
 const pileLineSize = computed(() => {
-    let nb = visiblePropertiesNb.value
+    let nb = visiblePropertiesClusterNb.value
     let offset = 0
     if (nb > 0) {
         offset += 28
@@ -306,7 +306,7 @@ watch(() => props.width, () => {
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
-                        :parent-ids="getImageLineParents(item)" :properties="props.properties"
+                        :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                         :selected-images="props.groupManager.selectedImages"
                         :sha1-scores="props.sha1Scores"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
