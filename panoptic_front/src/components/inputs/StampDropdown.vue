@@ -37,8 +37,9 @@ function apply() {
     Object.keys(stamp).map(Number).forEach(propId => {
         let value = stamp[propId]
         let mode = (store.data.properties[propId].type == PropertyType.multi_tags && value) ? 'add' : null
-        store.setPropertyValue(propId, props.images, value, mode)
+        store.setPropertyValue(propId, props.images, value, mode, true)
     })
+    store.getTabManager().collection.update()
     close()
 }
 

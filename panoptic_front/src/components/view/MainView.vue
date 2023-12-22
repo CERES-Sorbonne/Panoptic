@@ -84,7 +84,7 @@ function loadTab() {
 onMounted(() => {
 
     loadTab()
-    tabManager.collection.updateImages(store.imageList)
+    tabManager.collection.update(store.imageList)
     nextTick(updateScrollerHeight)
 })
 
