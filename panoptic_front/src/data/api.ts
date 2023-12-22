@@ -142,11 +142,6 @@ export const apiGetSimilarImagesFromText = async(inputText: string) => {
     return res.data
 }
 
-// TODO: remove this when fixed
-export const apiStartPCA = async() => {
-    return await axios.post('/pca')
-}
-
 export const apiUploadPropFile = async(file: any) => {
     let formData = new FormData();
     formData.append('file', file);

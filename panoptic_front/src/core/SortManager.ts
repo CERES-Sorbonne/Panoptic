@@ -8,7 +8,7 @@ import { Image, Property } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { useStore } from "@/data/store2"
 import { EventEmitter } from "@/utils/utils"
-import { reactive } from "vue"
+import { reactive, toRefs } from "vue"
 
 export enum SortDirection {
     Ascending = 1,
@@ -132,7 +132,7 @@ export class SortManager {
     }
 
     load(state: SortState) {
-        Object.assign(this.state, state)
+        Object.assign(this.state, toRefs(state))
         this.clear()
     }
 
@@ -187,6 +187,12 @@ export class SortManager {
         const index = this.state.sortBy.indexOf(propertyId)
         if (index < 0) return
         this.state.sortBy.splice(index, 1)
+    }
+
+    verifyState() {
+        const store = useStore()
+        this.state.sortBy = this.state.sortBy.filter(id => store.data.properties[id])
+        Object.keys(this.state.options).filter(id => !store.data.properties[id]).forEach(id => delete this.state.options[id])
     }
 
     private getSortableImages(images: Image[]): SortableImage[] {

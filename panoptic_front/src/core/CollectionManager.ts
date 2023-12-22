@@ -35,6 +35,12 @@ export class CollectionManager {
         if(this.images) this.updateImages(this.images)
     }
 
+    verifyState() {
+        this.filterManager.verifyState()
+        this.sortManager.verifyState()
+        this.groupManager.verifyState()
+    }
+
     updateImages(images: ImageIndex) {
         this.images = images
         const filterRes = this.filterManager.filter(Object.values(this.images))

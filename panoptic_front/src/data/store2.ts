@@ -31,13 +31,6 @@ export const useStore = defineStore('store', () => {
         import: {} as ImportState
     })
 
-    // const images = reactive({}) as ImageIndex
-    // const sha1Index = reactive({}) as Sha1ToImages
-    // const properties = reactive({}) as PropertyIndex
-    // const tabs = reactive({}) as TabIndex
-    // const selectedTabId = ref(undefined)
-    // const folders = reactive({}) as FolderIndex
-
     const openModal = reactive({ id: undefined, data: undefined })
 
     // =======================
@@ -47,7 +40,7 @@ export const useStore = defineStore('store', () => {
     const propertyList = computed(() => Object.values(data.properties) as Property[])
     const imageList = computed(() => Object.values(data.images) as Image[])
     const folderRoots = computed(() => {
-        return Object.values(data.folders).filter(f => f.parent == null) as Array<Folder>
+        return Object.values(data.folders).filter(f => f.parent == null) as Folder[]
     })
 
     // =======================
@@ -58,13 +51,10 @@ export const useStore = defineStore('store', () => {
         if (!tabManager) {
             tabManager = new TabManager(getTab())
         }
-        // console.log('fetch all data')
         let images = await apiGetImages()
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
-        //console.log(folders)
-        // console.log('fetch data: receive result...')
 
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: 'sha1' }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: 'sha1' }
@@ -91,10 +81,13 @@ export const useStore = defineStore('store', () => {
 
         countImagePerFolder(data.folders, imageList.value)
         verifySelectedTab()
+        verifyData()
+
         status.loaded = true
-        // TODO check this
-        // this.verifyData()
-        // console.log('end fetch all data')
+    }
+
+    function verifyData() {
+        tabManager.verifyState()
     }
 
     function applyImportState(state: ImportState) {
@@ -137,8 +130,6 @@ export const useStore = defineStore('store', () => {
     function selectTab(tabId: number) {
         data.selectedTabId = tabId
         tabManager.load(getTab())
-        // TODO verify
-        //updateTab()
     }
 
     async function loadTabs() {
@@ -148,7 +139,6 @@ export const useStore = defineStore('store', () => {
         if (tabs.length == 0) {
             await addTab('Tab1')
         } else {
-            console.log('select')
             selectTab(tabs[0].id)
         }
         verifySelectedTab()
@@ -313,9 +303,9 @@ export const useStore = defineStore('store', () => {
                 }
             })
         })
-        // TODO check
-        // this.verifyData()
-        rerender()
+        verifyData()
+        tabManager.collection.updateImages(tabManager.collection.images)
+        // rerender()
     }
 
     function rerender() {
@@ -329,12 +319,10 @@ export const useStore = defineStore('store', () => {
     }
 
     function updatePropertyOptions() {
-        // console.log('update property options ' + Object.keys(this.tabs).length)
         for (let tabId in data.tabs) {
             const tab = data.tabs[tabId]
             if (tab.propertyOptions == undefined) {
                 tab.propertyOptions = {}
-                // console.log('add default')
             }
             for (let propId in data.properties) {
                 tab.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.propertyOptions[propId])
