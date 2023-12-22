@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { globalStore } from '@/data/store';
 import { computed, onMounted, reactive, ref, unref } from 'vue';
 import { useResizeObserver } from '@vueuse/core'
 import Resizable from '@/components/Resizable.vue';
@@ -7,8 +6,11 @@ import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import PropertyValue from '@/components/properties/PropertyValue.vue';
 import { Property } from '@/data/models';
 import { Group, GroupManager } from '@/core/GroupManager';
-import { getFolderParents, getGroupParents } from '@/utils/utils';
+import { getGroupParents } from '@/utils/utils';
 import PropertyOptions from '@/components/menu/PropertyOptions.vue';
+import { useStore } from '@/data/store2';
+
+const store = useStore()
 
 const props = defineProps({
     properties: Array<Property>,
@@ -19,18 +21,18 @@ const props = defineProps({
 })
 
 const hearderHeight = ref(30)
-const tab = computed(() => globalStore.getTab())
+const tab = computed(() => store.getTab())
 
 const elems = reactive({})
 
 const totalPropertyWidth = computed(() => {
-    return props.properties.map(p => tab.value.data.propertyOptions[p.id].size).reduce((a, b) => a + b, 0) + tab.value.data.imageSize
+    return props.properties.map(p => tab.value.propertyOptions[p.id].size).reduce((a, b) => a + b, 0) + tab.value.imageSize
 })
 
 const isMissingWidth = computed(() => props.missingWidth > 0)
 
 function resize(propId, w) {
-    tab.value.data.propertyOptions[propId].size = w
+    tab.value.propertyOptions[propId].size = w
 }
 
 const propertyValues = computed(() => {
@@ -65,11 +67,11 @@ const propertyValues = computed(() => {
 
         <div style="height: 30px;">
             <div class="left-border"></div>
-            <div v-if="showImage" class="header-cell right-border" :style="{ width: (tab.data.imageSize) + 'px' }">
+            <div v-if="showImage" class="header-cell right-border" :style="{ width: (tab.imageSize) + 'px' }">
                 <i class="bi bi-image ms-1 me-1"></i>
             </div>
             <Resizable
-                :start-width="tab.data.propertyOptions[property.id].size - ((isMissingWidth && index == props.properties.length - 1) ? 1 : 0)"
+                :start-width="tab.propertyOptions[property.id].size - ((isMissingWidth && index == props.properties.length - 1) ? 1 : 0)"
                 v-for="property, index in props.properties" class="header-cell"
                 :class="(isMissingWidth && index == props.properties.length - 1) ? '' : 'right-border'"
                 @resize="w => resize(property.id, w)">

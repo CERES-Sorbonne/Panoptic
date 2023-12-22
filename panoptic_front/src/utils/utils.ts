@@ -1,15 +1,18 @@
 import { Group } from "@/core/GroupManager"
-import { Folder, Image, Property, PropertyMode, PropertyRef, Tag, TreeTag, isTag } from "@/data/models"
-import { globalStore } from "@/data/store"
+import { apiGetMLGroups, apiGetSimilarImages, apiGetSimilarImagesFromText } from "@/data/api"
+import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property } from "@/data/models"
+import { useStore } from "@/data/store2"
 import { Ref, computed } from "vue"
+
+const store = useStore()
 
 export function hasProperty(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
 
 export function getImageProperties(id: number) {
-    const img = globalStore.images[id]
-    let res = globalStore.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
+    const img = store.data.images[id]
+    let res = store.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
         let propRef: PropertyRef = {
             propertyId: p.id,
             type: p.type,
@@ -23,8 +26,8 @@ export function getImageProperties(id: number) {
 }
 
 export function getImageProperty(imgId: number, propId: number) {
-    const img = globalStore.images[imgId]
-    const p = globalStore.properties[propId]
+    const img = store.data.images[imgId]
+    const p = store.data.properties[propId]
     const propRef: PropertyRef = {
         propertyId: p.id,
         type: p.type,
@@ -43,52 +46,44 @@ export function getImageProperty(imgId: number, propId: number) {
 //     return Array.isArray(group.imagePiles) && group.imagePiles.length > 0
 // }
 
-
-export function isTagId(propId: number) {
-    return isTag(globalStore.properties[propId].type)
+export function isTag(type: PropertyType) {
+    return type == PropertyType.tag || type == PropertyType.multi_tags
 }
 
-export function getTagChildren(tag: Tag) {
-    const node = globalStore.tagNodes[tag.property_id][tag.id]
-    // console.log(node)
+export function isTagId(propId: number) {
+    return isTag(store.data.properties[propId].type)
+}
+
+export function getChildren(tag: Tag) {
+    const property = store.data.properties[tag.property_id]
+    const tags = property.tags
 
     let children = new Set()
-    const recursive = (t: TreeTag) => {
+    const recursive = (t: Tag) => {
         children.add(t.id)
         if (!t.children) return
-        t.children.forEach(c => children.add(c.id))
-        t.children.forEach(c => recursive(c))
+        t.children.forEach(cId => children.add(cId))
+        t.children.forEach(cId => recursive(tags[cId]))
     }
-    recursive(node)
+    recursive(tag)
 
     return children
 }
 
-export function getFolderAndParents(folder: Folder, parents: number[] = []) {
-    parents.push(folder.id)
-    if (folder.parent != undefined) {
-        parents = getFolderAndParents(globalStore.folders[folder.parent], parents)
+export function getFolderAndParents(folder: Folder) {
+    const res = []
+    let current = folder
+    while(current) {
+        res.push(current.id)
+        current = store.data.folders[current.parent]
     }
-    return parents
-}
-
-export function getFolderParents(folderId: number) {
-    const res: Folder[] = []
-    const recursive = (fId: number) => {
-        const parent = globalStore.folders[fId].parent
-        if (parent != undefined) {
-            res.push(globalStore.folders[parent])
-            recursive(parent)
-        }
-    }
-    recursive(folderId)
     return res
 }
 
 export function getFolderChildren(folderId: number) {
     let res: Folder[] = []
     const recursive = (fId: number) => {
-        const children = globalStore.folders[fId].children
+        const children = store.data.folders[fId].children
         res.push(...children)
         children.forEach(c => recursive(c.id))
     }
@@ -154,4 +149,39 @@ export function getGroupParents(group: Group): Group[] {
         parent = parent.parent
     }
     return res
+}
+
+export function getTagChildren(tag: Tag){
+    const property = store.data.properties[tag.property_id]
+    const tags = property.tags
+
+    const res = []
+    const recursive = (t: Tag) => {
+        res.push(t.id)
+        t.children.forEach(cId => recursive(tags[cId]))
+    }
+    return res
+} 
+
+export async function computeMLGroups(images: string[], nbClusters: number = 10) {
+    // TODO check
+    //let res: [[number]]
+    let res = await apiGetMLGroups(Math.min(nbClusters, images.length), images)
+    return res
+}
+
+export async function getSimilarImages(sha1: string | string[]) {
+    sha1 = Array.isArray(sha1) ? sha1 : [sha1]
+    const res = await apiGetSimilarImages(sha1)
+    return res
+}
+
+export async function getSimilarImagesFromText(inputText: string) {
+    return await apiGetSimilarImagesFromText(inputText)
+}
+
+type ObjectValues<T> = T[keyof T][];
+
+export function objValues<T>(obj: T): ObjectValues<T> {
+  return Object.keys(obj).map(key => obj[key as keyof T]);
 }

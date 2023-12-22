@@ -5,11 +5,13 @@
  * Uses the TagMenu as base for UI
  */
 
-import { Property, PropertyType, Tag } from '@/data/models';
 import TagMenu from './TagMenu.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { computed, ref } from 'vue';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2';
+import { Property, Tag, PropertyType } from '@/data/models';
+
+const store = useStore()
 
 
 const props = defineProps({
@@ -30,7 +32,7 @@ defineExpose({
 const tagMenuElem = ref(null)
 
 const safeValue = computed(() => props.modelValue ?? [])
-const tags = computed(() => safeValue.value.map(id => globalStore.tags[props.property.id][id]))
+const tags = computed(() => safeValue.value.map(id => props.property.tags[id]))
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
 function onSelect(tag: Tag) {

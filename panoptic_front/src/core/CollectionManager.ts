@@ -27,6 +27,12 @@ export class CollectionManager {
 
     }
 
+    load(filterState?: FilterState, sortState?: SortState, groupState?: GroupState) {
+        this.filterManager.load(filterState)
+        this.sortManager.load(sortState)
+        this.groupManager.load(groupState)
+    }
+
     updateImages(images: ImageIndex) {
         this.images = images
         const filterRes = this.filterManager.filter(Object.values(this.images))

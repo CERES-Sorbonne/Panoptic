@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { globalStore } from '@/data/store'
 import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
 import { Property, PropertyType } from '@/data/models'
+import { useStore } from '@/data/store2';
+
+const store = useStore()
 
 const props = defineProps({
     ignoreIds: Array<number>
@@ -14,7 +16,7 @@ const searchElem = ref(null)
 const propertyFilter = ref('')
 
 const filteredProperties = computed(() => {
-    let properties = globalStore.propertyList
+    let properties = store.propertyList
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }

@@ -5,13 +5,14 @@
  * Uses the TagInput inside the dropdown popup
  */
 
-import { Property } from '@/data/models';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import TagInput from './TagInput.vue';
 import { computed, nextTick, ref } from 'vue';
-import { globalStore } from '@/data/store';
 import TagBadge from '../tagtree/TagBadge.vue';
+import { useStore } from '@/data/store2';
+import { Property } from '@/data/models';
 
+const store = useStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -33,7 +34,7 @@ const heightElem = ref(null)
 const inputElem = ref(null)
 
 const safeValue = computed(() => props.modelValue ?? [])
-const tags = computed(() => safeValue.value.map(tId => globalStore.tags[props.property.id][tId]))
+const tags = computed(() => safeValue.value.map(tId => props.property.tags[tId]))
 
 function getHeight() {
     if(heightElem.value == undefined) return 0

@@ -8,10 +8,12 @@ import TextPropInput from '@/components/inputs/TextPropInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Group } from '@/core/GroupManager';
-import { Modals, PileRowLine, Property, PropertyType, RowLine, isTag } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { ModalId, PileRowLine, Property, PropertyType, RowLine } from '@/data/models';
+import { useStore } from '@/data/store2';
+import { isTag } from '@/utils/utils';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
+const store = useStore()
 
 const props = defineProps({
     item: Object as () => RowLine | PileRowLine,
@@ -31,7 +33,7 @@ const hover = ref(false)
 
 
 
-const tab = computed(() => globalStore.getTab())
+const tab = computed(() => store.getTab())
 const image = computed(() => {
     if (props.item.type == 'pile') {
         return (props.item as PileRowLine).data.images[0]
@@ -83,7 +85,7 @@ const sizes: { [key: string | number]: number } = reactive({})
 
 const propWidth = computed(() => {
     const res = {} as { [propId: number]: number }
-    props.properties.forEach(p => res[p.id] == tab.value.data.propertyOptions[p.id].size)
+    props.properties.forEach(p => res[p.id] == tab.value.propertyOptions[p.id].size)
     return res
 })
 
@@ -93,16 +95,16 @@ const imageSize = computed(() => {
     let divRatio = 1
 
     if (divRatio > imgRatio) {
-        return { w: tab.value.data.imageSize * imgRatio, h: tab.value.data.imageSize }
+        return { w: tab.value.imageSize * imgRatio, h: tab.value.imageSize }
     }
-    return { w: tab.value.data.imageSize, h: tab.value.data.imageSize / imgRatio }
+    return { w: tab.value.imageSize, h: tab.value.imageSize / imgRatio }
 
 })
 
 const inputWidth = computed(() => {
     const res = {} as {[propId: string]: number}
     props.properties.forEach(p => {
-        res[p.id] = tab.value.data.propertyOptions[p.id].size - 7
+        res[p.id] = tab.value.propertyOptions[p.id].size - 7
         if(p.id == props.properties[props.properties.length-1].id) {
             if(props.missingWidth > 0) res[p.id] += props.missingWidth
             
@@ -147,7 +149,7 @@ function emitResizeOnce() {
 }
 
 function showModal() {
-    globalStore.showModal(Modals.IMAGE, image.value)
+    store.showModal(ModalId.IMAGE, image.value)
 }
 
 
@@ -163,11 +165,11 @@ watch(rowHeight, emitResizeOnce)
     <div class="container" :style="{ height: props.item.size + 'px' }">
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.data.imageSize) + 'px', position: 'relative', height: rowHeight+'px', cursor: 'pointer'
+            width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight+'px', cursor: 'pointer'
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
-            <CenteredImage :image="image" :width="tab.data.imageSize - 1" :height="rowHeight - 2"
+            <CenteredImage :image="image" :width="tab.imageSize - 1" :height="rowHeight - 2"
                 :shadow="(props.item.index == 0 && props.item.groupId != '0') ? true : false" />
-            <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.data.imageSize + 'px' }"
+            <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.imageSize + 'px' }"
                 style="position: absolute; top:0; left:0; right: 0; bottom: 0px;"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
@@ -216,7 +218,7 @@ watch(rowHeight, emitResizeOnce)
             <div v-if="property.type == PropertyType._folders" :style="{ height: propMinRowHeight[property.id] + 'px' }"
                 class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id]?.value != undefined">
-                    <TagBadge :tag="globalStore.folders[image.properties[property.id]?.value].name" :color="-1" />
+                    <TagBadge :tag="store.data.folders[image.properties[property.id]?.value].name" :color="-1" />
                 </span>
             </div>
             <div v-if="property.type == PropertyType._sha1" :style="{ height: propMinRowHeight[property.id] + 'px' }"

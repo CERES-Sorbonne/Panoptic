@@ -3,7 +3,7 @@
 import { Image, Property } from '@/data/models';
 import { DeprecationTypes, computed, nextTick, onMounted, ref, watch } from 'vue';
 import VueDatePicker from '@vuepic/vue-datepicker'
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { getImageProperty } from '@/utils/utils';
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 

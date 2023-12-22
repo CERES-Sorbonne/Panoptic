@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
-import { globalStore } from '@/data/store';
 import wTT from '../tooltips/withToolTip.vue'
+import { useStore } from '@/data/store2';
 
+const store = useStore()
 
 const props = defineProps({
     selectedImagesIds: Array<number>
 })
 
-const images = computed(() => props.selectedImagesIds.map(id => globalStore.images[id]))
+const images = computed(() => props.selectedImagesIds.map(id => store.data.images[id]))
 
 const emits = defineEmits(['remove:selected'])
 

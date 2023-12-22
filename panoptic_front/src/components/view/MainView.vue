@@ -8,16 +8,21 @@ import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
 import ContentFilter from './ContentFilter.vue';
 
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-import { Tab } from '@/data/models';
-import { globalStore } from '@/data/store';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
+import { TabManager } from '@/core/TabManager';
+import { useStore } from '@/data/store2';
+import { getSimilarImagesFromText } from '@/utils/utils';
+
+const store = useStore()
 
 const props = defineProps({
-    tab: Object as () => Tab,
+    tabId: Number,
     height: Number
 })
+
+const tab = new TabManager()
 
 const recoGroup = ref({} as Group)
 
@@ -33,10 +38,8 @@ const scrollerWidth = ref(0)
 
 const computeStatus = reactive({ groups: false })
 
-const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
-const visibleProperties = computed(() => {
-    console.log(globalStore.getSha1Mode())
-    return globalStore.getVisibleViewProperties()})
+const sha1Mode = computed(() => tab.getSha1Mode())
+const visibleProperties = computed(() => tab.getVisibleProperties())
 
 function updateScrollerHeight() {
     if (filterElem.value && boxElem.value) {
@@ -50,7 +53,7 @@ function updateScrollerHeight() {
     }
 }
 
-props.tab.collection.groupManager.onChange.addListener(() => {
+tab.collection.groupManager.onChange.addListener(() => {
     if (imageList.value) {
         imageList.value.computeLines()
     }
@@ -58,7 +61,7 @@ props.tab.collection.groupManager.onChange.addListener(() => {
 
 function setRecoImages(groupId: string) {
     console.log('set reco', groupId)
-    recoGroup.value = props.tab.collection.groupManager.result.index[groupId]
+    recoGroup.value = tab.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())
 }
 
@@ -67,7 +70,7 @@ async function setSearchedImages(textInput: string) {
         searchedImages.value = []
     }
     else {
-        searchedImages.value = await globalStore.getSimilarImagesFromText(textInput)
+        searchedImages.value = await getSimilarImagesFromText(textInput)
     }
 }
 
@@ -76,8 +79,16 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
-onMounted(() => props.tab.collection.updateImages(Object.values(globalStore.images)))
-onMounted(() => nextTick(updateScrollerHeight))
+function loadTab() {
+    tab.load(store.data.tabs[props.tabId])
+}
+
+onMounted(() => {
+    loadTab()
+    tab.collection.updateImages(store.imageList)
+    nextTick(updateScrollerHeight)
+})
+
 onMounted(() => {
     scrollerWidth.value = filterElem.value.clientWidth
     window.addEventListener('resize', () => {
@@ -87,35 +98,37 @@ onMounted(() => {
     })
 })
 
-watch(() => props.tab.data, () => {
-    globalStore.updateTab(props.tab)
+watch(tab.state, () => {
+    store.updateTab(tab.state)
 }, { deep: true })
-watch(() => props.tab.data.imageSize, () => nextTick(updateScrollerHeight))
+watch(() => tab.state.imageSize, () => nextTick(updateScrollerHeight))
+
+watch(() => props.tabId, loadTab)
 
 </script>
 
 <template>
     <div class="" ref="filterElem">
-        <ContentFilter :tab="props.tab" :compute-status="computeStatus" @search-images="setSearchedImages" />
+        <ContentFilter :tab="tab" :compute-status="computeStatus" @search-images="setSearchedImages" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">
-            <RecommendedMenu :group="recoGroup" :image-size="tab.data.imageSize" :width="scrollerWidth" :height="50"
+            <RecommendedMenu :group="recoGroup" :image-size="tab.state.imageSize" :width="scrollerWidth" :height="50"
                 @close="closeReco" @scroll="imageList.scrollTo" @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
         <!-- <button @click="imageList.computeLines()">test</button> -->
-        <template v-if="tab.data.display == 'tree'">
-            <TreeScroller :group-manager="props.tab.collection.groupManager" :image-size="props.tab.data.imageSize"
-                :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="props.tab.collection.groupManager.selectedImages"
+        <template v-if="tab.state.display == 'tree'">
+            <TreeScroller :group-manager="tab.collection.groupManager" :image-size="tab.state.imageSize"
+                :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="tab.collection.groupManager.selectedImages"
                 ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
-        <template v-if="tab.data.display == 'grid'">
+        <template v-if="tab.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
+                <GridScroller :manager="tab.collection.groupManager" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
                     :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList" />
+                    :selected-images="tab.collection.groupManager.selectedImages" ref="imageList" />
             </div>
         </template>
 

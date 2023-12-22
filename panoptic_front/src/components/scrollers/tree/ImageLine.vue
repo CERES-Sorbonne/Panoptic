@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Property, ScrollerLine } from '@/data/models';
+import { ScrollerLine, Property } from '@/data/models';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
 

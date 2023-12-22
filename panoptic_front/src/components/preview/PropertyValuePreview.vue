@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Colors, Property, PropertyMode, PropertyType } from '@/data/models';
+import { Colors, Property, PropertyType } from '@/data/models';
 import TagPreview from './TagPreview.vue';
 import { computed } from 'vue';
 

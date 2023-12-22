@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { Image, Modals, Property, PropertyMode, PropertyRef, PropertyType, Sha1Scores } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { Image, Property, PropertyMode, PropertyRef, Sha1Scores } from '@/data/models';
 import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive, nextTick } from 'vue';
+import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyInput from '../inputs/PropertyInput.vue';
 import RangeInput from '../inputs/RangeInput.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
-// import { createGroup, generateGroupData, generateGroups, imagesToSha1Piles } from '@/utils/groups';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
-// import { Group } from '@/data/models';
 import PropInput from '../inputs/PropInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import SelectCircle from '../inputs/SelectCircle.vue';
 import { GroupManager } from '@/core/GroupManager';
-import { SortManager, sortParser } from '@/core/SortManager';
+import { SortManager } from '@/core/SortManager';
 import { CollectionManager } from '@/core/CollectionManager';
+import { useStore } from '@/data/store2';
+import { getSimilarImages } from '@/utils/utils';
+
+const store = useStore()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -32,8 +33,8 @@ const state = reactive({
 const similarGroup = new GroupManager()
 similarGroup.setSha1Mode(true)
 
-const image = computed(() => globalStore.openModal.data as Image)
-const isActive = computed(() => globalStore.openModal.id == props.id)
+const image = computed(() => store.openModal.data as Image)
+const isActive = computed(() => store.openModal.id == props.id)
 const similarImages = ref([])
 const availableHeight = ref(100)
 const availableWidth = ref(100)
@@ -42,7 +43,7 @@ const minSimilarityDist = ref(80)
 const similarityLoaded = computed(() => similarGroup.hasResult() != undefined)
 
 const similarityVisibleProps = reactive({})
-const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => globalStore.properties[pId]))
+const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => store.data.properties[pId]))
 
 const selectedImages = reactive({})
 
@@ -51,8 +52,8 @@ function hasSha1Property(image: Image, propertyId: number) {
 }
 
 function getSha1Properties(sha1: string) {
-    const img = globalStore.sha1Index[sha1][0]
-    let res = globalStore.propertyList.filter(p => p.mode == PropertyMode.sha1).map(p => {
+    const img = store.data.sha1Index[sha1][0]
+    let res = store.propertyList.filter(p => p.mode == PropertyMode.sha1).map(p => {
         let propRef: PropertyRef = {
             propertyId: p.id,
             type: p.type,
@@ -65,7 +66,7 @@ function getSha1Properties(sha1: string) {
     return res
 }
 
-const sha1Images = computed(() => globalStore.sha1Index[image.value.sha1])
+const sha1Images = computed(() => store.data.sha1Index[image.value.sha1])
 const properties = computed(() => getSha1Properties(image.value.sha1))
 const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
 const selectedImageIds = computed(() => Object.keys(similarGroup.selectedImages).map(Number))
@@ -88,7 +89,7 @@ function hasProperty(propertyId: number) {
 
 const imageProperties = computed(() => {
     let res: Array<PropertyRef> = []
-    globalStore.propertyList.forEach((p: Property) => {
+    store.propertyList.forEach((p: Property) => {
         let propRef: PropertyRef = {
             propertyId: p.id,
             type: p.type,
@@ -101,11 +102,11 @@ const imageProperties = computed(() => {
     return res
 })
 
-const hasUniqueProperties = computed(() => globalStore.propertyList.some(p => p.mode == PropertyMode.id))
+const hasUniqueProperties = computed(() => store.propertyList.some(p => p.mode == PropertyMode.id))
 
 function onHide() {
-    if (globalStore.openModal.id == props.id) {
-        globalStore.hideModal()
+    if (store.openModal.id == props.id) {
+        store.hideModal()
     }
 }
 
@@ -138,7 +139,7 @@ function toggleProperty(propId: Number) {
     }
 }
 
-watch(() => globalStore.openModal.id, (id) => {
+watch(() => store.openModal.id, (id) => {
     console.log('change')
     if (id == props.id) {
         show()
@@ -149,7 +150,7 @@ watch(() => globalStore.openModal.id, (id) => {
 })
 
 watch(image, () => {
-    if (globalStore.openModal.id == props.id) {
+    if (store.openModal.id == props.id) {
         show()
     }
 })
@@ -168,7 +169,7 @@ onMounted(() => {
 async function setSimilar() {
     if (modalMode.value != ImageModalMode.Similarity) return
 
-    const res = await globalStore.getSimilarImages(image.value.sha1)
+    const res = await getSimilarImages(image.value.sha1)
     similarImages.value = res
     updateSimilarGroup()
 }
@@ -178,7 +179,7 @@ function updateSimilarGroup() {
 
     const images: Image[] = []
     state.sha1Scores = {}
-    filteredSha1s.forEach(r => images.push(...globalStore.sha1Index[r.sha1]))
+    filteredSha1s.forEach(r => images.push(...store.data.sha1Index[r.sha1]))
     filteredSha1s.forEach(r => state.sha1Scores[r.sha1] = r.dist)
 
     const sorter = new SortManager()
@@ -195,9 +196,9 @@ function updateSimilarGroup() {
 function paintSelection(property: PropertyRef) {
     let images = similarGroup.result.root.images
     if (Object.keys(similarGroup.selectedImages).length) {
-        images = Object.keys(similarGroup.selectedImages).map(id => globalStore.images[id])
+        images = Object.keys(similarGroup.selectedImages).map(id => store.data.images[id])
     }
-    globalStore.setPropertyValue(property.propertyId, images, property.value)
+    store.setPropertyValue(property.propertyId, images, property.value)
 }
 
 watch(minSimilarityDist, updateSimilarGroup)
@@ -253,10 +254,10 @@ watch(minSimilarityDist, updateSimilarGroup)
                                             <template v-if="property.propertyId >= 0">
                                                 <td class="text-nowrap">
                                                     <PropertyIcon :type="property.type" /> {{
-                                                        globalStore.properties[property.propertyId].name }}
+                                                        store.data.properties[property.propertyId].name }}
                                                 </td>
                                                 <td class="ps-1" style="width: 100%;">
-                                                    <PropInput :property="globalStore.properties[property.propertyId]"
+                                                    <PropInput :property="store.data.properties[property.propertyId]"
                                                         :image="image" :width="-1" :min-height="20" />
                                                 </td>
 
@@ -285,7 +286,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                     <b>Computed</b>
                                     <tr v-for="property, index in imageProperties" class="">
                                         <template v-if="property.propertyId < 0">
-                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td>{{ store.data.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
                                                 <PropertyInput :property="property" :input-id="[100, index]" />
                                             </td>
@@ -348,10 +349,10 @@ watch(minSimilarityDist, updateSimilarGroup)
                                             <template v-if="property.propertyId >= 0">
                                                 <td class="text-nowrap">
                                                     <PropertyIcon :type="property.type" /> {{
-                                                        globalStore.properties[property.propertyId].name }}
+                                                        store.data.properties[property.propertyId].name }}
                                                 </td>
                                                 <td>
-                                                    <PropInput :property="globalStore.properties[property.propertyId]"
+                                                    <PropInput :property="store.data.properties[property.propertyId]"
                                                         :image="image" :width="400" :min-height="20" />
                                                 </td>
                                             </template>
@@ -363,7 +364,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                     <b>Computed</b>
                                     <tr v-for="property, index in imageProperties" class="">
                                         <template v-if="property.propertyId < 0">
-                                            <td>{{ globalStore.properties[property.propertyId].name }}</td>
+                                            <td>{{ store.data.properties[property.propertyId].name }}</td>
                                             <td class="w-100">
                                                 <PropertyInput :property="property" :input-id="[100, index]" />
                                             </td>
@@ -375,7 +376,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                         </div>
                         <div class="m-0 p-0" style="width: 1140px; overflow-x: scroll; overflow-y: hidden;">
                             <GridScroller :show-images="true" :manager="identiqueImages.groupManager" :height="availableHeight - 570"
-                                :selected-properties="globalStore.propertyList.filter(p => p.mode == PropertyMode.id)" />
+                                :selected-properties="store.propertyList.filter(p => p.mode == PropertyMode.id)" />
                         </div>
                     </div>
                 </div>

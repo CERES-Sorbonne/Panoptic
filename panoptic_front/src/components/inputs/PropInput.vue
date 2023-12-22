@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Image, Property, PropertyType, isTag } from '@/data/models';
+import { Image, Property, PropertyType } from '@/data/models';
 import TextPropInput from './TextPropInput.vue';
 import CheckboxPropInput from './CheckboxPropInput.vue';
 import ColorPropInput from './ColorPropInput.vue';
 import DatePropInput from './DatePropInput.vue';
 import TagPropInputDropdown from '../tags/TagPropInputDropdown.vue';
+import { isTag } from '@/utils/utils';
 
 
 const props = defineProps({

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { PropertyType, PropertyNames, PropertyMode } from '@/data/models';
-import PropertyIcon from '../properties/PropertyIcon.vue';
-import { onMounted, reactive, ref } from 'vue';
+import { PropertyMode } from '@/data/models';
+import { onMounted } from 'vue';
 
 const props = defineProps({
     modelValue: String as () => PropertyMode

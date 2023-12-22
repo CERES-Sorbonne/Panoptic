@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { PropertyType, isTag, propertyDefault } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { PropertyType } from '@/data/models';
+import { useStore } from '@/data/store2'
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
@@ -10,7 +10,8 @@ import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagInputDropdown from '../tags/TagInputDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
-
+import { isTag } from '@/utils/utils';
+const store = useStore()
 
 const props = defineProps({
     values: Object as () => { [propertyId: number]: any },
@@ -19,7 +20,7 @@ const props = defineProps({
 const emits = defineEmits(['blur'])
 
 const properties = computed(() => {
-    return globalStore.propertyList.filter(p => p.id >= 0)
+    return store.propertyList.filter(p => p.id >= 0)
 })
 
 const propertyColor = computed(() => {

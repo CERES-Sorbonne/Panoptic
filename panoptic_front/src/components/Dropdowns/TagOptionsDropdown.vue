@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { Tag } from '@/data/models';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
-
+const store = useStore()
 
 const props = defineProps({
     propertyId: Number,
@@ -20,7 +20,7 @@ const localColor = ref(null)
 
 const nameInput = ref(null)
 
-const tag = computed(() => globalStore.tags[props.propertyId][props.tagId])
+const tag = computed(() => store.data.properties[props.propertyId].tags[props.tagId])
 
 
 async function updateFromStore() {
@@ -33,18 +33,18 @@ async function updateFromStore() {
 }
 
 function setColor(color: number) {
-    globalStore.updateTag(props.propertyId, props.tagId, Number(color), tag.value.parents, tag.value.value)
+    store.updateTag(props.propertyId, props.tagId, Number(color), undefined, tag.value.value)
     dropdown.value.hide()
 }
 
 function setName(name: string) {
     if(name == tag.value.value) return
     console.log('set')
-    globalStore.updateTag(props.propertyId, props.tagId, Number(tag.value.color), tag.value.parents, name)
+    store.updateTag(props.propertyId, props.tagId, Number(tag.value.color), undefined, name)
 }
 
 function deleteTag() {
-    globalStore.deleteTagParent(props.tagId, 0)
+    store.deleteTagParent(props.tagId, 0)
     emits('delete', props.tagId)
     dropdown.value.hide()
     

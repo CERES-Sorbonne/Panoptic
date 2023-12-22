@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, PropertyType, PropertyValue, Recommendation, Sha1Pile } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { Image, PropertyType, PropertyValue, Recommendation } from '@/data/models';
+import { useStore } from '@/data/store2'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
-
-
+import { getSimilarImages } from '@/utils/utils';
+interface Sha1Pile {
+    sha1: string
+    images: Image[]
+}
+const store = useStore()
 const props = defineProps({
     imageSize: Number,
     group: Object as () => Group,
@@ -38,8 +42,8 @@ function removeImage(sha1: string) {
 function acceptRecommend(image: Image) {
     propertyValues.forEach(v => {
         if (v.value != UNDEFINED_KEY) {
-            let mode = globalStore.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
-            globalStore.setPropertyValue(v.propertyId, image, v.value, mode)
+            let mode = store.data.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
+            store.setPropertyValue(v.propertyId, image, v.value, mode)
         }
     })
     removeImage(image.sha1)
@@ -53,7 +57,7 @@ function refuseRecommend(image: Image) {
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
-    const piles = sha1s.map((sha1: string) => ({ sha1, images: globalStore.sha1Index[sha1] }))
+    const piles = sha1s.map((sha1: string) => ({ sha1, images: store.data.sha1Index[sha1] }))
     computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
 
@@ -96,7 +100,7 @@ async function getReco() {
     if (!props.group) return
     console.log('get reco')
     const requestSha1s = props.group.images.map(i => i.sha1)
-    let res = await globalStore.getSimilarImages(requestSha1s) as any[]
+    let res = await getSimilarImages(requestSha1s) as any[]
     const resSha1s = res.map(r => r.sha1)
 
     propertyValues.length = 0

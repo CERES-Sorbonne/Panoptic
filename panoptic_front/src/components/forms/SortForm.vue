@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { SortManager, SortDirection } from '@/core/SortManager';
-
+const store = useStore()
 interface Sort {
     propertyId: number
     direction: SortDirection
@@ -52,7 +52,7 @@ function setOrder(propertyId: number, direction: SortDirection) {
             <template v-for="sort, index in sortList">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
                 <div class="me-0 ms-1 ps-1 mt-1 mb-1 pe-1 base-hover" @click="delSort(sort.propertyId)">
-                    {{ globalStore.properties[sort.propertyId].name }}
+                    {{ store.data.properties[sort.propertyId].name }}
                 </div>
                 <wTT v-if="sort.direction == SortDirection.Ascending" message="main.menu.sort.order_asc">
                     <i class="bi bi-arrow-up sm-btn" @click="setOrder(sort.propertyId, SortDirection.Descending)"></i>

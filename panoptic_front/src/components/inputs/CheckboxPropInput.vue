@@ -3,8 +3,8 @@ import { Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
 import TextInput from './TextInput.vue';
-import { globalStore } from '@/data/store';
-
+import { useStore } from '@/data/store2'
+const store = useStore()
 const props = defineProps({
     property: Object as () => Property,
     image: Object as () => Image,
@@ -25,7 +25,7 @@ function focus() {
 }
 
 function toggle() {
-    globalStore.setPropertyValue(props.property.id, props.image, !propRef.value.value)
+    store.setPropertyValue(props.property.id, props.image, !propRef.value.value)
 }
 
 // function updateFromStore() {

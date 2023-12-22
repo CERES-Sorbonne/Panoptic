@@ -5,11 +5,13 @@
  * Selecting tags in this input directly affects the database
  */
 
-import { Image, Property } from '@/data/models';
 import TagInputDropdown from './TagInputDropdown.vue';
 import { nextTick, onMounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual, computedPropValue } from '@/utils/utils';
-import { globalStore } from '@/data/store';
+import { Property, Image } from '@/data/models';
+import { useStore } from '@/data/store2';
+
+const store = useStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -45,7 +47,7 @@ function updateLocal() {
 function save() {
     if (arrayEqual(localValue.value, propValue.value ?? [])) return
 
-    globalStore.setPropertyValue(props.property.id, props.image, localValue.value)
+    store.setPropertyValue(props.property.id, props.image, localValue.value)
 }
 
 async function onResize() {

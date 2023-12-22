@@ -2,19 +2,17 @@
  * Fichier servant à regrouper les fonctions permettant de communiquer avec le serveur
  */
 
-// à virer
-import { Images, Property, PropertyMode, PropertyType, PropertyValue, PropertyValueUpdate, Tab, TabState, Tag } from './models'
-
 import axios from 'axios'
 import { saveFile } from '@/utils/api'
+import { ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, TabState, Tag } from './models'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
 
 
-export const apiGetImages = async ():Promise<Images> => {
+export const apiGetImages = async ():Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
-    const images = Object.fromEntries(Object.entries(res.data as Images).map(([k,v]) => [k, {...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url}]))
+    const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k,v]) => [k, {...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url}]))
     return images
 }
 
@@ -99,19 +97,17 @@ export const apiImportFolder = async() => {
 
 export const apiGetTabs = async() => {
     let res = await axios.get('/tabs')
-    return res.data
+    return res.data as TabState[]
 }
 
-export const apiAddTab = async(tab: Tab) => {
+export const apiAddTab = async(tab: TabState) => {
     let res = await axios.post('/tab', tab)
-    return res.data
+    return res.data as TabState
 }
 
-export const apiUpdateTab = async(tab: Tab) => {
-    const toSend = Object.assign({}, tab)
-    delete toSend.collection
-    let res = await axios.patch('/tab', toSend)
-    return res.data
+export const apiUpdateTab = async(tab: TabState) => {
+    let res = await axios.patch('/tab', tab)
+    return res.data as TabState
 }
 
 export const apiDeleteTab = async(tabId: number) => {
@@ -126,7 +122,7 @@ export const apiGetMLGroups = async(nbGroups=50, imageList: string[] = []) => {
 
 export const apiGetImportStatus = async() => {
     let res = await axios.get('/import_status')
-    res.data.new_images = Object.entries(res.data.new_images as Images).map(([k,v]) => ({...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url}))
+    res.data.new_images = Object.entries(res.data.new_images as ImageIndex).map(([k,v]) => ({...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url}))
     // console.log(res.data)
     return res.data
 }

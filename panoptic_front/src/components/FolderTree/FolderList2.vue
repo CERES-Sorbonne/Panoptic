@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { FilterManager } from '@/core/FilterManager';
 import { Folder } from '@/data/models';
-import { globalStore } from '@/data/store';
-import { getFolderChildren, getFolderParents } from '@/utils/utils';
+import { useStore } from '@/data/store2';
+import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed } from 'vue';
+
+const store = useStore()
 
 const props = defineProps({
     folders: Array<Folder>,
@@ -58,7 +60,7 @@ function toggleFolderVisible(folderId: number) {
 function toggleFolderSelect(folderId: number) {
     let selected = new Set(props.filterManager.state.folders)
     const isSelected = selected.has(folderId)
-    const isParentSelected = globalStore.folders[folderId].parent != undefined && selected.has(globalStore.folders[folderId].parent)
+    const isParentSelected = store.data.folders[folderId].parent != undefined && selected.has(store.data.folders[folderId].parent)
     if (isSelected && !isParentSelected) {
         selected.delete(folderId)
         getFolderChildren(folderId).forEach(c => selected.delete(c.id))
@@ -67,7 +69,7 @@ function toggleFolderSelect(folderId: number) {
         unselectParent(folderId, selected)
         selected.add(folderId)
         getFolderChildren(folderId).forEach(c => selected.add(c.id))
-        getFolderParents(folderId).forEach(c => selected.delete(c.id))
+        getFolderAndParents(store.data.folders[folderId]).forEach(c => selected.delete(c.id))
     }
 
     props.filterManager.setFolders(Array.from(selected))
@@ -75,7 +77,7 @@ function toggleFolderSelect(folderId: number) {
 }
 
 function unselectParent(folderId: number, selected: Set<number>) {
-    const parents = getFolderParents(folderId)
+    const parents = getFolderAndParents(store.data.folders[folderId])
     let highestParent = undefined
     for(let p of parents) {
         if(selected.has(p.id)) {

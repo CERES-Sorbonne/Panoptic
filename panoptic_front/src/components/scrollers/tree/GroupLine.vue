@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { GroupLine } from '@/data/models'
-import { globalStore } from '@/data/store'
 import { computed, ref } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
@@ -9,7 +7,11 @@ import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
 import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
+import { GroupLine } from '@/data/models'
+import { useStore } from '@/data/store2'
+import { computeMLGroups } from '@/utils/utils'
 
+const store = useStore()
 
 const props = defineProps({
     item: Object as () => GroupLine,
@@ -31,7 +33,7 @@ const subgroups = computed(() => group.value.children)
 const hasImages = computed(() => images.value.length > 0)
 const hasPiles = computed(() => Array.isArray(piles.value))
 const hasSubgroups = computed(() => subgroups.value.length > 0 && group.value.subGroupType != GroupType.Sha1)
-const properties = computed(() => group.value.meta.propertyValues.map(v => globalStore.properties[v.propertyId]))
+const properties = computed(() => group.value.meta.propertyValues.map(v => store.data.properties[v.propertyId]))
 const propertyValues = computed(() => group.value.meta.propertyValues)
 const closed = computed(() => group.value.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
@@ -47,7 +49,8 @@ const someValue = computed(() => group.value.meta.propertyValues.some(v => v.val
 
 async function computeClusters() {
     let sha1s: string[] = group.value.images.map(i => i.sha1)
-    let mlGroups = await globalStore.computeMLGroups(sha1s, props.item.nbClusters)
+    let mlGroups = await computeMLGroups(sha1s, props.item.nbClusters)
+    console.log(mlGroups)
     let distances = mlGroups.distances
     mlGroups = mlGroups.clusters
     // props.item.data.groups = []
@@ -55,7 +58,7 @@ async function computeClusters() {
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {
         let images = []
-        sha1s.forEach(sha1 => images.push(...globalStore.sha1Index[sha1]))
+        sha1s.forEach(sha1 => images.push(...store.data.sha1Index[sha1]))
 
         const cluster = buildGroup('cluster:' + String(index) + ':' + props.item.id, images, GroupType.Cluster)
         cluster.meta.score = distances[index]

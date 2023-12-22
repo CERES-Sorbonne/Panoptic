@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { Filter, FilterGroup, FilterOperator } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { computed } from 'vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { FilterManager } from '@/core/FilterManager';
-
+import { Filter, FilterGroup, FilterManager, FilterOperator } from '@/core/FilterManager';
+const store = useStore()
 const props = defineProps({
     filter: Object as () => FilterGroup,
     manager: FilterManager,
@@ -72,7 +71,7 @@ function addFilterGroup(filterId: number) {
                     <span v-else class="text-secondary">{{ (filter as FilterGroup).groupOperator }}</span>
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
-                    <PropertyDropdown :model-value="globalStore.properties[(children as Filter).propertyId]"
+                    <PropertyDropdown :model-value="store.data.properties[(children as Filter).propertyId]"
                         @update:model-value="p => updateFilter(children.id, p.id)" />
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">

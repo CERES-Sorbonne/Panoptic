@@ -5,7 +5,6 @@ import messages from './locales/conf'
 import {createI18n} from 'vue-i18n'
 
 import App from './App.vue'
-import router from './router'
 
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
@@ -24,8 +23,10 @@ const i18n = createI18n({
 const pinia = createPinia()
 
 const app = createApp(App)
+app.use(pinia)
 
+import router from './router'
 app.use(router)
 app.use(i18n)
-app.use(pinia)
+
 app.mount('#app')

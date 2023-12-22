@@ -3,10 +3,10 @@ import { Image, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import wTT from '../tooltips/withToolTip.vue';
-
+const store = useStore()
 
 const props = defineProps({
     images: Array<Image>,
@@ -36,8 +36,8 @@ function apply() {
 
     Object.keys(stamp).map(Number).forEach(propId => {
         let value = stamp[propId]
-        let mode = (globalStore.properties[propId].type == PropertyType.multi_tags && value) ? 'add' : null
-        globalStore.setPropertyValue(propId, props.images, value, mode)
+        let mode = (store.data.properties[propId].type == PropertyType.multi_tags && value) ? 'add' : null
+        store.setPropertyValue(propId, props.images, value, mode)
     })
     close()
 }

@@ -8,15 +8,17 @@
 
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
-import { Filter, PropertyID, PropertyType, isTag, operatorHasInput, propertyDefault } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { PropertyID, PropertyType} from '@/data/models';
+import { useStore } from '@/data/store2'
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import TagInput from '../tags/TagInput.vue';
 import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import Dropdown from './Dropdown.vue';
-import { FilterManager, FilterOperator } from '@/core/FilterManager';
-
+import { Filter, FilterManager, FilterOperator, operatorHasInput } from '@/core/FilterManager';
+import { propertyDefault } from '@/data/builder';
+import { isTag } from '@/utils/utils';
+const store = useStore()
 enum State {
     CLOSED = 0,
     TYPE = 1, // chose filter propertyId
@@ -51,7 +53,7 @@ const filter = computed(() => {
 
 const filterProperty = computed(() => {
     if (filter.value == undefined) return
-    const prop = globalStore.properties[filter.value.propertyId]
+    const prop = store.data.properties[filter.value.propertyId]
     return prop
 })
 
@@ -105,7 +107,7 @@ function updateValue() {
 function updateIfChanged() {
     if (!filter.value) return
 
-    const prop = globalStore.properties[filter.value.propertyId]
+    const prop = store.data.properties[filter.value.propertyId]
     if (isTag(prop.type)) return
 
     const value = localValue.value ?? propertyDefault(prop.type)
@@ -152,15 +154,15 @@ watch(() => filter.value?.value, () => updateLocal())
                             <TagInput
                                 v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
                                 v-model="localValue" :auto-focus="true"
-                                :property="globalStore.properties[filter.propertyId]" ref="inputElem" @hide="hide"
+                                :property="store.data.properties[filter.propertyId]" ref="inputElem" @hide="hide"
                                 @update:model-value="updateValue" />
                             <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
                                 :property="filterProperty" v-model="localValue"
                                 @update:model-value="() => { hide(); updateIfChanged() }" />
                             <StandaloneTextInput v-else :no-html="true" v-model="localValue" :width="-1" :min-height="20"
-                                :no-nl="globalStore.properties[filter.propertyId].type == PropertyType.number"
-                                :url-mode="globalStore.properties[filter.propertyId].type == PropertyType.url"
-                                :only-number="globalStore.properties[filter.propertyId].type == PropertyType.number"
+                                :no-nl="store.data.properties[filter.propertyId].type == PropertyType.number"
+                                :url-mode="store.data.properties[filter.propertyId].type == PropertyType.url"
+                                :only-number="store.data.properties[filter.propertyId].type == PropertyType.number"
                                 @blur="updateIfChanged" :auto-focus="true" ref="inputElem" />
                             <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="localValue" /> -->
                         </div>
