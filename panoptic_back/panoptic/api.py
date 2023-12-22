@@ -194,7 +194,7 @@ async def get_tabs_route():
 
 @app.post("/tab")
 async def add_tab_route(tab: Tab):
-    return await db.add_tab(tab.name, tab.data)
+    return await db.add_tab(tab.data)
 
 
 @app.patch("/tab")

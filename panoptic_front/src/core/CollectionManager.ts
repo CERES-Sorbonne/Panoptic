@@ -3,7 +3,7 @@
  * Is responsible to connect the different managers together for reactivity
  */
 
-import { Image, ImageIndex } from "@/data/models";
+import { ImageIndex } from "@/data/models";
 import { FilterManager, FilterResult, FilterState } from "./FilterManager";
 import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
@@ -31,6 +31,8 @@ export class CollectionManager {
         this.filterManager.load(filterState)
         this.sortManager.load(sortState)
         this.groupManager.load(groupState)
+        
+        if(this.images) this.updateImages(this.images)
     }
 
     updateImages(images: ImageIndex) {

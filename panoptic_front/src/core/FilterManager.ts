@@ -11,8 +11,6 @@ import { useStore } from "@/data/store2";
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
 import { reactive } from "vue";
 
-const store = useStore()
-
 export function operatorHasInput(operator: FilterOperator) {
     switch (operator) {
         case FilterOperator.contains:
@@ -252,6 +250,7 @@ function computeFilter(filter: Filter, propertyValue: any) {
 }
 
 function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
+    const store = useStore()
     // console.log('compute group filter')
     if (filterGroup.filters.length == 0) {
         return true
@@ -319,7 +318,12 @@ export class FilterManager {
     }
 
     load(state: FilterState) {
-        this.state = state
+        Object.assign(this.state, state)
+        this.clear()
+    }
+
+    clear() {
+        this.result = { images: [] }
     }
 
     filter(images: Image[], emit?: boolean) {
@@ -403,19 +407,20 @@ export class FilterManager {
 
 
     updateFilter(filterId: number, update: FilterUpdate) {
+        const store = useStore()
         if (this.filterIndex[filterId] == undefined || this.filterIndex[filterId].isGroup) return
         const filter = this.filterIndex[filterId] as Filter
 
-        if(update.propertyId != undefined) {
+        if (update.propertyId != undefined) {
             this.changeFilter(filter, update.propertyId)
         }
 
         const type = store.data.properties[filter.propertyId].type
-        if(update.operator != undefined && availableOperators(type).includes(update.operator)) {
+        if (update.operator != undefined && availableOperators(type).includes(update.operator)) {
             filter.operator = update.operator
         }
 
-        if(update.value) {
+        if (update.value) {
             filter.value = update.value
         } else {
             filter.value = propertyDefault(type)
@@ -430,6 +435,7 @@ export class FilterManager {
 
     // used to remove properties that doesnt exist anymore from filters 
     public verifyFilter() {
+        const store = useStore()
         const recurive = (group: FilterGroup) => {
             const toRem = new Set()
             group.filters.forEach(f => {
@@ -464,6 +470,7 @@ export class FilterManager {
     }
 
     private createFilter(propertyId: number) {
+        const store = useStore()
         let property = store.data.properties[propertyId]
 
         let filter: Filter = {

@@ -12,7 +12,6 @@ import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag } from "@/utils/utils";
 import { useStore } from "@/data/store2";
 
-const store = useStore()
 
 export const UNDEFINED_KEY = '_$undef_key_'
 export const ROOT_ID = 'root'
@@ -100,6 +99,7 @@ export function buildGroup(id: string, images: Image[], type: GroupType = GroupT
 }
 
 function valueToKey(propertyValue: PropertyValue) {
+    const store = useStore()
     const property = store.data.properties[propertyValue.propertyId]
     if (Array.isArray(propertyValue)) {
         throw new Error('ValueToKey doesnt work for Array values: ' + propertyValue)
@@ -195,6 +195,7 @@ function sortGroupByProperty(group: Group, direction: number) {
     for (let child of group.children) {
         const values = []
         for (let propValue of child.meta.propertyValues) {
+            const store = useStore()
             const prop = store.data.properties[propValue.propertyId]
             const type = isTag(prop.type) ? PropertyType.tag : prop.type
             let value = propValue.value
@@ -271,7 +272,8 @@ export class GroupManager {
     }
 
     load(state: GroupState) {
-        this.state = state
+        Object.assign(this.state, state)
+        this.clear()
     }
 
     group(images: Image[], order: ImageOrder, emit?: boolean) {
@@ -352,6 +354,7 @@ export class GroupManager {
         this.result.root = undefined
         this.clearLastSelected()
         this.clearSelection()
+        this.lastOrder = {}
     }
 
     private removeChildren(group: Group) {
@@ -488,6 +491,7 @@ export class GroupManager {
     }
 
     findImageIterator(groupId: string, imageId: number) {
+        const store = useStore()
         const group = this.result.index[groupId]
         const image = store.data.images[imageId]
         let idx = 0
@@ -523,6 +527,7 @@ export class GroupManager {
     }
 
     private computePropertySubGroup(group: Group, groupBy: number[]) {
+        const store = useStore()
         const property = store.data.properties[groupBy[0]]
         const option = this.state.options[property.id]
         const subGroups: { [key: string]: Group } = {}

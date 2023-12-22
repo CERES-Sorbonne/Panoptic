@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Property, PropertyMode, PropertyType } from '@/data/models';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
@@ -9,7 +9,6 @@ import { useStore, tabManager } from '@/data/store2';
 import { Filter } from '@/core/FilterManager';
 
 const store = useStore()
-
 const props = defineProps({
     property: Object as () => Property
 })

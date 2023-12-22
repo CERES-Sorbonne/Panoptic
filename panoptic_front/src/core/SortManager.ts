@@ -10,8 +10,6 @@ import { useStore } from "@/data/store2"
 import { EventEmitter } from "@/utils/utils"
 import { reactive } from "vue"
 
-const store = useStore()
-
 export enum SortDirection {
     Ascending = 1,
     Descending = -1
@@ -93,6 +91,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
         return x
     },
     [PropertyType._folders]: (x: number) => {
+        const store = useStore()
         return store.data.folders[x].name
     }
 }
@@ -133,7 +132,12 @@ export class SortManager {
     }
 
     load(state: SortState) {
-        this.state = state
+        Object.assign(this.state, state)
+        this.clear()
+    }
+
+    clear() {
+        this.result = { images: [], order: [] }
     }
 
     sort(images: Image[], emit?: boolean): SortResult {
@@ -152,18 +156,19 @@ export class SortManager {
         this.result.order = {}
 
         for (let i = 0; i < sortable.length; i++) {
+            const store = useStore()
             this.result.images.push(store.data.images[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
         console.timeEnd('Sort')
 
-        if(emit) this.onChange.emit(this.result)
+        if (emit) this.onChange.emit(this.result)
         return this.result
     }
 
     update(emit?: boolean) {
         this.sort(this.result.images)
-        if(emit) this.onChange.emit(this.result)
+        if (emit) this.onChange.emit(this.result)
     }
 
     setSort(propertyId: number, option?: SortOption) {
@@ -185,6 +190,7 @@ export class SortManager {
     }
 
     private getSortableImages(images: Image[]): SortableImage[] {
+        const store = useStore()
         const res = []
         const properties = this.state.sortBy.map(id => store.data.properties[id])
 
