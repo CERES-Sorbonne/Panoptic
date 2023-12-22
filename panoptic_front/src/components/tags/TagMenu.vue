@@ -11,7 +11,7 @@ import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { sleep } from '@/utils/utils';
-import { Property, Tag, PropertyType } from '@/data/models';
+import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
 import { useStore } from '@/data/store';
 
 const store = useStore()
@@ -44,7 +44,7 @@ const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredT
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const tags = computed(() => props.property.tags[props.property.id])
+const tags = computed(() => props.property.tags)
 const filteredTagList = computed(() => {
     let filtered = Object.values(tags.value).filter((tag: Tag) => tag.value.toLowerCase().includes(tagFilter.value.toLowerCase()));
 

@@ -23,7 +23,7 @@ export class CollectionManager {
         this.sortManager.onChange.addListener(this.onSort.bind(this))
         this.groupManager.onChange.addListener(this.onGroup.bind(this))
         
-        if(images) this.updateImages(images)
+        if(images) this.update(images)
 
     }
 
@@ -32,7 +32,7 @@ export class CollectionManager {
         this.sortManager.load(sortState)
         this.groupManager.load(groupState)
         
-        if(this.images) this.updateImages(this.images)
+        if(this.images) this.update(this.images)
     }
 
     verifyState() {
@@ -41,8 +41,10 @@ export class CollectionManager {
         this.groupManager.verifyState()
     }
 
-    updateImages(images: ImageIndex) {
-        this.images = images
+    update(images?: ImageIndex) {
+        this.images = images ?? this.images
+        if(!this.images) return
+        
         const filterRes = this.filterManager.filter(Object.values(this.images))
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)

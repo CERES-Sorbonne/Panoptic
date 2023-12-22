@@ -124,7 +124,7 @@ export const useStore = defineStore('store', () => {
     }
 
     async function updateTab(tab: TabState) {
-        await apiUpdateTab({id: tab.id, data: tab})
+        await apiUpdateTab({ id: tab.id, data: tab })
     }
 
     function selectTab(tabId: number) {
@@ -229,7 +229,8 @@ export const useStore = defineStore('store', () => {
         getTab().visibleProperties[newProperty.id] = true
     }
 
-    async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null) {
+    // TODO make a version that does not trigger actualisation
+    async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null, dontEmit?: boolean) {
         if (!Array.isArray(images)) {
             images = [images]
         }
@@ -266,7 +267,8 @@ export const useStore = defineStore('store', () => {
                 }
                 old.value.push(...value)
                 old.value = [...new Set(old.value)]
-                Object.assign(data.images[id].properties[propertyId], old)
+                // console.log(data.images[id].properties[propertyId], old)
+                data.images[id].properties[propertyId] = old
             }
 
         }
@@ -274,6 +276,8 @@ export const useStore = defineStore('store', () => {
         if (data.properties[propertyId].tags != undefined) {
             computeTagCount(imageList.value, data.properties)
         }
+
+        if (!dontEmit) tabManager.collection.update()
     }
 
     async function updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
@@ -304,7 +308,7 @@ export const useStore = defineStore('store', () => {
             })
         })
         verifyData()
-        tabManager.collection.updateImages(tabManager.collection.images)
+        tabManager.collection.update()
         // rerender()
     }
 
