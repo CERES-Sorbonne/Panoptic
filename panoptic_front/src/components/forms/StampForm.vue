@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PropertyType } from '@/data/models';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';

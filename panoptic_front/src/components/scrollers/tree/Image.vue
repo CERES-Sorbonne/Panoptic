@@ -10,7 +10,7 @@ import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import { Group } from '@/core/GroupManager';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
 
 const store = useStore()

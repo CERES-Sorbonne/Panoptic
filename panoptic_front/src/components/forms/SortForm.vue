@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';

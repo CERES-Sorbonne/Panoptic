@@ -9,7 +9,7 @@ import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Group } from '@/core/GroupManager';
 import { ModalId, PileRowLine, Property, PropertyType, RowLine } from '@/data/models';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 import { isTag } from '@/utils/utils';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 

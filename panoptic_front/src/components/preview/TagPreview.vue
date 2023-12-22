@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 
 const store = useStore()
 

@@ -3,7 +3,7 @@ import { Image, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
 import * as bootstrap from 'bootstrap'
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import wTT from '../tooltips/withToolTip.vue';
 const store = useStore()

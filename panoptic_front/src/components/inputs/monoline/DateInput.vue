@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { Image, Property } from '@/data/models';
 import { computed } from 'vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { getImageProperty } from '@/utils/utils';
 import StandaloneDateInput from './StandaloneDateInput.vue';
 

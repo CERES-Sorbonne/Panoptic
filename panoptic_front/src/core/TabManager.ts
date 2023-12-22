@@ -3,7 +3,7 @@ import { FilterState } from "./FilterManager"
 import { GroupState } from "./GroupManager"
 import { SortState } from "./SortManager"
 import { CollectionManager } from "./CollectionManager"
-import { useStore } from "@/data/store2"
+import { useStore } from "@/data/store"
 import { reactive, toRefs } from "vue"
 
 export interface TabState {

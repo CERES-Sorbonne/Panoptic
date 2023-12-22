@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { Image, ModalId } from '@/data/models';
 const store = useStore()
 const props = defineProps({

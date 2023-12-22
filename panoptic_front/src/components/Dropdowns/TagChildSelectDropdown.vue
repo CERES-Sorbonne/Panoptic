@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { Tag } from '@/data/models';
 import TagInput from '../tags/TagInput.vue';
 

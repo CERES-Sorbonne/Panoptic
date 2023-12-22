@@ -14,7 +14,7 @@ import SelectCircle from '../inputs/SelectCircle.vue';
 import { GroupManager } from '@/core/GroupManager';
 import { SortManager } from '@/core/SortManager';
 import { CollectionManager } from '@/core/CollectionManager';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 import { getSimilarImages } from '@/utils/utils';
 
 const store = useStore()

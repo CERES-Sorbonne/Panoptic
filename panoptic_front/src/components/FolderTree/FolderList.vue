@@ -1,7 +1,7 @@
 <!-- <script setup lang="ts">
 import { Folder } from '@/data/models';
 import { TabState } from '@/data/models'
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { computed } from 'vue';
 
 const props = defineProps({

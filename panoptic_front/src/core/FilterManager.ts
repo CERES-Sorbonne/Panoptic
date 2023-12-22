@@ -7,7 +7,7 @@
 
 import { propertyDefault } from "@/data/builder";
 import { Image, PropertyType } from "@/data/models";
-import { useStore } from "@/data/store2";
+import { useStore } from "@/data/store";
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
 import { reactive, toRefs } from "vue";
 

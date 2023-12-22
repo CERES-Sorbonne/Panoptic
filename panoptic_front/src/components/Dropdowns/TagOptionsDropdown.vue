@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { Tag } from '@/data/models';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 const store = useStore()

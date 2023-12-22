@@ -9,7 +9,7 @@ import { keyState } from '@/data/keyState';
 import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
 import MainView from '@/components/view/MainView.vue';
 import TabNav from '@/components/view/TabNav.vue';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 import { ModalId } from '@/data/models';
 
 const store = useStore()

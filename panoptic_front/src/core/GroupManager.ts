@@ -10,7 +10,7 @@ import { nextTick, reactive, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag } from "@/utils/utils";
-import { useStore } from "@/data/store2";
+import { useStore } from "@/data/store";
 
 
 export const UNDEFINED_KEY = '_$undef_key_'

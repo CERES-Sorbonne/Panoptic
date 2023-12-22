@@ -9,7 +9,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { PropertyID, PropertyType} from '@/data/models';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import TagInput from '../tags/TagInput.vue';

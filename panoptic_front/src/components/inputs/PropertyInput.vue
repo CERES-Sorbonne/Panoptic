@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { PropertyType } from '@/data/models';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as inputTree from '@/utils/inputTree'

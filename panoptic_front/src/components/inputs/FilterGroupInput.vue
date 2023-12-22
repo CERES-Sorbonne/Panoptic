@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { computed } from 'vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
