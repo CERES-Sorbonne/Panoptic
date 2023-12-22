@@ -4,7 +4,7 @@ import { GroupState } from "./GroupManager"
 import { SortState } from "./SortManager"
 import { CollectionManager } from "./CollectionManager"
 import { useStore } from "@/data/store2"
-import { reactive } from "vue"
+import { reactive, toRefs } from "vue"
 
 export interface TabState {
     id: number
@@ -37,9 +37,13 @@ export class TabManager {
     }
 
     load(state: TabState) {
-        Object.assign(this.state, state)
+        Object.assign(this.state, toRefs(state))
         this.collection.load(state.filterState, state.sortState, state.groupState)
         this.isLoaded = true
+    }
+
+    verifyState() {
+        this.collection.verifyState()
     }
     
     saveState() {

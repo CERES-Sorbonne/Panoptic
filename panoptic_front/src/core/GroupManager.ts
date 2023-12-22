@@ -6,7 +6,7 @@
  */
 
 import { Image, Property, PropertyValue } from "@/data/models";
-import { nextTick, reactive } from "vue";
+import { nextTick, reactive, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag } from "@/utils/utils";
@@ -272,7 +272,7 @@ export class GroupManager {
     }
 
     load(state: GroupState) {
-        Object.assign(this.state, state)
+        Object.assign(this.state, toRefs(state))
         this.clear()
     }
 
@@ -355,6 +355,12 @@ export class GroupManager {
         this.clearLastSelected()
         this.clearSelection()
         this.lastOrder = {}
+    }
+
+    verifyState() {
+        const store = useStore()
+        this.state.groupBy = this.state.groupBy.filter(id => store.data.properties[id])
+        Object.keys(this.state.options).filter(id => !store.data.properties[id]).forEach(id => delete this.state.options[id])
     }
 
     private removeChildren(group: Group) {

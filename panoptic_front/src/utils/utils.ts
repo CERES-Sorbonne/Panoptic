@@ -169,8 +169,6 @@ export function getTagChildren(tag: Tag){
 } 
 
 export async function computeMLGroups(images: string[], nbClusters: number = 10) {
-    // TODO check
-    //let res: [[number]]
     let res = await apiGetMLGroups(Math.min(nbClusters, images.length), images)
     return res
 }

@@ -9,7 +9,7 @@ import { propertyDefault } from "@/data/builder";
 import { Image, PropertyType } from "@/data/models";
 import { useStore } from "@/data/store2";
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
-import { reactive } from "vue";
+import { reactive, toRefs } from "vue";
 
 export function operatorHasInput(operator: FilterOperator) {
     switch (operator) {
@@ -314,11 +314,11 @@ export class FilterManager {
             this.initFilterState()
         }
 
-        this.verifyFilter()
+        this.verifyState()
     }
 
     load(state: FilterState) {
-        Object.assign(this.state, state)
+        Object.assign(this.state, toRefs(state))
         this.clear()
     }
 
@@ -434,7 +434,7 @@ export class FilterManager {
     }
 
     // used to remove properties that doesnt exist anymore from filters 
-    public verifyFilter() {
+    public verifyState() {
         const store = useStore()
         const recurive = (group: FilterGroup) => {
             const toRem = new Set()

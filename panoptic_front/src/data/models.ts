@@ -157,7 +157,6 @@ export interface TabIndex {
 
 
 // ===============================all=====================
-// TODO verify usage
 export interface PropertyOption {
     size: number
 }
