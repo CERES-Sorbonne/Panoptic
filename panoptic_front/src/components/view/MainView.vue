@@ -11,10 +11,11 @@ import GridScroller from '../scrollers/grid/GridScroller.vue';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
-import { useStore, tabManager } from '@/data/store';
+import { useStore } from '@/data/store';
 import { getSimilarImagesFromText } from '@/utils/utils';
 
 const store = useStore()
+const tabManager = store.getTabManager()
 
 const props = defineProps({
     tabId: Number,

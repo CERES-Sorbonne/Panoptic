@@ -6,9 +6,10 @@ import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
 import FolderList2 from '../foldertree/FolderList2.vue';
-import { useStore, tabManager } from '@/data/store';
+import { useStore } from '@/data/store';
 
 const store = useStore()
+const tabManager = store.getTabManager()
 
 const emits = defineEmits(['export'])
 
