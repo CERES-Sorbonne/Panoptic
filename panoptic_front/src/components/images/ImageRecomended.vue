@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { globalStore } from '@/data/store';
-import { Image, Modals, Sha1Pile } from '@/data/models';
+import { useStore } from '@/data/store2'
+import { Image, ModalId } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
-
+import { Group } from '@/core/GroupManager';
+const store = useStore()
 const props = defineProps({
-    pile: Object as () => Sha1Pile,
+    pile: Object as () => Group,
     size: { type: Number, default: 100 },
 })
 
@@ -19,7 +20,7 @@ const image = computed(() => props.pile.images[0])
 
 <template>
     <div class="">
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)">
+        <div :style="imageContainerStyle" class="img-container" @click="store.showModal(ModalId.IMAGE, image)">
             <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
             <img :src="image.url" :style="imageStyle" />
         </div>

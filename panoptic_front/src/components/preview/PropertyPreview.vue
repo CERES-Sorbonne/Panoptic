@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { globalStore } from '@/data/store';
 import { ref, computed, onMounted, nextTick } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import { useStore } from '@/data/store2';
+
+const store = useStore()
 
 const props = defineProps({
     modelValue: Number
 })
 
 const property = computed(() => {
-    let id = props.modelValue ? props.modelValue : Object.keys(globalStore.properties)[0]
-    return globalStore.properties[Number(id)]
+    let id = props.modelValue ? props.modelValue : Object.keys(store.data.properties)[0]
+    return store.data.properties[Number(id)]
 })
 
 </script>

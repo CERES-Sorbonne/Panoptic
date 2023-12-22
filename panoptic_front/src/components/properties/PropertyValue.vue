@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { Colors, PropertyType, PropertyValue, Tag } from '@/data/models';
-import { globalStore } from '@/data/store';
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { UNDEFINED_KEY } from '@/core/GroupManager';
+import { useStore } from '@/data/store2';
 
+const store = useStore()
 
 const props = defineProps({
     value: Object as () => PropertyValue
 })
 
-const property = computed(() => globalStore.properties[props.value.propertyId])
+const property = computed(() => store.data.properties[props.value.propertyId])
 const type = computed(() => property.value.type)
 
 const isTag = computed(() => type.value == PropertyType.tag || type.value == PropertyType.multi_tags)
@@ -29,7 +30,7 @@ function mapTag(id: number | string): Tag[] {
     if (id == undefined) {
         return [{value: '_indéfini', color: -1} as Tag]
     }
-    return [globalStore.tags[props.value.propertyId][id as number]]
+    return [store.data.properties[props.value.propertyId].tags[id as number]]
 }
 </script>
 
@@ -39,7 +40,7 @@ function mapTag(id: number | string): Tag[] {
         <div v-if="property.type == PropertyType.color" :style="{backgroundColor: color}" class="color-holder">
         </div>
         <div v-else-if="property.type == PropertyType._folders">
-            <TagBadge :tag="globalStore.folders[props.value.value].name" :color="-1" />
+            <TagBadge :tag="store.data.folders[props.value.value].name" :color="-1" />
         </div>
         <span v-else-if="!isTag">
             <span v-if="props.value.value != UNDEFINED_KEY">{{ props.value.value }}</span>

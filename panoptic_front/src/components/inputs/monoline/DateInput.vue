@@ -2,11 +2,11 @@
 <script setup lang="ts">
 import { Image, Property } from '@/data/models';
 import { computed } from 'vue';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { getImageProperty } from '@/utils/utils';
 import StandaloneDateInput from './StandaloneDateInput.vue';
 
-
+const store = useStore()
 const props = defineProps({
     image: Object as () => Image,
     property: Object as () => Property,
@@ -21,7 +21,7 @@ const localValue = computed(() => {
 
 
 function save(date: Date) {
-    globalStore.setPropertyValue(props.property.id, props.image, date)
+    store.setPropertyValue(props.property.id, props.image, date)
 }
 
 </script>

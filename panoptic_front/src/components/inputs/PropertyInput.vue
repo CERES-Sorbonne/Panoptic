@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { PropertyType } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as inputTree from '@/utils/inputTree'
 import TagBadge from '../tagtree/TagBadge.vue'
 import ColorPropInput from './ColorPropInput.vue';
-
+const store = useStore()
 const props = defineProps({
     property: Object as () => PropertyRef,
     maxSize: String,
@@ -40,8 +40,8 @@ function setEdit(value: Boolean) {
     else {
         document.removeEventListener('click', handleContainerClick)
         console.log('start here')
-        const img = globalStore.images[props.property.imageId]
-        globalStore.setPropertyValue(props.property.propertyId, img, props.property.value)
+        const img = store.data.images[props.property.imageId]
+        store.setPropertyValue(props.property.propertyId, img, props.property.value)
         edit.value = false
         if (props.property.value == '') {
             props.property.value = undefined
@@ -124,7 +124,7 @@ onMounted(() => {
                 <span v-if="!edit && !(type == PropertyType.checkbox)" @click="setEdit(true)">
                     <span v-if="!isSet" class="text-secondary">None</span>
                     <span v-else-if="type == PropertyType._folders">
-                        <TagBadge :tag="globalStore.folders[props.property.value].name" :color="-1" />
+                        <TagBadge :tag="store.data.folders[props.property.value].name" :color="-1" />
                     </span>
                     <span v-else-if="type != PropertyType.color">{{ props.property.value }}</span>
                 </span>
@@ -137,7 +137,7 @@ onMounted(() => {
                     @keydown.tab.prevent="inputTree.nextInput(props.inputId)" />
             </div>
             <div v-if="type == PropertyType.checkbox">
-                {{ globalStore.properties[props.property.propertyId].name }}
+                {{ store.data.properties[props.property.propertyId].name }}
             </div>
         </div>
     </form>

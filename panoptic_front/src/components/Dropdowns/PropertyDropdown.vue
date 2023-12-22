@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import Dropdown from './Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { ref } from 'vue';

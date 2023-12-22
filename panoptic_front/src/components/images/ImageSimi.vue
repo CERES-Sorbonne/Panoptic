@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { globalStore } from '@/data/store';
-import { Image, Modals } from '@/data/models';
-
+import { useStore } from '@/data/store2'
+import { Image, ModalId } from '@/data/models';
+const store = useStore()
 const props = defineProps({
     image: Object as () => Image,
     size: { type: Number, default: 100 }
@@ -31,7 +31,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle">
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, props.image)">
+        <div :style="imageContainerStyle" class="img-container" @click="store.showModal(ModalId.IMAGE, props.image)">
             <img :src="props.image.url" :style="imageStyle" />
         </div>
         <div class="text-center text-secondary" style="font-size: 10px;">{{ props.image.dist }}</div>

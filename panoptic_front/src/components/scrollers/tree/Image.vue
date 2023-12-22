@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { globalStore } from '@/data/store';
-import { Image, Modals, Property, PropertyRef, PropertyType, Sha1Pile } from '@/data/models';
 import PropertyInput from '@/components/inputs/PropertyInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -12,6 +10,10 @@ import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import { Group } from '@/core/GroupManager';
+import { useStore } from '@/data/store2';
+import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
+
+const store = useStore()
 
 const props = defineProps({
     image: Object as () => Image,
@@ -78,7 +80,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="globalStore.showModal(Modals.IMAGE, image)"
+        <div :style="imageContainerStyle" class="img-container" @click="store.showModal(ModalId.IMAGE, image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
             <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
@@ -98,39 +100,39 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" /> -->
                 <div v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag" class="d-flex" style="padding-top: 4px; padding-bottom: 4px;">
                     <PropertyIcon :type="property.type" style="margin-right: 2px;"/>
-                    <TagPropInputDropdown :property="globalStore.properties[property.propertyId]" :image="image"
+                    <TagPropInputDropdown :property="store.data.properties[property.propertyId]" :image="image"
                         :can-create="true" :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true"
                         :no-wrap="true" :width="(width - 22)" :teleport="true"/>
                 </div>
                 <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
                     <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
-                        :property="globalStore.properties[property.propertyId]" :width="width - 22" :min-height="20" />
+                        :property="store.data.properties[property.propertyId]" :width="width - 22" :min-height="20" />
                 </div>
                 <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                    <TextInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
                         :height="26" />
                 </div>
                 <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                    <TextInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
                         :height="26" :no-nl="true" />
                 </div>
                 <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                    <TextInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
                         :height="26" :no-nl="true" />
                 </div>
                 <div v-else-if="property.type == PropertyType.checkbox" class="d-flex flex-row overflow-hidden">
-                    <CheckboxPropInput :property="globalStore.properties[property.propertyId]" :image="image"
+                    <CheckboxPropInput :property="store.data.properties[property.propertyId]" :image="image"
                         :width="width - 22" :min-height="26" />
-                    <div style="line-height: 26px; margin-left: 4px;">{{ globalStore.properties[property.propertyId].name }}
+                    <div style="line-height: 26px; margin-left: 4px;">{{ store.data.properties[property.propertyId].name }}
                     </div>
                 </div>
                 <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 1px;">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <DateInput :property="globalStore.properties[property.propertyId]" :image="image" :width="width - 22"
+                    <DateInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
                         style="line-height: 25px;" />
                 </div>
                 <PropertyInput v-else :property="property" :max-size="String(props.size)"

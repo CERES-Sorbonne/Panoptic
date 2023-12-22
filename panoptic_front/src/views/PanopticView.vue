@@ -2,16 +2,17 @@
 
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import Menu from '../components/menu/Menu.vue';
-import { Modals } from '@/data/models';
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
-import { globalStore } from '@/data/store';
 import ExportModal from '@/components/modals/ExportModal.vue';
 import { keyState } from '@/data/keyState';
 import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
 import MainView from '@/components/view/MainView.vue';
 import TabNav from '@/components/view/TabNav.vue';
+import { useStore } from '@/data/store2';
+import { ModalId } from '@/data/models';
 
+const store = useStore()
 
 const mainViewRef = ref(null)
 const navElem = ref(null)
@@ -51,34 +52,34 @@ function onResize() {
 }
 
 function reRender(){
-    globalStore.rerender()
+    store.rerender()
 }
 </script>
 
 <template>
-    <div id="panoptic" :key="globalStore.renderNumber">
+    <div id="panoptic" :key="store.status.renderNb">
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-            <div v-if="globalStore.isLoaded">
+            <div v-if="store.status.loaded">
                 <Menu />
             </div>
-            <div class="w-100" v-if="globalStore.isLoaded">
+            <div class="w-100" v-if="store.status.loaded">
                 <div class="ms-3" ref="navElem">
                     <TabNav :re-render="reRender"/>
                 </div>
                 <div class="custom-hr" />
-                <MainView :tab="globalStore.tabs[globalStore.selectedTab]" :height="contentHeight"
-                    v-if="globalStore.isLoaded && globalStore.tagTrees" ref="mainViewRef"/>
+                <MainView :tab-id="store.data.selectedTabId" :height="contentHeight"
+                    v-if="store.status.loaded" ref="mainViewRef"/>
             </div>
             <div v-else class="loading">
                 <i class="spinner-border" role="status"></i>
                 <span class="ms-1">Loading...</span>
             </div>
         </div>
-        <ImageModal :id="Modals.IMAGE" />
-        <PropertyModal :id="Modals.PROPERTY" />
-        <FolderToPropertyModal :id="Modals.FOLDERTOPROP" />
-        <ExportModal :id="Modals.EXPORT"/>
+        <ImageModal :id="ModalId.IMAGE" />
+        <PropertyModal :id="ModalId.PROPERTY" />
+        <FolderToPropertyModal :id="ModalId.FOLDERTOPROP" />
+        <ExportModal :id="ModalId.EXPORT"/>
 
         
     </div>

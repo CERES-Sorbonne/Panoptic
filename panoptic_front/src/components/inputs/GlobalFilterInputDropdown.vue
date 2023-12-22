@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { Filter, FilterGroup } from '@/data/models';
 import { watch, computed, ref } from 'vue';
 import FilterGroupInput from './FilterGroupInput.vue';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { FilterManager } from '@/core/FilterManager';
-
+import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
+const store = useStore()
 const props = defineProps({
     manager: FilterManager
 })
@@ -50,14 +49,14 @@ watch(() => props.manager.state.filter.filters, () => {
                     style="cursor:pointer;">
                     <div v-for="filter, index in selectedFilterSet">
                         <span v-if="index > 0" class="or-separator">|</span>
-                        <span>{{ globalStore.properties[filter.propertyId].name }}</span>
+                        <span>{{ store.data.properties[filter.propertyId].name }}</span>
                     </div>
                 </div>
             </div>
         </template>
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
-                <div class="m-1 p-0" v-if="Object.keys(globalStore.properties).length > 0">
+                <div class="m-1 p-0" v-if="Object.keys(store.data.properties).length > 0">
                     <FilterGroupInput :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>

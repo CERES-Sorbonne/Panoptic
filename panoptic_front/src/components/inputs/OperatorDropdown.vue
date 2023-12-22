@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { availableOperators, FilterOperator } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { ref, computed, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-
+import { FilterOperator, availableOperators } from '@/core/FilterManager';
+const store = useStore()
 const props = defineProps({
     propertyId: { type: Number, required: true },
     modelValue: String as () => FilterOperator,
@@ -16,7 +16,7 @@ const emits = defineEmits(['hide', 'update:modelValue'])
 const dropdownElem = ref(null)
 
 const property = computed(() => {
-    return globalStore.properties[props.propertyId]
+    return store.data.properties[props.propertyId]
 })
 
 const filteredOperators = computed(() => {

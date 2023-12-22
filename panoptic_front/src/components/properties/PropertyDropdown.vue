@@ -3,9 +3,10 @@ import { Property, PropertyID } from '@/data/models';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { ref } from 'vue';
-import { globalStore } from '@/data/store';
 import PropertyIcon from './PropertyIcon.vue';
+import { useStore } from '@/data/store2';
 
+const store = useStore()
 
 const props = defineProps({
     modelValue: Object as () => Property
@@ -17,7 +18,7 @@ const dropdownElem = ref(null)
 
 function select(propId) {
     dropdownElem.value.hide()
-    emits('update:modelValue', globalStore.properties[propId])
+    emits('update:modelValue', store.data.properties[propId])
 }
 
 </script>

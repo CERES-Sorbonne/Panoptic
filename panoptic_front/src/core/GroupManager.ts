@@ -5,14 +5,14 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { Image, Property, PropertyValue, isTag } from "@/data/models";
+import { Image, Property, PropertyValue } from "@/data/models";
 import { nextTick, reactive } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
-import { globalStore } from "@/data/store";
-import { PropertyType } from "@/data/models2";
-import { EventEmitter } from "@/utils/utils";
+import { PropertyType } from "@/data/models";
+import { EventEmitter, isTag } from "@/utils/utils";
+import { useStore } from "@/data/store2";
 
-// const store = useStore()
+const store = useStore()
 
 export const UNDEFINED_KEY = '_$undef_key_'
 export const ROOT_ID = 'root'
@@ -100,7 +100,7 @@ export function buildGroup(id: string, images: Image[], type: GroupType = GroupT
 }
 
 function valueToKey(propertyValue: PropertyValue) {
-    const property = globalStore.properties[propertyValue.propertyId]
+    const property = store.data.properties[propertyValue.propertyId]
     if (Array.isArray(propertyValue)) {
         throw new Error('ValueToKey doesnt work for Array values: ' + propertyValue)
     }
@@ -195,11 +195,11 @@ function sortGroupByProperty(group: Group, direction: number) {
     for (let child of group.children) {
         const values = []
         for (let propValue of child.meta.propertyValues) {
-            const prop = globalStore.properties[propValue.propertyId]
+            const prop = store.data.properties[propValue.propertyId]
             const type = isTag(prop.type) ? PropertyType.tag : prop.type
             let value = propValue.value
             if (isTag(type) && value != undefined) {
-                value = globalStore.tags[prop.id][value].value
+                value = prop.tags[value].value
             }
             value = sortParser[type](value)
             values.push(value)
@@ -268,6 +268,10 @@ export class GroupManager {
 
         this.selectedImages = selectedImages ?? reactive({})
         this.selection = { lastImage: undefined, lastGroup: undefined }
+    }
+
+    load(state: GroupState) {
+        this.state = state
     }
 
     group(images: Image[], order: ImageOrder, emit?: boolean) {
@@ -485,7 +489,7 @@ export class GroupManager {
 
     findImageIterator(groupId: string, imageId: number) {
         const group = this.result.index[groupId]
-        const image = globalStore.images[imageId]
+        const image = store.data.images[imageId]
         let idx = 0
         if (group.subGroupType == GroupType.Sha1) {
             idx = group.children.findIndex(g => g.images[0].sha1 == image.sha1)
@@ -519,7 +523,7 @@ export class GroupManager {
     }
 
     private computePropertySubGroup(group: Group, groupBy: number[]) {
-        const property = globalStore.properties[groupBy[0]]
+        const property = store.data.properties[groupBy[0]]
         const option = this.state.options[property.id]
         const subGroups: { [key: string]: Group } = {}
 

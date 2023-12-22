@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { globalStore } from '@/data/store';
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
-import { GroupLine, ImageLine, Property, PropertyMode, ScrollerLine, ScrollerPileLine, Sha1Scores } from '@/data/models';
 import GroupLineVue from './GroupLine.vue';
-import { GroupManager, Group, GroupIterator, GroupType } from '@/core/GroupManager';
+import { GroupManager, Group, GroupType } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
+import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine } from '@/data/models';
 
 const props = defineProps({
     imageSize: Number,

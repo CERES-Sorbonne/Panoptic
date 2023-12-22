@@ -1,11 +1,12 @@
 <script setup lang="ts">
 
 import { Property, PropertyMode, PropertyType } from '@/data/models';
-import { globalStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
+import { useStore } from '@/data/store2';
 
+const store = useStore()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -14,12 +15,12 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => globalStore.openModal.id == props.id)
+const isActive = computed(() => store.openModal.id == props.id)
 
 
 function onHide() {
-    if (globalStore.openModal.id == props.id) {
-        globalStore.hideModal()
+    if (store.openModal.id == props.id) {
+        store.hideModal()
     }
     resetNewProperty()
 }
@@ -48,18 +49,18 @@ async function saveProperty() {
         nameError.value = 'Name is Empty!'
         return
     }
-    let propNames = Object.values(globalStore.properties).map(p => p.name)
+    let propNames = store.propertyList.map(p => p.name)
     if (propNames.includes(newProperty.name)) {
         nameError.value = 'A Property with same name already exist! Please choose a new name'
         return
     }
 
-    await globalStore.addProperty(newProperty.name, newProperty.type, newProperty.mode)
+    await store.addProperty(newProperty.name, newProperty.type, newProperty.mode)
 
     hide()
 }
 
-watch(() => globalStore.openModal.id, (id) => {
+watch(() => store.openModal.id, (id) => {
     if (id == props.id) {
         show()
     }

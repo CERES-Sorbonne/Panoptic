@@ -3,8 +3,6 @@
 /** ContentFilter
  *  Main UI to filter/sort/group a list of image
  */
-
-import { Tab } from '@/data/models';
 import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
@@ -13,9 +11,10 @@ import Toggle from '@vueform/toggle'
 import wTT from '../tooltips/withToolTip.vue'
 import { computed } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
+import { TabManager } from '@/core/TabManager';
 
 const props = defineProps({
-    tab: Object as () => Tab,
+    tab: TabManager,
     computeStatus: Object as () => { groups: boolean },
 })
 
@@ -45,12 +44,12 @@ function updateSha1Mode(value) {
 
         <div class="me-5 d-flex">
             <wTT message="main.menu.grid_tooltip">
-                <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.data.display == 'tree' ? '' : ' text-secondary')"
-                    @click="props.tab.data.display = 'tree'"></i>
+                <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.state.display == 'tree' ? '' : ' text-secondary')"
+                    @click="props.tab.state.display = 'tree'"></i>
             </wTT>
             <wTT message="main.menu.table_tooltip">
-                <i id="toot" :class="'bi bi-table btn-icon' + (props.tab.data.display == 'grid' ? '' : ' text-secondary')"
-                    @click="props.tab.data.display = 'grid'">
+                <i id="toot" :class="'bi bi-table btn-icon' + (props.tab.state.display == 'grid' ? '' : ' text-secondary')"
+                    @click="props.tab.state.display = 'grid'">
                 </i>
             </wTT>
         </div>
@@ -59,7 +58,7 @@ function updateSha1Mode(value) {
             <div class="bi bi-aspect-ratio me-1"></div>
         </wTT>
         <div>
-            <RangeInput :min="30" :max="500" v-model="props.tab.data.imageSize" />
+            <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
         </div>
         <div class="ms-5">
             <wTT message="main.menu.image_mode_tooltip">

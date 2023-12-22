@@ -5,10 +5,12 @@
  */
 
 import { Image, Property } from "@/data/models"
-import { PropertyType } from "@/data/models2"
-import { globalStore } from "@/data/store"
+import { PropertyType } from "@/data/models"
+import { useStore } from "@/data/store2"
 import { EventEmitter } from "@/utils/utils"
 import { reactive } from "vue"
+
+const store = useStore()
 
 export enum SortDirection {
     Ascending = 1,
@@ -91,7 +93,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
         return x
     },
     [PropertyType._folders]: (x: number) => {
-        return globalStore.folders[x].name
+        return store.data.folders[x].name
     }
 }
 
@@ -101,7 +103,7 @@ function getSortablePropertyValue(image: Image, property: Property) {
 
     if (type == PropertyType.tag) {
         if (Array.isArray(value) && value.length > 0) {
-            value = globalStore.tags[property.id][value[0]].value
+            value = property.tags[value[0]].value
         } else {
             value = undefined
         }
@@ -130,6 +132,10 @@ export class SortManager {
         })
     }
 
+    load(state: SortState) {
+        this.state = state
+    }
+
     sort(images: Image[], emit?: boolean): SortResult {
         console.time('Sort')
         const sortable = this.getSortableImages(images)
@@ -146,7 +152,7 @@ export class SortManager {
         this.result.order = {}
 
         for (let i = 0; i < sortable.length; i++) {
-            this.result.images.push(globalStore.images[sortable[i].imageId])
+            this.result.images.push(store.data.images[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
         console.timeEnd('Sort')
@@ -180,7 +186,7 @@ export class SortManager {
 
     private getSortableImages(images: Image[]): SortableImage[] {
         const res = []
-        const properties = this.state.sortBy.map(id => globalStore.properties[id])
+        const properties = this.state.sortBy.map(id => store.data.properties[id])
 
         for (const image of images) {
             const sortable: SortableImage = { imageId: image.id, values: [] }

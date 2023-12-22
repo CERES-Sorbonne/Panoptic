@@ -1,16 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import { globalStore } from './data/store'
 import { onMounted } from 'vue'
 import '@vuepic/vue-datepicker/dist/main.css';
 import './assets/main.css';
-import * as inputTree from '@/utils/inputTree'
+import { useStore } from './data/store2';
+
+const store = useStore()
 
 onMounted(() => {
-  globalStore.fetchAllData()
+  store.init()
 })
 document.title = 'Panoptic'
-document.meta = inputTree
 </script>
 
 <template>

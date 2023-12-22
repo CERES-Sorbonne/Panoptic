@@ -1,13 +1,13 @@
 <script setup lang="ts">
 
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { computed, onMounted } from 'vue';
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
-import { PropertyType } from '@/data/models2';
 import wTT from '../tooltips/withToolTip.vue';
-
+import { PropertyType } from '@/data/models';
+const store = useStore()
 
 
 const props = defineProps({
@@ -36,22 +36,16 @@ function setSortType(propertyId: number, value: GroupSortType) {
     props.manager.sortGroups(true)
 }
 
-const selectedProperties = computed(() => props.manager.state.groupBy.map(id => globalStore.properties[id]))
+const selectedProperties = computed(() => props.manager.state.groupBy.map(id => store.data.properties[id]))
 const sorts = computed(() => {
     const res: {option: GroupOption, property}[] = []
     props.manager.state.groupBy.forEach(pId => {
         res.push({
             option: props.manager.state.options[pId],
-            property: globalStore.properties[pId]
+            property: store.data.properties[pId]
         })
     })
     return res
-})
-
-onMounted(() => {
-    if (props.groupIds) {
-        props.groupIds.forEach(id => globalStore.addGrouping(id))
-    }
 })
 
 </script>

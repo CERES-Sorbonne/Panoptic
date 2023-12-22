@@ -1,12 +1,14 @@
 <script setup lang="ts">
 
-import { globalStore } from '../../data/store';
-import { Modals } from '../../data/models';
+import { ModalId } from '../../data/models';
 import { ref, defineEmits } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
 import FolderList2 from '../foldertree/FolderList2.vue';
+import { useStore, tabManager } from '@/data/store2';
+
+const store = useStore()
 
 const emits = defineEmits(['export'])
 
@@ -18,17 +20,8 @@ const handleInput = async (e: any) => {
     isUploading.value = true
     console.log(isUploading.value)
     const file = e.target.files[0]
-    let res = await globalStore.uploadPropFile(file)
-    // THIS IS TAKING WAY LONGER THAN THE REAL API CALL, WHY??
-    if (res) {
-        isUploading.value = false
-        await sleep(10) // let vue have time to actualise the uploading visual effect
-        // HOW TO REFRESH ALL COMPONENTS DEPENDING ON NEW DATA ??
-        globalStore.fetchAllData()
-    }
-    else {
-        // make a code for import error logo
-    }
+    let res = await store.uploadPropFile(file)
+    isUploading.value = false
 }
 
 </script>
@@ -47,31 +40,31 @@ const handleInput = async (e: any) => {
 
                     <!-- <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
                         :tab="globalStore.tabs[globalStore.selectedTab].data" /> -->
-                    <FolderList2 v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
-                        :filter-manager="globalStore.tabs[globalStore.selectedTab].collection.filterManager"
-                        :visible-folders="globalStore.tabs[globalStore.selectedTab].data.visibleFolders" />
+                    <FolderList2 v-if="store.getTab()" :folders="store.folderRoots"
+                        :filter-manager="tabManager.collection.filterManager"
+                        :visible-folders="tabManager.state.visibleFolders" />
                 </div>
                 <div class="p-2"
-                    v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">
+                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0">
                     <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ globalStore.importState.imported }} / {{ globalStore.importState.to_import }} importées
+                        {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
                     </div>
-                    <div v-if="globalStore.importState.to_import > 0" class="progress" role="progressbar"
+                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
                         aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
                         <div class="progress-bar"
-                            :style="`width: ${globalStore.importState.imported / globalStore.importState.to_import * 100}%`">
+                            :style="`width: ${store.status.import.imported / store.status.import.to_import * 100}%`">
                         </div>
                     </div>
                 </div>
                 <div class="p-2"
-                    v-if="globalStore.importState.to_import != undefined && globalStore.importState.to_import > 0">
+                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0">
                     <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ globalStore.importState.computed }} / {{ globalStore.importState.to_import }} computed
+                        {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
                     </div>
-                    <div v-if="globalStore.importState.to_import > 0" class="progress" role="progressbar"
+                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
                         aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
                         <div class="progress-bar"
-                            :style="`width: ${globalStore.importState.computed / globalStore.importState.to_import * 100}%`">
+                            :style="`width: ${store.status.import.computed / store.status.import.to_import * 100}%`">
                         </div>
                     </div>
                 </div>
@@ -93,13 +86,13 @@ const handleInput = async (e: any) => {
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
-                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="globalStore.showModal(Modals.EXPORT)" /></wTT>
+                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="store.showModal(ModalId.EXPORT, undefined)" /></wTT>
                         </span>
                     </div>
 
                     <!-- <i class="bi bi-plus btn-icon float-end" style="font-size: 25px;"></i> -->
-                    <div class="mt-2" v-if="globalStore.isLoaded">
-                        <template v-for="property in globalStore.properties">
+                    <div class="mt-2" v-if="store.status.loaded">
+                        <template v-for="property in store.data.properties">
                             <div class="property-item" v-if="property.id >= 0">
                                 <!-- <TagProperty
                                     v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag"
@@ -109,7 +102,7 @@ const handleInput = async (e: any) => {
                             </div>
                         </template>
                         <div class="property-item m-0 p-0"></div>
-                        <div @click="globalStore.showModal(Modals.PROPERTY)" class="btn-icon base-hover mt-1"
+                        <div @click="store.showModal(ModalId.PROPERTY, undefined)" class="btn-icon base-hover mt-1"
                             style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                             <span>{{ $t('main.nav.properties.add_property') }}</span>
@@ -121,8 +114,8 @@ const handleInput = async (e: any) => {
                 <div class="p-2 mt-0">
                     <wTT message="main.nav.computed.computed_tooltip" :icon="true"><b>{{ $t("main.nav.computed.title")
                     }}</b></wTT>
-                    <div class="mt-2" v-if="globalStore.isLoaded">
-                        <template v-for="property in globalStore.properties">
+                    <div class="mt-2" v-if="store.status.loaded">
+                        <template v-for="property in store.data.properties">
                             <div class="property-item" v-if="property.id < 0">
                                 <wTT pos="bottom"
                                     :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">

@@ -3,7 +3,8 @@ import { Image, Property, PropertyType } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TextInput from './TextInput.vue';
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
+const store = useStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -44,7 +45,7 @@ function save() {
     if (propRef.value.value == localValue.value) return
 
     // console.log(propRef.value.value, localValue.value)
-    globalStore.setPropertyValue(props.property.id, props.image, localValue.value)
+    store.setPropertyValue(props.property.id, props.image, localValue.value)
 
 }
 

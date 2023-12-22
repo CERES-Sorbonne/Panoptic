@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Image, Modals } from '@/data/models';
-import { globalStore } from '@/data/store';
+import { Image, ModalId } from '@/data/models';
+import { useStore } from '@/data/store2'
 import { computed } from 'vue';
-
+const store = useStore()
 
 const props = defineProps({
     image: Object as () => Image,
@@ -35,7 +35,7 @@ const imageUrl = computed(() => {
 function openModal() {
     if (props.noClick) return
 
-    globalStore.showModal(Modals.IMAGE, props.image)
+    store.showModal(ModalId.IMAGE, props.image)
 }
 
 </script>

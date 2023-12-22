@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Property, PropertyMode, PropertyType } from '@/data/models';
-import { globalStore } from '@/data/store';
 import { computed, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { Filter } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import TagMenu from '../tags/TagMenu.vue';
+import { useStore, tabManager } from '@/data/store2';
+import { Filter } from '@/core/FilterManager';
 
+const store = useStore()
 
 const props = defineProps({
     property: Object as () => Property
@@ -19,24 +20,24 @@ const localName = ref('')
 
 const fullHover = ref(false)
 
-const tab = computed(() => globalStore.tabs[globalStore.selectedTab])
-const propertyVisible = computed(() => tab.value.data.visibleProperties[props.property.id] == true)
+const tab = computed(() => store.getTab())
+const propertyVisible = computed(() => tab.value.visibleProperties[props.property.id] == true)
 
-const isInFilter = computed(() => tab.value.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
-const isInGroups = computed(() => tab.value.collection.groupManager.state.groupBy.includes(props.property.id))
-const isInSort = computed(() => tab.value.collection.sortManager.state.sortBy.includes(props.property.id))
+const isInFilter = computed(() => tabManager.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
+const isInGroups = computed(() => tabManager.collection.groupManager.state.groupBy.includes(props.property.id))
+const isInSort = computed(() => tabManager.collection.sortManager.state.sortBy.includes(props.property.id))
 const filterId = computed(() => {
     if (!isInFilter.value) return undefined
-    return tab.value.collection.filterManager.state.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
+    return tabManager.collection.filterManager.state.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
 })
-const filterManager = () => tab.value.collection.filterManager
-const sha1Mode = computed(() => globalStore.getTab().data.sha1Mode)
+const filterManager = () => tabManager.collection.filterManager
+const sha1Mode = computed(() => tabManager.getSha1Mode())
 
 function toggleVisible() {
     if (propertyVisible.value) {
-        delete tab.value.data.visibleProperties[props.property.id]
+        tabManager.setVisibleProperty(props.property.id, false)
     } else {
-        tab.value.data.visibleProperties[props.property.id] = true
+        tabManager.setVisibleProperty(props.property.id, true)
     }
 }
 
@@ -64,32 +65,32 @@ function toggleValuesMenu() {
 
 function setSort() {
     if(!isInSort.value) {
-        tab.value.collection.sortManager.setSort(props.property.id)
+        tabManager.collection.sortManager.setSort(props.property.id)
     } else {
-        tab.value.collection.sortManager.delSort(props.property.id)
+        tabManager.collection.sortManager.delSort(props.property.id)
     }
-    tab.value.collection.sortManager.update(true)
+    tabManager.collection.sortManager.update(true)
 }
 
 function setGroup() {
     if(!isInGroups.value) {
-        tab.value.collection.groupManager.setGroupOption(props.property.id)
+        tabManager.collection.groupManager.setGroupOption(props.property.id)
     } else {
-        tab.value.collection.groupManager.delGroupOption(props.property.id)
+        tabManager.collection.groupManager.delGroupOption(props.property.id)
     }
-    tab.value.collection.groupManager.update(true)
+    tabManager.collection.groupManager.update(true)
 }
 
 function deleteProperty() {
     if (confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
-        globalStore.deleteProperty(props.property.id)
+        store.deleteProperty(props.property.id)
 }
 
 function renameProperty() {
     if (localName.value == '') {
         return
     }
-    globalStore.updateProperty(props.property.id, localName.value)
+    store.updateProperty(props.property.id, localName.value)
 }
 
 watch(() => props.property, () => {

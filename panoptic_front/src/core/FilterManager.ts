@@ -5,11 +5,83 @@
  * Images are first filtered by folders then by properties
  */
 
-import { Filter, Image, FilterGroup, PropertyType, AFilter, propertyDefault, isTag, availableOperators } from "@/data/models";
-import { globalStore } from "@/data/store";
-import { EventEmitter, getTagChildren } from "@/utils/utils";
+import { propertyDefault } from "@/data/builder";
+import { Image, PropertyType } from "@/data/models";
+import { useStore } from "@/data/store2";
+import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
 import { reactive } from "vue";
 
+const store = useStore()
+
+export function operatorHasInput(operator: FilterOperator) {
+    switch (operator) {
+        case FilterOperator.contains:
+        case FilterOperator.containsAll:
+        case FilterOperator.containsAny:
+        case FilterOperator.containsNot:
+        case FilterOperator.equal:
+        case FilterOperator.equalNot:
+        case FilterOperator.geq:
+        case FilterOperator.greater:
+        case FilterOperator.leq:
+        case FilterOperator.lower:
+        case FilterOperator.like:
+        case FilterOperator.startsWith:
+            return true
+        default:
+            return false
+    }
+}
+
+export function availableOperators(propertyType: PropertyType): Array<FilterOperator> {
+    switch (propertyType) {
+        case PropertyType.checkbox:
+            return [FilterOperator.isTrue, FilterOperator.isFalse]
+        case PropertyType.color:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot]
+        case PropertyType.date:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.leq, FilterOperator.lower, FilterOperator.greater, FilterOperator.geq]
+        case PropertyType.image_link:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot]
+        case PropertyType.multi_tags:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAll, FilterOperator.containsAny, FilterOperator.containsNot]
+        case PropertyType.number:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.leq, FilterOperator.lower, FilterOperator.greater, FilterOperator.geq]
+        case PropertyType.path:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like]
+        case PropertyType.string:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like]
+        case PropertyType.tag:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
+        case PropertyType.url:
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.startsWith]
+        case PropertyType._ahash:
+        case PropertyType._sha1:
+            return [FilterOperator.equal, FilterOperator.equalNot]
+        default:
+            return []
+    }
+}
+
+export interface AFilter {
+    id: number
+    isGroup?: boolean
+}
+
+export interface Filter extends AFilter {
+    propertyId: number,
+    operator: FilterOperator,
+    value: any,
+    // strict: boolean // strict to true will be an "OR" filter, set to false it would be an "AND"
+    isGroup?: false
+}
+
+export interface FilterGroup extends AFilter {
+    filters: Array<Filter | FilterGroup>
+    groupOperator: FilterOperator.and | FilterOperator.or
+    depth: number
+    isGroup: true
+}
 
 export interface FilterState {
     folders: number[]
@@ -200,7 +272,7 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
         else {
             let nfilter = { ...filter } as Filter
             let propId = nfilter.propertyId
-            let propType = globalStore.properties[propId].type
+            let propType = store.data.properties[propId].type
 
             let property = image.properties[propId]
             let propertyValue = property ? property.value : undefined
@@ -208,7 +280,7 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
             if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && isTag(propType)) {
                 let filterValue = nfilter.value as number[]
 
-                const tagSet = filterValue.map((v: number) => Array.from(getTagChildren(globalStore.tags[propId][v])))
+                const tagSet = filterValue.map((v: number) => getTagChildren(store.data.properties[propId].tags[v]))
                 nfilter.value = tagSet
                 if (!isEmpty(propertyValue)) {
                     propertyValue = new Set(propertyValue)
@@ -244,6 +316,10 @@ export class FilterManager {
         }
 
         this.verifyFilter()
+    }
+
+    load(state: FilterState) {
+        this.state = state
     }
 
     filter(images: Image[], emit?: boolean) {
@@ -334,7 +410,7 @@ export class FilterManager {
             this.changeFilter(filter, update.propertyId)
         }
 
-        const type = globalStore.properties[filter.propertyId].type
+        const type = store.data.properties[filter.propertyId].type
         if(update.operator != undefined && availableOperators(type).includes(update.operator)) {
             filter.operator = update.operator
         }
@@ -362,7 +438,7 @@ export class FilterManager {
                 }
                 else {
                     const filter = f as Filter
-                    if (globalStore.properties[filter.propertyId] == undefined) {
+                    if (store.data.properties[filter.propertyId] == undefined) {
                         toRem.add(filter.id)
                     }
                 }
@@ -388,7 +464,7 @@ export class FilterManager {
     }
 
     private createFilter(propertyId: number) {
-        let property = globalStore.properties[propertyId]
+        let property = store.data.properties[propertyId]
 
         let filter: Filter = {
             propertyId: property.id,

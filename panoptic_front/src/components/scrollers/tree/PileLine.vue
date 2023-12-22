@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Property, ScrollerPileLine, Sha1Scores } from '@/data/models';
+import { ScrollerPileLine, Property, Sha1Scores } from '@/data/models';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
 

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { globalStore } from '@/data/store';
+import { useStore, tabManager } from '@/data/store2';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 
+const store = useStore()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -13,15 +14,15 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => globalStore.openModal.id == props.id)
-const imagesId = computed(() => globalStore.getTab().collection.filterManager.result.images.map(i => i.id))
-const activeProperties = computed(() => Object.entries(globalStore.tabs[globalStore.selectedTab].data.visibleProperties).filter(([k, v]) => v && parseInt(k) > 0).map(el => el[0]))
+const isActive = computed(() => store.openModal.id == props.id)
+const imagesId = computed(() => tabManager.collection.filterManager.result.images.map(i => i.id))
+const activeProperties = computed(() => tabManager.getVisibleProperties().filter(p => p.id >= 0))
 const useOnlyActiveImage = ref(false)
 const useOnlyActiveProperties = ref(false)
 
 function onHide() {
-    if (globalStore.openModal.id == props.id) {
-        globalStore.hideModal()
+    if (store.openModal.id == props.id) {
+        store.hideModal()
     }
 }
 
@@ -33,7 +34,7 @@ function show() {
     modal.show()
 }
 
-watch(() => globalStore.openModal.id, (id) => {
+watch(() => store.openModal.id, (id) => {
     if (id == props.id) {
         show()
     }

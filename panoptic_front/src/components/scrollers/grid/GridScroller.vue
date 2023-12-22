@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { GroupLine, Image, RowLine, Property, ScrollerLine, PileRowLine } from '@/data/models';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import TableHeader from './TableHeader.vue';
-import { globalStore } from '@/data/store';
 import GridScrollerLine from './GridScrollerLine.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ROOT_ID } from '@/core/GroupManager';
+import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, Image } from '@/data/models';
+import { useStore } from '@/data/store2';
 
+const store = useStore()
 
 const props = defineProps({
     manager: GroupManager,
@@ -30,10 +31,10 @@ const scroller = ref(null)
 const currentGroup = reactive({} as Group)
 
 const totalPropWidth = computed(() => {
-    const options = globalStore.getTab().data.propertyOptions
+    const options = store.getTab().propertyOptions
     let propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
     if (props.showImages) {
-        propSum += globalStore.getTab().data.imageSize
+        propSum += store.getTab().imageSize
     }
     return propSum
 })
@@ -99,7 +100,7 @@ function computeImageLine(image: Image, groupId: string, imageIndex) {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
-        size: lineSizes[image.id] ?? (globalStore.getTab().data.imageSize + 4),
+        size: lineSizes[image.id] ?? (store.getTab().imageSize + 4),
         index: imageIndex,
         groupId: groupId
     }
@@ -111,7 +112,7 @@ function computePileLine(group: Group) {
         id: group.id + '-sha1:' + String(group.images[0].sha1),
         data: group,
         type: 'pile',
-        size: lineSizes[group.images[0].id] ?? (globalStore.getTab().data.imageSize + 4),
+        size: lineSizes[group.images[0].id] ?? (store.getTab().imageSize + 4),
     }
     return res
 }

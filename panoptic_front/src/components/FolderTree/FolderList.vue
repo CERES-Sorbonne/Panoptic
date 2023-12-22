@@ -1,7 +1,7 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import { Folder } from '@/data/models';
 import { TabState } from '@/data/models'
-import { globalStore } from '@/data/store';
+import { useStore } from '@/data/store2'
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -168,4 +168,4 @@ function propagateChildUnselect(folder: Folder) {
 .tree summary:focus-visible {
     outline: 1px dotted #000;
 }
-</style>
+</style> -->

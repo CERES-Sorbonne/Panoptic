@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { TreeTag } from '@/data/models';
 import TagNode from './TagNode.vue';
 
 
 const props = defineProps({
-    tags: Array<TreeTag>,
+    tags: Array<any>,
     root: {type: Boolean, default: true}
 })
 

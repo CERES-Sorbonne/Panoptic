@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PropertyType, PropertyNames } from '@/data/models';
+import { PropertyType } from '@/data/models';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { computed, reactive, ref } from 'vue';

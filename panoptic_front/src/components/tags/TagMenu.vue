@@ -6,16 +6,15 @@
  * By default only find and select is allowed
  * 
  */
-
-
-import { Property, PropertyType, Tag } from '@/data/models';
-import { globalStore } from '@/data/store';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { sleep } from '@/utils/utils';
+import { Property, Tag, PropertyType } from '@/data/models';
+import { useStore } from '@/data/store2';
 
+const store = useStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -45,7 +44,7 @@ const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredT
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const tags = computed(() => globalStore.tags[props.property.id])
+const tags = computed(() => props.property.tags[props.property.id])
 const filteredTagList = computed(() => {
     let filtered = Object.values(tags.value).filter((tag: Tag) => tag.value.toLowerCase().includes(tagFilter.value.toLowerCase()));
 
@@ -100,7 +99,7 @@ const selectOption = async function () {
     if (selectedIndex.value == undefined) return
 
     if (isCreateSelected.value) {
-        const newTag = await globalStore.addTag(props.property.id, tagFilter.value);
+        const newTag = await store.addTag(props.property.id, tagFilter.value);
         emits('create', newTag)
     }
     else if (selectedIndex.value < filteredTagList.value.length) {
