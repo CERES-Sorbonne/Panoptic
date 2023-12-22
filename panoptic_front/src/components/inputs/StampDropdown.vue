@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { Image, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
-import { nextTick, onMounted, onUnmounted, reactive, ref } from 'vue';
-import * as bootstrap from 'bootstrap'
+import { nextTick, reactive, ref } from 'vue';
 import { useStore } from '@/data/store'
 import Dropdown from '../dropdowns/Dropdown.vue';
-import wTT from '../tooltips/withToolTip.vue';
 const store = useStore()
 
 const props = defineProps({
@@ -43,30 +41,6 @@ function apply() {
     close()
 }
 
-
-function onClick(e) {
-    if (popupElem.value && popupElem.value.contains(e.target)) {
-        console.log('inside')
-    }
-    else {
-        e.stopPropagation()
-        close()
-    }
-}
-
-// function onShow() {
-//     document.addEventListener('click', onClick, true)
-// }
-
-// function onHide() {
-//     document.removeEventListener('click', onClick, true)
-// }
-
-// onMounted(() => {
-//     buttonElem.value.addEventListener('hide.bs.dropdown', onHide)
-//     buttonElem.value.addEventListener('show.bs.dropdown', onShow)
-
-// })
 </script>
 
 <template>
