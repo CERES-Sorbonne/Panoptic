@@ -12,7 +12,7 @@ import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, ap
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 
-export let tabManager: TabManager = undefined
+let tabManager: TabManager = undefined
 
 export const useStore = defineStore('store', () => {
     const data = reactive({
@@ -330,6 +330,10 @@ export const useStore = defineStore('store', () => {
         }
     }
 
+    function getTabManager() {
+        return tabManager
+    }
+
     return {
         // variables
         data, status, openModal,
@@ -340,7 +344,7 @@ export const useStore = defineStore('store', () => {
         // functions
         init, rerender,
         addProperty, deleteProperty, updateProperty, setPropertyValue,
-        addTab, removeTab, updateTab, selectTab, getTab,
+        addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent,
         showModal, hideModal,
         uploadPropFile,

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { useStore, tabManager } from '@/data/store';
+import { useStore } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 
 const store = useStore()
+const tabManager = store.getTabManager()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
