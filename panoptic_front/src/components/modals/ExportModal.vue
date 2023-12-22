@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { useStore, tabManager } from '@/data/store2';
+import { useStore, tabManager } from '@/data/store';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 

@@ -3,7 +3,7 @@ import { Image, Property, PropertyType } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TextInput from './TextInput.vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 const store = useStore()
 
 const props = defineProps({

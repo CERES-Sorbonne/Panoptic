@@ -2,7 +2,7 @@
 import { Colors, Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import 'vue-color-kit/dist/vue-color-kit.css'
 import * as bootstrap from 'bootstrap'
 const store = useStore()

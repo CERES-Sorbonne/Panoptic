@@ -6,7 +6,7 @@
 
 import { Image, Property } from "@/data/models"
 import { PropertyType } from "@/data/models"
-import { useStore } from "@/data/store2"
+import { useStore } from "@/data/store"
 import { EventEmitter } from "@/utils/utils"
 import { reactive, toRefs } from "vue"
 

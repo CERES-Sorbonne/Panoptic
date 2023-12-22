@@ -5,7 +5,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import TagMenu from '../tags/TagMenu.vue';
-import { useStore, tabManager } from '@/data/store2';
+import { useStore, tabManager } from '@/data/store';
 import { Filter } from '@/core/FilterManager';
 
 const store = useStore()

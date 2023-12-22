@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FilterManager } from '@/core/FilterManager';
 import { Folder } from '@/data/models';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed } from 'vue';
 

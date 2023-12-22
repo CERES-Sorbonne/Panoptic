@@ -1,7 +1,7 @@
 import { Group } from "@/core/GroupManager"
 import { apiGetMLGroups, apiGetSimilarImages, apiGetSimilarImagesFromText } from "@/data/api"
 import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property } from "@/data/models"
-import { useStore } from "@/data/store2"
+import { useStore } from "@/data/store"
 import { Ref, computed } from "vue"
 
 export function hasProperty(image: Image, propertyId: number) {

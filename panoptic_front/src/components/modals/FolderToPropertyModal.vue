@@ -4,7 +4,7 @@ import { Property, PropertyMode, PropertyType } from '@/data/models';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 
 const store = useStore()
 

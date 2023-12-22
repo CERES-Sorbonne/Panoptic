@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {reactive, ref, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { useStore } from '@/data/store2';
-import { TabState } from '@/data/models2';
+import { useStore } from '@/data/store';
+import { TabState } from '@/data/models';
 
 
 const store = useStore()

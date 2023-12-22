@@ -3,7 +3,7 @@
 import { computed, watch } from 'vue';
 import PropertyValuePreview from './PropertyValuePreview.vue';
 import { operatorHasInput, Filter } from '@/core/FilterManager'
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 
 const store = useStore()
 

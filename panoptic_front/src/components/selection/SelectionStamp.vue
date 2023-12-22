@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 
 const store = useStore()
 

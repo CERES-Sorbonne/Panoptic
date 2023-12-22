@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { computed, onMounted } from 'vue';
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';

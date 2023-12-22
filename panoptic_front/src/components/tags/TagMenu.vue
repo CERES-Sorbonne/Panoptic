@@ -12,7 +12,7 @@ import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { sleep } from '@/utils/utils';
 import { Property, Tag, PropertyType } from '@/data/models';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 
 const store = useStore()
 

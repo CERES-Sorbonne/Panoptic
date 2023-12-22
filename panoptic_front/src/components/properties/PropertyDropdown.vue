@@ -4,7 +4,7 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { ref } from 'vue';
 import PropertyIcon from './PropertyIcon.vue';
-import { useStore } from '@/data/store2';
+import { useStore } from '@/data/store';
 
 const store = useStore()
 

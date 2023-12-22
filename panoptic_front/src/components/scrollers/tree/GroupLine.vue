@@ -8,7 +8,7 @@ import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
 import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
 import { GroupLine } from '@/data/models'
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { computeMLGroups } from '@/utils/utils'
 
 const store = useStore()

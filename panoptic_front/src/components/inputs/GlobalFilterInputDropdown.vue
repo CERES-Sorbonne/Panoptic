@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch, computed, ref } from 'vue';
 import FilterGroupInput from './FilterGroupInput.vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
 const store = useStore()

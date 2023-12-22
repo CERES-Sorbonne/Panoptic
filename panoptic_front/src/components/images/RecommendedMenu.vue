@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
 import { Image, PropertyType, PropertyValue, Recommendation } from '@/data/models';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';

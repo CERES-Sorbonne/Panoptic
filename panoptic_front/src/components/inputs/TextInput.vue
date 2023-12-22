@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import ContentEditable from '../ContentEditable.vue';
-import { useStore } from '@/data/store2'
+import { useStore } from '@/data/store'
 import { keyState } from '@/data/keyState';
 
 const props = defineProps({
