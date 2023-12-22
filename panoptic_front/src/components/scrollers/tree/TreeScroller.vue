@@ -137,7 +137,8 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
             continue
         }
         if (newLine.length == 0) {
-            throw 'Images seems to be to big for the line'
+            // newLine.push(img)
+            throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
         newLine = [img]
@@ -175,7 +176,8 @@ function computeImagePileLines(imagesGroups: Group[], lines: ScrollerPileLine[],
             continue
         }
         if (newLine.length == 0) {
-            throw 'Images seems to be to big for the line'
+            // newLine.push(group)
+            throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
         newLine = [group]

@@ -82,7 +82,7 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
             continue
         }
         if (newLine.length == 0) {
-            throw 'Images seems to be to big for the line'
+            throw new Error('Images seems to be to big for the line')
         }
         lines.push(newLine)
         if (lines.length < maxLines) {

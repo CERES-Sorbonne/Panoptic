@@ -264,17 +264,17 @@ async def delete_folder(folder_id: int):
     return folder_id
 
 
-async def add_tab(name: str, data):
-    query = 'INSERT INTO tabs (name, data) VALUES (?,?)'
-    cursor = await execute_query(query, (name, json.dumps(data)))
+async def add_tab(data):
+    query = 'INSERT INTO tabs (data) VALUES (?)'
+    cursor = await execute_query(query, (json.dumps(data),))
     row = await cursor.fetchone()
-    folder = Tab(id=cursor.lastrowid, name=name, data=data)
-    return folder
+    tab = Tab(id=cursor.lastrowid, data=data)
+    return tab
 
 
 async def update_tab(tab: Tab):
-    query = "UPDATE tabs SET name = ?, data = ? WHERE id = ?"
-    await execute_query(query, (tab.name, json.dumps(tab.data), tab.id))
+    query = "UPDATE tabs SET data = ? WHERE id = ?"
+    await execute_query(query, (json.dumps(tab.data), tab.id))
 
 
 async def delete_tab(tab_id: int):

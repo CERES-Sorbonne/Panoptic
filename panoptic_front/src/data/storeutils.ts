@@ -1,6 +1,11 @@
 import { getFolderAndParents } from "@/utils/utils"
 import { Folder, FolderIndex, Image, Property, PropertyIndex, PropertyValue, Tag } from "./models"
 
+export function computeContainerRatio(img: Image) {
+    let ratio = img.width / img.height
+    return Math.max(Math.min(2, ratio), 1)
+}
+
 export function buildFolderNodes(folders: Array<Folder>) {
     let res = {} as FolderIndex
     folders.forEach(f => {

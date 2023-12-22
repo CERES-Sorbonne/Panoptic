@@ -4,8 +4,7 @@ import { GroupState } from "./GroupManager"
 import { SortState } from "./SortManager"
 import { CollectionManager } from "./CollectionManager"
 import { useStore } from "@/data/store2"
-
-const store = useStore()
+import { reactive } from "vue"
 
 export interface TabState {
     id: number
@@ -31,18 +30,20 @@ export class TabManager {
     
     constructor(state?: TabState) {
         this.isLoaded = false
+        this.state = reactive({} as TabState)
         this.collection = new CollectionManager()
 
         if(state) this.load(state)
     }
 
     load(state: TabState) {
-        this.state = state
+        Object.assign(this.state, state)
         this.collection.load(state.filterState, state.sortState, state.groupState)
         this.isLoaded = true
     }
     
     saveState() {
+        const store = useStore()
         store.updateTab(this.state)
     }
 
@@ -60,6 +61,7 @@ export class TabManager {
     }
 
     getVisibleProperties() {
+        const store = useStore()
         return store.propertyList.filter(p => this.isVisibleProperty(p.id))
     }
 

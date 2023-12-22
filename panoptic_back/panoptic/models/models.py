@@ -95,7 +95,6 @@ class Folder(BaseModel):
 
 class Tab(BaseModel):
     id: int | None = None
-    name: str | None = None
     data: dict | None = None
 
 

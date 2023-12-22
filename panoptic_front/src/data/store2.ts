@@ -9,10 +9,10 @@ import { computed, reactive } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
-import { buildFolderNodes, computeTagCount, countImagePerFolder } from "./storeutils";
+import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 
-export const tabManager = new TabManager()
+export let tabManager: TabManager = undefined
 
 export const useStore = defineStore('store', () => {
     const data = reactive({
@@ -55,6 +55,9 @@ export const useStore = defineStore('store', () => {
     // =======================
 
     async function init() {
+        if (!tabManager) {
+            tabManager = new TabManager(getTab())
+        }
         // console.log('fetch all data')
         let images = await apiGetImages()
         let tags = await apiGetTags()
@@ -76,19 +79,19 @@ export const useStore = defineStore('store', () => {
         data.folders = buildFolderNodes(folders)
 
         // console.time('tab state')
-        loadTabs()
+        await loadTabs()
         // console.timeEnd('tab state')
 
         status.import = await apiGetImportStatus()
         setInterval(async () => { applyImportState(await apiGetImportStatus()) }, 1000)
 
         updatePropertyOptions()
-        status.loaded = true
 
         computeTagCount(imageList.value, properties)
 
         countImagePerFolder(data.folders, imageList.value)
-
+        verifySelectedTab()
+        status.loaded = true
         // TODO check this
         // this.verifyData()
         // console.log('end fetch all data')
@@ -112,8 +115,9 @@ export const useStore = defineStore('store', () => {
     async function addTab(tabName: string) {
         let state = buildTabState()
         state.name = tabName
-        let tab = await apiAddTab(state)
-        data.tabs[tab.id] = tab
+        let tab = await apiAddTab({ data: state })
+        tab.data.id = tab.id
+        data.tabs[tab.id] = tab.data
         selectTab(tab.id)
     }
 
@@ -121,13 +125,13 @@ export const useStore = defineStore('store', () => {
         await apiDeleteTab(tabId)
         delete data.tabs[tabId]
         if (objValues(data.tabs).length == 0) {
-            addTab('Tab1')
+            await addTab('Tab1')
         }
         verifySelectedTab()
     }
 
     async function updateTab(tab: TabState) {
-        await apiUpdateTab(tab)
+        await apiUpdateTab({id: tab.id, data: tab})
     }
 
     function selectTab(tabId: number) {
@@ -138,12 +142,14 @@ export const useStore = defineStore('store', () => {
     }
 
     async function loadTabs() {
-        let tabs = []
-        // let tabs = await apiGetTabs()
-        // tabs.forEach(t => tabs[t.id] = t)
+        let tabs = await apiGetTabs()
+        tabs.forEach(t => data.tabs[t.id] = t.data)
 
         if (tabs.length == 0) {
             await addTab('Tab1')
+        } else {
+            console.log('select')
+            selectTab(tabs[0].id)
         }
         verifySelectedTab()
     }
@@ -169,8 +175,8 @@ export const useStore = defineStore('store', () => {
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
-        // TODO check
-        // img.containerRatio = computeContainerRatio(img)
+
+        img.containerRatio = computeContainerRatio(img)
 
         if (!data.images[img.id]) {
             if (!Array.isArray(data.sha1Index[img.sha1])) {

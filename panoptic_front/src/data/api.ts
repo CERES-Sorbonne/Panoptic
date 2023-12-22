@@ -9,6 +9,11 @@ import { ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
 
+export interface ApiTab {
+    id?: number,
+    data: TabState
+}
+
 
 export const apiGetImages = async ():Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
@@ -97,15 +102,15 @@ export const apiImportFolder = async() => {
 
 export const apiGetTabs = async() => {
     let res = await axios.get('/tabs')
-    return res.data as TabState[]
+    return res.data as ApiTab[]
 }
 
-export const apiAddTab = async(tab: TabState) => {
+export const apiAddTab = async(tab: ApiTab) => {
     let res = await axios.post('/tab', tab)
-    return res.data as TabState
+    return res.data as ApiTab
 }
 
-export const apiUpdateTab = async(tab: TabState) => {
+export const apiUpdateTab = async(tab: ApiTab) => {
     let res = await axios.patch('/tab', tab)
     return res.data as TabState
 }
