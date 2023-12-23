@@ -243,7 +243,6 @@ function isEmpty(value: any) {
 
 
 function computeFilter(filter: Filter, propertyValue: any) {
-    // console.log('compute filter')
     let opFnc = operatorMap[filter.operator]
     let res = opFnc(propertyValue, filter.value)
     return res
@@ -251,7 +250,6 @@ function computeFilter(filter: Filter, propertyValue: any) {
 
 function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
     const store = useStore()
-    // console.log('compute group filter')
     if (filterGroup.filters.length == 0) {
         return true
     }
@@ -260,12 +258,8 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
     let res = groupOp == FilterOperator.and ? true : false
     let groupOperatorFnc = operatorMap[groupOp]
 
-    // console.log(groupOp)
-
     for (let filter of filterGroup.filters) {
-        // console.log('resssss ' + res)
         if (filter.isGroup) {
-            // console.log('subgroup')
             res = groupOperatorFnc(computeGroupFilter(image, filter), res)
         }
         else {
@@ -280,7 +274,6 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
                 let filterValue = nfilter.value as number[]
 
                 const tagSet = filterValue.map((v: number) => getTagChildren(store.data.properties[propId].tags[v]))
-                console.log(tagSet)
                 nfilter.value = tagSet
                 if (!isEmpty(propertyValue)) {
                     propertyValue = new Set(propertyValue)
@@ -319,13 +312,11 @@ export class FilterManager {
     }
 
     load(state: FilterState) {
-        console.log('load state', state.filter)
         Object.assign(this.state, toRefs(state))
         this.clear()
 
         this.filterIndex = {}
         this.recursiveRegister(this.state.filter)
-        console.log('index', this.filterIndex)
     }
 
     clear() {
@@ -404,10 +395,8 @@ export class FilterManager {
         Object.values(this.filterIndex).forEach(f => {
             if (!f.isGroup) return
             const group = f as FilterGroup
-            console.log('group =', group)
             group.filters = group.filters.filter(f => f.id != filterId)
         })
-        console.log('after delete this', this.state.filter)
         delete this.filterIndex[filterId]
     }
 
@@ -508,7 +497,6 @@ export class FilterManager {
     }
 
     private recursiveRegister(filter: AFilter) {
-        console.log('register', filter.id)
         if (filter.id == undefined || filter.id == -1) {
             filter = this.registerFilter(filter)
         } else {
