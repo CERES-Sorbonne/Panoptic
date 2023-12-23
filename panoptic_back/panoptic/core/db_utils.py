@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 from json import JSONDecodeError
 
 import aiosqlite
@@ -27,7 +28,13 @@ async def create_tables_if_db_empty():
     cursor = await execute_query(query)
     all_tables = await cursor.fetchall()
     if len(list(all_tables)) < len(ALL_TABLES):
-        with open(os.path.join(os.path.dirname(__file__), '../scripts', 'create_db.sql'), 'r') as f:
+        if getattr(sys, 'frozen', False):
+            # Le programme est exécuté en mode fichier unique
+            BASE_PATH = sys._MEIPASS
+        else:
+            # Le programme est exécuté en mode script
+            BASE_PATH = os.path.join('..', os.path.dirname(__file__))
+        with open(os.path.join(BASE_PATH, 'scripts', 'create_db.sql'), 'r') as f:
             sql_script = f.read()
             async with conn.executescript(sql_script) as cursor:
                 await conn.commit()
@@ -56,3 +63,4 @@ def decode_if_json(value):
         return json.loads(value)
     except (TypeError, JSONDecodeError, UnicodeDecodeError):
         return value
+

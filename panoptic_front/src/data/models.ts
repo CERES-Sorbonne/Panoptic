@@ -166,7 +166,8 @@ export enum ModalId {
     PROPERTY = 'property',
     SHA1PILE = 'sha1pile',
     FOLDERTOPROP = 'folder_to_property',
-    EXPORT = "export"
+    EXPORT = "export",
+    FOLDERSELECTION = 'explorer'
 }
 
 export interface ImportState {
@@ -227,4 +228,11 @@ export interface Recommendation {
     images: string[]
     values: PropertyValue[]
     groupId: string
+}
+
+export interface DirInfo {
+    path: string,
+    name: string,
+    images?: number
+    images_url?: string
 }

@@ -1,11 +1,15 @@
+import glob
 import logging
 import os
+import pathlib
+import sys
 from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-from fastapi import FastAPI, UploadFile
+import psutil
+from fastapi import FastAPI, UploadFile, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -73,6 +77,7 @@ async def export_properties_route(payload: ExportPropertiesPayload) -> Streaming
     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
     return response
 
+
 @app.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
     await delete_property(property_id)
@@ -91,7 +96,6 @@ async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
             file_path = '/' + file_path
-    # print(file_path)
     async with aiofiles.open(file_path, 'rb') as f:
         data = await f.read()
 
@@ -247,8 +251,84 @@ async def get_image(file_path: str):
     return Response(content=data, media_type="image/" + ext)
 
 
+def images_in_folder(folder_path):
+    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types
+    image_files = []
+    for type_ in types:
+        image_files.extend(glob.glob(os.path.join(folder_path, type_)))
+
+    return image_files
+
+
+def list_contents(full_path: str = '/'):
+    paths = [full_path + '/' + p for p in os.listdir(full_path)]
+    directories = [p for p in paths if os.path.isdir(p)]
+    directories = [{
+        'path': p,
+        'name': pathlib.Path(p).name,
+        'images': len(images_in_folder(p))
+    } for p in directories]
+    images = images_in_folder(full_path)
+
+    return {'images': images, 'directories': directories}
+
+
+def list_disk():
+    files = []
+    partitions = psutil.disk_partitions()
+    partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
+    for partition in partitions:
+        files.append({
+            'path': partition.mountpoint,
+            'name': pathlib.Path(partition.mountpoint).name,
+            'images': len(images_in_folder(partition.mountpoint))
+        })
+    return files
+
+
+def list_index():
+    mounted = []
+
+    partitions = psutil.disk_partitions()
+    partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
+    for partition in partitions:
+        mounted.append({
+            'path': partition.mountpoint,
+            'name': partition.mountpoint,
+            'images': len(images_in_folder(partition.mountpoint))
+        })
+
+    files = [{
+        'path': pathlib.Path.home(),
+        'name': 'Home',
+        'images': len(images_in_folder(pathlib.Path.home()))
+    }]
+
+    home_files = list_contents(str(pathlib.Path.home()))['directories']
+    home_files = [f for f in home_files if f['name'] in ['Documents', 'Downloads', 'Desktop', 'Images', 'Pictures']]
+    files.extend(home_files)
+    return {'partitions': mounted, 'fast': files}
+
+
+@app.get("/filesystem/ls/{path:path}")
+def api(path: str = ""):
+    return list_contents('/' + path)
+
+
+@app.get('/filesystem/info')
+def filesystem_info_route():
+    return list_index()
+
+
+if getattr(sys, 'frozen', False):
+    # Le programme est exécuté en mode fichier unique
+    BASE_PATH = sys._MEIPASS
+else:
+    # Le programme est exécuté en mode script
+    BASE_PATH = os.path.dirname(__file__)
+
 # app.mount("/small/images/", StaticFiles(directory=os.path.join('PANOPTIC_DATA', 'mini')), name="static")
-app.mount("/", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "html"), html=True), name="static")
+app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
 
 class EndpointFilter(logging.Filter):

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 
-import { Property, PropertyMode, PropertyType } from '@/data/models';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
-import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
+import FileExplorer from './FileExplorer.vue';
 import { useStore } from '@/data/store';
 
 const store = useStore()
@@ -49,18 +48,15 @@ onMounted(() => {
 
 
 <template>
-    <div class="modal fade text-dark modal-m" role="dialog" ref="modalElem">
+    <div class="modal fade text-dark modal-xl" role="dialog" ref="modalElem">
         <div class="modal-dialog">
             <div class="modal-content" v-if="isActive">
                 <div class="modal-header m-0 p-2 ps-3 pe-3">
-                    <b class="modal-title" id="exampleModalLabel">Nouvelle propriété</b>
+                    <b class="modal-title" id="exampleModalLabel">{{$t('modals.add_folder.title')}}</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    test
-                </div>
-                <div class="modal-footer pt-2 pb-2">
-                    <button type="button" @click="hide">Anuler</button>
+                <div class="modal-body m-0 p-0 overflow-hidden">
+                    <FileExplorer />
                 </div>
             </div>
         </div>

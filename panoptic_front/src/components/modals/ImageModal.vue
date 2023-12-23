@@ -123,7 +123,7 @@ function show() {
     availableHeight.value = modalElem.value.clientHeight
     availableWidth.value = modalElem.value.clientWidth
     
-    identiqueImages.updateImages(sha1Images.value)
+    identiqueImages.update(sha1Images.value)
     if (similarGroup.hasResult()) {
         similarGroup.clear()
     }

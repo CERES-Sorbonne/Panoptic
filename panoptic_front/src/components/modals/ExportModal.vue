@@ -50,7 +50,6 @@ onMounted(() => {
 })
 
 function exportFile(){
-    console.log(imagesId.value, activeProperties.value)
     let images
     let properties
     if(useOnlyActiveImage.value){

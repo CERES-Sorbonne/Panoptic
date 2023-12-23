@@ -2,7 +2,8 @@
     "main": {
         "nav": {
             "folders": {
-                "title": "Dossiers"
+                "title": "Dossiers",
+                "add": "Ajouter un dossier d'images"
             },
             "properties": {
                 "title": "Propriétés",
@@ -34,8 +35,8 @@
             "grid_tooltip": "Passer en vue grille d'images",
             "table_tooltip": "Passer en vue tableau",
             "image_size_tooltip": "Taille des images",
-            "all_images": "Instances",
-            "sha1_images": "Images",
+            "all_images": "Images",
+            "sha1_images": "Instances",
             "image_mode_tooltip": "Switcher entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
             "selected_images": "images sélectionnées",
             "tag_selection": "Tagger les ",
@@ -69,6 +70,13 @@
         }
     },
     "modals": {
+        "fs": {
+            "fast": "Acces rapide",
+            "partitions": "Partitions"
+        },
+        "add_folder": {
+            "title": "Choisir un dossier d'images à ajouter"
+        },
         "image": {
             "similar_images": "Images similaires",
             "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",

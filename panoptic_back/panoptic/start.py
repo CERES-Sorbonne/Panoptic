@@ -1,5 +1,7 @@
 import argparse
 import json
+import logging
+import multiprocessing
 import os
 import pathlib
 import socket
@@ -388,10 +390,17 @@ def start():
         sys.exit(app.exec_())
     else:
         if not FOLDER:
-            print("folder parameter need to be fullfilled in server mode")
+            logging.error("folder parameter need to be fullfilled in server mode")
             sys.exit(0)
         launch_uvicorn()
 
 
 if __name__ == '__main__':
+    # avoid a bug with multiprocessing and pyinstaller on windows
+    if sys.platform == "win32":
+        multiprocessing.freeze_support()
+    if getattr(sys, 'frozen', False):
+        # Le programme est exécuté en mode fichier unique
+        sys.stdout = open(os.devnull, 'w')
+        sys.stderr = open('panoptic_errors.txt', 'w')
     start()
