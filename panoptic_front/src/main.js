@@ -11,7 +11,8 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import "bootstrap"
 import '@/assets/customize.scss'
 import '@vueform/toggle/themes/default.css'
-
+// import './components/vuefinder/dist/style.css'
+// import VueFinder from './components/vuefinder/src/index.js'
 
 const i18n = createI18n({
     legacy: false,
@@ -27,6 +28,7 @@ app.use(pinia)
 
 import router from './router'
 app.use(router)
+// app.use(VueFinder)
 app.use(i18n)
 
 app.mount('#app')

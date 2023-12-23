@@ -151,7 +151,7 @@ export const useStore = defineStore('store', () => {
         data.selectedTabId = Number(Object.keys(data.tabs)[0])
     }
 
-    function showModal(modalId: ModalId, data: any) {
+    function showModal(modalId: ModalId, data?: any) {
         openModal.id = modalId
         openModal.data = data
     }

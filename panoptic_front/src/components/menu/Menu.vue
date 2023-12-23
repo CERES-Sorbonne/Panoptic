@@ -32,11 +32,11 @@ const handleInput = async (e: any) => {
         <div class="">
             <div>
                 <div class="ps-2 pe-2" style="padding-bottom: 9.5px; padding-top: 5px;">
-                    <div class="d-flex">
+                    <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
-                        <!-- <div class="ms-auto" @click="globalStore.showModal(Modals.FOLDERTOPROP)">
-                            <i class="bi bi-three-dots"></i>
-                        </div> -->
+                        <div class="ms-auto plus" @click="store.showModal(ModalId.FOLDERSELECTION)">
+                            <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
+                        </div>
                     </div>
 
                     <!-- <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
@@ -131,4 +131,11 @@ const handleInput = async (e: any) => {
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.plus{
+    font-size: 1.5em;
+}
+.plus:hover{
+    cursor: pointer;
+}
+</style>

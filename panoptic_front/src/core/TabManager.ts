@@ -38,6 +38,7 @@ export class TabManager {
 
     load(state: TabState) {
         Object.assign(this.state, toRefs(state))
+        if(!state) return
         this.collection.load(state.filterState, state.sortState, state.groupState)
         this.isLoaded = true
     }

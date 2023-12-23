@@ -18,3 +18,4 @@ faiss-cpu
 qtawesome
 requests
 pydantic<2.0.0
+psutil

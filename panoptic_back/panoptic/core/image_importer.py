@@ -72,7 +72,6 @@ class ImageImporter:
         def on_compute(vector: ComputedValue, is_last):
             self.current_computed += 1
             if is_last:
-                # print('would run pca now')
                 self._pca_task = asyncio.create_task(compute_faiss_index())
 
         self._import_queue.done_callback = on_import
@@ -111,7 +110,6 @@ async def compute_folder_structure(root_path, all_files: List[str]):
 
 
 async def recursive_save_folder(folder: Folder):
-    # print('save: ', Folder)
     f = await db.add_folder(folder.path, folder.name, folder.parent)
     for child in folder.children.values():
         child.parent = f.id

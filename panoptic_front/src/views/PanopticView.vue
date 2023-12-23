@@ -2,15 +2,16 @@
 
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import Menu from '../components/menu/Menu.vue';
+
 import ImageModal from '@/components/modals/ImageModal.vue';
 import PropertyModal from '@/components/modals/PropertyModal.vue';
 import ExportModal from '@/components/modals/ExportModal.vue';
 import { keyState } from '@/data/keyState';
-import FolderToPropertyModal from '@/components/modals/FolderToPropertyModal.vue';
 import MainView from '@/components/view/MainView.vue';
 import TabNav from '@/components/view/TabNav.vue';
-import { useStore } from '@/data/store';
 import { ModalId } from '@/data/models';
+import { useStore } from '@/data/store';
+import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
 
 const store = useStore()
 
@@ -19,6 +20,7 @@ const navElem = ref(null)
 const windowHeight = ref(400)
 
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
+const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
 onMounted(() => {
     nextTick(() => {
@@ -51,6 +53,10 @@ function onResize() {
     windowHeight.value = window.innerHeight
 }
 
+function showModal(){
+    store.showModal(ModalId.EXPORT, filteredImages)
+}
+
 function reRender(){
     store.rerender()
 }
@@ -61,7 +67,7 @@ function reRender(){
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
             <div v-if="store.status.loaded">
-                <Menu />
+                <Menu @export="showModal()"/>
             </div>
             <div class="w-100" v-if="store.status.loaded">
                 <div class="ms-3" ref="navElem">
@@ -78,7 +84,7 @@ function reRender(){
         </div>
         <ImageModal :id="ModalId.IMAGE" />
         <PropertyModal :id="ModalId.PROPERTY" />
-        <FolderToPropertyModal :id="ModalId.FOLDERTOPROP" />
+        <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
         <ExportModal :id="ModalId.EXPORT"/>
 
         
