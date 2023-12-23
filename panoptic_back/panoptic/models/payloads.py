@@ -56,8 +56,8 @@ class AddTagParentPayload(CamelModel):
 class UpdateTagPayload(CamelModel):
     id: int
     value: str
-    parent_id: list[int]
-    color: int
+    parent_id: list[int] | None
+    color: int | None
 
 
 class MakeClusterPayload(CamelModel):
