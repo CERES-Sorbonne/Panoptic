@@ -1,5 +1,5 @@
 import { getFolderAndParents } from "@/utils/utils"
-import { Folder, FolderIndex, Image, Property, PropertyIndex, PropertyValue, Tag } from "./models"
+import { Folder, FolderIndex, Image, Property, PropertyIndex, PropertyValue, Tag, TagIndex } from "./models"
 
 export function computeContainerRatio(img: Image) {
     let ratio = img.width / img.height
@@ -66,4 +66,16 @@ export function countImagePerFolder(folders: FolderIndex, images: Image[]) {
     })
 
     images.forEach(img => folderToParents[img.folder_id].forEach(id => folders[id].count += 1))
+}
+
+export function setTagsChildren(tags: TagIndex) {
+    for(let tagId in tags) {
+        const tag = tags[tagId]
+        tag.children = []
+    }
+
+    for(let tagId in tags) {
+        const tag = tags[tagId]
+        tag.parents.filter(tId => tId > 0).forEach(tId => tags[tId].children.push(tId))
+    }
 }
