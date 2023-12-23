@@ -9,7 +9,7 @@ import { computed, reactive } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
-import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder } from "./storeutils";
+import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 
 let tabManager: TabManager = undefined
@@ -218,6 +218,7 @@ export const useStore = defineStore('store', () => {
             if (!property) continue
 
             property.tags = tags
+            setTagsChildren(property.tags)
         }
         computeTagCount(imageList.value, data.properties)
     }
