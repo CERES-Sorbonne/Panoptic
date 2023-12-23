@@ -76,6 +76,6 @@ export function setTagsChildren(tags: TagIndex) {
 
     for(let tagId in tags) {
         const tag = tags[tagId]
-        tag.parents.filter(tId => tId > 0).forEach(tId => tags[tId].children.push(tId))
+        tag.parents.filter(tId => tId > 0).forEach(tId => tags[tId].children.push(tag.id))
     }
 }
