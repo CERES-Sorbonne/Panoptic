@@ -68,7 +68,7 @@ export const apiSetPropertyValue = async (propertyId: number, imageIds: number[]
 }
 
 export const apiUpdateTag = async (id: number, color?: number, parentId?: number, value?: any): Promise<Tag> => {
-    const res = await axios.patch('/tags', { id, color, parentId, value })
+    const res = await axios.patch('/tags', { id, color, parent_id: parentId, value })
     return res.data
 }
 
