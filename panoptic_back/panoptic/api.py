@@ -261,7 +261,7 @@ def images_in_folder(folder_path):
 
 
 def list_contents(full_path: str = '/'):
-    paths = [full_path + '/' + p for p in os.listdir(full_path)]
+    paths = [full_path + '/' + p if full_path != '/' else full_path + p for p in os.listdir(full_path)]
     directories = [p for p in paths if os.path.isdir(p)]
     directories = [{
         'path': p,
@@ -270,7 +270,7 @@ def list_contents(full_path: str = '/'):
     } for p in directories]
     images = images_in_folder(full_path)
 
-    return {'images': images, 'directories': directories}
+    return {'images': images[0:40], 'directories': directories}
 
 
 def list_disk():
