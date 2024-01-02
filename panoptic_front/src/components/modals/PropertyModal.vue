@@ -4,9 +4,11 @@ import { Property, PropertyMode, PropertyType } from '@/data/models';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const store = useStore()
+const panoptic = usePanopticStore()
+const store = useProjectStore()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -15,12 +17,12 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => store.openModal.id == props.id)
+const isActive = computed(() => panoptic.openModal.id == props.id)
 
 
 function onHide() {
-    if (store.openModal.id == props.id) {
-        store.hideModal()
+    if (panoptic.openModal.id == props.id) {
+        panoptic.hideModal()
     }
     resetNewProperty()
 }
@@ -60,7 +62,7 @@ async function saveProperty() {
     hide()
 }
 
-watch(() => store.openModal.id, (id) => {
+watch(() => panoptic.openModal.id, (id) => {
     if (id == props.id) {
         show()
     }

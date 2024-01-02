@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
 import { Image, PropertyType, PropertyValue, Recommendation } from '@/data/models';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
@@ -11,7 +11,7 @@ interface Sha1Pile {
     sha1: string
     images: Image[]
 }
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     imageSize: Number,
     group: Object as () => Group,

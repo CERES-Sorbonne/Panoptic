@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     selectedImagesIds: Array<number>

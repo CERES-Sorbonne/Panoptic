@@ -2,11 +2,11 @@
 <script setup lang="ts">
 import { Image, Property } from '@/data/models';
 import { computed } from 'vue';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { getImageProperty } from '@/utils/utils';
 import StandaloneDateInput from './StandaloneDateInput.vue';
 
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     image: Object as () => Image,
     property: Object as () => Property,

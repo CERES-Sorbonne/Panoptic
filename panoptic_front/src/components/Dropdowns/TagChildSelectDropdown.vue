@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { Tag } from '@/data/models';
 import TagInput from '../tags/TagInput.vue';
 
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     propertyId: Number,
     tagId: Number

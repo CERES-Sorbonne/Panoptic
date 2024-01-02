@@ -4,9 +4,9 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { ref } from 'vue';
 import PropertyIcon from './PropertyIcon.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     modelValue: Object as () => Property

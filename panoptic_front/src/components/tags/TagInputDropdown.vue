@@ -9,10 +9,10 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import TagInput from './TagInput.vue';
 import { computed, nextTick, ref } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { Property } from '@/data/models';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     property: Object as () => Property,

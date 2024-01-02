@@ -1,13 +1,13 @@
 <script setup lang="ts">
 
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { computed, onMounted } from 'vue';
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
 import { PropertyType } from '@/data/models';
-const store = useStore()
+const store = useProjectStore()
 
 
 const props = defineProps({

@@ -7,6 +7,8 @@
 
   --text-color: rgb(33, 37, 41);
 
+  --grey: rgb(246, 246, 247);
+
 
   --toggle-width: 40px;
   --toggle-height: 10px;
@@ -373,28 +375,48 @@ input[type=number] {
   padding-left: 2px;
   padding-right: 2px;
 
-  --dp-button-height: 22px; /*Size for buttons in overlays*/
-  --dp-month-year-row-height: 10px; /*Height of the month-year select row*/
-  --dp-month-year-row-button-size: 0px; /*Specific height for the next/previous buttons*/
-  --dp-button-icon-height: 0px; /*Icon sizing in buttons*/
-  --dp-cell-size: 25px; /*Width and height of calendar cell*/
-  --dp-cell-padding: 10px; /*Padding in the cell*/
-  --dp-common-padding: 5px; /*Common padding used*/
-  --dp-input-icon-padding: 20px; /*Padding on the left side of the input if icon is present*/
-  --dp-input-padding: 0px; /*Padding in the input*/
-  --dp-menu-min-width: 260px; /*Adjust the min width of the menu*/
-  --dp-action-buttons-padding: 2px 5px; /*Adjust padding for the action buttons in action row*/
-  --dp-row-margin:  5px 0; /*Adjust the spacing between rows in the calendar*/
-  --dp-calendar-header-cell-padding:  0.5rem; /*Adjust padding in calendar header cells*/
-  --dp-two-calendars-spacing:  10px; /*Space between multiple calendars*/
-  --dp-overlay-col-padding:  3px; /*Padding in the overlay column*/
-  --dp-time-inc-dec-button-size:  32px; /*Sizing for arrow buttons in the time picker*/
-  --dp-menu-padding: 3px 4px; /*Menu padding*/
-  
+  --dp-button-height: 22px;
+  /*Size for buttons in overlays*/
+  --dp-month-year-row-height: 10px;
+  /*Height of the month-year select row*/
+  --dp-month-year-row-button-size: 0px;
+  /*Specific height for the next/previous buttons*/
+  --dp-button-icon-height: 0px;
+  /*Icon sizing in buttons*/
+  --dp-cell-size: 25px;
+  /*Width and height of calendar cell*/
+  --dp-cell-padding: 10px;
+  /*Padding in the cell*/
+  --dp-common-padding: 5px;
+  /*Common padding used*/
+  --dp-input-icon-padding: 20px;
+  /*Padding on the left side of the input if icon is present*/
+  --dp-input-padding: 0px;
+  /*Padding in the input*/
+  --dp-menu-min-width: 260px;
+  /*Adjust the min width of the menu*/
+  --dp-action-buttons-padding: 2px 5px;
+  /*Adjust padding for the action buttons in action row*/
+  --dp-row-margin: 5px 0;
+  /*Adjust the spacing between rows in the calendar*/
+  --dp-calendar-header-cell-padding: 0.5rem;
+  /*Adjust padding in calendar header cells*/
+  --dp-two-calendars-spacing: 10px;
+  /*Space between multiple calendars*/
+  --dp-overlay-col-padding: 3px;
+  /*Padding in the overlay column*/
+  --dp-time-inc-dec-button-size: 32px;
+  /*Sizing for arrow buttons in the time picker*/
+  --dp-menu-padding: 3px 4px;
+  /*Menu padding*/
+
   /*Font sizes*/
-  --dp-font-size: 12px; /*Default font-size*/
-  --dp-preview-font-size: 10px; /*Font size of the date preview in the action row*/
-  --dp-time-font-size: 10px; /*Font size in the time picker*/
+  --dp-font-size: 12px;
+  /*Default font-size*/
+  --dp-preview-font-size: 10px;
+  /*Font size of the date preview in the action row*/
+  --dp-time-font-size: 10px;
+  /*Font size in the time picker*/
 
 }
 
@@ -431,4 +453,45 @@ input[type=number] {
 .v-popper--theme-dropdown .v-popper__inner {
   background: none !important;
   overflow: visible !important;
+}
+
+.text-dim {
+  color: rgb(90, 90, 90);
+}
+
+.text-placeholder {
+  color: rgb(117, 117, 117);
+}
+
+*:focus {
+  outline: none;
+}
+
+
+.btn-blue {
+  padding: 5px;
+  /* background-color: rgb(225, 226, 227); */
+
+  background-color: rgb(73, 134, 213);
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+}
+
+.btn-blue:hover {
+  background-color: rgb(3, 100, 225);
+}
+
+.btn-grey {
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: var(--grey);
+  border: 1px solid var(--border-color);
+  /* color: black; */
+}
+
+.hover-grey:hover {
+  background-color: rgb(219, 219, 219);
 }

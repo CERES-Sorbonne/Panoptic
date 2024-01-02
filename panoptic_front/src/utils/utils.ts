@@ -1,7 +1,7 @@
 import { Group } from "@/core/GroupManager"
 import { apiGetMLGroups, apiGetSimilarImages, apiGetSimilarImagesFromText } from "@/data/api"
 import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property } from "@/data/models"
-import { useStore } from "@/data/store"
+import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed } from "vue"
 
 export function hasProperty(image: Image, propertyId: number) {
@@ -9,7 +9,7 @@ export function hasProperty(image: Image, propertyId: number) {
 }
 
 export function getImageProperties(id: number) {
-    const store = useStore()
+    const store = useProjectStore()
     const img = store.data.images[id]
     let res = store.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
         let propRef: PropertyRef = {
@@ -25,7 +25,7 @@ export function getImageProperties(id: number) {
 }
 
 export function getImageProperty(imgId: number, propId: number) {
-    const store = useStore()
+    const store = useProjectStore()
     const img = store.data.images[imgId]
     const p = store.data.properties[propId]
     const propRef: PropertyRef = {
@@ -51,12 +51,12 @@ export function isTag(type: PropertyType) {
 }
 
 export function isTagId(propId: number) {
-    const store = useStore()
+    const store = useProjectStore()
     return isTag(store.data.properties[propId].type)
 }
 
 export function getChildren(tag: Tag) {
-    const store = useStore()
+    const store = useProjectStore()
     const property = store.data.properties[tag.property_id]
     const tags = property.tags
 
@@ -73,7 +73,7 @@ export function getChildren(tag: Tag) {
 }
 
 export function getFolderAndParents(folder: Folder) {
-    const store = useStore()
+    const store = useProjectStore()
     const res = []
     let current = folder
     while(current) {
@@ -84,7 +84,7 @@ export function getFolderAndParents(folder: Folder) {
 }
 
 export function getFolderChildren(folderId: number) {
-    const store = useStore()
+    const store = useProjectStore()
     let res: Folder[] = []
     const recursive = (fId: number) => {
         const children = store.data.folders[fId].children
@@ -160,7 +160,7 @@ export function getGroupParents(group: Group): Group[] {
 }
 
 export function getTagChildren(tag: Tag){
-    const store = useStore()
+    const store = useProjectStore()
     const property = store.data.properties[tag.property_id]
     const tags = property.tags
 

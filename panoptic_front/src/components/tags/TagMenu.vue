@@ -12,9 +12,9 @@ import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { sleep } from '@/utils/utils';
 import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     property: Object as () => Property,

@@ -5,7 +5,7 @@
 import axios from 'axios'
 import { saveFile } from '@/utils/api'
 import { DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, TabState, Tag } from './models'
-import { SelectionStatus } from './selectionStore'
+import { SelectionStatus } from './panoptic'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -182,5 +182,10 @@ export async function apiLoadProject(path: string) {
 
 export async function apiCloseProject() {
     let res = await axios.post('/close')
+    return res.data as SelectionStatus
+}
+
+export async function apiDeleteProject(path: string) {
+    let res = await axios.post('/delete_project', {path})
     return res.data as SelectionStatus
 }

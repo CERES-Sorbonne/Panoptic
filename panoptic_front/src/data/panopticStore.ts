@@ -1,7 +1,9 @@
 import { defineStore } from "pinia"
-import { computed, reactive } from "vue"
-import { apiCloseProject, apiGetStatus, apiLoadProject } from "./api"
+import { computed, nextTick, reactive } from "vue"
+import { apiCloseProject, apiDeleteProject, apiGetStatus, apiLoadProject } from "./api"
 import router from "@/router"
+import { useProjectStore } from "./projectStore"
+import { ModalId } from "./models"
 
 export interface Project {
     path: string
@@ -14,7 +16,9 @@ export interface SelectionStatus {
     projects: Project[]
 }
 
-export const useSelectionStore = defineStore('selectionStore', () => {
+export const usePanopticStore = defineStore('panopticStore', () => {
+    const project = useProjectStore()
+
     const data = reactive({
         status: {} as SelectionStatus,
         init: false
@@ -25,6 +29,8 @@ export const useSelectionStore = defineStore('selectionStore', () => {
         error: ''
     })
 
+    const openModal = reactive({ id: undefined, data: undefined })
+
     const isProjectLoaded = computed(() => data.status.isLoaded)
 
     async function init() {
@@ -33,11 +39,16 @@ export const useSelectionStore = defineStore('selectionStore', () => {
         data.status = await apiGetStatus()
         data.init = true
         // console.log('end init')
+        if(data.status.isLoaded) {
+            project.init()
+        }
     }
 
     async function loadProject(path: string) {
         data.status = await apiLoadProject(path)
         router.push('/view')
+        project.clear()
+        setTimeout(() => project.init(), 10)
     }
 
     async function closeProject() {
@@ -45,11 +56,23 @@ export const useSelectionStore = defineStore('selectionStore', () => {
         router.push('/')
     }
 
-    init()
+    async function deleteProject(path:string) {
+        data.status = await apiDeleteProject(path)
+    }
+
+    function showModal(modalId: ModalId, data?: any) {
+        openModal.id = modalId
+        openModal.data = data
+    }
+
+    function hideModal() {
+        Object.assign(openModal, { id: undefined, data: undefined })
+    }
 
     return {
         init, data, state,
+        openModal, hideModal, showModal,
         isProjectLoaded,
-        loadProject, closeProject
+        loadProject, closeProject, deleteProject
     }
 })

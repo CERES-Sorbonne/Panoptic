@@ -3,9 +3,9 @@ import { Colors, PropertyType, PropertyValue, Tag } from '@/data/models';
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { UNDEFINED_KEY } from '@/core/GroupManager';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     value: Object as () => PropertyValue

@@ -2,7 +2,7 @@
 import { Colors, Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed } from 'vue';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import 'vue-color-kit/dist/vue-color-kit.css'
 const props = defineProps({
     modelValue: Number,

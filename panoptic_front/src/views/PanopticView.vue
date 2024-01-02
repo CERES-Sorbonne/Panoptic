@@ -10,30 +10,27 @@ import { keyState } from '@/data/keyState';
 import MainView from '@/components/view/MainView.vue';
 import TabNav from '@/components/view/TabNav.vue';
 import { ModalId } from '@/data/models';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
+import { usePanopticStore } from '@/data/panopticStore';
 
-import { useSelectionStore } from '@/data/selectionStore';
 
-
-const store = useStore()
-const selectionStore = useSelectionStore()
+const store = useProjectStore()
+const panoptic = usePanopticStore()
 
 const mainViewRef = ref(null)
 const navElem = ref(null)
-const windowHeight = ref(400)
+const windowHeight = ref(window.innerHeight)
 const hasHeight = ref(false)
 
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
 const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
 onMounted(async () => {
-    await selectionStore.init()
-    if(!selectionStore.isProjectLoaded) {
+    if(!panoptic.isProjectLoaded) {
         // console.log('redirect')
         router.push('/')
     }
-    await store.init()
 
     nextTick(() => {
         window.addEventListener('resize', onResize);
@@ -68,7 +65,7 @@ function onResize() {
 }
 
 function showModal() {
-    store.showModal(ModalId.EXPORT, filteredImages)
+    panoptic.showModal(ModalId.EXPORT, filteredImages)
 }
 
 function reRender() {
@@ -96,7 +93,7 @@ function redirectHome() {
                 <MainView :tab-id="store.data.selectedTabId" :height="contentHeight" v-if="store.status.loaded"
                     ref="mainViewRef" />
             </div>
-            <div v-else-if="!selectionStore.isProjectLoaded" class="loading">
+            <div v-else-if="!panoptic.isProjectLoaded" class="loading">
                 <div class="text-center">
                     <div>{{ $t('main.status.no_project') }}</div>
                     <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;"></div>
@@ -107,12 +104,6 @@ function redirectHome() {
                 <span class="ms-1">Loading...</span>
             </div>
         </div>
-        <ImageModal :id="ModalId.IMAGE" />
-        <PropertyModal :id="ModalId.PROPERTY" />
-        <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
-        <ExportModal :id="ModalId.EXPORT" />
-
-
     </div>
     <!-- <div class="above bg-info">lalala</div>
                 <div class="above2 bg-warning">lalala</div> -->

@@ -2,9 +2,9 @@
 import { Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import DateInput from './monoline/DateInput.vue';
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     property: Object as () => Property,
     image: Object as () => Image,

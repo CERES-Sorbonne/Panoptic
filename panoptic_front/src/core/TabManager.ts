@@ -3,7 +3,7 @@ import { FilterState } from "./FilterManager"
 import { GroupState } from "./GroupManager"
 import { SortState } from "./SortManager"
 import { CollectionManager } from "./CollectionManager"
-import { useStore } from "@/data/store"
+import { useProjectStore } from "@/data/projectStore"
 import { reactive, toRefs } from "vue"
 
 export interface TabState {
@@ -48,7 +48,7 @@ export class TabManager {
     }
     
     saveState() {
-        const store = useStore()
+        const store = useProjectStore()
         store.updateTab(this.state)
     }
 
@@ -66,7 +66,7 @@ export class TabManager {
     }
 
     getVisibleProperties() {
-        const store = useStore()
+        const store = useProjectStore()
         return store.propertyList.filter(p => this.isVisibleProperty(p.id))
     }
 

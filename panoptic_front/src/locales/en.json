@@ -1,5 +1,16 @@
 {
     "main": {
+        "home": {
+            "label": {
+                "folder": "Folder",
+                "name": "Project name",
+                "path_placeholder": "Select a folder",
+                "create": "Create",
+                "cancel": "Cancel"
+            },
+            "create_title": "Create project"
+        },
+        
         "status": {
             "no_project": "No open Panoptic project"
         },

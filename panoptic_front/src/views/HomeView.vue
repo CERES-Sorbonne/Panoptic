@@ -1,22 +1,31 @@
 <script setup lang="ts">
-import { useSelectionStore } from '@/data/selectionStore';
-import { useStore } from '@/data/store';
+import Dropdown from '@/components/dropdowns/Dropdown.vue';
+import Create from '@/components/home/Create.vue';
+import Options from '@/components/home/Options.vue';
+import { usePanopticStore } from '@/data/panopticStore';
+import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
 import { computed, onMounted, reactive, ref } from 'vue';
 
-const selectionStore = useSelectionStore()
-const store = useStore()
+const panoptic = usePanopticStore()
+const store = useProjectStore()
 
 interface Project {
     path: string
     name: string
 }
 
-const hasProjects = computed(() => Array.isArray(selectionStore.data.status.projects) && selectionStore.data.status.projects.length > 0)
+const menuMode = ref(1) // 0 options 1 create
+const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
 
+// use Unicode NON-BREAKING HYPHEN (U+2011)
+// https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
+function correctHyphen(path) {
+    return path.replaceAll('-', '‑')
+}
 
 onMounted(() => {
-    if(selectionStore.isProjectLoaded) {
+    if (panoptic.isProjectLoaded) {
         router.push('/view')
     }
 })
@@ -26,13 +35,23 @@ onMounted(() => {
 <template>
     <div class="window d-flex">
         <div v-if="hasProjects" class="project-menu">
-            <div v-for="project in selectionStore.data.status.projects" class="d-flex">
-                <div class="project flex-grow-1" @click="selectionStore.loadProject(project.path)">
+            <div v-for="project in panoptic.data.status.projects" class="d-flex">
+                <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.path)">
                     <h5 class="m-0">{{ project.name }}</h5>
-                    <div class="m-0 p-0 text-wrap text-break dimmed-2">{{project.path}}</div>
+                    <div class="m-0 p-0 text-wrap text-break dimmed-2" style="font-size: 13px;">{{ correctHyphen(project.path) }}</div>
                 </div>
                 <div class="project-option flex-shrink-0">
-                    <i class="bi bi-three-dots-vertical"></i>
+                    <Dropdown>
+                        <template #button><i class="bi bi-three-dots-vertical"></i></template>
+                        <template #popup="{ hide }">
+                            <div class="text-start">
+                                <div @click="panoptic.deleteProject(project.path); hide();"
+                                    class="m-1 base-hover p-1"><i class="bi bi-trash me-1"></i>delete</div>
+                                <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
+                            </div>
+                        </template>
+                    </Dropdown>
+
                 </div>
             </div>
         </div>
@@ -42,38 +61,26 @@ onMounted(() => {
             <h6 class="dimmed-2">Version pre-2.0</h6>
 
             <div class="create-menu mt-5 pt-5">
-                <div class="create-option d-flex">
-                    <div class="flex-grow-1">
-                        <h6 class="create-title m-0">Créer un nouveau projet</h6>
-                        <span class="create-explanation">Créer un nouveau projet panotpic dans un dossier.</span>
-                    </div>
-                    <div class="create-btn highlight">Créer</div>
-                </div>
-                <div class="create-option d-flex">
-                    <div class="flex-grow-1">
-                        <h6 class="create-title m-0">Importer un projet</h6>
-                        <span class="create-explanation">Choisissez un dossier Panoptic existant.</span>
-                    </div>
-                    <div class="create-btn">Importer</div>
-                </div>
-                <div>
-                </div>
+                <Options v-if="menuMode == 0" @create="menuMode = 1"/>
+                <Create v-if="menuMode == 1" @cancel="menuMode = 0"/>
             </div>
         </div>
     </div>
 </template>
 
- <style scoped>
-
-
+<style scoped>
 .dimmed-2 {
     color: rgb(90, 90, 90)
 }
 
- .window {
+.nowrap {
+    white-space: nowrap;
+}
+
+.window {
     width: 100vw;
     height: 100vh;
- }
+}
 
 .project-menu {
     height: 100%;
@@ -120,42 +127,5 @@ onMounted(() => {
     /* background-color: green; */
     width: 500px;
     margin: auto;
-}
-
-.create-option {
-    text-align: left;
-    padding-bottom: 10px;
-    padding-top: 10px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.create-btn {
-    text-align: center;
-    background-color: rgb(240, 240, 240);
-    height: 36px;
-    padding: 6px;
-    border-radius: 8px;
-    margin-top: 6px;
-    width: 100px;
-    cursor: pointer;
-    color: rgb(45, 45, 45);
-}
-
-.create-btn:hover {
-    background-color: rgb(227, 227, 255);
-    color: black;
-}
-
-.highlight {
-    background-color: rgb(170, 170, 255);
-    color: white;
-}
-
-.create-title {
-    font-size: 20px;
-}
-
-.create-explanation {
-    font-size: 15px;
 }
 </style>

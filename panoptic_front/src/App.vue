@@ -1,20 +1,26 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import { onMounted } from 'vue'
+import { RouterView } from 'vue-router'
 import '@vuepic/vue-datepicker/dist/main.css';
 import './assets/main.css';
-import { useStore } from './data/store';
-import { useSelectionStore } from './data/selectionStore';
+import { usePanopticStore } from './data/panopticStore';
+import ImageModal from './components/modals/ImageModal.vue';
+import PropertyModal from './components/modals/PropertyModal.vue';
+import FolderSelectionModal from './components/modals/FolderSelectionModal.vue';
+import ExportModal from './components/modals/ExportModal.vue';
+import { ModalId } from './data/models';
 
-const store = useStore()
-const selectionStore = useSelectionStore()
-selectionStore.init()
+const panoptic = usePanopticStore()
+panoptic.init()
 document.title = 'Panoptic'
 </script>
 
 <template>
   <body>
     <RouterView />
+    <ImageModal :id="ModalId.IMAGE" />
+    <PropertyModal :id="ModalId.PROPERTY" />
+    <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+    <ExportModal :id="ModalId.EXPORT" />
   </body>
 </template>
 

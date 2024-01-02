@@ -10,10 +10,12 @@ import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import { Group } from '@/core/GroupManager';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const store = useStore()
+const panoptic = usePanopticStore()
+const store = useProjectStore()
 
 const props = defineProps({
     image: Object as () => Image,
@@ -80,7 +82,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="store.showModal(ModalId.IMAGE, image)"
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
             <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />

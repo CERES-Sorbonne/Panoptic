@@ -6,12 +6,12 @@ import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
 import FolderList2 from '../foldertree/FolderList2.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
-import { useSelectionStore } from '@/data/selectionStore';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const store = useStore()
-const selectionStore = useSelectionStore()
+const store = useProjectStore()
+const panoptic = usePanopticStore()
 const tabManager = store.getTabManager()
 
 const emits = defineEmits(['export'])
@@ -36,15 +36,15 @@ const handleInput = async (e: any) => {
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
                     <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
-                        <div class="flex-grow-1">{{ selectionStore.data.status.selectedProject.name }}</div>
-                        <div class="base-hover p-1" style="margin-right: 6px;" @click="selectionStore.closeProject()"><i class="bi bi-x"></i></div>
+                        <div class="flex-grow-1">{{ panoptic.data.status.selectedProject.name }}</div>
+                        <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i class="bi bi-x"></i></div>
                     </div>
                 </div>
                 <div class="custom-hr" />
                 <div class="ps-2 pe-2" style="padding-bottom: 9.5px">
                     <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
-                        <div class="ms-auto plus" @click="store.showModal(ModalId.FOLDERSELECTION)">
+                        <div class="ms-auto plus" @click="panoptic.showModal(ModalId.FOLDERSELECTION)">
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>
@@ -97,7 +97,7 @@ const handleInput = async (e: any) => {
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
-                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="store.showModal(ModalId.EXPORT, undefined)" /></wTT>
+                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="panoptic.showModal(ModalId.EXPORT, undefined)" /></wTT>
                         </span>
                     </div>
 
@@ -113,7 +113,7 @@ const handleInput = async (e: any) => {
                             </div>
                         </template>
                         <div class="property-item m-0 p-0"></div>
-                        <div @click="store.showModal(ModalId.PROPERTY, undefined)" class="btn-icon base-hover mt-1"
+                        <div @click="panoptic.showModal(ModalId.PROPERTY, undefined)" class="btn-icon base-hover mt-1"
                             style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                             <span>{{ $t('main.nav.properties.add_property') }}</span>

@@ -11,10 +11,10 @@ import GridScroller from '../scrollers/grid/GridScroller.vue';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { getSimilarImagesFromText } from '@/utils/utils';
 
-const store = useStore()
+const store = useProjectStore()
 const tabManager = store.getTabManager()
 
 const props = defineProps({
@@ -90,7 +90,7 @@ onMounted(() => {
     scrollerWidth.value = filterElem.value.clientWidth
     window.addEventListener('resize', () => {
         nextTick(() => {
-            scrollerWidth.value = filterElem.value.clientWidth
+            scrollerWidth.value = filterElem.value?.clientWidth ?? scrollerWidth.value
         })
     })
 })

@@ -206,17 +206,9 @@ async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPa
     return await get_similar_images_from_text(payload.input_text)
 
 
-@project_router.post("/project")
-async def change_project_route(payload: ChangeProjectPayload):
-    os.environ['PANOPTIC_DATA'] = payload.project
-    await db_utils.init()
-    reload_tree()
-    return f"changed project to {payload.project}"
-
-
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
-    path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini', file_path)
+    path = os.path.join(db_utils.loaded_path, 'mini', file_path)
     async with aiofiles.open(path, 'rb') as f:
         data = await f.read()
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     modelValue: Number

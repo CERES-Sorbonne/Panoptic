@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PropertyType } from '@/data/models';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
@@ -11,7 +11,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagInputDropdown from '../tags/TagInputDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils';
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     values: Object as () => { [propertyId: number]: any },

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { FilterManager } from '@/core/FilterManager';
 import { Folder } from '@/data/models';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed } from 'vue';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     folders: Array<Folder>,

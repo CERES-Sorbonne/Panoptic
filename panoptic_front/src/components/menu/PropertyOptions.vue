@@ -5,10 +5,10 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import TagMenu from '../tags/TagMenu.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
 
-const store = useStore()
+const store = useProjectStore()
 const tabManager = store.getTabManager()
 
 const props = defineProps({
