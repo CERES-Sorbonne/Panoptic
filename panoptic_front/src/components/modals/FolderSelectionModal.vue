@@ -3,10 +3,12 @@
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import FileExplorer from './FileExplorer.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import Resizable from '../Resizable.vue';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const store = useStore()
+const store = useProjectStore()
+const panoptic = usePanopticStore()
 
 const modalElem = ref(null)
 const explorerWidth = ref(0)
@@ -16,12 +18,12 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => store.openModal.id == props.id)
+const isActive = computed(() => panoptic.openModal.id == props.id)
 
 
 function onHide() {
-    if (store.openModal.id == props.id) {
-        store.hideModal()
+    if (panoptic.openModal.id == props.id) {
+        panoptic.hideModal()
     }
 }
 
@@ -33,7 +35,7 @@ function show() {
     modal.show()
 }
 
-watch(() => store.openModal.id, (id) => {
+watch(() => panoptic.openModal.id, (id) => {
     if (id == props.id) {
         show()
     }

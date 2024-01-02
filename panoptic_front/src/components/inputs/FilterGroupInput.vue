@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { computed } from 'vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager, FilterOperator } from '@/core/FilterManager';
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     filter: Object as () => FilterGroup,
     manager: FilterManager,

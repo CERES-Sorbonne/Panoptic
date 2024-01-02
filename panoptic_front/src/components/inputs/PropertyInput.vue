@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { PropertyType } from '@/data/models';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { PropertyRef } from '@/data/models'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import * as inputTree from '@/utils/inputTree'
 import TagBadge from '../tagtree/TagBadge.vue'
 import ColorPropInput from './ColorPropInput.vue';
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     property: Object as () => PropertyRef,
     maxSize: String,

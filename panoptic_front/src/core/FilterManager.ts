@@ -7,7 +7,8 @@
 
 import { propertyDefault } from "@/data/builder";
 import { Image, PropertyType } from "@/data/models";
-import { useStore } from "@/data/store";
+import { useProjectStore } from "@/data/projectStore";
+
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
 import { reactive, toRefs } from "vue";
 
@@ -249,7 +250,7 @@ function computeFilter(filter: Filter, propertyValue: any) {
 }
 
 function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
-    const store = useStore()
+    const store = useProjectStore()
     if (filterGroup.filters.length == 0) {
         return true
     }
@@ -403,7 +404,7 @@ export class FilterManager {
 
 
     updateFilter(filterId: number, update: FilterUpdate) {
-        const store = useStore()
+        const store = useProjectStore()
         if (this.filterIndex[filterId] == undefined || this.filterIndex[filterId].isGroup) return
         const filter = this.filterIndex[filterId] as Filter
 
@@ -431,7 +432,7 @@ export class FilterManager {
 
     // used to remove properties that doesnt exist anymore from filters 
     public verifyState() {
-        const store = useStore()
+        const store = useProjectStore()
         const recurive = (group: FilterGroup) => {
             const toRem = new Set()
             group.filters.forEach(f => {
@@ -466,7 +467,7 @@ export class FilterManager {
     }
 
     private createFilter(propertyId: number) {
-        const store = useStore()
+        const store = useProjectStore()
         let property = store.data.properties[propertyId]
 
         let filter: Filter = {

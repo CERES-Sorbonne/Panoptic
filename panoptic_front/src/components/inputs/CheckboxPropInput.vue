@@ -3,8 +3,8 @@ import { Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
 import TextInput from './TextInput.vue';
-import { useStore } from '@/data/store'
-const store = useStore()
+import { useProjectStore } from '@/data/projectStore'
+const store = useProjectStore()
 const props = defineProps({
     property: Object as () => Property,
     image: Object as () => Image,

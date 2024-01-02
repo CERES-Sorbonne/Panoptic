@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Image, ModalId } from '@/data/models';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { computed } from 'vue';
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     image: Object as () => Image,
@@ -35,7 +35,7 @@ const imageUrl = computed(() => {
 function openModal() {
     if (props.noClick) return
 
-    store.showModal(ModalId.IMAGE, props.image)
+    panoptic.showModal(ModalId.IMAGE, props.image)
 }
 
 </script>

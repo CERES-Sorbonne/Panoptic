@@ -64,7 +64,7 @@ async function openSubFolder(path: string, folderIndex: number) {
     if (folderIndex < openFolders.length - 1) {
         openFolders.splice(folderIndex + 1)
     }
-    if(res.directories.length) openFolders.push(res.directories)
+    if (res.directories.length) openFolders.push(res.directories)
     actualPath.value = path
     imageList.length = 0
     imageList.push(...res.images)
@@ -168,11 +168,16 @@ onUpdated(() => {
 
 .open {
     padding: 4px 6px;
-    background-color: rgb(225, 226, 227);
-    color: rgb(3, 100, 225);
+    /* background-color: rgb(225, 226, 227); */
+
+    background-color: rgb(73, 134, 213);
+    color: white;
     cursor: pointer;
-    border: 1px solid rgb(3, 100, 225);
     border-bottom-right-radius: 5px;
+}
+
+.open:hover {
+    background-color: rgb(3, 100, 225);
 }
 
 .folder-list {

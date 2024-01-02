@@ -9,9 +9,9 @@ import TagInputDropdown from './TagInputDropdown.vue';
 import { nextTick, onMounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual, computedPropValue } from '@/utils/utils';
 import { Property, Image } from '@/data/models';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     property: Object as () => Property,

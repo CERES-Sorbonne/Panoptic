@@ -6,7 +6,7 @@
 
 import { Image, Property } from "@/data/models"
 import { PropertyType } from "@/data/models"
-import { useStore } from "@/data/store"
+import { useProjectStore } from "@/data/projectStore"
 import { EventEmitter } from "@/utils/utils"
 import { reactive, toRefs } from "vue"
 
@@ -91,7 +91,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
         return x
     },
     [PropertyType._folders]: (x: number) => {
-        const store = useStore()
+        const store = useProjectStore()
         return store.data.folders[x].name
     }
 }
@@ -156,7 +156,7 @@ export class SortManager {
         this.result.order = {}
 
         for (let i = 0; i < sortable.length; i++) {
-            const store = useStore()
+            const store = useProjectStore()
             this.result.images.push(store.data.images[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
@@ -190,13 +190,13 @@ export class SortManager {
     }
 
     verifyState() {
-        const store = useStore()
+        const store = useProjectStore()
         this.state.sortBy = this.state.sortBy.filter(id => store.data.properties[id])
         Object.keys(this.state.options).filter(id => !store.data.properties[id]).forEach(id => delete this.state.options[id])
     }
 
     private getSortableImages(images: Image[]): SortableImage[] {
-        const store = useStore()
+        const store = useProjectStore()
         const res = []
         const properties = this.state.sortBy.map(id => store.data.properties[id])
 

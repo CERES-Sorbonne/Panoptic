@@ -14,10 +14,12 @@ import SelectCircle from '../inputs/SelectCircle.vue';
 import { GroupManager } from '@/core/GroupManager';
 import { SortManager } from '@/core/SortManager';
 import { CollectionManager } from '@/core/CollectionManager';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { getSimilarImages } from '@/utils/utils';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const store = useStore()
+const store = useProjectStore()
+const panoptic = usePanopticStore()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -33,8 +35,8 @@ const state = reactive({
 const similarGroup = new GroupManager()
 similarGroup.setSha1Mode(true)
 
-const image = computed(() => store.openModal.data as Image)
-const isActive = computed(() => store.openModal.id == props.id)
+const image = computed(() => panoptic.openModal.data as Image)
+const isActive = computed(() => panoptic.openModal.id == props.id)
 const similarImages = ref([])
 const availableHeight = ref(100)
 const availableWidth = ref(100)
@@ -105,8 +107,8 @@ const imageProperties = computed(() => {
 const hasUniqueProperties = computed(() => store.propertyList.some(p => p.mode == PropertyMode.id))
 
 function onHide() {
-    if (store.openModal.id == props.id) {
-        store.hideModal()
+    if (panoptic.openModal.id == props.id) {
+        panoptic.hideModal()
     }
 }
 
@@ -139,7 +141,7 @@ function toggleProperty(propId: Number) {
     }
 }
 
-watch(() => store.openModal.id, (id) => {
+watch(() => panoptic.openModal.id, (id) => {
     console.log('change')
     if (id == props.id) {
         show()
@@ -150,7 +152,7 @@ watch(() => store.openModal.id, (id) => {
 })
 
 watch(image, () => {
-    if (store.openModal.id == props.id) {
+    if (panoptic.openModal.id == props.id) {
         show()
     }
 })

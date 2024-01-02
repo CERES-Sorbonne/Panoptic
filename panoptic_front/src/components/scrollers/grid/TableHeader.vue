@@ -8,9 +8,9 @@ import { Property } from '@/data/models';
 import { Group, GroupManager } from '@/core/GroupManager';
 import { getGroupParents } from '@/utils/utils';
 import PropertyOptions from '@/components/menu/PropertyOptions.vue';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     properties: Array<Property>,

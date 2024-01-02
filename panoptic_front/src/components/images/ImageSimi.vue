@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { Image, ModalId } from '@/data/models';
-const store = useStore()
+import { usePanopticStore } from '@/data/panopticStore';
+const store = useProjectStore()
+const panoptic = usePanopticStore()
 const props = defineProps({
     image: Object as () => Image,
     size: { type: Number, default: 100 }
@@ -31,7 +33,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 
 <template>
     <div class="me-2 mb-2 full-container" :style="widthStyle">
-        <div :style="imageContainerStyle" class="img-container" @click="store.showModal(ModalId.IMAGE, props.image)">
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)">
             <img :src="props.image.url" :style="imageStyle" />
         </div>
         <div class="text-center text-secondary" style="font-size: 10px;">{{ props.image.dist }}</div>

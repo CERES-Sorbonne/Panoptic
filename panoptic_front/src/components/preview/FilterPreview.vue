@@ -3,9 +3,9 @@
 import { computed, watch } from 'vue';
 import PropertyValuePreview from './PropertyValuePreview.vue';
 import { operatorHasInput, Filter } from '@/core/FilterManager'
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     filter: Object as () => Filter

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { useStore } from '@/data/store';
+import { usePanopticStore } from '@/data/panopticStore';
+import { useProjectStore } from '@/data/projectStore';
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 
-const store = useStore()
+const panoptic = usePanopticStore()
+const store = useProjectStore()
 const tabManager = store.getTabManager()
 
 const modalElem = ref(null)
@@ -15,15 +17,15 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => store.openModal.id == props.id)
+const isActive = computed(() => panoptic.openModal.id == props.id)
 const imagesId = computed(() => tabManager.collection.filterManager.result.images.map(i => i.id))
 const activeProperties = computed(() => tabManager.getVisibleProperties().filter(p => p.id >= 0))
 const useOnlyActiveImage = ref(false)
 const useOnlyActiveProperties = ref(false)
 
 function onHide() {
-    if (store.openModal.id == props.id) {
-        store.hideModal()
+    if (panoptic.openModal.id == props.id) {
+        panoptic.hideModal()
     }
 }
 
@@ -35,7 +37,7 @@ function show() {
     modal.show()
 }
 
-watch(() => store.openModal.id, (id) => {
+watch(() => panoptic.openModal.id, (id) => {
     if (id == props.id) {
         show()
     }

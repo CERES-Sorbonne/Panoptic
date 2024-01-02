@@ -2,9 +2,9 @@
 import { Image, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import Dropdown from '../dropdowns/Dropdown.vue';
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     images: Array<Image>,

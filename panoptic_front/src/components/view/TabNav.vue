@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import {reactive, ref, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 import { TabState } from '@/data/models';
 
 
-const store = useStore()
+const store = useProjectStore()
 
 const editTab = ref(-1)
 const newTabName = ref('')

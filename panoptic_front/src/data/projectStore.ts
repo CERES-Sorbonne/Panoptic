@@ -11,12 +11,10 @@ import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from
 import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
-import { useSelectionStore } from "./selectionStore";
 
 let tabManager: TabManager = undefined
 
-export const useStore = defineStore('store', () => {
-    const selectionStore = useSelectionStore()
+export const useProjectStore = defineStore('projectStore', () => {
 
     const data = reactive({
         images: {} as ImageIndex,
@@ -35,8 +33,6 @@ export const useStore = defineStore('store', () => {
         import: {} as ImportState
     })
 
-    const openModal = reactive({ id: undefined, data: undefined })
-
     // =======================
     // =======Computed=======
     // =======================
@@ -52,12 +48,6 @@ export const useStore = defineStore('store', () => {
     // =======================
 
     async function init() {
-        if(!selectionStore.isProjectLoaded) {
-            console.log('init not loaded')
-            status.projectNotOpen = true
-            tabManager = undefined
-            return
-        }
         if (!tabManager) {
             tabManager = new TabManager(getTab())
         }
@@ -94,6 +84,26 @@ export const useStore = defineStore('store', () => {
         verifyData()
 
         status.loaded = true
+    }
+
+    function clear() {
+        Object.assign(data, {
+            images: {} as ImageIndex,
+            sha1Index: {} as Sha1ToImages,
+            properties: {} as PropertyIndex,
+            tabs: {} as TabIndex,
+            selectedTabId: undefined as number,
+            folders: {} as FolderIndex,
+        })
+
+        Object.assign(status, {
+            loaded: false,
+            projectNotOpen: false,
+            changed: false,
+            renderNb: 0,
+            import: {} as ImportState
+        })
+        tabManager = undefined
     }
 
     function verifyData() {
@@ -159,15 +169,6 @@ export const useStore = defineStore('store', () => {
             return
         }
         data.selectedTabId = Number(Object.keys(data.tabs)[0])
-    }
-
-    function showModal(modalId: ModalId, data?: any) {
-        openModal.id = modalId
-        openModal.data = data
-    }
-
-    function hideModal() {
-        Object.assign(openModal, { id: undefined, data: undefined })
     }
 
     function importImage(img: Image) {
@@ -349,30 +350,18 @@ export const useStore = defineStore('store', () => {
         return tabManager
     }
 
-    watch(() => selectionStore.data.status.selectedProject?.path, () => {
-        status.loaded = false
-        // if(!selectionStore.isProjectLoaded && tabManager) {
-        //     // tabManager.collection.images = undefined
-        //     // tabManager.collection.filterManager.onChange.clear()
-        //     // tabManager.collection.sortManager.onChange.clear()
-        //     // tabManager.collection.groupManager.onChange.clear()
-        //     tabManager = undefined
-        // }
-    })
-
     return {
         // variables
-        data, status, openModal,
+        data, status,
 
         // computed
         propertyList, imageList, folderRoots,
 
         // functions
-        init, rerender,
+        init, clear, rerender,
         addProperty, deleteProperty, updateProperty, setPropertyValue,
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent,
-        showModal, hideModal,
         uploadPropFile,
     }
 

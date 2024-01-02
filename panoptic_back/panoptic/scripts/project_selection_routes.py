@@ -5,6 +5,7 @@ import pathlib
 
 import psutil
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from panoptic.api import PathRequest
 from panoptic.core import db_utils
@@ -17,6 +18,11 @@ manager.load_data()
 selection_router = APIRouter()
 
 
+class ProjectRequest(BaseModel):
+    path: str
+    name: str
+
+
 @selection_router.get("/status")
 async def get_status_route():
     return {
@@ -27,17 +33,30 @@ async def get_status_route():
 
 
 @selection_router.post("/load")
-async def init_project(path: PathRequest):
+async def load_project_route(path: PathRequest):
+    print('load', path.path)
     await db_utils.load_project(path.path)
     manager.set_loaded(path.path)
     return await get_status_route()
 
 
 @selection_router.post("/close")
-async def init_project():
+async def close_project():
     await db_utils.close()
     manager.close()
     return await get_status_route()
+
+
+@selection_router.post("/delete_project")
+async def delete_project_route(req: PathRequest):
+    manager.remove_project(req.path)
+    return await get_status_route()
+
+
+@selection_router.post("/create_project")
+async def create_project_route(req: ProjectRequest):
+    manager.add_project(req.name, req.path)
+    return await load_project_route(PathRequest(path=req.path))
 
 
 @selection_router.get("/filesystem/ls/{path:path}")

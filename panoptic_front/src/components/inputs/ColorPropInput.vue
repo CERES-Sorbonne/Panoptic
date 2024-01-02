@@ -2,10 +2,10 @@
 import { Colors, Image, Property } from '@/data/models';
 import { getImageProperty } from '@/utils/utils';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import 'vue-color-kit/dist/vue-color-kit.css'
 import * as bootstrap from 'bootstrap'
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     property: Object as () => Property,
     image: Object as () => Image,

@@ -9,6 +9,8 @@ from json import JSONDecodeError
 import aiosqlite
 import numpy as np
 
+from panoptic.compute import reload_tree
+
 ALL_TABLES = ['images', 'property_values', 'properties', 'tags', 'folders', 'tabs']
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
@@ -35,6 +37,7 @@ async def load_project(path: str):
                                    detect_types=sqlite3.PARSE_DECLTYPES)
     loaded_path = path
     await create_tables_if_db_empty()
+    reload_tree(path)
 
 
 async def close():

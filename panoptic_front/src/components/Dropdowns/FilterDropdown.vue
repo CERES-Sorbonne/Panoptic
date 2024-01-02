@@ -9,7 +9,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { PropertyID, PropertyType} from '@/data/models';
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import TagInput from '../tags/TagInput.vue';
@@ -18,7 +18,7 @@ import Dropdown from './Dropdown.vue';
 import { Filter, FilterManager, FilterOperator, operatorHasInput } from '@/core/FilterManager';
 import { propertyDefault } from '@/data/builder';
 import { isTag } from '@/utils/utils';
-const store = useStore()
+const store = useProjectStore()
 enum State {
     CLOSED = 0,
     TYPE = 1, // chose filter propertyId

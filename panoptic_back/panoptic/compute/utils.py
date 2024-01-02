@@ -29,8 +29,8 @@ def save_data(images_dict, data_path=os.getenv('PANOPTIC_DATA')):
         pickle.dump(images_dict, f)
 
 
-def load_similarity_tree():
-    path = os.path.join(os.getenv('PANOPTIC_DATA'), 'tree_faiss.pkl')
+def load_similarity_tree(path: str):
+    path = os.path.join(path, 'tree_faiss.pkl')
     if not os.path.exists(path):
         return None
     with open(path, 'rb') as f:

@@ -6,9 +6,9 @@ import GridScrollerLine from './GridScrollerLine.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ROOT_ID } from '@/core/GroupManager';
 import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, Image } from '@/data/models';
-import { useStore } from '@/data/store';
+import { useProjectStore } from '@/data/projectStore';
 
-const store = useStore()
+const store = useProjectStore()
 
 const props = defineProps({
     manager: GroupManager,

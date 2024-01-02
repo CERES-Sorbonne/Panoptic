@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useStore } from '@/data/store'
+import { useProjectStore } from '@/data/projectStore'
 import { ref, computed, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { FilterOperator, availableOperators } from '@/core/FilterManager';
-const store = useStore()
+const store = useProjectStore()
 const props = defineProps({
     propertyId: { type: Number, required: true },
     modelValue: String as () => FilterOperator,
