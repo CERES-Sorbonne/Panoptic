@@ -1,20 +1,15 @@
-import glob
+import logging
 import logging
 import os
-import pathlib
-import sys
 from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-import psutil
-from fastapi import FastAPI, UploadFile, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import UploadFile, APIRouter
 from fastapi.responses import ORJSONResponse, StreamingResponse
 from pydantic import BaseModel
-from starlette.responses import Response, FileResponse, HTMLResponse
-from starlette.staticfiles import StaticFiles
+from starlette.responses import Response
 
 from panoptic import core
 from panoptic.compute.similarity import get_similar_images_from_text, reload_tree
@@ -28,54 +23,32 @@ from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
     ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-if getattr(sys, 'frozen', False):
-    # Le programme est exécuté en mode fichier unique
-    BASE_PATH = sys._MEIPASS
-else:
-    # Le programme est exécuté en mode script
-    BASE_PATH = os.path.dirname(__file__)
-
-
-# # TODO:
-# ajouter une route static pour le mode serveur
-
-@app.on_event("startup")
-async def startup_event():
-    await db_utils.init()
+project_router = APIRouter()
 
 
 # Route pour créer une property et l'insérer dans la table des properties
-@app.post("/property")
+@project_router.post("/property")
 async def create_property_route(payload: PropertyPayload) -> Property:
     return await create_property(payload.name, payload.type, payload.mode)
 
 
-@app.get("/property")
+@project_router.get("/property")
 async def get_properties_route() -> Properties:
     return await get_properties()
 
 
-@app.patch("/property")
+@project_router.patch("/property")
 async def update_property_route(payload: UpdatePropertyPayload) -> Property:
     return await update_property(payload)
 
 
-@app.post('/property/file')
+@project_router.post('/property/file')
 async def properties_by_file(file: UploadFile):
     data = pd.read_csv(file.file, sep=";")
     return await read_properties_file(data)
 
 
-@app.post('/export')
+@project_router.post('/export')
 async def export_properties_route(payload: ExportPropertiesPayload) -> StreamingResponse:
     stream = await export_properties(payload.images, payload.properties)
     response = StreamingResponse(iter([stream.getvalue()]),
@@ -85,20 +58,20 @@ async def export_properties_route(payload: ExportPropertiesPayload) -> Streaming
     return response
 
 
-@app.delete('/property/{property_id}')
+@project_router.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
     await delete_property(property_id)
     return await get_properties()
 
 
 # Route pour récupérer la liste de toutes les images
-@app.get("/images", response_class=ORJSONResponse)
+@project_router.get("/images", response_class=ORJSONResponse)
 async def get_images_route():
     images = await get_full_images()
     return ORJSONResponse(images)
 
 
-@app.get('/images/{file_path:path}')
+@project_router.get('/images/{file_path:path}')
 async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
@@ -114,7 +87,7 @@ async def get_image(file_path: str):
 
 # Route pour ajouter une property à une image dans la table de jointure entre image et property
 # On retourne le payload pour pouvoir valider l'update côté front
-@app.post("/image_property")
+@project_router.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
     updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
                                                sha1s=payload.sha1s, value=payload.value)
@@ -122,53 +95,53 @@ async def add_image_property(payload: SetPropertyValuePayload):
 
 
 # Route pour supprimer une property d'une image dans la table de jointure entre image et property
-@app.delete("/image_property")
+@project_router.delete("/image_property")
 async def delete_property_value_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
     await db.delete_property_value(payload.property_id, image_ids=[payload.image_id])
     return payload
 
 
-@app.post("/tags")
+@project_router.post("/tags")
 async def add_tag(payload: AddTagPayload) -> Tag:
     if not payload.parent_id:
         payload.parent_id = 0
     return await create_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
 
 
-@app.post("/tag/parent")
+@project_router.post("/tag/parent")
 async def add_tag_parent(payload: AddTagParentPayload) -> Tag:
     return await tag_add_parent(payload.tag_id, payload.parent_id)
 
 
-@app.get("/tags", response_class=ORJSONResponse)
+@project_router.get("/tags", response_class=ORJSONResponse)
 async def get_tags_route(property: Optional[str] = None):
     tags = await get_tags(property)
     return ORJSONResponse(tags)
 
 
-@app.patch("/tags")
+@project_router.patch("/tags")
 async def update_tag_route(payload: UpdateTagPayload) -> Tag:
     return await update_tag(payload)
 
 
-@app.delete("/tags")
+@project_router.delete("/tags")
 async def delete_tag_route(tag_id: int) -> list[int]:
     return await delete_tag(tag_id)
 
 
-@app.delete("/tags/parent")
+@project_router.delete("/tags/parent")
 async def delete_tag_parent_route(tag_id: int, parent_id: int):
     res = await delete_tag_parent(tag_id, parent_id)
     return res
 
 
-@app.get("/folders")
+@project_router.get("/folders")
 async def get_folders_route():
     res = await db.get_folders()
     return res
 
 
-@app.get('/import_status')
+@project_router.get('/import_status')
 async def get_import_status_route():
     image_import = core.importer
     new_image = image_import.get_new_images()
@@ -191,54 +164,49 @@ class PathRequest(BaseModel):
     path: str
 
 
-@app.post("/folders")
+@project_router.post("/folders")
 async def add_folder_route(path: PathRequest):
     # TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
     nb_images = await add_folder(path.path)
     return await get_folders_route()
 
 
-@app.get("/tabs")
+@project_router.get("/tabs")
 async def get_tabs_route():
     return await db.get_tabs()
 
 
-@app.post("/tab")
+@project_router.post("/tab")
 async def add_tab_route(tab: Tab):
     return await db.add_tab(tab.data)
 
 
-@app.patch("/tab")
+@project_router.patch("/tab")
 async def update_tab_route(tab: Tab):
     return await db.update_tab(tab)
 
 
-@app.delete("/tab")
+@project_router.delete("/tab")
 async def delete_tab_route(tab_id: int):
     return await db.delete_tab(tab_id)
 
 
-@app.post("/clusters")
+@project_router.post("/clusters")
 async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
     return await make_clusters(payload.nb_groups, payload.image_list)
 
 
-@app.post("/similar/image")
+@project_router.post("/similar/image")
 async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
     return await get_similar_images(payload.sha1_list)
 
 
-@app.post("/similar/text")
+@project_router.post("/similar/text")
 async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
     return await get_similar_images_from_text(payload.input_text)
 
 
-# @app.post("/pca")
-# async def start_pca_route():
-#     return await compute_all_pca(force=True)
-
-
-@app.post("/project")
+@project_router.post("/project")
 async def change_project_route(payload: ChangeProjectPayload):
     os.environ['PANOPTIC_DATA'] = payload.project
     await db_utils.init()
@@ -246,7 +214,7 @@ async def change_project_route(payload: ChangeProjectPayload):
     return f"changed project to {payload.project}"
 
 
-@app.get('/small/images/{file_path:path}')
+@project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
     path = os.path.join(os.environ['PANOPTIC_DATA'], 'mini', file_path)
     async with aiofiles.open(path, 'rb') as f:
@@ -256,78 +224,6 @@ async def get_image(file_path: str):
 
     # # media_type here sets the media type of the actual response sent to the client.
     return Response(content=data, media_type="image/" + ext)
-
-
-def images_in_folder(folder_path):
-    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types
-    image_files = []
-    for type_ in types:
-        image_files.extend(glob.glob(os.path.join(folder_path, type_)))
-
-    return image_files
-
-
-def list_contents(full_path: str = '/'):
-    paths = [full_path + '/' + p if full_path != '/' else full_path + p for p in os.listdir(full_path)]
-    directories = [p for p in paths if os.path.isdir(p)]
-    directories = [{
-        'path': p,
-        'name': pathlib.Path(p).name,
-        'images': len(images_in_folder(p))
-    } for p in directories]
-    images = images_in_folder(full_path)
-
-    return {'images': images[0:40], 'directories': directories}
-
-
-def list_disk():
-    files = []
-    partitions = psutil.disk_partitions()
-    partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
-    for partition in partitions:
-        files.append({
-            'path': partition.mountpoint,
-            'name': pathlib.Path(partition.mountpoint).name,
-            'images': len(images_in_folder(partition.mountpoint))
-        })
-    return files
-
-
-def list_index():
-    mounted = []
-
-    partitions = psutil.disk_partitions()
-    partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
-    for partition in partitions:
-        mounted.append({
-            'path': partition.mountpoint,
-            'name': partition.mountpoint,
-            'images': len(images_in_folder(partition.mountpoint))
-        })
-
-    files = [{
-        'path': pathlib.Path.home(),
-        'name': 'Home',
-        'images': len(images_in_folder(pathlib.Path.home()))
-    }]
-
-    home_files = list_contents(str(pathlib.Path.home()))['directories']
-    home_files = [f for f in home_files if f['name'] in ['Documents', 'Downloads', 'Desktop', 'Images', 'Pictures']]
-    files.extend(home_files)
-    return {'partitions': mounted, 'fast': files}
-
-
-@app.get("/filesystem/ls/{path:path}")
-def api(path: str = ""):
-    return list_contents('/' + path)
-
-
-@app.get('/filesystem/info')
-def filesystem_info_route():
-    return list_index()
-
-
-app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
 
 class EndpointFilter(logging.Filter):

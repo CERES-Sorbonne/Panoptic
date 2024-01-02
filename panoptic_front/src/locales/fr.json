@@ -1,5 +1,8 @@
 {
     "main": {
+        "status": {
+            "no_project": "Aucun projet Panoptic ouvert"
+        },
         "nav": {
             "folders": {
                 "title": "Dossiers",

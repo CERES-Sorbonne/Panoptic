@@ -5,16 +5,19 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, reactive } from "vue";
+import { computed, reactive, watch } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
+import { useSelectionStore } from "./selectionStore";
 
 let tabManager: TabManager = undefined
 
 export const useStore = defineStore('store', () => {
+    const selectionStore = useSelectionStore()
+
     const data = reactive({
         images: {} as ImageIndex,
         sha1Index: {} as Sha1ToImages,
@@ -26,6 +29,7 @@ export const useStore = defineStore('store', () => {
 
     const status = reactive({
         loaded: false,
+        projectNotOpen: false,
         changed: false,
         renderNb: 0,
         import: {} as ImportState
@@ -48,6 +52,12 @@ export const useStore = defineStore('store', () => {
     // =======================
 
     async function init() {
+        if(!selectionStore.isProjectLoaded) {
+            console.log('init not loaded')
+            status.projectNotOpen = true
+            tabManager = undefined
+            return
+        }
         if (!tabManager) {
             tabManager = new TabManager(getTab())
         }
@@ -338,6 +348,17 @@ export const useStore = defineStore('store', () => {
     function getTabManager() {
         return tabManager
     }
+
+    watch(() => selectionStore.data.status.selectedProject?.path, () => {
+        status.loaded = false
+        // if(!selectionStore.isProjectLoaded && tabManager) {
+        //     // tabManager.collection.images = undefined
+        //     // tabManager.collection.filterManager.onChange.clear()
+        //     // tabManager.collection.sortManager.onChange.clear()
+        //     // tabManager.collection.groupManager.onChange.clear()
+        //     tabManager = undefined
+        // }
+    })
 
     return {
         // variables

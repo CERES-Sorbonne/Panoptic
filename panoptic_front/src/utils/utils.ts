@@ -143,6 +143,10 @@ export class EventEmitter {
     emit(value?: any) {
         this.listeners.forEach(listener => listener(value));
     }
+
+    clear() {
+        this.listeners.length = 0
+    }
 }
 
 export function getGroupParents(group: Group): Group[] {

@@ -5,6 +5,7 @@
 import axios from 'axios'
 import { saveFile } from '@/utils/api'
 import { DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, TabState, Tag } from './models'
+import { SelectionStatus } from './selectionStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -166,5 +167,20 @@ export async function apiGetFilesystemInfo() {
 
 export async function apiGetFilesystemLs(path: string) {
     let res = await axios.get('/filesystem/ls' + path)
-    return res.data as {directories: DirInfo[], images: []}
+    return res.data as { directories: DirInfo[], images: [] }
+}
+
+export async function apiGetStatus() {
+    let res = await axios.get('/status')
+    return res.data as SelectionStatus
+}
+
+export async function apiLoadProject(path: string) {
+    let res = await axios.post('/load', { path })
+    return res.data as SelectionStatus
+}
+
+export async function apiCloseProject() {
+    let res = await axios.post('/close')
+    return res.data as SelectionStatus
 }

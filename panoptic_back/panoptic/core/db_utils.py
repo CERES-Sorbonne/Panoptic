@@ -16,11 +16,37 @@ aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='floa
 
 conn: aiosqlite.Connection | None = None
 
+loaded_path = None
 
-async def init():
+
+# async def init():
+#     print('init')
+#     global conn
+#     conn = await aiosqlite.connect(os.path.join(os.environ['PANOPTIC_DATA'], "panoptic.db"),
+#                                    detect_types=sqlite3.PARSE_DECLTYPES)
+#     await create_tables_if_db_empty()
+
+
+async def load_project(path: str):
+    print('load project', path)
     global conn
-    conn = await aiosqlite.connect(os.path.join(os.environ['PANOPTIC_DATA'], "panoptic.db"), detect_types=sqlite3.PARSE_DECLTYPES)
+    global loaded_path
+    conn = await aiosqlite.connect(os.path.join(path, "panoptic.db"),
+                                   detect_types=sqlite3.PARSE_DECLTYPES)
+    loaded_path = path
     await create_tables_if_db_empty()
+
+
+async def close():
+    global conn
+    global loaded_path
+
+    await conn.close()
+    loaded_path = None
+
+
+def is_loaded():
+    return loaded_path is not None
 
 
 async def create_tables_if_db_empty():
@@ -63,4 +89,3 @@ def decode_if_json(value):
         return json.loads(value)
     except (TypeError, JSONDecodeError, UnicodeDecodeError):
         return value
-

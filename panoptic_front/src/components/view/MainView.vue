@@ -22,6 +22,7 @@ const props = defineProps({
     height: Number
 })
 
+let firstCompute = false
 const recoGroup = ref({} as Group)
 
 const filterElem = ref(null)
@@ -81,11 +82,8 @@ function loadTab() {
     tabManager.load(store.data.tabs[props.tabId])
 }
 
-onMounted(() => {
-
+onMounted(async () => {
     loadTab()
-    tabManager.collection.update(store.imageList)
-    nextTick(updateScrollerHeight)
 })
 
 onMounted(() => {
@@ -101,6 +99,14 @@ watch(tabManager.state, () => {
     store.updateTab(tabManager.state)
 }, { deep: true })
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
+watch(() => props.height, async () => {
+    await nextTick(updateScrollerHeight)
+    // console.log('watch', props.height)
+    if(!firstCompute) {
+        tabManager.collection.update(store.imageList)
+        firstCompute = true
+    }
+})
 
 watch(() => props.tabId, loadTab)
 
@@ -120,13 +126,14 @@ watch(() => props.tabId, loadTab)
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tabManager.state.display == 'tree'">
             <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"
-                :height="scrollerHeight - 0" :properties="visibleProperties" :selected-images="tabManager.collection.groupManager.selectedImages"
-                ref="imageList" :width="scrollerWidth - 10" @recommend="setRecoImages" />
+                :height="scrollerHeight - 0" :properties="visibleProperties"
+                :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList"
+                :width="scrollerWidth - 10" @recommend="setRecoImages" />
         </template>
         <template v-if="tabManager.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :manager="tabManager.collection.groupManager" :height="scrollerHeight - 15" :width="scrollerWidth - 40"
-                    :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
+                <GridScroller :manager="tabManager.collection.groupManager" :height="scrollerHeight - 15"
+                    :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
                     :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" />
             </div>
         </template>

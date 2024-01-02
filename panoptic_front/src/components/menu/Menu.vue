@@ -7,8 +7,11 @@ import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useStore } from '@/data/store';
+import router from '@/router';
+import { useSelectionStore } from '@/data/selectionStore';
 
 const store = useStore()
+const selectionStore = useSelectionStore()
 const tabManager = store.getTabManager()
 
 const emits = defineEmits(['export'])
@@ -31,7 +34,14 @@ const handleInput = async (e: any) => {
     <div class="menu overflow-scroll">
         <div class="">
             <div>
-                <div class="ps-2 pe-2" style="padding-bottom: 9.5px; padding-top: 5px;">
+                <div class="m-0" style="padding: 4px 0px 4px 8px">
+                    <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
+                        <div class="flex-grow-1">{{ selectionStore.data.status.selectedProject.name }}</div>
+                        <div class="base-hover p-1" style="margin-right: 6px;" @click="selectionStore.closeProject()"><i class="bi bi-x"></i></div>
+                    </div>
+                </div>
+                <div class="custom-hr" />
+                <div class="ps-2 pe-2" style="padding-bottom: 9.5px">
                     <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
                         <div class="ms-auto plus" @click="store.showModal(ModalId.FOLDERSELECTION)">
