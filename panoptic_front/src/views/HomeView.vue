@@ -15,13 +15,20 @@ interface Project {
     name: string
 }
 
-const menuMode = ref(1) // 0 options 1 create
+const menuMode = ref(0) // 0 options 1 create
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
 
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
 function correctHyphen(path) {
     return path.replaceAll('-', '‑')
+}
+
+function createProject(project: {path: string, name: string}) {
+    if(!project.path) return
+    if(!project.name) return
+
+    panoptic.createProject(project.path,project.name)
 }
 
 onMounted(() => {
@@ -62,7 +69,7 @@ onMounted(() => {
 
             <div class="create-menu mt-5 pt-5">
                 <Options v-if="menuMode == 0" @create="menuMode = 1"/>
-                <Create v-if="menuMode == 1" @cancel="menuMode = 0"/>
+                <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
             </div>
         </div>
     </div>

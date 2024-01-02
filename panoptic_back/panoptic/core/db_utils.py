@@ -63,7 +63,7 @@ async def create_tables_if_db_empty():
         else:
             # Le programme est exécuté en mode script
             BASE_PATH = os.path.join('..', os.path.dirname(__file__))
-        with open(os.path.join(BASE_PATH, 'scripts', 'create_db.sql'), 'r') as f:
+        with open(os.path.join(BASE_PATH, '../scripts', 'create_db.sql'), 'r') as f:
             sql_script = f.read()
             async with conn.executescript(sql_script) as cursor:
                 await conn.commit()

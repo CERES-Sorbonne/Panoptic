@@ -20,8 +20,10 @@ const props = defineProps({
 
 const isActive = computed(() => panoptic.openModal.id == props.id)
 
-
 function onHide() {
+    if (panoptic.openModal.data?.callback) {
+        panoptic.openModal.data.callback(undefined)
+    }
     if (panoptic.openModal.id == props.id) {
         panoptic.hideModal()
     }
@@ -33,6 +35,17 @@ function hide() {
 
 function show() {
     modal.show()
+}
+
+function select(path) {
+    if (panoptic.openModal.data?.callback) {
+        panoptic.openModal.data.callback(path)
+        if (panoptic.openModal.data.callback) {
+            panoptic.openModal.data.callback = undefined
+
+        }
+    }
+    hide()
 }
 
 watch(() => panoptic.openModal.id, (id) => {
@@ -49,11 +62,6 @@ onMounted(() => {
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
 
-
-function log(e) {
-    explorerWidth.value = e
-}
-
 </script>
 
 
@@ -65,11 +73,8 @@ function log(e) {
                     <b class="modal-title" id="exampleModalLabel">{{ $t('modals.add_folder.title') }}</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
-                <!-- <Resizable @resize="log"> -->
-                <!-- <FileExplorer :width="explorerWidth"/> -->
-                <!-- </Resizable> -->
                 <div class="">
-                    <FileExplorer />
+                    <FileExplorer @select="select"/>
                 </div>
             </div>
         </div>

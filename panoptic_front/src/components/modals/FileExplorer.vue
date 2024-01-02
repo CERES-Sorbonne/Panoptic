@@ -9,6 +9,9 @@ import FolderIcon from '../filesystem/FolderIcon.vue';
 // const props = defineProps({
 //     // width: Number
 // })
+const emits = defineEmits({
+    select: String
+})
 
 const fastList = reactive([] as DirInfo[])
 const partitionList = reactive([] as DirInfo[])
@@ -71,7 +74,7 @@ async function openSubFolder(path: string, folderIndex: number) {
 }
 
 async function open() {
-    console.log(actualPath.value)
+    emits('select', actualPath.value)
 }
 
 onMounted(async () => {

@@ -45,8 +45,6 @@ class ProjectManager:
 
     def remove_project(self, path):
         self.panoptic_data.projects = [p for p in self.panoptic_data.projects if p.path != path]
-        if self.panoptic_data.last_opened.path == path:
-            self.panoptic_data.last_opened = None
         self.save_data()
 
     def rename_project(self, path, new_name):
@@ -58,6 +56,7 @@ class ProjectManager:
         self.save_data()
 
     def set_loaded(self, path):
+        print('set loaded', path)
         for project in self.panoptic_data.projects:
             print(path, project.path)
             if str(project.path) == str(path):
