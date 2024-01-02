@@ -1,19 +1,22 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import PanopticView from '../views/PanopticView.vue'
-import TestView from '../views/TestView.vue'
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'compute',
-      component: PanopticView
+      name: 'home',
+      component: () => import('../views/HomeView.vue')
     },
     {
       path: '/test',
       name: 'test',
-      component: TestView
+      component: () => import('../views/TestView.vue')
+    },
+    {
+      path: '/view',
+      name: 'view',
+      component: () => import('../views/PanopticView.vue')
     }
   ]
 })

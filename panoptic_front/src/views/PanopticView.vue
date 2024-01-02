@@ -1,5 +1,5 @@
 <script setup lang="ts">
-
+import router from '@/router';
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import Menu from '../components/menu/Menu.vue';
 
@@ -13,30 +13,42 @@ import { ModalId } from '@/data/models';
 import { useStore } from '@/data/store';
 import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue';
 
+import { useSelectionStore } from '@/data/selectionStore';
+
+
 const store = useStore()
+const selectionStore = useSelectionStore()
 
 const mainViewRef = ref(null)
 const navElem = ref(null)
 const windowHeight = ref(400)
+const hasHeight = ref(false)
 
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
 const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
-onMounted(() => {
+onMounted(async () => {
+    await selectionStore.init()
+    if(!selectionStore.isProjectLoaded) {
+        // console.log('redirect')
+        router.push('/')
+    }
+    await store.init()
+
     nextTick(() => {
         window.addEventListener('resize', onResize);
         onResize()
     })
 
     window.addEventListener('keydown', (ev) => {
-        if(ev.key == 'Control') keyState.ctrl = true;
-        if(ev.key == 'Alt') keyState.alt = true;
-        if(ev.key == 'Shift') keyState.shift = true;
+        if (ev.key == 'Control') keyState.ctrl = true;
+        if (ev.key == 'Alt') keyState.alt = true;
+        if (ev.key == 'Shift') keyState.shift = true;
     })
     window.addEventListener('keyup', (ev) => {
-        if(ev.key == 'Control') keyState.ctrl = false;
-        if(ev.key == 'Alt') keyState.alt = false;
-        if(ev.key == 'Shift') keyState.shift = false;
+        if (ev.key == 'Control') keyState.ctrl = false;
+        if (ev.key == 'Alt') keyState.alt = false;
+        if (ev.key == 'Shift') keyState.shift = false;
     })
     window.addEventListener('mousemove', (ev) => {
         keyState.ctrl = ev.ctrlKey
@@ -50,15 +62,21 @@ onUnmounted(() => {
 })
 
 function onResize() {
+    // console.log('resize', window.innerHeight)
     windowHeight.value = window.innerHeight
+    hasHeight.value = true
 }
 
-function showModal(){
+function showModal() {
     store.showModal(ModalId.EXPORT, filteredImages)
 }
 
-function reRender(){
+function reRender() {
     store.rerender()
+}
+
+function redirectHome() {
+    router.push('/')
 }
 </script>
 
@@ -67,15 +85,22 @@ function reRender(){
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
             <div v-if="store.status.loaded">
-                <Menu @export="showModal()"/>
+                <Menu @export="showModal()" />
             </div>
             <div class="w-100" v-if="store.status.loaded">
                 <div class="ms-3" ref="navElem">
-                    <TabNav :re-render="reRender"/>
+                    <TabNav :re-render="reRender" />
                 </div>
-                <div class="custom-hr" />
-                <MainView :tab-id="store.data.selectedTabId" :height="contentHeight"
-                    v-if="store.status.loaded" ref="mainViewRef"/>
+                <div class="custom-hr" v-if="hasHeight"/>
+
+                <MainView :tab-id="store.data.selectedTabId" :height="contentHeight" v-if="store.status.loaded"
+                    ref="mainViewRef" />
+            </div>
+            <div v-else-if="!selectionStore.isProjectLoaded" class="loading">
+                <div class="text-center">
+                    <div>{{ $t('main.status.no_project') }}</div>
+                    <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;"></div>
+                </div>
             </div>
             <div v-else class="loading">
                 <i class="spinner-border" role="status"></i>
@@ -85,9 +110,9 @@ function reRender(){
         <ImageModal :id="ModalId.IMAGE" />
         <PropertyModal :id="ModalId.PROPERTY" />
         <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
-        <ExportModal :id="ModalId.EXPORT"/>
+        <ExportModal :id="ModalId.EXPORT" />
 
-        
+
     </div>
     <!-- <div class="above bg-info">lalala</div>
                 <div class="above2 bg-warning">lalala</div> -->

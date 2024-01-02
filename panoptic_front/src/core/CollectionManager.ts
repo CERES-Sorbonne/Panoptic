@@ -23,7 +23,7 @@ export class CollectionManager {
         this.sortManager.onChange.addListener(this.onSort.bind(this))
         this.groupManager.onChange.addListener(this.onGroup.bind(this))
         
-        if(images) this.update(images)
+        // if(images) this.update(images)
 
     }
 
@@ -32,7 +32,7 @@ export class CollectionManager {
         this.sortManager.load(sortState)
         this.groupManager.load(groupState)
         
-        if(this.images) this.update(this.images)
+        // if(this.images) this.update(this.images)
     }
 
     verifyState() {
@@ -42,6 +42,8 @@ export class CollectionManager {
     }
 
     update(images?: ImageIndex) {
+        // throw new Error('update')
+        // console.log('update')
         this.images = images ?? this.images
         if(!this.images) return
         

@@ -4,12 +4,11 @@ import { onMounted } from 'vue'
 import '@vuepic/vue-datepicker/dist/main.css';
 import './assets/main.css';
 import { useStore } from './data/store';
+import { useSelectionStore } from './data/selectionStore';
 
 const store = useStore()
-
-onMounted(() => {
-  store.init()
-})
+const selectionStore = useSelectionStore()
+selectionStore.init()
 document.title = 'Panoptic'
 </script>
 

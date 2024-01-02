@@ -1,8 +1,8 @@
 import pathlib
 import sys
 
-def get_datadir() -> pathlib.Path:
 
+def get_datadir() -> pathlib.Path:
     """
     Returns a parent directory path
     where persistent application data can be stored.
