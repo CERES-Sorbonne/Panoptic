@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { ModalId } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
 import { computed, ref } from 'vue';
+
+const panoptic = usePanopticStore()
 
 const emits = defineEmits(['cancel', 'create'])
 
@@ -8,10 +12,15 @@ const name = ref('')
 
 const validForm = computed(() => path.value != '' && name.value != '')
 
-function selectFolder() {
-
+function setPath(p: string) {
+    if(p) {
+       path.value = p
+    }
 }
 
+function prompPath() {
+    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: setPath})
+}
 
 </script>
 
@@ -20,11 +29,11 @@ function selectFolder() {
         <h3 class="mb-3">{{$t('main.home.create_title')}}</h3>
         <div class="d-flex text-start input mb-2">
             <div class="info">{{ $t('main.home.label.folder') }}</div>
-            <div class="flex-grow-1 value text-dim">
+            <div class="flex-grow-1 value text-dim" style="cursor: pointer;" @click="prompPath">
                 <span v-if="path != ''">{{ path }}</span>
                 <span v-else class="text-placeholder">{{ $t('main.home.label.path_placeholder') }}</span>
             </div>
-            <div class="folder"><i class="bi bi-folder"></i></div>
+            <div class="folder" style="cursor: pointer;" @click="prompPath"><i class="bi bi-folder"></i></div>
         </div>
 
         <div class="d-flex text-start input">
@@ -37,7 +46,7 @@ function selectFolder() {
         <div class="d-flex mt-2">
             <div class="flex-grow-1"></div>
             <div class="btn-grey hover-grey" @click="emits('cancel')">{{ $t('main.home.label.cancel') }}</div>
-            <div class="ms-2" :class="validForm ? 'btn-blue' : 'btn-grey text-dim'">{{ $t('main.home.label.create') }}</div>
+            <div class="ms-2" :class="validForm ? 'btn-blue' : 'btn-grey text-dim'" @click="emits('create', {path, name})">{{ $t('main.home.label.create') }}</div>
         </div>
     </div>
 </template>
