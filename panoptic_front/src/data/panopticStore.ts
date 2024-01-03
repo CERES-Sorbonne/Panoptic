@@ -46,6 +46,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     async function loadProject(path: string) {
         data.status = await apiLoadProject(path)
+        // console.log(data.status)
         router.push('/view')
         project.clear()
         setTimeout(() => project.init(), 10)

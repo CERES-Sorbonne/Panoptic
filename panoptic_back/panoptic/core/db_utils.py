@@ -39,6 +39,9 @@ async def load_project(path: str):
     loaded_path = path
     await create_tables_if_db_empty()
     reload_tree(path)
+    from panoptic.core import clear_import
+    await clear_import()
+
 
 
 async def close():
