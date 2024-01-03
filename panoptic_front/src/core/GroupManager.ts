@@ -400,10 +400,18 @@ export class GroupManager {
     }
 
     sort(order: ImageOrder, emit?: boolean) {
+        if(this.state.sha1Mode) {
+            this.removeSha1Groups()  
+        }
         this.lastOrder = order
         Object.values(this.result.index).map(v => v as Group).forEach(g => {
             sortGroupImages(g, order)
         })
+
+        if(this.state.sha1Mode) {
+            this.groupLeafsBySha1()    
+        }
+
 
         if (emit) this.onChange.emit(this.result)
     }
