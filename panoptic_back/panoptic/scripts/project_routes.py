@@ -72,7 +72,7 @@ async def get_images_route():
     return ORJSONResponse(images)
 
 
-@project_router.get('/images/{global_file_path:path}')
+@project_router.get('/images/{file_path:path}')
 async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
