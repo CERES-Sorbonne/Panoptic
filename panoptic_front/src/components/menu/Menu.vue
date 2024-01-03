@@ -28,6 +28,15 @@ const handleInput = async (e: any) => {
     isUploading.value = false
 }
 
+function promptFolder() {
+    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: addFolder})
+}
+
+function addFolder(path) {
+    if(!path) return
+    store.addFolder(path)
+}
+
 </script>
 
 <template>
@@ -37,14 +46,14 @@ const handleInput = async (e: any) => {
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
                     <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
                         <div class="flex-grow-1">{{ panoptic.data.status.selectedProject.name }}</div>
-                        <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i class="bi bi-x"></i></div>
+                        <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i class="bi bi-arrow-left-right"></i></div>
                     </div>
                 </div>
                 <div class="custom-hr" />
                 <div class="ps-2 pe-2" style="padding-bottom: 9.5px">
                     <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
-                        <div class="ms-auto plus" @click="panoptic.showModal(ModalId.FOLDERSELECTION)">
+                        <div class="ms-auto plus" @click="promptFolder">
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>

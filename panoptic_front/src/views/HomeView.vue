@@ -31,6 +31,10 @@ function createProject(project: {path: string, name: string}) {
     panoptic.createProject(project.path,project.name)
 }
 
+function importProject(path: string) {
+    panoptic.importProject(path)
+}
+
 onMounted(() => {
     if (panoptic.isProjectLoaded) {
         router.push('/view')
@@ -68,7 +72,7 @@ onMounted(() => {
             <h6 class="dimmed-2">Version pre-2.0</h6>
 
             <div class="create-menu mt-5 pt-5">
-                <Options v-if="menuMode == 0" @create="menuMode = 1"/>
+                <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject"/>
                 <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
             </div>
         </div>

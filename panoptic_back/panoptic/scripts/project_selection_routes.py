@@ -55,8 +55,14 @@ async def delete_project_route(req: PathRequest):
 
 @selection_router.post("/create_project")
 async def create_project_route(req: ProjectRequest):
-    manager.add_project(req.name, req.path)
+    manager.create_project(req.name, req.path)
     return await load_project_route(PathRequest(path=req.path))
+
+
+@selection_router.post("/import_project")
+async def import_project_route(req: PathRequest):
+    manager.import_project(req.path)
+    return await load_project_route(req)
 
 
 @selection_router.get("/filesystem/ls/{path:path}")
@@ -84,7 +90,8 @@ def list_contents(full_path: str = '/'):
     directories = [{
         'path': p,
         'name': pathlib.Path(p).name,
-        'images': len(images_in_folder(p))
+        'images': len(images_in_folder(p)),
+        'isProject': os.path.exists(os.path.join(p, 'panoptic.db'))
     } for p in directories]
     images = images_in_folder(full_path)
 

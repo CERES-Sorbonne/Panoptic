@@ -55,8 +55,9 @@ async function updateInfo() {
 
 async function setOpenFolder(path) {
     let res = await apiGetFilesystemLs(path)
+    // console.log(res.directories)
     openFolders.length = 0
-    openFolders.push(res.directories)
+    openFolders.push(res.directories.filter(d => !d.name.startsWith('.')))
     actualPath.value = path
     imageList.length = 0
     imageList.push(...res.images)
@@ -109,7 +110,7 @@ onUpdated(() => {
             <div class="d-flex bg-warning flex-grow-1 overflow-hidden">
                 <div class="folder-cols flex-grow-1 bg-white d-flex" ref="scrollerElem">
                     <div class="folder-list flex-shrink-0" v-for="folders, index in openFolders">
-                        <div v-for="folder in folders">
+                        <div v-for="folder in folders" style="margin-bottom: 2px;">
                             <FolderIcon :dir="folder" :is-parent="parents.includes(folder.path)" :light="true"
                                 :selected="folder.path == actualPath" @click="openSubFolder(folder.path, index)" />
                         </div>

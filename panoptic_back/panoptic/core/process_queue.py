@@ -95,6 +95,8 @@ class ImportImageQueue(ProcessQueue):
         sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
         # TODO: gérer l'url statique quand on sera en mode serveur
         # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
+        if not os.path.exists(os.path.join(os.environ['PANOPTIC_DATA'], "mini")):
+            os.mkdir(os.path.join(os.environ['PANOPTIC_DATA'], "mini"))
         url = f"/images/{file_path}"
         image = image.convert('RGB')
         mini = image.copy()

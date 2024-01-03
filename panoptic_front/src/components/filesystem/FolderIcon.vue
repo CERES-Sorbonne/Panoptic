@@ -23,7 +23,8 @@ const className = computed(() => {
 
 <template>
     <div :class="className" class="d-flex">
-        <div v-if="props.dir.name == 'Home'" class="bi bi-house"></div>
+        <div v-if="props.dir.isProject" class="panoptic-icon">👀</div>
+        <div v-else-if="props.dir.name == 'Home'" class="bi bi-house"></div>
         <div v-else-if="props.dir.name == 'Documents'" class="bi bi-file-earmark"></div>
         <div v-else-if="props.dir.name == 'Downloads'" class="bi bi-file-earmark-arrow-down"></div>
         <div v-else-if="props.dir.name == 'Desktop'" class="bi bi-display"></div>
@@ -38,7 +39,7 @@ const className = computed(() => {
 
 <style scoped>
 .folder-name {
-    padding: 3px 5px;
+    padding: 2px 5px;
     cursor: pointer;
     border-radius: 5px;
     text-wrap: nowrap !important;
@@ -64,5 +65,14 @@ const className = computed(() => {
 .parent-select-light {
     background-color: rgb(221, 222, 223);
     color: black;
+}
+
+.panoptic-icon {
+    border: 1px solid var(--border-color);
+    line-height: 16px;
+    font-size: 10px;
+    padding: 2px 2px 0px 2px;
+    border-radius: 5px;
+    margin: 2px 0px;
 }
 </style>

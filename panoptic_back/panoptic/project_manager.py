@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -33,15 +34,25 @@ class ProjectManager:
         with open(self.file_path, 'w') as file:
             json.dump(self.panoptic_data.dict(), file, indent=2)
 
-    def add_project(self, name, path):
+    def create_project(self, name, path):
         if any(project.path == path for project in self.panoptic_data.projects):
             raise f"A project with path '{path}' already exists."
-        else:
-            if not os.path.exists(os.path.join(path)):
-                os.makedirs(path)
-            project = Project(name=name, path=path)
-            self.panoptic_data.projects.append(project)
-            self.set_loaded(path)
+        # else:
+        if not os.path.exists(os.path.join(path)):
+            os.makedirs(path)
+        project = Project(name=name, path=path)
+        self.panoptic_data.projects.append(project)
+        self.set_loaded(path)
+
+    def import_project(self, path: str):
+        p = Path(path)
+        if not (p / 'panoptic.db').exists():
+            raise ValueError('Folder is not a panoptic project (No panoptic.db file found)')
+        if any(project.path == path for project in self.panoptic_data.projects):
+            raise f"Project is already imported."
+        project = Project(path=str(p), name=str(p.name))
+        self.panoptic_data.projects.append(project)
+        self.set_loaded(path)
 
     def remove_project(self, path):
         self.panoptic_data.projects = [p for p in self.panoptic_data.projects if p.path != path]
