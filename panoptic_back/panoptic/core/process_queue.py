@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import traceback
+from asyncio import QueueEmpty
 from concurrent.futures import Executor
 from typing import List, Callable, Dict
 
@@ -36,6 +37,15 @@ class ProcessQueue:
 
     def done(self):
         return self._queue.qsize() == 0
+
+    async def clear(self):
+        while True:
+            try:
+                self._queue.get_nowait()
+                if self.done():
+                    return
+            except QueueEmpty:
+                return
 
     async def _process_queue(self, worker_id: int):
         while True:

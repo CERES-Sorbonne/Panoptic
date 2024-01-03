@@ -35,6 +35,12 @@ class ImageImporter:
     #     self.total_import = -1
     #     self.current_import = 0
 
+    async def clear(self):
+        self.total_import = 0
+        self.current_computed = 0
+        await self._import_queue.clear()
+        await self._compute_queue.clear()
+
     def import_done(self):
         return self._import_queue.done()
 

@@ -20,10 +20,15 @@ from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties,
 from .image_importer import ImageImporter
 
 nb_workers = 4
-executor = ThreadPoolExecutor(max_workers=nb_workers) if any([os.getenv('IS_DOCKER', False), sys.platform.startswith('linux')]) else ProcessPoolExecutor(
+executor = ThreadPoolExecutor(max_workers=nb_workers) if any(
+    [os.getenv('IS_DOCKER', False), sys.platform.startswith('linux')]) else ProcessPoolExecutor(
     max_workers=nb_workers)
 atexit.register(executor.shutdown)
 importer = ImageImporter(executor)
+
+
+async def clear_import():
+    await importer.clear()
 
 
 async def create_property(name: str, property_type: PropertyType, mode='id') -> Property:
@@ -255,7 +260,7 @@ async def export_properties(images_id=None, properties_list=None) -> io.StringIO
     tags = await get_tags()
 
     # filter properties id that we want to keep
-    properties_list =  list(properties.keys()) if not properties_list else properties_list
+    properties_list = list(properties.keys()) if not properties_list else properties_list
     properties = [properties[pid] for pid in properties_list]
     columns = ["key", "sha1[string]"] + [f"{p.name}[{p.type.value}]" for p in properties]
     rows = []
