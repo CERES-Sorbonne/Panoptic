@@ -26,6 +26,7 @@ class ProcessQueue:
         self._workers: List[asyncio.Task] = []
         self._working: Dict[int, bool] = {}
         self.done_callback = None
+        self.project_path = None
 
     def start_workers(self, workers=1):
         if self._workers:
@@ -93,26 +94,26 @@ class ImportImageQueue(ProcessQueue):
         if db_image:
             return db_image
 
-        sha1, url, width, height = await self._execute_in_process(self._import_image, task.image_path)
+        sha1, url, width, height = await self._execute_in_process(self._import_image, task.image_path, panoptic.project.path)
 
         image = await db.add_image(folder_id, name, extension, sha1, url, width, height)
         # print(f'imported image: {image.id} : {image.sha1}')
         return image
 
     @staticmethod
-    def _import_image(file_path):
+    def _import_image(file_path, project_path: str):
         image = Image.open(file_path)
         width, height = image.size
         sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
         # TODO: gérer l'url statique quand on sera en mode serveur
         # url = os.path.join('/static/' + global_file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
-        if not os.path.exists(os.path.join(panoptic.project.path, "mini")):
-            os.mkdir(os.path.join(panoptic.project.path, "mini"))
+        if not os.path.exists(os.path.join(project_path, "mini")):
+            os.mkdir(os.path.join(project_path, "mini"))
         url = f"/images/{file_path}"
         image = image.convert('RGB')
         mini = image.copy()
         mini.thumbnail(size=(200, 200))
-        mini.save(os.path.join(panoptic.project.path, "mini", sha1_hash + '.jpeg'), optimize=True, quality=30)
+        mini.save(os.path.join(project_path, "mini", sha1_hash + '.jpeg'), optimize=True, quality=30)
 
         del image
         del mini
@@ -131,7 +132,7 @@ class ComputeVectorsQueue(ProcessQueue):
 
         folder = await db.get_folder(image.folder_id)
         file_path = f"{folder.path}/{image.name}"
-        ahash, vector = await self._execute_in_process(self.compute_image, file_path)
+        ahash, vector = await self._execute_in_process(self.compute_image, file_path, self.project_path)
         res = await db.set_computed_value(sha1=image.sha1, ahash=ahash, vector=vector)
         del vector
         # gc.collect()
@@ -139,12 +140,12 @@ class ComputeVectorsQueue(ProcessQueue):
         return res
 
     @staticmethod
-    def compute_image(image_path: str):
+    def compute_image(image_path: str, project_path: str):
         image = Image.open(image_path)
         image = image.convert('RGB')
         ahash = str(compute.to_average_hash(image))
         # TODO: find a way to access all the images for PCA
-        vector = compute.to_vector(image)
+        vector = compute.to_vector(image, project_path)
 
         del image
         # gc.collect()
