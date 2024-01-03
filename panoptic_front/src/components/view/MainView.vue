@@ -78,14 +78,6 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
-function loadTab() {
-    tabManager.load(store.data.tabs[props.tabId])
-}
-
-onMounted(async () => {
-    loadTab()
-})
-
 onMounted(() => {
     scrollerWidth.value = filterElem.value.clientWidth
     window.addEventListener('resize', () => {
@@ -101,14 +93,9 @@ watch(tabManager.state, () => {
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
-    // console.log('watch', props.height)
-    if(!firstCompute) {
-        tabManager.collection.update(store.imageList)
-        firstCompute = true
-    }
 })
 
-watch(() => props.tabId, loadTab)
+// watch(() => props.tabId, loadTab)
 
 </script>
 
