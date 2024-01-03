@@ -5,12 +5,13 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, reactive, watch } from "vue";
+import { computed, nextTick, reactive, watch } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
+import { usePanopticStore } from "./panopticStore";
 
 let tabManager: TabManager = undefined
 
@@ -84,6 +85,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         verifyData()
 
         status.loaded = true
+
+        tabManager.collection.update(data.images)
     }
 
     function clear() {
@@ -111,13 +114,16 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function applyImportState(state: ImportState) {
+        const panoptic = usePanopticStore()
+        if(!panoptic.isProjectLoaded) return
         status.import = state
         if (!state.done) {
             status.changed = true
         }
         if (state.done && status.changed) {
             status.changed = false
-            init()
+            console.log('init again')
+            nextTick(() => init())
         }
     }
 
