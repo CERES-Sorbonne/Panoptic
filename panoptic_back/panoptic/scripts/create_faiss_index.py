@@ -15,13 +15,3 @@ async def compute_faiss_index():
     create_similarity_tree_faiss(all_images)
     logger.info('Success')
 
-async def start():
-    os.environ['PANOPTIC_DATA'] = "D:\\Alie\\Documents\\panoptic_GJ"
-    await db_utils.init()
-    await compute_faiss_index()
-
-if __name__ == '__main__':
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(start())
-

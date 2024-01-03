@@ -1,12 +1,12 @@
 import os
 import pickle
 
-os.environ['PANOPTIC_DATA'] = os.getenv('PANOPTIC_DATA', os.getcwd())
+from panoptic.project_manager import panoptic
 
 
-def load_data(data_path=os.getenv('PANOPTIC_DATA')):
+def load_data(data_path=None):
     if not data_path:
-        raise ValueError("PANOPTIC_DATA was not set")
+        data_path = panoptic.project.path
 
     full_path = os.path.join(data_path, 'data.pkl')
     if full_path and os.path.exists(full_path):
@@ -20,9 +20,9 @@ def load_data(data_path=os.getenv('PANOPTIC_DATA')):
     }
 
 
-def save_data(images_dict, data_path=os.getenv('PANOPTIC_DATA')):
+def save_data(images_dict, data_path=None):
     if not data_path:
-        raise ValueError("PANOPTIC_DATA was not set")
+        data_path = panoptic.project.path
 
     full_path = os.path.join(data_path, 'data.pkl')
     with open(full_path, 'wb') as f:

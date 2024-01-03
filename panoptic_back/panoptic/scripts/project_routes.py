@@ -22,6 +22,7 @@ from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
     ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload
+from panoptic.project_manager import panoptic
 
 project_router = APIRouter()
 
@@ -71,7 +72,7 @@ async def get_images_route():
     return ORJSONResponse(images)
 
 
-@project_router.get('/images/{file_path:path}')
+@project_router.get('/images/{global_file_path:path}')
 async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
@@ -208,7 +209,7 @@ async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPa
 
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
-    path = os.path.join(db_utils.loaded_path, 'mini', file_path)
+    path = os.path.join(panoptic.project.path, 'mini', file_path)
     async with aiofiles.open(path, 'rb') as f:
         data = await f.read()
 

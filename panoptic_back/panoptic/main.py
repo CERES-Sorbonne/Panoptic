@@ -6,10 +6,14 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
+from panoptic.project_manager import Panoptic, panoptic
 from panoptic.scripts.project_routes import project_router
 from panoptic.scripts.project_selection_routes import selection_router
 
+
 if __name__ == '__main__':
+
+    panoptic.load_data()
 
     # default port for Panoptic backend
     PORT = 8000

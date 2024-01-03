@@ -7,13 +7,9 @@ import psutil
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from panoptic.api import PathRequest
 from panoptic.core import db_utils
-from panoptic.project_manager import ProjectManager
-
-# project manager
-manager = ProjectManager()
-manager.load_data()
+from panoptic.project_manager import panoptic
+from panoptic.scripts.project_routes import PathRequest
 
 selection_router = APIRouter()
 
@@ -27,8 +23,8 @@ class ProjectRequest(BaseModel):
 async def get_status_route():
     return {
         'isLoaded': db_utils.is_loaded(),
-        'selectedProject': manager.panoptic_data.last_opened,
-        'projects': manager.panoptic_data.projects
+        'selectedProject': panoptic.project,
+        'projects': panoptic.data.projects
     }
 
 
@@ -36,32 +32,32 @@ async def get_status_route():
 async def load_project_route(path: PathRequest):
     print('load', path.path)
     await db_utils.load_project(path.path)
-    manager.set_loaded(path.path)
+    panoptic.load_project(path.path)
     return await get_status_route()
 
 
 @selection_router.post("/close")
 async def close_project():
     await db_utils.close()
-    manager.close()
+    panoptic.close()
     return await get_status_route()
 
 
 @selection_router.post("/delete_project")
 async def delete_project_route(req: PathRequest):
-    manager.remove_project(req.path)
+    panoptic.remove_project(req.path)
     return await get_status_route()
 
 
 @selection_router.post("/create_project")
 async def create_project_route(req: ProjectRequest):
-    manager.create_project(req.name, req.path)
+    panoptic.create_project(req.name, req.path)
     return await load_project_route(PathRequest(path=req.path))
 
 
 @selection_router.post("/import_project")
 async def import_project_route(req: PathRequest):
-    manager.import_project(req.path)
+    panoptic.import_project(req.path)
     return await load_project_route(req)
 
 

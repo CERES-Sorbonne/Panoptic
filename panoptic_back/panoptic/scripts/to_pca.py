@@ -7,6 +7,7 @@ from tqdm import tqdm
 from panoptic.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
 from panoptic.core import db
 from panoptic.models import ComputedValue
+from panoptic.project_manager import panoptic
 
 
 async def compute_all_pca(force=False):
@@ -16,7 +17,7 @@ async def compute_all_pca(force=False):
         pass
     else:
         vectors = [i.vector for i in all_images]
-        with open(os.path.join(os.getenv('PANOPTIC_DATA'), 'vectors.pkl'), 'wb') as f:
+        with open(os.path.join(panoptic.project.path, 'vectors.pkl'), 'wb') as f:
             pickle.dump(vectors, f)
         create_pca(vectors)
         for i, v in tqdm(zip(all_images, vectors)):
