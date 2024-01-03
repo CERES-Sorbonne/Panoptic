@@ -38,5 +38,4 @@ if __name__ == '__main__':
     # static directory route
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
-
     uvicorn.run(app, port=PORT)
