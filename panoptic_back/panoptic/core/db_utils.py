@@ -21,17 +21,8 @@ conn: aiosqlite.Connection | None = None
 loaded_path = None
 
 
-# async def init():
-#     print('init')
-#     global conn
-#     conn = await aiosqlite.connect(os.path.join(os.environ['PANOPTIC_DATA'], "panoptic.db"),
-#                                    detect_types=sqlite3.PARSE_DECLTYPES)
-#     await create_tables_if_db_empty()
-
-
 async def load_project(path: str):
     print('load project', path)
-    os.environ['PANOPTIC_DATA'] = path
     global conn
     global loaded_path
     conn = await aiosqlite.connect(os.path.join(path, "panoptic.db"),
@@ -41,7 +32,6 @@ async def load_project(path: str):
     reload_tree(path)
     from panoptic.core import clear_import
     await clear_import()
-
 
 
 async def close():

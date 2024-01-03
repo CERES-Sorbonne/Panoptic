@@ -13,6 +13,7 @@ from PIL import Image
 import panoptic.compute as compute
 from panoptic.core import db
 from panoptic.models import ImageImportTask
+from panoptic.project_manager import panoptic
 
 logger = logging.getLogger('ProcessQueue')
 
@@ -104,14 +105,14 @@ class ImportImageQueue(ProcessQueue):
         width, height = image.size
         sha1_hash = hashlib.sha1(image.tobytes()).hexdigest()
         # TODO: gérer l'url statique quand on sera en mode serveur
-        # url = os.path.join('/static/' + file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
-        if not os.path.exists(os.path.join(os.environ['PANOPTIC_DATA'], "mini")):
-            os.mkdir(os.path.join(os.environ['PANOPTIC_DATA'], "mini"))
+        # url = os.path.join('/static/' + global_file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
+        if not os.path.exists(os.path.join(panoptic.project.path, "mini")):
+            os.mkdir(os.path.join(panoptic.project.path, "mini"))
         url = f"/images/{file_path}"
         image = image.convert('RGB')
         mini = image.copy()
         mini.thumbnail(size=(200, 200))
-        mini.save(os.path.join(os.environ['PANOPTIC_DATA'], "mini", sha1_hash + '.jpeg'), optimize=True, quality=30)
+        mini.save(os.path.join(panoptic.project.path, "mini", sha1_hash + '.jpeg'), optimize=True, quality=30)
 
         del image
         del mini

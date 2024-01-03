@@ -12,6 +12,7 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
 
 from .transformers import get_transformer
+from ..project_manager import panoptic
 
 PCA_SIZE = 10
 USE_PCA_IF_POSSIBLE = True
@@ -43,7 +44,7 @@ def to_average_hash(image: Image):
 #     return full_ocr(image)
 
 def get_pca():
-    path = os.path.join(os.getenv('PANOPTIC_DATA'), 'pca.pkl')
+    path = os.path.join(panoptic.project.path, 'pca.pkl')
     global pca
     if pca:
         return pca
@@ -68,7 +69,7 @@ def to_pca(vector: np.ndarray):
 
 
 def save_pca():
-    with open(os.path.join(os.getenv('PANOPTIC_DATA'), 'pca.pkl'), 'wb') as f:
+    with open(os.path.join(panoptic.project.path, 'pca.pkl'), 'wb') as f:
         pickle.dump(pca, f)
 
 

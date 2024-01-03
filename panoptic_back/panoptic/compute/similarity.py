@@ -15,6 +15,7 @@ from sklearn.neighbors import KDTree
 from panoptic.compute.transform import transformer
 from panoptic.compute.utils import load_similarity_tree
 from panoptic.models import ComputedValue
+from panoptic.project_manager import panoptic
 
 
 class SimilarityTreeWithLabel:
@@ -69,7 +70,7 @@ def reload_tree(path: str):
 
 def create_similarity_tree(images: list[ComputedValue]):
     tree = SimilarityTreeWithLabel(images)
-    with open(os.path.join(os.getenv('PANOPTIC_DATA'), 'tree.pkl'), 'wb') as f:
+    with open(os.path.join(panoptic.project.path, 'tree.pkl'), 'wb') as f:
         pickle.dump(tree, f)
     global SIMILARITY_TREE
     SIMILARITY_TREE = tree
@@ -77,7 +78,7 @@ def create_similarity_tree(images: list[ComputedValue]):
 
 def create_similarity_tree_faiss(images: list[ComputedValue]):
     tree = SimilarityFaissWithLabel(images)
-    with open(os.path.join(os.getenv('PANOPTIC_DATA'), 'tree_faiss.pkl'), 'wb') as f:
+    with open(os.path.join(panoptic.project.path, 'tree_faiss.pkl'), 'wb') as f:
         pickle.dump(tree, f)
     global SIMILARITY_TREE
     SIMILARITY_TREE = tree
