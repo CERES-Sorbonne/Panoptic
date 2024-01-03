@@ -358,7 +358,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         propertyList, imageList, folderRoots,
 
         // functions
-        init, clear, rerender,
+        init, clear, rerender, addFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue,
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent,

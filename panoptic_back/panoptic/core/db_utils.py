@@ -31,6 +31,7 @@ loaded_path = None
 
 async def load_project(path: str):
     print('load project', path)
+    os.environ['PANOPTIC_DATA'] = path
     global conn
     global loaded_path
     conn = await aiosqlite.connect(os.path.join(path, "panoptic.db"),

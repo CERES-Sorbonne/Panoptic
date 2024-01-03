@@ -1,6 +1,21 @@
 <script setup lang="ts">
+import { ModalId } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const emits = defineEmits(['create'])
+
+const panoptic = usePanopticStore()
+
+const emits = defineEmits(['create', 'import'])
+
+function importPath(path: string) {
+    if(!path) return
+    
+    emits('import', path)
+}
+
+function promptPath() {
+    panoptic.showModal(ModalId.FOLDERSELECTION, { callback: importPath })
+}
 
 </script>
 
@@ -17,7 +32,7 @@ const emits = defineEmits(['create'])
             <h6 class="create-title m-0">Importer un projet</h6>
             <span class="create-explanation">Choisissez un dossier Panoptic existant.</span>
         </div>
-        <div class="create-btn">Importer</div>
+        <div class="create-btn" @click="promptPath">Importer</div>
     </div>
 </template>
 

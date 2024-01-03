@@ -79,7 +79,7 @@ export const apiDeleteTagParent = async (id: number, parentId: number): Promise<
 }
 
 export const apiAddFolder = async (folder: string) => {
-    return await axios.post('/folders', { folder })
+    return await axios.post('/folders', { path: folder })
 }
 
 export const apiUpdateProperty = async (propertyId: number, name?: string): Promise<Property> => {
@@ -192,5 +192,10 @@ export async function apiDeleteProject(path: string) {
 
 export async function apiCreateProject(path: string, name: string) {
     let res = await axios.post('/create_project', {path, name})
+    return res.data as SelectionStatus
+}
+
+export async function apiImportProject(path: string) {
+    let res = await axios.post('/import_project', {path})
     return res.data as SelectionStatus
 }

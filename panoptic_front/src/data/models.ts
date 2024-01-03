@@ -234,5 +234,6 @@ export interface DirInfo {
     path: string,
     name: string,
     images?: number
-    images_url?: string
+    images_url?: string,
+    isProject: boolean
 }
