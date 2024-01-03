@@ -7,7 +7,7 @@ import psutil
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from panoptic.core import db_utils
+from panoptic.core import db_utils, importer
 from panoptic.project_manager import panoptic
 from panoptic.scripts.project_routes import PathRequest
 
@@ -33,6 +33,7 @@ async def load_project_route(path: PathRequest):
     print('load', path.path)
     await db_utils.load_project(path.path)
     panoptic.load_project(path.path)
+    importer.set_project_path(path.path)
     return await get_status_route()
 
 

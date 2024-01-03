@@ -27,10 +27,10 @@ def to_sha1(image: Image) -> str:
     return sha1hash(image.tobytes()).hexdigest()
 
 
-def to_vector(image: Image):
+def to_vector(image: Image, project_path: str):
     vec = transformer.to_vector(image)
     # if a pca was already trained use it
-    if get_pca() is not None:
+    if get_pca(project_path) is not None:
         return to_pca(vec)
     return vec
 
@@ -43,8 +43,8 @@ def to_average_hash(image: Image):
 # def to_ocr(image: Image):
 #     return full_ocr(image)
 
-def get_pca():
-    path = os.path.join(panoptic.project.path, 'pca.pkl')
+def get_pca(project_path: str):
+    path = os.path.join(project_path, 'pca.pkl')
     global pca
     if pca:
         return pca
@@ -55,12 +55,12 @@ def get_pca():
     return None
 
 
-def create_pca(vectors: []):
+def create_pca(vectors: [], project_path: str):
     from sklearn.decomposition import PCA
     global pca
     pca = PCA(PCA_SIZE)
     pca.fit(vectors)
-    save_pca()
+    save_pca(project_path)
 
 
 def to_pca(vector: np.ndarray):
@@ -68,8 +68,8 @@ def to_pca(vector: np.ndarray):
         return np.float32(pca.transform([vector])[0])
 
 
-def save_pca():
-    with open(os.path.join(panoptic.project.path, 'pca.pkl'), 'wb') as f:
+def save_pca(project_path: str):
+    with open(os.path.join(project_path, 'pca.pkl'), 'wb') as f:
         pickle.dump(pca, f)
 
 

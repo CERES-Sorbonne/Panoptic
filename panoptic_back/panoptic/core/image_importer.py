@@ -35,9 +35,17 @@ class ImageImporter:
     #     self.total_import = -1
     #     self.current_import = 0
 
+    def set_project_path(self, path):
+        self._import_queue.project_path = path
+        self._compute_queue.project_path = path
+
     async def clear(self):
         self.total_import = 0
+        self.current_import = 0
+
+        self.total_compute = 0
         self.current_computed = 0
+        
         await self._import_queue.clear()
         await self._compute_queue.clear()
 
