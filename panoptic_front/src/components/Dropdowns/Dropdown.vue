@@ -81,7 +81,7 @@ onUnmounted(() => {
                 <!-- <div class="p-1"> -->
                 <div v-if="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'shadow2'"
                     @keydown.escape.stop="hide" style="z-index: 999;" tabindex="0" ref="popupElem">
-                    <slot name="popup" :hide="hide"></slot>
+                    <slot name="popup" :hide="hide" :focus="focus"></slot>
                 </div>
                 <!-- </div> -->
             </template>

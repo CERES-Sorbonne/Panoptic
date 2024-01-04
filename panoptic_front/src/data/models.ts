@@ -237,3 +237,12 @@ export interface DirInfo {
     images_url?: string,
     isProject: boolean
 }
+
+export enum DateUnit {
+    Year = 'Year',
+    Month = 'Month',
+    Day = 'Day',
+    Hour = 'Hour',
+    Minute = 'Minute',
+    Second = 'Second'
+}

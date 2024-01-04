@@ -5,7 +5,7 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { Image, Property, PropertyValue } from "@/data/models";
+import { DateUnit, Image, Property, PropertyValue } from "@/data/models";
 import { nextTick, reactive, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
@@ -76,14 +76,13 @@ export enum GroupSortType {
 
 export interface GroupOption extends SortOption {
     type?: GroupSortType
+
+    useSteps?: boolean
+    stepSize?: number
+    stepUnit?: DateUnit
 }
 
 export type SelectedImages = { [imageId: number]: boolean }
-
-
-// function isLeaf(group: Group) {
-//     return group.children.length == 0
-// }
 
 
 export function buildGroup(id: string, images: Image[], type: GroupType = GroupType.All): Group {
