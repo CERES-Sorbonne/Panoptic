@@ -35,13 +35,14 @@ function mapTag(id: number | string): Tag[] {
 </script>
 
 <template>
-    <div class="d-flex" style="line-height: 25px;">
+    <div class="d-flex text-nowrap " style="line-height: 25px;">
         <div class="me-1">{{ property.name }}: </div>
         <div v-if="property.type == PropertyType.color" :style="{backgroundColor: color}" class="color-holder">
         </div>
         <div v-else-if="property.type == PropertyType._folders">
             <TagBadge :tag="store.data.folders[props.value.value].name" :color="-1" />
         </div>
+        <span v-else-if="property.type == PropertyType.date && props.value.value">{{ (props.value.value as Date).toLocaleDateString() }}</span>
         <span v-else-if="!isTag">
             <span v-if="props.value.value != UNDEFINED_KEY">{{ props.value.value }}</span>
             <span v-else class="text-secondary">indéfini</span>

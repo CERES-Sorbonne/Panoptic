@@ -99,7 +99,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem" @hide="onHide">
+    <Dropdown ref="dropdownElem" @hide="onHide" :teleport="true" >
         <template #button>
             <div class="drop-btn text-nowrap overflow-hidden" :style="buttonStyle" >
                 <span v-if="internal">{{ datePreview }}</span>
@@ -110,7 +110,7 @@ onMounted(() => {
         </template>
         <template #popup>
             <VueDatePicker :model-value="props.modelValue" @update:model-value="e => emits('update:modelValue', e)"
-                :teleport="true" input-class-name="custom-date-picker" :hide-input-icon="true"
+                input-class-name="custom-date-picker" :hide-input-icon="true"
                 @internal-model-change="e => internal = e"
                 calendar-cell-class-name="custom-date-picker" :inline="true" ref="dateElem">
                 <template #action-buttons>

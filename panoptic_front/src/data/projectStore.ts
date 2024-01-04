@@ -62,8 +62,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: 'sha1' }
 
 
-        objValues(images).forEach((i) => importImage(i))
         data.properties = properties
+        objValues(images).forEach((i) => importImage(i))
+
 
         importTags(tags)
 
@@ -115,7 +116,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function applyImportState(state: ImportState) {
         const panoptic = usePanopticStore()
-        if(!panoptic.isProjectLoaded) return
+        if (!panoptic.isProjectLoaded) return
         status.import = state
         if (!state.done) {
             status.changed = true
@@ -182,6 +183,17 @@ export const useProjectStore = defineStore('projectStore', () => {
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
+
+        for (let pId in img.properties) {
+            const propValue = img.properties[pId]
+            if (propValue.value == undefined) continue
+
+            const property = data.properties[pId]
+            if(!property) continue
+            if (property.type == PropertyType.date) {
+                propValue.value = new Date(propValue.value)
+            }
+        }
 
         img.containerRatio = computeContainerRatio(img)
 
@@ -276,7 +288,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         for (let id of updatedIds) {
             if (mode == null) {
-                data.images[id].properties[propertyId] = { propertyId, value }
+                _setPropertyValue(data.images[id], data.properties[propertyId], value)
             }
             else {
                 let old = data.images[id].properties[propertyId] ?? { propertyId: propertyId, value: [] }
@@ -296,6 +308,13 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         if (!dontEmit) tabManager.collection.update()
+    }
+
+    function _setPropertyValue(image: Image, property: Property, value: any) {
+        if(property.type == PropertyType.date) {
+            value = value != undefined ? new Date(value) : undefined
+        }
+        image.properties[property.id] = { propertyId: property.id, value}
     }
 
     async function updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
