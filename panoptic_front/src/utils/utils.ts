@@ -193,3 +193,9 @@ type ObjectValues<T> = T[keyof T][];
 export function objValues<T>(obj: T): ObjectValues<T> {
   return Object.keys(obj).map(key => obj[key as keyof T]);
 }
+
+export function pad(num) {
+    num = num.toString();
+    if (num.length < 2) num = "0" + num;
+    return num;
+}

@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { UNDEFINED_KEY } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
+import {pad} from '@/utils/utils'
 
 const store = useProjectStore()
 
@@ -32,6 +33,10 @@ function mapTag(id: number | string): Tag[] {
     }
     return [store.data.properties[props.value.propertyId].tags[id as number]]
 }
+
+function d() {
+    return props.value.value as Date
+}
 </script>
 
 <template>
@@ -42,7 +47,7 @@ function mapTag(id: number | string): Tag[] {
         <div v-else-if="property.type == PropertyType._folders">
             <TagBadge :tag="store.data.folders[props.value.value].name" :color="-1" />
         </div>
-        <span v-else-if="property.type == PropertyType.date && props.value.value">{{ (props.value.value as Date).toLocaleDateString() }}</span>
+        <span v-else-if="property.type == PropertyType.date && props.value.value">{{ d().getUTCFullYear() + '/' + pad(d().getUTCMonth()+1) + '/' + pad(d().getUTCDate()) + ' ' + pad(d().getUTCHours()) + ':' + pad(d().getUTCMinutes()) }}</span>
         <span v-else-if="property.type == PropertyType.date"> undefined </span>
         <span v-else-if="!isTag">
             <span v-if="props.value.value != UNDEFINED_KEY">{{ props.value.value }}</span>
