@@ -4,7 +4,7 @@ import { Image, Property } from '@/data/models';
 import { DeprecationTypes, computed, nextTick, onMounted, ref, watch } from 'vue';
 import VueDatePicker from '@vuepic/vue-datepicker'
 import { useProjectStore } from '@/data/projectStore'
-import { getImageProperty } from '@/utils/utils';
+import { getImageProperty, pad } from '@/utils/utils';
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 
 
@@ -85,12 +85,6 @@ function updateLocalValue() {
 
 function updateInternal(value: Date) {
     internal.value = new Date(value.getTime() - value.getTimezoneOffset()*60*1000)
-}
-
-function pad(num) {
-    num = num.toString();
-    if (num.length < 2) num = "0" + num;
-    return num;
 }
 
 watch(props, ()=> {

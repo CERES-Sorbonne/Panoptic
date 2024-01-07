@@ -186,7 +186,7 @@ function closestDate(date: Date, stepSize: number, unit: DateUnit) {
     if(unit == DateUnit.Year) {
         let closest = Math.floor(date.getUTCFullYear() / step) * step
         // console.log(date.getUTCFullYear(), step, closest)
-        return new Date(closest, 0, 1)
+        return new Date(new Date(closest, 0, 1).getTime() +  - (new Date()).getTimezoneOffset()*60*1000)
     }
     return date
 }
