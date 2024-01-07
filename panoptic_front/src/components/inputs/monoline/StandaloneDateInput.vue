@@ -18,7 +18,7 @@ let _no_reset_flag = false
 
 const dateElem = ref(null)
 const focusElem = ref(null)
-const internal = ref(null)
+const internal = ref(null as Date)
 const dropdownElem = ref(null)
 
 
@@ -28,17 +28,14 @@ const buttonStyle = computed(() => ({
 
 
 const datePreview = computed(() => {
-    if (internal.value == undefined) {
+    const date = internal.value
+    if (date == undefined) {
         return undefined
     }
-    const formattedDate = internal.value.toLocaleString("fr-FR", {
-        day: "numeric",
-        month: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit"
-    })
-    return formattedDate
+    
+    const res = date.getUTCFullYear() + '/' + pad(date.getUTCMonth()+1) + '/' + pad(date.getUTCDate()) + ' ' + pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes())
+
+    return res
 })
 
 function save() {
@@ -76,12 +73,24 @@ function onEsc() {
 }
 
 function updateLocalValue() {
+    if(props.modelValue == internal.value) return
+
     if(props.modelValue) {
         internal.value = new Date(props.modelValue)
     } else {
         internal.value = undefined
     }
     
+}
+
+function updateInternal(value: Date) {
+    internal.value = new Date(value.getTime() - value.getTimezoneOffset()*60*1000)
+}
+
+function pad(num) {
+    num = num.toString();
+    if (num.length < 2) num = "0" + num;
+    return num;
 }
 
 watch(props, ()=> {
@@ -110,8 +119,8 @@ onMounted(() => {
         </template>
         <template #popup>
             <VueDatePicker :model-value="props.modelValue" @update:model-value="e => emits('update:modelValue', e)"
-                input-class-name="custom-date-picker" :hide-input-icon="true"
-                @internal-model-change="e => internal = e"
+                input-class-name="custom-date-picker" :hide-input-icon="true" utc="preserve" format="yyyy/MM/dd HH:mm"
+                @internal-model-change="e => updateInternal(e)"
                 calendar-cell-class-name="custom-date-picker" :inline="true" ref="dateElem">
                 <template #action-buttons>
                     <span style="font-size: 13px;" class="text-nowrap">

@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
 import { Image, Property } from '@/data/models';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore'
 import { getImageProperty } from '@/utils/utils';
 import StandaloneDateInput from './StandaloneDateInput.vue';
@@ -21,7 +21,10 @@ const localValue = computed(() => {
 
 
 function save(date: Date) {
-    store.setPropertyValue(props.property.id, props.image, date)
+    date = new Date(date)
+    console.log(date)
+    console.log(date.toUTCString())
+    store.setPropertyValue(props.property.id, props.image, new Date(date.getTime()))
 }
 
 </script>

@@ -5,7 +5,7 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { DateUnit, Image, Property, PropertyValue } from "@/data/models";
+import { DateUnit, DateUnitFactor, Image, Property, PropertyValue } from "@/data/models";
 import { nextTick, reactive, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
@@ -175,6 +175,21 @@ const valueParser: { [type in PropertyType]?: any } = {
     }
 }
 
+function closestDate(date: Date, stepSize: number, unit: DateUnit) {
+    if(date == undefined) return undefined
+    let step = stepSize * DateUnitFactor[unit]
+    if(unit == DateUnit.Second || unit == DateUnit.Minute || unit == DateUnit.Hour || unit == DateUnit.Day || unit == DateUnit.Week) {
+        step *= 1000 // DateUnitFactors are in seconds, getTime in miliseconds
+        let closest = Math.floor(date.getTime() / step) * step
+        return new Date(closest)
+    }
+    if(unit == DateUnit.Year) {
+        let closest = Math.floor(date.getUTCFullYear() / step) * step
+        // console.log(date.getUTCFullYear(), step, closest)
+        return new Date(closest, 0, 1)
+    }
+    return date
+}
 
 
 function sortGroup(group: Group, option: GroupOption) {
@@ -422,7 +437,8 @@ export class GroupManager {
         if (option) {
             Object.assign(this.state.options[propertyId], option)
         }
-
+        console.log(option)
+        console.log(this.state.options[propertyId])
         if (this.state.groupBy.includes(propertyId)) return
         this.state.groupBy.push(propertyId)
     }
@@ -552,8 +568,14 @@ export class GroupManager {
             let value = img.properties[property.id]?.value
             value = valueParser[property.type](value)
 
+            if(property.type == PropertyType.date && option.useSteps) {
+                value = closestDate(value, option.stepSize, option.stepUnit)
+            }
+
+            // treat all values as possible array to avoid writing different code for multi_tags
             let values = Array.isArray(value) ? value : [value]
 
+            // for all properties != multi_tags : values.length == 1
             for (let v of values) {
                 const key = v == undefined ? UNDEFINED_KEY : String(v)
                 if (!subGroups[key]) {
@@ -567,6 +589,7 @@ export class GroupManager {
                 subGroups[key].images.push(img)
             }
         }
+
         const children: Group[] = Object.values(subGroups)
         this.setChildGroup(group, children)
 

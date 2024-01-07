@@ -191,7 +191,8 @@ export const useProjectStore = defineStore('projectStore', () => {
             const property = data.properties[pId]
             if(!property) continue
             if (property.type == PropertyType.date) {
-                propValue.value = new Date(propValue.value)
+                const date = new Date(propValue.value)
+                propValue.value = date
             }
         }
 

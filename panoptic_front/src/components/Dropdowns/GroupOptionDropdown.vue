@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 import TimeUnitDropdown from './TimeUnitDropdown.vue';
 import { GroupOption } from '@/core/GroupManager';
+import { DateUnit } from '@/data/models';
 
 const props = defineProps<{
     option: GroupOption
@@ -12,9 +13,9 @@ const emits = defineEmits<{
     'change': [option: GroupOption]
 }>()
 
-const isSet = ref(true)
+const isSet = ref(false)
 const value = ref(1)
-const unit = ref(undefined)
+const unit = ref(DateUnit.Year)
 
 function onHide() {
     if(props.option.useSteps == isSet.value && props.option.stepSize == value.value && props.option.stepUnit == unit.value) {

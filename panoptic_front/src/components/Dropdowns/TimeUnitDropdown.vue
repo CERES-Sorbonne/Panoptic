@@ -16,11 +16,6 @@ const options = Object.values(DateUnit)
 function select(option: DateUnit) {
     emits('update:modelValue', option)
 }
-
-onMounted(() => {
-    select(DateUnit.Day)
-})
-
 </script>
 
 <template>
