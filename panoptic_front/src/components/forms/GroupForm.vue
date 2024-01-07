@@ -3,7 +3,7 @@
 import { useProjectStore } from '@/data/projectStore'
 import { computed, onMounted } from 'vue';
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
-import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
+import { Group, GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
 import { PropertyType } from '@/data/models';

@@ -43,6 +43,7 @@ function mapTag(id: number | string): Tag[] {
             <TagBadge :tag="store.data.folders[props.value.value].name" :color="-1" />
         </div>
         <span v-else-if="property.type == PropertyType.date && props.value.value">{{ (props.value.value as Date).toLocaleDateString() }}</span>
+        <span v-else-if="property.type == PropertyType.date"> undefined </span>
         <span v-else-if="!isTag">
             <span v-if="props.value.value != UNDEFINED_KEY">{{ props.value.value }}</span>
             <span v-else class="text-secondary">indéfini</span>

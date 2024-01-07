@@ -25,8 +25,8 @@ export interface ImageIndex {
     [id: number]: Image
 }
 
-export type Sha1ToImages = {[sha1: string]: Image[]}
-export type Sha1Scores = {[sha1: string]: number}
+export type Sha1ToImages = { [sha1: string]: Image[] }
+export type Sha1Scores = { [sha1: string]: number }
 
 // ==================================
 // ==============Property============
@@ -241,8 +241,20 @@ export interface DirInfo {
 export enum DateUnit {
     Year = 'Year',
     Month = 'Month',
+    Week = 'Week',
     Day = 'Day',
     Hour = 'Hour',
     Minute = 'Minute',
     Second = 'Second'
+}
+
+export const DateUnitFactor = {
+    [DateUnit.Year]: 1,
+    [DateUnit.Month]: 1,
+    [DateUnit.Week]: 60 * 60 * 24 * 7,
+    [DateUnit.Day]: 60 * 60 * 24,
+    [DateUnit.Hour]: 60 * 60,
+    [DateUnit.Minute]: 60,
+    [DateUnit.Second]: 1,
+
 }

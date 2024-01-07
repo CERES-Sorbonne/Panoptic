@@ -107,9 +107,30 @@ function getSortablePropertyValue(image: Image, property: Property) {
             value = undefined
         }
     }
-
     value = sortParser[type](value)
     return value
+}
+
+function sortSortable(sortable: SortableImage[], orders: number[]) {
+    sortable.sort((a, b) => {
+        for (let i = 0; i < a.values.length; i++) {
+            if (a.values[i] == b.values[i]) continue
+            if (a.values[i] < b.values[i]) return -1 * orders[i]
+            return 1 * orders[i]
+        }
+        return a.imageId - b.imageId
+    })
+}
+
+function getSortableImages(images: Image[], properties: Property[]): SortableImage[] {
+    const res = []
+
+    for (const image of images) {
+        const sortable: SortableImage = { imageId: image.id, values: [] }
+        properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p)))
+        res.push(sortable)
+    }
+    return res
 }
 
 export class SortManager {
@@ -142,21 +163,17 @@ export class SortManager {
 
     sort(images: Image[], emit?: boolean): SortResult {
         console.time('Sort')
-        const sortable = this.getSortableImages(images)
-        const order = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
-        sortable.sort((a, b) => {
-            for (let i = 0; i < a.values.length; i++) {
-                if (a.values[i] == b.values[i]) continue
-                if (a.values[i] < b.values[i]) return -1 * order[i]
-                return 1 * order[i]
-            }
-            return a.imageId - b.imageId
-        })
+        const store = useProjectStore()
+        
+        const properties = this.state.sortBy.map(id => store.data.properties[id])
+        const sortable = getSortableImages(images, properties)
+        
+        const orders = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
+        sortSortable(sortable, orders)
+
         this.result.images = []
         this.result.order = {}
-
         for (let i = 0; i < sortable.length; i++) {
-            const store = useProjectStore()
             this.result.images.push(store.data.images[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
@@ -193,18 +210,5 @@ export class SortManager {
         const store = useProjectStore()
         this.state.sortBy = this.state.sortBy.filter(id => store.data.properties[id])
         Object.keys(this.state.options).filter(id => !store.data.properties[id]).forEach(id => delete this.state.options[id])
-    }
-
-    private getSortableImages(images: Image[]): SortableImage[] {
-        const store = useProjectStore()
-        const res = []
-        const properties = this.state.sortBy.map(id => store.data.properties[id])
-
-        for (const image of images) {
-            const sortable: SortableImage = { imageId: image.id, values: [] }
-            properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p)))
-            res.push(sortable)
-        }
-        return res
     }
 }
