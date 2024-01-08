@@ -29,7 +29,7 @@ const handleInput = async (e: any) => {
 }
 
 function promptFolder() {
-    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: addFolder})
+    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: addFolder, mode: "images"})
 }
 
 function addFolder(path) {

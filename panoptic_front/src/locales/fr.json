@@ -84,11 +84,12 @@
     },
     "modals": {
         "fs": {
-            "fast": "Acces rapide",
-            "partitions": "Partitions"
-        },
-        "add_folder": {
-            "title": "Choisir un dossier d'images à ajouter"
+            "fast": "Accès rapide",
+            "partitions": "Disques",
+            "images":"Choisir un dossier d'images à ajouter",
+            "import": "Choisir un projet à importer",
+            "create": "Choisir l'emplacement où créer",
+            "open": "Sélectionner"
         },
         "image": {
             "similar_images": "Images similaires",

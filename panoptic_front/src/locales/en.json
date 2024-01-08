@@ -85,11 +85,12 @@
     },
     "modals": {
         "fs": {
-            "fast": "Fast access",
-            "partitions": "Partitions"
-        },
-        "add_folder": {
-            "title": "Select the folder you want to add images from"
+            "fast": "Quick Access",
+            "partitions": "Disks",
+            "images": "Select the folder you want to add images from",
+            "import": "Select the project folder to import",
+            "create": "Where should project folder be created ?",
+            "open": "Select"
         },
         "image": {
             "similar_images": "Similar images",

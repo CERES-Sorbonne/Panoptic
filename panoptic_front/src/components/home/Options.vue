@@ -14,7 +14,7 @@ function importPath(path: string) {
 }
 
 function promptPath() {
-    panoptic.showModal(ModalId.FOLDERSELECTION, { callback: importPath })
+    panoptic.showModal(ModalId.FOLDERSELECTION, { callback: importPath, mode: 'import' })
 }
 
 </script>
