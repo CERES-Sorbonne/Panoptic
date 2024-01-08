@@ -28,21 +28,24 @@ const color = computed(() => {
 
 const date = computed(() => {
     if (property.value.type != PropertyType.date) return
+    let unit = props.value.unit
+    if (!props.value.valueEnd) unit = undefined
+
     const d = props.value.value as Date
     const units = [DateUnit.Year, DateUnit.Month, DateUnit.Day, DateUnit.Hour, DateUnit.Minute]
     let res = ''
     res += d.getUTCFullYear()
-    if (props.value.unit == DateUnit.Year) return res
+    if (unit == DateUnit.Year) return res
     res += '/'
     res += (pad(d.getUTCMonth() + 1))
-    if (props.value.unit == DateUnit.Month) return res
+    if (unit == DateUnit.Month) return res
     res += '/'
     res += pad(d.getUTCDate())
-    if (props.value.unit == DateUnit.Week) return res
-    if (props.value.unit == DateUnit.Day) return res
+    if (unit == DateUnit.Week) return res
+    if (unit == DateUnit.Day) return res
     res += ' '
     res += pad(d.getUTCHours())
-    if (props.value.unit == DateUnit.Hour) return res + 'h'
+    if (unit == DateUnit.Hour) return res + 'h'
     res += ':'
     res += pad(d.getUTCMinutes())
     return res
@@ -50,6 +53,8 @@ const date = computed(() => {
 
 const dateEnd = computed(() => {
     if (property.value.type != PropertyType.date) return
+    if (!props.value.valueEnd) return
+
     const d = props.value.valueEnd as Date
     const units = [DateUnit.Year, DateUnit.Month, DateUnit.Day, DateUnit.Hour, DateUnit.Minute]
     let res = ''
