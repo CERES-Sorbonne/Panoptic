@@ -77,7 +77,6 @@ export enum GroupSortType {
 export interface GroupOption extends SortOption {
     type?: GroupSortType
 
-    useSteps?: boolean
     stepSize?: number
     stepUnit?: DateUnit
 }
@@ -123,8 +122,16 @@ function buildRoot(images: Image[]): Group {
     return buildGroup(ROOT_ID, images)
 }
 
-export function buildGroupOption(): GroupOption {
-    return { direction: SortDirection.Ascending, type: GroupSortType.Property }
+export function buildGroupOption(propertyId: number): GroupOption {
+    const res: GroupOption = { direction: SortDirection.Ascending, type: GroupSortType.Property }
+
+    const store = useProjectStore()
+    const property = store.data.properties[propertyId]
+    if(property.type == PropertyType.date) {
+        res.stepUnit = DateUnit.Day
+    }
+
+    return res
 }
 
 const valueParser: { [type in PropertyType]?: any } = {
@@ -176,7 +183,10 @@ const valueParser: { [type in PropertyType]?: any } = {
 }
 
 function closestDate(date: Date, stepSize: number, unit: DateUnit) {
-    if (date == undefined) return undefined
+    if(!unit) {
+        unit = DateUnit.Day
+    }
+    if (date == undefined) return
     let step = stepSize * DateUnitFactor[unit]
     if (unit == DateUnit.Second || unit == DateUnit.Minute || unit == DateUnit.Hour || unit == DateUnit.Day || unit == DateUnit.Week) {
         step *= 1000 // DateUnitFactors are in seconds, getTime in miliseconds
@@ -460,7 +470,7 @@ export class GroupManager {
 
     setGroupOption(propertyId: number, option?: GroupOption) {
         if (!this.state.options[propertyId]) {
-            this.state.options[propertyId] = buildGroupOption()
+            this.state.options[propertyId] = buildGroupOption(propertyId)
         }
         if (option) {
             Object.assign(this.state.options[propertyId], option)
@@ -597,7 +607,7 @@ export class GroupManager {
             value = valueParser[property.type](value)
 
             let intervalEnd = undefined
-            if (property.type == PropertyType.date && option.useSteps) {
+            if (property.type == PropertyType.date) {
                 const res = closestDate(value, option.stepSize, option.stepUnit)
                 if (res) {
                     value = res.first
