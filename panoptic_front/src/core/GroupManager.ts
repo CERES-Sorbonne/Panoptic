@@ -176,19 +176,47 @@ const valueParser: { [type in PropertyType]?: any } = {
 }
 
 function closestDate(date: Date, stepSize: number, unit: DateUnit) {
-    if(date == undefined) return undefined
+    if (date == undefined) return undefined
     let step = stepSize * DateUnitFactor[unit]
-    if(unit == DateUnit.Second || unit == DateUnit.Minute || unit == DateUnit.Hour || unit == DateUnit.Day || unit == DateUnit.Week) {
+    if (unit == DateUnit.Second || unit == DateUnit.Minute || unit == DateUnit.Hour || unit == DateUnit.Day || unit == DateUnit.Week) {
         step *= 1000 // DateUnitFactors are in seconds, getTime in miliseconds
-        let closest = Math.floor(date.getTime() / step) * step
-        return new Date(closest)
+        let ratio = Math.floor(date.getTime() / step)
+        let first = new Date(ratio * step)
+        let last = new Date(ratio * step + step - 1)
+        return { first, last }
     }
-    if(unit == DateUnit.Year) {
-        let closest = Math.floor(date.getUTCFullYear() / step) * step
-        // console.log(date.getUTCFullYear(), step, closest)
-        return new Date(new Date(closest, 0, 1).getTime() +  - (new Date()).getTimezoneOffset()*60*1000)
+    if (unit == DateUnit.Year) {
+        let ratio = Math.floor(date.getUTCFullYear() / step)
+
+        let first = new Date(ratio * step, 0, 1)
+        first = new Date(first.getTime() - first.getTimezoneOffset() * 60 * 1000)
+
+        let last = new Date(ratio * step + step, 0, 1)
+        last = new Date(last.getTime() - last.getTimezoneOffset() * 60 * 1000)
+
+        return { first, last }
     }
-    return date
+    if (unit == DateUnit.Month) {
+        let dateIndex = date.getUTCFullYear() * 12 + date.getUTCMonth()
+
+
+        let ratio = Math.floor(dateIndex / step) * step
+        let year = Math.floor(ratio / 12)
+        let month = ratio % 12
+
+        let first = new Date(year, month, 1)
+        first = new Date(first.getTime() - first.getTimezoneOffset() * 60 * 1000)
+
+        ratio = Math.floor(dateIndex / step) * step + step
+        year = Math.floor(ratio / 12)
+        month = ratio % 12
+
+        let last = new Date(year, month, 1)
+        last = new Date(last.getTime() - last.getTimezoneOffset() * 60 * 1000)
+
+        return { first, last }
+    }
+    return { first: date, last: date }
 }
 
 
@@ -414,16 +442,16 @@ export class GroupManager {
     }
 
     sort(order: ImageOrder, emit?: boolean) {
-        if(this.state.sha1Mode) {
-            this.removeSha1Groups()  
+        if (this.state.sha1Mode) {
+            this.removeSha1Groups()
         }
         this.lastOrder = order
         Object.values(this.result.index).map(v => v as Group).forEach(g => {
             sortGroupImages(g, order)
         })
 
-        if(this.state.sha1Mode) {
-            this.groupLeafsBySha1()    
+        if (this.state.sha1Mode) {
+            this.groupLeafsBySha1()
         }
 
 
@@ -568,8 +596,13 @@ export class GroupManager {
             let value = img.properties[property.id]?.value
             value = valueParser[property.type](value)
 
-            if(property.type == PropertyType.date && option.useSteps) {
-                value = closestDate(value, option.stepSize, option.stepUnit)
+            let intervalEnd = undefined
+            if (property.type == PropertyType.date && option.useSteps) {
+                const res = closestDate(value, option.stepSize, option.stepUnit)
+                if (res) {
+                    value = res.first
+                    intervalEnd = res.last
+                }
             }
 
             // treat all values as possible array to avoid writing different code for multi_tags
@@ -579,7 +612,7 @@ export class GroupManager {
             for (let v of values) {
                 const key = v == undefined ? UNDEFINED_KEY : String(v)
                 if (!subGroups[key]) {
-                    let propValues = [{ propertyId: property.id, value: v }]
+                    let propValues = [{ propertyId: property.id, value: v, valueEnd: intervalEnd, unit: option.stepUnit } as PropertyValue]
                     let id = group.id == ROOT_ID ? 'prop' : group.id
                     id += propValuesToId(propValues)
                     const newGroup = buildGroup(id, [], GroupType.Property)

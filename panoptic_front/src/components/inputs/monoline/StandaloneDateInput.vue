@@ -84,6 +84,10 @@ function updateLocalValue() {
 }
 
 function updateInternal(value: Date) {
+    if(!value) {
+        internal.value = undefined
+        return
+    }
     internal.value = new Date(value.getTime() - value.getTimezoneOffset()*60*1000)
 }
 

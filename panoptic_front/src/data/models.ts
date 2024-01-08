@@ -68,6 +68,8 @@ export enum PropertyMode {
 export interface PropertyValue {
     propertyId: number
     value: any
+    valueEnd?: any // allow to specidy an interval [value, valueEnd] in special cases like date grouping
+    unit?: DateUnit
 }
 
 export interface PropertyRef extends PropertyValue {
