@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
-import FileItem from './FileItem.vue';
-import axios from 'axios'
+
 import { apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/api';
 import { DirInfo } from '@/data/models';
-import FolderIcon from '../filesystem/FolderIcon.vue';
+import FolderItem from '../filesystem/FolderItem.vue';
 
-// const props = defineProps({
-//     // width: Number
-// })
+const props = defineProps({
+    mode: {
+        type: String,
+        default: "images"
+    }
+})
+
 const emits = defineEmits({
     select: String
 })
@@ -17,7 +20,7 @@ const fastList = reactive([] as DirInfo[])
 const partitionList = reactive([] as DirInfo[])
 const imageList = reactive([] as string[])
 const openFolders = reactive([] as DirInfo[][])
-const actualPath = ref('')
+const selectedFolder = ref({path: ""} as DirInfo)
 
 const scrollerElem = ref(null)
 
@@ -32,7 +35,7 @@ const baseRoot = computed(() => {
 
 const parents = computed(() => {
     const res = []
-    let path = actualPath.value
+    let path = selectedFolder.value.path
     while (path.lastIndexOf('/') > 0) {
         path = path.slice(0, path.lastIndexOf('/'))
         if (path == '') {
@@ -41,6 +44,19 @@ const parents = computed(() => {
         res.push(path)
     }
     return res
+})
+
+const isValidPath = computed(() => {
+    if(props.mode === "images" && selectedFolder.value.images > 0){
+        return true
+    }
+    else if(props.mode === "import" && selectedFolder.value.isProject){
+        return true
+    }
+    else if(props.mode === "create" && !selectedFolder.value.isProject){
+        return true
+    }
+    return false
 })
 
 async function updateInfo() {
@@ -53,34 +69,38 @@ async function updateInfo() {
     partitionList.push(...partitions)
 }
 
-async function setOpenFolder(path) {
-    let res = await apiGetFilesystemLs(path)
+async function setOpenFolder(folder: DirInfo) {
+    let res = await apiGetFilesystemLs(folder.path)
     // console.log(res.directories)
     openFolders.length = 0
     openFolders.push(res.directories.filter(d => !d.name.startsWith('.')))
-    actualPath.value = path
+    selectedFolder.value = folder
     imageList.length = 0
     imageList.push(...res.images)
 }
 
-async function openSubFolder(path: string, folderIndex: number) {
-    const res = await apiGetFilesystemLs(path)
+async function openSubFolder(folder: DirInfo, folderIndex: number) {
+    const res = await apiGetFilesystemLs(folder.path)
     if (folderIndex < openFolders.length - 1) {
         openFolders.splice(folderIndex + 1)
     }
     if (res.directories.length) openFolders.push(res.directories)
-    actualPath.value = path
+    selectedFolder.value = folder
     imageList.length = 0
     imageList.push(...res.images)
 }
 
 async function open() {
-    emits('select', actualPath.value)
+    if(!isValidPath.value){
+        return false
+    }
+    emits('select', selectedFolder.value.path)
 }
+
 
 onMounted(async () => {
     await updateInfo()
-    setOpenFolder(fastList.filter(d => d.name == 'Home')[0].path)
+    setOpenFolder(fastList.filter(d => d.name == 'Home')[0])
 });
 
 onUpdated(() => {
@@ -95,14 +115,14 @@ onUpdated(() => {
             <div>
                 <div class="fs-title mb-1">{{ $t('modals.fs.fast') }}</div>
                 <div v-for="dir in fastList">
-                    <FolderIcon :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir.path)" />
+                    <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
                 </div>
             </div>
 
             <div>
                 <div class="fs-title mb-1">{{ $t('modals.fs.partitions') }}</div>
                 <div v-for="dir in partitionList">
-                    <FolderIcon :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir.path)" />
+                    <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
                 </div>
             </div>
         </div>
@@ -111,8 +131,8 @@ onUpdated(() => {
                 <div class="folder-cols flex-grow-1 bg-white d-flex" ref="scrollerElem">
                     <div class="folder-list flex-shrink-0" v-for="folders, index in openFolders">
                         <div v-for="folder in folders" style="margin-bottom: 2px;">
-                            <FolderIcon :dir="folder" :is-parent="parents.includes(folder.path)" :light="true"
-                                :selected="folder.path == actualPath" @click="openSubFolder(folder.path, index)" />
+                            <FolderItem :dir="folder" :is-parent="parents.includes(folder.path)" :light="true"
+                                :selected="folder == selectedFolder" @click="openSubFolder(folder, index)" />
                         </div>
                         <!-- <div v-if="folders.length == 0" class="text-secondary m-2">Empty</div> -->
                     </div>
@@ -125,8 +145,8 @@ onUpdated(() => {
             </div>
             <div class="bg-success">
                 <div class="path d-flex">
-                    <div class="path-string flex-grow-1">{{ actualPath }}</div>
-                    <div class="open flex-shrink-0" @click="open">Open</div>
+                    <div class="path-string flex-grow-1">{{ selectedFolder.path }}</div>
+                    <div class="open flex-shrink-0" :class="{valid: isValidPath}" @click="open">{{ $t('modals.fs.open') }}</div>
                 </div>
             </div>
         </div>
@@ -141,12 +161,12 @@ onUpdated(() => {
   
 <style scoped>
 .folder-cols {
-    overflow: scroll;
+    overflow: auto;
     width: 200px;
 }
 
 .explorer-view {
-    overflow: scroll;
+    overflow: auto;
     height: 75vh;
     width: calc(80vw - 400px);
     min-width: calc(80vw - 400px);
@@ -173,19 +193,23 @@ onUpdated(() => {
 .open {
     padding: 4px 6px;
     /* background-color: rgb(225, 226, 227); */
-
-    background-color: rgb(73, 134, 213);
+    background-color: rgb(142, 148, 156);
+    
     color: white;
     cursor: pointer;
     border-bottom-right-radius: 5px;
 }
 
-.open:hover {
+.valid{
+    background-color: rgb(73, 134, 213);
+}
+
+.open .valid:hover {
     background-color: rgb(3, 100, 225);
 }
 
 .folder-list {
-    overflow: scroll;
+    overflow: auto;
     padding: 5px;
     border-right: 1px solid var(--border-color);
 }
@@ -205,7 +229,7 @@ onUpdated(() => {
     background-color: #c3cfd9;
     width: 120px;
     text-align: center;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden;
     /* border-left: 1px solid var(--border-color); */
     box-shadow: 0px 0px 3px 1px var(--border-color);
@@ -223,7 +247,7 @@ onUpdated(() => {
 
 .images {
     max-height: 75vh;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 .mini {

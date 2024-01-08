@@ -3,19 +3,16 @@
 import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import FileExplorer from './FileExplorer.vue';
-import { useProjectStore } from '@/data/projectStore';
-import Resizable from '../Resizable.vue';
 import { usePanopticStore } from '@/data/panopticStore';
 
-const store = useProjectStore()
 const panoptic = usePanopticStore()
+const mode = computed(() => panoptic.openModal.data.mode)
 
 const modalElem = ref(null)
-const explorerWidth = ref(0)
 let modal: bootstrap.Modal = null
 
 const props = defineProps({
-    id: { type: String, required: true }
+    id: { type: String, required: true },
 })
 
 const isActive = computed(() => panoptic.openModal.id == props.id)
@@ -70,11 +67,11 @@ onMounted(() => {
         <div class="modal-dialog">
             <div class="modal-content overflow-hidden" v-if="isActive">
                 <div class="modal-header m-0 p-2 ps-3 pe-3" style="z-index: 3; background-color: white;">
-                    <b class="modal-title" id="exampleModalLabel">{{ $t('modals.add_folder.title') }}</b>
+                    <b class="modal-title" id="exampleModalLabel">{{ $t('modals.fs.' + mode) }}</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
                 <div class="">
-                    <FileExplorer @select="select"/>
+                    <FileExplorer @select="select" :mode="mode"/>
                 </div>
             </div>
         </div>

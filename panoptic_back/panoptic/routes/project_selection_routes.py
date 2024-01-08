@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from panoptic.core import db_utils, importer
 from panoptic.project_manager import panoptic
-from panoptic.scripts.project_routes import PathRequest
+from panoptic.routes.project_routes import PathRequest
 
 selection_router = APIRouter()
 
@@ -64,7 +64,7 @@ async def import_project_route(req: PathRequest):
 
 @selection_router.get("/filesystem/ls/{path:path}")
 def api(path: str = ""):
-    return list_contents('/' + path)
+    return list_contents(path)
 
 
 @selection_router.get('/filesystem/info')
