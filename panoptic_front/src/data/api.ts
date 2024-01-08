@@ -166,7 +166,7 @@ export async function apiGetFilesystemInfo() {
 }
 
 export async function apiGetFilesystemLs(path: string) {
-    let res = await axios.get('/filesystem/ls' + path)
+    let res = await axios.get('/filesystem/ls/' + path)
     return res.data as { directories: DirInfo[], images: [] }
 }
 

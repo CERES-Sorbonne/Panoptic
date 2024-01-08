@@ -19,7 +19,7 @@ function setPath(p: string) {
 }
 
 function prompPath() {
-    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: setPath})
+    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: setPath, mode: 'create'})
 }
 
 </script>
