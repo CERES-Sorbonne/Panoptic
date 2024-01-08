@@ -29,7 +29,6 @@ const color = computed(() => {
 const date = computed(() => {
     if (property.value.type != PropertyType.date) return
     let unit = props.value.unit
-    if (!props.value.valueEnd) unit = undefined
 
     const d = props.value.value as Date
     const units = [DateUnit.Year, DateUnit.Month, DateUnit.Day, DateUnit.Hour, DateUnit.Minute]
