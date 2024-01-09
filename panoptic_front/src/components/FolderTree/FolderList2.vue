@@ -73,6 +73,9 @@ function toggleFolderSelect(folderId: number) {
     }
 
     props.filterManager.setFolders(Array.from(selected))
+    console.log(props.filterManager.state.folders)
+    console.log(store.getTab().filterState.folders)
+
     props.filterManager.update(true)
 }
 

@@ -136,17 +136,18 @@ export const useProjectStore = defineStore('projectStore', () => {
         let state = buildTabState()
         state.name = tabName
         let tab = await apiAddTab({ data: state })
+        console.log(tab.id) 
         tab.data.id = tab.id
         data.tabs[tab.id] = tab.data
-        selectTab(tab.id)
+        await selectTab(tab.id)
     }
 
     async function removeTab(tabId: number) {
-        await apiDeleteTab(tabId)
-        delete data.tabs[tabId]
-        if (objValues(data.tabs).length == 0) {
+        if (objValues(data.tabs).length == 1) {
             await addTab('Tab1')
         }
+        await apiDeleteTab(tabId)
+        delete data.tabs[tabId]
         verifySelectedTab()
     }
 
@@ -154,19 +155,22 @@ export const useProjectStore = defineStore('projectStore', () => {
         await apiUpdateTab({ id: tab.id, data: tab })
     }
 
-    function selectTab(tabId: number) {
+    async function selectTab(tabId: number) {
         data.selectedTabId = tabId
-        tabManager.load(getTab())
+        await tabManager.load(getTab())
     }
 
     async function loadTabs() {
         let tabs = await apiGetTabs()
-        tabs.forEach(t => data.tabs[t.id] = t.data)
+        tabs.forEach(t => {
+            t.data.id = t.id
+            data.tabs[t.id] = t.data
+        })
 
         if (tabs.length == 0) {
             await addTab('Tab1')
         } else {
-            selectTab(tabs[0].id)
+            await selectTab(tabs[0].id)
         }
         verifySelectedTab()
     }
