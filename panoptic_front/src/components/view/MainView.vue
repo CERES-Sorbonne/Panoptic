@@ -95,7 +95,6 @@ watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
 })
 
-// watch(() => props.tabId, loadTab)
 
 </script>
 
