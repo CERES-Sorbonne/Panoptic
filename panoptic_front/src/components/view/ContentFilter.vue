@@ -9,9 +9,10 @@ import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
 import Toggle from '@vueform/toggle'
 import wTT from '../tooltips/withToolTip.vue'
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
+import { localeData } from 'moment';
 
 const props = defineProps({
     tab: TabManager,
@@ -20,15 +21,33 @@ const props = defineProps({
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
+const localQuery = ref('')
+
 const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages).map(Number))
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 
 function updateSha1Mode(value) {
-    console.log(value)
     props.tab.collection.groupManager.setSha1Mode(value, true)
 }
 
+function getLocalQuery() {
+    localQuery.value = props.tab.state.filterState.query
+}
+
+function setQuery() {
+    props.tab.collection.filterManager.setQuery(localQuery.value)
+    props.tab.collection.filterManager.update(true)
+}
+
+function deleteQuery() {
+    props.tab.collection.filterManager.setQuery('')
+    props.tab.collection.filterManager.update(true)
+}
+
+
+onMounted(getLocalQuery)
+watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
 </script>
 
@@ -37,8 +56,8 @@ function updateSha1Mode(value) {
         <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
             <div class="d-flex flex-row search-input me-5">
                 <div class="bi bi-search float-start bi-sm"></div>
-                <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')"
-                    @keyup.enter="$emit('search-images', ($event.target as HTMLInputElement).value)" />
+                <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery" @change="setQuery"/>
+                <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
             </div>
         </wTT>
 

@@ -37,7 +37,6 @@ const scrollerWidth = ref(0)
 
 const computeStatus = reactive({ groups: false })
 
-const sha1Mode = computed(() => tabManager.getSha1Mode())
 const visibleProperties = computed(() => tabManager.getVisibleProperties())
 
 function updateScrollerHeight() {

@@ -5,12 +5,13 @@
  * Images are first filtered by folders then by properties
  */
 
+import { apiGetSimilarImagesFromText } from "@/data/api";
 import { propertyDefault } from "@/data/builder";
 import { Image, PropertyType } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
-import { reactive, toRefs } from "vue";
+import { reactive, ref, toRefs } from "vue";
 
 export function operatorHasInput(operator: FilterOperator) {
     switch (operator) {
@@ -85,6 +86,7 @@ export interface FilterGroup extends AFilter {
 export interface FilterState {
     folders: number[]
     filter: FilterGroup
+    query: string
 }
 
 export interface FilterResult {
@@ -216,7 +218,8 @@ export function createFilterState(): FilterState {
     const group = createFilterGroup()
     const state = reactive({
         folders: [],
-        filter: group
+        filter: group,
+        query: ''
     })
     return state
 }
@@ -303,7 +306,7 @@ export class FilterManager {
         this.onChange = new EventEmitter()
 
         if (state) {
-            this.state = state
+            this.state = reactive(state)
             this.recursiveRegister(this.state.filter)
         } else {
             this.initFilterState()
@@ -324,10 +327,18 @@ export class FilterManager {
         this.result = { images: [] }
     }
 
-    filter(images: Image[], emit?: boolean) {
+    async filter(images: Image[], emit?: boolean) {
         console.time('Filter')
         this.lastImages = images
         let filtered = images
+
+        if(this.state.query) {
+            const res = await apiGetSimilarImagesFromText(this.state.query)
+            const isValid = new Set<string>()
+            res.forEach(r => isValid.add(r.sha1))
+            filtered = filtered.filter(i => isValid.has(i.sha1))
+        }
+
         if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
             filtered = filtered.filter(img => folderSet.has(img.folder_id))
@@ -340,14 +351,18 @@ export class FilterManager {
         return this.result
     }
 
-    update(emit?: boolean) {
+    async update(emit?: boolean) {
         if (!this.lastImages) return
-        this.filter(this.lastImages)
+        await this.filter(this.lastImages)
         if (emit) this.onChange.emit(this.result)
     }
 
     setFolders(folderIds: number[]) {
         this.state.folders = folderIds
+    }
+
+    setQuery(query: string) {
+        this.state.query = query
     }
 
     addNewFilterGroup(parentId: number = undefined) {

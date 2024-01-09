@@ -475,8 +475,6 @@ export class GroupManager {
         if (option) {
             Object.assign(this.state.options[propertyId], option)
         }
-        console.log(option)
-        console.log(this.state.options[propertyId])
         if (this.state.groupBy.includes(propertyId)) return
         this.state.groupBy.push(propertyId)
     }

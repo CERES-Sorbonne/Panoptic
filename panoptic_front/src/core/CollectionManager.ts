@@ -41,13 +41,13 @@ export class CollectionManager {
         this.groupManager.verifyState()
     }
 
-    update(images?: ImageIndex) {
+    async update(images?: ImageIndex) {
         // throw new Error('update')
         // console.log('update')
         this.images = images ?? this.images
         if(!this.images) return
         
-        const filterRes = this.filterManager.filter(Object.values(this.images))
+        const filterRes = await this.filterManager.filter(Object.values(this.images))
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)
     }
