@@ -37,7 +37,6 @@ export class TabManager {
     }
 
     load(state: TabState) {
-        // throw new Error('lala')
         const project = useProjectStore()
         Object.assign(this.state, toRefs(state))
         if(!state) return
