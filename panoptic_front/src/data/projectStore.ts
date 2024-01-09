@@ -70,10 +70,6 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         data.folders = buildFolderNodes(folders)
 
-        // console.time('tab state')
-        await loadTabs()
-        // console.timeEnd('tab state')
-
         status.import = await apiGetImportStatus()
         setInterval(async () => { applyImportState(await apiGetImportStatus()) }, 1000)
 
@@ -82,12 +78,16 @@ export const useProjectStore = defineStore('projectStore', () => {
         computeTagCount(imageList.value, properties)
 
         countImagePerFolder(data.folders, imageList.value)
+
+        // console.time('tab state')
+        await loadTabs()
         verifySelectedTab()
         verifyData()
+        // console.timeEnd('tab state')
 
         status.loaded = true
 
-        tabManager.collection.update(data.images)
+        // tabManager.collection.update(data.images)
     }
 
     function clear() {
@@ -189,7 +189,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             if (propValue.value == undefined) continue
 
             const property = data.properties[pId]
-            if(!property) continue
+            if (!property) continue
             if (property.type == PropertyType.date) {
                 const date = new Date(propValue.value)
                 propValue.value = date
@@ -312,10 +312,10 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function _setPropertyValue(image: Image, property: Property, value: any) {
-        if(property.type == PropertyType.date) {
+        if (property.type == PropertyType.date) {
             value = value != undefined ? new Date(value) : undefined
         }
-        image.properties[property.id] = { propertyId: property.id, value}
+        image.properties[property.id] = { propertyId: property.id, value }
     }
 
     async function updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
