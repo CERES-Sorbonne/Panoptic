@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { GroupLine, Property, ScrollerLine } from '@/data/models'
 
 import GroupLineVue from './GroupLine.vue';
@@ -31,8 +31,8 @@ function reload() {
     nextTick(() => nextTick(() => loaded.value = true))
 }
 
-// onMounted(reload)
-watch(() => props.item.id, reload)
+onMounted(reload)
+// watch(() => props.item.id, reload)
 
 </script>
 
