@@ -73,7 +73,7 @@ function updateHeight() {
         if (!elem.value) return
         let newHeight = elem.value.$refs.element.clientHeight
         if (height != newHeight) {
-            emit('update:height', newHeight + 6)
+            emit('update:height', newHeight)
         }
         height = newHeight
     })

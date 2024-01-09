@@ -84,8 +84,8 @@ function mapTag(id: number | string): Tag[] {
 </script>
 
 <template>
-    <div class="d-flex text-nowrap " style="line-height: 25px;">
-        <div class="me-1">{{ property.name }}: </div>
+    <div class="d-flex text-nowrap p-0 m-0">
+        <div class="me-2">{{ property.name }}: </div>
         <div v-if="property.type == PropertyType.color" :style="{ backgroundColor: color }" class="color-holder">
         </div>
         <div v-else-if="property.type == PropertyType._folders">
@@ -93,7 +93,7 @@ function mapTag(id: number | string): Tag[] {
         </div>
         <span v-else-if="property.type == PropertyType.date && props.value.value">
             {{ date }}
-            <span class="ms-2"></span>
+            <span class="ms-1 me-1">to</span>
             {{ dateEnd }}
         </span>
         <span v-else-if="property.type == PropertyType.date"> undefined </span>

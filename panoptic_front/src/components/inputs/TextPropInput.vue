@@ -57,7 +57,7 @@ onMounted(async () => {
         focus()
     }
 })
-// watch(propRef, updateFromStore)
+watch(propRef, updateFromStore)
 
 
 defineExpose({

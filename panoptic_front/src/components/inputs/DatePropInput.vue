@@ -36,6 +36,9 @@ function save() {
 
 
 onMounted(updateFromStore)
+onMounted(() => {
+    // emits('update:height', 24)
+})
 // watch(propRef, updateFromStore)
 
 
@@ -52,12 +55,6 @@ defineExpose({
 
 <template>
     <div :style="{ height: props.minHeight + 'px', width: props.width+'px'}" class="container">
-        <!-- <input type="date" v-model="localValue" :style="{
-            width: (isFirefox ? 120 : 95) + 'px',
-            paddingTop: (isFirefox ? 4 : 3) + 'px',
-            fontSize: '15px',
-            color: (localValue != null ? 'black' : 'grey'),
-        }" ref="elem" @blur="save"/> -->
         <DateInput :image="props.image" :property="props.property"/>
     </div>
 </template>

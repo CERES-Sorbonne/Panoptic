@@ -62,7 +62,7 @@ const propertyValues = computed(() => {
     padding-left: 2px;
     line-height: 28px;
     position: relative;
-    box-shadow: 0px 2px 3px var(--border-color);
+    /* box-shadow: 0px 2px 3px var(--border-color); */
     /* z-index: 5; */
 }
 
