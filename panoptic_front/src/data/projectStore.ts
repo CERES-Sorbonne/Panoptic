@@ -158,6 +158,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function selectTab(tabId: number) {
         data.selectedTabId = tabId
         await tabManager.load(getTab())
+        updatePropertyOptions()
     }
 
     async function loadTabs() {
@@ -173,6 +174,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             await selectTab(tabs[0].id)
         }
         verifySelectedTab()
+        updatePropertyOptions()
     }
 
     function verifySelectedTab() {
