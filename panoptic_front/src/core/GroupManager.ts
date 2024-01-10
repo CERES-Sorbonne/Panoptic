@@ -329,7 +329,7 @@ export class GroupManager {
         this.clear()
     }
 
-    group(images: Image[], order: ImageOrder, emit?: boolean) {
+    group(images: Image[], order?: ImageOrder, emit?: boolean) {
         console.time('Group')
         this.lastOrder = order
         this.result.root = buildRoot(images)
@@ -341,9 +341,12 @@ export class GroupManager {
         if (this.state.groupBy.length > 0) {
             this.computePropertySubGroup(this.result.root, this.state.groupBy)
         }
-        Object.values(this.result.index).map(v => v as Group).forEach(g => {
-            sortGroupImages(g, order)
-        })
+        
+        if(order) {
+            Object.values(this.result.index).map(v => v as Group).forEach(g => {
+                sortGroupImages(g, order)
+            })
+        }
 
         for (let group of Object.values(this.result.index)) {
             if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) continue
@@ -456,6 +459,7 @@ export class GroupManager {
             this.removeSha1Groups()
         }
         this.lastOrder = order
+        
         Object.values(this.result.index).map(v => v as Group).forEach(g => {
             sortGroupImages(g, order)
         })
