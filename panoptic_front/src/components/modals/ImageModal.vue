@@ -141,6 +141,44 @@ function toggleProperty(propId: Number) {
     }
 }
 
+async function setSimilar() {
+    if (modalMode.value != ImageModalMode.Similarity) return
+
+    const res = await getSimilarImages(image.value.sha1)
+    similarImages.value = res
+    updateSimilarGroup()
+}
+
+function updateSimilarGroup() {
+    var filteredSha1s = similarImages.value.filter(i => i.dist >= (minSimilarityDist.value / 100.0))
+
+    const images: Image[] = []
+    state.sha1Scores = {}
+    filteredSha1s.forEach(r => images.push(...store.data.sha1Index[r.sha1]))
+    filteredSha1s.forEach(r => state.sha1Scores[r.sha1] = r.dist)
+
+    similarGroup.group(images)
+
+    if (scroller.value) {
+        scroller.value.computeLines()
+        scroller.value.scrollTo('0')
+    }
+
+}
+
+function paintSelection(property: PropertyRef) {
+    let images = similarGroup.result.root.images
+    if (Object.keys(similarGroup.selectedImages).length) {
+        images = Object.keys(similarGroup.selectedImages).map(id => store.data.images[id])
+    }
+    store.setPropertyValue(property.propertyId, images, property.value)
+}
+
+onMounted(() => {
+    modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
+    modalElem.value.addEventListener('hide.bs.modal', onHide)
+})
+
 watch(() => panoptic.openModal.id, (id) => {
     console.log('change')
     if (id == props.id) {
@@ -162,46 +200,6 @@ watch(modalMode, () => {
         setSimilar()
     }
 })
-
-onMounted(() => {
-    modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
-    modalElem.value.addEventListener('hide.bs.modal', onHide)
-})
-
-async function setSimilar() {
-    if (modalMode.value != ImageModalMode.Similarity) return
-
-    const res = await getSimilarImages(image.value.sha1)
-    similarImages.value = res
-    updateSimilarGroup()
-}
-
-function updateSimilarGroup() {
-    var filteredSha1s = similarImages.value.filter(i => i.dist >= (minSimilarityDist.value / 100.0))
-
-    const images: Image[] = []
-    state.sha1Scores = {}
-    filteredSha1s.forEach(r => images.push(...store.data.sha1Index[r.sha1]))
-    filteredSha1s.forEach(r => state.sha1Scores[r.sha1] = r.dist)
-
-    const sorter = new SortManager()
-    const res = sorter.sort(images)
-    similarGroup.group(res.images, res.order)
-
-    if (scroller.value) {
-        scroller.value.computeLines()
-        scroller.value.scrollTo('0')
-    }
-
-}
-
-function paintSelection(property: PropertyRef) {
-    let images = similarGroup.result.root.images
-    if (Object.keys(similarGroup.selectedImages).length) {
-        images = Object.keys(similarGroup.selectedImages).map(id => store.data.images[id])
-    }
-    store.setPropertyValue(property.propertyId, images, property.value)
-}
 
 watch(minSimilarityDist, updateSimilarGroup)
 
