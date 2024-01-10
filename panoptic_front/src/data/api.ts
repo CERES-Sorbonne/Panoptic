@@ -78,6 +78,11 @@ export const apiDeleteTagParent = async (id: number, parentId: number): Promise<
     return res.data
 }
 
+export const apiDeleteTag = async (tag_id: number): Promise<any> => {
+    const res = await axios.delete('/tags', { params: { tag_id} })
+    return res.data
+}
+
 export const apiAddFolder = async (folder: string) => {
     return await axios.post('/folders', { path: folder })
 }

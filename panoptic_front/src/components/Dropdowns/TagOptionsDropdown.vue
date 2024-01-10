@@ -44,7 +44,7 @@ function setName(name: string) {
 }
 
 function deleteTag() {
-    store.deleteTagParent(props.tagId, 0)
+    store.deleteTag(props.tagId)
     emits('delete', props.tagId)
     dropdown.value.hide()
     

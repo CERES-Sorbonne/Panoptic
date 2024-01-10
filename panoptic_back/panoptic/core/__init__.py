@@ -318,11 +318,15 @@ async def create_tag(property_id, value, parent_id, color: int) -> Tag:
 
 async def tag_add_parent(tag_id, parent_id):
     tag = await db.get_tag_by_id(tag_id)
+    parent = await db.get_tag_by_id(parent_id)
     if tag is None:
         raise HTTPException(status_code=400, detail=f"Tag: {tag_id} doesnt exist")
+    if parent is None:
+        raise HTTPException(status_code=400, detail=f"Parent Tag: {parent_id} doesnt exist")
     if await db.tag_in_ancestors(tag.id, parent_id):
         raise HTTPException(status_code=400, detail="Adding a tag that is an ancestor of himself")
     tag.parents = list({*tag.parents, parent_id})
+    tag.color = parent.color
     await db.update_tag(tag)
     return tag
 
@@ -367,11 +371,12 @@ async def delete_tag(tag_id: int) -> List[int]:
 async def delete_tag_parent(tag_id: int, parent_id: int) -> List[int]:
     tag = await db.get_tag_by_id(tag_id)
     tag.parents.remove(parent_id)
-    if not tag.parents:
-        return await delete_tag(tag.id)
-    else:
-        await db.update_tag(tag)
-        return []
+    print(tag.parents)
+    color = random.randint(0, 11)
+    tag.color = color
+    print(color)
+    await db.update_tag(tag)
+    return tag
 
 
 async def get_tags(prop: str = None) -> Tags:

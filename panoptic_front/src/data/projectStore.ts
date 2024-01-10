@@ -8,7 +8,7 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, watch } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
+import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -136,7 +136,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         let state = buildTabState()
         state.name = tabName
         let tab = await apiAddTab({ data: state })
-        console.log(tab.id) 
+        console.log(tab.id)
         tab.data.id = tab.id
         data.tabs[tab.id] = tab.data
         await selectTab(tab.id)
@@ -229,20 +229,36 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function addTagParent(tagId: number, parentId: number) {
         const tag = await apiAddTagParent(tagId, parentId) as Tag
         Object.assign(data.properties[tag.property_id].tags[tag.id], tag)
+        const parent = data.properties[tag.property_id].tags[parentId]
+        if (!parent || parent.children.indexOf(tagId) >= 0) return
+        parent.children.push(tagId)
     }
 
-    async function deleteTagParent(tagId: number, parent_id: number, dontAsk?: boolean) {
+    async function deleteTagParent(tagId: number, parentId: number, dontAsk?: boolean) {
+        if (parentId == 0) throw new TypeError('UI should not use this function to delete tag from root')
         if (!dontAsk) {
             let ok = confirm('Delete tag: ' + tagId)
             if (!ok) return
         }
-        const deletedIds: number[] = await apiDeleteTagParent(tagId, parent_id)
-        // also reload images since the tag should be removed from their properties
+        const tag = await apiDeleteTagParent(tagId, parentId)
+        Object.assign(data.properties[tag.property_id].tags[tag.id], tag)
+        const parent = data.properties[tag.property_id].tags[parentId]
+        if (!parent) return
+        const childrenIndex = parent.children.indexOf(tagId)
+        if (childrenIndex < 0) return
+        parent.children.splice(childrenIndex, 1)
+    }
+
+    async function deleteTag(tagId: number, dontAsk?: boolean) {
+        if (!dontAsk) {
+            let ok = confirm('Delete tag: ' + tagId)
+            if (!ok) return
+        }
+        await apiDeleteTag(tagId)
         const tags = await apiGetTags()
         const images = await apiGetImages()
         Object.values(images).forEach(i => importImage(i))
         importTags(tags)
-
     }
 
     function importTags(tagPropIndex) {
@@ -391,7 +407,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         init, clear, rerender, addFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue,
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
-        addTag, deleteTagParent, updateTag, addTagParent,
+        addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile,
     }
 
