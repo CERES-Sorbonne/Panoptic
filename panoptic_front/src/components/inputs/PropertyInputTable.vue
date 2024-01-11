@@ -34,7 +34,7 @@ function paintSelection(property: Property) {
                         <PropertyIcon :type="property.type" /> {{
                             store.data.properties[property.id].name }}
                     </td>
-                    <td v-if="property.id > 0" class="ps-1 border-left">
+                    <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
                         <PropInput v-if="property.id > 0" :property="store.data.properties[property.id]" :image="image"
                             :width="-1" :min-height="20" />
                     </td>
@@ -43,14 +43,14 @@ function paintSelection(property: Property) {
                         <span v-else><TagBadge :tag="store.data.folders[image.properties[property.id].value].name" :color="-1" /></span>
                     </td>
 
-                    <td v-if="property.id > 0" class="text-center btn-icon border-left"
+                    <td v-if="property.mode == PropertyMode.sha1" class="text-center btn-icon border-left"
                         style="padding: 4px 3px 0px 5px; width: 20px;" @click="paintSelection(property)">
                         <wTT message="modals.image.fill_property_tooltip">
                             <i class="bi bi-paint-bucket"></i>
                         </wTT>
                     </td>
 
-                    <td class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
+                    <td v-if="property.mode == PropertyMode.sha1" class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
                         @click="toggleProperty(property)">
                         <wTT message="modals.image.toggle_property_tooltip">
                             <i class="bi bi-eye" :class="(selectedProperties[property.id] ? 'text-primary' : '')" />

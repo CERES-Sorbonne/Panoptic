@@ -11,23 +11,25 @@ const props = defineProps<{
     imageHeight: number
 }>()
 
-const showImageProps = ref(true)
-const showInstanceProps = ref(true)
-const showMetaData = ref(true)
+const mode = ref(0)
 
 const properties = computed(() => {
     const res = []
-    if(showImageProps.value) {
+    if (mode.value == 0) {
         res.push(...store.propertyList.filter(p => p.mode == PropertyMode.sha1))
     }
-    if(showInstanceProps.value) {
+    if (mode.value == 1) {
         res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id))
     }
-    if(showMetaData.value) {
+    if (mode.value == 2) {
         res.push(...store.propertyList.filter(p => p.mode == PropertyMode.computed))
     }
     return res
 })
+
+function setMode(value) {
+    mode.value = value
+}
 
 </script>
 
@@ -37,19 +39,43 @@ const properties = computed(() => {
             <CenteredImage :image="image" :height="props.imageHeight" :width="props.width" />
         </div>
         <div class="custom-hr"></div>
-        <div class="show-option"><input type="checkbox" v-model="showImageProps" /> <b>Propriétés d'image</b></div>
+        <div class="d-flex text-center">
+            <div class="option flex-grow-1" :class="mode == 0 ? 'selected' : ''" @click="setMode(0)">Propriétés d'image</div>
+            <div class="sep"></div>
+            <div class="option flex-grow-1" :class="mode == 1 ? 'selected' : ''" @click="setMode(1)">Propriétés d'instance</div>
+            <div class="sep"></div>
+            <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonées</div>
+        </div>
+        <div class="custom-hr"></div>
+        <!-- <div class="show-option"><input type="checkbox" v-model="showImageProps" /> <b>Propriétés d'image</b></div>
         <div class="show-option"><input type="checkbox" v-model="showInstanceProps" /> <b>Propriétés d'instance</b></div>
-        <div class="show-option"><input type="checkbox" v-model="showMetaData" /> <b>Metadonées</b></div>
+        <div class="show-option"><input type="checkbox" v-model="showMetaData" /> <b>Metadonées</b></div> -->
         <div class="flex-grow-1 overflow-scroll">
-            <PropertyInputTable :image="props.image" :properties="properties"/>
+            <PropertyInputTable :image="props.image" :properties="properties" />
         </div>
     </div>
 </template>
 
 <style scoped>
-
 .main2 {
     border-right: 1px solid var(--border-color);
+}
+
+.sep {
+    border-left: 1px solid var(--border-color);
+}
+
+.option {
+    font-size: 13px;
+    line-height: 26px;
+    background-color: var(--tab-grey);
+    /* border-bottom: 1px solid var(--border-color); */
+    cursor: pointer;
+}
+
+.selected {
+    /* border-bottom: 1px solid white; */
+    background-color: white;
 }
 
 .show-option {
@@ -57,5 +83,4 @@ const properties = computed(() => {
     border-bottom: 1px solid var(--border-color);
     background-color: var(--grey);
 }
-
 </style>
