@@ -9,8 +9,7 @@ const props = defineProps({
     image: Object as () => Image,
     width: Number,
     height: Number,
-    noClick: Boolean,
-    shadow: Boolean
+    noClick: Boolean
 })
 
 const imageSize = computed(() => {
@@ -42,7 +41,7 @@ function openModal() {
 </script>
 
 <template>
-    <div class="image-container"
+    <!-- <div class="image-container"
         :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }"
         @click="openModal">
         <template v-if="props.shadow">
@@ -54,10 +53,42 @@ function openModal() {
             <img :src="imageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px' }" />
         </template>
 
+    </div> -->
+
+    <div class="center-container"
+        :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }"
+        @click="openModal">
+        <div class="center-content">
+            <img :src="imageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px' }">
+        </div>
     </div>
 </template>
 
 <style scoped>
+.other {
+    height: 100vh;
+}
+
+.center-container {
+    text-align: center;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.center-content {
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
+}
+
 .image-container {
     text-align: center;
     background-color: white;

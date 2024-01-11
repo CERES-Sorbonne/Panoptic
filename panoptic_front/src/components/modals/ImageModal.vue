@@ -17,6 +17,7 @@ import { CollectionManager } from '@/core/CollectionManager';
 import { useProjectStore } from '@/data/projectStore';
 import { getSimilarImages } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
+import CenteredImage from '../images/CenteredImage.vue';
 
 const store = useProjectStore()
 const panoptic = usePanopticStore()
@@ -235,12 +236,10 @@ watch(minSimilarityDist, updateSimilarGroup)
                         </div>
 
                     </div>
-                    <div class="row" v-if="modalMode == ImageModalMode.Similarity">
-                        <div class="col overflow-hidden" :style="'width: 600px;' + containerStyle">
-                            <div class="mb-2 image-container">
-                                <img :src="image.fullUrl" class=""
-                                    @mouseover="containerStyle = 'overflow: visible !important;'"
-                                    @mouseleave="containerStyle = ''" />
+                    <div class="d-flex" v-if="modalMode == ImageModalMode.Similarity">
+                        <div class="first-col">
+                            <div class="mb-2 image-border" >
+                                    <CenteredImage :image="image" :height="Math.min(400, image.height)"  :width="500"/>
                             </div>
 
                             <div class="mt-2"
@@ -307,7 +306,7 @@ watch(minSimilarityDist, updateSimilarGroup)
                                 </div>
                             </div> -->
                         </div>
-                        <div class="col" v-if="similarityLoaded">
+                        <div class="flex-grow-1 simi-col" v-if="similarityLoaded">
                             <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
                             <div class="d-flex mb-1">
                                 <SelectCircle v-if="similarGroup.hasResult()"
@@ -398,39 +397,22 @@ watch(minSimilarityDist, updateSimilarGroup)
 }
 
 .image-container {
-    width: 540px;
-    height: 400px;
-    position: relative;
-    margin: auto;
-    padding: auto;
     border: 1px solid var(--border-color);
 }
 
-img {
-    max-height: 100%;
-    max-width: 100%;
-    /* width: auto;
-    height: auto; */
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-    transition: 0.1s;
+.first-col {
+    width: 520px;
+    border-right: 1px solid var(--border-color);
 }
 
-img:hover {
-    -ms-transform: scale(3);
-    /* IE 9 */
-    -webkit-transform: scale(3);
-    /* Safari 3-8 */
-    transform: scale(2);
-    z-index: 999;
-    margin-top: 6em;
-    box-shadow: 0px 0px 50px 100px rgba(115, 115, 115, 0.53);
-    -webkit-box-shadow: 0px 0px 50px 36px rgba(115, 115, 115, 0.53);
+.simi-col {
+    padding-left: 20px;
 }
+
+.image-border {
+    border: 1px solid var(--border-color);
+}
+
 
 .selected {
     background-color: var(--light-grey);
