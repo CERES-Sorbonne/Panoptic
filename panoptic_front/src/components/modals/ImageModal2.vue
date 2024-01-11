@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, ModalId } from '@/data/models';
+import { Image, ModalId, Property, PropertyRef } from '@/data/models';
 import Modal from './Modal.vue';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
@@ -16,7 +16,7 @@ import MiddleCol from './image/MiddleCol.vue';
 
 const project = useProjectStore()
 
-const similarGroup = new GroupManager()
+const groupManager = new GroupManager()
 
 
 const colElem = ref(null)
@@ -24,7 +24,7 @@ const colWidth = ref(0)
 const colHeight = ref(0)
 const viewMode = ref(0)
 const image = computed(() => project.imageList[1])
-
+const visibleProperties = reactive({})
 
 
 function onResize() {
@@ -32,6 +32,17 @@ function onResize() {
         colWidth.value = colElem.value.clientWidth
         colHeight.value = colElem.value.clientHeight
     }
+}
+
+function paint(property: PropertyRef) {
+    if(viewMode.value != 0) return
+
+    let images = groupManager.result.root.images
+    if (Object.keys(groupManager.selectedImages).length) {
+        images = Object.keys(groupManager.selectedImages).map(id => project.data.images[id])
+    }
+    project.setPropertyValue(property.propertyId, images, property.value)
+    visibleProperties[property.propertyId] = true
 }
 
 watch(colElem, onResize)
@@ -42,10 +53,12 @@ watch(colElem, onResize)
         <template #content>
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
-                    <ImagePropertyCol :image="image" :width="500" :image-height="400" />
+                    <ImagePropertyCol :image="image" :width="500" :image-height="400"
+                        :visible-properties="visibleProperties" @paint="paint"/>
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
-                        <MiddleCol :group-manager="similarGroup" :height="colHeight" :width="colWidth" :image="image" :mode="viewMode" @update:mode="e => viewMode = e"/>
-                        
+                        <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
+                            :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e" />
+
                     </div>
                     <div class="bg-info h-100 p-5">History</div>
                 </div>
@@ -59,5 +72,4 @@ watch(colElem, onResize)
     width: 400px;
     /* height: 400px; */
 }
-
 </style>

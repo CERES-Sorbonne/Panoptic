@@ -16,6 +16,7 @@ const props = defineProps<{
     height: number
     mode: number
     groupManager: GroupManager
+    visibleProperties: {[id: number]: boolean}
 }>()
 
 const emits = defineEmits(['update:mode'])
@@ -51,7 +52,7 @@ function setMode(value) {
         </div>
     </div>
     <div class="p-1" v-if="props.mode == 0">
-        <Similarity :image="image" :height="props.height - 40" :width="props.width - 10" :similar-group="groupManager" />
+        <Similarity :image="image" :height="props.height - 40" :width="props.width - 10" :similar-group="groupManager" :visible-properties="props.visibleProperties"/>
     </div>
     <div v-else class="p-2">
         <Instances :image="image" :height="props.height - 40" :width="props.width - 10" :group-manager="groupManager" />

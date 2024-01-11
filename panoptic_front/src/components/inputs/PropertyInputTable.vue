@@ -1,28 +1,33 @@
 <script setup lang="ts">
-import { Image, Property, PropertyMode, PropertyType } from '@/data/models';
+import { Image, Property, PropertyMode, PropertyRef, PropertyType } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import { computed, reactive } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import PropInput from './PropInput.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
+import { getImageProperty } from '@/utils/utils';
 const store = useProjectStore()
 
 const props = defineProps<{
     image: Image
     properties: Property[]
+    visibleProperties: {[id: number]: boolean}
 }>()
 
-const selectedProperties = reactive({})
+const emits = defineEmits<{
+    paint: [e: PropertyRef]
+}>()
 
 function toggleProperty(property: Property) {
+    if(!props.visibleProperties) return
 
+    if(props.visibleProperties[property.id]) {
+        delete props.visibleProperties[property.id]
+    } else {
+        props.visibleProperties[property.id] = true
+    }
 }
-
-function paintSelection(property: Property) {
-
-}
-
 </script>
 
 <template>
@@ -44,7 +49,7 @@ function paintSelection(property: Property) {
                     </td>
 
                     <td v-if="property.mode == PropertyMode.sha1" class="text-center btn-icon border-left"
-                        style="padding: 4px 3px 0px 5px; width: 20px;" @click="paintSelection(property)">
+                        style="padding: 4px 3px 0px 5px; width: 20px;" @click="emits('paint', getImageProperty(props.image.id, property.id))">
                         <wTT message="modals.image.fill_property_tooltip">
                             <i class="bi bi-paint-bucket"></i>
                         </wTT>
@@ -53,7 +58,7 @@ function paintSelection(property: Property) {
                     <td v-if="property.mode == PropertyMode.sha1" class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
                         @click="toggleProperty(property)">
                         <wTT message="modals.image.toggle_property_tooltip">
-                            <i class="bi bi-eye" :class="(selectedProperties[property.id] ? 'text-primary' : '')" />
+                            <i class="bi bi-eye" :class="(props.visibleProperties[property.id] ? 'text-primary' : '')" />
                         </wTT>
                     </td>
                 </tr>
