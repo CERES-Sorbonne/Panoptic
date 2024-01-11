@@ -57,10 +57,11 @@ export const useProjectStore = defineStore('projectStore', () => {
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
 
-        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: 'sha1' }
-        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: 'sha1' }
-        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: 'sha1' }
-
+        properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
+        properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: PropertyMode.computed }
+        properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: PropertyMode.computed }
+        properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: PropertyMode.computed }
+       
 
         data.properties = properties
         objValues(images).forEach((i) => importImage(i))
@@ -186,6 +187,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function importImage(img: Image) {
         Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, img.properties[pId]))
+        img.properties[PropertyID.id] = { propertyId: PropertyID.id, value: img.id }
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
         img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }

@@ -65,7 +65,7 @@ function toggleValuesMenu() {
 }
 
 function setSort() {
-    if(!isInSort.value) {
+    if (!isInSort.value) {
         tabManager.collection.sortManager.setSort(props.property.id)
     } else {
         tabManager.collection.sortManager.delSort(props.property.id)
@@ -74,7 +74,7 @@ function setSort() {
 }
 
 function setGroup() {
-    if(!isInGroups.value) {
+    if (!isInGroups.value) {
         tabManager.collection.groupManager.setGroupOption(props.property.id)
     } else {
         tabManager.collection.groupManager.delGroupOption(props.property.id)
@@ -101,10 +101,12 @@ watch(() => props.property, () => {
 </script>
 
 <template>
-    <div :class="fullHover ? 'hover-light': ''">
-        <div class="d-flex flex-row" >
-            <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;" @click="toggleOptionsMenu" >
-                <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
+    <div :class="fullHover ? 'hover-light' : ''">
+        <div class="d-flex flex-row">
+            <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;"
+                @click="toggleOptionsMenu">
+                <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true"
+                    @mouseleave="fullHover = false" />
                 <span>{{ props.property.name }}</span>
                 <!-- <span class="clickable" @click="toggleOptionsMenu">
                     <span v-if="!optionsOpen">{{ props.property.name }}</span>
@@ -112,29 +114,42 @@ watch(() => props.property, () => {
                 </span> -->
             </div>
 
-            <template v-if="optionsOpen">
-                <i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu" @mouseenter="fullHover = true" @mouseleave="fullHover = false"/>
-                <input style="position: relative; top: 1px;" type="text" class="text-input" v-model="localName" @change="renameProperty" />
-            </template>
+            <div v-if="optionsOpen" class="d-flex" style="width: 150px;">
+                <div><i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu"
+                        @mouseenter="fullHover = true" @mouseleave="fullHover = false" />
+                </div>
+                <div class="flex-grow-1">
+                    <input v-if="props.property.id >= 0" style="position: relative; top: 1px;" type="text"
+                        class="text-input" v-model="localName" @change="renameProperty" />
+                    <span v-else style="padding-top: 1px;">
+                        <PropertyIcon :type="props.property.type" class="me-2 btn-icon" />
+                        <span>{{ props.property.name }}</span>
+                    </span>
+                </div>
+            </div>
 
             <div style="width: 20px; margin-top: 2px;" class="text-center">
-                <wTT v-if="props.property.mode == PropertyMode.id"  :click="false" message="main.nav.properties.linked_property_tooltip" >
+                <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
+                    message="main.nav.properties.linked_property_tooltip">
                     <i class="bi bi-link-45deg"></i>
                 </wTT>
             </div>
             <div style="width: 20px; margin-top: 2px;" @click="toggleVisible" class="btn-icon text-center">
-                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"  message="main.nav.properties.hidden_property_tooltip">
+                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"
+                    message="main.nav.properties.hidden_property_tooltip">
                     <span class="bi bi-eye-slash" @click.stop=""></span>
                 </wTT>
-                <wTT pos="right"  message="main.nav.properties.hide_property_tooltip" v-else>
+                <wTT pos="right" message="main.nav.properties.hide_property_tooltip" v-else>
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
             </div>
             <div class="text-center" style="width: 20px; margin-top: 2px;">
                 <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
                     @click="toggleValuesMenu" style="cursor: pointer;">
-                    <wTT v-if="valuesOpen"  message="main.nav.properties.collapse_property_tooltip"><i  class="bi bi-chevron-down"></i></wTT>
-                    <wTT v-else  message="main.nav.properties.expand_property_tooltip"><i class="bi bi-chevron-right"></i></wTT>
+                    <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
+                            class="bi bi-chevron-down"></i></wTT>
+                    <wTT v-else message="main.nav.properties.expand_property_tooltip"><i class="bi bi-chevron-right"></i>
+                    </wTT>
                 </div>
             </div>
         </div>
@@ -154,7 +169,8 @@ watch(() => props.property, () => {
             </div>
             <div v-else-if="valuesOpen">
                 <!-- <TagProperty :data="props.property" /> -->
-                <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true" :can-link="true"/>
+                <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true"
+                    :can-link="true" />
             </div>
         </div>
     </div>

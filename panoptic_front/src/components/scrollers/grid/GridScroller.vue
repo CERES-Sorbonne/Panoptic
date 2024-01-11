@@ -191,7 +191,7 @@ function clear() {
 
 const changeHandler = () => computeLines()
 onMounted(() => {
-    // props.manager.onChange.addListener(changeHandler)
+    props.manager.onChange.addListener(changeHandler)
     props.manager.clearCustomGroups(true)
 })
 

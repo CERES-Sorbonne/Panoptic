@@ -1,0 +1,76 @@
+<script setup lang="ts">
+import SelectionStamp from '@/components/selection/SelectionStamp.vue';
+import { GroupManager } from '@/core/GroupManager';
+import { Image } from '@/data/models';
+import { ref } from 'vue';
+import Similarity from './Similarity.vue';
+import wTT from '@/components/tooltips/withToolTip.vue'
+import { useProjectStore } from '@/data/projectStore';
+import Instances from './Instances.vue';
+
+const store = useProjectStore()
+
+const props = defineProps<{
+    image: Image
+    width: number
+    height: number
+    groupManager: GroupManager
+}>()
+
+const modalMode = ref(0)
+</script>
+
+<template>
+    <div class="view-selection">
+        <div class="d-flex">
+            <div class="d-flex overflow-hidden">
+                <wTT message="modals.image.similar_images_tooltip">
+                    <div class="view-mode ps-2 pe-2 btn-icon" :class="(modalMode == 0 ? 'selected' : '')"
+                        @click="modalMode = 0">{{
+                            $t('modals.image.similar_images') }}
+                    </div>
+                </wTT>
+                <wTT message="modals.image.unique_properties_tooltip" v-if="true">
+                    <div class="view-mode ps-2 pe-2 btn-icon" :class="(modalMode == 1 ? 'selected' : '')"
+                        @click="modalMode = 1">
+                        {{ $t('modals.image.unique_properties') }}</div>
+                </wTT>
+            </div>
+            <div class="flex-grow-1"></div>
+            <div class="selection-stamp" style="line-height: 18px; margin: 3px 5px 0 0"
+                v-if="Object.keys(groupManager.selectedImages).length > 0">
+                <SelectionStamp :selected-images-ids="Object.keys(groupManager.selectedImages).map(Number)"
+                    @remove:selected="groupManager.clearSelection()" />
+            </div>
+
+        </div>
+    </div>
+    <div class="p-1" v-if="modalMode == 0">
+        <Similarity :image="image" :height="props.height - 40" :width="props.width - 10" :similar-group="groupManager" />
+    </div>
+    <div v-else class="p-2">
+        <Instances :image="image" :height="props.height - 40" :width="props.width - 10" :group-manager="groupManager" />
+    </div>
+</template>
+
+<style scoped>
+.view-selection {
+
+    background-color: white;
+    /* border-bottom: 1px solid var(--border-color); */
+    line-height: 30px;
+}
+
+.selected {
+    background-color: white !important;
+    border-bottom: none !important;
+    height: 31px;
+}
+
+.view-mode {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    /* border-top: 1px solid var(--border-color); */
+    background-color: rgb(226, 226, 226);
+}
+</style>

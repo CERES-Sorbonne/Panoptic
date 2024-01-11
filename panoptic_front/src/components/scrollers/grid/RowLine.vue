@@ -76,7 +76,7 @@ const propMinRowHeight = computed(() => {
             // max = Math.max(max, tab.value.data.imageSize)
             max = Math.max(max, imageSize.value.h)
         }
-        max = Math.max(max, 26)
+        max = Math.max(max, props.showImage ? 26 : 24)
         res[prop.id] = max
     }
     return res
@@ -185,43 +185,43 @@ watch(rowHeight, emitResizeOnce)
             <TextPropInput v-if="property.type == PropertyType.string" :min-height="props.item.size" ref="inputElems"
                 @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <TextPropInput v-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
+            <TextPropInput v-else-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="true"
                 :width="inputWidth[property.id]" />
-            <TextPropInput v-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
+            <TextPropInput v-else-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :url-mode="false"
                 :width="inputWidth[property.id]" />
-            <TagPropInputDropdown v-if="isTag(property.type)" :property="property" :image="image" :can-create="true"
+            <TagPropInputDropdown v-else-if="isTag(property.type)" :property="property" :image="image" :can-create="true"
                 :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
                 :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]"
                 @update:height="h => sizes[property.id] = h" />
-            <CheckboxPropInput v-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
+            <CheckboxPropInput v-else-if="property.type == PropertyType.checkbox" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <ColorPropInput v-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
+            <ColorPropInput v-else-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
 
-            <TextPropInput v-if="property.type == PropertyType.number" :min-height="props.item.size" ref="inputElems"
+            <TextPropInput v-else-if="property.type == PropertyType.number" :min-height="props.item.size" ref="inputElems"
                 @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
 
-            <DatePropInput v-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
+            <DatePropInput v-else-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = (h)" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <div v-if="property.type == PropertyType._ahash" :style="{ height: propMinRowHeight[property.id] + 'px' }"
+            <div v-else-if="property.type == PropertyType._ahash" :style="{ height: propMinRowHeight[property.id] + 'px' }"
                 class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>
-            <div v-if="property.type == PropertyType._folders" :style="{ height: propMinRowHeight[property.id] + 'px' }"
+            <div v-else-if="property.type == PropertyType._folders" :style="{ height: propMinRowHeight[property.id] + 'px' }"
                 class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id]?.value != undefined">
                     <TagBadge :tag="store.data.folders[image.properties[property.id]?.value].name" :color="-1" />
                 </span>
             </div>
-            <div v-if="property.type == PropertyType._sha1" :style="{ height: propMinRowHeight[property.id] + 'px' }"
+            <div v-else :style="{ height: (propMinRowHeight[property.id]) + 'px' }"
                 class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>

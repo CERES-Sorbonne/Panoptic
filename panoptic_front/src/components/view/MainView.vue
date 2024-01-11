@@ -52,7 +52,7 @@ function updateScrollerHeight() {
 }
 
 tabManager.collection.groupManager.onChange.addListener(() => {
-    if (imageList.value) {
+    if (imageList.value && tabManager.state.display == 'tree') {
         imageList.value.computeLines()
     }
 })
