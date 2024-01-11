@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
-import { Image, PropertyMode } from '@/data/models';
+import { Image, Property, PropertyMode, PropertyRef } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 const store = useProjectStore()
 const props = defineProps<{
     image: Image
     width: number
     imageHeight: number
+    visibleProperties: {[id: number]: boolean}
+}>()
+
+const emits = defineEmits<{
+    paint: [e: PropertyRef]
 }>()
 
 const mode = ref(0)
@@ -51,7 +56,7 @@ function setMode(value) {
         <div class="show-option"><input type="checkbox" v-model="showInstanceProps" /> <b>Propriétés d'instance</b></div>
         <div class="show-option"><input type="checkbox" v-model="showMetaData" /> <b>Metadonées</b></div> -->
         <div class="flex-grow-1 overflow-scroll">
-            <PropertyInputTable :image="props.image" :properties="properties" />
+            <PropertyInputTable :image="props.image" :properties="properties" :visible-properties="visibleProperties" @paint="e => emits('paint', e)" />
         </div>
     </div>
 </template>

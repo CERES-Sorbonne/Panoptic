@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
 import { Image } from '@/data/models';
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import RangeInput from '@/components/inputs/RangeInput.vue';
@@ -15,6 +15,7 @@ const props = defineProps<{
     width: number
     height: number
     similarGroup?: GroupManager
+    visibleProperties: {[id: number]: boolean}
 }>()
 const similarGroup = props.similarGroup ?? new GroupManager()
 similarGroup.setSha1Mode(true)
@@ -22,10 +23,12 @@ similarGroup.setSha1Mode(true)
 
 const scrollerElem = ref(null)
 const similarImages = ref([])
-const minSimilarityDist = ref(0.8)
+const minSimilarityDist = ref(80)
 const state = reactive({
     sha1Scores: {}
 })
+
+const properties = computed(() => Object.keys(props.visibleProperties).map(k => project.data.properties[k]))
 
 async function setSimilar() {
     // if (modalMode.value != ImageModalMode.Similarity) return
@@ -53,6 +56,7 @@ function updateSimilarGroup() {
 }
 
 onMounted(setSimilar)
+watch(minSimilarityDist, updateSimilarGroup)
 </script>
 
 <template>
@@ -72,7 +76,7 @@ onMounted(setSimilar)
 
 
     <TreeScroller class="" :image-size="70" :height="props.height-25" :width="props.width" :group-manager="similarGroup"
-        :properties="[]" :hide-options="true" :hide-group="true" :sha1-scores="state.sha1Scores" ref="scrollerElem" />
+        :properties="properties" :hide-options="true" :hide-group="true" :sha1-scores="state.sha1Scores" ref="scrollerElem" />
     </div>
 
 </template>
