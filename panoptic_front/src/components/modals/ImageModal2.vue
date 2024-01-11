@@ -22,8 +22,8 @@ const similarGroup = new GroupManager()
 const colElem = ref(null)
 const colWidth = ref(0)
 const colHeight = ref(0)
-
-const image = computed(() => project.imageList[45])
+const viewMode = ref(0)
+const image = computed(() => project.imageList[1])
 
 
 
@@ -42,9 +42,9 @@ watch(colElem, onResize)
         <template #content>
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
-                    <ImagePropertyCol :image="image" :width="400" :image-height="225" />
+                    <ImagePropertyCol :image="image" :width="500" :image-height="400" />
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
-                        <MiddleCol :group-manager="similarGroup" :height="colHeight" :width="colWidth" :image="image"/>
+                        <MiddleCol :group-manager="similarGroup" :height="colHeight" :width="colWidth" :image="image" :mode="viewMode" @update:mode="e => viewMode = e"/>
                         
                     </div>
                     <div class="bg-info h-100 p-5">History</div>

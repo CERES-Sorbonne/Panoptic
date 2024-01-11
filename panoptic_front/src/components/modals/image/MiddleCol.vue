@@ -14,10 +14,15 @@ const props = defineProps<{
     image: Image
     width: number
     height: number
+    mode: number
     groupManager: GroupManager
 }>()
 
-const modalMode = ref(0)
+const emits = defineEmits(['update:mode'])
+
+function setMode(value) {
+    emits('update:mode', value)
+}
 </script>
 
 <template>
@@ -25,14 +30,14 @@ const modalMode = ref(0)
         <div class="d-flex">
             <div class="d-flex overflow-hidden">
                 <wTT message="modals.image.similar_images_tooltip">
-                    <div class="view-mode ps-2 pe-2 btn-icon" :class="(modalMode == 0 ? 'selected' : '')"
-                        @click="modalMode = 0">{{
+                    <div class="view-mode ps-2 pe-2 btn-icon" :class="(props.mode == 0 ? 'selected' : '')"
+                        @click="setMode(0)">{{
                             $t('modals.image.similar_images') }}
                     </div>
                 </wTT>
                 <wTT message="modals.image.unique_properties_tooltip" v-if="true">
-                    <div class="view-mode ps-2 pe-2 btn-icon" :class="(modalMode == 1 ? 'selected' : '')"
-                        @click="modalMode = 1">
+                    <div class="view-mode ps-2 pe-2 btn-icon" :class="(props.mode == 1 ? 'selected' : '')"
+                        @click="setMode(1)">
                         {{ $t('modals.image.unique_properties') }}</div>
                 </wTT>
             </div>
@@ -45,7 +50,7 @@ const modalMode = ref(0)
 
         </div>
     </div>
-    <div class="p-1" v-if="modalMode == 0">
+    <div class="p-1" v-if="props.mode == 0">
         <Similarity :image="image" :height="props.height - 40" :width="props.width - 10" :similar-group="groupManager" />
     </div>
     <div v-else class="p-2">
@@ -71,6 +76,6 @@ const modalMode = ref(0)
     border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     /* border-top: 1px solid var(--border-color); */
-    background-color: rgb(226, 226, 226);
+    background-color: var(--tab-grey)
 }
 </style>

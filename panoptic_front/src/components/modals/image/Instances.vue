@@ -31,7 +31,7 @@ onMounted(() => {
 
 <template>
     <div class="m-0 p-0" style="overflow-x: scroll; overflow-y: hidden;" :style="{ width: props.width + 'px' }">
-        <GridScroller :show-images="false" :manager="props.groupManager" :height="props.height"
+        <GridScroller :show-images="false" :manager="props.groupManager" :height="props.height" :width="props.width -15"
             :selected-properties="properties" />
     </div>
 </template>
