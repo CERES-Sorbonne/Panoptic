@@ -1,30 +1,53 @@
 <script setup lang="ts">
-import { ModalId } from '@/data/models';
+import { Image, ModalId } from '@/data/models';
 import Modal from './Modal.vue';
-import { computed } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
 import CenteredImage from '../images/CenteredImage.vue';
 import ImagePropertyCol from './image/ImagePropertyCol.vue';
+import { GroupManager } from '@/core/GroupManager';
+import TreeScroller from '../scrollers/tree/TreeScroller.vue';
+import { getSimilarImages } from '@/utils/utils';
+import SelectionStamp from '../selection/SelectionStamp.vue';
+import RangeInput from '../inputs/RangeInput.vue';
+import SelectCircle from '../inputs/SelectCircle.vue';
+import Similarity from './image/Similarity.vue';
+import MiddleCol from './image/MiddleCol.vue';
 
 const project = useProjectStore()
-const image = computed(() => project.imageList[1])
 
-const imageHeight = computed(() => {
-    if(image.value.containerRatio >= 1) {
-        return Math.min(400, image.value.height)
+const similarGroup = new GroupManager()
+
+
+const colElem = ref(null)
+const colWidth = ref(0)
+const colHeight = ref(0)
+
+const image = computed(() => project.imageList[45])
+
+
+
+function onResize() {
+    if (colElem.value) {
+        colWidth.value = colElem.value.clientWidth
+        colHeight.value = colElem.value.clientHeight
     }
-})
+}
 
+watch(colElem, onResize)
 </script>
 
 <template>
-    <Modal :id="ModalId.TEST">
+    <Modal :id="ModalId.TEST" @resize="onResize">
         <template #content>
-            <div class="h-100 bg-warning p-2" v-if="image">
+            <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
                     <ImagePropertyCol :image="image" :width="400" :image-height="225" />
-                    <div class="flex-grow-1 bg-white h-100">dfdf</div>
-                    <div class="bg-info h-100 p-3">fgjfk</div>
+                    <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
+                        <MiddleCol :group-manager="similarGroup" :height="colHeight" :width="colWidth" :image="image"/>
+                        
+                    </div>
+                    <div class="bg-info h-100 p-5">History</div>
                 </div>
             </div>
         </template>

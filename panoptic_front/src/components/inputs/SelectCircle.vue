@@ -69,4 +69,5 @@ function toggleSelect() {
 .light-hover {
     color: rgb(255, 255, 255);
 }
+
 </style>

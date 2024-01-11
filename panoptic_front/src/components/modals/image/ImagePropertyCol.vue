@@ -13,6 +13,7 @@ const props = defineProps<{
 
 const showImageProps = ref(true)
 const showInstanceProps = ref(true)
+const showMetaData = ref(true)
 
 const properties = computed(() => {
     const res = []
@@ -21,6 +22,9 @@ const properties = computed(() => {
     }
     if(showInstanceProps.value) {
         res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id))
+    }
+    if(showMetaData.value) {
+        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.computed))
     }
     return res
 })
@@ -35,6 +39,7 @@ const properties = computed(() => {
         <div class="custom-hr"></div>
         <div class="show-option"><input type="checkbox" v-model="showImageProps" /> <b>Propriétés d'image</b></div>
         <div class="show-option"><input type="checkbox" v-model="showInstanceProps" /> <b>Propriétés d'instance</b></div>
+        <div class="show-option"><input type="checkbox" v-model="showMetaData" /> <b>Metadonées</b></div>
         <div class="flex-grow-1 overflow-scroll">
             <PropertyInputTable :image="props.image" :properties="properties"/>
         </div>
@@ -50,6 +55,7 @@ const properties = computed(() => {
 .show-option {
     padding: 5px 6px;
     border-bottom: 1px solid var(--border-color);
+    background-color: var(--grey);
 }
 
 </style>

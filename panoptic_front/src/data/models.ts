@@ -57,12 +57,14 @@ export enum PropertyType {
     image_link = "image_link",
     _ahash = "average hash",
     _sha1 = "sha1",
-    _folders = "folders"
+    _folders = "folders",
+    _id = "id"
 }
 
 export enum PropertyMode {
     sha1 = 'sha1',
     id = 'id',
+    computed = 'computed'
 }
 
 export interface PropertyValue {
@@ -83,9 +85,10 @@ export interface PropertyValueUpdate extends PropertyValue {
 }
 
 export enum PropertyID {
-    sha1 = -1,
-    ahash = -2,
-    folders = -3
+    id = -1,
+    sha1 = -2,
+    ahash = -3,
+    folders = -4
 }
 
 //=============================

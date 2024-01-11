@@ -29,6 +29,7 @@ const emits = defineEmits(['remove:selected'])
 .border {
     border: 2px solid #007bff !important;
     overflow: hidden;
+    white-space: nowrap;
 }
 
 .btn-cls {

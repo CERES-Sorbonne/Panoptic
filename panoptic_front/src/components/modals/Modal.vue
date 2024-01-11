@@ -10,12 +10,15 @@ const props = defineProps<{
     id: ModalId
 }>()
 
+const emits = defineEmits(['resize', 'show', 'hide'])
+
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
 
 const totalHeight = ref(0)
 const totalWidth = ref(0)
 
+const active = computed(() => panoptic.openModal.id == props.id)
 const modalWidth = computed(() => totalWidth.value - 56)
 const modalHeight = computed(() => totalHeight.value - 56)
 
@@ -25,19 +28,22 @@ function hide() {
 
 function show() {
     modal.show()
+    onShow()
 }
 
 function onShow() {
-
+    emits('show')
 }
 
 function onHide() {
     panoptic.hideModal()
+    emits('hide')
 }
 
 function onWindowResize() {
     totalWidth.value = window.innerWidth
     totalHeight.value = window.innerHeight
+    emits('resize', {height: totalHeight.value, width: totalWidth.value})
 }
 
 onMounted(() => {
@@ -58,7 +64,7 @@ watch(panoptic.openModal, () => {
 <template>
     <div class="modal" tabindex="-1" ref="modalElem">
         <div class="modal-dialog modal-container" :style="{ maxWidth: modalWidth + 'px', height: modalHeight + 'px' }">
-            <div class="modal-content d-flex flex-column h-100">
+            <div class="modal-content d-flex flex-column h-100" v-if="active">
                 <div class="title">
                     <div class="d-flex">
                         <div class="flex-grow-1">Some title  {{ totalWidth }} x {{ totalHeight }} </div>
