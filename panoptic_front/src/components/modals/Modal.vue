@@ -1,0 +1,111 @@
+<script setup lang="ts">
+import { ModalId } from '@/data/models';
+import { computed, onMounted, ref, watch } from 'vue';
+import * as bootstrap from 'bootstrap';
+import { usePanopticStore } from '@/data/panopticStore';
+
+const panoptic = usePanopticStore()
+
+const props = defineProps<{
+    id: ModalId
+}>()
+
+const modalElem = ref(null)
+let modal: bootstrap.Modal = null
+
+const totalHeight = ref(0)
+const totalWidth = ref(0)
+
+const modalWidth = computed(() => totalWidth.value - 56)
+const modalHeight = computed(() => totalHeight.value - 56)
+
+function hide() {
+    modal.hide()
+}
+
+function show() {
+    modal.show()
+}
+
+function onShow() {
+
+}
+
+function onHide() {
+    panoptic.hideModal()
+}
+
+function onWindowResize() {
+    totalWidth.value = window.innerWidth
+    totalHeight.value = window.innerHeight
+}
+
+onMounted(() => {
+    modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
+    modalElem.value.addEventListener('hide.bs.modal', onHide)
+    window.addEventListener('resize', onWindowResize)
+    onWindowResize()
+})
+
+watch(panoptic.openModal, () => {
+    if (panoptic.openModal.id == props.id) {
+        show()
+    }
+})
+
+</script>
+
+<template>
+    <div class="modal" tabindex="-1" ref="modalElem">
+        <div class="modal-dialog modal-container" :style="{ maxWidth: modalWidth + 'px', height: modalHeight + 'px' }">
+            <div class="modal-content d-flex flex-column h-100">
+                <div class="title">
+                    <div class="d-flex">
+                        <div class="flex-grow-1">Some title  {{ totalWidth }} x {{ totalHeight }} </div>
+                        <div class="close bi bi-x btn-icon" @click="hide"></div>
+                    </div>
+                </div>
+                <div class="body bg-info flex-grow-1">
+                    <slot name="content"></slot>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+
+<style scoped>
+.modal-container {
+    background-color: white;
+    border-radius: 3px;
+    overflow: hidden;
+
+    border-radius: 3px !important;
+    border: 2px solid var(--border-color) !important;
+
+}
+
+.body {
+    background-color: white;
+    overflow: hidden;
+}
+
+.title {
+    /* border-bottom: 1px solid var(--border-color); */
+    background-color: rgb(238, 238, 255);
+    padding: 4px 4px;
+}
+
+.close {
+    /* border-left: 1px solid var(--border-color); */
+    padding: 0 6px;
+}
+
+.modal-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    border: none !important;
+    border-radius: 0 !important;
+}
+</style>

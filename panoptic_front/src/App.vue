@@ -8,6 +8,8 @@ import PropertyModal from './components/modals/PropertyModal.vue';
 import FolderSelectionModal from './components/modals/FolderSelectionModal.vue';
 import ExportModal from './components/modals/ExportModal.vue';
 import { ModalId } from './data/models';
+import Modal from './components/modals/Modal.vue';
+import ImageModal2 from './components/modals/ImageModal2.vue';
 
 const panoptic = usePanopticStore()
 panoptic.init()
@@ -21,6 +23,7 @@ document.title = 'Panoptic'
     <PropertyModal :id="ModalId.PROPERTY" />
     <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
     <ExportModal :id="ModalId.EXPORT" />
+    <ImageModal2 />
   </body>
 </template>
 
