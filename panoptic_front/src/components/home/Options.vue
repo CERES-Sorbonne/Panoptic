@@ -20,10 +20,10 @@ function promptPath() {
 </script>
 
 <template>
-    <div class="create-option d-flex">
+    <div class="create-option d-flex" id="create-project">
         <div class="flex-grow-1">
             <h6 class="create-title m-0">Créer un nouveau projet</h6>
-            <span class="create-explanation">Créer un nouveau projet panotpic dans un dossier.</span>
+            <span class="create-explanation">Créer un nouveau projet panoptic dans un dossier.</span>
         </div>
         <div class="create-btn highlight" @click="emits('create')">Créer</div>
     </div>

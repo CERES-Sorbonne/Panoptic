@@ -6,6 +6,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
 import { computed, onMounted, reactive, ref } from 'vue';
+import Tutorial from '@/tutorials/Tutorial.vue';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
@@ -44,6 +45,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Tutorial v-if="hasProjects"/>
     <div class="window d-flex">
         <div v-if="hasProjects" class="project-menu">
             <div v-for="project in panoptic.data.status.projects" class="d-flex">
@@ -71,7 +73,7 @@ onMounted(() => {
             <h1 class="m-0 p-0">Panoptic</h1>
             <h6 class="dimmed-2">Version pre-2.0</h6>
 
-            <div class="create-menu mt-5 pt-5">
+            <div id="main-menu" class="create-menu mt-5 pt-5">
                 <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject"/>
                 <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
             </div>
