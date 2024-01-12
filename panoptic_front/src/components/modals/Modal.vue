@@ -18,25 +18,30 @@ let modal: bootstrap.Modal = null
 const totalHeight = ref(0)
 const totalWidth = ref(0)
 
-const active = computed(() => panoptic.openModal.id == props.id)
+const active = ref(false)
 const modalWidth = computed(() => totalWidth.value - 56)
 const modalHeight = computed(() => totalHeight.value - 56)
+
+const data = computed(() => panoptic.modalData)
 
 function hide() {
     modal.hide()
 }
 
 function show() {
+    active.value = true
     modal.show()
-    onShow()
 }
 
 function onShow() {
+    active.value = true
     emits('show')
 }
 
 function onHide() {
+    active.value = false
     panoptic.hideModal()
+    console.log('hide')
     emits('hide')
 }
 
@@ -49,13 +54,17 @@ function onWindowResize() {
 onMounted(() => {
     modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
     modalElem.value.addEventListener('hide.bs.modal', onHide)
+    modalElem.value.addEventListener('show.bs.modal', onShow)
     window.addEventListener('resize', onWindowResize)
     onWindowResize()
 })
 
-watch(panoptic.openModal, () => {
-    if (panoptic.openModal.id == props.id) {
+watch(() => panoptic.openModalId, () => {
+    if (panoptic.openModalId == props.id) {
         show()
+    }
+    else if (active.value) {
+        hide()
     }
 })
 
@@ -72,7 +81,7 @@ watch(panoptic.openModal, () => {
                     </div>
                 </div>
                 <div class="body bg-info flex-grow-1">
-                    <slot name="content"></slot>
+                    <slot name="content" :data="data"></slot>
                 </div>
             </div>
         </div>

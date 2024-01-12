@@ -18,7 +18,7 @@ const panoptic = usePanopticStore()
 const store = useProjectStore()
 
 const props = defineProps({
-    item: Object as () => RowLine | PileRowLine,
+    item: Object,
     properties: Array<Property>,
     showImage: Boolean,
     selected: Boolean,
@@ -150,7 +150,8 @@ function emitResizeOnce() {
 }
 
 function showModal() {
-    panoptic.showModal(ModalId.IMAGE, image.value)
+    // console.log(props.item.iterator)
+    panoptic.showModal(ModalId.TEST, props.item.iterator)
 }
 
 

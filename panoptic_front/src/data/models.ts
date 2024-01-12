@@ -1,6 +1,6 @@
 import { CollectionManager } from "@/core/CollectionManager"
 import { FilterOperator, FilterState } from "@/core/FilterManager"
-import { Group, GroupState } from "@/core/GroupManager"
+import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 
 export interface Image {
@@ -219,11 +219,13 @@ export interface ImageLine extends ScrollerLine {
 }
 
 export interface RowLine extends ScrollerLine {
-    data: Image
+    data: Image,
+    iterator: ImageIterator
 }
 
 export interface PileRowLine extends ScrollerLine {
     data: Group
+    iterator: ImageIterator
 }
 
 export interface ScrollerPileLine extends ScrollerLine {

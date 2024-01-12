@@ -17,11 +17,11 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => panoptic.openModal.id == props.id)
+const isActive = computed(() => panoptic.openModalId == props.id)
 
 
 function onHide() {
-    if (panoptic.openModal.id == props.id) {
+    if (panoptic.openModalId == props.id) {
         panoptic.hideModal()
     }
     resetNewProperty()
@@ -62,7 +62,7 @@ async function saveProperty() {
     hide()
 }
 
-watch(() => panoptic.openModal.id, (id) => {
+watch(() => panoptic.openModalId, (id) => {
     if (id == props.id) {
         show()
     }

@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue';
-import { GroupLine, Property, ScrollerLine } from '@/data/models'
+import { PileRowLine, type GroupLine, type Property, type RowLine, type ScrollerLine } from '@/data/models'
 
 import GroupLineVue from './GroupLine.vue';
-import RowLine from './RowLine.vue';
+import RowLineVue from './RowLine.vue';
 import { SelectedImages } from '@/core/GroupManager';
 
 
-const props = defineProps({
-    item: Object as () => ScrollerLine,
-    width: Number,
-    missingWidth: Number,
-    properties: Array<Property>,
-    showImages: Boolean,
-    selectedImages: Object as () => SelectedImages,
+const props = defineProps<{
+    item: ScrollerLine,
+    width: number,
+    missingWidth: number,
+    properties: Property[],
+    showImages: boolean,
+    selectedImages: SelectedImages,
     data: Object
-})
+}>()
+
 const emits = defineEmits({
     'resizeHeight': Number,
     'close:group': String,
@@ -44,12 +45,12 @@ onMounted(reload)
                 @toggle:group="e => emits('toggle:group', e)" />
         </div>
         <div v-if="item.type == 'image'">
-            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
                 @toggle:image="e => emits('toggle:image', e)" :selected="props.selectedImages[item.data.id]" />
         </div>
         <div v-if="item.type == 'pile'">
-            <RowLine :item="item" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
                 :selected="props.selectedImages[item.data.images[0].id]"
                 @toggle:image="e => emits('toggle:image', { groupId: item.data.parent.id, imageIndex: item.data.parentIdx })" />

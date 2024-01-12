@@ -36,8 +36,8 @@ const state = reactive({
 const similarGroup = new GroupManager()
 similarGroup.setSha1Mode(true)
 
-const image = computed(() => panoptic.openModal.data as Image)
-const isActive = computed(() => panoptic.openModal.id == props.id)
+const image = computed(() => panoptic.modalData as Image)
+const isActive = computed(() => panoptic.openModalId == props.id)
 const similarImages = ref([])
 const availableHeight = ref(100)
 const availableWidth = ref(100)
@@ -108,7 +108,7 @@ const imageProperties = computed(() => {
 const hasUniqueProperties = computed(() => store.propertyList.some(p => p.mode == PropertyMode.id))
 
 function onHide() {
-    if (panoptic.openModal.id == props.id) {
+    if (panoptic.openModalId == props.id) {
         panoptic.hideModal()
     }
 }
@@ -180,7 +180,7 @@ onMounted(() => {
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
 
-watch(() => panoptic.openModal.id, (id) => {
+watch(() => panoptic.openModalId, (id) => {
     console.log('change')
     if (id == props.id) {
         show()
@@ -191,7 +191,7 @@ watch(() => panoptic.openModal.id, (id) => {
 })
 
 watch(image, () => {
-    if (panoptic.openModal.id == props.id) {
+    if (panoptic.openModalId == props.id) {
         show()
     }
 })
