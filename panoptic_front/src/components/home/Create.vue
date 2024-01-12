@@ -25,7 +25,7 @@ function prompPath() {
 </script>
 
 <template>
-    <div class="">
+    <div class="" id="create-project">
         <h3 class="mb-3">{{$t('main.home.create_title')}}</h3>
         <div class="d-flex text-start input mb-2">
             <div class="info">{{ $t('main.home.label.folder') }}</div>

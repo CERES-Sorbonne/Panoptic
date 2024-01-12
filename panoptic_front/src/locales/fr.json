@@ -182,13 +182,8 @@
             "export_images": "Inclure les images"
         }
     },
-    "mini_ui": {
-        "title": "Panoptic",
-        "project_selection": "Charger projet",
-        "new_project": "Nouveau projet",
-        "images_folders": "Dossiers d'images",
-        "add_images_folder": "Ajouter un dossier d'images",
-        "open_panoptic": "Lancer Panoptic"
+    "tutorial": {
+        "step-1": "Bienvenue sur Panoptic, vous n'avez pas de projet pour le moment."
     },
     "tmp": "Tooltip to be written"
 }
