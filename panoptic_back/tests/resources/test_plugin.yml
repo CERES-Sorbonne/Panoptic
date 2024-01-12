@@ -1,23 +1,63 @@
 name: TestPlugin
 description: "Sert à tester toutes les fonctions de plugin"
 class: test_plugin.py:MyPluginTester
-import_image:
-  method: parse_image
-  description: "Prend toutes les images d'un dossier et regarde si elles sont en noir et blanc ou non une propriété black_and_white sera ensuite disponible sur panoptic"
-  returns: # faut que ça soit optionnel
-    - prop: 'black_and_white'
-      type: bool
-clustering:
-  method: cluster_images
-  description: "Prend une liste d'images en entrée et les répartie en groupes de noirs et blanc et couleur"
-  # ici le input n'est pas précisé et seul l'input par défaut sera fourni c'est à dire une liste de sha1
-  # on pourrait aussi imaginer un input supplémentaire par exemple pimmi qui a besoin des path des images en entrées, mais il faudrait quand même les sha1 aussi
-  # inputs:
-    # - images_paths
-  # ici le return n'est pas précisé et seul le return par défaut sera exigé, c'est à dire une liste de liste de sha1
-similarity:
-  method: similarity_images
-  description: "trouve des similarité entre des images et une liste de couleurs entrée en paramètres"
-  returns: # encore une fois, le return obligatoire c'est une liste de sha1
-    - type: list[list[number]]
-      description: "le score de similarité de "
+parameters:
+  - kibana_url:
+      type: string
+      description: "l'url du serveur la kibana"
+methods:
+  - name: parse_image
+    description: "Prend toutes les images d'un dossier et regarde si elles sont en noir et blanc ou non une propriété black_and_white sera ensuite disponible sur panoptic"
+    returns: # faut que ça soit optionnel
+      - prop: 'black_and_white'
+        type: bool
+  - name: cluster_kmeans
+    description: "Prend une liste d'images en entrée et les répartie en groupes de noirs et blanc et couleur"
+    dependancies: [vectors, sha1s] #on envoie toujours des listes dans les dépendances réservées panoptic
+    inputs:
+      - name: "Nb clusters"
+        description: "Number of clusters to be computed"
+        type: int
+        default: 10
+    returns:
+      - type: list[list[sha1]] # à voir si on peut utiliser nos datamodels direct en python
+  - name: cluster_dbscan
+    inputs:
+      - name: "Text property"
+        description: "A property that is text and is associated with eeach image"
+        type: property[string]
+        optional: true
+    description: ""
+    dependancies: [vector[]]
+    returns:
+      - name: "cluster_names"
+        type: list[string]
+        description: "Les noms des clusters en fonction de ce qu'ils contiennent"
+        callback: new_prop[string, "cluster_names"] # créer une nouvelle prop à partir du return
+  - name: similarity_images
+    description: "trouve des similarité entre des images et une liste de couleurs entrée en paramètres"
+    returns: # encore une fois, le return obligatoire c'est une liste de sha1
+      - type: list[list[number]]
+        description: "le score de similarité de "
+  - name: open_kibana
+    description: "Ouvrir dans Kibana"
+    returns:
+      - type: string
+        description: "une url kibana ouvrant le dashboard sur les tweets"
+        callback: open_url # une action UI parmis une liste définie
+  - name: compute_ocr
+    description: "Transforme des images en texte"
+    dependencies: [image_files, images]
+    returns:
+      - type: string
+        callback: new_prop[string, "ocr_output"]
+hooks:
+  compute_images: [parse_image]
+  clustering: [cluster_dbscan, cluster_kmeans]
+  similarity: [similarity_images]
+  group_actions: [open_kibana, compute_ocr]
+  image_action: [compute_ocr]
+  import_properties: [transform_excel]
+  export_properties: [export_gephi]
+
+
