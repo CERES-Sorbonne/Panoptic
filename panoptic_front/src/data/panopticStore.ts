@@ -1,5 +1,5 @@
 import { defineStore } from "pinia"
-import { computed, nextTick, reactive } from "vue"
+import { computed, nextTick, reactive, ref } from "vue"
 import { apiCloseProject, apiCreateProject, apiDeleteProject, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
@@ -29,7 +29,8 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         error: ''
     })
 
-    const openModal = reactive({ id: undefined, data: undefined })
+    const openModalId = ref(null)
+    const modalData = ref(null)
 
     const isProjectLoaded = computed(() => data.status.isLoaded)
 
@@ -73,17 +74,23 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     function showModal(modalId: ModalId, data?: any) {
-        openModal.id = modalId
-        openModal.data = data
+        openModalId.value = modalId
+        // openModal.data = data
+        modalData.value = data
+    }
+
+    function getModalData() {
+        return modalData
     }
 
     function hideModal() {
-        Object.assign(openModal, { id: undefined, data: undefined })
+        openModalId.value = null
+        modalData.value = null
     }
 
     return {
         init, data, state,
-        openModal, hideModal, showModal,
+        modalData, hideModal, showModal, openModalId,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject
     }

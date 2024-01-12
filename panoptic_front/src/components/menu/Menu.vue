@@ -44,7 +44,7 @@ function addFolder(path) {
         <div class="">
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
-                    <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;" @click="panoptic.showModal(ModalId.TEST)">
+                    <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;" @click="panoptic.showModal(ModalId.TEST, store.data.images[1])">
                         <div class="flex-grow-1">{{ panoptic.data.status.selectedProject.name }}</div>
                         <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i class="bi bi-arrow-left-right"></i></div>
                     </div>
@@ -57,9 +57,6 @@ function addFolder(path) {
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>
-
-                    <!-- <FolderList v-if="globalStore.tabs[globalStore.selectedTab]" :folders="globalStore.folderTree"
-                        :tab="globalStore.tabs[globalStore.selectedTab].data" /> -->
                     <FolderList2 v-if="store.getTab()" :folders="store.folderRoots"
                         :filter-manager="tabManager.collection.filterManager"
                         :visible-folders="tabManager.state.visibleFolders" />

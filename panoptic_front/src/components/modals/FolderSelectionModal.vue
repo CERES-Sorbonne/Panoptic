@@ -6,7 +6,7 @@ import FileExplorer from './FileExplorer.vue';
 import { usePanopticStore } from '@/data/panopticStore';
 
 const panoptic = usePanopticStore()
-const mode = computed(() => panoptic.openModal.data.mode)
+const mode = computed(() => panoptic.modalData.mode)
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -15,13 +15,13 @@ const props = defineProps({
     id: { type: String, required: true },
 })
 
-const isActive = computed(() => panoptic.openModal.id == props.id)
+const isActive = computed(() => panoptic.openModalId == props.id)
 
 function onHide() {
-    if (panoptic.openModal.data?.callback) {
-        panoptic.openModal.data.callback(undefined)
+    if (panoptic.modalData?.callback) {
+        panoptic.modalData.callback(undefined)
     }
-    if (panoptic.openModal.id == props.id) {
+    if (panoptic.openModalId == props.id) {
         panoptic.hideModal()
     }
 }
@@ -35,17 +35,17 @@ function show() {
 }
 
 function select(path) {
-    if (panoptic.openModal.data?.callback) {
-        panoptic.openModal.data.callback(path)
-        if (panoptic.openModal.data.callback) {
-            panoptic.openModal.data.callback = undefined
+    if (panoptic.modalData?.callback) {
+        panoptic.modalData.callback(path)
+        if (panoptic.modalData.callback) {
+            panoptic.modalData.callback = undefined
 
         }
     }
     hide()
 }
 
-watch(() => panoptic.openModal.id, (id) => {
+watch(() => panoptic.openModalId, (id) => {
     if (id == props.id) {
         show()
     }

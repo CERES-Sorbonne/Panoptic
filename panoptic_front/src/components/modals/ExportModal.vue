@@ -17,14 +17,14 @@ const props = defineProps({
     id: { type: String, required: true }
 })
 
-const isActive = computed(() => panoptic.openModal.id == props.id)
+const isActive = computed(() => panoptic.openModalId == props.id)
 const imagesId = computed(() => tabManager.collection.filterManager.result.images.map(i => i.id))
 const activeProperties = computed(() => tabManager.getVisibleProperties().filter(p => p.id >= 0))
 const useOnlyActiveImage = ref(false)
 const useOnlyActiveProperties = ref(false)
 
 function onHide() {
-    if (panoptic.openModal.id == props.id) {
+    if (panoptic.openModalId == props.id) {
         panoptic.hideModal()
     }
 }
@@ -37,7 +37,7 @@ function show() {
     modal.show()
 }
 
-watch(() => panoptic.openModal.id, (id) => {
+watch(() => panoptic.openModalId, (id) => {
     if (id == props.id) {
         show()
     }

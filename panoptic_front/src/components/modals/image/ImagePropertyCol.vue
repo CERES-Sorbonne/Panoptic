@@ -40,8 +40,13 @@ function setMode(value) {
 
 <template>
     <div class="main2 bg-white h-100 d-flex flex-column " :style="{ width: props.width + 'px' }">
-        <div class="image-container">
+        <div class="image-container position-relative">
             <CenteredImage :image="image" :height="props.imageHeight" :width="props.width" />
+            <div class="image-nav d-flex">
+                <div class="arrow"><i class="bi bi-arrow-left"></i></div>
+                <div class="flex-grow-1"></div>
+                <div class="arrow"><i class="bi bi-arrow-right"></i></div>
+            </div>
         </div>
         <div class="custom-hr"></div>
         <div class="d-flex text-center">
@@ -68,6 +73,25 @@ function setMode(value) {
 
 .sep {
     border-left: 1px solid var(--border-color);
+}
+
+.image-nav {
+    position: absolute;
+    font-size: 30px;
+    top: 10px;
+    left: 0;
+    right: 0;
+    padding: 0px 10px;
+}
+
+.arrow {
+    padding: 5px;
+    cursor: pointer;
+    line-height: 10px;
+    border-radius: 50%;
+}
+.arrow:hover {
+    background-color: var(--tab-grey);
 }
 
 .option {

@@ -2,11 +2,11 @@
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import TableHeader from './TableHeader.vue';
-import GridScrollerLine from './GridScrollerLine.vue';
 import { keyState } from '@/data/keyState';
-import { Group, GroupManager, GroupType, ROOT_ID } from '@/core/GroupManager';
-import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, Image } from '@/data/models';
+import { Group, GroupManager, GroupType, ImageIterator, ROOT_ID } from '@/core/GroupManager';
+import { Property, GroupLine, Image, RowLine, PileRowLine, ScrollerLine } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
+import GridScrollerLine from './GridScrollerLine.vue';
 
 const store = useProjectStore()
 
@@ -59,17 +59,18 @@ function computeLines() {
     let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
 
     while (current) {
-        const group = current.getGroup()
+        const group = current.group
         if (lastGroupId != group.id && group.id != ROOT_ID) {
             lines.push(computeGroupLine(group))
             lastGroupId = group.id
         }
         if (!group.view.closed && group.images.length) {
-            const images = current.getImages()
+            const images = current.images
             if (group.subGroupType != GroupType.Sha1) {
-                lines.push(computeImageLine(images[0], group.id, current.imageIdx))
+                lines.push(computeImageLine(current, group.id, current.imageIdx))
             } else {
-                lines.push(computePileLine(group.children[current.imageIdx]))
+                // lines.push(computePileLine(group.children[current.imageIdx]))
+                lines.push(computePileLine(current))
             }
         }
         current = current.nextImages()
@@ -95,24 +96,28 @@ function computeGroupLine(group: Group) {
     return res
 }
 
-function computeImageLine(image: Image, groupId: string, imageIndex) {
+function computeImageLine(it: ImageIterator, groupId: string, imageIndex) {
+    const image = it.image
     const res: RowLine = {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
         size: lineSizes[image.id] ?? (store.getTab().imageSize + 4),
         index: imageIndex,
-        groupId: groupId
+        groupId: groupId,
+        iterator: it
     }
     return res
 }
 
-function computePileLine(group: Group) {
+function computePileLine(it: ImageIterator) {
+    const group = it.sha1Group
     const res: PileRowLine = {
         id: group.id + '-sha1:' + String(group.images[0].sha1),
         data: group,
         type: 'pile',
         size: lineSizes[group.images[0].id] ?? (store.getTab().imageSize + 4),
+        iterator: it
     }
     return res
 }
@@ -212,7 +217,7 @@ onUnmounted(() => {
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
-                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
+                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth" :data="item.data"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"
