@@ -2,7 +2,7 @@
 import { Image, ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore'
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 const store = useProjectStore()
 
 const props = defineProps({
@@ -12,8 +12,15 @@ const props = defineProps({
     noClick: Boolean
 })
 
+const invisible = ref(false)
+const loadedImage = ref(null)
+
 const imageSize = computed(() => {
-    let imgRatio = props.image.width / props.image.height
+    const image = loadedImage.value
+    if(!image) {
+        return {w: 0, h: 0}
+    }
+    let imgRatio = image.width / image.height
     let divRatio = props.width / props.height
 
     if (divRatio > imgRatio) {
@@ -32,34 +39,44 @@ const imageUrl = computed(() => {
     return img.url
 })
 
-function openModal() {
-    if (props.noClick) return
-    const panoptic = usePanopticStore()
-    panoptic.showModal(ModalId.IMAGE, props.image)
+const loadedImageUrl = computed(() => {
+    let img = loadedImage.value
+    if(!img) return
+
+    let minArea = 150 ** 2
+    if (props.width * props.height > minArea) {
+        return img.fullUrl
+    }
+    return img.url
+})
+
+// function openModal() {
+//     if (props.noClick) return
+//     const panoptic = usePanopticStore()
+//     panoptic.showModal(ModalId.IMAGE, props.image)
+// }
+
+async function hideImageFrame() {
+    invisible.value = true
+    await nextTick()
+    invisible.value = false
 }
 
+
+function onLoad() {
+    loadedImage.value = props.image
+}
+
+// watch(() => props.image, hideImageFrame)
+ 
 </script>
 
 <template>
-    <!-- <div class="image-container"
-        :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }"
-        @click="openModal">
-        <template v-if="props.shadow">
-            <div class="box-shadow" :style="{ width: props.width + 'px', height: '3px' }">
-                <img :src="imageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px' }" />
-            </div>
-        </template>
-        <template v-else>
-            <img :src="imageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px' }" />
-        </template>
-
-    </div> -->
-
     <div class="center-container"
-        :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }"
-        @click="openModal">
+        :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }">
         <div class="center-content">
-            <img :src="imageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px' }">
+            <img v-if="!invisible && loadedImageUrl" :src="loadedImageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px' }" @load="onLoad">
+            <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="imageUrl" @load="onLoad"/>
         </div>
     </div>
 </template>

@@ -20,7 +20,6 @@ const project = useProjectStore()
 
 const groupManager = new GroupManager()
 
-
 const colElem = ref(null)
 const colWidth = ref(0)
 const colHeight = ref(0)
@@ -28,7 +27,7 @@ const viewMode = ref(0)
 const visibleProperties = reactive({})
 
 const iterator = computed(() => panoptic.modalData)
-const image = computed(() => iterator.value?.image)
+const image = computed(() => iterator.value?.image as Image)
 // const iterator = ref(null as ImageIterator)
 
 function onResize() {
@@ -60,7 +59,7 @@ watch(colElem, onResize)
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
-                    <ImagePropertyCol :image="image" :width="500" :image-height="400"
+                    <ImagePropertyCol :image="iterator" :width="500" :image-height="400"
                         :visible-properties="visibleProperties" @paint="paint"/>
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
                         <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"

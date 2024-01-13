@@ -215,7 +215,7 @@ export interface GroupLine extends ScrollerLine {
 }
 
 export interface ImageLine extends ScrollerLine {
-    data: Image[]
+    data: ImageIterator[]
 }
 
 export interface RowLine extends ScrollerLine {
@@ -229,7 +229,7 @@ export interface PileRowLine extends ScrollerLine {
 }
 
 export interface ScrollerPileLine extends ScrollerLine {
-    data: Group[]
+    data: ImageIterator[]
 }
 
 export interface Recommendation {

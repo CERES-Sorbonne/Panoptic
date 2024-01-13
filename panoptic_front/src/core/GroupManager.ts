@@ -127,7 +127,7 @@ export function buildGroupOption(propertyId: number): GroupOption {
 
     const store = useProjectStore()
     const property = store.data.properties[propertyId]
-    if(property.type == PropertyType.date) {
+    if (property.type == PropertyType.date) {
         res.stepUnit = DateUnit.Day
     }
 
@@ -183,7 +183,7 @@ const valueParser: { [type in PropertyType]?: any } = {
 }
 
 function closestDate(date: Date, stepSize: number, unit: DateUnit) {
-    if(!unit) {
+    if (!unit) {
         unit = DateUnit.Day
     }
     if (date == undefined) return
@@ -343,8 +343,8 @@ export class GroupManager {
         if (this.state.groupBy.length > 0) {
             this.computePropertySubGroup(this.result.root, this.state.groupBy)
         }
-        
-        if(order) {
+
+        if (order) {
             Object.values(this.result.index).map(v => v as Group).forEach(g => {
                 sortGroupImages(g, order)
             })
@@ -426,7 +426,7 @@ export class GroupManager {
     }
 
     private invalidateIterators() {
-        for(let it of this.iterators) {
+        for (let it of this.iterators) {
             it.isValid = false
         }
         this.iterators.length = 0
@@ -472,7 +472,7 @@ export class GroupManager {
             this.removeSha1Groups()
         }
         this.lastOrder = order
-        
+
         Object.values(this.result.index).map(v => v as Group).forEach(g => {
             sortGroupImages(g, order)
         })
@@ -726,12 +726,12 @@ export class GroupManager {
             if (end.isImageBefore(it)) {
                 break
             }
-            if(it.sha1Group) {
+            if (it.sha1Group) {
                 images.push(...it.sha1Group.images.map(i => i.id))
             } else {
                 images.push(it.image.id)
             }
-            
+
             it = it.nextImages()
         }
         if (images.length) {
@@ -872,7 +872,7 @@ export class GroupIterator {
     groupId: string
     options: GroupIteratorOptions
 
-    
+
 
     constructor(manager: GroupManager, groupId?: string, options?: GroupIteratorOptions) {
         this.isValid = true
@@ -890,6 +890,7 @@ export class GroupIterator {
     clone(): GroupIterator {
         return new GroupIterator(this.manager, this.groupId, this.options)
     }
+
     private getGroup(): Group {
         return this.manager.result.index[this.groupId]
     }
@@ -909,12 +910,44 @@ export class GroupIterator {
         }
         return undefined
     }
+    // prevGroup(): GroupIterator { }
+    prevGroup(): GroupIterator {
+        let current = this.group;
+
+        // Check if there is a previous sibling in the current group
+        const prevSibling = current.parent?.children[current.parentIdx - 1];
+        if (prevSibling) {
+            // If the previous sibling has children, navigate to the last child
+            if (prevSibling.children.length > 0 && (!prevSibling.view.closed || this.options.ignoreClosed)) {
+                let lastChild = prevSibling.children[prevSibling.children.length - 1];
+                while (lastChild.children.length > 0 && (!lastChild.view.closed || this.options.ignoreClosed)) {
+                    lastChild = lastChild.children[lastChild.children.length - 1];
+                }
+                return new GroupIterator(this.manager, lastChild.id);
+            } else {
+                // If the previous sibling has no children, return its iterator
+                return new GroupIterator(this.manager, prevSibling.id);
+            }
+        }
+
+        // If there is no previous sibling, go to the parent
+        const parent = current.parent;
+        if (parent && parent.parent) {
+            console.log('parent')
+            return new GroupIterator(this.manager, parent.id);
+        }
+
+        return undefined;
+    }
+
+
     isGroupBefore(it: GroupIterator): boolean {
         return this.group.order < it.group.order
     }
     isGroupEqual(it: GroupIterator): boolean {
         return this.group.order == it.group.order
     }
+
 }
 
 export class ImageIterator extends GroupIterator {
@@ -938,6 +971,13 @@ export class ImageIterator extends GroupIterator {
         this.sha1Group = this.getSha1Group()
     }
 
+    static fromGroupIterator(it: GroupIterator, options?: GroupIteratorOptions) {
+        if (it.group.images.length == 0) {
+            return undefined
+        }
+        return new ImageIterator(it['manager'], it.group.id, 0, options)
+    }
+
     private getImages(): Image[] {
         if (this.group.subGroupType == GroupType.Sha1) {
             return this.group.children[this.imageIdx].images
@@ -954,11 +994,32 @@ export class ImageIterator extends GroupIterator {
         while (next) {
             const group = next.group
             if ((!group.view.closed || this.options.ignoreClosed) && (group.subGroupType == GroupType.Sha1 || group.children.length == 0)) {
-                return new ImageIterator(this.manager, next.group.id, 0, this.options)
+                const lastIndex = group.subGroupType == GroupType.Sha1 ? group.children.length - 1 : group.images.length - 1
+                return new ImageIterator(this.manager, next.group.id, lastIndex, this.options)
             }
             next = next.nextGroup()
         }
         return undefined
+    }
+
+    prevGroup(): ImageIterator {
+        let prev = super.prevGroup();
+
+        while (prev) {
+            // console.log(prev.groupId, prev.group.depth)
+            const group = prev.group;
+
+            // Check conditions for selecting the previous group
+            if ((!group.view.closed || this.options.ignoreClosed) && (group.type == GroupType.Sha1 || group.children.length == 0)) {
+                // If conditions are met, return an ImageIterator for the previous group
+                return new ImageIterator(this.manager, prev.group.id, 0, this.options);
+            }
+
+            // Move to the previous group and continue the loop
+            prev = prev.prevGroup();
+        }
+
+        return undefined;
     }
 
     nextImages(): ImageIterator {
@@ -980,6 +1041,38 @@ export class ImageIterator extends GroupIterator {
             nextIdx = 0
         }
     }
+
+    prevImages(): ImageIterator {
+        let current = this.clone();
+        let prevIdx = current.imageIdx - 1;
+
+        while (current) {
+            const group = current.group;
+
+            if (group.subGroupType == GroupType.Sha1) {
+                if (group.children[prevIdx]) {
+                    return new ImageIterator(this.manager, current.groupId, prevIdx, this.options);
+                }
+            } else {
+                if (group.images[prevIdx]) {
+                    return new ImageIterator(this.manager, current.groupId, prevIdx, this.options);
+                }
+            }
+
+            current = current.prevGroup();
+            if (current) {
+                // Update the index to the last image in the previous group
+                if (current.group.subGroupType == GroupType.Sha1) {
+                    prevIdx = current.group.children.length - 1;
+                } else {
+                    prevIdx = current.group.images.length - 1;
+                }
+            }
+        }
+
+        return undefined;
+    }
+
 
     isImageBefore(it: ImageIterator) {
         if (this.isGroupEqual(it)) {
