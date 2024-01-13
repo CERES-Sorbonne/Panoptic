@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { ScrollerLine, Property } from '@/data/models';
+import { ScrollerLine, Property, ImageLine } from '@/data/models';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
 
 
-const props = defineProps({
-    imageSize: Number,
-    inputIndex: Number,
-    item: Object as () => ScrollerLine,
-    parentIds: Array<string>,
-    hoverBorder: String,
-    index: Object as () => GroupIndex,
-    properties: Array<Property>,
-    selectedImages: Object as () => SelectedImages
-})
+const props = defineProps<{
+    imageSize: number,
+    inputIndex: number,
+    item: ImageLine,
+    parentIds: string[],
+    hoverBorder: string,
+    index: GroupIndex,
+    properties: Property[],
+    selectedImages: SelectedImages
+}>()
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
 
@@ -25,9 +25,9 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <Image :image="image" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[image.id] == true" @update:selected="v => emits('update:selected-image', {id: image.id, value:v})"
-            v-for="image, i in props.item.data" class="me-2 mb-2"/>
+        <Image :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+            :properties="props.properties" :selected="props.selectedImages[imageIt.image.id] == true" @update:selected="v => emits('update:selected-image', {id: imageIt.image.id, value:v})"
+            v-for="imageIt, i in props.item.data" class="me-2 mb-2"/>
 
     </div>
 </template>

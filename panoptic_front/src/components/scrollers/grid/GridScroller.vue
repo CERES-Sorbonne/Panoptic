@@ -217,7 +217,7 @@ onUnmounted(() => {
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active">
-                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth" :data="item.data"
+                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"

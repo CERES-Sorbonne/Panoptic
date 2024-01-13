@@ -13,8 +13,7 @@ const props = defineProps<{
     missingWidth: number,
     properties: Property[],
     showImages: boolean,
-    selectedImages: SelectedImages,
-    data: Object
+    selectedImages: SelectedImages
 }>()
 
 const emits = defineEmits({
@@ -40,8 +39,7 @@ onMounted(reload)
 <template>
     <template v-if="loaded" class="container">
         <div v-if="item.type == 'group'">
-            <GroupLineVue :prop-values="item.data.propertyValues" :item="(item as GroupLine)" :width="props.width"
-                :data="props.data" @close:group="e => emits('close:group', e)" @open:group="e => emits('open:group', e)"
+            <GroupLineVue :prop-values="item.data.propertyValues" :item="(item as GroupLine)" :width="props.width" @close:group="e => emits('close:group', e)" @open:group="e => emits('open:group', e)"
                 @toggle:group="e => emits('toggle:group', e)" />
         </div>
         <div v-if="item.type == 'image'">

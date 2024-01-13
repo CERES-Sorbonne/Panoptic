@@ -8,8 +8,7 @@ import { computed, guardReactiveProps } from 'vue';
 
 const props = defineProps({
     item: Object as () => GroupLine,
-    width: Number,
-    data: Object
+    width: Number
 })
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
 

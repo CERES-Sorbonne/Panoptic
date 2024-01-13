@@ -4,7 +4,7 @@ import ImageLineVue from './ImageLine.vue';
 import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { GroupManager, Group, GroupType } from '@/core/GroupManager';
+import { GroupManager, Group, GroupType, GroupIterator, ImageIterator } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine } from '@/data/models';
 
@@ -74,8 +74,9 @@ function clear() {
     imageLines.length = 0
 }
 
-function GroupToLines(group: Group) {
+function GroupToLines(it: GroupIterator) {
     const lines: Array<GroupLine | ScrollerPileLine> = []
+    const group = it.group
     lines.push({
         id: group.id,
         type: 'group',
@@ -89,9 +90,9 @@ function GroupToLines(group: Group) {
     if (group.view.closed) return lines
 
     if (group.subGroupType != GroupType.Sha1) {
-        computeImageLines(group.images, lines, props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+        computeImageLines(it, lines, props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
     } else {
-        computeImagePileLines(group.children, lines as ScrollerPileLine[], props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+        computeImagePileLines(it, lines as ScrollerPileLine[], props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
     }
 
     return lines
@@ -102,16 +103,16 @@ function computeLines() {
     clear()
     let it = props.groupManager.getGroupIterator()
     while (it) {
-        const group = it.getGroup()
+        const group = it.group
         groupIdx[group.id] = imageLines.length
-        imageLines.push(...GroupToLines(group))
+        imageLines.push(...GroupToLines(it))
         it = it.nextGroup()
     }
 
     scroller.value.updateVisibleItems(true)
 }
 
-function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
+function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
     let lineWidth = totalWidth
     let newLine = []
     let actualWidth = 0
@@ -128,12 +129,15 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
         })
     }
 
-    for (let i = 0; i < images.length; i++) {
-        let img = images[i]
+    let imgIt = ImageIterator.fromGroupIterator(it)
+    while (imgIt && imgIt.groupId == it.groupId) {
+
+        let img = imgIt.image
         let imgWidth = (imageHeight * img.containerRatio) + 10
         if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(img)
+            newLine.push(imgIt)
             actualWidth += imgWidth
+            imgIt = imgIt.nextImages()
             continue
         }
         if (newLine.length == 0) {
@@ -141,8 +145,10 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
             throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
-        newLine = [img]
+        newLine = [imgIt]
         actualWidth = imgWidth
+
+        imgIt = imgIt.nextImages()
     }
 
     if (newLine.length > 0) {
@@ -150,12 +156,12 @@ function computeImageLines(images, lines, imageHeight, totalWidth, parentGroup, 
     }
 }
 
-function computeImagePileLines(imagesGroups: Group[], lines: ScrollerPileLine[], imageHeight, totalWidth, parentGroup) {
+function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], imageHeight, totalWidth, parentGroup) {
     let lineWidth = totalWidth
-    let newLine: Group[] = []
+    let newLine: ImageIterator[] = []
     let actualWidth = 0
 
-    let addLine = (line: Group[]) => {
+    let addLine = (line: ImageIterator[]) => {
         lines.push({
             id: parentGroup.id + '|img-' + lines.length,
             type: 'piles',
@@ -166,13 +172,15 @@ function computeImagePileLines(imagesGroups: Group[], lines: ScrollerPileLine[],
         })
     }
 
-    for (let i = 0; i < imagesGroups.length; i++) {
-        let group = imagesGroups[i]
-        let img = group.images[0]
+    let imgIt = ImageIterator.fromGroupIterator(it)
+    while (imgIt && imgIt.groupId == it.groupId) {
+        let group = imgIt.sha1Group
+        let img = imgIt.image
         let imgWidth = (imageHeight * img.containerRatio) + 10
         if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(group)
+            newLine.push(imgIt)
             actualWidth += imgWidth
+            imgIt = imgIt.nextImages()
             continue
         }
         if (newLine.length == 0) {
@@ -180,8 +188,10 @@ function computeImagePileLines(imagesGroups: Group[], lines: ScrollerPileLine[],
             throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
-        newLine = [group]
+        newLine = [imgIt]
         actualWidth = imgWidth
+
+        imgIt = imgIt.nextImages()
     }
 
     if (newLine.length > 0) {
@@ -308,8 +318,7 @@ watch(() => props.width, () => {
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
-                        :selected-images="props.groupManager.selectedImages"
-                        :sha1-scores="props.sha1Scores"
+                        :selected-images="props.groupManager.selectedImages" :sha1-scores="props.sha1Scores"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>

@@ -9,7 +9,7 @@ import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
-import { Group } from '@/core/GroupManager';
+import { Group, ImageIterator } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
@@ -18,8 +18,7 @@ const panoptic = usePanopticStore()
 const store = useProjectStore()
 
 const props = defineProps({
-    image: Object as () => Image,
-    group: Object as () => Group,
+    image: ImageIterator,
     score: Number,
     size: { type: Number, default: 100 },
     index: Number,
@@ -34,7 +33,7 @@ const props = defineProps({
 const tmpref = ref('')
 const emits = defineEmits(['resize', 'update:selected'])
 
-const image = computed(() => props.image ?? props.group.images[0])
+const image = computed(() => props.image.image)
 
 const containerElem = ref(null)
 const hover = ref(false)
@@ -82,7 +81,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, image)"
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.TEST, props.image)"
             @mouseenter="hover = true" @mouseleave="hover = false">
             <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
@@ -91,8 +90,8 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
-        <wTT v-if="props.group?.images.length > 1" message="main.view.instances_tooltip" :click="false">
-            <div class="image-count">{{ props.group.images.length }}</div>
+        <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1" message="main.view.instances_tooltip" :click="false">
+            <div class="image-count">{{ props.image.sha1Group.images.length }}</div>
         </wTT>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
             <div v-for="property, index in imageProperties">

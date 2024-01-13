@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
-import { Image, Property, PropertyMode, PropertyRef } from '@/data/models';
+import { ImageIterator } from '@/core/GroupManager';
+import { Image as ImageType, ModalId, Property, PropertyMode, PropertyRef } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import { computed, reactive, ref } from 'vue';
+const panoptic = usePanopticStore()
 const store = useProjectStore()
 const props = defineProps<{
-    image: Image
+    image: ImageIterator
     width: number
     imageHeight: number
     visibleProperties: {[id: number]: boolean}
@@ -17,6 +20,7 @@ const emits = defineEmits<{
 }>()
 
 const mode = ref(0)
+const img = new Image()
 
 const properties = computed(() => {
     const res = []
@@ -36,16 +40,31 @@ function setMode(value) {
     mode.value = value
 }
 
+function nextImage() {
+    const next = props.image.nextImages()
+    if(next) {
+        panoptic.showModal(ModalId.TEST, next)
+    }
+}
+
+function prevImage() {
+    const prev = props.image.prevImages()
+    if(prev) {
+        console.log(prev)
+        panoptic.showModal(ModalId.TEST, prev)
+    }
+}
+
 </script>
 
 <template>
     <div class="main2 bg-white h-100 d-flex flex-column " :style="{ width: props.width + 'px' }">
         <div class="image-container position-relative">
-            <CenteredImage :image="image" :height="props.imageHeight" :width="props.width" />
-            <div class="image-nav d-flex">
-                <div class="arrow"><i class="bi bi-arrow-left"></i></div>
+            <CenteredImage :image="props.image.image" :height="props.imageHeight" :width="props.width" />
+            <div class="image-nav d-flex" v-if="props.image.isValid">
+                <div class="arrow" @click="prevImage"><i class="bi bi-arrow-left"></i></div>
                 <div class="flex-grow-1"></div>
-                <div class="arrow"><i class="bi bi-arrow-right"></i></div>
+                <div class="arrow" @click="nextImage"><i class="bi bi-arrow-right"></i></div>
             </div>
         </div>
         <div class="custom-hr"></div>
@@ -61,7 +80,7 @@ function setMode(value) {
         <div class="show-option"><input type="checkbox" v-model="showInstanceProps" /> <b>Propriétés d'instance</b></div>
         <div class="show-option"><input type="checkbox" v-model="showMetaData" /> <b>Metadonées</b></div> -->
         <div class="flex-grow-1 overflow-scroll">
-            <PropertyInputTable :image="props.image" :properties="properties" :visible-properties="visibleProperties" @paint="e => emits('paint', e)" />
+            <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties" @paint="e => emits('paint', e)" />
         </div>
     </div>
 </template>

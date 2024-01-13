@@ -26,10 +26,10 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             @mouseenter="emits('hover', parentId)" @mouseleave="emits('unhover')">
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
-        <ImageVue :group="group" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[group.images[0].id]" :score="(props.sha1Scores ? props.sha1Scores[group.images[0].sha1] : undefined)"
-            @update:selected="v => emits('update:selected-image', { id: group.images[0].id, value: v })"
-            v-for="group, i in props.item.data" class="me-2 mb-2" />
+        <ImageVue :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+            :properties="props.properties" :selected="props.selectedImages[imageIt.image.id]" :score="(props.sha1Scores ? props.sha1Scores[imageIt.image.sha1] : undefined)"
+            @update:selected="v => emits('update:selected-image', { id: imageIt.image.id, value: v })"
+            v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
 
     </div>
 </template>

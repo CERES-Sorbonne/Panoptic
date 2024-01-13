@@ -40,7 +40,9 @@ function onShow() {
 
 function onHide() {
     active.value = false
-    panoptic.hideModal()
+    if (panoptic.openModalId == props.id) {
+        panoptic.hideModal()
+    }
     console.log('hide')
     emits('hide')
 }
@@ -48,7 +50,7 @@ function onHide() {
 function onWindowResize() {
     totalWidth.value = window.innerWidth
     totalHeight.value = window.innerHeight
-    emits('resize', {height: totalHeight.value, width: totalWidth.value})
+    emits('resize', { height: totalHeight.value, width: totalWidth.value })
 }
 
 onMounted(() => {
@@ -60,6 +62,7 @@ onMounted(() => {
 })
 
 watch(() => panoptic.openModalId, () => {
+    console.log('watch modal id', panoptic.openModalId, props.id)
     if (panoptic.openModalId == props.id) {
         show()
     }
@@ -76,7 +79,7 @@ watch(() => panoptic.openModalId, () => {
             <div class="modal-content d-flex flex-column h-100" v-if="active">
                 <div class="title">
                     <div class="d-flex">
-                        <div class="flex-grow-1">Some title  {{ totalWidth }} x {{ totalHeight }} </div>
+                        <div class="flex-grow-1">Some title {{ totalWidth }} x {{ totalHeight }} </div>
                         <div class="close bi bi-x btn-icon" @click="hide"></div>
                     </div>
                 </div>
