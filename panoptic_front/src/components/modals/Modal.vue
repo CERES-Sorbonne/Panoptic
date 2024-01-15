@@ -79,7 +79,9 @@ watch(() => panoptic.openModalId, () => {
             <div class="modal-content d-flex flex-column h-100" v-if="active">
                 <div class="title">
                     <div class="d-flex">
-                        <div class="flex-grow-1">Some title {{ totalWidth }} x {{ totalHeight }} </div>
+                        <div class="flex-grow-1">
+                            <slot name="title"></slot>
+                        </div>
                         <div class="close bi bi-x btn-icon" @click="hide"></div>
                     </div>
                 </div>
