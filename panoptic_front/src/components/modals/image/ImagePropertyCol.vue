@@ -5,7 +5,7 @@ import { ImageIterator } from '@/core/GroupManager';
 import { Image as ImageType, ModalId, Property, PropertyMode, PropertyRef } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
-import { computed, reactive, ref } from 'vue';
+import { Ref, computed, inject, reactive, ref } from 'vue';
 const panoptic = usePanopticStore()
 const store = useProjectStore()
 const props = defineProps<{
@@ -21,6 +21,10 @@ const emits = defineEmits<{
 
 const mode = ref(0)
 const img = new Image()
+const nextImage: () => void = inject('nextImage')
+const prevImage: () => void = inject('prevImage')
+const showHistory: Ref<boolean> = inject('showHistory')
+
 
 const properties = computed(() => {
     const res = []
@@ -40,20 +44,8 @@ function setMode(value) {
     mode.value = value
 }
 
-function nextImage() {
-    const next = props.image.nextImages()
-    if(next) {
-        panoptic.showModal(ModalId.TEST, next)
-    }
-}
 
-function prevImage() {
-    const prev = props.image.prevImages()
-    if(prev) {
-        console.log(prev)
-        panoptic.showModal(ModalId.TEST, prev)
-    }
-}
+
 
 </script>
 
@@ -61,7 +53,7 @@ function prevImage() {
     <div class="main2 bg-white h-100 d-flex flex-column " :style="{ width: props.width + 'px' }">
         <div class="image-container position-relative">
             <CenteredImage :image="props.image.image" :height="props.imageHeight" :width="props.width" />
-            <div class="image-nav d-flex" v-if="props.image.isValid">
+            <div class="image-nav d-flex" v-if="!showHistory">
                 <div class="arrow" @click="prevImage"><i class="bi bi-arrow-left"></i></div>
                 <div class="flex-grow-1"></div>
                 <div class="arrow" @click="nextImage"><i class="bi bi-arrow-right"></i></div>
@@ -76,9 +68,6 @@ function prevImage() {
             <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonées</div>
         </div>
         <div class="custom-hr"></div>
-        <!-- <div class="show-option"><input type="checkbox" v-model="showImageProps" /> <b>Propriétés d'image</b></div>
-        <div class="show-option"><input type="checkbox" v-model="showInstanceProps" /> <b>Propriétés d'instance</b></div>
-        <div class="show-option"><input type="checkbox" v-model="showMetaData" /> <b>Metadonées</b></div> -->
         <div class="flex-grow-1 overflow-scroll">
             <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties" @paint="e => emits('paint', e)" />
         </div>

@@ -56,7 +56,9 @@ function updateSimilarGroup() {
 }
 
 onMounted(setSimilar)
+watch(() => props.image, setSimilar)
 watch(minSimilarityDist, updateSimilarGroup)
+watch(() => props.width, updateSimilarGroup)
 </script>
 
 <template>

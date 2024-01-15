@@ -81,7 +81,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.TEST, props.image)"
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.TEST, props.image.clone({register: true}))"
             @mouseenter="hover = true" @mouseleave="hover = false">
             <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
             <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
