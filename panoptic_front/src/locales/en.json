@@ -100,7 +100,8 @@
             "unique_properties_tooltip": "Display properties related to instances of this image",
             "similarity_filter_tooltip": "The minimum similarity percentage that images displayed here must have. For more information, see the documentation on the similarity score.",
             "toggle_property_tooltip": "Show / Hide this property in the 'Similar images' view",
-            "fill_property_tooltip": "Tag all similar images with the value of this property"
+            "fill_property_tooltip": "Tag all similar images with the value of this property",
+            "history": "History"
         },
         "properties": {
             "title": "New property",

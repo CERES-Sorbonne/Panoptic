@@ -116,16 +116,18 @@ watch(modalData, onModalDataChange)
 
 <template>
     <Modal :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
+        <template #title>Image {{ image.width }} x {{ image.height }} : {{ image.name }}</template>
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
-                    <ImagePropertyCol :image="iterator" :width="500" :image-height="400"
+                    <ImagePropertyCol :image="iterator" :width="600" :image-height="500"
                         :visible-properties="visibleProperties" @paint="paint"/>
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
                         <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
                             :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e" />
                     </div>
-                    <div class="history" v-if="navigationHistory.length > 0" ref="historyElem">
+                    <div class="history text-center" v-if="navigationHistory.length > 0" ref="historyElem">
+                        <b>{{ $t('modals.image.history') }}</b>
                         <div v-for="it, index in navigationHistory" class="bordered">
                             <CenteredImage :image="it.image" :width="100" :height="100" @click="rollback(index)"/>
                         </div>
