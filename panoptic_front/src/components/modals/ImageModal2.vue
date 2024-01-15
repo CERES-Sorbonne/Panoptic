@@ -65,11 +65,12 @@ function onShow() {
 }
 
 function onHide() {
+    iterator.value = undefined
     navigationHistory.value = []
 }
 
 async function onModalDataChange(value: ImageIterator) {
-    if(panoptic.openModalId != ModalId.TEST) return
+    if(panoptic.openModalId != ModalId.IMAGE) return
 
     
     if(iterator.value) {
@@ -114,7 +115,7 @@ watch(modalData, onModalDataChange)
 </script>
 
 <template>
-    <Modal :id="ModalId.TEST" @resize="onResize" @show="onShow" @hide="onHide">
+    <Modal :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
@@ -143,10 +144,10 @@ watch(modalData, onModalDataChange)
 
 .history {
     background-color: var(--tab-grey);
-    width: 140px;
+    width: 130px;
     height: 100%;
     overflow: scroll;
-    padding: 20px 20px;
+    padding: 20px 12px;
 }
 
 .bordered {

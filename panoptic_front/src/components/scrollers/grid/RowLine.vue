@@ -151,7 +151,7 @@ function emitResizeOnce() {
 
 function showModal() {
     // console.log(props.item.iterator)
-    panoptic.showModal(ModalId.TEST, props.item.iterator)
+    panoptic.showModal(ModalId.IMAGE, props.item.iterator)
 }
 
 

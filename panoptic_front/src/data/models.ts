@@ -172,8 +172,7 @@ export enum ModalId {
     SHA1PILE = 'sha1pile',
     FOLDERTOPROP = 'folder_to_property',
     EXPORT = "export",
-    FOLDERSELECTION = 'explorer',
-    TEST = 'test-modal'
+    FOLDERSELECTION = 'explorer'
 }
 
 export interface ImportState {

@@ -19,7 +19,6 @@ document.title = 'Panoptic'
 <template>
   <body>
     <RouterView />
-    <ImageModal :id="ModalId.IMAGE" />
     <PropertyModal :id="ModalId.PROPERTY" />
     <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
     <ExportModal :id="ModalId.EXPORT" />
