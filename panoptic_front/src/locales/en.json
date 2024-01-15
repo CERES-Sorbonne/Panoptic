@@ -63,7 +63,8 @@
                 "group_order_nb_tooltip": "Sort groups by number of images",
                 "order_desc": "Sort by descending order",
                 "order_asc": "Sort in ascending order"
-            }
+            },
+            "import_status_title": "Status Import"
         },
         "recommand": {
             "title": "Image suggestions",

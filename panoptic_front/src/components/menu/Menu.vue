@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { ModalId } from '../../data/models';
-import { ref, defineEmits } from 'vue';
+import { ref, defineEmits, watch } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
@@ -16,7 +16,7 @@ const tabManager = store.getTabManager()
 
 const emits = defineEmits(['export'])
 
-
+const showImport = ref(false)
 const inputFile = ref(null)
 const isUploading = ref(false)
 
@@ -29,13 +29,15 @@ const handleInput = async (e: any) => {
 }
 
 function promptFolder() {
-    panoptic.showModal(ModalId.FOLDERSELECTION, {callback: addFolder, mode: "images"})
+    panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
 }
 
 function addFolder(path) {
-    if(!path) return
+    if (!path) return
     store.addFolder(path)
 }
+
+watch(() => store.status.import.to_import, () => showImport.value = true)
 
 </script>
 
@@ -44,9 +46,10 @@ function addFolder(path) {
         <div class="">
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
-                    <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;" >
+                    <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
                         <div class="flex-grow-1">{{ panoptic.data.status.selectedProject.name }}</div>
-                        <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i class="bi bi-arrow-left-right"></i></div>
+                        <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i
+                                class="bi bi-arrow-left-right"></i></div>
                     </div>
                 </div>
                 <div class="custom-hr" />
@@ -57,12 +60,20 @@ function addFolder(path) {
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>
-                    <FolderList2 v-if="store.getTab()" :folders="store.folderRoots"
-                        :filter-manager="tabManager.collection.filterManager"
-                        :visible-folders="tabManager.state.visibleFolders" />
+                    <div class="overflow-scroll">
+                        <FolderList2 v-if="store.getTab()" :folders="store.folderRoots"
+                            :filter-manager="tabManager.collection.filterManager"
+                            :visible-folders="tabManager.state.visibleFolders" />
+                    </div>
+
                 </div>
                 <div class="p-2"
-                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0">
+                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
+                    <div class="custom-hr" />
+                    <div v-if="store.status.import.done" class="float-end"><i class="bi bi-x base-hover"
+                            @click="showImport = false"></i></div>
+                    <div class="text-center"><b>{{ $t('main.menu.import_status_title') }}</b></div>
+
                     <div class="w-100 text-center" style="font-size: 10px;">
                         {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
                     </div>
@@ -73,8 +84,7 @@ function addFolder(path) {
                         </div>
                     </div>
                 </div>
-                <div class="p-2"
-                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0">
+                <div class="p-2" v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0  && showImport" >
                     <div class="w-100 text-center" style="font-size: 10px;">
                         {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
                     </div>
@@ -103,7 +113,8 @@ function addFolder(path) {
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
-                                    class="bi bi-box-arrow-down btn-icon text-secondary" @click="panoptic.showModal(ModalId.EXPORT, undefined)" /></wTT>
+                                    class="bi bi-box-arrow-down btn-icon text-secondary"
+                                    @click="panoptic.showModal(ModalId.EXPORT, undefined)" /></wTT>
                         </span>
                     </div>
 
@@ -148,10 +159,11 @@ function addFolder(path) {
 </template>
 
 <style scoped>
-.plus{
+.plus {
     font-size: 1.5em;
 }
-.plus:hover{
+
+.plus:hover {
     cursor: pointer;
 }
 </style>

@@ -62,7 +62,8 @@
                 "group_order_nb_tooltip": "Tri des groupes par nombre d'images",
                 "order_desc": "Tri par ordre décroissant",
                 "order_asc": "Tri par ordre croissant"
-            }
+            },
+            "import_status_title": "Import"
         },
         "recommand": {
             "title": "Propositions d'images",
