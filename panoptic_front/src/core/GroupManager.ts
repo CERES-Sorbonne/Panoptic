@@ -6,7 +6,7 @@
  */
 
 import { DateUnit, DateUnitFactor, Image, Property, PropertyValue } from "@/data/models";
-import { nextTick, reactive, toRefs } from "vue";
+import { Ref, nextTick, reactive, ref, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag } from "@/utils/utils";
@@ -333,6 +333,7 @@ export class GroupManager {
 
     group(images: Image[], order?: ImageOrder, emit?: boolean) {
         console.time('Group')
+        this.invalidateIterators()
         this.lastOrder = order
         this.result.root = buildRoot(images)
         this.result.index = {}
@@ -368,6 +369,7 @@ export class GroupManager {
     }
 
     sortGroups(emit?: boolean) {
+        this.invalidateIterators()
         for (let group of Object.values(this.result.index) as Group[]) {
             if (group.subGroupType != GroupType.Property) continue
             if (group.children.length == 0) continue
@@ -395,6 +397,7 @@ export class GroupManager {
     }
 
     removeSha1Groups() {
+        this.invalidateIterators()
         for (let group of Object.values(this.result.index) as Group[]) {
             if (group.subGroupType != GroupType.Sha1) continue
             if (group.type == GroupType.Cluster) continue
@@ -407,6 +410,7 @@ export class GroupManager {
     }
 
     clear() {
+        this.invalidateIterators()
         this.result.imageToGroups = {}
         this.result.index = {}
         this.result.root = undefined
@@ -429,7 +433,7 @@ export class GroupManager {
         for (let it of this.iterators) {
             it.isValid = false
         }
-        this.iterators.length = 0
+        this.iterators = []
     }
 
     private removeChildren(group: Group) {
@@ -463,11 +467,13 @@ export class GroupManager {
     }
 
     update(emit?: boolean) {
+        this.invalidateIterators()
         if (!this.result.root) return
         this.group(this.result.root.images, this.lastOrder, emit)
     }
 
     sort(order: ImageOrder, emit?: boolean) {
+        this.invalidateIterators()
         if (this.state.sha1Mode) {
             this.removeSha1Groups()
         }
@@ -503,6 +509,7 @@ export class GroupManager {
     }
 
     addCustomGroups(targetGroupId: string, groups: Group[], emit?: boolean) {
+        this.invalidateIterators()
         const parent = this.result.index[targetGroupId]
         if (!parent) return
 
@@ -535,6 +542,7 @@ export class GroupManager {
 
     setSha1Mode(value: boolean, emit?: boolean) {
         if (this.state.sha1Mode == value) return
+        this.invalidateIterators()
 
         this.state.sha1Mode = value
         if (value) {
@@ -862,6 +870,7 @@ export class GroupManager {
 export interface GroupIteratorOptions {
     ignoreClosed?: boolean
     onlyPropertyGroups?: boolean
+    register?: boolean
 }
 
 export class GroupIterator {
@@ -877,7 +886,7 @@ export class GroupIterator {
     constructor(manager: GroupManager, groupId?: string, options?: GroupIteratorOptions) {
         this.isValid = true
         this.manager = manager
-        this.manager.registerIterator(this)
+        if (options?.register) { this.manager.registerIterator(this) }
         this.groupId = groupId ?? ROOT_ID
         this.options = {}
         if (options) {
@@ -887,8 +896,8 @@ export class GroupIterator {
         this.group = this.getGroup()
     }
 
-    clone(): GroupIterator {
-        return new GroupIterator(this.manager, this.groupId, this.options)
+    clone(options?: GroupIteratorOptions): GroupIterator {
+        return new GroupIterator(this.manager, this.groupId, options ?? this.options)
     }
 
     private getGroup(): Group {
@@ -933,7 +942,6 @@ export class GroupIterator {
         // If there is no previous sibling, go to the parent
         const parent = current.parent;
         if (parent && parent.parent) {
-            console.log('parent')
             return new GroupIterator(this.manager, parent.id);
         }
 
@@ -1006,7 +1014,6 @@ export class ImageIterator extends GroupIterator {
         let prev = super.prevGroup();
 
         while (prev) {
-            // console.log(prev.groupId, prev.group.depth)
             const group = prev.group;
 
             // Check conditions for selecting the previous group
@@ -1085,8 +1092,8 @@ export class ImageIterator extends GroupIterator {
         return this.isGroupEqual(it) && this.imageIdx == it.imageIdx
     }
 
-    clone(): ImageIterator {
-        return new ImageIterator(this.manager, this.groupId, this.imageIdx, this.options)
+    clone(options?: GroupIteratorOptions): ImageIterator {
+        return new ImageIterator(this.manager, this.groupId, this.imageIdx, options ?? this.options)
     }
 
 }
