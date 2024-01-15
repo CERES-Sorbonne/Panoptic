@@ -165,11 +165,23 @@ class PathRequest(BaseModel):
     path: str
 
 
+class IdRequest(BaseModel):
+    id: int
+
+
 @project_router.post("/folders")
 async def add_folder_route(path: PathRequest):
     # TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
     nb_images = await add_folder(path.path)
     return await get_folders_route()
+
+
+@project_router.post("/reimport_folder")
+async def reimport_folder_route(req: IdRequest):
+    folder = await db.get_folder(req.id)
+    if not folder:
+        raise Exception(f'Folder id does not exist [{req.id}]')
+    await add_folder(folder.path)
 
 
 @project_router.get("/tabs")

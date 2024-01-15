@@ -8,7 +8,7 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, watch } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
+import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -400,6 +400,14 @@ export const useProjectStore = defineStore('projectStore', () => {
         return tabManager
     }
 
+    function reImportFolder(folderId: number) {
+        apiReImportFolder(folderId)
+    }
+
+    function clearImport() {
+        status.import.to_import = undefined
+    }
+
     return {
         // variables
         data, status,
@@ -408,11 +416,11 @@ export const useProjectStore = defineStore('projectStore', () => {
         propertyList, imageList, folderRoots,
 
         // functions
-        init, clear, rerender, addFolder,
+        init, clear, rerender, addFolder, reImportFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue,
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
-        uploadPropFile,
+        uploadPropFile, clearImport
     }
 
 })

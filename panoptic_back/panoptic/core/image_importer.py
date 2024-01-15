@@ -58,11 +58,13 @@ class ImageImporter:
         return copy
 
     async def import_folder(self, folder: str):
-        if self.total_import == self.current_import:
-            self.total_compute = 0
-            self.current_computed = 0
+        if self.import_done():
             self.total_import = 0
             self.current_import = 0
+            
+        if self._compute_queue.done():
+            self.total_compute = 0
+            self.current_computed = 0
 
         self._auto_pca = False
 

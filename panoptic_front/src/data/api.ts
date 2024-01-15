@@ -204,3 +204,8 @@ export async function apiImportProject(path: string) {
     let res = await axios.post('/import_project', {path})
     return res.data as SelectionStatus
 }
+
+export async function apiReImportFolder(folderId: number) {
+    let res = await axios.post('/reimport_folder', {id: folderId})
+    return res.data
+}
