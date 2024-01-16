@@ -93,7 +93,16 @@ export const sortParser: { [type in PropertyType]?: any } = {
     [PropertyType._folders]: (x: number) => {
         const store = useProjectStore()
         return store.data.folders[x].name
-    }
+    },
+    [PropertyType._height]: (x: number) => {
+        return x
+    },
+    [PropertyType._width]: (x: number) => {
+        return x
+    },
+    [PropertyType._id]: (x: number) => {
+        return x
+    },
 }
 
 function getSortablePropertyValue(image: Image, property: Property) {

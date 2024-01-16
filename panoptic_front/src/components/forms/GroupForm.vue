@@ -6,14 +6,13 @@ import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { Group, GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
-import { PropertyType } from '@/data/models';
+import { PropertyID, PropertyType } from '@/data/models';
 import GroupOptionDropdown from '../dropdowns/GroupOptionDropdown.vue';
 import { NumberOptions } from 'vue-i18n';
 const store = useProjectStore()
 
 
 const props = defineProps({
-    groupIds: Array<number>,
     isLoading: Boolean,
     manager: GroupManager
 })
@@ -90,7 +89,7 @@ const groups = computed(() => {
             </template>
             <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading ms-1"></i>
         </div>
-        <PropertyDropdown :group-ids="props.groupIds" @select="prop => add(prop)" />
+        <PropertyDropdown :group-ids="props.manager.state.groupBy" @select="prop => add(prop)" />
 
     </div>
 </template>

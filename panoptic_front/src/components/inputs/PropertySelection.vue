@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
-import { Property, PropertyType } from '@/data/models'
+import { Property, PropertyID, PropertyType } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore';
 
 const store = useProjectStore()
@@ -20,6 +20,7 @@ const filteredProperties = computed(() => {
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }
+    properties = properties.filter(p =>  p.id != PropertyID.id)
     return properties.filter(p => p.name.includes(propertyFilter.value))
 })
 

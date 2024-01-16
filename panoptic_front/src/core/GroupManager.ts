@@ -172,6 +172,15 @@ const valueParser: { [type in PropertyType]?: any } = {
     [PropertyType._folders]: (x: number) => {
         return x
     },
+    [PropertyType._id]: (x: number) => {
+        return x
+    },
+    [PropertyType._height]: (x: number) => {
+        return x
+    },
+    [PropertyType._width]: (x: number) => {
+        return x
+    },
     [PropertyType.tag]: (x: number[]) => {
         if (Array.isArray(x)) return x
         return undefined
