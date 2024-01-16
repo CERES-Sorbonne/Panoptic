@@ -1,4 +1,4 @@
-import { PropertyMode, PropertyOption } from "@/data/models"
+import { PropertyID, PropertyMode, PropertyOption, PropertyType } from "@/data/models"
 import { FilterState } from "./FilterManager"
 import { GroupState } from "./GroupManager"
 import { SortState } from "./SortManager"
@@ -79,7 +79,7 @@ export class TabManager {
     }
 
     getVisibleSha1Properties() {
-        return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1)
+        return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1 || (p.mode == PropertyMode.computed && p.id != PropertyID.id))
     }
 
 }

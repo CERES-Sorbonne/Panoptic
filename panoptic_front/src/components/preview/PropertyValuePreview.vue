@@ -60,6 +60,9 @@ const realValue = computed(() => {
         <div v-if="props.property.type == PropertyType.string">
             {{ realValue }}
         </div>
+        <div v-if="props.property.type == PropertyType._id || props.property.type == PropertyType._height || props.property.type == PropertyType._width ">
+            {{ realValue }}
+        </div>
         <div v-if="props.property.type == PropertyType.tag">
             <TagPreview :property-id="props.property.id" :value="realValue" />
         </div>

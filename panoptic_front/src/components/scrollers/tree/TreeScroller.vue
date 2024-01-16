@@ -6,7 +6,7 @@ import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
 import { GroupManager, Group, GroupType, GroupIterator, ImageIterator } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
-import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine } from '@/data/models';
+import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, PropertyID } from '@/data/models';
 
 const props = defineProps({
     imageSize: Number,
@@ -30,7 +30,7 @@ const scroller = ref(null)
 const MARGIN_STEP = 20
 
 const visiblePropertiesNb = computed(() => props.properties.length)
-const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1))
+const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1 || (p.mode == PropertyMode.computed && p.id != PropertyID.id)))
 const visiblePropertiesClusterNb = computed(() => visiblePropertiesCluster.value.length)
 
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))

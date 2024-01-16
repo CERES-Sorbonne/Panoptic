@@ -58,6 +58,11 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
         case PropertyType._ahash:
         case PropertyType._sha1:
             return [FilterOperator.equal, FilterOperator.equalNot]
+        case PropertyType._width:
+        case PropertyType._height:
+            return [FilterOperator.equal, FilterOperator.lower, FilterOperator.leq, FilterOperator.greater, FilterOperator.geq]
+        case PropertyType._id:
+            return [FilterOperator.equal]
         default:
             return []
     }

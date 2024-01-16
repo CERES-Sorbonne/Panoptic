@@ -18,6 +18,9 @@ const props = defineProps(['type'])
                 <i v-else-if="type == PropertyType.multi_tags" class="bi bi-tags-fill"></i>
                 <i v-else-if="props.type == PropertyType._folders" class="bi bi-folder"></i>
                 <b v-else-if="props.type == PropertyType._id" style="padding-left: 2px;">ID</b>
+                <i v-else-if="props.type == PropertyType._width" class="bi bi-arrows"></i>
+                <i v-else-if="props.type == PropertyType._height" class="bi bi-arrows-vertical"></i>
+
                 <i v-else class="bi bi-hash"></i>
         </span>
 </template>

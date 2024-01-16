@@ -4,6 +4,8 @@ import FilterGroupInput from './FilterGroupInput.vue';
 import { useProjectStore } from '@/data/projectStore'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
+import PropertyIcon from '../properties/PropertyIcon.vue';
+import { PropertyID } from '@/data/models';
 const store = useProjectStore()
 const props = defineProps({
     manager: FilterManager
@@ -49,6 +51,7 @@ watch(() => props.manager.state.filter.filters, () => {
                     style="cursor:pointer;">
                     <div v-for="filter, index in selectedFilterSet">
                         <span v-if="index > 0" class="or-separator">|</span>
+                        <PropertyIcon v-if="filter.propertyId == PropertyID.id" :type="store.data.properties[filter.propertyId].type" style="margin-right: 2px;"/>
                         <span>{{ store.data.properties[filter.propertyId].name }}</span>
                     </div>
                 </div>
