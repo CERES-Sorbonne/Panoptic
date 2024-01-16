@@ -44,7 +44,7 @@ const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredT
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const tags = computed(() => props.property.tags)
+const tags = computed(() => props.property.tags ?? {})
 const filteredTagList = computed(() => {
     let filtered = Object.values(tags.value).filter((tag: Tag) => tag.value.toLowerCase().includes(tagFilter.value.toLowerCase()));
 
