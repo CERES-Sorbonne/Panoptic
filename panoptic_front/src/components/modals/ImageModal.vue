@@ -115,7 +115,7 @@ watch(modalData, onModalDataChange)
 
 <template>
     <Modal :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
-        <template #title>Image {{ image.width }} x {{ image.height }} : {{ image.name }}</template>
+        <template #title><b>ID: {{ image.id }}</b> | {{ image.width }} x {{ image.height }} | {{ image.name }}</template>
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
