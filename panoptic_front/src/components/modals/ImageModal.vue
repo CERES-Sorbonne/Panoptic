@@ -1,420 +1,161 @@
 <script setup lang="ts">
-import { Image, Property, PropertyMode, PropertyRef, Sha1Scores } from '@/data/models';
-import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
-import PropertyInput from '../inputs/PropertyInput.vue';
-import RangeInput from '../inputs/RangeInput.vue';
-import GridScroller from '../scrollers/grid/GridScroller.vue';
-import TreeScroller from '../scrollers/tree/TreeScroller.vue';
-import PropInput from '../inputs/PropInput.vue';
-import PropertyIcon from '../properties/PropertyIcon.vue';
-import SelectionStamp from '../selection/SelectionStamp.vue';
-import wTT from '../tooltips/withToolTip.vue'
-import SelectCircle from '../inputs/SelectCircle.vue';
-import { GroupManager } from '@/core/GroupManager';
-import { SortManager } from '@/core/SortManager';
-import { CollectionManager } from '@/core/CollectionManager';
+import { Image, ModalId, Property, PropertyRef } from '@/data/models';
+import Modal from './Modal.vue';
+import { Ref, computed, nextTick, onMounted, provide, reactive, ref, vModelDynamic, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
-import { getSimilarImages } from '@/utils/utils';
-import { usePanopticStore } from '@/data/panopticStore';
 import CenteredImage from '../images/CenteredImage.vue';
+import ImagePropertyCol from './image/ImagePropertyCol.vue';
+import { GroupManager, ImageIterator } from '@/core/GroupManager';
+import TreeScroller from '../scrollers/tree/TreeScroller.vue';
+import { getSimilarImages } from '@/utils/utils';
+import SelectionStamp from '../selection/SelectionStamp.vue';
+import RangeInput from '../inputs/RangeInput.vue';
+import SelectCircle from '../inputs/SelectCircle.vue';
+import Similarity from './image/Similarity.vue';
+import MiddleCol from './image/MiddleCol.vue';
+import { usePanopticStore } from '@/data/panopticStore';
+import { props } from '../Scroller/src/components/common';
 
-const store = useProjectStore()
 const panoptic = usePanopticStore()
+const project = useProjectStore()
 
-const modalElem = ref(null)
-let modal: bootstrap.Modal = null
+const groupManager = new GroupManager()
 
-const props = defineProps({
-    id: { type: String, required: true }
-})
+const historyElem = ref(null)
+const colElem = ref(null)
+const colWidth = ref(0)
+const colHeight = ref(0)
+const viewMode = ref(0)
+const visibleProperties = reactive({})
+const navigationHistory: Ref<ImageIterator[]> = ref([])
+const iterator: Ref<ImageIterator> = ref(null)
 
-const state = reactive({
-    sha1Scores: {} as Sha1Scores
-})
+// const iterator = computed(() => panoptic.modalData as ImageIterator)
+const image = computed(() => iterator.value?.image as Image)
 
-const similarGroup = new GroupManager()
-similarGroup.setSha1Mode(true)
+const modalData = computed(() => panoptic.modalData)
+const showHistory = computed(() => navigationHistory.value.length > 0)
 
-const image = computed(() => panoptic.modalData as Image)
-const isActive = computed(() => panoptic.openModalId == props.id)
-const similarImages = ref([])
-const availableHeight = ref(100)
-const availableWidth = ref(100)
-const scroller = ref(null)
-const minSimilarityDist = ref(80)
-const similarityLoaded = computed(() => similarGroup.hasResult() != undefined)
+provide('nextImage', nextImage)
+provide('prevImage', prevImage)
+provide('showHistory', showHistory)
 
-const similarityVisibleProps = reactive({})
-const similarityVisiblePropsList = computed(() => Object.keys(similarityVisibleProps).map(Number).map(pId => store.data.properties[pId]))
-
-const selectedImages = reactive({})
-
-function hasSha1Property(image: Image, propertyId: number) {
-    return image.properties[propertyId] && image.properties[propertyId].value !== undefined
+function onResize() {
+    if (colElem.value) {
+        colWidth.value = colElem.value.clientWidth
+        colHeight.value = colElem.value.clientHeight
+    }
 }
 
-function getSha1Properties(sha1: string) {
-    const img = store.data.sha1Index[sha1][0]
-    let res = store.propertyList.filter(p => p.mode == PropertyMode.sha1).map(p => {
-        let propRef: PropertyRef = {
-            propertyId: p.id,
-            type: p.type,
-            value: hasSha1Property(img, p.id) ? img.properties[p.id].value : undefined,
-            imageId: img.id,
-            mode: p.mode
-        }
-        return propRef
-    })
-    return res
+function paint(property: PropertyRef) {
+    if(viewMode.value != 0) return
+
+    let images = groupManager.result.root.images
+    if (Object.keys(groupManager.selectedImages).length) {
+        images = Object.keys(groupManager.selectedImages).map(id => project.data.images[id])
+    }
+    project.setPropertyValue(property.propertyId, images, property.value)
+    visibleProperties[property.propertyId] = true
 }
 
-const sha1Images = computed(() => store.data.sha1Index[image.value.sha1])
-const properties = computed(() => getSha1Properties(image.value.sha1))
-const sha1Properties = computed(() => properties.value.filter(p => p.mode == 'sha1'))
-const selectedImageIds = computed(() => Object.keys(similarGroup.selectedImages).map(Number))
-const hasSelectedImages = computed(() => Object.keys(similarGroup.selectedImages).length > 0)
-
-enum ImageModalMode {
-    Similarity = 'similarity',
-    Unique = 'unique'
+function onShow() {
+    navigationHistory.value = []
+    // onModalDataChange()
 }
-
-const modalMode = ref(ImageModalMode.Similarity)
-
-const identiqueImages = new CollectionManager()
-
-const containerStyle = ref("")
-
-function hasProperty(propertyId: number) {
-    return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
-}
-
-const imageProperties = computed(() => {
-    let res: Array<PropertyRef> = []
-    store.propertyList.forEach((p: Property) => {
-        let propRef: PropertyRef = {
-            propertyId: p.id,
-            type: p.type,
-            value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
-            imageId: image.value.id,
-            mode: p.mode
-        }
-        res.push(propRef)
-    });
-    return res
-})
-
-const hasUniqueProperties = computed(() => store.propertyList.some(p => p.mode == PropertyMode.id))
 
 function onHide() {
-    if (panoptic.openModalId == props.id) {
-        panoptic.hideModal()
-    }
+    iterator.value = undefined
+    navigationHistory.value = []
 }
 
-function hide() {
-    // if (groupData.root) selector.clear()
-    modal.hide()
+async function onModalDataChange(value: ImageIterator) {
+    if(panoptic.openModalId != ModalId.IMAGE) return
 
-    similarGroup.clear()
-    similarImages.value = []
-}
-
-function show() {
-    modal.show()
-    availableHeight.value = modalElem.value.clientHeight
-    availableWidth.value = modalElem.value.clientWidth
     
-    identiqueImages.update(sha1Images.value)
-    if (similarGroup.hasResult()) {
-        similarGroup.clear()
+    if(iterator.value) {
+        navigationHistory.value.push(iterator.value)
+        await nextTick()
+        if(historyElem.value) {
+            historyElem.value.scrollTop = historyElem.value.scrollHeight
+        }
+        
     }
-    setSimilar()
+    iterator.value = value
 }
 
-function toggleProperty(propId: Number) {
-    if (similarityVisibleProps[String(propId)]) {
-        delete similarityVisibleProps[String(propId)]
-    }
-    else {
-        similarityVisibleProps[String(propId)] = true
+function nextImage() {
+    const next = iterator.value.nextImages()
+    if(next) {
+        iterator.value = next
+        clearNavigationHistory()
     }
 }
 
-async function setSimilar() {
-    if (modalMode.value != ImageModalMode.Similarity) return
-
-    const res = await getSimilarImages(image.value.sha1)
-    similarImages.value = res
-    updateSimilarGroup()
+function prevImage() {
+    const prev = iterator.value.prevImages()
+    if(prev) {
+        iterator.value = prev
+        clearNavigationHistory()
+    }
 }
 
-function updateSimilarGroup() {
-    var filteredSha1s = similarImages.value.filter(i => i.dist >= (minSimilarityDist.value / 100.0))
-
-    const images: Image[] = []
-    state.sha1Scores = {}
-    filteredSha1s.forEach(r => images.push(...store.data.sha1Index[r.sha1]))
-    filteredSha1s.forEach(r => state.sha1Scores[r.sha1] = r.dist)
-
-    similarGroup.group(images)
-
-    if (scroller.value) {
-        scroller.value.computeLines()
-        scroller.value.scrollTo('0')
-    }
-
+function clearNavigationHistory() {
+    navigationHistory.value = []
 }
 
-function paintSelection(property: PropertyRef) {
-    let images = similarGroup.result.root.images
-    if (Object.keys(similarGroup.selectedImages).length) {
-        images = Object.keys(similarGroup.selectedImages).map(id => store.data.images[id])
-    }
-    store.setPropertyValue(property.propertyId, images, property.value)
+function rollback(index) {
+    iterator.value = navigationHistory.value[index]
+    navigationHistory.value.splice(index)
 }
 
-onMounted(() => {
-    modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
-    modalElem.value.addEventListener('hide.bs.modal', onHide)
-})
-
-watch(() => panoptic.openModalId, (id) => {
-    console.log('change')
-    if (id == props.id) {
-        show()
-    }
-    else {
-        hide()
-    }
-})
-
-watch(image, () => {
-    if (panoptic.openModalId == props.id) {
-        show()
-    }
-})
-
-watch(modalMode, () => {
-    if (modalMode.value == ImageModalMode.Similarity && similarImages.value.length == 0) {
-        setSimilar()
-    }
-})
-
-watch(minSimilarityDist, updateSimilarGroup)
-
+watch(showHistory, () => nextTick(onResize))
+watch(colElem, onResize)
+watch(modalData, onModalDataChange)
 </script>
 
-
 <template>
-    <div class="modal" tabindex="-1" role="dialog" ref="modalElem" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content" v-if="isActive">
-                <div class="modal-header" style="height: 40px;">
-                    <h5 class="modal-title">Image: {{ image.name }}</h5>
-                    <button type="button" class="btn close" @click="hide">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body pt-1 pb-1" style="max-height: calc(100vh - 100px);">
-                    <div class="d-flex justify-content-center mb-1">
-                        <div class="d-flex border rounded overflow-hidden">
-                            <wTT message="modals.image.similar_images_tooltip">
-                                <div class="ps-2 pe-2 btn-icon"
-                                    :class="(modalMode == ImageModalMode.Similarity ? 'selected' : '')"
-                                    @click="modalMode = ImageModalMode.Similarity">{{ $t('modals.image.similar_images') }}
-                                </div>
-                            </wTT>
-                            <div class="border-start" v-if="hasUniqueProperties"></div>
-                            <wTT message="modals.image.unique_properties_tooltip" v-if="hasUniqueProperties">
-                                <div class="ps-2 pe-2 btn-icon"
-                                    :class="(modalMode == ImageModalMode.Unique ? 'selected' : '')"
-                                    @click="modalMode = ImageModalMode.Unique">
-                                    {{ $t('modals.image.unique_properties') }}</div>
-                            </wTT>
-                        </div>
-
+    <Modal :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
+        <template #title>Image {{ image.width }} x {{ image.height }} : {{ image.name }}</template>
+        <template #content="{ data }">
+            <div class="h-100" v-if="image">
+                <div class="d-flex h-100">
+                    <ImagePropertyCol :image="iterator" :width="600" :image-height="500"
+                        :visible-properties="visibleProperties" @paint="paint"/>
+                    <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
+                        <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
+                            :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e" />
                     </div>
-                    <div class="d-flex" v-if="modalMode == ImageModalMode.Similarity">
-                        <div class="first-col">
-                            <div class="mb-2 image-border" >
-                                    <CenteredImage :image="image" :height="Math.min(400, image.height)"  :width="500"/>
-                            </div>
-
-                            <div class="mt-2"
-                                :style="{ height: (availableHeight - 560) + 'px', overflow: 'scroll', width: '550px' }">
-                                <!-- <p class="m-0">Properties</p> -->
-                                <table class="table table-bordered table-sm" style="width: 500px;">
-
-                                    <b>Proprietés</b>
-                                    <tbody>
-                                        <tr v-for="property, index in sha1Properties" class="">
-                                            <template v-if="property.propertyId >= 0">
-                                                <td class="text-nowrap">
-                                                    <PropertyIcon :type="property.type" /> {{
-                                                        store.data.properties[property.propertyId].name }}
-                                                </td>
-                                                <td class="ps-1" style="width: 100%;">
-                                                    <PropInput :property="store.data.properties[property.propertyId]"
-                                                        :image="image" :width="-1" :min-height="20" />
-                                                </td>
-
-                                                <td class="text-center btn-icon" style="width: 20px;"
-                                                    @click="toggleProperty(property.propertyId)">
-                                                    <wTT message="modals.image.toggle_property_tooltip">
-                                                        <i class="bi bi-eye"
-                                                            :class="(similarityVisibleProps[property.propertyId] ? 'text-primary' : '')" />
-                                                    </wTT>
-                                                </td>
-
-
-                                                <td class="text-center btn-icon"
-                                                    style="padding: 4px 2px 0px 5px; width: 20px;"
-                                                    @click="paintSelection(property)">
-                                                    <wTT message="modals.image.fill_property_tooltip">
-                                                        <i class="bi bi-paint-bucket"></i>
-                                                    </wTT>
-                                                </td>
-                                            </template>
-                                        </tr>
-                                    </tbody>
-                                </table>
-
-                                <table class="table">
-                                    <b>Computed</b>
-                                    <tr v-for="property, index in imageProperties" class="">
-                                        <template v-if="property.propertyId < 0">
-                                            <td>{{ store.data.properties[property.propertyId].name }}</td>
-                                            <td class="w-100">
-                                                <PropertyInput :property="property" :input-id="[100, index]" />
-                                            </td>
-                                        </template>
-
-                                    </tr>
-                                </table>
-                            </div>
-                            <!-- <div id="similarImages" v-if="similarImages.length > 0">
-                                <RangeInput :min="0" :max="50" v-model="nbSimilarImages"/>
-                                <StampDropdown
-                                    :images="[image, ...similarImages.slice(0, nbSimilarImages).map(i => globalStore.images[i.id])]" />
-                                <div class="m-2">
-                                    <div class="d-flex flex-wrap">
-                                        <ImageSimi :image="Object.assign(img, globalStore.images[img.id])" :size="100" v-for="img in similarImages.slice(0, nbSimilarImages)" />
-                                    </div>
-
-                                </div>
-                            </div> -->
-                        </div>
-                        <div class="flex-grow-1 simi-col" v-if="similarityLoaded">
-                            <!-- <button class="me-2" @click="setSimilar()">Find Similar</button> -->
-                            <div class="d-flex mb-1">
-                                <SelectCircle v-if="similarGroup.hasResult()"
-                                    :model-value="similarGroup.result.root.view.selected"
-                                    @update:model-value="v => similarGroup.toggleAll()" />
-                                <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
-                                <wTT message="modals.image.similarity_filter_tooltip">
-                                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist"
-                                        @update:model-value="similarGroup.clearSelection()" />
-                                </wTT>
-                                <div>min: {{ minSimilarityDist }}%</div>
-                                <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">({{
-                                    similarGroup.result.root.children.length }} images)</div>
-                            </div>
-
-                            <div class="selection-stamp" v-if="hasSelectedImages">
-                                <SelectionStamp :selected-images-ids="selectedImageIds"
-                                    @remove:selected="similarGroup.clearSelection()" />
-                            </div>
-                            <TreeScroller :image-size="70" :height="availableHeight - 180" :width="510"
-                                :group-manager="similarGroup" :properties="similarityVisiblePropsList"
-                                :sha1-scores="state.sha1Scores" :hide-options="true" :hide-group="true" ref="scroller" />
-                        </div>
-                    </div>
-
-                    <div class="row" v-else>
-                        <div class="col">
-                            <div class="text-center mb-2 image-container">
-                                <img :src="image.fullUrl" />
-                            </div>
-                        </div>
-                        <div class="col" style="height: 400px; overflow: scroll;">
-                            <div class="mt-2">
-                                <table class="table table-bordered table-sm">
-
-                                    <b>Proprietés</b>
-                                    <tbody>
-                                        <tr v-for="property, index in sha1Properties" class="">
-                                            <template v-if="property.propertyId >= 0">
-                                                <td class="text-nowrap">
-                                                    <PropertyIcon :type="property.type" /> {{
-                                                        store.data.properties[property.propertyId].name }}
-                                                </td>
-                                                <td>
-                                                    <PropInput :property="store.data.properties[property.propertyId]"
-                                                        :image="image" :width="400" :min-height="20" />
-                                                </td>
-                                            </template>
-                                        </tr>
-                                    </tbody>
-                                </table>
-
-                                <table class="table">
-                                    <b>Computed</b>
-                                    <tr v-for="property, index in imageProperties" class="">
-                                        <template v-if="property.propertyId < 0">
-                                            <td>{{ store.data.properties[property.propertyId].name }}</td>
-                                            <td class="w-100">
-                                                <PropertyInput :property="property" :input-id="[100, index]" />
-                                            </td>
-                                        </template>
-
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="m-0 p-0" style="width: 1140px; overflow-x: scroll; overflow-y: hidden;">
-                            <GridScroller :show-images="true" :manager="identiqueImages.groupManager" :height="availableHeight - 570"
-                                :selected-properties="store.propertyList.filter(p => p.mode == PropertyMode.id)" />
+                    <div class="history text-center" v-if="navigationHistory.length > 0" ref="historyElem">
+                        <b>{{ $t('modals.image.history') }}</b>
+                        <div v-for="it, index in navigationHistory" class="bordered">
+                            <CenteredImage :image="it.image" :width="100" :height="100" @click="rollback(index)"/>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </template>
+    </Modal>
 </template>
 
 <style scoped>
-/* .image-size {
-    max-width: 500px;
-    max-height: 400px;
-} */
-
-.selection-stamp {
-    position: absolute;
-    top: 8px;
-    right: 50px;
-}
-
 .image-container {
+    width: 400px;
+    /* height: 400px; */
+}
+
+.history {
+    background-color: var(--tab-grey);
+    width: 130px;
+    height: 100%;
+    overflow: scroll;
+    padding: 20px 12px;
+}
+
+.bordered {
     border: 1px solid var(--border-color);
-}
-
-.first-col {
-    width: 520px;
-    border-right: 1px solid var(--border-color);
-}
-
-.simi-col {
-    padding-left: 20px;
-}
-
-.image-border {
-    border: 1px solid var(--border-color);
-}
-
-
-.selected {
-    background-color: var(--light-grey);
+    background-color: white;
+    width: 102px;
+    height: 102px;
+    margin-bottom: 10px;
 }
 </style>
