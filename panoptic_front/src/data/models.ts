@@ -58,7 +58,9 @@ export enum PropertyType {
     _ahash = "average hash",
     _sha1 = "sha1",
     _folders = "folders",
-    _id = "id"
+    _id = "id",
+    _width = "width",
+    _height = "height"
 }
 
 export enum PropertyMode {
@@ -88,7 +90,9 @@ export enum PropertyID {
     id = -1,
     sha1 = -2,
     ahash = -3,
-    folders = -4
+    folders = -4,
+    width = - 5,
+    height = - 6
 }
 
 //=============================
