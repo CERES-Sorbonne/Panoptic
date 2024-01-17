@@ -7,11 +7,21 @@ from typing import List, Any
 import numpy as np
 from pypika import Table, Parameter, PostgreSQLQuery
 
-from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many
+from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many, get_param, set_param
 from panoptic.models import PropertyValue, Image, ComputedValue
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
+
+
+async def get_ui_version():
+    version = await get_param('ui_version')
+    return version
+
+
+async def set_ui_version(version: str):
+    await set_param('ui_version', version)
+
 
 async def add_property(name: str, property_type: str, mode: str) -> Property:
     query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'

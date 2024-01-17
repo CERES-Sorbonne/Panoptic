@@ -75,3 +75,7 @@ class GetSimilarImagesFromTextPayload(CamelModel):
 
 class ChangeProjectPayload(CamelModel):
     project: str
+
+
+class StrPayload(CamelModel):
+    value: str

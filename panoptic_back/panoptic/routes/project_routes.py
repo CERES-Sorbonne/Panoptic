@@ -21,7 +21,8 @@ from panoptic.core import db
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
-    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload
+    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload, \
+    StrPayload
 from panoptic.project_manager import panoptic
 
 project_router = APIRouter()
@@ -219,6 +220,16 @@ async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPa
     return await get_similar_images_from_text(payload.input_text)
 
 
+@project_router.get("/version/ui")
+async def get_ui_version_route():
+    return await db.get_ui_version()
+
+
+@project_router.post("/version/ui")
+async def post_ui_version_route(req: StrPayload):
+    return await db.set_ui_version(req.value)
+
+
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
     path = os.path.join(panoptic.project.path, 'mini', file_path)
@@ -233,7 +244,10 @@ async def get_image(file_path: str):
 
 class EndpointFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        return record.getMessage().find("/import_status") == -1
+        state = record.getMessage().find("/import_status") > -1
+        small_img = record.getMessage().find("/small/images/") > -1
+        img = record.getMessage().find("/images/") > -1
+        return not (state or small_img or img)
 
 
 # Filter out /endpoint
