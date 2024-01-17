@@ -243,6 +243,16 @@ async def get_folder(folder_id: int):
     return Folder(**auto_dict(row, cursor))
 
 
+async def get_folder_by_path(path: str):
+    table = Table('folders')
+    query = Query.from_(table).select('*').where(table.path == path)
+    cursor = await execute_query(query.get_sql())
+    row = await cursor.fetchone()
+    if row:
+        return Folder(**auto_dict(row, cursor))
+    return None
+
+
 async def get_tabs() -> List[Tab]:
     query = "SELECT * from tabs"
     cursor = await execute_query(query)
