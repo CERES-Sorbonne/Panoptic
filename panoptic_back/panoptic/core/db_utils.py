@@ -21,6 +21,8 @@ conn: aiosqlite.Connection | None = None
 
 loaded_path = None
 
+software_db_version = 1
+
 
 async def load_project(path: str):
     print('load project', path)
@@ -29,7 +31,10 @@ async def load_project(path: str):
     conn = await aiosqlite.connect(os.path.join(path, "panoptic.db"),
                                    detect_types=sqlite3.PARSE_DECLTYPES)
     loaded_path = path
-    await create_tables_if_db_empty()
+    await create_missing_tables()
+    db_version = await get_param('db_version')
+    if db_version is None:
+        await set_param('db_version', str(software_db_version))
     reload_tree(path)
     from panoptic.core import clear_import
     await clear_import()
@@ -47,11 +52,7 @@ def is_loaded():
     return loaded_path is not None
 
 
-async def create_tables_if_db_empty():
-    await check_tables(tables)
-
-
-async def check_tables(tables):
+async def create_missing_tables():
     for table_name, create_query in tables.items():
         # Check if the table exists
         if not await table_exists(table_name):
@@ -68,6 +69,24 @@ async def table_exists(table_name):
     result = await cursor.fetchone()
 
     return result is not None
+
+async def get_param(key: str):
+    query = f'SELECT value FROM panoptic WHERE key="{key}";'
+    cursor = await execute_query(query)
+    row = await cursor.fetchone()
+    if row:
+        return row[0]
+    return None
+
+
+async def set_param(key: str, value: str):
+    query = f"""
+            INSERT OR REPLACE INTO panoptic (key, value)
+            VALUES ('{key}', '{value}');
+    """
+    cursor = await execute_query(query)
+    return cursor
+
 
 
 # Fonction utilitaire pour exécuter une requête SQL et commettre les modifications

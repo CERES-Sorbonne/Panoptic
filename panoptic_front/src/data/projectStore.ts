@@ -8,12 +8,14 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, watch } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiGetUiVersion, apiReImportFolder, apiSetPropertyValue, apiSetUiVersion, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
 
 let tabManager: TabManager = undefined
+
+const softwareUiVersion = String(1)
 
 export const useProjectStore = defineStore('projectStore', () => {
 
@@ -57,6 +59,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
+        let uiVersion = await apiGetUiVersion()
+        
 
         properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: PropertyMode.computed }
@@ -84,10 +88,21 @@ export const useProjectStore = defineStore('projectStore', () => {
         countImagePerFolder(data.folders, imageList.value)
 
         // console.time('tab state')
-        await loadTabs()
+        let tabs = await apiGetTabs()
+        if(uiVersion != softwareUiVersion) {
+            for(let tab of tabs)  {
+                await removeTab(tab.id)
+            }
+            tabs = []
+            await apiSetUiVersion(softwareUiVersion)
+        }
+        await loadTabs(tabs)
         verifySelectedTab()
         verifyData()
         // console.timeEnd('tab state')
+
+        // console.log('UI Version:', softwareUiVersion)
+
 
         status.loaded = true
 
@@ -140,7 +155,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         let state = buildTabState()
         state.name = tabName
         let tab = await apiAddTab({ data: state })
-        console.log(tab.id)
         tab.data.id = tab.id
         data.tabs[tab.id] = tab.data
         await selectTab(tab.id)
@@ -165,8 +179,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePropertyOptions()
     }
 
-    async function loadTabs() {
-        let tabs = await apiGetTabs()
+    async function loadTabs(tabs: ApiTab[]) {
         tabs.forEach(t => {
             t.data.id = t.id
             data.tabs[t.id] = t.data

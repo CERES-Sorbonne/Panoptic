@@ -209,3 +209,13 @@ export async function apiReImportFolder(folderId: number) {
     let res = await axios.post('/reimport_folder', {id: folderId})
     return res.data
 }
+
+export async function apiSetUiVersion(version: string) {
+    let res = await axios.post('/version/ui', {value: version})
+    return res.data
+}
+
+export async function apiGetUiVersion() {
+    let res = await axios.get('/version/ui')
+    return res.data as string
+}
