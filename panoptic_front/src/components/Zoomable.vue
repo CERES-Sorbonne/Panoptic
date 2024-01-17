@@ -17,14 +17,14 @@ watch(keyState, () => {
     // console.log(isActive, isHover)
     if (!isActive && !isHover) return
 
-    if (isHover && !isActive && keyState.shift) {
+    if (isHover && !isActive && keyState.ctrl) {
         // panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
         zoomModal.show(props.image)
     }
 
     const rect = elem.value.getBoundingClientRect()
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
-    if (isActive && (!absoluteHover || !keyState.shift)) {
+    if (isActive && (!absoluteHover || !keyState.ctrl)) {
         // panoptic.hideModal()
         zoomModal.hide()
     }
