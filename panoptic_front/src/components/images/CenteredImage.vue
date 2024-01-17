@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { Image, ModalId } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { useProjectStore } from '@/data/projectStore'
-import { computed, nextTick, ref, watch } from 'vue';
-const store = useProjectStore()
+import { Image } from '@/data/models';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
     image: Image
     width: number,
     height: number,
     noClick?: boolean,
-    border?: number
+    border?: number,
+    isZoom?: boolean
 }>()
 
+const hover = ref(false)
+const imageElem = ref(null)
 const invisible = ref(false)
 const loadedImage = ref(null)
 
 const imageSize = computed(() => {
     const image = loadedImage.value
-    if(!image) {
-        return {w: 0, h: 0}
+    if (!image) {
+        return { w: 0, h: 0 }
     }
     let imgRatio = image.width / image.height
     let divRatio = props.width / props.height
@@ -42,7 +42,7 @@ const imageUrl = computed(() => {
 
 const loadedImageUrl = computed(() => {
     let img = loadedImage.value
-    if(!img) return
+    if (!img) return
 
     let minArea = 150 ** 2
     if (props.width * props.height > minArea) {
@@ -51,33 +51,19 @@ const loadedImageUrl = computed(() => {
     return img.url
 })
 
-// function openModal() {
-//     if (props.noClick) return
-//     const panoptic = usePanopticStore()
-//     panoptic.showModal(ModalId.IMAGE, props.image)
-// }
-
-async function hideImageFrame() {
-    invisible.value = true
-    await nextTick()
-    invisible.value = false
-}
-
-
 function onLoad() {
     loadedImage.value = props.image
 }
-
-// watch(() => props.image, hideImageFrame)
- 
 </script>
 
 <template>
-    <div class="center-container"
+    <div class="center-container" @mouseenter="hover = true" @mouseleave="hover = false" ref="imageElem"
         :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }">
         <div class="center-content">
-            <img v-if="!invisible && loadedImageUrl" :src="loadedImageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px', border: props.border > 0 ? (props.border + 'px solid var(--border-color)') : 'none', borderRadius: props.border > 0 ? '3px' : '' }" @load="onLoad">
-            <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="imageUrl" @load="onLoad"/>
+            <img v-if="!invisible && loadedImageUrl" :src="loadedImageUrl"
+                :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px', border: props.border > 0 ? (props.border + 'px solid var(--border-color)') : 'none', borderRadius: props.border > 0 ? '3px' : '' }"
+                @load="onLoad">
+            <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="imageUrl" @load="onLoad" />
         </div>
     </div>
 </template>

@@ -31,7 +31,7 @@ const modalStyle = computed(() => {
 })
 const bodyStyle = computed(() => {
     // return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
-    return {width: '100%', height: '100%'}
+    return { width: '100%', height: '100%' }
 })
 
 function hide() {
@@ -94,7 +94,7 @@ watch(() => panoptic.openModalId, () => {
             <div class="modal-content d-flex flex-column h-100" v-if="active">
                 <div class="title" v-if="!props.noTitle">
                     <div class="d-flex">
-                        <div class="flex-grow-1"> {{ modalWidth }} : {{ modalHeight }}
+                        <div class="flex-grow-1">
                             <slot name="title"></slot>
                         </div>
                         <div class="close bi bi-x btn-icon" @click="hide"></div>
