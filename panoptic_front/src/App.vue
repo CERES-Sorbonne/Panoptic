@@ -31,6 +31,7 @@ function setMousePos(e) {
         <ExportModal :id="ModalId.EXPORT" />
         <ImageModal />
         <ImageZoomModal />
+        <!-- <div v-if="panoptic.openModalId" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(250, 235, 215, 0.381); z-index: 9999;" ></div> -->
     </body>
 </template>
 
