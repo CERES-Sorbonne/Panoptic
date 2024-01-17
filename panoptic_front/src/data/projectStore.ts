@@ -6,7 +6,7 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, watch } from "vue";
-import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, TabIndex, TabState, Tag, TagIndex } from "./models";
+import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
@@ -31,7 +31,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         projectNotOpen: false,
         changed: false,
         renderNb: 0,
-        import: {} as ImportState
+        import: {} as ImportState,
+        syncResult: {} as SyncResult
     })
 
     // =======================

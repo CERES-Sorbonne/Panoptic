@@ -172,6 +172,7 @@ export interface PropertyOption {
 
 export enum ModalId {
     IMAGE = 'image',
+    IMAGE_ZOOM = 'image_zoom',
     PROPERTY = 'property',
     SHA1PILE = 'sha1pile',
     FOLDERTOPROP = 'folder_to_property',
@@ -185,6 +186,11 @@ export interface ImportState {
     computed: number
     new_images?: Array<Image>,
     done: boolean
+}
+
+export interface SyncResult {
+    newImageCount: number
+    missingImages: Image[]
 }
 
 export const Colors = [

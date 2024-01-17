@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import PropertyInput from '@/components/inputs/PropertyInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -13,6 +13,7 @@ import { Group, ImageIterator } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
+import { keyState } from '@/data/keyState';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
@@ -30,9 +31,10 @@ const props = defineProps({
     selected: Boolean,
     selectedPreview: Boolean
 })
-const tmpref = ref('')
+
 const emits = defineEmits(['resize', 'update:selected'])
 
+const imageElem = ref(null)
 const image = computed(() => props.image.image)
 
 const containerElem = ref(null)
@@ -76,21 +78,54 @@ const imageContainerStyle = computed(() => `width: ${Math.max(imageSizes.value.w
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
+
+watch(() => keyState.shift, () => {
+    const rect = imageElem.value.getBoundingClientRect()
+    if(keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom) {
+        if(keyState.shift && panoptic.openModalId != ModalId.IMAGE_ZOOM) {
+            console.log(keyState.mouseX, keyState.mouseY, rect)
+            panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
+        }
+        if(!keyState.shift && panoptic.openModalId == ModalId.IMAGE_ZOOM) {
+            panoptic.hideModal()
+        }
+    } else if(panoptic.openModalId == ModalId.IMAGE_ZOOM) {
+        // panoptic.hideModal()
+    }
+})
+
+watch(keyState, () => {
+    const isActive = panoptic.openModalId == ModalId.IMAGE_ZOOM && panoptic.modalData?.id == props.image.image.id
+    const isHover = hover.value && keyState.shift
+    if(!isActive && !isHover) return
+
+    if(hover.value && !isActive) {
+        panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
+    }
+
+    const rect = imageElem.value.getBoundingClientRect()
+    const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
+    if(isActive && (!absoluteHover || !keyState.shift)) {
+        panoptic.hideModal()
+    }
+})
+
 </script>
 
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)"
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)" ref="imageElem"
             @mouseenter="hover = true" @mouseleave="hover = false">
             <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
-            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
+            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle"/>
 
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                 @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
         </div>
-        <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1" message="main.view.instances_tooltip" :click="false">
+        <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1" message="main.view.instances_tooltip"
+            :click="false">
             <div class="image-count">{{ props.image.sha1Group.images.length }}</div>
         </wTT>
         <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
@@ -99,11 +134,12 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 <!-- <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
                     :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
                     :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" /> -->
-                <div v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag" class="d-flex" style="padding-top: 4px; padding-bottom: 4px;">
-                    <PropertyIcon :type="property.type" style="margin-right: 2px;"/>
+                <div v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag" class="d-flex"
+                    style="padding-top: 4px; padding-bottom: 4px;">
+                    <PropertyIcon :type="property.type" style="margin-right: 2px;" />
                     <TagPropInputDropdown :property="store.data.properties[property.propertyId]" :image="image"
                         :can-create="true" :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true"
-                        :no-wrap="true" :width="(width - 22)" :teleport="true"/>
+                        :no-wrap="true" :width="(width - 22)" :teleport="true" />
                 </div>
                 <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
                     <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
