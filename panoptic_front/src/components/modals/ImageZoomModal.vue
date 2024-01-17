@@ -23,8 +23,8 @@ function onWindowResize() {
 
 <template>
     <div v-if="zoomModal.open" class="p-modal">
-        <div class="w-100 h-100" v-if="image" >
-            <CenteredImage :image="image" :width="rect.width" :height="rect.height" :border="0" />
+        <div class="w-100 h-100" v-if="image" style="padding: 28px;">
+            <CenteredImage :image="image" :width="rect.width-56" :height="rect.height-56" :border="4" />
         </div>
     </div>
 </template>
@@ -37,7 +37,7 @@ function onWindowResize() {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: black;
+    background-color: rgba(0, 0, 0, 0.77);
     z-index: 9999;
 }
 

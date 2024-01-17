@@ -76,7 +76,7 @@ function onLoad() {
     <div class="center-container"
         :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }">
         <div class="center-content">
-            <img v-if="!invisible && loadedImageUrl" :src="loadedImageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px', border: props.border > 0 ? (props.border + 'px solid var(--border-color)') : 'none' }" @load="onLoad">
+            <img v-if="!invisible && loadedImageUrl" :src="loadedImageUrl" :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px', border: props.border > 0 ? (props.border + 'px solid var(--border-color)') : 'none', borderRadius: props.border > 0 ? '3px' : '' }" @load="onLoad">
             <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="imageUrl" @load="onLoad"/>
         </div>
     </div>

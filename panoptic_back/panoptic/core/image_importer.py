@@ -45,6 +45,7 @@ class ImageImporter:
         self._auto_pca = False
 
         self._new_images = []
+
     # def _reset_counters(self):
     #     self.total_import = -1
     #     self.current_import = 0
@@ -76,7 +77,6 @@ class ImageImporter:
         parent, missing = await find_parent_in_db(path)
         if parent and len(missing) > 0:
             pass
-
 
     async def import_folder(self, folder: str):
         if self.import_done():
