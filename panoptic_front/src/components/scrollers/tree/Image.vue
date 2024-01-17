@@ -14,6 +14,7 @@ import { useProjectStore } from '@/data/projectStore';
 import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
+import { zoomModal } from '@/components/modals/zoomModal';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
@@ -80,19 +81,21 @@ const width = computed(() => Math.max(Number(props.size), imageSizes.value.width
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 
 watch(keyState, () => {
-    const isActive = panoptic.openModalId == ModalId.IMAGE_ZOOM && panoptic.modalData?.id === props.image.image.id
+    const isActive = zoomModal.open && zoomModal.image.id === props.image.image.id
     const isHover = hover.value
     // console.log(isActive, isHover)
     if (!isActive && !isHover) return
 
     if (isHover && !isActive && keyState.shift) {
-        panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
+        // panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
+        zoomModal.show(props.image.image)
     }
 
     const rect = imageElem.value.getBoundingClientRect()
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
     if (isActive && (!absoluteHover || !keyState.shift)) {
-        panoptic.hideModal()
+        // panoptic.hideModal()
+        zoomModal.hide()
     }
 })
 
