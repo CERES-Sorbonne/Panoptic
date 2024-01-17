@@ -12,6 +12,20 @@ from panoptic.models import Folder, ImageImportTask, Image, ComputedValue
 from panoptic.scripts.create_faiss_index import compute_faiss_index
 
 
+async def find_parent_in_db(path: Path):
+    missing = []
+    parent = None
+    for p in path.parents:
+        parent = await db.get_folder_by_path(str(p))
+        if not parent:
+            missing.append(p)
+        else:
+            break
+    if parent:
+        return parent, missing
+    return None, []
+
+
 class ImageImporter:
     def __init__(self, executor: Executor):
         self.status = 'read'
@@ -57,11 +71,18 @@ class ImageImporter:
         self._new_images.clear()
         return copy
 
+    async def import_folder2(self, folder_path: str):
+        path = Path(folder_path)
+        parent, missing = await find_parent_in_db(path)
+        if parent and len(missing) > 0:
+            pass
+
+
     async def import_folder(self, folder: str):
         if self.import_done():
             self.total_import = 0
             self.current_import = 0
-            
+
         if self._compute_queue.done():
             self.total_compute = 0
             self.current_computed = 0
@@ -71,6 +92,7 @@ class ImageImporter:
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
                       i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+
         self.total_import += len(all_images)
         self.total_compute += len(all_images)
 
@@ -94,6 +116,7 @@ class ImageImporter:
         self._compute_queue.done_callback = on_compute
 
         tasks = [ImageImportTask(folder_id=file_to_folder_id[file], image_path=file) for file in all_images]
+
         [self._import_queue.add_task(t) for t in tasks]
 
         self._import_queue.start_workers(6)
