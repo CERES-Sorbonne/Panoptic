@@ -13,7 +13,6 @@ from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
 
-
 async def add_property(name: str, property_type: str, mode: str) -> Property:
     query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'
     cursor = await execute_query(query, (name, property_type, mode))
@@ -43,7 +42,7 @@ async def create_clones(image: Image, nb_clones: int) -> list[int]:
         'width',
         'height').insert(*[Parameter('?') for _ in range(7)])
     data = [(
-            image.folder_id, image.name, image.extension, image.sha1, image.url, image.width, image.height)] * nb_clones
+        image.folder_id, image.name, image.extension, image.sha1, image.url, image.width, image.height)] * nb_clones
     await execute_query_many(query.get_sql(), data)
     new_query = "SELECT id FROM images ORDER BY id DESC LIMIT ?"
     cursor = await execute_query(new_query, (nb_clones,))

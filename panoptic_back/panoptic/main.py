@@ -1,5 +1,6 @@
 import os
 import sys
+import webbrowser
 
 import uvicorn
 from fastapi import FastAPI
@@ -41,5 +42,11 @@ if __name__ == '__main__':
 
     # static directory route
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
+
+
+    def api(path):
+        return 'http://localhost:' + str(PORT) + '/' + path
+    FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("/")
+    webbrowser.open(FRONT_URL)
 
     uvicorn.run(app, port=PORT)
