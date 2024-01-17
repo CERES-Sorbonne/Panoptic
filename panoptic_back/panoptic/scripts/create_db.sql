@@ -62,3 +62,8 @@ CREATE TABLE tags (
     color TEXT,
     FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
 );
+
+CREATE TABLE panoptic (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);

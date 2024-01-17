@@ -10,6 +10,7 @@ import aiosqlite
 import numpy as np
 
 from panoptic.compute import reload_tree
+from panoptic.db.create import tables
 
 ALL_TABLES = ['images', 'property_values', 'properties', 'tags', 'folders', 'tabs']
 
@@ -47,20 +48,26 @@ def is_loaded():
 
 
 async def create_tables_if_db_empty():
-    query = "SELECT name FROM sqlite_master WHERE type='table'"
-    cursor = await execute_query(query)
-    all_tables = await cursor.fetchall()
-    if len(list(all_tables)) < len(ALL_TABLES):
-        if getattr(sys, 'frozen', False):
-            # Le programme est exécuté en mode fichier unique
-            BASE_PATH = sys._MEIPASS
-        else:
-            # Le programme est exécuté en mode script
-            BASE_PATH = os.path.join('..', os.path.dirname(__file__))
-        with open(os.path.join(BASE_PATH, '../scripts', 'create_db.sql'), 'r') as f:
-            sql_script = f.read()
-            async with conn.executescript(sql_script) as cursor:
+    await check_tables(tables)
+
+
+async def check_tables(tables):
+    for table_name, create_query in tables.items():
+        # Check if the table exists
+        if not await table_exists(table_name):
+            # If not, create the table
+            async with conn.executescript(create_query) as cursor:
                 await conn.commit()
+            print(f"Table '{table_name}' created.")
+
+
+async def table_exists(table_name):
+    # Use the sqlite_master table to check if the table exists
+    query = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'"
+    cursor = await execute_query(query)
+    result = await cursor.fetchone()
+
+    return result is not None
 
 
 # Fonction utilitaire pour exécuter une requête SQL et commettre les modifications
