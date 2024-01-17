@@ -79,35 +79,25 @@ const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; heigh
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 
-watch(() => keyState.shift, () => {
-    const rect = imageElem.value.getBoundingClientRect()
-    if(keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom) {
-        if(keyState.shift && panoptic.openModalId != ModalId.IMAGE_ZOOM) {
-            console.log(keyState.mouseX, keyState.mouseY, rect)
-            panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
-        }
-        if(!keyState.shift && panoptic.openModalId == ModalId.IMAGE_ZOOM) {
-            panoptic.hideModal()
-        }
-    } else if(panoptic.openModalId == ModalId.IMAGE_ZOOM) {
-        // panoptic.hideModal()
-    }
-})
-
 watch(keyState, () => {
-    const isActive = panoptic.openModalId == ModalId.IMAGE_ZOOM && panoptic.modalData?.id == props.image.image.id
-    const isHover = hover.value && keyState.shift
-    if(!isActive && !isHover) return
+    const isActive = panoptic.openModalId == ModalId.IMAGE_ZOOM && panoptic.modalData?.id === props.image.image.id
+    const isHover = hover.value
+    // console.log(isActive, isHover)
+    if (!isActive && !isHover) return
 
-    if(hover.value && !isActive) {
+    if (isHover && !isActive && keyState.shift) {
         panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
     }
 
     const rect = imageElem.value.getBoundingClientRect()
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
-    if(isActive && (!absoluteHover || !keyState.shift)) {
+    if (isActive && (!absoluteHover || !keyState.shift)) {
         panoptic.hideModal()
     }
+})
+
+watch(hover, () => {
+    // console.log('hover: ', props.image.image.id, hover.value)
 })
 
 </script>
@@ -115,10 +105,10 @@ watch(keyState, () => {
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)" ref="imageElem"
-            @mouseenter="hover = true" @mouseleave="hover = false">
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)"
+            ref="imageElem" @mouseenter="hover = true" @mouseleave="hover = false">
             <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
-            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle"/>
+            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
 
             <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
             <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
