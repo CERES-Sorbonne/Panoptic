@@ -8,6 +8,9 @@ const panoptic = usePanopticStore()
 
 const props = defineProps<{
     id: ModalId
+    maxWidth?: number
+    maxHeight?: number
+    noTitle?: boolean
 }>()
 
 const emits = defineEmits(['resize', 'show', 'hide'])
@@ -23,6 +26,13 @@ const modalWidth = computed(() => totalWidth.value - 56)
 const modalHeight = computed(() => totalHeight.value - 56)
 
 const data = computed(() => panoptic.modalData)
+const modalStyle = computed(() => {
+    return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
+})
+const bodyStyle = computed(() => {
+    // return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
+    return {width: '100%', height: '100%'}
+})
 
 function hide() {
     modal.hide()
@@ -50,6 +60,10 @@ function onHide() {
 function onWindowResize() {
     totalWidth.value = window.innerWidth
     totalHeight.value = window.innerHeight
+
+    if (props.maxWidth && (props.maxWidth + 56) < totalWidth.value) { totalWidth.value = props.maxWidth + 56 }
+    if (props.maxHeight && (props.maxHeight + 56) < totalHeight.value) { totalHeight.value = props.maxHeight + 56 }
+
     emits('resize', { height: totalHeight.value, width: totalWidth.value })
 }
 
@@ -65,6 +79,7 @@ watch(() => panoptic.openModalId, () => {
     console.log('watch modal id', panoptic.openModalId, props.id)
     if (panoptic.openModalId == props.id) {
         show()
+        onWindowResize()
     }
     else if (active.value) {
         hide()
@@ -75,17 +90,17 @@ watch(() => panoptic.openModalId, () => {
 
 <template>
     <div class="modal" tabindex="-1" ref="modalElem">
-        <div class="modal-dialog modal-container" :style="{ maxWidth: modalWidth + 'px', height: modalHeight + 'px' }">
+        <div class="modal-dialog modal-container" :style="modalStyle">
             <div class="modal-content d-flex flex-column h-100" v-if="active">
-                <div class="title">
+                <div class="title" v-if="!props.noTitle">
                     <div class="d-flex">
-                        <div class="flex-grow-1">
+                        <div class="flex-grow-1"> {{ modalWidth }} : {{ modalHeight }}
                             <slot name="title"></slot>
                         </div>
                         <div class="close bi bi-x btn-icon" @click="hide"></div>
                     </div>
                 </div>
-                <div class="body bg-info flex-grow-1">
+                <div class="body flex-grow-1" :style="bodyStyle">
                     <slot name="content" :data="data"></slot>
                 </div>
             </div>
