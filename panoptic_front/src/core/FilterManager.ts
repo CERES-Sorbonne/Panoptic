@@ -444,6 +444,12 @@ export class FilterManager {
         }
     }
 
+    updateFilterGroup(filterId: number, operator: FilterOperator.or | FilterOperator.and) {
+        if (this.filterIndex[filterId] == undefined || !this.filterIndex[filterId].isGroup) return
+        const group = this.filterIndex[filterId] as FilterGroup
+        group.groupOperator = operator
+    }
+
     private changeFilter(filter: Filter, propertyId: number) {
         const newFilter = this.createFilter(propertyId)
         newFilter.id = filter.id

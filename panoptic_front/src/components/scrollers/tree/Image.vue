@@ -15,6 +15,7 @@ import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/mode
 import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
 import { zoomModal } from '@/components/modals/zoomModal';
+import Zoomable from '@/components/Zoomable.vue';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
@@ -35,7 +36,6 @@ const props = defineProps({
 
 const emits = defineEmits(['resize', 'update:selected'])
 
-const imageElem = ref(null)
 const image = computed(() => props.image.image)
 
 const containerElem = ref(null)
@@ -80,43 +80,23 @@ const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; heigh
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 
-watch(keyState, () => {
-    const isActive = zoomModal.open && zoomModal.image.id === props.image.image.id
-    const isHover = hover.value
-    // console.log(isActive, isHover)
-    if (!isActive && !isHover) return
-
-    if (isHover && !isActive && keyState.shift) {
-        // panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
-        zoomModal.show(props.image.image)
-    }
-
-    const rect = imageElem.value.getBoundingClientRect()
-    const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
-    if (isActive && (!absoluteHover || !keyState.shift)) {
-        // panoptic.hideModal()
-        zoomModal.hide()
-    }
-})
-
-watch(hover, () => {
-    // console.log('hover: ', props.image.image.id, hover.value)
-})
-
 </script>
 
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)"
-            ref="imageElem" @mouseenter="hover = true" @mouseleave="hover = false">
-            <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
-            <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
+        <Zoomable :image="props.image.image">
+            <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)"
+                @mouseenter="hover = true" @mouseleave="hover = false">
+                <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
+                <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
 
-            <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
-            <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
-                @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
-        </div>
+                <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
+                <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
+                    @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
+            </div>
+        </Zoomable>
+
         <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1" message="main.view.instances_tooltip"
             :click="false">
             <div class="image-count">{{ props.image.sha1Group.images.length }}</div>

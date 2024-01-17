@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/data/projectStore'
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import FilterPreview from '../preview/FilterPreview.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
@@ -23,7 +23,7 @@ const subGroupStyle = computed(() => {
     return `background: rgb(${val},${val},${val});`
 })
 
-function updateFilter(filterId: number, propertyId: number) {
+function updateProperty(filterId: number, propertyId: number) {
     props.manager.updateFilter(filterId, { propertyId })
     props.manager.update(true)
 }
@@ -35,6 +35,11 @@ function deleteFilter(filter: Filter | FilterGroup) {
 
 function addFilterGroup(filterId: number) {
     props.manager.addNewFilterGroup(filterId)
+    props.manager.update(true)
+}
+
+function updateOperator(filterId: number, operator: FilterOperator.and | FilterOperator.or) {
+    props.manager.updateFilterGroup(filterId, operator)
     props.manager.update(true)
 }
 
@@ -56,11 +61,11 @@ function addFilterGroup(filterId: number) {
                             </template>
                             <template #popup="{ hide }">
                                 <div class="ps-2 pt-1 pb-1 pe-2" @click="hide">
-                                    <div class="base-btn" @click="filter.groupOperator = FilterOperator.and">
+                                    <div class="base-btn" @click="updateOperator(filter.id, FilterOperator.and)">
                                         {{ $t('modals.filters.and') }}
                                     </div>
                                     <hr class="m-0 p-0 mt-1 mb-1" />
-                                    <div class="base-btn" @click="filter.groupOperator = FilterOperator.or">
+                                    <div class="base-btn" @click="updateOperator(filter.id, FilterOperator.or)">
                                         {{ $t('modals.filters.or') }}
                                     </div>
                                 </div>
@@ -72,7 +77,7 @@ function addFilterGroup(filterId: number) {
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
                     <PropertyDropdown :model-value="store.data.properties[(children as Filter).propertyId]"
-                        @update:model-value="p => updateFilter(children.id, p.id)" />
+                        @update:model-value="p => updateProperty(children.id, p.id)" />
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
                     <FilterDropdown class="flex-grow-1" :manager="manager" :mode="2" :parent-id="filter.id"
