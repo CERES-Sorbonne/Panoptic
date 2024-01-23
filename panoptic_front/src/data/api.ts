@@ -160,9 +160,8 @@ export const apiUploadPropFile = async (file: any) => {
     return res
 }
 
-export const apiExportProperties = async (images?: number[], properties?: number[]) => {
-    let res = await axios.post('/export', { ...(images && { images }), ...(properties && { properties }) })
-    saveFile(res, "panoptic_output.csv")
+export const apiExportProperties = async (images?: number[], properties?: number[], exportImages = false) => {
+    let res = await axios.post('/export', {images, properties, exportImages})
 }
 
 export async function apiGetFilesystemInfo() {

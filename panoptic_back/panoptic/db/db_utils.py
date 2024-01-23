@@ -25,7 +25,7 @@ software_db_version = 1
 
 
 async def load_project(path: str):
-    print('load project', path)
+    print('load project_id', path)
     global conn
     global loaded_path
     conn = await aiosqlite.connect(os.path.join(path, "panoptic.db"),

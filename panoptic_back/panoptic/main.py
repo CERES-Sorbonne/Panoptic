@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-from panoptic.project_manager import panoptic
+from panoptic.core.panoptic import panoptic
 from panoptic.routes.project_routes import project_router
 from panoptic.routes.project_selection_routes import selection_router
 

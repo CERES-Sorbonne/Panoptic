@@ -61,7 +61,7 @@ function setMode(value) {
         </div>
         <div class="custom-hr"></div>
         <div>
-            <a href="http://localhost:8000/export" download>download</a>
+            <a href="http://localhost:8000/download-zip" download>download</a>
         </div>
         <div class="d-flex text-center">
             <div class="option flex-grow-1" :class="mode == 0 ? 'selected' : ''" @click="setMode(0)">Propriétés d'image</div>
