@@ -5,23 +5,24 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from panoptic.utils import get_datadir
+from panoptic.core.project import Project
 
-
-class Project(BaseModel):
+class ProjectId(BaseModel):
     name: str | None
     path: str | None
 
 
 class PanopticData(BaseModel):
-    projects: list[Project]
-    last_opened: Project | None = None
+    projects: list[ProjectId]
+    last_opened: ProjectId | None = None
 
 
 class Panoptic:
     def __init__(self):
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
         self.data = self.load_data()
-        self.project = None
+        self.project_id = None
+        self.project = Project()
 
     def load_data(self):
         try:
@@ -35,23 +36,23 @@ class Panoptic:
         with open(self.global_file_path, 'w') as file:
             json.dump(self.data.dict(), file, indent=2)
 
-    def create_project(self, name, path):
+    async def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
-            raise f"A project with path '{path}' already exists."
+            raise f"A project_id with path '{path}' already exists."
         # else:
         if not os.path.exists(path):
             os.makedirs(path)
-        project = Project(name=name, path=path)
+        project = ProjectId(name=name, path=path)
         self.data.projects.append(project)
-        self.load_project(path)
+        await self.load_project(path)
 
     def import_project(self, path: str):
         p = Path(path)
         if not (p / 'panoptic.db').exists():
-            raise ValueError('Folder is not a panoptic project (No panoptic.db file found)')
+            raise ValueError('Folder is not a panoptic project_id (No panoptic.db file found)')
         if any(project.path == path for project in self.data.projects):
-            raise f"Project is already imported."
-        project = Project(path=str(p), name=str(p.name))
+            raise f"ProjectId is already imported."
+        project = ProjectId(path=str(p), name=str(p.name))
         self.data.projects.append(project)
         self.load_project(path)
 
@@ -67,19 +68,23 @@ class Panoptic:
             self.data.last_opened.name = new_name
         self.save_data()
 
-    def load_project(self, path):
+    async def load_project(self, path):
         for project in self.data.projects:
             if str(project.path) == str(path):
                 self.save_data()
-                self.project = project
+                self.project_id = project
+                await self.project.load(path)
 
-    def close(self):
-        self.project = None
+    async def close(self):
+        self.project_id = None
         self.data.last_opened = {}
         self.save_data()
+        await self.project.close()
 
     def is_loaded(self):
-        return self.project is not None
+        return self.project_id is not None
+
+
 
 
 panoptic = Panoptic()

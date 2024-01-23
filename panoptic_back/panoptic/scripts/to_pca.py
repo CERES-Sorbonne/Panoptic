@@ -1,4 +1,3 @@
-import asyncio
 import os
 import pickle
 
@@ -7,7 +6,6 @@ from tqdm import tqdm
 from panoptic.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
 from panoptic.core import db
 from panoptic.models import ComputedValue
-from panoptic.project_manager import panoptic
 
 
 async def compute_all_pca(project_path: str, force=False):

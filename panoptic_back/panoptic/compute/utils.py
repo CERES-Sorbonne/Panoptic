@@ -1,12 +1,12 @@
 import os
 import pickle
 
-from panoptic.project_manager import panoptic
+from panoptic.core.panoptic import panoptic
 
 
 def load_data(data_path=None):
     if not data_path:
-        data_path = panoptic.project.path
+        data_path = panoptic.project_id.path
 
     full_path = os.path.join(data_path, 'data.pkl')
     if full_path and os.path.exists(full_path):
@@ -22,7 +22,7 @@ def load_data(data_path=None):
 
 def save_data(images_dict, data_path=None):
     if not data_path:
-        data_path = panoptic.project.path
+        data_path = panoptic.project_id.path
 
     full_path = os.path.join(data_path, 'data.pkl')
     with open(full_path, 'wb') as f:

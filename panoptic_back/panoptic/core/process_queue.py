@@ -13,7 +13,7 @@ from PIL import Image
 import panoptic.compute as compute
 from panoptic.core import db
 from panoptic.models import ImageImportTask
-from panoptic.project_manager import panoptic
+from panoptic.core.panoptic import panoptic
 
 logger = logging.getLogger('ProcessQueue')
 
@@ -94,7 +94,7 @@ class ImportImageQueue(ProcessQueue):
         if db_image:
             return db_image
 
-        sha1, url, width, height = await self._execute_in_process(self._import_image, task.image_path, panoptic.project.path)
+        sha1, url, width, height = await self._execute_in_process(self._import_image, task.image_path, panoptic.project_id.path)
 
         image = await db.add_image(folder_id, name, extension, sha1, url, width, height)
         # print(f'imported image: {image.id} : {image.sha1}')
