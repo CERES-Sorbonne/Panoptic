@@ -7,7 +7,7 @@ from typing import List, Any
 import numpy as np
 from pypika import Table, Parameter, PostgreSQLQuery
 
-from panoptic.core.db_utils import execute_query, decode_if_json, execute_query_many, get_param, set_param
+from panoptic.db.db_utils import execute_query, decode_if_json, execute_query_many, get_param, set_param
 from panoptic.models import PropertyValue, Image, ComputedValue
 from panoptic.models import Tag, Property, Folder, Tab
 
