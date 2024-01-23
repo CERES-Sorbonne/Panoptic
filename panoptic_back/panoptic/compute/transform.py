@@ -12,8 +12,6 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
 
 from .transformers import get_transformer
-from ..project_manager import panoptic
-
 PCA_SIZE = 10
 USE_PCA_IF_POSSIBLE = True
 

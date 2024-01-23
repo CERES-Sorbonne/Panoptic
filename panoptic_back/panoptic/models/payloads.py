@@ -26,6 +26,7 @@ class UpdatePropertyPayload(CamelModel):
 class ExportPropertiesPayload(CamelModel):
     properties: list[int] | None
     images: list[int] | None
+    export_images: bool | None
 
 
 class SetPropertyValuePayload(CamelModel):

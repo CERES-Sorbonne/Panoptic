@@ -8,13 +8,15 @@ import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import List, Any
 
+
 import pandas
 import pandas as pd
 from fastapi import HTTPException
+from pandas._typing import WriteBuffer
 from tqdm import tqdm
 
 from panoptic import compute
-from panoptic.core import db
+from ..db import db
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
     UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue, Clusters
 from .image_importer import ImageImporter
@@ -251,7 +253,7 @@ async def read_properties_file(data: pandas.DataFrame):
         await db.set_multiple_property_values(property.id, list(data[prop]), list(data.panoptic_id))
 
 
-async def export_properties(images_id=None, properties_list=None) -> io.StringIO:
+async def export_properties(images_id=None, properties_list=None):
     """
     Allow to export selected images and properties into a csv file
     """
@@ -281,10 +283,11 @@ async def export_properties(images_id=None, properties_list=None) -> io.StringIO
                 row.append(None)
         rows.append(row)
     df = pd.DataFrame.from_records(rows, columns=columns)
-    buff = io.StringIO()
-    df.to_csv(path_or_buf=buff, index=False, sep=";")
-    buff.seek(0)
-    return buff
+    return df
+    # buff = WriteBuffer()
+    # df.to_csv(path_or_buf=buff, index=False, sep=";")
+    # buff.seek(0)
+    # return buff
 
 
 async def add_folder(folder):

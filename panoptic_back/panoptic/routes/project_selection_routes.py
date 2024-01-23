@@ -1,4 +1,3 @@
-import asyncio
 import glob
 import os
 import pathlib
@@ -7,7 +6,8 @@ import psutil
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from panoptic.core import db_utils, importer
+from panoptic.core import importer
+from panoptic.db import db_utils
 from panoptic.project_manager import panoptic
 from panoptic.routes.project_routes import PathRequest
 
@@ -22,7 +22,7 @@ class ProjectRequest(BaseModel):
 @selection_router.get("/status")
 async def get_status_route():
     return {
-        'isLoaded': db_utils.is_loaded(),
+        'isLoaded': panoptic.is_loaded(),
         'selectedProject': panoptic.project,
         'projects': panoptic.data.projects
     }
@@ -39,8 +39,8 @@ async def load_project_route(path: PathRequest):
 
 @selection_router.post("/close")
 async def close_project():
-    await db_utils.close()
     panoptic.close()
+    await db_utils.close()
     return await get_status_route()
 
 

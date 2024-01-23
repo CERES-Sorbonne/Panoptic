@@ -74,8 +74,12 @@ class Panoptic:
                 self.project = project
 
     def close(self):
+        self.project = None
         self.data.last_opened = {}
         self.save_data()
+
+    def is_loaded(self):
+        return self.project is not None
 
 
 panoptic = Panoptic()

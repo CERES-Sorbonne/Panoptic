@@ -1,29 +1,29 @@
 import logging
-import logging
 import os
+import tempfile
+import zipfile
 from sys import platform
 from typing import Optional
 
 import aiofiles as aiofiles
 import pandas as pd
-from fastapi import UploadFile, APIRouter
-from fastapi.responses import ORJSONResponse, StreamingResponse
+from fastapi import UploadFile, APIRouter, HTTPException
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from starlette.responses import Response
-
+from starlette.responses import Response, FileResponse
+from panoptic.project_manager import panoptic
 from panoptic import core
-from panoptic.compute.similarity import get_similar_images_from_text, reload_tree
+from panoptic.compute.similarity import get_similar_images_from_text
 from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    db_utils, make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
+    make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
     tag_add_parent, export_properties
-from panoptic.core import db
+from panoptic.db import db
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
-    ChangeProjectPayload, Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, ExportPropertiesPayload, \
-    StrPayload
-from panoptic.project_manager import panoptic
+    Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, StrPayload
+
 
 project_router = APIRouter()
 
@@ -50,14 +50,64 @@ async def properties_by_file(file: UploadFile):
     return await read_properties_file(data)
 
 
-@project_router.post('/export')
-async def export_properties_route(payload: ExportPropertiesPayload) -> StreamingResponse:
-    stream = await export_properties(payload.images, payload.properties)
-    response = StreamingResponse(iter([stream.getvalue()]),
-                                 media_type="text/csv"
-                                 )
-    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-    return response
+@project_router.get('/export')
+async def export_properties_route() -> FileResponse:
+    zip_file_path = await create_zip_with_csv()
+
+    if not os.path.exists(zip_file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(zip_file_path, filename="data.zip", media_type="application/zip")
+
+    # stream = await export_properties(payload.images, payload.properties)
+    # response = StreamingResponse(iter([stream.getvalue()]),
+    #                              media_type="text/csv"
+    #                              )
+    # response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+    # return response
+
+
+async def create_zip_with_csv():
+    # Create a sample DataFrame
+    df = await export_properties()
+
+    # Create a temporary directory
+    temp_dir = tempfile.TemporaryDirectory()
+    temp_dir_path = temp_dir.name
+
+    try:
+        # Save the DataFrame to a temporary CSV file
+        csv_temp_file = tempfile.NamedTemporaryFile(mode='w+', suffix='.csv', delete=False, dir=temp_dir_path)
+        df.to_csv(csv_temp_file.name, index=False)
+        csv_temp_file.close()
+
+        # Create a temporary ZIP file
+        zip_temp_file = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
+        zip_temp_file_path = zip_temp_file.name
+        zip_file = zipfile.ZipFile(zip_temp_file_path, 'w', zipfile.ZIP_DEFLATED)
+
+        try:
+            # Add the CSV file to the ZIP file
+            zip_file.write(csv_temp_file.name, arcname='data.csv')
+        finally:
+            # Close the ZIP file
+            zip_file.close()
+
+    finally:
+        # Clean up: Close and delete the temporary directory
+        temp_dir.cleanup()
+
+    return zip_temp_file_path
+
+
+@project_router.get("/download-zip")
+async def download_zip():
+    zip_file_path = await create_zip_with_csv()
+
+    if not os.path.exists(zip_file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(zip_file_path, filename="data.zip", media_type="application/zip")
 
 
 @project_router.delete('/property/{property_id}')

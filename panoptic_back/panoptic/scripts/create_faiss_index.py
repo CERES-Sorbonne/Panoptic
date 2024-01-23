@@ -1,9 +1,7 @@
-import asyncio
 import logging
-import os
 
 from panoptic.compute.similarity import create_similarity_tree_faiss
-from panoptic.core import db, db_utils
+from panoptic.core import db
 from panoptic.models import ComputedValue
 
 logger = logging.getLogger('Create Faiss')
