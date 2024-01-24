@@ -54,19 +54,23 @@ async def _build_export_data(images: [Image], properties_list=None):
 
 async def export_data(path, name: str = None, image_ids: [int] = None, properties=None, copy_images: bool = False) -> str:
     from panoptic.core import get_full_images
-    print(name)
     if not name:
         name = str(datetime.datetime.now())
-    export_folder = os.path.join(path, 'exports', name)
-
+    base_export_folder = os.path.join(path, 'exports')
     # Create the export folder if it doesn't exist
-    os.makedirs(export_folder, exist_ok=True)
+    os.makedirs(base_export_folder, exist_ok=True)
 
-    # Create a CSV file with the data
-    data_file_path = os.path.join(export_folder, 'data.csv')
+    export_folder = os.path.join(base_export_folder, name)
+    if os.path.exists(export_folder):
+        shutil.rmtree(export_folder)
+    os.makedirs(export_folder)
+
     images = await get_full_images(image_ids)
-    df = await _build_export_data(images, properties)
-    df.to_csv(data_file_path, index=False)
+    # Create a CSV file with the data
+    if properties:
+        data_file_path = os.path.join(export_folder, 'data.csv')
+        df = await _build_export_data(images, properties)
+        df.to_csv(data_file_path, index=False)
 
     if copy_images:
         # Create a folder for images and copy them
