@@ -10,6 +10,7 @@ import { ModalId } from './data/models';
 import ImageModal from './components/modals/ImageModal.vue';
 import ImageZoomModal from './components/modals/ImageZoomModal.vue';
 import { keyState } from './data/keyState';
+import ExportModal2 from './components/modals/ExportModal2.vue';
 
 const panoptic = usePanopticStore()
 
@@ -28,7 +29,7 @@ function setMousePos(e) {
         <RouterView />
         <PropertyModal :id="ModalId.PROPERTY" />
         <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
-        <ExportModal :id="ModalId.EXPORT" />
+        <ExportModal2 />
         <ImageModal />
         <ImageZoomModal />
         <!-- <div v-if="panoptic.openModalId" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(250, 235, 215, 0.381); z-index: 9999;" ></div> -->

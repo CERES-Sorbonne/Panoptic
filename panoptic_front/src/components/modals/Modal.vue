@@ -14,6 +14,9 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits(['resize', 'show', 'hide'])
+defineExpose({
+    hide
+})
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -53,7 +56,6 @@ function onHide() {
     if (panoptic.openModalId == props.id) {
         panoptic.hideModal()
     }
-    console.log('hide')
     emits('hide')
 }
 
@@ -76,7 +78,6 @@ onMounted(() => {
 })
 
 watch(() => panoptic.openModalId, () => {
-    console.log('watch modal id', panoptic.openModalId, props.id)
     if (panoptic.openModalId == props.id) {
         show()
         onWindowResize()
