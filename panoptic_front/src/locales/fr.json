@@ -165,7 +165,21 @@
             "title": "Exporter les données",
             "images": "Uniquement les images de l'onglet",
             "properties": "Uniquement les propriétés visibles",
-            "export": "Exporter"
+            "export": "Exporter",
+            "name": "Nom de dossier",
+            "name_placeholder": "Optionel",
+            "mode_label": "Mode",
+            "mode_image": "Image",
+            "mode_instance": "Instance",
+            "selection_label": "Selection",
+            "selection_all": "Toutes",
+            "selection_selected": "Selectionnées",
+            "selection_filtered": "Filtrées",
+            "properties_label": "Propriétés",
+            "properties_all": "Toutes",
+            "properties_visible": "Visible",
+            "properties_none": "Aucune",
+            "export_images": "Inclure les images"
         }
     },
     "mini_ui": {

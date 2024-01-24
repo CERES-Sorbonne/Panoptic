@@ -160,8 +160,8 @@ export const apiUploadPropFile = async (file: any) => {
     return res
 }
 
-export const apiExportProperties = async (images?: number[], properties?: number[], exportImages = false) => {
-    let res = await axios.post('/export', {images, properties, exportImages})
+export const apiExportProperties = async (name?: string, images?: number[], properties?: number[], exportImages = false) => {
+    let res = await axios.post('/export', {name, images, properties, exportImages})
 }
 
 export async function apiGetFilesystemInfo() {
