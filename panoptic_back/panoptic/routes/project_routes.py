@@ -16,7 +16,7 @@ from panoptic.core import create_property, create_tag, \
     update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
     make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
     tag_add_parent
-from panoptic.db import db
+from panoptic.core.db import db
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
@@ -227,13 +227,7 @@ async def post_ui_version_route(req: StrPayload):
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
     path = os.path.join(panoptic.project_id.path, 'mini', file_path)
-    async with aiofiles.open(path, 'rb') as f:
-        data = await f.read()
-
-    ext = path.split('.')[-1]
-
-    # # media_type here sets the media type of the actual response sent to the client.
-    return Response(content=data, media_type="image/" + ext)
+    return FileResponse(path=path)
 
 
 class EndpointFilter(logging.Filter):

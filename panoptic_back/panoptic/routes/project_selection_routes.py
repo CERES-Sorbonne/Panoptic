@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from panoptic.core import importer
-from panoptic.db import db_utils
+from panoptic.core.db import db_utils
 from panoptic.core.panoptic import panoptic
 from panoptic.routes.project_routes import PathRequest
 

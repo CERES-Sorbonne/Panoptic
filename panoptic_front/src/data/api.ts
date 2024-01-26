@@ -3,7 +3,6 @@
  */
 
 import axios from 'axios'
-import { saveFile } from '@/utils/api'
 import { DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, TabState, Tag } from './models'
 import { SelectionStatus } from './panopticStore'
 
@@ -15,6 +14,7 @@ export interface ApiTab {
     data: TabState
 }
 
+axios.interceptors.response.use()
 
 export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)

@@ -13,9 +13,9 @@ from fastapi import HTTPException
 from tqdm import tqdm
 
 from panoptic import compute
-from ..db import db
+from .db import db
 from panoptic.models import PropertyType, JSON, Tag, Property, Tags, Properties, \
-    UpdateTagPayload, UpdatePropertyPayload, Image, PropertyValue, Clusters
+    UpdateTagPayload, UpdatePropertyPayload, Instance, PropertyValue, Clusters
 from .image_importer import ImageImporter
 
 nb_workers = 4
@@ -109,7 +109,7 @@ async def add_property_values(property_id: int, value: Any, image_ids: List[int]
     return updated_ids, value
 
 
-async def get_full_images(image_ids: List[int] = None) -> List[Image]:
+async def get_full_images(image_ids: List[int] = None) -> List[Instance]:
     images = await db.get_images(image_ids)
     sha1s = list({img.sha1 for img in images})
     # get ids bound property values

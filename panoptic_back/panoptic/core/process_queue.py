@@ -11,7 +11,7 @@ from typing import List, Callable, Dict
 from PIL import Image
 
 import panoptic.compute as compute
-from panoptic.core import db
+from panoptic.core.db import db
 from panoptic.models import ImageImportTask
 from panoptic.core.panoptic import panoptic
 

@@ -38,7 +38,7 @@ def to_average_hash(image: Image):
     return ahash
 
 
-# def to_ocr(image: Image):
+# def to_ocr(image: Instance):
 #     return full_ocr(image)
 
 def get_pca(project_path: str):

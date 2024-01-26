@@ -51,7 +51,7 @@ class Tag:
 
 
 @dataclass(slots=True)
-class Image:
+class Instance:
     # Should be equal order to SQL
     id: int
     folder_id: int
@@ -65,6 +65,13 @@ class Image:
 
     properties: dict[int, PropertyValue] = field(default_factory=dict)
     ahash: str = field(default=None)
+
+
+@dataclass(slots=True)
+class Image:
+    sha1: str
+    path: str
+    properties: dict[int, PropertyValue] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -102,6 +109,7 @@ class Tab(BaseModel):
 class Clusters:
     clusters: list[list[str]]
     distances: list[int]
+
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]

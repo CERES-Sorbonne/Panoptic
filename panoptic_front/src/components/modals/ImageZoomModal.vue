@@ -24,13 +24,12 @@ function onWindowResize() {
 <template>
     <div v-if="zoomModal.open" class="p-modal">
         <div class="w-100 h-100" v-if="image" style="padding: 28px;">
-            <CenteredImage :image="image" :width="rect.width-56" :height="rect.height-56" :border="4" :is-zoom="true"/>
+            <CenteredImage :image="image" :width="rect.width - 56" :height="rect.height - 56" :border="4" :is-zoom="true" />
         </div>
     </div>
 </template>
 
 <style scoped>
-
 .p-modal {
     position: absolute;
     top: 0;
@@ -40,5 +39,4 @@ function onWindowResize() {
     background-color: rgba(0, 0, 0, 0.77);
     z-index: 9999;
 }
-
 </style>
