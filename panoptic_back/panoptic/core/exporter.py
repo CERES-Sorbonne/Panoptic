@@ -6,10 +6,10 @@ from typing import List
 import pandas as pd
 
 
-from panoptic.models import PropertyType, Image
+from panoptic.models import PropertyType, Instance
 
 
-def _copy_images(images: List[Image], destination_folder: str) -> None:
+def _copy_images(images: List[Instance], destination_folder: str) -> None:
     os.makedirs(destination_folder, exist_ok=True)
     for image in images:
         url = image.url.replace("/images/", "", 1)
@@ -19,7 +19,7 @@ def _copy_images(images: List[Image], destination_folder: str) -> None:
             print(f'File {url} not found !')
 
 
-async def _build_export_data(images: [Image], properties_list=None):
+async def _build_export_data(images: [Instance], properties_list=None):
     """
     Allow to export selected images and properties into a csv file
     """

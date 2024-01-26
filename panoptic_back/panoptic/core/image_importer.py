@@ -6,9 +6,9 @@ from concurrent.futures import Executor
 from pathlib import Path
 from typing import List
 
-from panoptic.core import db
+from panoptic.core.db import db
 from panoptic.core.process_queue import ImportImageQueue, ComputeVectorsQueue
-from panoptic.models import Folder, ImageImportTask, Image, ComputedValue
+from panoptic.models import Folder, ImageImportTask, Instance, ComputedValue
 from panoptic.scripts.create_faiss_index import compute_faiss_index
 
 
@@ -100,7 +100,7 @@ class ImageImporter:
 
         self.status = 'compute'
 
-        def on_import(image: Image, is_last):
+        def on_import(image: Instance, is_last):
             self.current_import += 1
             self._compute_queue.add_task(image.id)
 

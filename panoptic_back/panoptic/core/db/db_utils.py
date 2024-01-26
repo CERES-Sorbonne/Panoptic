@@ -3,14 +3,13 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-import sys
 from json import JSONDecodeError
 
 import aiosqlite
 import numpy as np
 
 from panoptic.compute import reload_tree
-from panoptic.db.create import tables
+from panoptic.core.db.create import tables
 
 ALL_TABLES = ['images', 'property_values', 'properties', 'tags', 'folders', 'tabs']
 

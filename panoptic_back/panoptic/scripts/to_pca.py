@@ -4,7 +4,7 @@ import pickle
 from tqdm import tqdm
 
 from panoptic.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
-from panoptic.core import db
+from panoptic.core.db import db
 from panoptic.models import ComputedValue
 
 

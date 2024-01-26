@@ -1,3 +1,8 @@
+software_db_version = 1
+
+DB_VERSION = 'db_version'
+
+
 def create_folders_table():
     query = """
     CREATE TABLE folders(
@@ -92,11 +97,13 @@ def create_tags_table():
 
 
 def create_panoptic_table():
-    query = """
+    query = f"""
     CREATE TABLE panoptic (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
     );
+    INSERT INTO panoptic (key, value)
+    VALUES ('{DB_VERSION}', '{software_db_version}');
     """
     return query
 

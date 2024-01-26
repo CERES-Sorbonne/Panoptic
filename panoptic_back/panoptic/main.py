@@ -47,6 +47,8 @@ if __name__ == '__main__':
     def api(path):
         return 'http://localhost:' + str(PORT) + '/' + path
     FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("/")
-    webbrowser.open(FRONT_URL)
+
+    if not os.environ.get('REMOTE'):
+        webbrowser.open(FRONT_URL)
 
     uvicorn.run(app, port=PORT)

@@ -11,7 +11,7 @@ os.environ['TESSDATA_PREFIX'] = os.getenv('TESSDATA_PREFIX', os.sep.join([*sys.e
 tess_config = "-c tessedit_char_blacklist='+=*;)(][\{\}@/|_^\\#~&'"
 
 #
-# def full_ocr(image: Image):
+# def full_ocr(image: Instance):
 #     img = np.array(image)
 #
 #     # create list of combinations (preprocessing + language) to try

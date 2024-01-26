@@ -4,8 +4,9 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from panoptic.core.project.project import Project
 from panoptic.utils import get_datadir
-from panoptic.core.project import Project
+
 
 class ProjectId(BaseModel):
     name: str | None

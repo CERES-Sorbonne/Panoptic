@@ -1,7 +1,6 @@
 import asyncio
 
-from panoptic.core import db
-from panoptic.db import db_utils
+from panoptic.core.db import db, db_utils
 
 
 async def run():
