@@ -19,8 +19,8 @@ tess_config = "-c tessedit_char_blacklist='+=*;)(][\{\}@/|_^\\#~&'"
 #
 #     # run in parallel
 #     # TODO: passer en multiprocess plutôt que threaded ?
-#     with ThreadPoolExecutor(max_workers=4) as executor:
-#         futures = [executor.submit(_preprocess_and_ocr, img, o[0], o[1]) for o in operations]
+#     with ThreadPoolExecutor(max_workers=4) as _executor:
+#         futures = [_executor.submit(_preprocess_and_ocr, img, o[0], o[1]) for o in operations]
 #         return max([f.result() for f in concurrent.futures.as_completed(futures)], key=itemgetter(1))
 #
 #

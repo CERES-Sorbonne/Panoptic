@@ -1,25 +1,89 @@
 # from panoptic.core.exporter import export_data
+import atexit
+import os
+import sys
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from pathlib import Path
+from typing import List
+
+from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.exporter import export_data
 from showinfm import show_in_file_manager
 
+from panoptic.core.project.project_db import ProjectDb
+from panoptic.core.project.project_ui import ProjectUi
+from panoptic.core.task.import_image_task import ImportImageTask
+from panoptic.core.task.task_queue import TaskQueue
+
+nb_workers = 4
+
+
+def get_executor():
+    executor = ThreadPoolExecutor(max_workers=nb_workers) if any(
+        [os.getenv('IS_DOCKER', False), sys.platform.startswith('linux')]) else ProcessPoolExecutor(
+        max_workers=nb_workers)
+    atexit.register(executor.shutdown)
+    return executor
+
 
 class Project:
-    def __init__(self, folder_path: str = None):
+    def __init__(self, folder_path: str):
+        self.executor = get_executor()
         self.is_loaded = False
-        self.base_path = ''
-        if folder_path:
-            self.load(folder_path)
-
-    async def load(self, folder_path: str):
         self.base_path = folder_path
+        self.db: ProjectDb | None = None
+        self.ui: ProjectUi | None = None
+        self.task_queue = TaskQueue(self.executor)
+
+    async def start(self):
+        conn = DbConnection(self.base_path)
+        await conn.start()
+        self.db = ProjectDb(conn)
+        self.ui = ProjectUi(self.db.get_raw_db())
         self.is_loaded = True
 
     async def close(self):
         self.is_loaded = False
         self.base_path = ''
 
-    async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None, copy_images: bool = False):
-        export_path = await export_data(name=name, path=self.base_path, image_ids=ids, properties=properties, copy_images=copy_images)
+    async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
+                          copy_images: bool = False):
+        export_path = await export_data(name=name, path=self.base_path, image_ids=ids, properties=properties,
+                                        copy_images=copy_images)
         # export_path = "lala"
         show_in_file_manager(export_path)
         return export_path
+
+    async def import_folder(self, folder: str):
+        all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
+        all_images = [i for i in all_files if
+                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+
+        folder_node, file_to_folder_id = await self.compute_folder_structure(folder, all_images)
+
+        tasks = [ImportImageTask(db=self.db.get_raw_db(), file=file, folder_id=file_to_folder_id[file]) for file in
+                 all_images]
+        [self.task_queue.add_task(t) for t in tasks]
+
+    async def compute_folder_structure(self, root_path, all_files: List[str]):
+        offset = len(root_path)
+        root, root_name = os.path.split(root_path)
+        root_folder = await self.db.add_folder(root_path, root_name)
+        file_to_folder_id = {}
+        for file in all_files:
+            path, name = os.path.split(file)
+            if offset == len(path):
+                file_to_folder_id[file] = root_folder.id
+                continue
+            path = path[offset + 1:]
+            parts = Path(path).parts
+            current_folder = root_folder
+            for part in parts:
+                if part not in current_folder.children:
+                    child = await self.db.add_folder(current_folder.path + '/' + part, part, current_folder.id)
+                    current_folder.children[part] = child
+                else:
+                    child = current_folder.children[part]
+                file_to_folder_id[file] = child.id
+                current_folder = child
+        return root_folder, file_to_folder_id
