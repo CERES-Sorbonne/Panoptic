@@ -5,6 +5,7 @@ from enum import Enum
 from typing import TypeAlias, Any, Union, Dict
 
 import numpy
+from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
 
@@ -28,6 +29,11 @@ class Property(BaseModel):
     mode: str
 
 
+class PropertyUpdate(BaseModel):
+    id: int
+    name: str
+
+
 @dataclass(slots=True)
 class PropertyValue:
     property_id: int
@@ -48,6 +54,13 @@ class Tag:
 
     def __post_init__(self):
         self.value = str(self.value)
+
+
+class TagUpdate(CamelModel):
+    id: int
+    value: str
+    parent_id: list[int] | None
+    color: int | None
 
 
 @dataclass(slots=True)
@@ -103,6 +116,9 @@ class Folder(BaseModel):
 class Tab(BaseModel):
     id: int | None = None
     data: dict | None = None
+
+class PathRequest(BaseModel):
+    path: str
 
 
 @dataclass(slots=True)

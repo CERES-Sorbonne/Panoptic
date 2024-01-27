@@ -23,7 +23,7 @@ class Panoptic:
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
         self.data = self.load_data()
         self.project_id = None
-        self.project = Project()
+        self.project: Project | None = None
 
     def load_data(self):
         try:
@@ -74,18 +74,24 @@ class Panoptic:
             if str(project.path) == str(path):
                 self.save_data()
                 self.project_id = project
-                await self.project.load(path)
+
+                if self.project:
+                    await self.project.close()
+                self.project = Project(path)
+                await self.project.start()
+
+                from panoptic.routes.project_routes2 import set_project
+                set_project(self.project)
 
     async def close(self):
         self.project_id = None
         self.data.last_opened = {}
         self.save_data()
         await self.project.close()
+        self.project = None
 
     def is_loaded(self):
         return self.project_id is not None
-
-
 
 
 panoptic = Panoptic()

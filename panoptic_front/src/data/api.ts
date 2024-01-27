@@ -132,6 +132,7 @@ export const apiGetMLGroups = async (nbGroups = 50, imageList: string[] = []) =>
 }
 
 export const apiGetImportStatus = async () => {
+    return {}
     let res = await axios.get('/import_status')
     res.data.new_images = Object.entries(res.data.new_images as ImageIndex).map(([k, v]) => ({ ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }))
     // console.log(res.data)

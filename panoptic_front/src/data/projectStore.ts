@@ -8,14 +8,14 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, watch } from "vue";
 import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiGetUiVersion, apiReImportFolder, apiSetPropertyValue, apiSetUiVersion, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiGetUiVersion, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
 
 let tabManager: TabManager = undefined
 
-const softwareUiVersion = String(1)
+export const softwareUiVersion = 1
 
 export const useProjectStore = defineStore('projectStore', () => {
 
@@ -59,7 +59,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
-        let uiVersion = await apiGetUiVersion()
         
 
         properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
@@ -89,13 +88,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // console.time('tab state')
         let tabs = await apiGetTabs()
-        if(uiVersion != softwareUiVersion) {
-            for(let tab of tabs)  {
-                await removeTab(tab.id)
-            }
-            tabs = []
-            await apiSetUiVersion(softwareUiVersion)
-        }
+        tabs.filter(t => t.data.version == softwareUiVersion)
         await loadTabs(tabs)
         verifySelectedTab()
         verifyData()

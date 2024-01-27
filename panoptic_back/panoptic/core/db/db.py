@@ -16,15 +16,13 @@ Query = PostgreSQLQuery
 
 
 class Db:
-    def __init__(self, path: str):
-        self.path = path
-        self.is_loaded = False
-        self._conn: DbConnection | None = None
+    def __init__(self, conn: DbConnection):
+        if not conn.is_loaded:
+            raise Exception('DbConnection is not started. Execute await conn.start() before')
+        self._conn = conn
 
-    async def start(self):
-        self._conn = DbConnection(self.path)
-        await self._conn.start()
-        self.is_loaded = True
+    def get_project_path(self):
+        return self._conn.folder_path
 
     async def get_ui_version(self):
         version = await self._conn.get_param('ui_version')
@@ -100,7 +98,7 @@ class Db:
             return Instance(*res)
         return False
 
-    async def get_images(self, ids: List[int] = None, sha1s: List[str] = None):
+    async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None):
         img_table = Table('images')
         query = Query.from_(img_table).select('*')
 
@@ -136,7 +134,7 @@ class Db:
         res = [PropertyValue(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
         return res
 
-    async def delete_property_value(self, property_id, image_ids: List[int] = None, sha1s: List[int] = None):
+    async def delete_property_value(self, property_id: int, image_ids: List[int] = None, sha1s: List[int] = None):
         if image_ids and sha1s:
             raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
 
@@ -184,7 +182,7 @@ class Db:
                 parent_tag = await self.get_tag_by_id(parent)
                 return await self.get_tag_ancestors(parent_tag, acc)
 
-    async def get_tags(self, prop) -> list[Tag]:
+    async def get_tags(self, prop: int) -> list[Tag]:
         query = "SELECT * FROM tags "
         params = None
         if prop:
@@ -313,7 +311,7 @@ class Db:
 
         updated_ids = image_ids
         if not image_ids:
-            images = await self.get_images(sha1s=sha1s)
+            images = await self.get_instances(sha1s=sha1s)
             updated_ids = [img.id for img in images]
         return updated_ids, json.loads(value)
 

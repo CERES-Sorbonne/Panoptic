@@ -8,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from panoptic.core.panoptic import panoptic
-from panoptic.routes.project_routes import project_router
+from panoptic.routes.project_routes2 import project_router
 from panoptic.routes.project_selection_routes import selection_router
 
 

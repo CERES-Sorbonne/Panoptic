@@ -144,6 +144,7 @@ export interface FolderIndex {
 // }
 
 export interface TabState {
+    version: number
     id: number
     name: string
     display: string
