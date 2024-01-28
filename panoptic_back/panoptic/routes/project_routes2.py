@@ -133,27 +133,9 @@ async def get_folders_route():
 # TODO
 @project_router.get('/import_status')
 async def get_import_status_route():
-    # image_import = core.importer
-    # new_image = image_import.get_new_images()
-    #
-    # update = []
-    # if new_image:
-    #     update = await get_full_images(new_image)
-    #
-    # res = {
-    #     'to_import': image_import.total_import,
-    #     'imported': image_import.current_import,
-    #     'computed': image_import.current_computed,
-    #     'new_images': update,
-    #     'done': image_import.import_done()
-    # }
-    res = {
-        'to_import': 0,
-        'imported': 0,
-        'computed': 0,
-        'new_images': None,
-        'done': True
-    }
+    if not project:
+        return None
+    res = project.get_status_update()
     return res
 
 

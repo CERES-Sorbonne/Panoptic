@@ -32,7 +32,7 @@ def create_properties_table():
     CREATE TABLE properties (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
-        type TEXT,
+        id TEXT,
         mode TEXT DEFAULT 'id'
     );
     """

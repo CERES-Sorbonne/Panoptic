@@ -11,9 +11,11 @@ from panoptic.core.exporter import export_data
 from showinfm import show_in_file_manager
 
 from panoptic.core.project.project_db import ProjectDb
+from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
-from panoptic.core.task.import_image_task import ImportImageTask
+from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.task_queue import TaskQueue
+from panoptic.models import StatusUpdate
 
 nb_workers = 4
 
@@ -33,6 +35,7 @@ class Project:
         self.base_path = folder_path
         self.db: ProjectDb | None = None
         self.ui: ProjectUi | None = None
+        self.on = ProjectEvents()
         self.task_queue = TaskQueue(self.executor)
 
     async def start(self):
@@ -40,7 +43,18 @@ class Project:
         await conn.start()
         self.db = ProjectDb(conn)
         self.ui = ProjectUi(self.db.get_raw_db())
+
+        self.db.on_import_instance.redirect(self.on.import_instance)
+
         self.is_loaded = True
+
+    async def redirect_on_import(self, x):
+        self.on.import_instance.emit(x)
+
+    def get_status_update(self) -> StatusUpdate:
+        res = StatusUpdate()
+        res.tasks = self.task_queue.get_task_states()
+        return res
 
     async def close(self):
         self.is_loaded = False
@@ -59,13 +73,13 @@ class Project:
         all_images = [i for i in all_files if
                       i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
 
-        folder_node, file_to_folder_id = await self.compute_folder_structure(folder, all_images)
+        folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
 
-        tasks = [ImportImageTask(db=self.db.get_raw_db(), file=file, folder_id=file_to_folder_id[file]) for file in
-                 all_images]
+        tasks = [ImportInstanceTask(db=self.db, file=file, folder_id=file_to_folder_id[file])
+                 for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
 
-    async def compute_folder_structure(self, root_path, all_files: List[str]):
+    async def _compute_folder_structure(self, root_path, all_files: List[str]):
         offset = len(root_path)
         root, root_name = os.path.split(root_path)
         root_folder = await self.db.add_folder(root_path, root_name)

@@ -6,6 +6,7 @@ from concurrent.futures import Executor
 from typing import Dict, List
 
 from panoptic.core.task.task import Task
+from panoptic.models import StatusUpdate, TaskState
 
 logger = logging.getLogger('TaskQueue')
 
@@ -19,9 +20,14 @@ class TaskQueue:
         self._workers: List[asyncio.Task] = []
         self._working: Dict[int, bool] = {}
 
+        self._task_states: Dict[str, TaskState] = {}
+
         for i in range(num_workers):
             worker = asyncio.create_task(self._worker(i))
             self._workers.append(worker)
+
+    def get_task_states(self) -> List[TaskState]:
+        return list(self._task_states.values())
 
     def empty(self):
         return self._priority_tasks.empty() and self._tasks.empty()
@@ -31,6 +37,14 @@ class TaskQueue:
             self._priority_tasks.put_nowait(task)
         else:
             self._tasks.put_nowait(task)
+
+        if task.get_id() not in self._task_states:
+            self._task_states[task.get_id()] = TaskState(id=task.get_id(), name=task.name, total=0, remain=0)
+
+        state = self._task_states[task.get_id()]
+        state.done = False
+        state.total += 1
+        state.remain += 1
 
     async def _worker(self, worker_id: int):
         while True:
@@ -42,17 +56,31 @@ class TaskQueue:
                 # if we have priority tasks take it
                 if not self._priority_tasks.empty():
                     task = await self._priority_tasks.get()
+                    state = self._task_states[task.get_id()]
+                    state.remain -= 1
                 # else normal task
                 else:
                     if self._tasks.empty():
                         await asyncio.sleep(0.5)  # sleep a bit if no tasks available
                         continue
                     task = await self._tasks.get()
+                    state = self._task_states[task.get_id()]
+                    state.remain -= 1
 
                 # set working Flag and execute task
                 self._working[worker_id] = True
                 task.set_executor(self._executor)
-                await task.run()
+                try:
+                    state.computing += 1
+                    await task.run()
+                    state.computing -= 1
+                except Exception as e:
+                    state.computing -= 1
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    logger.error("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+                    logger.error(e)
+                if state.remain == 0 and state.computing == 0:
+                    await task.run_if_last()
 
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()

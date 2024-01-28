@@ -9,6 +9,7 @@ import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
 import { usePanopticStore } from '@/data/panopticStore';
+import TaskStatus from './TaskStatus.vue';
 
 const store = useProjectStore()
 const panoptic = usePanopticStore()
@@ -67,6 +68,23 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                 </div>
+                <div class="custom-hr" />
+                <div class="ps-2 pe-2 pt-1 pb-2">
+                    <div class="d-flex align-items-center">
+                        <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
+                    </div>
+                    <div v-if="store.backendStatus">
+                        <div v-for="task in store.backendStatus.tasks" class="p-1">
+                            <div class="custom-hr" />
+                            <TaskStatus :task="task" />
+                        </div>
+                        <div class="custom-hr" />
+                    </div>
+
+                </div>
+
+
+
                 <div class="p-2"
                     v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
                     <div class="custom-hr" />
@@ -84,7 +102,8 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                         </div>
                     </div>
                 </div>
-                <div class="p-2" v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0  && showImport" >
+                <div class="p-2"
+                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
                     <div class="w-100 text-center" style="font-size: 10px;">
                         {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
                     </div>

@@ -5,10 +5,10 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, watch } from "vue";
-import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
+import { computed, nextTick, reactive, ref, watch } from "vue";
+import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetImportStatus, apiGetProperties, apiGetTabs, apiGetTags, apiGetUiVersion, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -36,6 +36,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         import: {} as ImportState,
         syncResult: {} as SyncResult
     })
+
+    const backendStatus = ref<StatusUpdate>(null)
 
     // =======================
     // =======Computed=======
@@ -77,8 +79,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         data.folders = buildFolderNodes(folders)
 
-        status.import = await apiGetImportStatus()
-        setInterval(async () => { applyImportState(await apiGetImportStatus()) }, 1000)
+        backendStatus.value = await apiGetStatusUpdate()
+        setInterval(async () => { applyStatusUpdate(await apiGetStatusUpdate()) }, 1000)
 
         updatePropertyOptions()
 
@@ -138,6 +140,10 @@ export const useProjectStore = defineStore('projectStore', () => {
             console.log('init again')
             nextTick(() => init())
         }
+    }
+
+    function applyStatusUpdate(update: StatusUpdate) {
+        backendStatus.value = update
     }
 
     function getTab() {
@@ -431,7 +437,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         addProperty, deleteProperty, updateProperty, setPropertyValue,
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
-        uploadPropFile, clearImport
+        uploadPropFile, clearImport,
+
+        backendStatus
     }
 
 })

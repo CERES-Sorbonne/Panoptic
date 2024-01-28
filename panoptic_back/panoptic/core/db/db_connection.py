@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import sqlite3
@@ -34,7 +33,7 @@ class DbConnection:
 
         # check if db version is the same as the software version
         db_version = await self.get_param(DB_VERSION)
-        if db_version != software_db_version:
+        if int(db_version) != software_db_version:
             logging.warning(f'DB Version ({db_version}) doesnt match Software DB Version ({software_db_version})')
         self.is_loaded = True
 

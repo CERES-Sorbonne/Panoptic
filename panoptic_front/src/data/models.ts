@@ -189,6 +189,20 @@ export interface ImportState {
     done: boolean
 }
 
+export interface StatusUpdate {
+    tasks: TaskState[];
+    updated_images: Image[];
+}
+
+export interface TaskState {
+    name: string;
+    id: string;
+    total: number;
+    remain: number;
+    computing: number;
+    done: boolean;
+}
+
 export interface SyncResult {
     newImageCount: number
     missingImages: Image[]
