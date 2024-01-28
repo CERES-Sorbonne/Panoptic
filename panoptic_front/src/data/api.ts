@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, TabState, Tag } from './models'
+import { DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
 import { SelectionStatus } from './panopticStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -131,12 +131,11 @@ export const apiGetMLGroups = async (nbGroups = 50, imageList: string[] = []) =>
     return res.data
 }
 
-export const apiGetImportStatus = async () => {
-    return {}
+export const apiGetStatusUpdate = async () => {
     let res = await axios.get('/import_status')
-    res.data.new_images = Object.entries(res.data.new_images as ImageIndex).map(([k, v]) => ({ ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }))
-    // console.log(res.data)
-    return res.data
+    // res.data.new_images = Object.entries(res.data.new_images as ImageIndex).map(([k, v]) => ({ ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }))
+    console.log(res.data)
+    return res.data as StatusUpdate
 }
 
 export const apiGetSimilarImages = async (sha1List: string[]) => {

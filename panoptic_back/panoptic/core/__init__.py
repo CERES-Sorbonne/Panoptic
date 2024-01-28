@@ -62,11 +62,11 @@
 #     if prop.mode == 'sha1' and not sha1s:
 #         raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
 #
-#     if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+#     if prop.id == PropertyType.tag or prop.id == PropertyType.multi_tags:
 #         if value and not isinstance(value, list):
 #             value = [int(value)]
 #
-#     if prop.type == PropertyType.checkbox:
+#     if prop.id == PropertyType.checkbox:
 #         value = True if value == 'true' or value is True else False
 #
 #     return await db.set_property_values(property_id, value, image_ids, sha1s)
@@ -82,7 +82,7 @@
 #     if prop.mode == 'sha1' and not sha1s:
 #         raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
 #
-#     if prop.type != PropertyType.multi_tags:
+#     if prop.id != PropertyType.multi_tags:
 #         raise TypeError('add_property_values is only supported for multi_tag properties')
 #
 #     if value and not isinstance(value, list):
@@ -226,7 +226,7 @@
 #         prop_values = list(data[prop].unique())
 #
 #         # if it's a tag property let's create the tags in the db
-#         if property.type == PropertyType.tag or property.type == PropertyType.multi_tags:
+#         if property.id == PropertyType.tag or property.id == PropertyType.multi_tags:
 #             tag_matcher = {}
 #             # TODO: can we optimize to create all tags at once ?
 #             for value in tqdm(prop_values):
@@ -234,7 +234,7 @@
 #                 # if value is empty or empty quotes just create a "null" tag
 #                 if pandas.isna(value) or str(value).strip() == "":
 #                     value = "unknown"
-#                 tags = [value] if property.type == PropertyType.tag else str(value).split(',')
+#                 tags = [value] if property.id == PropertyType.tag else str(value).split(',')
 #                 # if it's multi tag, assume tags are separated by a comma and create them separately
 #                 for single_tag in tags:
 #                     colors = range(11)

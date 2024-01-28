@@ -18,6 +18,10 @@
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images"
             },
+            "tasks": {
+                "title": "Tache de fond",
+                "done": "Fini"
+            },
             "properties": {
                 "title": "Propriétés",
                 "properties_tooltip": "Les différents champs associés à chaque image",

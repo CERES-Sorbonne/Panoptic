@@ -30,7 +30,7 @@ async def _build_export_data(images: [Instance], properties_list=None):
     # filter properties id that we want to keep
     properties_list = list(properties.keys()) if not properties_list else properties_list
     properties = [properties[pid] for pid in properties_list]
-    columns = ["key", "sha1[string]"] + [f"{p.name}[{p.type.value}]" for p in properties]
+    columns = ["key", "sha1[string]"] + [f"{p.name}[{p.id.value}]" for p in properties]
     rows = []
     for image in images:
         row = [image.name, image.sha1]
@@ -38,7 +38,7 @@ async def _build_export_data(images: [Instance], properties_list=None):
             if prop.id in image.properties:
                 value = image.properties[prop.id].value
                 # if it's a tag let's fetch tag value from tag id
-                if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+                if prop.id == PropertyType.tag or prop.id == PropertyType.multi_tags:
                     if type(value) != list:
                         row.append(None)
                         continue

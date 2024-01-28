@@ -20,7 +20,7 @@ class PropertyPayload(CamelModel):
 class UpdatePropertyPayload(CamelModel):
     id: int
     name: str
-    # type: PropertyType | None
+    # id: PropertyType | None
 
 
 class ExportPropertiesPayload(CamelModel):

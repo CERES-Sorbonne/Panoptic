@@ -28,7 +28,7 @@
 # # Route pour créer une property et l'insérer dans la table des properties
 # @project_router.post("/property")
 # async def create_property_route(payload: PropertyPayload) -> Property:
-#     return await create_property(payload.name, payload.type, payload.mode)
+#     return await create_property(payload.name, payload.id, payload.mode)
 #
 #
 # @project_router.get("/property")
@@ -77,7 +77,7 @@
 #
 #     ext = file_path.split('.')[-1]
 #
-#     # # media_type here sets the media type of the actual response sent to the client.
+#     # # media_type here sets the media id of the actual response sent to the client.
 #     return Response(content=data, media_type="image/" + ext)
 #
 #

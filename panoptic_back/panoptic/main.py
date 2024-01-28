@@ -10,7 +10,7 @@ from starlette.staticfiles import StaticFiles
 from panoptic.core.panoptic import panoptic
 from panoptic.routes.project_routes2 import project_router
 from panoptic.routes.project_selection_routes import selection_router
-
+from panoptic.utils import get_base_path
 
 if __name__ == '__main__':
 
@@ -29,13 +29,8 @@ if __name__ == '__main__':
         allow_headers=["*"],
     )
 
+    BASE_PATH = get_base_path()
     # base path for the static folder
-    if getattr(sys, 'frozen', False):
-        # Le programme est exécuté en mode fichier unique
-        BASE_PATH = sys._MEIPASS
-    else:
-        # Le programme est exécuté en mode script
-        BASE_PATH = os.path.dirname(__file__)
 
     app.include_router(selection_router)
     app.include_router(project_router)
@@ -46,7 +41,10 @@ if __name__ == '__main__':
 
     def api(path):
         return 'http://localhost:' + str(PORT) + '/' + path
-    FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("/")
+
+    dev_url = 'http://localhost:5173/'
+    prod_url = 'http://localhost:' + str(PORT) + '/'
+    FRONT_URL = dev_url if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else prod_url
 
     if not os.environ.get('REMOTE'):
         webbrowser.open(FRONT_URL)

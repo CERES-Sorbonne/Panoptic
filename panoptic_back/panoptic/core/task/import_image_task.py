@@ -3,29 +3,33 @@ import os
 
 from PIL import Image
 
-from panoptic.core.db.db import Db
+from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.task.task import Task
 
 
-class ImportImageTask(Task):
-    def __init__(self, db: Db, file: str, folder_id: int):
+class ImportInstanceTask(Task):
+    def __init__(self, db: ProjectDb, file: str, folder_id: int):
         super().__init__(priority=True)
         self.db = db
         self.file = file
         self.folder_id = folder_id
+        self.name = 'Import Image'
+
 
     async def run(self):
         name = self.file.split(os.sep)[-1]
         extension = name.split('.')[-1]
         folder_id = self.folder_id
 
-        db_image = await self.db.has_image_file(folder_id, name, extension)
+        raw_db = self.db.get_raw_db()
+
+        db_image = await raw_db.has_image_file(folder_id, name, extension)
         if db_image:
             return db_image
 
-        sha1, url, width, height = await self._async(self._import_image, self.file, self.db.get_project_path())
+        sha1, url, width, height = await self._async(self._import_image, self.file, raw_db.get_project_path())
 
-        image = await self.db.add_image(folder_id, name, extension, sha1, url, width, height)
+        image = await self.db.add_instance(folder_id, name, extension, sha1, url, width, height)
         # print(f'imported image: {image.id} : {image.sha1}')
         return image
 
@@ -49,4 +53,3 @@ class ImportImageTask(Task):
         # gc.collect()
 
         return sha1_hash, url, width, height
-

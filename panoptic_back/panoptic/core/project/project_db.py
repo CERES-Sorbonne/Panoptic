@@ -4,6 +4,7 @@ from typing import Any, List
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
+from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, Properties, PropertyType, PropertyValue, Instance, Tags, Tag, \
     TagUpdate
 
@@ -11,6 +12,8 @@ from panoptic.models import Property, PropertyUpdate, Properties, PropertyType, 
 class ProjectDb:
     def __init__(self, conn: DbConnection):
         self._db = Db(conn)
+
+        self.on_import_instance = ImportInstanceEvent()
 
     def get_raw_db(self):
         return self._db
@@ -45,11 +48,11 @@ class ProjectDb:
         if prop.mode == 'sha1' and not sha1s:
             raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
 
-        if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+        if prop.id == PropertyType.tag or prop.id == PropertyType.multi_tags:
             if value and not isinstance(value, list):
                 value = [int(value)]
 
-        if prop.type == PropertyType.checkbox:
+        if prop.id == PropertyType.checkbox:
             value = True if value == 'true' or value is True else False
 
         return await self._db.set_property_values(property_id, value, image_ids, sha1s)
@@ -68,7 +71,7 @@ class ProjectDb:
         if prop.mode == 'sha1' and not sha1s:
             raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
 
-        if prop.type != PropertyType.multi_tags:
+        if prop.id != PropertyType.multi_tags:
             raise TypeError('add_property_values is only supported for multi_tag properties')
 
         if value and not isinstance(value, list):
@@ -140,6 +143,11 @@ class ProjectDb:
 
         [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
         return images
+
+    async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
+        res = await self._db.add_image(folder_id, name, extension, sha1, url, width, height)
+        self.on_import_instance.emit(res)
+
 
     # ========== Tags ==========
     async def get_tags(self, prop: int = None) -> Tags:

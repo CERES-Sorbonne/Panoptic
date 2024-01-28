@@ -32,7 +32,7 @@ class Db:
         await self._conn.set_param('ui_version', version)
 
     async def add_property(self, name: str, property_type: str, mode: str) -> Property:
-        query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'
+        query = 'INSERT INTO properties (name, id, mode) VALUES (?, ?, ?) on conflict do nothing'
         cursor = await self._conn.execute_query(query, (name, property_type, mode))
         prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
         return prop
@@ -63,8 +63,7 @@ class Db:
         cursor = await self._conn.execute_query(new_query, (nb_clones,))
         return [x[0] for x in await cursor.fetchall()]
 
-    async def add_image(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int,
-                        **kwargs):
+    async def add_image(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
         table = Table('images')
         query = Query.into(table).columns(
             'folder_id',
@@ -285,7 +284,7 @@ class Db:
         await self._conn.execute_query(query, (property_id,))
 
     async def update_property(self, new_property: Property):
-        query = "UPDATE properties SET name = ?, type = ? WHERE id = ?"
+        query = "UPDATE properties SET name = ?, id = ? WHERE id = ?"
         await self._conn.execute_query(query, (new_property.name, new_property.type.value, new_property.id))
 
     async def get_property_values_with_tag(self, tag_id: int) -> list[PropertyValue]:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias, Any, Union, Dict
+from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
 from fastapi_camelcase import CamelModel
@@ -117,8 +117,23 @@ class Tab(BaseModel):
     id: int | None = None
     data: dict | None = None
 
+
 class PathRequest(BaseModel):
     path: str
+
+
+class StatusUpdate(BaseModel):
+    tasks: List[TaskState] = []
+    updated_images: List[Instance] = []
+
+
+class TaskState(BaseModel):
+    name: str
+    id: str
+    total: int
+    remain: int
+    computing: int = 0
+    done: bool = True
 
 
 @dataclass(slots=True)
