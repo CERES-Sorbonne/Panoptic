@@ -69,16 +69,16 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
 
                 </div>
                 <div class="custom-hr" />
-                <div class="ps-2 pe-2 pt-1 pb-2">
-                    <div class="d-flex align-items-center">
+                <div class="pt-1 pb-2">
+                    <div class="d-flex align-items-center ps-2 pe-2 " style="height: 30px;">
                         <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
                     </div>
-                    <div v-if="store.backendStatus">
-                        <div v-for="task in store.backendStatus.tasks" class="p-1">
-                            <div class="custom-hr" />
+                    <div class="custom-hr" />
+                    <div v-if="store.backendStatus" class="ps-2 pe-2">
+                        <div v-for="task, i in store.backendStatus.tasks" class="p-1">
+                            <div v-if="i" class="custom-hr" />
                             <TaskStatus :task="task" />
                         </div>
-                        <div class="custom-hr" />
                     </div>
 
                 </div>

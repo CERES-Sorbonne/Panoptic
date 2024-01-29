@@ -13,7 +13,7 @@ const total = computed(() => props.task.total)
 </script>
 
 <template>
-    <div>
+    <div class="text-center">
         {{ props.task.name }}
         <div class="w-100 text-center" style="font-size: 10px;">
             {{ finished }} / {{ total }} {{ $t('main.nav.tasks.done') }}
