@@ -3,8 +3,12 @@ import os
 import sqlite3
 
 import aiosqlite
+import numpy as np
 
 from panoptic.core.db.create import tables, DB_VERSION, software_db_version
+
+aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
+aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='float32'))
 
 
 class DbConnection:

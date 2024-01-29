@@ -1,12 +1,12 @@
 import json
 from random import randint
-from typing import Any, List
+from typing import Any, List, Dict
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, Properties, PropertyType, PropertyValue, Instance, Tags, Tag, \
-    TagUpdate
+    TagUpdate, Vector
 
 
 class ProjectDb:
@@ -19,7 +19,7 @@ class ProjectDb:
         return self._db
 
     # ========== Properties ==========
-    async def get_properties(self) -> Properties:
+    async def get_properties(self) -> Dict[int, Property]:
         properties = await self._db.get_properties()
         return {prop.id: prop for prop in properties}
 
@@ -228,3 +228,16 @@ class ProjectDb:
 
     async def get_folder(self, folder_id: int):
         return await self._db.get_folder(folder_id)
+
+    # =========== Vectors ===========
+    async def get_vectors(self, source: str, type_: str, sha1s: List[str] = None):
+        return await self._db.get_vectors(source, type_, sha1s)
+
+    async def get_default_vectors(self, sha1s: List[str] = None):
+        return await self._db.get_vectors('Faiss', 'clip', sha1s)
+
+    async def add_vector(self, vector: Vector):
+        return await self._db.add_vector(vector)
+
+    async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
+        return await self._db.vector_exist(source, type_, sha1)

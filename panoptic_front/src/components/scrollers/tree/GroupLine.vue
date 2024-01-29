@@ -48,12 +48,10 @@ const groupName = computed(() => {
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
 async function computeClusters() {
-    let sha1s: string[] = group.value.images.map(i => i.sha1)
-    let mlGroups = await computeMLGroups(sha1s, props.item.nbClusters)
-    console.log(mlGroups)
+    const instanceIds = images.value.map(i => i.id)
+    let mlGroups = await computeMLGroups({instanceIds, uiInputs: {nb_clusters: props.item.nbClusters}})
     let distances = mlGroups.distances
     mlGroups = mlGroups.clusters
-    // props.item.data.groups = []
 
     let groups = []
     for (let [index, sha1s] of mlGroups.entries()) {

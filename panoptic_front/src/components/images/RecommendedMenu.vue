@@ -99,8 +99,8 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
 async function getReco() {
     if (!props.group) return
     console.log('get reco')
-    const requestSha1s = props.group.images.map(i => i.sha1)
-    let res = await getSimilarImages(requestSha1s) as any[]
+    const instanceIds = props.group.images.map(i => i.id)
+    let res = await getSimilarImages({instanceIds})
     const resSha1s = res.map(r => r.sha1)
 
     propertyValues.length = 0

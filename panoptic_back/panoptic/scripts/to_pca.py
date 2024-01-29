@@ -3,7 +3,7 @@ import pickle
 
 from tqdm import tqdm
 
-from panoptic.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
+from panoptic.FaissPlugin.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
 from panoptic.core.db import db
 from panoptic.models import ComputedValue
 
@@ -22,6 +22,6 @@ async def compute_all_pca(project_path: str, force=False):
             pca_vec = to_pca(v)
             await db.set_computed_value(i.sha1, i.ahash, pca_vec)
     all_images_pca: list[ComputedValue] = await db.get_sha1_computed_values()
-    create_similarity_tree(all_images_pca)
+    create_similarity_tree(project_path, all_images_pca)
     await db.vacuum()
     return

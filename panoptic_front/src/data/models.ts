@@ -185,13 +185,19 @@ export interface ImportState {
     to_import: number
     imported: number
     computed: number
-    new_images?: Array<Image>,
+    new_images?: Image[],
     done: boolean
 }
 
 export interface StatusUpdate {
     tasks: TaskState[];
-    updated_images: Image[];
+    // updated_images: Image[];
+    pluginLoaded?: boolean
+}
+
+export interface DataUpdate {
+    images?: Image[]
+    properties?: Property[]
 }
 
 export interface TaskState {
@@ -289,4 +295,12 @@ export const DateUnitFactor = {
     [DateUnit.Minute]: 60,
     [DateUnit.Second]: 1,
 
+}
+
+export interface ActionContext {
+    instanceIds?: number[]
+    propertyIds?: number[]
+    file?: string
+    text?: string
+    uiInputs?: {[key: string]: any}
 }

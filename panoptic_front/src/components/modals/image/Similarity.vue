@@ -33,7 +33,7 @@ const properties = computed(() => Object.keys(props.visibleProperties).map(k => 
 async function setSimilar() {
     // if (modalMode.value != ImageModalMode.Similarity) return
 
-    const res = await getSimilarImages(props.image.sha1)
+    const res = await getSimilarImages({instanceIds: [props.image.id]})
     similarImages.value = res
     updateSimilarGroup()
 }
