@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias, Any, Union, Dict, List
+from typing import TypeAlias, Any, Union, Dict, List, NewType
 
 import numpy
 from fastapi_camelcase import CamelModel
@@ -100,6 +100,14 @@ class ComputedValue:
     vector: numpy.ndarray
 
 
+@dataclass(slots=True)
+class Vector:
+    source: str
+    type: str
+    sha1: str
+    data: numpy.ndarray
+
+
 class Parameters(BaseModel):
     folders: list[str]
     tabs: list[dict]
@@ -122,9 +130,10 @@ class PathRequest(BaseModel):
     path: str
 
 
-class StatusUpdate(BaseModel):
+class StatusUpdate(CamelModel):
     tasks: List[TaskState] = []
-    updated_images: List[Instance] = []
+    # updated_images: List[Instance] = []
+    plugin_loaded = False
 
 
 class TaskState(BaseModel):
@@ -142,6 +151,20 @@ class Clusters:
     distances: list[int]
 
 
+class ActionContext(CamelModel):
+    instance_ids: List[int] | None
+    property_ids: List[int] | None
+    file: str | None
+    text: str | None
+    ui_inputs: Dict[str, int | str] = {}
+
+
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
-Properties: TypeAlias = dict[int, Property]
+# Properties: TypeAlias = dict[int, Property]
+
+Files = NewType('Files', List[str])
+Images = NewType('Images', List[Image])
+Instances = NewType('Instances', List[Instance])
+Vectors = NewType('Vectors', Dict[str, Vector])
+Properties = NewType('Properties', List[Property])

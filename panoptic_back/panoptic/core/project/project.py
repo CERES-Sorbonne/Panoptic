@@ -10,12 +10,15 @@ from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.exporter import export_data
 from showinfm import show_in_file_manager
 
+from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.task.import_image_task import ImportInstanceTask
+from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import StatusUpdate
+from panoptic.plugin import Plugin
 
 nb_workers = 4
 
@@ -30,13 +33,16 @@ def get_executor():
 
 class Project:
     def __init__(self, folder_path: str):
+        self.plugin_loaded = False
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
         self.db: ProjectDb | None = None
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents()
+        self.action = ProjectActions()
         self.task_queue = TaskQueue(self.executor)
+        self.plugin: Plugin | None = None
 
     async def start(self):
         conn = DbConnection(self.base_path)
@@ -46,6 +52,8 @@ class Project:
 
         self.db.on_import_instance.redirect(self.on.import_instance)
 
+        task = LoadPluginTask(self)
+        self.task_queue.add_task(task)
         self.is_loaded = True
 
     async def redirect_on_import(self, x):
@@ -54,7 +62,9 @@ class Project:
     def get_status_update(self) -> StatusUpdate:
         res = StatusUpdate()
         res.tasks = self.task_queue.get_task_states()
+        res.plugin_loaded = self.plugin_loaded
         return res
+    
 
     async def close(self):
         self.is_loaded = False

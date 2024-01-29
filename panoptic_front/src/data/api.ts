@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
+import { ActionContext, DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
 import { SelectionStatus } from './panopticStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -126,8 +126,8 @@ export const apiDeleteTab = async (tabId: number) => {
     return res.data
 }
 
-export const apiGetMLGroups = async (nbGroups = 50, imageList: string[] = []) => {
-    let res = await axios.post('/clusters', { imageList, nbGroups })
+export const apiGetMLGroups = async (context: ActionContext) => {
+    let res = await axios.post('/clusters', context)
     return res.data
 }
 
@@ -138,13 +138,13 @@ export const apiGetStatusUpdate = async () => {
     return res.data as StatusUpdate
 }
 
-export const apiGetSimilarImages = async (sha1List: string[]) => {
-    let res = await axios.post('/similar/image', { sha1List })
+export const apiGetSimilarImages = async (context: ActionContext) => {
+    let res = await axios.post('/similar/image', context)
     return res.data
 }
 
-export const apiGetSimilarImagesFromText = async (inputText: string) => {
-    let res = await axios.post('/similar/text', { inputText })
+export const apiGetSimilarImagesFromText = async (context: ActionContext) => {
+    let res = await axios.post('/similar/text', context)
     return res.data
 }
 

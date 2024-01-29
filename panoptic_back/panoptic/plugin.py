@@ -1,13 +1,13 @@
-import inspect
-import logging
-from collections import defaultdict
-from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Any, Generic, NewType, Dict, Callable
+from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import List, Any
+from typing import TYPE_CHECKING
 
-from panoptic.models import Property, Instance, Image
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from panoptic.core.project.project import Project
+from panoptic.models import Instances, Properties
 
 
 class Cluster(BaseModel):
@@ -18,44 +18,45 @@ class Cluster(BaseModel):
     meta: Any = {}
 
 
-def text_similarity(text: str, vectors):
-    """
-    Function to compute the similarity between a text and an array of image vectors
-    @text: the text to compare the images with
-    @vectors: pas besoin de préciser c'est un mot réservé
-    """
-    return
-
-
-class ClusterResult(BaseModel):
-    groups: List[Cluster] = []
-    meta: Any = {}
-
-
-class ExampleInput(BaseModel):
-    seed: str = Field(description='Custom Seed to control randomness')  # custom param in UI
-    images: List[Image]  # reserved keyword -> input from backend
-
-
-def my_func(input: ExampleInput) -> ClusterResult:
-    return ClusterResult()
-
-
-class Param:
-    def __init__(self, name: str, param_type: type):
-        self.type = param_type
-        self.name = name
-
-
-# class PluginParams(BaseModel):
-class PluginParams(BaseModel):
-    a: int = 0
-    b: str = ''
-    c: bool = False
-    aa: List[int] = []
-    bb: List[str] = []
-    cc: List[bool] = []
-
+#
+# def text_similarity(text: str, vectors):
+#     """
+#     Function to compute the similarity between a text and an array of image vectors
+#     @text: the text to compare the images with
+#     @vectors: pas besoin de préciser c'est un mot réservé
+#     """
+#     return
+#
+#
+# class ClusterResult(BaseModel):
+#     groups: List[Cluster] = []
+#     meta: Any = {}
+#
+#
+# class ExampleInput(BaseModel):
+#     seed: str = Field(description='Custom Seed to control randomness')  # custom param in UI
+#     images: List[Image]  # reserved keyword -> input from backend
+#
+#
+# def my_func(input: ExampleInput) -> ClusterResult:
+#     return ClusterResult()
+#
+#
+# class Param:
+#     def __init__(self, name: str, param_type: type):
+#         self.type = param_type
+#         self.name = name
+# #
+# #
+# # # class PluginParams(BaseModel):
+# # class PluginParams(BaseModel):
+# #     a: int = 0
+# #     b: str = ''
+# #     c: bool = False
+# #     aa: List[int] = []
+# #     bb: List[str] = []
+# #     cc: List[bool] = []
+# #
 
 # class Plugin:
 #     def __init__(self, name):
@@ -65,10 +66,10 @@ class PluginParams(BaseModel):
 #         self.params = PluginParams()
 #
 #         self.register('compute_clusters', self.my_cluster_func)
-
-
-def test(a: int, b: [PluginParams]):
-    pass
+#
+#
+# def test(a: int, b: [PluginParams]):
+#     pass
 
 
 # Get variable names and their types using __annotations__
@@ -92,68 +93,55 @@ def test(a: int, b: [PluginParams]):
 #     print(f"{param_name, param}")
 #     param_type = param.annotation if param.annotation != inspect._empty else None
 #     print(f"{param_name}: {param_type}")
-class Vector:
-    pass
 
+# def test_func(instances: Instances, properties: Properties, vectors: Vectors, custom1: int, custom2: str = 'lala'):
+#     """
+#     Description test de ma function
+#
+#     @param custom1: Mon premier parametre custom permet de regler la temparture de panoptic
+#     @param custom2: Mon deuxieme parametre, ne sert a rien
+#
+#     """
+#
 
-Files = NewType('Files', List[str])
-Images = NewType('Images', List[Image])
-Instances = NewType('Instances', List[Instance])
-Vectors = NewType('Vectors', Dict[str, Vector])
-Properties = NewType('Properties', List[Property])
-
-
-def test_func(instances: Instances, properties: Properties, vectors: Vectors, custom1: int, custom2: str = 'lala'):
-    """
-    Description test de ma function
-
-    @param custom1: Mon premier parametre custom permet de regler la temparture de panoptic
-    @param custom2: Mon deuxieme parametre, ne sert a rien
-
-    """
-
-
-def get_params(f):
-    signature = inspect.signature(f)
-    parameters = signature.parameters
-    return {k: parameters[k].annotation for k in parameters}
-
-
-possible_dependencies = [Files, Instances, Images, Vectors, Properties]
-possible_inputs = [int, str, List[str], bool, Path]
-
-
-def get_dependencies(f):
-    types = get_params(f)
-    return {t: types[t] for t in types if types[t] in possible_dependencies}
-
-
-def get_inputs(f):
-    types = get_params(f)
-    return {t: types[t] for t in types if types[t] in possible_inputs}
-
-
-def verify_dependencies(f: Callable, required: List):
-    dependencies = get_dependencies(f).values()
-
-    if Instances in dependencies and Images in dependencies:
-        return False
-
-    count = 0
-    required_nb = len(required)
-    if Instances in required and Images in required:
-        required_nb -= 1
-
-    for r in required:
-        if r in dependencies:
-            count += 1
-
-    return count == required_nb
-
-
-print(verify_dependencies(test_func, [Images, Instances, Vectors, Properties]))
-print(inspect.signature(test_func).return_annotation)
-
+#
+# def get_params(f):
+#     signature = inspect.signature(f)
+#     parameters = signature.parameters
+#     return {k: parameters[k].annotation for k in parameters}
+#
+#
+# def get_dependencies(f):
+#     types = get_params(f)
+#     return {t: types[t] for t in types if types[t] in possible_dependencies}
+#
+#
+# def get_inputs(f):
+#     types = get_params(f)
+#     return {t: types[t] for t in types if types[t] in possible_inputs}
+#
+#
+# def verify_dependencies(f: Callable, required: List):
+#     dependencies = get_dependencies(f).values()
+#
+#     if Instances in dependencies and Images in dependencies:
+#         return False
+#
+#     count = 0
+#     required_nb = len(required)
+#     if Instances in required and Images in required:
+#         required_nb -= 1
+#
+#     for r in required:
+#         if r in dependencies:
+#             count += 1
+#
+#     return count == required_nb
+#
+#
+# print(verify_dependencies(test_func, [Images, Instances, Vectors, Properties]))
+# print(inspect.signature(test_func).return_annotation)
+#
 
 # signature = inspect.signature(ff)
 #
@@ -166,6 +154,7 @@ print(inspect.signature(test_func).return_annotation)
 class UrlResult(BaseModel):
     url: str
 
+
 class GroupMeta:
     pass
 
@@ -177,35 +166,18 @@ class Test(BaseModel):
     pass
 
 
-class ActionHook:
-    def __init__(self, required: List):
-        self._functions = []
-        self._required = required
-
-    def register(self, function: Callable):
-        if verify_dependencies(function, self._required):
-            self._functions.append(function)
-        else:
-            logging.warning(f'Function does not have the required dependencies: {self._required}]. \n Always chose '
-                            f'between Images and Instances')
-
-
-class ActionHooks:
-    def __init__(self):
-        self.import_images = ActionHook([Images, Instances])
-        self.filter_images = ActionHook([Images, Instances])
-        self.group_images = ActionHook([Images, Instances])
-        self.find_images = ActionHook([Images, Instances])
-        self.action_images = ActionHook([Images, Instances])
-        self.action_group = ActionHook([Images, Instances, GroupMeta])
-        self.import_properties = ActionHook([Files])
-        self.export_properties = ActionHook([Images, Instances])
+class EmptyParam(BaseModel):
+    pass
 
 
 class Plugin:
-    def __init__(self, param_type: type):
-        self.params: BaseModel = param_type()
-        self.hooks = ActionHooks()
+    def __init__(self, name: str, project: Project):
+        self.params: EmptyParam = EmptyParam()
+        self.name: str = name
+        self.project = project
+
+    async def start(self):
+        pass
 
 
 class KibanaPluginParams(BaseModel):
@@ -218,13 +190,8 @@ class KibanaPluginParams(BaseModel):
 class KibanaPlugin(Plugin):
     params: KibanaPluginParams
 
-    def __init__(self):
-        super().__init__(KibanaPluginParams)
-        self.hooks.action_images.register(self.open_images)
-        self.hooks.action_images.register(self.open_time_interval)
-
-        self.hooks.action_group.register(self.open_images)
-        self.hooks.action_group.register(self.open_time_interval)
+    def __init__(self, project: Project):
+        super().__init__(name="kibana", project=project)
 
     def open_images(self, instance: Instances):
         """
@@ -241,18 +208,14 @@ class KibanaPlugin(Plugin):
         return UrlResult(url=self.params.base_url + computed_url)
 
 
-class FaissPluginParams(BaseModel):
-    """
-    @value: some value needed for the Faiss plugin
-    """
-    value: str
+# class FaissPluginParams(BaseModel):
+#     """
+#     @value: some value needed for the Faiss plugin
+#     """
+#     value: str
 
 
-class FaissPlugin(Plugin):
-    params: FaissPluginParams
 
-    def cluster(self):
-        self.params.value = 'lalala'
 
 #
 # plugin = FaissPlugin()

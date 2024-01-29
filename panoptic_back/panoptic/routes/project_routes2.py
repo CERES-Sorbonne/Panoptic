@@ -1,7 +1,7 @@
 import logging
 import os
 from sys import platform
-from typing import Optional
+from typing import Optional, Dict
 
 from fastapi import APIRouter
 from fastapi.responses import ORJSONResponse
@@ -13,7 +13,7 @@ from panoptic.core.project.project import Project
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
-    TagUpdate
+    TagUpdate, GetSimilarImagesPayload, MakeClusterPayload, Clusters, ActionContext
 
 project_router = APIRouter()
 
@@ -32,7 +32,7 @@ async def create_property_route(payload: PropertyPayload) -> Property:
 
 
 @project_router.get("/property")
-async def get_properties_route() -> Properties:
+async def get_properties_route() -> Dict[int, Property]:
     return await project.db.get_properties()
 
 
@@ -159,7 +159,7 @@ async def reimport_folder_route(req: IdRequest):
     folder = await project.db.get_folder(req.id)
     if not folder:
         raise Exception(f'Folder id does not exist [{req.id}]')
-    await project.db.add_folder(folder.path, folder.name)
+    await project.import_folder(folder.path)
 
 
 @project_router.get("/tabs")
@@ -182,15 +182,18 @@ async def delete_tab_route(tab_id: int):
     return await project.ui.delete_tab(tab_id)
 
 
-# @project_router.post("/clusters")
-# async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
-#     return await make_clusters(payload.nb_groups, payload.image_list)
-#
-#
-# @project_router.post("/similar/image")
-# async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
-#     return await get_similar_images(payload.sha1_list)
-#
+@project_router.post("/clusters")
+async def make_clusters_route(context: ActionContext) -> Clusters:
+    return await project.action.group_images.call(context)
+
+
+@project_router.post("/similar/image")
+async def get_similar_images_route(context: ActionContext) -> list:
+    res = await project.action.find_images.call(context)
+    if res:
+        return res
+    return []
+
 #
 # @project_router.post("/similar/text")
 # async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:

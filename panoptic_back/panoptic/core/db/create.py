@@ -32,7 +32,7 @@ def create_properties_table():
     CREATE TABLE properties (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
-        id TEXT,
+        type TEXT,
         mode TEXT DEFAULT 'id'
     );
     """
@@ -108,6 +108,20 @@ def create_panoptic_table():
     return query
 
 
+def create_vectors_table():
+    query = f"""
+    CREATE TABLE vectors (
+        source TEXT,
+        type TEXT,
+        sha1 TEXT,
+        data ARRAY,
+        
+        PRIMARY KEY (source, type, sha1)
+    );
+    """
+    return query
+
+
 tables = {
     'folders': create_folders_table(),
     'tabs': create_tabs_table(),
@@ -116,5 +130,6 @@ tables = {
     'computed_values': create_computed_values_table(),
     'property_values': create_property_values_table(),
     'tags': create_tags_table(),
-    'panoptic': create_panoptic_table()
+    'panoptic': create_panoptic_table(),
+    'vectors': create_vectors_table()
 }

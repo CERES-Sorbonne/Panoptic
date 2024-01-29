@@ -87,7 +87,7 @@ class Panoptic:
         self.project_id = None
         self.data.last_opened = {}
         self.save_data()
-        await self.project.close()
+        # await self.project.close()
         self.project = None
 
     def is_loaded(self):

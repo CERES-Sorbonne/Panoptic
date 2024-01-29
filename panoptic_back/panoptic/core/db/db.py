@@ -9,7 +9,7 @@ from pypika import Table, Parameter, PostgreSQLQuery
 
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import auto_dict
-from panoptic.models import PropertyValue, Instance, ComputedValue
+from panoptic.models import PropertyValue, Instance, ComputedValue, Vector
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -24,15 +24,8 @@ class Db:
     def get_project_path(self):
         return self._conn.folder_path
 
-    async def get_ui_version(self):
-        version = await self._conn.get_param('ui_version')
-        return version
-
-    async def set_ui_version(self, version: str):
-        await self._conn.set_param('ui_version', version)
-
     async def add_property(self, name: str, property_type: str, mode: str) -> Property:
-        query = 'INSERT INTO properties (name, id, mode) VALUES (?, ?, ?) on conflict do nothing'
+        query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'
         cursor = await self._conn.execute_query(query, (name, property_type, mode))
         prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
         return prop
@@ -365,3 +358,33 @@ class Db:
         rows = await cursor.fetchall()
         res = [ComputedValue(*row) for row in rows]
         return res
+
+    async def add_vector(self, vector: Vector):
+        query = f"""
+            INSERT OR REPLACE INTO vectors (source, type, sha1, data)
+            VALUES (?, ?, ?, ?);
+        """
+        await self._conn.execute_query(query, (vector.source, vector.type, vector.sha1, vector.data))
+        return vector
+
+    async def get_vectors(self, source: str, type_: str, sha1s: List[str] = None):
+        t = Table('vectors')
+        query = Query.from_(t).select('source', 'type', 'sha1', 'data')
+        query = query.where(t.source == source).where(t.type == type_)
+        if sha1s:
+            query = query.where(t.sha1.isin(sha1s))
+        cursor = await self._conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        res = [Vector(*row) for row in rows]
+        return res
+
+    async def vector_exist(self, source: str, type_: str, sha1: str):
+        t = Table('vectors')
+        query = Query.from_(t).select('source', 'type', 'sha1')
+        query = query.where(t.source == source).where(t.type == type_)
+        query = query.where(t.sha1 == sha1)
+        cursor = await self._conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        if rows:
+            return True
+        return False

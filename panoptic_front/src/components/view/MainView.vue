@@ -58,7 +58,6 @@ tabManager.collection.groupManager.onChange.addListener(() => {
 })
 
 function setRecoImages(groupId: string) {
-    console.log('set reco', groupId)
     recoGroup.value = tabManager.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())
 }
@@ -68,7 +67,7 @@ async function setSearchedImages(textInput: string) {
         searchedImages.value = []
     }
     else {
-        searchedImages.value = await getSimilarImagesFromText(textInput)
+        searchedImages.value = await getSimilarImagesFromText({ text: textInput })
     }
 }
 

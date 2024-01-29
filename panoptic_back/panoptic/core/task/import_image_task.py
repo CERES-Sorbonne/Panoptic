@@ -25,6 +25,7 @@ class ImportInstanceTask(Task):
 
         db_image = await raw_db.has_image_file(folder_id, name, extension)
         if db_image:
+            self.db.on_import_instance.emit(db_image)
             return db_image
 
         sha1, url, width, height = await self._async(self._import_image, self.file, raw_db.get_project_path())
