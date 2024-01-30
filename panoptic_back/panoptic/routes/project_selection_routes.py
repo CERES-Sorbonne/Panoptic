@@ -6,10 +6,17 @@ import psutil
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from panoptic.core.panoptic import panoptic
+from panoptic.core.panoptic import Panoptic
 from panoptic.models import PathRequest
 
 selection_router = APIRouter()
+
+panoptic: Panoptic | None = None
+
+
+def set_panoptic(pano: Panoptic):
+    global panoptic
+    panoptic = pano
 
 
 class ProjectRequest(BaseModel):
@@ -65,6 +72,21 @@ def api(path: str = ""):
 @selection_router.get('/filesystem/info')
 def filesystem_info_route():
     return list_index()
+
+
+@selection_router.get('/plugins')
+async def get_plugins_route():
+    return panoptic.get_plugin_paths()
+
+
+@selection_router.post('/plugins')
+async def add_plugins_route(path: PathRequest):
+    return panoptic.add_plugin_path(path.path)
+
+
+@selection_router.delete('/plugins')
+async def del_plugins_route(path: str):
+    return panoptic.del_plugin_path(path)
 
 
 def images_in_folder(folder_path):

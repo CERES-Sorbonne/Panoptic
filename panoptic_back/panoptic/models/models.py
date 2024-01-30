@@ -75,8 +75,8 @@ class Instance:
     url: str
     height: int
     width: int
-    ahash: str
-    
+    ahash: str = ''
+
     properties: dict[int, PropertyValue] = field(default_factory=dict)
 
 

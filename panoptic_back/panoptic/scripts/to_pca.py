@@ -3,7 +3,7 @@ import pickle
 
 from tqdm import tqdm
 
-from panoptic.FaissPlugin.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
+from plugins.FaissPlugin.compute import create_pca, to_pca, create_similarity_tree, can_compute_pca
 from panoptic.core.db import db
 from panoptic.models import ComputedValue
 

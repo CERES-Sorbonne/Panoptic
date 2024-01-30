@@ -8,7 +8,6 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from starlette.responses import FileResponse
 
-from panoptic.core.panoptic import panoptic
 from panoptic.core.project.project import Project
 from panoptic.models import Property, Tag, Properties, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
@@ -198,21 +197,11 @@ async def get_similar_images_route(context: ActionContext) -> list:
 # @project_router.post("/similar/text")
 # async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
 #     return await get_similar_images_from_text(payload.input_text)
-#
-#
-# @project_router.get("/version/ui")
-# async def get_ui_version_route():
-#     return await db.get_ui_version()
-#
-#
-# @project_router.post("/version/ui")
-# async def post_ui_version_route(req: StrPayload):
-#     return await db.set_ui_version(req.value)
-#
+
 
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
-    path = os.path.join(panoptic.project_id.path, 'mini', file_path)
+    path = os.path.join(project.base_path, 'mini', file_path)
     return FileResponse(path=path)
 
 

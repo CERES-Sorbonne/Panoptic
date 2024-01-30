@@ -79,7 +79,7 @@ export const apiDeleteTagParent = async (id: number, parentId: number): Promise<
 }
 
 export const apiDeleteTag = async (tag_id: number): Promise<any> => {
-    const res = await axios.delete('/tags', { params: { tag_id} })
+    const res = await axios.delete('/tags', { params: { tag_id } })
     return res.data
 }
 
@@ -161,7 +161,7 @@ export const apiUploadPropFile = async (file: any) => {
 }
 
 export const apiExportProperties = async (name?: string, images?: number[], properties?: number[], exportImages = false) => {
-    let res = await axios.post('/export', {name, images, properties, exportImages})
+    let res = await axios.post('/export', { name, images, properties, exportImages })
 }
 
 export async function apiGetFilesystemInfo() {
@@ -190,31 +190,46 @@ export async function apiCloseProject() {
 }
 
 export async function apiDeleteProject(path: string) {
-    let res = await axios.post('/delete_project', {path})
+    let res = await axios.post('/delete_project', { path })
     return res.data as SelectionStatus
 }
 
 export async function apiCreateProject(path: string, name: string) {
-    let res = await axios.post('/create_project', {path, name})
+    let res = await axios.post('/create_project', { path, name })
     return res.data as SelectionStatus
 }
 
 export async function apiImportProject(path: string) {
-    let res = await axios.post('/import_project', {path})
+    let res = await axios.post('/import_project', { path })
     return res.data as SelectionStatus
 }
 
 export async function apiReImportFolder(folderId: number) {
-    let res = await axios.post('/reimport_folder', {id: folderId})
+    let res = await axios.post('/reimport_folder', { id: folderId })
     return res.data
 }
 
 export async function apiSetUiVersion(version: string) {
-    let res = await axios.post('/version/ui', {value: version})
+    let res = await axios.post('/version/ui', { value: version })
     return res.data
 }
 
 export async function apiGetUiVersion() {
     let res = await axios.get('/version/ui')
     return res.data as string
+}
+
+export async function apiGetPlugins() {
+    let res = await axios.get('/plugins')
+    return res.data as string[]
+}
+
+export async function apiAddPlugin(path: string) {
+    let res = await axios.post('/plugins', { path })
+    return res.data as string[]
+}
+
+export async function apiDelPlugin(path: string) {
+    let res = await axios.delete('/plugins', { params: { path } } )
+return res.data as string[]
 }

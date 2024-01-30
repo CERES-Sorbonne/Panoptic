@@ -1,6 +1,6 @@
 import { defineStore } from "pinia"
 import { computed, nextTick, reactive, ref } from "vue"
-import { apiCloseProject, apiCreateProject, apiDeleteProject, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
+import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
 import { ModalId } from "./models"
@@ -21,6 +21,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     const data = reactive({
         status: {} as SelectionStatus,
+        plugins: [],
         init: false
     })
 
@@ -38,6 +39,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         // console.log('init')
         data.init = false
         data.status = await apiGetStatus()
+        data.plugins = await apiGetPlugins()
         data.init = true
         // console.log('end init')
         if(data.status.isLoaded) {
@@ -88,10 +90,21 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modalData.value = null
     }
 
+    async function addPlugin(path) {
+        await apiAddPlugin(path)
+        data.plugins = await apiGetPlugins()
+    }
+
+    async function delPlugin(path) {
+        await apiDelPlugin(path)
+        data.plugins = await apiGetPlugins()
+    }
+
     return {
         init, data, state,
         modalData, hideModal, showModal, openModalId,
         isProjectLoaded,
-        loadProject, closeProject, deleteProject, createProject, importProject
+        loadProject, closeProject, deleteProject, createProject, importProject,
+        addPlugin, delPlugin
     }
 })

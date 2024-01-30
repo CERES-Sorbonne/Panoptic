@@ -26,5 +26,4 @@ def load_similarity_tree(path: str):
     if not os.path.exists(path):
         return None
     with open(path, 'rb') as f:
-        print(f)
         return pickle.load(f)

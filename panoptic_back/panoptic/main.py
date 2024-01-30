@@ -7,13 +7,13 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-from panoptic.core.panoptic import panoptic
+from panoptic.core.panoptic import Panoptic
 from panoptic.routes.project_routes2 import project_router
-from panoptic.routes.project_selection_routes import selection_router
+from panoptic.routes.project_selection_routes import selection_router, set_panoptic
 from panoptic.utils import get_base_path
 
 if __name__ == '__main__':
-
+    panoptic = Panoptic()
     panoptic.load_data()
 
     # default port for Panoptic backend
@@ -34,6 +34,8 @@ if __name__ == '__main__':
 
     app.include_router(selection_router)
     app.include_router(project_router)
+
+    set_panoptic(panoptic)
 
     # static directory route
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")

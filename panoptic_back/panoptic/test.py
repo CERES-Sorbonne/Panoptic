@@ -1,3 +1,4 @@
+import hashlib
 import sqlite3
 from random import randint
 
@@ -72,6 +73,22 @@ def main():
             type_ += 1
         source += 1
 
+def calculate_sha1(file_path):
+    sha1 = hashlib.sha1()
+
+    with open(file_path, 'rb') as file:
+        while True:
+            # Read a chunk of data from the file
+            chunk = file.read(4096)
+            if not chunk:
+                break
+            sha1.update(chunk)
+
+    return sha1.hexdigest()
+
+
+
 
 if __name__ == '__main__':
-    main()
+    # main()
+    calculate_sha1()
