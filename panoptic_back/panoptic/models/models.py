@@ -75,9 +75,9 @@ class Instance:
     url: str
     height: int
     width: int
-
+    ahash: str
+    
     properties: dict[int, PropertyValue] = field(default_factory=dict)
-    ahash: str = field(default=None)
 
 
 @dataclass(slots=True)

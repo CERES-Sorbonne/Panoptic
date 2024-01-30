@@ -144,10 +144,10 @@ class ProjectDb:
         [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
         return images
 
-    async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
-        res = await self._db.add_image(folder_id, name, extension, sha1, url, width, height)
+    async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
+                           height: int, ahash: str):
+        res = await self._db.add_image(folder_id, name, extension, sha1, url, width, height, ahash)
         self.on_import_instance.emit(res)
-
 
     # ========== Tags ==========
     async def get_tags(self, prop: int = None) -> Tags:

@@ -56,7 +56,7 @@ class Db:
         cursor = await self._conn.execute_query(new_query, (nb_clones,))
         return [x[0] for x in await cursor.fetchall()]
 
-    async def add_image(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int):
+    async def add_image(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int, ahash: str):
         table = Table('images')
         query = Query.into(table).columns(
             'folder_id',
@@ -65,14 +65,16 @@ class Db:
             'sha1',
             'url',
             'width',
-            'height').insert((
+            'height',
+            'ahash').insert((
             folder_id,
             name,
             extension,
             sha1,
             url,
             width,
-            height))
+            height,
+        ahash))
         cursor = await self._conn.execute_query(query.get_sql())
         id_ = cursor.lastrowid
 
