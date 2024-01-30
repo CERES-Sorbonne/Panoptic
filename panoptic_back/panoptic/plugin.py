@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import Instances, Properties
 
 
 class Cluster(BaseModel):
@@ -151,21 +150,6 @@ class Cluster(BaseModel):
 # print(f"return: {signature.return_annotation}")
 #
 
-class UrlResult(BaseModel):
-    url: str
-
-
-class GroupMeta:
-    pass
-
-
-class Test(BaseModel):
-    """
-    @param: lala
-    """
-    pass
-
-
 class EmptyParam(BaseModel):
     pass
 
@@ -178,48 +162,3 @@ class Plugin:
 
     async def start(self):
         pass
-
-
-class KibanaPluginParams(BaseModel):
-    """
-    @param base_url: The base Kibana URL
-    """
-    base_url: str
-
-
-class KibanaPlugin(Plugin):
-    params: KibanaPluginParams
-
-    def __init__(self, project: Project):
-        super().__init__(name="kibana", project=project)
-
-    def open_images(self, instance: Instances):
-        """
-        Open Kibana dashboard with only the selected instances
-        """
-        computed_url = 'todo'
-        return UrlResult(url=self.params.base_url + computed_url)
-
-    def open_time_interval(self, instance: Instances, properties: Properties):
-        """
-        Open Kibana dashboard with a time interval [minDate, maxDate]
-        """
-        computed_url = 'todo-interval'
-        return UrlResult(url=self.params.base_url + computed_url)
-
-
-# class FaissPluginParams(BaseModel):
-#     """
-#     @value: some value needed for the Faiss plugin
-#     """
-#     value: str
-
-
-
-
-#
-# plugin = FaissPlugin()
-#
-# for f in plugin.hooks['cluster']:
-#     signature = inspect.signature(f)
-#     print(signature.parameters)

@@ -22,7 +22,7 @@ const image = computed(() => props.pile.images[0])
 
 <template>
     <div class="">
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, image)">
+        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, {image})">
             <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
             <img :src="image.url" :style="imageStyle" />
         </div>

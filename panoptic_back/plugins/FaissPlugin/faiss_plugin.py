@@ -1,7 +1,5 @@
-from typing import List
-
 from panoptic.core.project.project import Project
-from panoptic.models import Instance, Images, Vectors, ActionContext, Clusters
+from panoptic.models import Instance, ActionContext, Clusters
 from panoptic.plugin import Plugin
 from .compute import reload_tree, get_similar_images, make_clusters
 
@@ -11,7 +9,6 @@ from .compute_vector_task import ComputeVectorTask
 class FaissPlugin(Plugin):
     def __init__(self, project: Project):
         super().__init__(name='Faiss', project=project)
-        print(project.base_path)
         reload_tree(project.base_path)
 
         project.on.import_instance.register(self.compute_image_vector)
@@ -32,6 +29,7 @@ class FaissPlugin(Plugin):
         vectors = await self.project.db.get_default_vectors(sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
         return Clusters(clusters=clusters, distances=distances)
+
     # if not sha1s:
     #         return []
     #     values = await db.get_sha1_computed_values(sha1s)
@@ -44,4 +42,5 @@ class FaissPlugin(Plugin):
         vectors = await self.project.db.get_default_vectors(sha1s)
         vector_datas = [x.data for x in vectors]
         res = get_similar_images(vector_datas)
+        res = [r for r in res if r['sha1'] not in sha1s]
         return res

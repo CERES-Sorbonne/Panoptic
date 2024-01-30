@@ -2,6 +2,7 @@
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
+import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
@@ -33,6 +34,14 @@ function createProject(project: {path: string, name: string}) {
 
 function importProject(path: string) {
     panoptic.importProject(path)
+}
+
+function delPlugin(path: string) {
+    panoptic.delPlugin(path)
+}
+
+function promptPlugin() {
+    panoptic.showModal(ModalId.FOLDERSELECTION, {mode: 'create', callback: panoptic.addPlugin})
 }
 
 onMounted(() => {
@@ -74,6 +83,11 @@ onMounted(() => {
             <div class="create-menu mt-5 pt-5">
                 <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject"/>
                 <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
+            </div>
+
+            <div class="plugin-preview mt-5">
+                <span class="base-hover add-btn" @click="promptPlugin">Add Plugin</span>
+                <div v-for="path in panoptic.data.plugins" class="ps-1"><span @click="delPlugin(path)" class="bi bi-x base-hover"></span> {{ path }}</div>
             </div>
         </div>
     </div>
@@ -138,5 +152,18 @@ onMounted(() => {
     /* background-color: green; */
     width: 500px;
     margin: auto;
+}
+
+.plugin-preview {
+    /* position: absolute; */
+    text-align: left;
+    font-size: 13px;
+    color: rgb(87, 87, 87)
+}
+
+.add-btn {
+    padding: 4px;
+    font-size: 15px;
+    color: rgb(50, 50, 50);
 }
 </style>

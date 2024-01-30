@@ -30,6 +30,7 @@ class ComputeVectorTask(Task):
 
         folder = await self.project.db.get_folder(instance.folder_id)
         file_path = f"{folder.path}/{instance.name}"
+        print('here okk !')
         vector_data = await self._async(self.compute_image, file_path, self.project.base_path)
         vector = Vector(self.source, self.type, instance.sha1, vector_data)
         res = await self.project.db.add_vector(vector)
@@ -46,7 +47,6 @@ class ComputeVectorTask(Task):
     def compute_image(image_path: str, project_path: str):
         image = Image.open(image_path)
         image = image.convert('RGB')
-        # ahash = str(compute.to_average_hash(image))
         vector = compute.to_vector(image, project_path)
 
         del image

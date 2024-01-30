@@ -24,16 +24,13 @@ nb_workers = 4
 
 
 def get_executor():
-    executor = ThreadPoolExecutor(max_workers=nb_workers) if any(
-        [os.getenv('IS_DOCKER', False), sys.platform.startswith('linux')]) else ProcessPoolExecutor(
-        max_workers=nb_workers)
+    executor = ThreadPoolExecutor(max_workers=nb_workers)
     atexit.register(executor.shutdown)
     return executor
 
 
 class Project:
-    def __init__(self, folder_path: str):
-        self.plugin_loaded = False
+    def __init__(self, folder_path: str, plugins: List[str]):
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
@@ -42,7 +39,10 @@ class Project:
         self.on = ProjectEvents()
         self.action = ProjectActions()
         self.task_queue = TaskQueue(self.executor)
-        self.plugin: Plugin | None = None
+
+        self.plugin_loaded = False
+        self.plugins: List[Plugin] = []
+        self.plugin_paths = plugins
 
     async def start(self):
         conn = DbConnection(self.base_path)
@@ -52,8 +52,10 @@ class Project:
 
         self.db.on_import_instance.redirect(self.on.import_instance)
 
-        task = LoadPluginTask(self)
-        self.task_queue.add_task(task)
+        for plugin_path in self.plugin_paths:
+            task = LoadPluginTask(self, plugin_path)
+            self.task_queue.add_task(task)
+
         self.is_loaded = True
 
     async def redirect_on_import(self, x):

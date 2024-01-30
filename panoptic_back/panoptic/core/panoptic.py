@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import List
 
 from pydantic import BaseModel
 
@@ -16,6 +17,7 @@ class ProjectId(BaseModel):
 class PanopticData(BaseModel):
     projects: list[ProjectId]
     last_opened: ProjectId | None = None
+    plugins: List[str] = []
 
 
 class Panoptic:
@@ -77,11 +79,28 @@ class Panoptic:
 
                 if self.project:
                     await self.project.close()
-                self.project = Project(path)
+                self.project = Project(path, self.data.plugins)
                 await self.project.start()
 
                 from panoptic.routes.project_routes2 import set_project
                 set_project(self.project)
+
+    def add_plugin_path(self, path: str):
+        if path in self.data.plugins:
+            return
+        init_path = Path(path) / '__init__.py'
+        if not init_path.exists():
+            raise Exception(f'No __init__.py file found at {path}')
+        self.data.plugins.append(path)
+        self.save_data()
+
+    def del_plugin_path(self, path: str):
+        if path in self.data.plugins:
+            self.data.plugins.remove(path)
+            self.save_data()
+
+    def get_plugin_paths(self):
+        return self.data.plugins
 
     async def close(self):
         self.project_id = None
@@ -92,6 +111,3 @@ class Panoptic:
 
     def is_loaded(self):
         return self.project_id is not None
-
-
-panoptic = Panoptic()
