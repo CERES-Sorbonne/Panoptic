@@ -49,7 +49,8 @@ def create_images_table():
         sha1 TEXT NOT NULL,
         url TEXT NOT NULL,
         height INTEGER NOT NULL,
-        width INTEGER NOT NULL
+        width INTEGER NOT NULL,
+        ahash TEXT NOT NULL
     );
     CREATE INDEX idx_image_filepath ON images (folder_id, name, extension);
     CREATE INDEX idx_image_sha1 ON images (sha1);
