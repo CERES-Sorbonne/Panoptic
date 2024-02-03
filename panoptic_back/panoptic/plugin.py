@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import List, Any
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
+
+from panoptic.models import EmptyParam, FunctionDescription, PluginDescription
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
@@ -150,15 +153,23 @@ class Cluster(BaseModel):
 # print(f"return: {signature.return_annotation}")
 #
 
-class EmptyParam(BaseModel):
-    pass
-
 
 class Plugin:
-    def __init__(self, name: str, project: Project):
+    def __init__(self, name: str, project: Project, plugin_path: str):
         self.params: EmptyParam = EmptyParam()
         self.name: str = name
         self.project = project
+        self.registered_functions: List[FunctionDescription] = []
+        self.path = plugin_path
 
     async def start(self):
         pass
+
+    def get_description(self):
+        name = self.name
+        description = self.__doc__
+        path = self.path
+        res = PluginDescription(name=name, description=description, path=path,
+                                registered_functions=self.registered_functions)
+        return res
+

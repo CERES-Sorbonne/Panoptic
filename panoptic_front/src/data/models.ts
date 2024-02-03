@@ -171,6 +171,7 @@ export interface PropertyOption {
     size: number
 }
 
+
 export enum ModalId {
     IMAGE = 'image',
     IMAGE_ZOOM = 'image_zoom',
@@ -178,7 +179,8 @@ export enum ModalId {
     SHA1PILE = 'sha1pile',
     FOLDERTOPROP = 'folder_to_property',
     EXPORT = "export",
-    FOLDERSELECTION = 'explorer'
+    FOLDERSELECTION = 'explorer',
+    SETTINGS = "settings"
 }
 
 export interface ImportState {
@@ -302,5 +304,29 @@ export interface ActionContext {
     propertyIds?: number[]
     file?: string
     text?: string
-    uiInputs?: {[key: string]: any}
+    uiInputs?: { [key: string]: any }
+}
+
+
+// ================== Plugins ==================
+
+export interface ParamDescription {
+    name: string;
+    description: string;
+    type: string;
+}
+
+export interface FunctionDescription {
+    name: string;
+    description: string | null;
+    action: string;
+    params: ParamDescription[];
+}
+
+export interface PluginDescription {
+    name: string;
+    description: string;
+    path: string;
+    params: any;
+    registered_functions: FunctionDescription[];
 }

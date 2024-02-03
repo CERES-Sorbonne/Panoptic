@@ -66,7 +66,6 @@ class Project:
         res.tasks = self.task_queue.get_task_states()
         res.plugin_loaded = self.plugin_loaded
         return res
-    
 
     async def close(self):
         self.is_loaded = False
@@ -79,6 +78,9 @@ class Project:
         # export_path = "lala"
         show_in_file_manager(export_path)
         return export_path
+
+    def plugins_info(self):
+        return [p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]

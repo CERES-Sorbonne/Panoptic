@@ -5,7 +5,7 @@ from typing import Any, List, Dict
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
-from panoptic.models import Property, PropertyUpdate, Properties, PropertyType, PropertyValue, Instance, Tags, Tag, \
+from panoptic.models import Property, PropertyUpdate, PropertyType, PropertyValue, Instance, Tags, Tag, \
     TagUpdate, Vector
 
 

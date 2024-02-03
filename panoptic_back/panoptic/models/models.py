@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias, Any, Union, Dict, List, NewType
+from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
 from fastapi_camelcase import CamelModel
@@ -159,12 +159,38 @@ class ActionContext(CamelModel):
     ui_inputs: Dict[str, int | str] = {}
 
 
+class EmptyParam(BaseModel):
+    pass
+
+
+class InputType(Enum):
+    str = 'str'
+    int = 'int'
+    float = 'float'
+    path = 'path'
+
+
+class ParamDescription(BaseModel):
+    name: str
+    description: str
+    type: str
+
+
+class FunctionDescription(BaseModel):
+    name: str
+    description: str | None
+    action: str
+    params: List[ParamDescription] = []
+
+
+class PluginDescription(BaseModel):
+    name: str
+    description: str
+    path: str
+    params: EmptyParam = EmptyParam()
+    registered_functions: List[FunctionDescription] = []
+
+
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
 # Properties: TypeAlias = dict[int, Property]
-
-Files = NewType('Files', List[str])
-Images = NewType('Images', List[Image])
-Instances = NewType('Instances', List[Instance])
-Vectors = NewType('Vectors', Dict[str, Vector])
-Properties = NewType('Properties', List[Property])
