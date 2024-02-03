@@ -48,7 +48,8 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
                     <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
-                        <div class="flex-grow-1" @click="">{{ panoptic.data.status.selectedProject?.name }}</div>
+                        <div class="flex-grow-1 text-capitalize" @click="">{{ panoptic.data.status.selectedProject?.name }}</div>
+                        <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i class="bi bi-gear"></i></div>
                         <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i
                                 class="bi bi-arrow-left-right"></i></div>
                     </div>

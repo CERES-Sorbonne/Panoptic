@@ -11,6 +11,7 @@ import ImageModal from './components/modals/ImageModal.vue';
 import ImageZoomModal from './components/modals/ImageZoomModal.vue';
 import { keyState } from './data/keyState';
 import ExportModal2 from './components/modals/ExportModal2.vue';
+import SettingsModal from './components/modals/SettingsModal.vue';
 
 const panoptic = usePanopticStore()
 
@@ -32,6 +33,7 @@ function setMousePos(e) {
         <ExportModal2 />
         <ImageModal />
         <ImageZoomModal />
+        <SettingsModal />
         <!-- <div v-if="panoptic.openModalId" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(250, 235, 215, 0.381); z-index: 9999;" ></div> -->
     </body>
 </template>

@@ -9,10 +9,10 @@ from pydantic import BaseModel
 from starlette.responses import FileResponse
 
 from panoptic.core.project.project import Project
-from panoptic.models import Property, Tag, Properties, PropertyPayload, \
+from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
-    TagUpdate, GetSimilarImagesPayload, MakeClusterPayload, Clusters, ActionContext
+    TagUpdate, Clusters, ActionContext
 
 project_router = APIRouter()
 
@@ -192,6 +192,13 @@ async def get_similar_images_route(context: ActionContext) -> list:
     if res:
         return res
     return []
+
+
+@project_router.get('/plugins_info')
+async def get_plugins():
+    res = project.plugins_info()
+    return res
+
 
 #
 # @project_router.post("/similar/text")

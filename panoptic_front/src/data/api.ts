@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, DirInfo, ImageIndex, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
+import { ActionContext, DirInfo, ImageIndex, PluginDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
 import { SelectionStatus } from './panopticStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -230,6 +230,11 @@ export async function apiAddPlugin(path: string) {
 }
 
 export async function apiDelPlugin(path: string) {
-    let res = await axios.delete('/plugins', { params: { path } } )
-return res.data as string[]
+    let res = await axios.delete('/plugins', { params: { path } })
+    return res.data as string[]
+}
+
+export async function apiGetPluginsInfo() {
+    let res = await axios.get('/plugins_info')
+    return res.data as PluginDescription[]
 }

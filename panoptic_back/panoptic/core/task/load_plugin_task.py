@@ -43,9 +43,10 @@ class LoadPluginTask(Task):
         name = str(path.name)
         file_path = path / '__init__.py'
         plugin_module = await self._async(import_module_from_path, name, file_path)
-        plugin = plugin_module.plugin_class(self.project)
+        plugin = plugin_module.plugin_class(self.project, self.path)
         await plugin.start()
         self.project.plugins.append(plugin)
+        # print(plugin.get_description())
 
     async def run_if_last(self):
         self.project.plugin_loaded = True

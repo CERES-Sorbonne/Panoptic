@@ -184,6 +184,9 @@
             "properties_visible": "Visible",
             "properties_none": "Aucune",
             "export_images": "Inclure les images"
+        },
+        "settings": {
+            "title": "Parametres Projet"
         }
     },
     "mini_ui": {

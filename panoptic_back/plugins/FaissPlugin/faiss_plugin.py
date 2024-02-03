@@ -7,19 +7,28 @@ from .compute_vector_task import ComputeVectorTask
 
 
 class FaissPlugin(Plugin):
-    def __init__(self, project: Project):
-        super().__init__(name='Faiss', project=project)
+    """
+    Default Machine Learning plugin for Panoptic
+    Uses CLIP to generate vectors and FAISS for clustering / similarity functions
+    """
+    def __init__(self, project: Project, plugin_path: str):
+        super().__init__(name='Faiss', project=project, plugin_path=plugin_path)
         reload_tree(project.base_path)
 
         project.on.import_instance.register(self.compute_image_vector)
         project.action.find_images.register(self, self.find_images)
         project.action.group_images.register(self, self.compute_clusters)
+        project.action.group_images.register(self, self.compute_ocr_clusters)
 
     async def compute_image_vector(self, instance: Instance):
         task = ComputeVectorTask(self.project, self.name, 'clip', instance)
         self.project.task_queue.add_task(task)
 
     async def compute_clusters(self, context: ActionContext, nb_clusters: int):
+        """
+        Computes images clusters with Faiss
+        @nb_clusters: requested number of clusters
+        """
         instances = await self.project.db.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
 
@@ -29,6 +38,13 @@ class FaissPlugin(Plugin):
         vectors = await self.project.db.get_default_vectors(sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
         return Clusters(clusters=clusters, distances=distances)
+
+    async def compute_ocr_clusters(self, context: ActionContext, nb_clusters: int, sensibility: int):
+        """
+        Computes images clusters using text classification
+        @nb_clusters: requested number of clusters
+        @sensibility: some other value for UI testing
+        """
 
     # if not sha1s:
     #         return []
