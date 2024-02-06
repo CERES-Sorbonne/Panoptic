@@ -4,23 +4,7 @@ from typing import Any, List
 
 from panoptic.models import ActionContext, FunctionDescription, ParamDescription
 from panoptic.plugin import Plugin
-from panoptic.utils import AsyncCallable
-
-
-def to_str_type(type_):
-    if type_ is int:
-        return 'int'
-    if type_ is float:
-        return 'float'
-    if type_ is str:
-        return 'str'
-    if type_ is List[str]:
-        return '[str]'
-    if type_ is bool:
-        return 'bool'
-    if type_ is Path:
-        return 'path'
-    return None
+from panoptic.utils import AsyncCallable, to_str_type
 
 
 def get_params(f):

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from pydantic import BaseModel
+
 from panoptic.core.project.project import Project
 from panoptic.models import Instance, ActionContext, Clusters
 from panoptic.plugin import Plugin
@@ -8,13 +10,26 @@ from .compute import reload_tree, get_similar_images, make_clusters
 from .compute_vector_task import ComputeVectorTask
 
 
+class FaissPluginParams(BaseModel):
+    """
+    Some base parameters for the Faiss Plugin
+    @test_int: an int parameter
+    @test_str: a str param
+    """
+    test_int: int = 0
+    test_str: str = ''
+    test_bool: bool = False
+
+
 class FaissPlugin(Plugin):
     """
     Default Machine Learning plugin for Panoptic
     Uses CLIP to generate vectors and FAISS for clustering / similarity functions
     """
+
     def __init__(self, project: Project, plugin_path: str):
         super().__init__(name='Faiss', project=project, plugin_path=plugin_path)
+        self.params = FaissPluginParams()
         reload_tree(project.base_path)
 
         project.on.import_instance.register(self.compute_image_vector)
@@ -41,7 +56,8 @@ class FaissPlugin(Plugin):
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
         return Clusters(clusters=clusters, distances=distances)
 
-    async def test_function(self, context: ActionContext, int_value: int, float_value: float, str_value: str, bool_value: bool, path_value: Path):
+    async def test_function(self, context: ActionContext, int_value: int, float_value: float, str_value: str,
+                            bool_value: bool, path_value: Path):
         """
         Function for UI input tests
         """
