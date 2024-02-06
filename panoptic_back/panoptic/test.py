@@ -1,6 +1,10 @@
 import hashlib
 import sqlite3
 from random import randint
+from typing import List
+
+from panoptic.models import ParamDescription
+from panoptic.utils import to_str_type, get_param_comment_from_model
 
 
 #
@@ -120,4 +124,38 @@ def get_param_description(f, param_name: str):
 
 
 res = get_param_description(test, 'hoho')
-print(res)
+# print(res)
+
+from pydantic import BaseModel
+
+
+class YourModel(BaseModel):
+    """
+    hey hohh heheh
+    @name: name of you children
+    """
+    name: str = 'John'
+    age: int = None
+
+
+# # Extracting fields, types, and default values
+# fields = YourModel.__fields__
+# for field_name, field_info in fields.items():
+#     field_type = field_info.type_
+#     default_value = field_info.default
+#     print(f"Field: {field_name}, Type: {field_type}, Default Value: {default_value}")
+def get_params_description2(model: BaseModel):
+    ress: List[ParamDescription] = []
+    fields = model.__fields__
+    for field_name, field_info in fields.items():
+        field_type = field_info.type_
+        default_value = field_info.default
+        description = get_param_comment_from_model(model, field_name)
+        ress.append(ParamDescription(name=field_name, description=description, type=to_str_type(field_type), default_value=default_value))
+    return ress
+
+
+m = YourModel()
+print(get_params_description2(m))
+
+

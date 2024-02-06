@@ -25,19 +25,22 @@ async function updatePluginInfo() {
     <Modal :id="ModalId.SETTINGS" @show="updatePluginInfo">
         <template #title>{{ $t('modals.settings.title') }}</template>
         <template #content>
-            <div class="w-100">
-                <TabMenu :options="categories" v-model="category" class="w-100" />
-            </div>
-            <div v-if="category == 'general'">
-
-            </div>
-            <div v-if="category == 'plugins' && selectedPlugin">
-                <TabMenu :options="project.data.plugins.map(info => info.name)" v-model="selectedPlugin" />
-                <div class="p-3" style="max-width: 700px; margin: auto;">
-                    <PluginSettings :plugin="project.data.plugins.find(info => info.name == selectedPlugin)" />
+            <div class="h-100 overflow-scroll">
+                <div class="w-100">
+                    <TabMenu :options="categories" v-model="category" class="w-100" />
                 </div>
+                <div v-if="category == 'general'">
 
+                </div>
+                <div v-if="category == 'plugins' && selectedPlugin">
+                    <TabMenu :options="project.data.plugins.map(info => info.name)" v-model="selectedPlugin" />
+                    <div class="p-3" style="max-width: 700px; margin: auto;">
+                        <PluginSettings :plugin="project.data.plugins.find(info => info.name == selectedPlugin)" />
+                    </div>
+
+                </div>
             </div>
+
         </template>
     </Modal>
 </template>

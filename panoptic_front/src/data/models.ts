@@ -323,11 +323,17 @@ export interface FunctionDescription {
     params: ParamDescription[]
 }
 
+export interface PluginBaseParamsDescription {
+    description: string
+    params: ParamDescription[]
+}
+
+
 export interface PluginDescription {
     name: string
     description: string
     path: string
-    params: any
+    baseParams: PluginBaseParamsDescription
     registeredFunctions: FunctionDescription[]
     defaults: PluginDefaultParams
 }

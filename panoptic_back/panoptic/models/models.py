@@ -159,10 +159,6 @@ class ActionContext(CamelModel):
     ui_inputs: Dict[str, int | str] = {}
 
 
-class EmptyParam(BaseModel):
-    pass
-
-
 class ParamDescription(CamelModel):
     name: str
     description: str | None
@@ -174,6 +170,11 @@ class FunctionDescription(CamelModel):
     name: str
     description: str | None
     action: str
+    params: List[ParamDescription] = []
+
+
+class PluginBaseParamsDescription(BaseModel):
+    description: str | None
     params: List[ParamDescription] = []
 
 
@@ -189,7 +190,7 @@ class PluginDescription(CamelModel):
     name: str
     description: str
     path: str
-    params: EmptyParam = EmptyParam()
+    base_params: PluginBaseParamsDescription
     registered_functions: List[FunctionDescription] = []
     defaults: PluginDefaultParams
 

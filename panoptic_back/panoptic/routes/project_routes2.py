@@ -203,7 +203,7 @@ async def get_plugins():
 @project_router.post('/plugins_params')
 async def post_plugin_params_route(params: PluginDefaultParams):
     # print(params)
-    res = await project.db.set_plugin_default_params(params)
+    res = await project.set_plugin_default_params(params)
     return res
 
 

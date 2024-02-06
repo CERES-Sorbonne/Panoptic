@@ -4,6 +4,10 @@ import pathlib
 import sys
 from typing import List, Any, Callable, Awaitable
 
+from pydantic import BaseModel
+
+from panoptic.models import ParamDescription
+
 
 def get_datadir() -> pathlib.Path:
     """
@@ -51,6 +55,7 @@ class EventListener:
     def redirect(self, listener):
         async def redirect(x):
             listener.emit(x)
+
         self.register(redirect)
 
     def unregister(self, callback: AsyncCallable):
@@ -68,3 +73,45 @@ class EventListener:
         task = asyncio.create_task(async_emit())
         self._tasks.append(task)
         task.add_done_callback(self._tasks.remove)
+
+
+def to_str_type(type_):
+    if type_ is int:
+        return 'int'
+    if type_ is float:
+        return 'float'
+    if type_ is str:
+        return 'str'
+    if type_ is List[str]:
+        return '[str]'
+    if type_ is bool:
+        return 'bool'
+    if type_ is pathlib.Path:
+        return 'path'
+    return None
+
+
+def get_param_comment_from_model(model: BaseModel, param_name: str):
+    doc: str = model.__doc__
+    token = f'@{param_name}: '
+    if not doc or token not in doc:
+        return None
+
+    token_start = doc.index(token)
+    start = token_start + len(token)
+    if '@' in doc[start:]:
+        end = doc.index('@', start)
+        return doc[start:end]
+    return doc[start:]
+
+
+def get_model_params_description(model: BaseModel):
+    res: List[ParamDescription] = []
+    fields = model.__fields__
+    for field_name, field_info in fields.items():
+        field_type = field_info.type_
+        default_value = field_info.default
+        description = get_param_comment_from_model(model, field_name)
+        res.append(ParamDescription(name=field_name, description=description, type=to_str_type(field_type),
+                                    default_value=default_value))
+    return res

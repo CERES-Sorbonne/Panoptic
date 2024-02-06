@@ -1,15 +1,13 @@
-# from panoptic.core.exporter import export_data
 import atexit
 import os
-import sys
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List
 
-from panoptic.core.db.db_connection import DbConnection
-from panoptic.core.exporter import export_data
 from showinfm import show_in_file_manager
 
+from panoptic.core.db.db_connection import DbConnection
+from panoptic.core.exporter import export_data
 from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
@@ -17,7 +15,7 @@ from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate
+from panoptic.models import StatusUpdate, PluginDefaultParams
 from panoptic.plugin import Plugin
 
 nb_workers = 4
@@ -115,3 +113,10 @@ class Project:
                 file_to_folder_id[file] = child.id
                 current_folder = child
         return root_folder, file_to_folder_id
+
+    async def set_plugin_default_params(self, params: PluginDefaultParams):
+        await self.db.set_plugin_default_params(params)
+        plugin = [p for p in self.plugins if p.name == params.name][0]
+        plugin.update_default_values(params)
+        return params
+
