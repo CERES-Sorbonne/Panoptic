@@ -12,7 +12,7 @@ from panoptic.core.project.project import Project
 from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
-    TagUpdate, Clusters, ActionContext
+    TagUpdate, Clusters, ActionContext, PluginDefaultParams
 
 project_router = APIRouter()
 
@@ -196,7 +196,14 @@ async def get_similar_images_route(context: ActionContext) -> list:
 
 @project_router.get('/plugins_info')
 async def get_plugins():
-    res = project.plugins_info()
+    res = await project.plugins_info()
+    return res
+
+
+@project_router.post('/plugins_params')
+async def post_plugin_params_route(params: PluginDefaultParams):
+    # print(params)
+    res = await project.db.set_plugin_default_params(params)
     return res
 
 

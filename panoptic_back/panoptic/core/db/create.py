@@ -123,6 +123,19 @@ def create_vectors_table():
     return query
 
 
+def create_plugin_defaults_table():
+    query = f"""
+    CREATE TABLE plugin_defaults (
+        name TEXT,
+        base JSON,
+        functions JSON,
+        
+        PRIMARY KEY (name)
+    );
+    """
+    return query
+
+
 tables = {
     'folders': create_folders_table(),
     'tabs': create_tabs_table(),
@@ -132,5 +145,6 @@ tables = {
     'property_values': create_property_values_table(),
     'tags': create_tags_table(),
     'panoptic': create_panoptic_table(),
-    'vectors': create_vectors_table()
+    'vectors': create_vectors_table(),
+    'plugin_defaults': create_plugin_defaults_table()
 }

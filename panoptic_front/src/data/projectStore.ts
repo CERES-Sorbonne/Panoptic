@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
+import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -26,6 +26,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         tabs: {} as TabIndex,
         selectedTabId: undefined as number,
         folders: {} as FolderIndex,
+        plugins: [] as PluginDescription[]
     })
 
     const status = reactive({
@@ -57,10 +58,13 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!tabManager) {
             tabManager = new TabManager(getTab())
         }
+        // Execute all async functions here before setting any data into the store
+        // This avoids other UI elements to react to changes before the init function is finished
         let images = await apiGetImages()
         let tags = await apiGetTags()
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
+        let plugins = await apiGetPluginsInfo()
         
 
         properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
@@ -98,7 +102,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // console.log('UI Version:', softwareUiVersion)
 
-
+        data.plugins = plugins
         status.loaded = true
 
         // tabManager.collection.update(data.images)
@@ -202,6 +206,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function importImage(img: Image) {
         Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, img.properties[pId]))
+        // TODO: FILL THIS DATA SERVER SERVER SIDE TO MAKE IT AVAILABLE TO PLUGINS AUTOMATICALY
         img.properties[PropertyID.id] = { propertyId: PropertyID.id, value: img.id }
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
         img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
@@ -425,6 +430,16 @@ export const useProjectStore = defineStore('projectStore', () => {
         status.import.to_import = undefined
     }
 
+    async function updatePluginInfos() {
+        data.plugins = await apiGetPluginsInfo()
+    }
+
+    async function setPluginDefaults(defaults: PluginDefaultParams) {
+        const updated = await apiSetPluginDefaults(defaults)
+        const plugin = data.plugins.find(p => p.name == updated.name)
+        plugin.defaults = updated
+    }
+
     return {
         // variables
         data, status,
@@ -438,6 +453,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile, clearImport,
+        updatePluginInfos, setPluginDefaults,
 
         backendStatus
     }

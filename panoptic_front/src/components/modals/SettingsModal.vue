@@ -5,17 +5,18 @@ import TabMenu from '../TabMenu.vue';
 import { onMounted, ref } from 'vue';
 import { apiGetPluginsInfo } from '@/data/api';
 import PluginSettings from '../PluginSettings.vue';
+import { useProjectStore } from '@/data/projectStore';
 
+const project = useProjectStore()
 
 const categories = ref(['general', 'plugins'])
 const category = ref(categories.value[1])
 
-const pluginsInfo = ref([])
 const selectedPlugin = ref('')
 
 async function updatePluginInfo() {
-    pluginsInfo.value = await apiGetPluginsInfo()
-    selectedPlugin.value = pluginsInfo.value[0].name
+    await project.updatePluginInfos()
+    selectedPlugin.value = project.data.plugins[0].name
 }
 
 </script>
@@ -31,9 +32,9 @@ async function updatePluginInfo() {
 
             </div>
             <div v-if="category == 'plugins' && selectedPlugin">
-                <TabMenu :options="pluginsInfo.map(info => info.name)" v-model="selectedPlugin" />
+                <TabMenu :options="project.data.plugins.map(info => info.name)" v-model="selectedPlugin" />
                 <div class="p-3" style="max-width: 700px; margin: auto;">
-                    <PluginSettings :plugin="pluginsInfo.find(info => info.name == selectedPlugin)" />
+                    <PluginSettings :plugin="project.data.plugins.find(info => info.name == selectedPlugin)" />
                 </div>
 
             </div>

@@ -9,7 +9,7 @@ from pypika import Table, Parameter, PostgreSQLQuery
 
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import auto_dict
-from panoptic.models import PropertyValue, Instance, ComputedValue, Vector
+from panoptic.models import PropertyValue, Instance, ComputedValue, Vector, PluginDefaultParams
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -390,3 +390,21 @@ class Db:
         if rows:
             return True
         return False
+
+    async def get_plugin_default_params(self, plugin_name: str):
+        t = Table('plugin_defaults')
+        query = Query.from_(t).select('name', 'base', 'functions')
+        query = query.where(t.name == plugin_name)
+        cursor = await self._conn.execute_query(query.get_sql())
+        row = await cursor.fetchone()
+        if row:
+            return PluginDefaultParams(**auto_dict(row, cursor))
+        return PluginDefaultParams(name=plugin_name)
+
+    async def set_plugin_default_params(self, params: PluginDefaultParams):
+        query = f"""
+                    INSERT OR REPLACE INTO plugin_defaults (name, base, functions)
+                    VALUES (?, ?, ?);
+                """
+        await self._conn.execute_query(query, (params.name, json.dumps(params.base), json.dumps(params.functions)))
+        return params

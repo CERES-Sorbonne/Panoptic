@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from panoptic.models import EmptyParam, FunctionDescription, PluginDescription
+from panoptic.models import EmptyParam, FunctionDescription, PluginDescription, PluginDefaultParams
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
@@ -165,11 +165,21 @@ class Plugin:
     async def start(self):
         pass
 
-    def get_description(self):
+    async def get_description(self):
         name = self.name
         description = self.__doc__
         path = self.path
+        defaults = PluginDefaultParams(name=name)
+        db_defaults = await self.project.db.get_raw_db().get_plugin_default_params(plugin_name=name)
+
+        for function in self.registered_functions:
+            defaults.functions[function.name] = {}
+            for param in function.params:
+                defaults.functions[function.name][param.name] = None
+                if function.name in db_defaults.functions and param.name in db_defaults.functions[function.name]:
+                    defaults.functions[function.name][param.name] = db_defaults.functions[function.name][param.name]
+
         res = PluginDescription(name=name, description=description, path=path,
-                                registered_functions=self.registered_functions)
+                                registered_functions=self.registered_functions, defaults=defaults)
         return res
 

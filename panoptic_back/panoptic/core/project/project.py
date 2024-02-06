@@ -79,8 +79,8 @@ class Project:
         show_in_file_manager(export_path)
         return export_path
 
-    def plugins_info(self):
-        return [p.get_description() for p in self.plugins]
+    async def plugins_info(self):
+        return [await p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]

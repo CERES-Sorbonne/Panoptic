@@ -7,13 +7,29 @@ from panoptic.plugin import Plugin
 from panoptic.utils import AsyncCallable
 
 
+def to_str_type(type_):
+    if type_ is int:
+        return 'int'
+    if type_ is float:
+        return 'float'
+    if type_ is str:
+        return 'str'
+    if type_ is List[str]:
+        return '[str]'
+    if type_ is bool:
+        return 'bool'
+    if type_ is Path:
+        return 'path'
+    return None
+
+
 def get_params(f):
     signature = inspect.signature(f)
     parameters = signature.parameters
     return {k: parameters[k].annotation for k in parameters}
 
 
-possible_inputs = [int, str, List[str], bool, Path]
+possible_inputs = [int, float, str, List[str], bool, Path]
 
 
 def get_param_description(f: AsyncCallable, param_name: str):
@@ -32,7 +48,7 @@ def get_param_description(f: AsyncCallable, param_name: str):
 
 def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
     types = get_params(f)
-    return [ParamDescription(name=t, type=str(types[t]), description=get_param_description(f, t))
+    return [ParamDescription(name=t, type=to_str_type(types[t]), description=get_param_description(f, t))
             for t in types if types[t] in possible_inputs]
 
 
