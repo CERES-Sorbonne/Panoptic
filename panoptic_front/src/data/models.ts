@@ -311,22 +311,29 @@ export interface ActionContext {
 // ================== Plugins ==================
 
 export interface ParamDescription {
-    name: string;
-    description: string;
-    type: string;
+    name: string
+    description: string
+    type: string
 }
 
 export interface FunctionDescription {
-    name: string;
-    description: string | null;
-    action: string;
-    params: ParamDescription[];
+    name: string
+    description: string | null
+    action: string
+    params: ParamDescription[]
 }
 
 export interface PluginDescription {
-    name: string;
-    description: string;
-    path: string;
-    params: any;
-    registered_functions: FunctionDescription[];
+    name: string
+    description: string
+    path: string
+    params: any
+    registeredFunctions: FunctionDescription[]
+    defaults: PluginDefaultParams
+}
+
+export interface PluginDefaultParams {
+    name: string
+    base: {[param:string]: any}
+    functions: {[func: string]: {[param: string]: any}}
 }

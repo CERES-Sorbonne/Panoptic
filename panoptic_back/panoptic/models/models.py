@@ -163,32 +163,35 @@ class EmptyParam(BaseModel):
     pass
 
 
-class InputType(Enum):
-    str = 'str'
-    int = 'int'
-    float = 'float'
-    path = 'path'
-
-
-class ParamDescription(BaseModel):
+class ParamDescription(CamelModel):
     name: str
-    description: str
+    description: str | None
     type: str
+    default_value: Any
 
 
-class FunctionDescription(BaseModel):
+class FunctionDescription(CamelModel):
     name: str
     description: str | None
     action: str
     params: List[ParamDescription] = []
 
 
-class PluginDescription(BaseModel):
+class PluginDefaultParams(BaseModel):
+    name: str
+    # example: base.export_path = 'my/path'
+    base: Dict[str, Any] = {}
+    # example: functions.my_func.param1 = 'default_value'
+    functions: Dict[str, Dict[str, Any]] = {}
+
+
+class PluginDescription(CamelModel):
     name: str
     description: str
     path: str
     params: EmptyParam = EmptyParam()
     registered_functions: List[FunctionDescription] = []
+    defaults: PluginDefaultParams
 
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]

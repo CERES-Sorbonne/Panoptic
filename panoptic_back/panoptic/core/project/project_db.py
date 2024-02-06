@@ -6,7 +6,7 @@ from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, PropertyValue, Instance, Tags, Tag, \
-    TagUpdate, Vector
+    TagUpdate, Vector, PluginDefaultParams
 
 
 class ProjectDb:
@@ -241,3 +241,7 @@ class ProjectDb:
 
     async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
         return await self._db.vector_exist(source, type_, sha1)
+
+    # ============ Plugins =============
+    async def set_plugin_default_params(self, params: PluginDefaultParams):
+        return await self._db.set_plugin_default_params(params)

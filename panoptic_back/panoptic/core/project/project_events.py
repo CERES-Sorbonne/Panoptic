@@ -1,5 +1,4 @@
-import asyncio
-from typing import Callable, TypeVar, List, Any, Awaitable
+from typing import Callable, Awaitable
 
 from panoptic.models import Instance
 from panoptic.utils import EventListener
@@ -16,10 +15,3 @@ class ImportInstanceEvent(EventListener):
 class ProjectEvents:
     def __init__(self):
         self.import_instance = ImportInstanceEvent()
-
-
-async def launch():
-    pass
-
-
-asyncio.run(launch())

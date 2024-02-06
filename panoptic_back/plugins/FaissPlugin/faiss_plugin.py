@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from panoptic.core.project.project import Project
 from panoptic.models import Instance, ActionContext, Clusters
 from panoptic.plugin import Plugin
@@ -18,7 +20,7 @@ class FaissPlugin(Plugin):
         project.on.import_instance.register(self.compute_image_vector)
         project.action.find_images.register(self, self.find_images)
         project.action.group_images.register(self, self.compute_clusters)
-        project.action.group_images.register(self, self.compute_ocr_clusters)
+        project.action.group_images.register(self, self.test_function)
 
     async def compute_image_vector(self, instance: Instance):
         task = ComputeVectorTask(self.project, self.name, 'clip', instance)
@@ -39,12 +41,11 @@ class FaissPlugin(Plugin):
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
         return Clusters(clusters=clusters, distances=distances)
 
-    async def compute_ocr_clusters(self, context: ActionContext, nb_clusters: int, sensibility: int):
+    async def test_function(self, context: ActionContext, int_value: int, float_value: float, str_value: str, bool_value: bool, path_value: Path):
         """
-        Computes images clusters using text classification
-        @nb_clusters: requested number of clusters
-        @sensibility: some other value for UI testing
+        Function for UI input tests
         """
+        print(int_value, float_value, str_value, bool_value, path_value)
 
     # if not sha1s:
     #         return []
