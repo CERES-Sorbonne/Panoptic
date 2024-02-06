@@ -82,7 +82,7 @@ class Panoptic:
                 self.project = Project(path, self.data.plugins)
                 await self.project.start()
 
-                from panoptic.routes.project_routes2 import set_project
+                from panoptic.routes.project_routes import set_project
                 set_project(self.project)
 
     def add_plugin_path(self, path: str):
