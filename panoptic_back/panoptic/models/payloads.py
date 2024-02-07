@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List
 
 from fastapi_camelcase import CamelModel
 
-from .models import PropertyType
+from .models import PropertyType, ActionUpdate
 
 
 class ImagePayload(CamelModel):
@@ -81,3 +81,7 @@ class ChangeProjectPayload(CamelModel):
 
 class StrPayload(CamelModel):
     value: str
+
+
+class UpdateActionsPayload(CamelModel):
+    updates: list[ActionUpdate]

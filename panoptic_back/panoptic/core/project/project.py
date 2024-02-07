@@ -15,7 +15,7 @@ from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate, PluginDefaultParams
+from panoptic.models import StatusUpdate, PluginDefaultParams, ActionUpdate
 from panoptic.plugin import Plugin
 
 nb_workers = 4
@@ -119,4 +119,14 @@ class Project:
         plugin = [p for p in self.plugins if p.name == params.name][0]
         plugin.update_default_values(params)
         return params
+
+    async def set_action_updates(self, updates: List[ActionUpdate]):
+        self.action.set_action_updates(updates)
+        for action in updates:
+            await self.db.get_raw_db().set_action(action)
+
+    async def update_actions_from_db(self):
+        db_actions = await self.db.get_raw_db().get_actions()
+        for action in db_actions:
+            self.action.set_action_function(action.name, action.function)
 

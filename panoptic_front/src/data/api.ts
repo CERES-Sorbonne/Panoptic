@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, ActionDescription, DirInfo, ImageIndex, PluginDefaultParams, PluginDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
+import { ActionContext, ActionDescription, ActionUpdate, DirInfo, ImageIndex, PluginDefaultParams, PluginDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
 import { SelectionStatus } from './panopticStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -246,5 +246,11 @@ export async function apiSetPluginDefaults(defaults: PluginDefaultParams) {
 
 export async function apiGetActions() {
     let res = await axios.get('/actions_description')
+    return res.data as ActionDescription[]
+}
+
+export async function apiSetActions(actionUpdates: ActionUpdate[]) {
+    console.log(actionUpdates)
+    let res = await axios.post('/actions_functions', {updates: actionUpdates})
     return res.data as ActionDescription[]
 }

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ActionDescription } from '@/data/models';
+import { useProjectStore } from '@/data/projectStore';
 import { defineProps, defineEmits, ref, Ref, onMounted, computed, watch } from 'vue';
+
+const project = useProjectStore()
 
 const props = defineProps<{
     actions: ActionDescription[]
@@ -24,7 +27,9 @@ function updateLocal() {
 }
 
 function applyChange() {
-
+    let updates = localActions.value.map(a => ({name: a.name, function: a.selectedFunction}))
+    updates = updates.filter(u => u.function)
+    project.setActionFunctions(updates)
 }
 
 onMounted(updateLocal)

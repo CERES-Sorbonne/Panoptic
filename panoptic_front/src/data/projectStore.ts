@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ActionDescription, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
+import { ActionDescription, ActionUpdate, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions, apiSetActions } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -444,6 +444,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         plugin.defaults = updated
     }
 
+    async function setActionFunctions(updates: ActionUpdate[]) {
+        actions.value = await apiSetActions(updates)
+    }
+
     return {
         // variables
         data, status,
@@ -458,7 +462,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginDefaults,
-        actions,
+        actions, setActionFunctions,
         backendStatus
     }
 

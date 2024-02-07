@@ -1,8 +1,9 @@
 import inspect
+import logging
 from pathlib import Path
 from typing import Any, List
 
-from panoptic.models import ActionContext, FunctionDescription, ParamDescription, ActionDescription
+from panoptic.models import ActionContext, FunctionDescription, ParamDescription, ActionDescription, ActionUpdate
 from panoptic.plugin import Plugin
 from panoptic.utils import AsyncCallable, to_str_type
 
@@ -97,6 +98,13 @@ class ProjectAction:
         action = self._possible_actions[self._selected_action]
         return await action.call(context, **context.ui_inputs)
 
+    def select_function(self, function_id):
+        valid = [f.id for f in self._possible_actions]
+        if function_id not in valid:
+            logging.warning(f'{function_id} is not available in action {self.name}')
+            return
+        self._selected_action = valid.index(function_id)
+
     def get_description(self):
         selected = self._possible_actions[self._selected_action].id if self.can_call() else None
         available = [a.id for a in self._possible_actions]
@@ -113,8 +121,16 @@ class ProjectActions:
         self.import_properties = ProjectAction('import')
         self.export_properties = ProjectAction('export')
 
-    def get_actions_description(self):
-        actions = [self.find_images, self.group_images, self.filter_images, self.action_images, self.action_group,
-                   self.import_properties, self.export_properties]
-        return [a.get_description() for a in actions]
+        action_list = [self.find_images, self.group_images, self.filter_images, self.action_images, self.action_group,
+                       self.import_properties, self.export_properties]
+        self.actions = {a.name: a for a in action_list}
 
+    def get_actions_description(self):
+        return [a.get_description() for a in self.actions.values()]
+
+    def set_action_function(self, action_name: str, function_id: str):
+        action = self.actions[action_name]
+        action.select_function(function_id)
+
+    def set_action_updates(self, action_updates: List[ActionUpdate]):
+        [self.set_action_function(update.name, update.function) for update in action_updates]
