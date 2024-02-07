@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
+import { ActionDescription, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -38,6 +38,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         syncResult: {} as SyncResult
     })
 
+    const actions = ref([] as ActionDescription[])
+
     const backendStatus = ref<StatusUpdate>(null)
 
     // =======================
@@ -65,7 +67,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         let properties = await apiGetProperties()
         let folders = await apiGetFolders()
         let plugins = await apiGetPluginsInfo()
-        
+        let apiActions = await apiGetActions()
 
         properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: PropertyMode.computed }
@@ -103,6 +105,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         // console.log('UI Version:', softwareUiVersion)
 
         data.plugins = plugins
+        actions.value = apiActions
         status.loaded = true
 
         // tabManager.collection.update(data.images)
@@ -432,6 +435,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function updatePluginInfos() {
         data.plugins = await apiGetPluginsInfo()
+        actions.value = await apiGetActions()
     }
 
     async function setPluginDefaults(defaults: PluginDefaultParams) {
@@ -454,7 +458,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginDefaults,
-
+        actions,
         backendStatus
     }
 
