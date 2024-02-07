@@ -341,8 +341,8 @@ export interface PluginDescription {
 
 export interface PluginDefaultParams {
     name: string
-    base: {[param:string]: any}
-    functions: {[func: string]: {[param: string]: any}}
+    base: { [param: string]: any }
+    functions: { [func: string]: { [param: string]: any } }
 }
 
 // ============= Actions ==============
@@ -350,4 +350,9 @@ export interface ActionDescription {
     name: string
     selectedFunction?: string
     availableFunctions?: string[]
+}
+
+export interface ActionUpdate {
+    name: string
+    function: string
 }

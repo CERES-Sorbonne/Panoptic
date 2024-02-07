@@ -9,7 +9,7 @@ from pypika import Table, Parameter, PostgreSQLQuery
 
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import auto_dict
-from panoptic.models import PropertyValue, Instance, ComputedValue, Vector, PluginDefaultParams
+from panoptic.models import PropertyValue, Instance, ComputedValue, Vector, PluginDefaultParams, ActionUpdate
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -56,7 +56,8 @@ class Db:
         cursor = await self._conn.execute_query(new_query, (nb_clones,))
         return [x[0] for x in await cursor.fetchall()]
 
-    async def add_image(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int, ahash: str):
+    async def add_image(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int, height: int,
+                        ahash: str):
         table = Table('images')
         query = Query.into(table).columns(
             'folder_id',
@@ -74,7 +75,7 @@ class Db:
             url,
             width,
             height,
-        ahash))
+            ahash))
         cursor = await self._conn.execute_query(query.get_sql())
         id_ = cursor.lastrowid
 
@@ -321,7 +322,8 @@ class Db:
         else:
             query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
         query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
-        await self._conn.execute_query_many(query, [(id_, json.dumps(value)) for id_, value in zip(images_ids_or_sha1, values)])
+        await self._conn.execute_query_many(query, [(id_, json.dumps(value)) for id_, value in
+                                                    zip(images_ids_or_sha1, values)])
 
     async def set_computed_value(self, sha1: str, ahash: str, vector: np.array):
         t = Table('computed_values')
@@ -408,3 +410,20 @@ class Db:
                 """
         await self._conn.execute_query(query, (params.name, json.dumps(params.base), json.dumps(params.functions)))
         return params
+
+    async def get_actions(self):
+        query = "SELECT * FROM actions"
+        cursor = await self._conn.execute_query(query)
+        rows = await cursor.fetchall()
+        if rows:
+            return [ActionUpdate(**auto_dict(r, cursor)) for r in rows]
+        return []
+
+    async def set_action(self, update: ActionUpdate):
+        print('update', update)
+        query = f"""
+                    INSERT OR REPLACE INTO actions (name, function)
+                    VALUES (?, ?);
+                """
+        await self._conn.execute_query(query, (update.name, update.function))
+        return update

@@ -51,6 +51,7 @@ function applyLocalDefaults() {
 }
 
 onMounted(updateLocalDefaults)
+watch(() => props.plugin, updateLocalDefaults)
 // watch(actions, () => console.log('lala'))
 
 </script>

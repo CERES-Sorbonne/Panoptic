@@ -202,6 +202,11 @@ class ActionDescription(CamelModel):
     available_functions: List[str] = []
 
 
+class ActionUpdate(CamelModel):
+    name: str
+    function: str
+
+
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
 # Properties: TypeAlias = dict[int, Property]

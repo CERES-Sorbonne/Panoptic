@@ -136,6 +136,16 @@ def create_plugin_defaults_table():
     return query
 
 
+def create_actions_table():
+    query = """
+    CREATE TABLE actions (
+        name TEXT PRIMARY KEY,
+        function TEXT NOT NULL
+    );
+    """
+    return query
+
+
 tables = {
     'folders': create_folders_table(),
     'tabs': create_tabs_table(),
@@ -146,5 +156,6 @@ tables = {
     'tags': create_tags_table(),
     'panoptic': create_panoptic_table(),
     'vectors': create_vectors_table(),
-    'plugin_defaults': create_plugin_defaults_table()
+    'plugin_defaults': create_plugin_defaults_table(),
+    'actions': create_actions_table()
 }
