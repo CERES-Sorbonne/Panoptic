@@ -194,6 +194,12 @@ async def get_similar_images_route(context: ActionContext) -> list:
     return []
 
 
+@project_router.get('/actions_description')
+async def get_actions_description_route():
+    res = project.action.get_actions_description()
+    return res
+
+
 @project_router.get('/plugins_info')
 async def get_plugins():
     res = await project.plugins_info()

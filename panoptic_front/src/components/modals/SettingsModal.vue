@@ -6,11 +6,12 @@ import { onMounted, ref } from 'vue';
 import { apiGetPluginsInfo } from '@/data/api';
 import PluginSettings from '../PluginSettings.vue';
 import { useProjectStore } from '@/data/projectStore';
+import ActionSettings from '../ActionSettings.vue';
 
 const project = useProjectStore()
 
 const categories = ref(['general', 'plugins'])
-const category = ref(categories.value[1])
+const category = ref(categories.value[0])
 
 const selectedPlugin = ref('')
 
@@ -30,7 +31,7 @@ async function updatePluginInfo() {
                     <TabMenu :options="categories" v-model="category" class="w-100" />
                 </div>
                 <div v-if="category == 'general'">
-
+                    <ActionSettings :actions="project.actions"/>
                 </div>
                 <div v-if="category == 'plugins' && selectedPlugin">
                     <TabMenu :options="project.data.plugins.map(info => info.name)" v-model="selectedPlugin" />

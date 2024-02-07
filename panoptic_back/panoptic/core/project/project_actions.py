@@ -2,7 +2,7 @@ import inspect
 from pathlib import Path
 from typing import Any, List
 
-from panoptic.models import ActionContext, FunctionDescription, ParamDescription
+from panoptic.models import ActionContext, FunctionDescription, ParamDescription, ActionDescription
 from panoptic.plugin import Plugin
 from panoptic.utils import AsyncCallable, to_str_type
 
@@ -36,13 +36,13 @@ def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
             for t in types if types[t] in possible_inputs]
 
 
-def get_registered_function_description(function: AsyncCallable, action_name: str):
+def get_registered_function_description(function_id: str, function: AsyncCallable, action_name: str):
     name = function.__name__
     description = function.__doc__
     if description and '@' in description:
         description = description[0: description.index('@')]
     params = get_params_description(function)
-    return FunctionDescription(name=name, description=description, action=action_name, params=params)
+    return FunctionDescription(id=function_id, name=name, description=description, action=action_name, params=params)
 
 
 # def verify_dependencies(f: AsyncCallable, required: List):
@@ -87,7 +87,8 @@ class ProjectAction:
         action = Action(source=source, function=function, id_=id_)
         self._possible_actions.append(action)
 
-        function_description = get_registered_function_description(function, self.name)
+        function_id = f'{source.name}.{function.__name__}'
+        function_description = get_registered_function_description(function_id, function, self.name)
         source.registered_functions.append(function_description)
         if not self.can_call():
             self._selected_action = 0
@@ -95,6 +96,11 @@ class ProjectAction:
     async def call(self, context: ActionContext):
         action = self._possible_actions[self._selected_action]
         return await action.call(context, **context.ui_inputs)
+
+    def get_description(self):
+        selected = self._possible_actions[self._selected_action].id if self.can_call() else None
+        available = [a.id for a in self._possible_actions]
+        return ActionDescription(name=self.name, selected_function=selected, available_functions=available)
 
 
 class ProjectActions:
@@ -106,3 +112,9 @@ class ProjectActions:
         self.action_group = ProjectAction('action_group')
         self.import_properties = ProjectAction('import')
         self.export_properties = ProjectAction('export')
+
+    def get_actions_description(self):
+        actions = [self.find_images, self.group_images, self.filter_images, self.action_images, self.action_group,
+                   self.import_properties, self.export_properties]
+        return [a.get_description() for a in actions]
+

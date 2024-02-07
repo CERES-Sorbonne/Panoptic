@@ -317,6 +317,7 @@ export interface ParamDescription {
 }
 
 export interface FunctionDescription {
+    id: string
     name: string
     description: string | null
     action: string
@@ -342,4 +343,11 @@ export interface PluginDefaultParams {
     name: string
     base: {[param:string]: any}
     functions: {[func: string]: {[param: string]: any}}
+}
+
+// ============= Actions ==============
+export interface ActionDescription {
+    name: string
+    selectedFunction?: string
+    availableFunctions?: string[]
 }

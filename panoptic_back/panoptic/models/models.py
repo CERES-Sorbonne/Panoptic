@@ -167,6 +167,7 @@ class ParamDescription(CamelModel):
 
 
 class FunctionDescription(CamelModel):
+    id: str
     name: str
     description: str | None
     action: str
@@ -188,11 +189,17 @@ class PluginDefaultParams(BaseModel):
 
 class PluginDescription(CamelModel):
     name: str
-    description: str
+    description: str | None
     path: str
     base_params: PluginBaseParamsDescription
     registered_functions: List[FunctionDescription] = []
     defaults: PluginDefaultParams
+
+
+class ActionDescription(CamelModel):
+    name: str
+    selected_function: str | None
+    available_functions: List[str] = []
 
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
