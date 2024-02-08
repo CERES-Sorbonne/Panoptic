@@ -9,7 +9,8 @@ from pypika import Table, Parameter, PostgreSQLQuery
 
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import auto_dict
-from panoptic.models import PropertyValue, Instance, ComputedValue, Vector, PluginDefaultParams, ActionUpdate
+from panoptic.models import PropertyValue, Instance, ComputedValue, Vector, PluginDefaultParams, ActionParam, \
+    VectorDescription
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -342,27 +343,6 @@ class Db:
         query = "VACUUM"
         await self._conn.execute_query(query)
 
-    async def get_sha1_ahashs(self, sha1s: list[str] = None):
-        t = Table('computed_values')
-        query = Query.from_(t).select('sha1', 'ahash')
-        if sha1s:
-            query = query.where(t.sha1.isin(sha1s))
-        cursor = await self._conn.execute_query(query.get_sql())
-        rows = await cursor.fetchall()
-        res = {row[0]: row[1] for row in rows}
-        return res
-
-    async def get_sha1_computed_values(self, sha1s: list[str] = None):
-        t = Table('computed_values')
-        # select query should be in same order as the dataclass model properties
-        query = Query.from_(t).select('sha1', 'ahash', 'vector')
-        if sha1s:
-            query = query.where(t.sha1.isin(sha1s))
-        cursor = await self._conn.execute_query(query.get_sql())
-        rows = await cursor.fetchall()
-        res = [ComputedValue(*row) for row in rows]
-        return res
-
     async def add_vector(self, vector: Vector):
         query = f"""
             INSERT OR REPLACE INTO vectors (source, type, sha1, data)
@@ -393,6 +373,18 @@ class Db:
             return True
         return False
 
+    async def get_vector_descriptions(self):
+        query = """ 
+        SELECT source, type, count(sha1) as count
+        FROM vectors
+        GROUP BY source, type;
+        """
+        cursor = await self._conn.execute_query(query)
+        rows = await cursor.fetchall()
+        if rows:
+            return [VectorDescription(**auto_dict(r, cursor)) for r in rows]
+        return []
+
     async def get_plugin_default_params(self, plugin_name: str):
         t = Table('plugin_defaults')
         query = Query.from_(t).select('name', 'base', 'functions')
@@ -411,19 +403,27 @@ class Db:
         await self._conn.execute_query(query, (params.name, json.dumps(params.base), json.dumps(params.functions)))
         return params
 
-    async def get_actions(self):
-        query = "SELECT * FROM actions"
+    async def get_action_params(self):
+        query = "SELECT * FROM action_params"
         cursor = await self._conn.execute_query(query)
         rows = await cursor.fetchall()
         if rows:
-            return [ActionUpdate(**auto_dict(r, cursor)) for r in rows]
+            return [ActionParam(**auto_dict(r, cursor)) for r in rows]
         return []
 
-    async def set_action(self, update: ActionUpdate):
+    async def get_action_param(self, name: str):
+        query = "SELECT * FROM action_params WHERE name=?"
+        cursor = await self._conn.execute_query(query, (name,))
+        row = await cursor.fetchone()
+        if row:
+            return ActionParam(**auto_dict(row, cursor))
+        return None
+
+    async def set_action_param(self, update: ActionParam):
         print('update', update)
         query = f"""
-                    INSERT OR REPLACE INTO actions (name, function)
+                    INSERT OR REPLACE INTO action_params (name, value)
                     VALUES (?, ?);
                 """
-        await self._conn.execute_query(query, (update.name, update.function))
+        await self._conn.execute_query(query, (update.name, update.value))
         return update

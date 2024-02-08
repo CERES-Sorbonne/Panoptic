@@ -7,17 +7,10 @@ from panoptic.models import ActionContext
 from panoptic.plugin import Plugin
 
 
-class TestParams(BaseModel):
-    eau: str = None
-    terre: int = 0
-    feu: float = 2.4
-    air: Path = None
-
-
 class TestPlugin2(Plugin):
     def __init__(self, project: Project, plugin_path: str):
         super().__init__(name='TestPlugin2', project=project, plugin_path=plugin_path)
-        self.params = TestParams()
+        # self.params = TestParams()
 
         self.project.action.group_images.register(self, self.firefly)
         self.project.action.group_images.register(self, self.earthquake)
