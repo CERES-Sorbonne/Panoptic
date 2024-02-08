@@ -6,7 +6,7 @@ from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, PropertyValue, Instance, Tags, Tag, \
-    TagUpdate, Vector, PluginDefaultParams
+    TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions
 
 
 class ProjectDb:
@@ -115,7 +115,7 @@ class ProjectDb:
         if ids:
             sha1s_values = await self._db.get_property_values(sha1s=sha1s)
             property_values += sha1s_values
-        ahashs = await self._db.get_sha1_ahashs(sha1s=sha1s)
+
         image_index = {img.id: img for img in images}
 
         def assign_value(prop_value):
@@ -141,7 +141,6 @@ class ProjectDb:
         [assign_sha1_value(img.id, prop_value) for img in images if img.sha1 in sha1_properties for prop_value in
          sha1_properties[img.sha1]]
 
-        [setattr(img, 'ahash', ahashs[img.sha1]) for img in images if img.sha1 in ahashs]
         return images
 
     async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
@@ -234,13 +233,27 @@ class ProjectDb:
         return await self._db.get_vectors(source, type_, sha1s)
 
     async def get_default_vectors(self, sha1s: List[str] = None):
-        return await self._db.get_vectors('Faiss', 'clip', sha1s)
+        default = await self._db.get_action_param('get_vectors')
+        if not default:
+            raise Exception('No default vectors set. Make sure vectors are computed')
+        default = VectorDescription(**json.loads(default.value))
+        return await self._db.get_vectors(default.source, default.type, sha1s)
 
     async def add_vector(self, vector: Vector):
         return await self._db.add_vector(vector)
 
     async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
         return await self._db.vector_exist(source, type_, sha1)
+
+    async def set_default_vectors(self, vector: VectorDescription):
+        await self._db.set_action_param(ActionParam(name='get_vectors', value=json.dumps(vector.json())))
+
+    async def get_vectors_info(self):
+        vectors = await self._db.get_vector_descriptions()
+        default = await self._db.get_action_param('get_vectors')
+        if default:
+            default = VectorDescription(**json.loads(default.value))
+        return ProjectVectorDescriptions(vectors=vectors, default_vectors=default)
 
     # ============ Plugins =============
     async def set_plugin_default_params(self, params: PluginDefaultParams):

@@ -108,6 +108,17 @@ class Vector:
     data: numpy.ndarray
 
 
+class VectorDescription(CamelModel):
+    source: str
+    type: str
+    count: int | None
+
+
+class ProjectVectorDescriptions(CamelModel):
+    vectors: list[VectorDescription] = []
+    default_vectors: VectorDescription | None
+
+
 class Parameters(BaseModel):
     folders: list[str]
     tabs: list[dict]
@@ -202,9 +213,9 @@ class ActionDescription(CamelModel):
     available_functions: List[str] = []
 
 
-class ActionUpdate(CamelModel):
+class ActionParam(CamelModel):
     name: str
-    function: str
+    value: str
 
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]

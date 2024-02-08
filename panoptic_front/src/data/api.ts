@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, ActionDescription, ActionUpdate, DirInfo, ImageIndex, PluginDefaultParams, PluginDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag } from './models'
+import { ActionContext, ActionDescription, ActionParam, DirInfo, ImageIndex, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag, VectorDescription } from './models'
 import { SelectionStatus } from './panopticStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -249,8 +249,18 @@ export async function apiGetActions() {
     return res.data as ActionDescription[]
 }
 
-export async function apiSetActions(actionUpdates: ActionUpdate[]) {
+export async function apiSetActions(actionUpdates: ActionParam[]) {
     console.log(actionUpdates)
     let res = await axios.post('/actions_functions', {updates: actionUpdates})
     return res.data as ActionDescription[]
+}
+
+export async function apiGetVectorInfo() {
+    let res = await axios.get('/vectors_info')
+    return res.data as ProjectVectorDescription
+}
+
+export async function apiSetDefaultVector(vector: VectorDescription) {
+    let res = await axios.post('/default_vectors', vector)
+    return res.data as ProjectVectorDescription
 }

@@ -352,7 +352,20 @@ export interface ActionDescription {
     availableFunctions?: string[]
 }
 
-export interface ActionUpdate {
+export interface ActionParam {
     name: string
-    function: string
+    value: string
+}
+
+
+// ========== Vectors ===============
+export interface VectorDescription {
+    source: string
+    type: string
+    count?: number
+}
+
+export interface ProjectVectorDescription {
+    vectors: VectorDescription[]
+    defaultVectors: VectorDescription
 }

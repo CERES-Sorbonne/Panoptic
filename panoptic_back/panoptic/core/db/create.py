@@ -138,9 +138,9 @@ def create_plugin_defaults_table():
 
 def create_actions_table():
     query = """
-    CREATE TABLE actions (
+    CREATE TABLE action_params (
         name TEXT PRIMARY KEY,
-        function TEXT NOT NULL
+        value TEXT NOT NULL
     );
     """
     return query
@@ -151,11 +151,10 @@ tables = {
     'tabs': create_tabs_table(),
     'properties': create_properties_table(),
     'images': create_images_table(),
-    'computed_values': create_computed_values_table(),
     'property_values': create_property_values_table(),
     'tags': create_tags_table(),
     'panoptic': create_panoptic_table(),
     'vectors': create_vectors_table(),
     'plugin_defaults': create_plugin_defaults_table(),
-    'actions': create_actions_table()
+    'action_params': create_actions_table()
 }

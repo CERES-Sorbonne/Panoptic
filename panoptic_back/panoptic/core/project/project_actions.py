@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, List
 
-from panoptic.models import ActionContext, FunctionDescription, ParamDescription, ActionDescription, ActionUpdate
+from panoptic.models import ActionContext, FunctionDescription, ParamDescription, ActionDescription, ActionParam
 from panoptic.plugin import Plugin
 from panoptic.utils import AsyncCallable, to_str_type
 
@@ -128,9 +128,9 @@ class ProjectActions:
     def get_actions_description(self):
         return [a.get_description() for a in self.actions.values()]
 
-    def set_action_function(self, action_name: str, function_id: str):
+    def _set_action_function(self, action_name: str, function_id: str):
         action = self.actions[action_name]
         action.select_function(function_id)
 
-    def set_action_updates(self, action_updates: List[ActionUpdate]):
-        [self.set_action_function(update.name, update.function) for update in action_updates]
+    def set_action_functions(self, actions: List[ActionParam]):
+        [self._set_action_function(action.name, action.value) for action in actions if action.name in self.actions]

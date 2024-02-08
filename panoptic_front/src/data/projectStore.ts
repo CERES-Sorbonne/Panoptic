@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ActionDescription, ActionUpdate, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex } from "./models";
+import { ActionDescription, ActionParam, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions, apiSetActions } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions, apiSetActions, apiGetVectorInfo, apiSetDefaultVector } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -26,7 +26,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         tabs: {} as TabIndex,
         selectedTabId: undefined as number,
         folders: {} as FolderIndex,
-        plugins: [] as PluginDescription[]
+        plugins: [] as PluginDescription[],
+        vectors: {} as ProjectVectorDescription
     })
 
     const status = reactive({
@@ -68,6 +69,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         let folders = await apiGetFolders()
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
+        let vectors = await apiGetVectorInfo()
 
         properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: PropertyMode.computed }
@@ -105,6 +107,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         // console.log('UI Version:', softwareUiVersion)
 
         data.plugins = plugins
+        data.vectors = vectors
         actions.value = apiActions
         status.loaded = true
 
@@ -444,8 +447,12 @@ export const useProjectStore = defineStore('projectStore', () => {
         plugin.defaults = updated
     }
 
-    async function setActionFunctions(updates: ActionUpdate[]) {
+    async function setActionFunctions(updates: ActionParam[]) {
         actions.value = await apiSetActions(updates)
+    }
+
+    async function setDefaultVectors(vector: VectorDescription) {
+        data.vectors = await apiSetDefaultVector(vector)
     }
 
     return {
@@ -463,6 +470,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginDefaults,
         actions, setActionFunctions,
+        setDefaultVectors,
         backendStatus
     }
 
