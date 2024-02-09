@@ -197,5 +197,14 @@
         "add_images_folder": "Ajouter un dossier d'images",
         "open_panoptic": "Lancer Panoptic"
     },
+    "action": {
+        "find_similar": "Similaire",
+        "group": "Grouper",
+        "filter": "Filtrer",
+        "action_images": "Action Images",
+        "action_group": "Action Groupes",
+        "import": "Importer",
+        "export": "Exporter"
+    },
     "tmp": "Tooltip to be written"
 }

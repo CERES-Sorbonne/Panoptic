@@ -299,14 +299,6 @@ export const DateUnitFactor = {
 
 }
 
-export interface ActionContext {
-    instanceIds?: number[]
-    propertyIds?: number[]
-    file?: string
-    text?: string
-    uiInputs?: { [key: string]: any }
-}
-
 
 // ================== Plugins ==================
 
@@ -357,6 +349,18 @@ export interface ActionParam {
     value: string
 }
 
+export interface ActionContext {
+    instanceIds?: number[]
+    propertyIds?: number[]
+    file?: string
+    text?: string
+    uiInputs?: { [key: string]: any }
+}
+
+export interface ExecuteActionPayload {
+    action: string
+    context: ActionContext
+}
 
 // ========== Vectors ===============
 export interface VectorDescription {

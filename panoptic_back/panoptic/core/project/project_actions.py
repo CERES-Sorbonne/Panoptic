@@ -1,7 +1,7 @@
 import inspect
 import logging
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Dict
 
 from panoptic.models import ActionContext, FunctionDescription, ParamDescription, ActionDescription, ActionParam
 from panoptic.plugin import Plugin
@@ -123,7 +123,7 @@ class ProjectActions:
 
         action_list = [self.find_images, self.group_images, self.filter_images, self.action_images, self.action_group,
                        self.import_properties, self.export_properties]
-        self.actions = {a.name: a for a in action_list}
+        self.actions: Dict[str, ProjectAction] = {a.name: a for a in action_list}
 
     def get_actions_description(self):
         return [a.get_description() for a in self.actions.values()]

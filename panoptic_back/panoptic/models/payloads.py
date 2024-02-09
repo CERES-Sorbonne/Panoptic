@@ -4,7 +4,7 @@ from typing import Any, List
 
 from fastapi_camelcase import CamelModel
 
-from .models import PropertyType, ActionParam
+from .models import PropertyType, ActionParam, ActionContext
 
 
 class ImagePayload(CamelModel):
@@ -85,3 +85,8 @@ class StrPayload(CamelModel):
 
 class UpdateActionsPayload(CamelModel):
     updates: list[ActionParam]
+
+
+class ExecuteActionPayload(CamelModel):
+    action: str
+    context: ActionContext
