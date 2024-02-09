@@ -58,7 +58,7 @@ watch(defaultActionFunction, loadInput)
         <div @click="call">{{ $t('action.' + props.action) }}</div>
         <Dropdown :teleport="true">
             <template #button>
-                <div class="sep"><i class="bi bi-chevron-down"></i></div>
+                <div class="sep base-hover"><i class="bi bi-chevron-down"></i></div>
             </template>
             <template #popup="{hide}">
                 <div class="p-2">
@@ -81,16 +81,14 @@ watch(defaultActionFunction, loadInput)
 .main {
     border: 2px solid var(--border-color);
     border-radius: 3px;
-    padding: 1px 3px;
+    padding: 1px 0px 1px 3px;
     cursor: pointer;
 }
 
 .sep {
-    margin-left: 2px;
+    padding-left: 2px;
+    padding-right: 2px;
+    /* background-color: aqua; */
     /* border-left: 1px solid var(--border-color); */
-}
-
-.sep:hover {
-    color: blue;
 }
 </style>
