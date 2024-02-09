@@ -12,7 +12,8 @@ from panoptic.core.project.project import Project
 from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
-    TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription
+    TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
+    ExecuteActionPayload
 
 project_router = APIRouter()
 
@@ -206,6 +207,12 @@ async def set_actions_update_route(actions_update: UpdateActionsPayload):
     return await get_actions_description_route()
 
 
+@project_router.post('/action_execute')
+async def execute_action_route(req: ExecuteActionPayload):
+    res = await project.action.actions[req.action].call(req.context)
+    return res
+
+
 @project_router.get('/plugins_info')
 async def get_plugins():
     res = await project.plugins_info()
@@ -228,6 +235,8 @@ async def get_vectors_info():
 async def set_default_vectors(vector_description: VectorDescription):
     await project.db.set_default_vectors(vector_description)
     return await get_vectors_info()
+
+
 #
 # @project_router.post("/similar/text")
 # async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:

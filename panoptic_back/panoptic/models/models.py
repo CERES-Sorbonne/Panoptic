@@ -167,7 +167,7 @@ class ActionContext(CamelModel):
     property_ids: List[int] | None
     file: str | None
     text: str | None
-    ui_inputs: Dict[str, int | str] = {}
+    ui_inputs: Dict[str, Any] = {}
 
 
 class ParamDescription(CamelModel):

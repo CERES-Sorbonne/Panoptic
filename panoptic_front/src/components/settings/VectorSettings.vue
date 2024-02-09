@@ -36,7 +36,7 @@ watch(project.data.plugins, load)
         <div v-if="localVectors" class="d-flex p-2">
             <div class="me-2">Default Vectors</div>
             <select v-model="localVectors.defaultVectors">
-                <option v-for="v in localVectors.vectors" :value="v">{{ v.source }}.{{ v.type }}</option>
+                <option v-for="v in localVectors.vectors" :value="v">{{ v.source }}.{{ v.type }} ({{ v.count }})</option>
             </select>
         </div>
         <div v-if="changed" class="d-flex changed">

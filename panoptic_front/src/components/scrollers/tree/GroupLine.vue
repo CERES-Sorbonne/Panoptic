@@ -10,6 +10,7 @@ import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup 
 import { GroupLine } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { computeMLGroups } from '@/utils/utils'
+import ActionButton from '@/components/actions/ActionButton.vue'
 
 const store = useProjectStore()
 
@@ -47,9 +48,28 @@ const groupName = computed(() => {
 
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
-async function computeClusters() {
-    const instanceIds = images.value.map(i => i.id)
-    let mlGroups = await computeMLGroups({instanceIds, uiInputs: {nb_clusters: props.item.nbClusters}})
+// async function computeClusters() {
+//     const instanceIds = images.value.map(i => i.id)
+//     let mlGroups = await computeMLGroups({instanceIds, uiInputs: {nb_clusters: props.item.nbClusters}})
+//     let distances = mlGroups.distances
+//     mlGroups = mlGroups.clusters
+
+//     let groups = []
+//     for (let [index, sha1s] of mlGroups.entries()) {
+//         let images = []
+//         sha1s.forEach(sha1 => images.push(...store.data.sha1Index[sha1]))
+
+//         const cluster = buildGroup('cluster:' + String(index) + ':' + props.item.id, images, GroupType.Cluster)
+//         cluster.meta.score = distances[index]
+
+//         groups.push(cluster)
+//     }
+//     props.manager.addCustomGroups(group.value.id, groups, true)
+// }
+
+async function addClusters(mlGroups) {
+    // const instanceIds = images.value.map(i => i.id)
+    // let mlGroups = await computeMLGroups({instanceIds, uiInputs: {nb_clusters: props.item.nbClusters}})
     let distances = mlGroups.distances
     mlGroups = mlGroups.clusters
 
@@ -59,7 +79,7 @@ async function computeClusters() {
         sha1s.forEach(sha1 => images.push(...store.data.sha1Index[sha1]))
 
         const cluster = buildGroup('cluster:' + String(index) + ':' + props.item.id, images, GroupType.Cluster)
-        cluster.meta.score = distances[index]
+        cluster.meta.score = Math.round(distances[index])
 
         groups.push(cluster)
     }
@@ -129,9 +149,10 @@ function closeChildren() {
                 <StampDropdown :images="images" />
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
-                <wTT message="main.view.group_clusters_tooltip">
+                <!-- <wTT message="main.view.group_clusters_tooltip">
                     <ClusterButton v-model="props.item.nbClusters" @click="computeClusters" />
-                </wTT>
+                </wTT> -->
+                <ActionButton action="group" :image-ids="images.map(i => i.id)" style="font-size: 10px;" @result="addClusters"/>
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 

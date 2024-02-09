@@ -48,7 +48,7 @@ class FaissPlugin(Plugin):
         """
         instances = await self.project.db.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
-
+        print(len(sha1s), nb_clusters)
         if not sha1s:
             return []
 
