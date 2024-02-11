@@ -182,11 +182,6 @@ async def delete_tab_route(tab_id: int):
     return await project.ui.delete_tab(tab_id)
 
 
-@project_router.post("/clusters")
-async def make_clusters_route(context: ActionContext) -> Clusters:
-    return await project.action.group_images.call(context)
-
-
 @project_router.post("/similar/image")
 async def get_similar_images_route(context: ActionContext) -> list:
     res = await project.action.find_images.call(context)

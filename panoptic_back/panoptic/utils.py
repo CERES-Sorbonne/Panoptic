@@ -2,11 +2,11 @@ import asyncio
 import os
 import pathlib
 import sys
-from typing import List, Any, Callable, Awaitable
+from typing import List, Any, Callable, Awaitable, Dict
 
 from pydantic import BaseModel
 
-from panoptic.models import ParamDescription
+from panoptic.models import ParamDescription, Instance
 
 
 def get_datadir() -> pathlib.Path:
@@ -114,4 +114,13 @@ def get_model_params_description(model: BaseModel):
         description = get_param_comment_from_model(model, field_name)
         res.append(ParamDescription(name=field_name, description=description, type=to_str_type(field_type),
                                     default_value=default_value))
+    return res
+
+
+def group_by_sha1(instances: List[Instance]):
+    res: Dict[str, List[Instance]] = {}
+    for i in instances:
+        if i.sha1 not in res:
+            res[i.sha1] = []
+        res[i.sha1].append(i)
     return res
