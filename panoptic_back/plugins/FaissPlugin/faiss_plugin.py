@@ -4,7 +4,9 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import Instance, ActionContext, Clusters
+from panoptic.models.results import GroupResult, Group
 from panoptic.plugin import Plugin
+from panoptic.utils import group_by_sha1
 from .compute import reload_tree, get_similar_images, make_clusters
 
 from .compute_vector_task import ComputeVectorTask
@@ -47,14 +49,17 @@ class FaissPlugin(Plugin):
         @nb_clusters: requested number of clusters
         """
         instances = await self.project.db.get_instances(context.instance_ids)
-        sha1s = [i.sha1 for i in instances]
-        print(len(sha1s), nb_clusters)
+        sha1_to_instance = group_by_sha1(instances)
+        sha1s = list(sha1_to_instance.keys())
         if not sha1s:
             return []
 
         vectors = await self.project.db.get_default_vectors(sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
-        return Clusters(clusters=clusters, distances=distances)
+
+        groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
+                  cluster, distance in zip(clusters, distances)]
+        return GroupResult(groups=groups)
 
     async def test_function(self, context: ActionContext, int_value: int, float_value: float, str_value: str,
                             bool_value: bool, path_value: Path):
