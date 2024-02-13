@@ -362,6 +362,15 @@ export interface ExecuteActionPayload {
     context: ActionContext
 }
 
+export interface InstanceMatch {
+    id: number;
+    score: number;
+}
+
+export interface SearchResult {
+    matches: InstanceMatch[];
+}
+
 // ========== Vectors ===============
 export interface VectorDescription {
     source: string

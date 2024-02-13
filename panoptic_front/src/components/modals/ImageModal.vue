@@ -6,15 +6,8 @@ import { useProjectStore } from '@/data/projectStore';
 import CenteredImage from '../images/CenteredImage.vue';
 import ImagePropertyCol from './image/ImagePropertyCol.vue';
 import { GroupManager, ImageIterator } from '@/core/GroupManager';
-import TreeScroller from '../scrollers/tree/TreeScroller.vue';
-import { getSimilarImages } from '@/utils/utils';
-import SelectionStamp from '../selection/SelectionStamp.vue';
-import RangeInput from '../inputs/RangeInput.vue';
-import SelectCircle from '../inputs/SelectCircle.vue';
-import Similarity from './image/Similarity.vue';
 import MiddleCol from './image/MiddleCol.vue';
 import { usePanopticStore } from '@/data/panopticStore';
-import { props } from '../Scroller/src/components/common';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()

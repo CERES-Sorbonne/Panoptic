@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
-import { Image } from '@/data/models';
+import { Image, SearchResult } from '@/data/models';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import RangeInput from '@/components/inputs/RangeInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { getSimilarImages } from '@/utils/utils';
 import { useProjectStore } from '@/data/projectStore';
+import { apiGetSimilarImages } from '@/data/api';
 const project = useProjectStore()
 
 const props = defineProps<{
@@ -22,7 +22,7 @@ similarGroup.setSha1Mode(true)
 
 
 const scrollerElem = ref(null)
-const similarImages = ref([])
+const search = ref<SearchResult>(null)
 const minSimilarityDist = ref(80)
 const state = reactive({
     sha1Scores: {}
@@ -33,18 +33,19 @@ const properties = computed(() => Object.keys(props.visibleProperties).map(k => 
 async function setSimilar() {
     // if (modalMode.value != ImageModalMode.Similarity) return
 
-    const res = await getSimilarImages({instanceIds: [props.image.id]})
-    similarImages.value = res
+    const res = await apiGetSimilarImages({instanceIds: [props.image.id]})
+    search.value = res
     updateSimilarGroup()
 }
 
 function updateSimilarGroup() {
-    var filteredSha1s = similarImages.value.filter(i => i.dist >= (minSimilarityDist.value / 100.0))
+    if(!search.value) return
 
-    const images: Image[] = []
+    var matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
+
+    const images = matches.map(m => project.data.images[m.id])
     state.sha1Scores = {}
-    filteredSha1s.forEach(r => images.push(...project.data.sha1Index[r.sha1]))
-    filteredSha1s.forEach(r => state.sha1Scores[r.sha1] = r.dist)
+    matches.forEach(m => state.sha1Scores[project.data.images[m.id].sha1] = m.score)
 
     similarGroup.group(images)
 

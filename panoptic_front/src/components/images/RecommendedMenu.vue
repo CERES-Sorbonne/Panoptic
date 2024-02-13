@@ -6,7 +6,7 @@ import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
-import { getSimilarImages } from '@/utils/utils';
+import { apiGetSimilarImages } from '@/data/api';
 interface Sha1Pile {
     sha1: string
     images: Image[]
@@ -100,8 +100,8 @@ async function getReco() {
     if (!props.group) return
     console.log('get reco')
     const instanceIds = props.group.images.map(i => i.id)
-    let res = await getSimilarImages({instanceIds})
-    const resSha1s = res.map(r => r.sha1)
+    let res = await apiGetSimilarImages({instanceIds})
+    const resSha1s = Array.from(new Set(res.matches.map(r => store.data.images[r.id].sha1)))
 
     propertyValues.length = 0
     let current = props.group

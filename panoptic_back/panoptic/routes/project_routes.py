@@ -182,14 +182,6 @@ async def delete_tab_route(tab_id: int):
     return await project.ui.delete_tab(tab_id)
 
 
-@project_router.post("/similar/image")
-async def get_similar_images_route(context: ActionContext) -> list:
-    res = await project.action.find_images.call(context)
-    if res:
-        return res
-    return []
-
-
 @project_router.get('/actions_description')
 async def get_actions_description_route():
     res = project.action.get_actions_description()
