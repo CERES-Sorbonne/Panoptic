@@ -101,6 +101,7 @@ async function getReco() {
     console.log('get reco')
     const instanceIds = props.group.images.map(i => i.id)
     let res = await apiGetSimilarImages({instanceIds})
+    res.matches.sort((a, b) => b.score - a.score)
     const resSha1s = Array.from(new Set(res.matches.map(r => store.data.images[r.id].sha1)))
 
     propertyValues.length = 0
