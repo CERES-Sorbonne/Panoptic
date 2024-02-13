@@ -99,8 +99,8 @@ class ProjectDb:
         return updated_ids, value
 
     # ========== Instances / Images ==========
-    async def get_instances(self, ids: List[int] = None):
-        images = await self._db.get_instances(ids=ids)
+    async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None):
+        images = await self._db.get_instances(ids=ids, sha1s=sha1s)
         return images
 
     async def get_instances_with_properties(self, ids: List[int] = None, properties: List[int] = None) -> List[

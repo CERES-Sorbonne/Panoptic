@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import Instance, ActionContext, Clusters
-from panoptic.models.results import GroupResult, Group
+from panoptic.models.results import GroupResult, Group, InstanceMatch, SearchResult
 from panoptic.plugin import Plugin
 from panoptic.utils import group_by_sha1
 from .compute import reload_tree, get_similar_images, make_clusters
@@ -52,7 +52,7 @@ class FaissPlugin(Plugin):
         sha1_to_instance = group_by_sha1(instances)
         sha1s = list(sha1_to_instance.keys())
         if not sha1s:
-            return []
+            return None
 
         vectors = await self.project.db.get_default_vectors(sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
@@ -80,5 +80,9 @@ class FaissPlugin(Plugin):
         vectors = await self.project.db.get_default_vectors(sha1s)
         vector_datas = [x.data for x in vectors]
         res = get_similar_images(vector_datas)
-        res = [r for r in res if r['sha1'] not in sha1s]
-        return res
+        index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in sha1s}
+
+        res_sha1s = list(index.keys())
+        res_instances = await self.project.db.get_instances(sha1s=res_sha1s)
+        matches = [InstanceMatch(id=i.id, score=index[i.sha1]) for i in res_instances]
+        return SearchResult(matches=matches)

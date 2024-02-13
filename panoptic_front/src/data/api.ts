@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, ActionDescription, ActionParam, DirInfo, ExecuteActionPayload, ImageIndex, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, StatusUpdate, TabState, Tag, VectorDescription } from './models'
+import { ActionContext, ActionDescription, ActionParam, DirInfo, ExecuteActionPayload, ImageIndex, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
 import { SelectionStatus } from './panopticStore'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -139,8 +139,9 @@ export const apiGetStatusUpdate = async () => {
 }
 
 export const apiGetSimilarImages = async (context: ActionContext) => {
-    let res = await axios.post('/similar/image', context)
-    return res.data
+    let req: ExecuteActionPayload = {action: 'find_similar', context: context}
+    let res = await apiCallActions(req)
+    return res as SearchResult
 }
 
 export const apiGetSimilarImagesFromText = async (context: ActionContext) => {
@@ -209,16 +210,6 @@ export async function apiReImportFolder(folderId: number) {
     return res.data
 }
 
-export async function apiSetUiVersion(version: string) {
-    let res = await axios.post('/version/ui', { value: version })
-    return res.data
-}
-
-export async function apiGetUiVersion() {
-    let res = await axios.get('/version/ui')
-    return res.data as string
-}
-
 export async function apiGetPlugins() {
     let res = await axios.get('/plugins')
     return res.data as string[]
@@ -251,13 +242,13 @@ export async function apiGetActions() {
 
 export async function apiSetActions(actionUpdates: ActionParam[]) {
     console.log(actionUpdates)
-    let res = await axios.post('/actions_functions', {updates: actionUpdates})
+    let res = await axios.post('/actions_functions', { updates: actionUpdates })
     return res.data as ActionDescription[]
 }
 
 export async function apiCallActions(req: ExecuteActionPayload) {
     let res = await axios.post('/action_execute', req)
-    return res.data as ActionDescription[]
+    return res.data
 }
 
 export async function apiGetVectorInfo() {

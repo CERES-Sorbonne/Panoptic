@@ -14,6 +14,17 @@ class GroupResult:
     groups: list[Group]
 
 
+@dataclass(slots=True)
+class InstanceMatch:
+    id: int
+    score: float
+
+
+@dataclass(slots=True)
+class SearchResult:
+    matches: list[InstanceMatch]
+
+
 @dataclass
 class ActionError:
     type: str

@@ -179,11 +179,6 @@ export async function computeMLGroups(context: ActionContext) {
     return res
 }
 
-export async function getSimilarImages(context: ActionContext) {
-    const res = await apiGetSimilarImages(context)
-    return res
-}
-
 export async function getSimilarImagesFromText(context: ActionContext) {
     return await apiGetSimilarImagesFromText(context)
 }
