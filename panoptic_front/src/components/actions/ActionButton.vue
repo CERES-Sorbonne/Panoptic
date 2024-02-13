@@ -5,6 +5,7 @@ import { ActionContext, ExecuteActionPayload } from '@/data/models';
 import { apiCallActions } from '@/data/api';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
+import ActionSelect from './ActionSelect.vue';
 
 const project = useProjectStore()
 
@@ -18,10 +19,17 @@ const emits = defineEmits(['result'])
 // const localAction = ref(null)
 const localInputs = ref(null)
 
-const defaultActionFunction = computed(() => project.actions.find(a => a.name == props.action).selectedFunction)
+const defaultFunction = computed(() => project.actions.find(a => a.name == props.action).selectedFunction)
+const localFunction = ref(null)
+
+
+function loadAction() {
+    localFunction.value = defaultFunction.value
+    loadInput()
+}
 
 function loadInput() {
-    const funcId = defaultActionFunction.value
+    const funcId = localFunction.value
     if (!funcId) return
 
     const pluginName = funcId.split('.')[0]
@@ -44,23 +52,25 @@ async function call() {
     }
 
     const context: ActionContext = { instanceIds: props.imageIds, propertyIds: props.propertyIds, uiInputs }
-    const req: ExecuteActionPayload = { action: props.action, context: context }
+    const req: ExecuteActionPayload = { action: props.action, function: localFunction.value, context: context }
     const res = await apiCallActions(req)
     emits('result', res)
 }
 
-onMounted(loadInput)
-watch(defaultActionFunction, loadInput)
+onMounted(loadAction)
+watch(() => props.action, loadAction)
+watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div class="main d-flex">
+    <div class="main d-flex" v-if="localFunction">
         <div @click="call">{{ $t('action.' + props.action) }}</div>
         <Dropdown :teleport="true">
             <template #button>
                 <div class="sep base-hover"><i class="bi bi-chevron-down"></i></div>
             </template>
             <template #popup="{hide}">
+                <ActionSelect style="font-size: 10px; margin: 2px 2px 0 0;" class="text-end" v-model="localFunction" :action="props.action" /> 
                 <div class="p-2">
                     <div v-for="input in localInputs" class="mb-1">
                         <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name" />

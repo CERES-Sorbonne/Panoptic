@@ -34,6 +34,7 @@ async function setSimilar() {
     // if (modalMode.value != ImageModalMode.Similarity) return
 
     const res = await apiGetSimilarImages({instanceIds: [props.image.id]})
+    res.matches.sort((a, b) => b.score - a.score)
     search.value = res
     updateSimilarGroup()
 }

@@ -94,8 +94,11 @@ class ProjectAction:
         if not self.can_call():
             self._selected_action = 0
 
-    async def call(self, context: ActionContext):
-        action = self._possible_actions[self._selected_action]
+    async def call(self, context: ActionContext, function: str = None):
+        if function:
+            action = [a for a in self._possible_actions if a.id == function][0]
+        else:
+            action = self._possible_actions[self._selected_action]
         return await action.call(context, **context.ui_inputs)
 
     def select_function(self, function_id):

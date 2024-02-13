@@ -196,7 +196,7 @@ async def set_actions_update_route(actions_update: UpdateActionsPayload):
 
 @project_router.post('/action_execute')
 async def execute_action_route(req: ExecuteActionPayload):
-    res = await project.action.actions[req.action].call(req.context)
+    res = await project.action.actions[req.action].call(req.context, function=req.function)
     return res
 
 

@@ -89,4 +89,5 @@ class UpdateActionsPayload(CamelModel):
 
 class ExecuteActionPayload(CamelModel):
     action: str
+    function: str = None
     context: ActionContext
