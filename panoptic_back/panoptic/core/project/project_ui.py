@@ -1,9 +1,11 @@
 from panoptic.core.db.db import Db
+from panoptic.models import UpdateCounter
 
 
 class ProjectUi:
     def __init__(self, db: Db):
         self._db = db
+        self.update_counter = UpdateCounter()
 
     async def get_tabs(self):
         return await self._db.get_tabs()

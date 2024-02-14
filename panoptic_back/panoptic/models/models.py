@@ -141,9 +141,12 @@ class PathRequest(BaseModel):
     path: str
 
 
+class UpdateCounter:
+    action: int = 0
+
+
 class StatusUpdate(CamelModel):
     tasks: List[TaskState] = []
-    # updated_images: List[Instance] = []
     plugin_loaded = False
 
 

@@ -60,6 +60,7 @@ async function call() {
 onMounted(loadAction)
 watch(() => props.action, loadAction)
 watch(localFunction, loadInput)
+watch(() => project.actions, loadAction)
 </script>
 
 <template>
