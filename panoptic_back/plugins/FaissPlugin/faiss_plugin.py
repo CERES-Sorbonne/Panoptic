@@ -3,12 +3,11 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
-from panoptic.models import Instance, ActionContext, Clusters
+from panoptic.models import Instance, ActionContext
 from panoptic.models.results import GroupResult, Group, InstanceMatch, SearchResult
 from panoptic.plugin import Plugin
 from panoptic.utils import group_by_sha1
 from .compute import reload_tree, get_similar_images, make_clusters
-
 from .compute_vector_task import ComputeVectorTask
 
 
@@ -54,7 +53,7 @@ class FaissPlugin(Plugin):
         if not sha1s:
             return None
 
-        vectors = await self.project.db.get_default_vectors(sha1s)
+        vectors = await self.project.db.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
 
         groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
@@ -68,16 +67,10 @@ class FaissPlugin(Plugin):
         """
         print(int_value, float_value, str_value, bool_value, path_value)
 
-    # if not sha1s:
-    #         return []
-    #     values = await db.get_sha1_computed_values(sha1s)
-    #     clusters, distances = compute.make_clusters(values, method="kmeans", nb_clusters=sensibility)
-    #     return Clusters(clusters=clusters, distances=distances)
-
     async def find_images(self, context: ActionContext):
         instances = await self.project.db.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
-        vectors = await self.project.db.get_default_vectors(sha1s)
+        vectors = await self.project.db.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
         vector_datas = [x.data for x in vectors]
         res = get_similar_images(vector_datas)
         index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in sha1s}

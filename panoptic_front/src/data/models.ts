@@ -359,7 +359,7 @@ export interface ActionContext {
 
 export interface ExecuteActionPayload {
     action: string
-    function: string
+    function?: string
     context: ActionContext
 }
 

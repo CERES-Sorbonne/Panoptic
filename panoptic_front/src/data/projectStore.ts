@@ -71,13 +71,13 @@ export const useProjectStore = defineStore('projectStore', () => {
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
 
-        properties[PropertyID.id] = {id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed}
+        properties[PropertyID.id] = { id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed }
         properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: PropertyMode.computed }
         properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: PropertyMode.computed }
         properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: PropertyMode.computed }
         properties[PropertyID.width] = { id: PropertyID.width, name: 'width', type: PropertyType._width, mode: PropertyMode.computed }
         properties[PropertyID.height] = { id: PropertyID.height, name: 'height', type: PropertyType._height, mode: PropertyMode.computed }
-       
+
 
         data.properties = properties
         objValues(images).forEach((i) => importImage(i))
@@ -152,8 +152,20 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
     }
 
-    function applyStatusUpdate(update: StatusUpdate) {
+    async function applyStatusUpdate(update: StatusUpdate) {
+        const newLoaded = backendStatus.value && !backendStatus.value.pluginLoaded && update.pluginLoaded
         backendStatus.value = update
+
+        if (newLoaded) {
+            await updateActions()
+        }
+    }
+
+    async function updateActions() {
+        let plugins = await apiGetPluginsInfo()
+        let apiActions = await apiGetActions()
+        data.plugins = plugins
+        actions.value = apiActions
     }
 
     function getTab() {

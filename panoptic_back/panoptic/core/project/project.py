@@ -60,7 +60,7 @@ class Project:
         self.on.import_instance.emit(x)
 
     def get_status_update(self) -> StatusUpdate:
-        res = StatusUpdate()
+        res = StatusUpdate(update=self.ui.update_counter)
         res.tasks = self.task_queue.get_task_states()
         res.plugin_loaded = self.plugin_loaded
         return res
