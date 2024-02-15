@@ -236,7 +236,7 @@ function defaultOperator(propertyType: PropertyType) {
 
         case PropertyType.multi_tags:
         case PropertyType.tag:
-            return FilterOperator.containsAny
+            return FilterOperator.isSet
 
         case PropertyType.date:
             return FilterOperator.greater
@@ -337,12 +337,12 @@ export class FilterManager {
         this.lastImages = images
         let filtered = images
 
-        if(this.state.query) {
-            const res = await apiGetSimilarImagesFromText(this.state.query)
-            const isValid = new Set<string>()
-            res.forEach(r => isValid.add(r.sha1))
-            filtered = filtered.filter(i => isValid.has(i.sha1))
-        }
+        // if(this.state.query) {
+        //     const res = await apiGetSimilarImagesFromText(this.state.query)
+        //     const isValid = new Set<string>()
+        //     res.forEach(r => isValid.add(r.sha1))
+        //     filtered = filtered.filter(i => isValid.has(i.sha1))
+        // }
 
         if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
