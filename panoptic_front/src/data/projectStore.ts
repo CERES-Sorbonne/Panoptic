@@ -6,18 +6,21 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ActionDescription, ActionParam, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { ActionDescription, ActionParam, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, UpdateCounter, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
 import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions, apiSetActions, apiGetVectorInfo, apiSetDefaultVector } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
+import { sleep } from "@/utils/utils";
 
 let tabManager: TabManager = undefined
 
 export const softwareUiVersion = 1
 
 export const useProjectStore = defineStore('projectStore', () => {
+
+    let routine = 0
 
     const data = reactive({
         images: {} as ImageIndex,
@@ -88,8 +91,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.folders = buildFolderNodes(folders)
 
         backendStatus.value = await apiGetStatusUpdate()
-        setInterval(async () => { applyStatusUpdate(await apiGetStatusUpdate()) }, 1000)
 
+        routine += 1
+        updateRoutine(routine)
         updatePropertyOptions()
 
         computeTagCount(imageList.value, properties)
@@ -112,6 +116,16 @@ export const useProjectStore = defineStore('projectStore', () => {
         status.loaded = true
 
         // tabManager.collection.update(data.images)
+    }
+
+    async function updateRoutine(i: number) {
+        while (routine == i) {
+            const status = await apiGetStatusUpdate()
+            if(!status) return
+
+            applyStatusUpdate(status)
+            await sleep(1000)
+        }
     }
 
     function clear() {
@@ -138,25 +152,24 @@ export const useProjectStore = defineStore('projectStore', () => {
         tabManager.verifyState()
     }
 
-    function applyImportState(state: ImportState) {
-        const panoptic = usePanopticStore()
-        if (!panoptic.isProjectLoaded) return
-        status.import = state
-        if (!state.done) {
-            status.changed = true
-        }
-        if (state.done && status.changed) {
-            status.changed = false
-            console.log('init again')
-            nextTick(() => init())
-        }
-    }
-
     async function applyStatusUpdate(update: StatusUpdate) {
-        const newLoaded = backendStatus.value && !backendStatus.value.pluginLoaded && update.pluginLoaded
+        // console.log(update)
+        if (!status.loaded) return
+        console.log(update.update)
+        const old = backendStatus.value
+        const actionChanged = update.update.action > old.update.action
+        const imageChanged = update.update.image > old.update.image
+
         backendStatus.value = update
 
-        if (newLoaded) {
+        if (imageChanged) {
+            // console.log('init again')
+            nextTick(() => init())
+        }
+
+        // const newLoaded = backendStatus.value && !backendStatus.value.pluginLoaded && update.pluginLoaded
+
+        if (actionChanged) {
             await updateActions()
         }
     }

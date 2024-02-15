@@ -87,7 +87,7 @@ class Project:
 
         folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
 
-        tasks = [ImportInstanceTask(db=self.db, file=file, folder_id=file_to_folder_id[file])
+        tasks = [ImportInstanceTask(project=self, file=file, folder_id=file_to_folder_id[file])
                  for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
 

@@ -108,6 +108,8 @@ class Panoptic:
         self.save_data()
         # await self.project.close()
         self.project = None
+        from panoptic.routes.project_routes import set_project
+        set_project(self.project)
 
     def is_loaded(self):
         return self.project_id is not None

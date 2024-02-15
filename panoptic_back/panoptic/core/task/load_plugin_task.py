@@ -51,3 +51,4 @@ class LoadPluginTask(Task):
     async def run_if_last(self):
         await self.project.update_actions_from_db()
         self.project.plugin_loaded = True
+        self.project.ui.update_counter.action += 1
