@@ -339,6 +339,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     // TODO make a version that does not trigger actualisation
     async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null, dontEmit?: boolean) {
+        console.log(value)
         if (!Array.isArray(images)) {
             images = [images]
         }
