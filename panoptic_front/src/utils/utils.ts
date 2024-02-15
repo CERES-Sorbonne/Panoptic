@@ -168,7 +168,10 @@ export function getTagChildren(tag: Tag) {
     const res = []
     const recursive = (t: Tag) => {
         res.push(t.id)
-        t.children.forEach(cId => recursive(tags[cId]))
+        if (t.children) {
+            t.children.forEach(cId => recursive(tags[cId]))
+        }
+
     }
     recursive(tag)
     return res
