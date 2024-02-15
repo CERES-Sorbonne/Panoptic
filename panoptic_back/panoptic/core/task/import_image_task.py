@@ -1,11 +1,15 @@
+from __future__ import annotations
 import hashlib
 import os
+from typing import TYPE_CHECKING
 
 import numpy
 from PIL import Image
 from imagehash import MeanFunc, ImageHash, ANTIALIAS
 
-from panoptic.core.project.project_db import ProjectDb
+if TYPE_CHECKING:
+    from panoptic.core.project.project import Project
+
 from panoptic.core.task.task import Task
 
 
@@ -37,9 +41,10 @@ def average_hash(image: Image.Image, hash_size: int = 8, mean: MeanFunc = numpy.
 
 
 class ImportInstanceTask(Task):
-    def __init__(self, db: ProjectDb, file: str, folder_id: int):
+    def __init__(self, project: Project, file: str, folder_id: int):
         super().__init__(priority=True)
-        self.db = db
+        self.project = project
+        self.db = project.db
         self.file = file
         self.folder_id = folder_id
         self.name = 'Import Image'
@@ -61,6 +66,9 @@ class ImportInstanceTask(Task):
         image = await self.db.add_instance(folder_id, name, extension, sha1, url, width, height, str(ahash))
         # print(f'imported image: {image.id} : {image.sha1}')
         return image
+
+    async def run_if_last(self):
+        self.project.ui.update_counter.image += 1
 
     @staticmethod
     def _import_image(file_path, project_path: str):

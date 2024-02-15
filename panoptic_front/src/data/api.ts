@@ -14,7 +14,7 @@ export interface ApiTab {
     data: TabState
 }
 
-axios.interceptors.response.use()
+// axios.interceptors.response.use()
 
 export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)

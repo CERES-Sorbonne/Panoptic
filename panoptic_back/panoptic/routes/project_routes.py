@@ -20,7 +20,7 @@ project_router = APIRouter()
 project: Project | None = None
 
 
-def set_project(p: Project):
+def set_project(p: Project | None):
     global project
     project = p
 

@@ -195,6 +195,7 @@ export interface StatusUpdate {
     tasks: TaskState[];
     // updated_images: Image[];
     pluginLoaded?: boolean
+    update: UpdateCounter
 }
 
 export interface DataUpdate {
@@ -297,6 +298,11 @@ export const DateUnitFactor = {
     [DateUnit.Minute]: 60,
     [DateUnit.Second]: 1,
 
+}
+
+export interface UpdateCounter {
+    action: number;
+    image: number;
 }
 
 
