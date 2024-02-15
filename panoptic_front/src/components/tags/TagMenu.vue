@@ -38,7 +38,7 @@ const tagFilter = ref('')
 
 
 const tagProposals = ref(null);
-const selectedIndex = ref(undefined)
+const selectedIndex = ref(0)
 
 const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredTagList.value.some(t => t.value == tagFilter.value))
 
