@@ -155,7 +155,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function applyStatusUpdate(update: StatusUpdate) {
         // console.log(update)
         if (!status.loaded) return
-        console.log(update.update)
+        // console.log(update.update)
         const old = backendStatus.value
         const actionChanged = update.update.action > old.update.action
         const imageChanged = update.update.image > old.update.image
