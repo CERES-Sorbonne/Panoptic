@@ -42,8 +42,14 @@ function removeImage(sha1: string) {
 function acceptRecommend(image: Image) {
     propertyValues.forEach(v => {
         if (v.value != UNDEFINED_KEY) {
-            let mode = store.data.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
-            store.setPropertyValue(v.propertyId, image, v.value, mode)
+            let value = v.value
+            let mode = null
+            if (store.data.properties[v.propertyId].type == PropertyType.multi_tags) {
+                mode = 'add'
+                value = !isNaN(value) ? [value] : undefined
+            }
+
+            store.setPropertyValue(v.propertyId, image, value, mode)
         }
     })
     removeImage(image.sha1)
@@ -100,7 +106,7 @@ async function getReco() {
     if (!props.group) return
     console.log('get reco')
     const instanceIds = props.group.images.map(i => i.id)
-    let res = await apiGetSimilarImages({instanceIds})
+    let res = await apiGetSimilarImages({ instanceIds })
     res.matches.sort((a, b) => b.score - a.score)
     const resSha1s = Array.from(new Set(res.matches.map(r => store.data.images[r.id].sha1)))
 
