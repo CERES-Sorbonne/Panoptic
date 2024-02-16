@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
@@ -36,13 +34,12 @@ class FaissPlugin(Plugin):
         project.on.import_instance.register(self.compute_image_vector)
         project.action.find_images.register(self, self.find_images)
         project.action.group_images.register(self, self.compute_clusters)
-        project.action.group_images.register(self, self.test_function)
 
     async def compute_image_vector(self, instance: Instance):
         task = ComputeVectorTask(self.project, self.name, 'clip', instance)
         self.project.task_queue.add_task(task)
 
-    async def compute_clusters(self, context: ActionContext, nb_clusters: int):
+    async def compute_clusters(self, context: ActionContext, nb_clusters: int = 10):
         """
         Computes images clusters with Faiss
         @nb_clusters: requested number of clusters
@@ -59,13 +56,6 @@ class FaissPlugin(Plugin):
         groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
                   cluster, distance in zip(clusters, distances)]
         return GroupResult(groups=groups)
-
-    async def test_function(self, context: ActionContext, int_value: int, float_value: float, str_value: str,
-                            bool_value: bool, path_value: Path):
-        """
-        Function for UI input tests
-        """
-        print(int_value, float_value, str_value, bool_value, path_value)
 
     async def find_images(self, context: ActionContext):
         instances = await self.project.db.get_instances(context.instance_ids)

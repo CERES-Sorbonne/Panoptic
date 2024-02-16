@@ -11,7 +11,16 @@ from panoptic.utils import AsyncCallable, to_str_type
 def get_params(f):
     signature = inspect.signature(f)
     parameters = signature.parameters
-    return {k: parameters[k].annotation for k in parameters}
+
+    res = {}
+    for p in parameters:
+        param = parameters[p]
+        type_ = param.annotation
+        default = param.default
+        if default is inspect.Parameter.empty:
+            default = None
+        res[p] = (type_, default)
+    return res
 
 
 possible_inputs = [int, float, str, List[str], bool, Path]
@@ -33,8 +42,8 @@ def get_param_description(f: AsyncCallable, param_name: str):
 
 def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
     types = get_params(f)
-    return [ParamDescription(name=t, type=to_str_type(types[t]), description=get_param_description(f, t))
-            for t in types if types[t] in possible_inputs]
+    return [ParamDescription(name=t, type=to_str_type(types[t][0]), default_value=types[t][1], description=get_param_description(f, t))
+            for t in types if types[t][0] in possible_inputs]
 
 
 def get_registered_function_description(function_id: str, function: AsyncCallable, action_name: str):
