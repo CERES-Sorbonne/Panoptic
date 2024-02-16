@@ -34,13 +34,27 @@ class PropertyUpdate(BaseModel):
     name: str
 
 
+# @dataclass(slots=True)
+# class PropertyValue:
+#     property_id: int
+#
+#     image_id: int
+#     sha1: str
+#
+#     value: Any
+
+
 @dataclass(slots=True)
-class PropertyValue:
+class InstancePropertyValue:
     property_id: int
+    instance_id: int
+    value: Any
 
-    image_id: int
+
+@dataclass(slots=True)
+class ImagePropertyValue:
+    property_id: int
     sha1: str
-
     value: Any
 
 
@@ -77,14 +91,14 @@ class Instance:
     width: int
     ahash: str = ''
 
-    properties: dict[int, PropertyValue] = field(default_factory=dict)
+    properties: dict[int, InstancePropertyValue] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
-class Image:
-    sha1: str
-    path: str
-    properties: dict[int, PropertyValue] = field(default_factory=dict)
+# @dataclass(slots=True)
+# class Image:
+#     sha1: str
+#     path: str
+#     properties: dict[int, PropertyValue] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

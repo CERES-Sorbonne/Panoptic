@@ -6,7 +6,8 @@ from typing import List, Any, Callable, Awaitable, Dict
 
 from pydantic import BaseModel
 
-from panoptic.models import ParamDescription, Instance
+from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
+    PropertyType
 
 
 def get_datadir() -> pathlib.Path:
@@ -124,3 +125,28 @@ def group_by_sha1(instances: List[Instance]):
             res[i.sha1] = []
         res[i.sha1].append(i)
     return res
+
+
+def convert_to_instance_values(values: list[ImagePropertyValue], instances: list[Instance]) \
+        -> list[InstancePropertyValue]:
+    image_index = {i.sha1: [] for i in instances}
+    [image_index[i.sha1].append(i) for i in instances]
+
+    value_index = {v.sha1: v for v in values}
+
+    def converter(instance: Instance):
+        value: ImagePropertyValue = value_index[instance.sha1]
+        return InstancePropertyValue(instance_id=instance.id, property_id=value.property_id, value=value.value)
+
+    return [converter(i) for i in instances if i.sha1 in value_index]
+
+
+def clean_value(prop: Property, v: Any):
+    # avoid setting to None
+    if v == 0:
+        return 0
+
+    if not v:
+        return None
+
+    return v

@@ -32,15 +32,9 @@ class ExportPropertiesPayload(CamelModel):
 
 class SetPropertyValuePayload(CamelModel):
     property_id: int
-    image_ids: list[int] | None
-    sha1s: list[str] | None
+    instance_ids: list[int] | None
     value: Any
     mode: str | None
-
-
-class DeleteImagePropertyPayload(CamelModel):
-    property_id: int
-    image_id: int
 
 
 class AddTagPayload(CamelModel):

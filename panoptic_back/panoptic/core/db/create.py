@@ -39,23 +39,6 @@ def create_properties_table():
     return query
 
 
-def create_images_table():
-    query = """
-    CREATE TABLE images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        folder_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        extension TEXT NOT NULL,
-        sha1 TEXT NOT NULL,
-        url TEXT NOT NULL,
-        height INTEGER NOT NULL,
-        width INTEGER NOT NULL,
-        ahash TEXT NOT NULL
-    );
-    CREATE INDEX idx_image_filepath ON images (folder_id, name, extension);
-    CREATE INDEX idx_image_sha1 ON images (sha1);
-    """
-    return query
 
 
 def create_instances_table():
@@ -71,8 +54,8 @@ def create_instances_table():
         width INTEGER NOT NULL,
         ahash TEXT NOT NULL
     );
-    CREATE INDEX idx_image_filepath ON images (folder_id, name, extension);
-    CREATE INDEX idx_image_sha1 ON images (sha1);
+    CREATE INDEX idx_image_filepath ON instances (folder_id, name, extension);
+    CREATE INDEX idx_image_sha1 ON instances (sha1);
     """
     return query
 
@@ -81,10 +64,10 @@ def create_property_values_table():
     query = """
     CREATE TABLE property_values (
         property_id INTEGER NOT NULL,
-        image_id INTEGER NOT NULL,
+        instance_id INTEGER NOT NULL,
         sha1 TEXT INTEGER NOT NULL,
         value JSON,
-        PRIMARY KEY (property_id, image_id, sha1),
+        PRIMARY KEY (property_id, instance_id, sha1),
         FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
     );
     """
@@ -103,6 +86,7 @@ def create_instance_property_values_table():
     );
     """
     return query
+
 
 def create_image_property_values_table():
     query = """
@@ -180,29 +164,29 @@ def create_actions_table():
     return query
 
 
-tables = {
-    'folders': create_folders_table(),
-    'tabs': create_tabs_table(),
-    'properties': create_properties_table(),
-    'images': create_images_table(),
-    'property_values': create_property_values_table(),
-    'tags': create_tags_table(),
-    'panoptic': create_panoptic_table(),
-    'vectors': create_vectors_table(),
-    'plugin_defaults': create_plugin_defaults_table(),
-    'action_params': create_actions_table()
-}
+# tables2 = {
+#     'folders': create_folders_table(),
+#     'tabs': create_tabs_table(),
+#     'properties': create_properties_table(),
+#     'images': create_images_table(),
+#     'property_values': create_property_values_table(),
+#     'tags': create_tags_table(),
+#     'panoptic': create_panoptic_table(),
+#     'vectors': create_vectors_table(),
+#     'plugin_defaults': create_plugin_defaults_table(),
+#     'action_params': create_actions_table()
+# }
 
-tables2 = {
+tables = {
     'panoptic': create_panoptic_table(),
     'folders': create_folders_table(),
     'instances': create_instances_table(),
     'properties': create_properties_table(),
-    'image_property_values': create_property_values_table(),
+    'image_property_values': create_image_property_values_table(),
     'instance_property_values': create_instance_property_values_table(),
     'tags': create_tags_table(),
     'vectors': create_vectors_table(),
     'plugin_defaults': create_plugin_defaults_table(),
     'action_params': create_actions_table(),
-    'ui_tabs': create_tabs_table(),
+    'tabs': create_tabs_table(),
 }

@@ -10,7 +10,7 @@ from starlette.responses import FileResponse
 
 from panoptic.core.project.project import Project
 from panoptic.models import Property, Tag, PropertyPayload, \
-    SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
+    SetPropertyValuePayload, AddTagPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
     TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
     ExecuteActionPayload
@@ -78,16 +78,11 @@ async def get_image(file_path: str):
 # On retourne le payload pour pouvoir valider l'update côté front
 @project_router.post("/image_property")
 async def add_image_property(payload: SetPropertyValuePayload):
-    updated, value = await project.db.set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
-                                                          sha1s=payload.sha1s, value=payload.value)
-    return {'updated_ids': updated, 'value': value}
-
-
-# Route pour supprimer une property d'une image dans la table de jointure entre image et property
-@project_router.delete("/image_property")
-async def delete_property_value_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
-    await project.db.delete_property_values(payload.property_id, image_ids=[payload.image_id])
-    return payload
+    print(payload)
+    value = await project.db.set_property_values(property_id=payload.property_id,
+                                                 instance_ids=payload.instance_ids,
+                                                 value=payload.value)
+    return {'updated_ids': payload.instance_ids, 'value': value}
 
 
 @project_router.post("/tags")
