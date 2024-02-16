@@ -61,7 +61,7 @@ class Plugin:
         for function in self.registered_functions:
             defaults.functions[function.name] = {}
             for param in function.params:
-                defaults.functions[function.name][param.name] = None
+                defaults.functions[function.name][param.name] = param.default_value
                 if function.name in db_defaults.functions and param.name in db_defaults.functions[function.name]:
                     defaults.functions[function.name][param.name] = db_defaults.functions[function.name][param.name]
 
