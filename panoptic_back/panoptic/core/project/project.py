@@ -129,5 +129,6 @@ class Project:
 
     async def update_actions_from_db(self):
         db_actions = await self.db.get_raw_db().get_action_params()
+        db_actions = [a for a in db_actions if a.value]
         self.action.set_action_functions(db_actions)
 

@@ -49,6 +49,7 @@ const groupName = computed(() => {
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
 async function addClusters(groupResult) {
+    console.log(groupResult)
     const groups = groupResult.groups.map((group, index) => {
         const instances = group.ids.map(i => store.data.images[i])
         const res = buildGroup('cluster:' + String(index) + ':' + props.item.id, instances, GroupType.Cluster)

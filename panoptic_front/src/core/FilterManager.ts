@@ -242,7 +242,7 @@ function defaultOperator(propertyType: PropertyType) {
             return FilterOperator.greater
 
         default:
-            return FilterOperator.equal
+            return FilterOperator.isSet
     }
 }
 
