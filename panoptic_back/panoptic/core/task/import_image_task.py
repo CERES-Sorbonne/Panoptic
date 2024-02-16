@@ -56,7 +56,7 @@ class ImportInstanceTask(Task):
 
         raw_db = self.db.get_raw_db()
 
-        db_image = await raw_db.has_image_file(folder_id, name, extension)
+        db_image = await raw_db.has_file(folder_id, name, extension)
         if db_image:
             self.db.on_import_instance.emit(db_image)
             return db_image

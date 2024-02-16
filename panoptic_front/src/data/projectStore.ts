@@ -236,7 +236,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importImage(img: Image) {
-        Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, img.properties[pId]))
+        Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, {value: img.properties[pId]}))
         // TODO: FILL THIS DATA SERVER SERVER SIDE TO MAKE IT AVAILABLE TO PLUGINS AUTOMATICALY
         img.properties[PropertyID.id] = { propertyId: PropertyID.id, value: img.id }
         img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
@@ -339,29 +339,14 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     // TODO make a version that does not trigger actualisation
     async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null, dontEmit?: boolean) {
-        console.log(value)
         if (!Array.isArray(images)) {
             images = [images]
         }
 
         let prop = data.properties[propertyId]
+        const imageIds = images.map(i => i.id)
 
-        let imageIds = undefined
-        let sha1s = undefined
-
-        if (prop.mode == PropertyMode.id) {
-            imageIds = Array.from(new Set(images.map(i => i.id)))
-        }
-        if (prop.mode == PropertyMode.sha1) {
-            sha1s = Array.from(new Set(images.map(i => i.sha1)))
-        }
-
-        let type = prop.type
-        if (value == propertyDefault(type) || Array.isArray(value) && value.length == 0 || value == null) {
-            value = undefined
-        }
-        // console.log(propertyId, imageIds, sha1s, value, prop.mode)
-        const update = await apiSetPropertyValue(propertyId, imageIds, sha1s, value, mode)
+        const update = await apiSetPropertyValue(propertyId, imageIds, value, mode)
         const updatedIds = update.updated_ids
         value = update.value
 

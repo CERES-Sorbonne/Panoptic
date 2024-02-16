@@ -18,6 +18,7 @@ export interface ApiTab {
 
 export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
+    // console.log(res.data)
     const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }]))
     return images
 }
@@ -57,13 +58,13 @@ export const apiAddProperty = async (name: string, type: PropertyType, mode: Pro
     return res.data
 }
 
-export const apiSetPropertyValue = async (propertyId: number, imageIds: number[] | undefined, sha1s: string[] | undefined, value: any, mode: string = null): Promise<PropertyValueUpdate> => {
+export const apiSetPropertyValue = async (propertyId: number, instanceIds: number[], value: any, mode: string = null): Promise<PropertyValueUpdate> => {
     // only arrays are tags lists
     if (Array.isArray(value)) {
         value = value.map(Number)
     }
     // console.log({imageIds, sha1s, propertyId, value})
-    const res = await axios.post('/image_property', { imageIds, sha1s, propertyId, value, mode })
+    const res = await axios.post('/image_property', { instanceIds, propertyId, value, mode })
     // console.log(res.data)
     return res.data
 }
