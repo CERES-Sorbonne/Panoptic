@@ -53,7 +53,7 @@ function setMode(value) {
     <div class="main2 bg-white h-100 d-flex flex-column " :style="{ width: props.width + 'px' }">
         <div class="image-container position-relative">
             <CenteredImage :image="props.image.image" :height="props.imageHeight" :width="props.width-1" />
-            <div class="image-nav d-flex" v-if="!showHistory">
+            <div class="image-nav d-flex" v-if="!showHistory && props.image.nextImages">
                 <div class="arrow" @click="prevImage"><i class="bi bi-arrow-left"></i></div>
                 <div class="flex-grow-1"></div>
                 <div class="arrow" @click="nextImage"><i class="bi bi-arrow-right"></i></div>
