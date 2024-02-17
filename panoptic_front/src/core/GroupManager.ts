@@ -344,9 +344,11 @@ export class GroupManager {
         console.time('Group')
         this.invalidateIterators()
         this.lastOrder = order
+        const lastIndex = this.result.index ?? {}
         this.result.root = buildRoot(images)
         this.result.index = {}
         this.result.imageToGroups = {}
+        const lastCustom = this.customGroups ?? {}
         this.customGroups = {}
         this.regsiterGroup(this.result.root)
 
@@ -365,10 +367,23 @@ export class GroupManager {
             this.saveImagesToGroup(group)
         }
 
+        Object.keys(lastCustom).forEach(target => {
+            if (this.result.index[target]?.children.length == 0) {
+                this.addCustomGroups(target, lastCustom[target])
+            }
+
+        })
+
         if (this.state.sha1Mode) {
             this.groupLeafsBySha1()
         }
 
+        Object.keys(this.result.index).map(id => {
+            const group = this.result.index[id]
+            if(lastIndex[id]) {
+                group.view = lastIndex[id].view
+            }
+        })
 
         setOrder(this.result.root)
 
