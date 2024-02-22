@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ActionDescription, ActionParam, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, ModalId, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, UpdateCounter, VectorDescription } from "./models";
+import { ActionDescription, ActionParam, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, InstancePropertyValue, ModalId, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, PropertyValue, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, UpdateCounter, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
-import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions, apiSetActions, apiGetVectorInfo, apiSetDefaultVector } from "./api";
+import { ApiTab, apiAddFolder, apiAddProperty, apiAddTab, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTab, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTab, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginDefaults, apiGetActions, apiSetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { usePanopticStore } from "./panopticStore";
@@ -30,7 +30,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         selectedTabId: undefined as number,
         folders: {} as FolderIndex,
         plugins: [] as PluginDescription[],
-        vectors: {} as ProjectVectorDescription
+        vectors: {} as ProjectVectorDescription,
+        tags: {} as TagIndex
     })
 
     const status = reactive({
@@ -121,7 +122,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function updateRoutine(i: number) {
         while (routine == i) {
             const status = await apiGetStatusUpdate()
-            if(!status) return
+            if (!status) return
 
             applyStatusUpdate(status)
             await sleep(1000)
@@ -236,14 +237,14 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importImage(img: Image) {
-        Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, {value: img.properties[pId]}))
+        // Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, { value: img.properties[pId] }))
         // TODO: FILL THIS DATA SERVER SERVER SIDE TO MAKE IT AVAILABLE TO PLUGINS AUTOMATICALY
-        img.properties[PropertyID.id] = { propertyId: PropertyID.id, value: img.id }
-        img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
-        img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
-        img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
-        img.properties[PropertyID.width] = { propertyId: PropertyID.width, value: img.width }
-        img.properties[PropertyID.height] = { propertyId: PropertyID.height, value: img.height }
+        // img.properties[PropertyID.id] = { propertyId: PropertyID.id, value: img.id }
+        // img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
+        // img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
+        // img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
+        // img.properties[PropertyID.width] = { propertyId: PropertyID.width, value: img.width }
+        // img.properties[PropertyID.height] = { propertyId: PropertyID.height, value: img.height }
 
         for (let pId in img.properties) {
             const propValue = img.properties[pId]
@@ -285,8 +286,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function addTagParent(tagId: number, parentId: number) {
         const tag = await apiAddTagParent(tagId, parentId) as Tag
-        Object.assign(data.properties[tag.property_id].tags[tag.id], tag)
-        const parent = data.properties[tag.property_id].tags[parentId]
+        Object.assign(data.properties[tag.propertyId].tags[tag.id], tag)
+        const parent = data.properties[tag.propertyId].tags[parentId]
         if (!parent || parent.children.indexOf(tagId) >= 0) return
         parent.children.push(tagId)
     }
@@ -298,8 +299,8 @@ export const useProjectStore = defineStore('projectStore', () => {
             if (!ok) return
         }
         const tag = await apiDeleteTagParent(tagId, parentId)
-        Object.assign(data.properties[tag.property_id].tags[tag.id], tag)
-        const parent = data.properties[tag.property_id].tags[parentId]
+        Object.assign(data.properties[tag.propertyId].tags[tag.id], tag)
+        const parent = data.properties[tag.propertyId].tags[parentId]
         if (!parent) return
         const childrenIndex = parent.children.indexOf(tagId)
         if (childrenIndex < 0) return
@@ -311,21 +312,41 @@ export const useProjectStore = defineStore('projectStore', () => {
             let ok = confirm('Delete tag: ' + tagId)
             if (!ok) return
         }
-        await apiDeleteTag(tagId)
-        const tags = await apiGetTags()
-        const images = await apiGetImages()
-        Object.values(images).forEach(i => importImage(i))
-        importTags(tags)
+        const res = await apiDeleteTag(tagId)
+        importPropertyValues(res.updatedValues)
+        importTags(res.updatedTags)
+
+        await nextTick()
+        await tabManager.collection.update()
     }
 
-    function importTags(tagPropIndex) {
-        for (let propertyId of Object.keys(tagPropIndex).map(Number)) {
-            const tags = tagPropIndex[propertyId] as TagIndex
-            const property = data.properties[propertyId]
-            if (!property) continue
+    function importPropertyValues(values: InstancePropertyValue[]) {
+        for (let val of values) {
+            if(val.value !== undefined) {
+                data.images[val.instanceId].properties[val.propertyId] = val
+            } else {
+                delete data.images[val.instanceId].properties[val.propertyId]
+            }
+        }
+    }
 
-            property.tags = tags
-            setTagsChildren(property.tags)
+    function importTags(tags: Tag[]) {
+        const updated = new Set()
+        for (let tag of tags) {
+            data.tags[tag.id] = tag
+            if (!(tag.propertyId in data.properties)) {
+                console.warn('Property ' + tag.propertyId + ' must be loaded before importing tags')
+                continue
+            }
+            if (!data.properties[tag.propertyId].tags) {
+                data.properties[tag.propertyId].tags = {}
+            }
+            data.properties[tag.propertyId].tags[tag.id] = tag
+            updated.add(tag.propertyId)
+
+        }
+        for (let propId in updated) {
+            setTagsChildren(data.properties[propId].tags)
         }
         computeTagCount(imageList.value, data.properties)
     }
@@ -337,35 +358,16 @@ export const useProjectStore = defineStore('projectStore', () => {
         getTab().visibleProperties[newProperty.id] = true
     }
 
-    // TODO make a version that does not trigger actualisation
-    async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string = null, dontEmit?: boolean) {
+    async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, dontEmit?: boolean) {
         if (!Array.isArray(images)) {
             images = [images]
         }
 
-        let prop = data.properties[propertyId]
         const imageIds = images.map(i => i.id)
 
-        const update = await apiSetPropertyValue(propertyId, imageIds, value, mode)
-        const updatedIds = update.updated_ids
-        value = update.value
+        const values = await apiSetPropertyValue(propertyId, imageIds, value)
 
-        for (let id of updatedIds) {
-            if (mode == null) {
-                _setPropertyValue(data.images[id], data.properties[propertyId], value)
-            }
-            else {
-                let old = data.images[id].properties[propertyId] ?? { propertyId: propertyId, value: [] }
-                if (!Array.isArray(old.value)) {
-                    old.value = []
-                }
-                old.value.push(...value)
-                old.value = [...new Set(old.value)]
-                // console.log(data.images[id].properties[propertyId], old)
-                data.images[id].properties[propertyId] = old
-            }
-
-        }
+        importPropertyValues(values)
 
         if (data.properties[propertyId].tags != undefined) {
             computeTagCount(imageList.value, data.properties)
@@ -374,16 +376,22 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!dontEmit) tabManager.collection.update()
     }
 
-    function _setPropertyValue(image: Image, property: Property, value: any) {
-        if (property.type == PropertyType.date) {
-            value = value != undefined ? new Date(value) : undefined
+    async function setTagPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string, dontEmit?: boolean) {
+        if (!Array.isArray(images)) {
+            images = [images]
         }
-        image.properties[property.id] = { propertyId: property.id, value }
+
+        const imageIds = images.map(i => i.id)
+        const values = await apiSetTagPropertyValue(propertyId, imageIds, value, mode)
+        importPropertyValues(values)
+        computeTagCount(imageList.value, data.properties)
+
+        if (!dontEmit) tabManager.collection.update()
     }
 
     async function updateTag(propId: number, tagId: number, color?: number, parentId?: number, value?: any) {
         const newTag = await apiUpdateTag(tagId, color, parentId, value)
-        Object.assign(data.properties[newTag.property_id].tags[newTag.id], newTag)
+        Object.assign(data.properties[newTag.propertyId].tags[newTag.id], newTag)
     }
 
     async function addFolder(folder: string) {
@@ -475,7 +483,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // functions
         init, clear, rerender, addFolder, reImportFolder,
-        addProperty, deleteProperty, updateProperty, setPropertyValue,
+        addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue,
         addTab, removeTab, updateTab, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile, clearImport,

@@ -28,14 +28,19 @@ function clear() {
     nextTick(() => dropdownElem.value.focus())
 }
 
-function apply() {
+async function apply() {
 
     erase.forEach(k => stamp[k] = undefined)
 
-    Object.keys(stamp).map(Number).forEach(propId => {
+    Object.keys(stamp).map(Number).forEach(async propId => {
         let value = stamp[propId]
-        let mode = (store.data.properties[propId].type == PropertyType.multi_tags && value) ? 'add' : null
-        store.setPropertyValue(propId, props.images, value, mode, true)
+        if(store.data.properties[propId].type == PropertyType.multi_tags) {
+            const mode = value != undefined ? 'add' : 'set'
+            await store.setTagPropertyValue(propId, props.images, value, mode)
+        }
+        else {
+            await store.setPropertyValue(propId, props.images, value, true)
+        }
     })
     store.getTabManager().collection.update()
     close()

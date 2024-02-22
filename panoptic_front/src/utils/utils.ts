@@ -58,7 +58,7 @@ export function isTagId(propId: number) {
 
 export function getChildren(tag: Tag) {
     const store = useProjectStore()
-    const property = store.data.properties[tag.property_id]
+    const property = store.data.properties[tag.propertyId]
     const tags = property.tags
 
     let children = new Set()
@@ -162,7 +162,7 @@ export function getGroupParents(group: Group): Group[] {
 
 export function getTagChildren(tag: Tag) {
     const store = useProjectStore()
-    const property = store.data.properties[tag.property_id]
+    const property = store.data.properties[tag.propertyId]
     const tags = property.tags
 
     const res = []
@@ -196,4 +196,26 @@ export function pad(num) {
     num = num.toString();
     if (num.length < 2) num = "0" + num;
     return num;
+}
+
+// https://stackoverflow.com/questions/54242239/how-to-convert-snake-case-to-camelcase-in-typescripts
+export function keysToCamel(o) {
+    if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function') {
+        const n = {};
+        Object.keys(o).forEach((k) => {
+            n[toCamel(k)] = keysToCamel(o[k]);
+        });
+        return n;
+    } else if (Array.isArray(o)) {
+        return o.map((i) => {
+            return keysToCamel(i);
+        });
+    }
+    return o;
+}
+
+function toCamel(s: string): string {
+    return s.replace(/([-_][a-z])/gi, ($1) => {
+        return $1.toUpperCase().replace('-', '').replace('_', '');
+    });
 }

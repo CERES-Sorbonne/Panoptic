@@ -15,7 +15,7 @@ export interface Image {
     folder_id: number
     extension: string
     properties: {
-        [id: number]: PropertyValue
+        [id: number]: InstancePropertyValue
     }
     dist?: number
     containerRatio?: number
@@ -72,8 +72,16 @@ export enum PropertyMode {
 export interface PropertyValue {
     propertyId: number
     value: any
+
+    // ui only
     valueEnd?: any // allow to specidy an interval [value, valueEnd] in special cases like date grouping
     unit?: DateUnit
+}
+
+export interface InstancePropertyValue {
+    propertyId: number
+    instanceId: number
+    value: any
 }
 
 export interface PropertyRef extends PropertyValue {
@@ -101,16 +109,23 @@ export enum PropertyID {
 
 export interface Tag {
     id: number;
-    property_id: number;
+    propertyId: number;
     parents: number[];
     value: string;
     color?: number;
     children?: number[]
     count?: number
+    deleted?: boolean
 }
 
 export interface TagIndex {
     [tagId: number]: Tag
+}
+
+export interface DeleteTagResult {
+    tagId: number
+    updatedValues: any[]
+    updatedTags: Tag[]
 }
 
 //=============================

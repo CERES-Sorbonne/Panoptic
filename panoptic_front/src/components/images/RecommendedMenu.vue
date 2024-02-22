@@ -7,6 +7,7 @@ import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
 import { apiGetSimilarImages } from '@/data/api';
+import { isTag } from '@/utils/utils';
 interface Sha1Pile {
     sha1: string
     images: Image[]
@@ -42,14 +43,16 @@ function removeImage(sha1: string) {
 function acceptRecommend(image: Image) {
     propertyValues.forEach(v => {
         if (v.value != UNDEFINED_KEY) {
+            const prop = store.data.properties[v.propertyId]
             let value = v.value
-            let mode = null
-            if (store.data.properties[v.propertyId].type == PropertyType.multi_tags) {
-                mode = 'add'
-                value = !isNaN(value) ? [value] : undefined
+            if (prop.type == PropertyType.multi_tags) {
+                store.setTagPropertyValue(v.propertyId, image, [value], 'add')
+            }
+            else {
+                store.setPropertyValue(v.propertyId, image, value)
             }
 
-            store.setPropertyValue(v.propertyId, image, value, mode)
+
         }
     })
     removeImage(image.sha1)

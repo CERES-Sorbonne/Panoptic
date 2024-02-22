@@ -79,13 +79,13 @@ function addTag() {
     if (!tagName) {
         return
     }
-    globalStore.addTag(node.property_id, tagName, node.id, null)
+    globalStore.addTag(node.propertyId, tagName, node.id, null)
     props.node.expanded = true
 }
 
 function delTag() {
     let node = props.node
-    globalStore.deleteTagParent(node.property_id, node.id, node.localParent).then(() => {
+    globalStore.deleteTagParent(node.propertyId, node.id, node.localParent).then(() => {
         console.log('deleted')
     })
 

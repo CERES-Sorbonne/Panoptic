@@ -139,7 +139,7 @@ watch(filteredTagList, () => {
                         <TagBadge :tag="tag.value" :color="tag.color" />
                     </div>
                     <div v-if="props.canLink" :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
-                        <TagChildSelectDropdown :property-id="tag.property_id" :tag-id="tag.id" @hide="focus" />
+                        <TagChildSelectDropdown :property-id="tag.propertyId" :tag-id="tag.id" @hide="focus" />
                     </div>
                     <div v-if="props.canCustomize || props.canDelete"
                         :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">

@@ -3,8 +3,9 @@
  */
 
 import axios from 'axios'
-import { ActionContext, ActionDescription, ActionParam, DirInfo, ExecuteActionPayload, ImageIndex, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
+import { ActionContext, ActionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
 import { SelectionStatus } from './panopticStore'
+import { keysToCamel } from '@/utils/utils'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -25,7 +26,7 @@ export const apiGetImages = async (): Promise<ImageIndex> => {
 
 export const apiGetTags = async () => {
     const res = await axios.get('/tags')
-    return res.data
+    return keysToCamel(res.data) as Tag[]
 }
 
 export const apiGetProperties = async () => {
@@ -45,7 +46,7 @@ export const apiAddTag = async (
         color,
         parentId,
     })
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiAddTagParent = async (tagId: number, parentId: number) => {
@@ -55,19 +56,29 @@ export const apiAddTagParent = async (tagId: number, parentId: number) => {
 
 export const apiAddProperty = async (name: string, type: PropertyType, mode: PropertyMode): Promise<Property> => {
     const res = await axios.post('/property', { name, type, mode })
-    return res.data
+    return keysToCamel(res.data)
 }
 
-export const apiSetPropertyValue = async (propertyId: number, instanceIds: number[], value: any, mode: string = null): Promise<PropertyValueUpdate> => {
+export const apiSetPropertyValue = async (propertyId: number, instanceIds: number[], value: any): Promise<InstancePropertyValue[]> => {
     // only arrays are tags lists
     if (Array.isArray(value)) {
         value = value.map(Number)
     }
     // console.log({imageIds, sha1s, propertyId, value})
-    const res = await axios.post('/image_property', { instanceIds, propertyId, value, mode })
+    const res = await axios.post('/image_property', { instanceIds, propertyId, value })
     // console.log(res.data)
-    return res.data
+    return keysToCamel(res.data)
 }
+
+export const apiSetTagPropertyValue = async (propertyId: number, instanceIds: number[], value: any, mode): Promise<InstancePropertyValue[]> => {
+    if (Array.isArray(value)) {
+        value = value.map(Number)
+    }
+    const res = await axios.post('/set_tag_property_value', { instanceIds, propertyId, value, mode })
+    return keysToCamel(res.data)
+}
+
+
 
 export const apiUpdateTag = async (id: number, color?: number, parentId?: number, value?: any): Promise<Tag> => {
     const res = await axios.patch('/tags', { id, color, parent_id: parentId, value })
@@ -79,9 +90,9 @@ export const apiDeleteTagParent = async (id: number, parentId: number): Promise<
     return res.data
 }
 
-export const apiDeleteTag = async (tag_id: number): Promise<any> => {
+export const apiDeleteTag = async (tag_id: number): Promise<DeleteTagResult> => {
     const res = await axios.delete('/tags', { params: { tag_id } })
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiAddFolder = async (folder: string) => {
