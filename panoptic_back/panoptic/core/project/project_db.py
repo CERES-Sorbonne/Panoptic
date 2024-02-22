@@ -1,12 +1,13 @@
 import json
 from random import randint
-from typing import Any, List, Dict
+from typing import Any, Dict
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tags, Tag, \
-    TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions
+    TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions, SetMode
+from panoptic.models.results import DeleteTagResult
 from panoptic.utils import convert_to_instance_values, clean_value
 
 
@@ -45,26 +46,25 @@ class ProjectDb:
     # =============== Property Values =====================
     # =====================================================
 
-    async def set_property_values(self, property_id: int, instance_ids: List[int], value: Any):
+    async def set_property_values(self, property_id: int, instance_ids: list[int], value: Any):
         prop = await self._db.get_property(property_id)
         value = clean_value(prop, value)
         if prop.mode == 'id':
             if value is None:
                 await self._db.delete_instance_property_value(property_id, instance_ids)
-                return None
-            await self._db.set_instance_property_value(property_id, instance_ids, value)
-            return value
-
+            else:
+                await self._db.set_instance_property_value(property_id, instance_ids, value)
         if prop.mode == 'sha1':
             instances = await self._db.get_instances(ids=instance_ids)
             sha1s = {i.sha1 for i in instances}
             if value is None:
                 await self._db.delete_image_property_value(property_id, list(sha1s))
-                return None
-            await self._db.set_image_property_value(property_id, list(sha1s), value)
-            return value
+            else:
+                await self._db.set_image_property_value(property_id, list(sha1s), value)
 
-    async def set_property_values_array(self, property_id: int, instance_ids: List[int], values: list[Any]):
+        return [InstancePropertyValue(property_id=property_id, instance_id=i, value=value) for i in instance_ids]
+
+    async def set_property_values_array(self, property_id: int, instance_ids: list[int], values: list[Any]):
         prop = await self._db.get_property(property_id)
         values = [clean_value(prop, v) for v in values]
         pairs = [(i, v) for i, v in zip(instance_ids, values)]
@@ -93,11 +93,34 @@ class ProjectDb:
                 instances = await self._db.get_instances(ids=ids)
                 sha1s = list({i.sha1 for i in instances})
                 await self._db.delete_image_property_value(property_id=prop.id, sha1s=sha1s)
-        return pairs
+        return [InstancePropertyValue(property_id=property_id, instance_id=p[0], value=p[1]) for p in pairs]
+
+    async def set_tag_property_value(self, property_id: int, instance_ids: list[int], value: list[int], mode: SetMode):
+        if mode == SetMode.set:
+            return await self.set_property_values(property_id=property_id, instance_ids=instance_ids, value=value)
+
+        instances = await self.get_instances_with_properties(instance_ids=instance_ids, property_ids=[property_id])
+
+        to_set = [i for i in instances if property_id not in i.properties]
+        res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set], value=value)
+        if mode == SetMode.add:
+            to_add = [i for i in instances if property_id in i.properties]
+            ids = [i.id for i in to_add]
+            vals = [[*i.properties[property_id].value, *value] for i in to_add]
+            vals = [[*{*v}] for v in vals]
+            res_add = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
+            return [*res, *res_add]
+
+        if mode == SetMode.delete:
+            to_del = [i for i in instances if property_id in i.properties]
+            ids = [i.id for i in to_del]
+            vals = [[v for v in i.properties[property_id].value if v not in value] for i in to_del]
+            res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
+            return [*res, *res_del]
 
     #
-    # async def add_property_values(self, property_id: int, value: Any, image_ids: List[int] = None,
-    #                               sha1s: List[int] = None):
+    # async def add_property_values(self, property_id: int, value: Any, image_ids: list[int] = None,
+    #                               sha1s: list[int] = None):
     #     if image_ids and sha1s:
     #         raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
     #
@@ -143,25 +166,26 @@ class ProjectDb:
         res = await self._db.add_instance(folder_id, name, extension, sha1, url, width, height, ahash)
         self.on_import_instance.emit(res)
 
-    async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None):
+    async def get_instances(self, ids: list[int] = None, sha1s: list[str] = None):
         images = await self._db.get_instances(ids=ids, sha1s=sha1s)
         return images
 
-    async def get_property_values(self, property_ids: list[int], instances: list[Instance] = None) \
+    async def get_property_values(self, property_ids: list[int], instances: list[Instance]) \
             -> list[InstancePropertyValue]:
-        instance_ids = None if not instances else [i.id for i in instances]
+        instance_ids = [i.id for i in instances]
         sha1s = list({img.sha1 for img in instances})
-        instance_values = await self._db.get_instance_property_values(property_ids=property_ids, instance_ids=instance_ids)
+        instance_values = await self._db.get_instance_property_values(property_ids=property_ids,
+                                                                      instance_ids=instance_ids)
         image_values = await self._db.get_image_property_values(property_ids=property_ids, sha1s=sha1s)
         converted_values = convert_to_instance_values(image_values, instances)
         return [*instance_values, *converted_values]
 
-    async def get_instances_with_properties(self, instance_ids: List[int] = None, property_ids: List[int] = None) \
-            -> List[Instance]:
+    async def get_instances_with_properties(self, instance_ids: list[int] = None, property_ids: list[int] = None) \
+            -> list[Instance]:
         instances = await self._db.get_instances(instance_ids)
         instance_values = await self.get_property_values(property_ids=property_ids, instances=instances)
         instance_index: dict[int, Instance] = {i.id: i for i in instances}
-        [instance_index[v.instance_id].properties.update({v.property_id: v.value}) for v in instance_values]
+        [instance_index[v.instance_id].properties.update({v.property_id: v}) for v in instance_values]
         # [setattr(, str(v.property_id), v) for v in instance_values]
         #
         # def assign_value(prop_value):
@@ -190,14 +214,9 @@ class ProjectDb:
         return instances
 
     # ========== Tags ==========
-    async def get_tags(self, prop: int = None) -> Tags:
-        res = {}
+    async def get_tags(self, prop: int = None) -> list[Tag]:
         tag_list = await self._db.get_tags(prop)
-        for tag in tag_list:
-            if tag.property_id not in res:
-                res[tag.property_id] = {}
-            res[tag.property_id][tag.id] = tag
-        return res
+        return tag_list
 
     async def add_tag(self, property_id, value, parent_id, color: int) -> Tag:
         existing_tag = await self._db.get_tag(property_id, value)
@@ -237,15 +256,13 @@ class ProjectDb:
         await self._db.update_tag(existing_tag)
         return existing_tag
 
-    async def delete_tag(self, tag_id: int) -> List[int]:
-        modified_tags = [await self._db.delete_tag_by_id(tag_id)]
-        children = await self._db.get_tags_by_parent_id(tag_id)
-        [modified_tags.extend(await self.delete_tag_parent(c.id, tag_id)) for c in children]
+    async def delete_tag(self, tag_id: int):
         tag = await self._db.get_tag_by_id(tag_id)
-        values = await self.get_property_values([tag.property_id])
+        instances = await self._db.get_instances()
+        values = await self.get_property_values([tag.property_id], instances)
 
         to_update = [v for v in values if tag_id in v.value]
-        [v.value.remove(tag_id) for v in to_update]
+        [v.value.remove(tag_id) for v in to_update if tag_id in v.value]
 
         ids = [v.instance_id for v in to_update]
         vals = [v.value for v in to_update]
@@ -256,9 +273,11 @@ class ProjectDb:
         [t.parents.remove(tag_id) for t in updated_tags]
         [await self._db.update_tag(t) for t in updated_tags]
 
-        return [t.id for t in updated_tags]
+        await self._db.delete_tag_by_id(tag_id)
+        # print(to_update, updated_tags)
+        return DeleteTagResult(tag_id=tag.property_id, updated_values=to_update, updated_tags=updated_tags)
 
-    async def delete_tag_parent(self, tag_id: int, parent_id: int) -> List[int]:
+    async def delete_tag_parent(self, tag_id: int, parent_id: int) -> list[int]:
         tag = await self._db.get_tag_by_id(tag_id)
         tag.parents.remove(parent_id)
         color = randint(0, 11)
@@ -277,10 +296,10 @@ class ProjectDb:
         return await self._db.get_folder(folder_id)
 
     # =========== Vectors ===========
-    async def get_vectors(self, source: str, type_: str, sha1s: List[str] = None):
+    async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):
         return await self._db.get_vectors(source, type_, sha1s)
 
-    async def get_default_vectors(self, sha1s: List[str] = None):
+    async def get_default_vectors(self, sha1s: list[str] = None):
         default = await self._db.get_action_param('get_vectors')
         if not default:
             raise Exception('No default vectors set. Make sure vectors are computed')

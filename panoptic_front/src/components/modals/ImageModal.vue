@@ -112,6 +112,7 @@ watch(modalData, onModalDataChange)
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
+                    {{ image.properties }}
                     <ImagePropertyCol :image="iterator" :width="600" :image-height="500"
                         :visible-properties="visibleProperties" @paint="paint"/>
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">

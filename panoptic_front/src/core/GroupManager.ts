@@ -433,7 +433,7 @@ export class GroupManager {
         return this.result.root != undefined
     }
 
-    clear() {
+    clear(emit?: boolean) {
         this.invalidateIterators()
         this.result.imageToGroups = {}
         this.result.index = {}
@@ -441,6 +441,7 @@ export class GroupManager {
         this.clearLastSelected()
         this.clearSelection()
         this.lastOrder = {}
+        if (emit) this.onChange.emit()
     }
 
     verifyState() {

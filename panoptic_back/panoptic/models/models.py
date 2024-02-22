@@ -5,6 +5,7 @@ from enum import Enum
 from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
+from dataclass_wizard import JSONWizard
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
@@ -51,8 +52,7 @@ class InstancePropertyValue:
     value: Any
 
 
-@dataclass(slots=True)
-class ImagePropertyValue:
+class ImagePropertyValue(CamelModel):
     property_id: int
     sha1: str
     value: Any
@@ -235,6 +235,12 @@ class ActionDescription(CamelModel):
 class ActionParam(CamelModel):
     name: str
     value: str
+
+
+class SetMode(Enum):
+    set = 'set'
+    add = 'add'
+    delete = 'delete'
 
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]

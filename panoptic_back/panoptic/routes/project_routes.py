@@ -13,7 +13,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
     TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
-    ExecuteActionPayload
+    ExecuteActionPayload, SetTagPropertyValuePayload
 
 project_router = APIRouter()
 
@@ -77,12 +77,18 @@ async def get_image(file_path: str):
 # Route pour ajouter une property à une image dans la table de jointure entre image et property
 # On retourne le payload pour pouvoir valider l'update côté front
 @project_router.post("/image_property")
-async def add_image_property(payload: SetPropertyValuePayload):
-    print(payload)
-    value = await project.db.set_property_values(property_id=payload.property_id,
-                                                 instance_ids=payload.instance_ids,
-                                                 value=payload.value)
-    return {'updated_ids': payload.instance_ids, 'value': value}
+async def set_property_values_route(payload: SetPropertyValuePayload):
+    values = await project.db.set_property_values(property_id=payload.property_id,
+                                                  instance_ids=payload.instance_ids,
+                                                  value=payload.value)
+    return values
+
+
+@project_router.post('/set_tag_property_value')
+async def set_tag_property_value(payload: SetTagPropertyValuePayload):
+    values = await project.db.set_tag_property_value(property_id=payload.property_id, instance_ids=payload.instance_ids,
+                                                     value=payload.value, mode=payload.mode)
+    return values
 
 
 @project_router.post("/tags")
@@ -109,7 +115,7 @@ async def update_tag_route(payload: TagUpdate) -> Tag:
 
 
 @project_router.delete("/tags")
-async def delete_tag_route(tag_id: int) -> list[int]:
+async def delete_tag_route(tag_id: int):
     return await project.db.delete_tag(tag_id)
 
 

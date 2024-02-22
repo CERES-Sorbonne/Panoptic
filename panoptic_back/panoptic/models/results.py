@@ -1,5 +1,10 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
+from dataclass_wizard import JSONWizard
+from fastapi_camelcase import CamelModel
+
+from panoptic.models import InstancePropertyValue, Tag
 
 
 @dataclass(slots=True)
@@ -36,3 +41,10 @@ class ActionResult:
     action: str
     result: Any
     errors: list[ActionError] = None
+
+
+@dataclass(slots=True)
+class DeleteTagResult:
+    tag_id: int
+    updated_values: list[InstancePropertyValue]
+    updated_tags: list[Tag]
