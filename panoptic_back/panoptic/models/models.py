@@ -22,12 +22,20 @@ class PropertyType(Enum):
     color = "color"
     checkbox = "checkbox"
 
+    id = 'id'
+    sha1 = 'sha1'
+    ahash = 'ahash'
+    folder = 'folder'
+    width = 'width'
+    height = 'height'
+
 
 class Property(BaseModel):
     id: int
     name: str
     type: PropertyType
     mode: str
+    computed: bool = False
 
 
 class PropertyUpdate(BaseModel):

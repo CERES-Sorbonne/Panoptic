@@ -29,13 +29,13 @@ const showHistory: Ref<boolean> = inject('showHistory')
 const properties = computed(() => {
     const res = []
     if (mode.value == 0) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.sha1))
+        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed))
     }
     if (mode.value == 1) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id))
+        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed))
     }
     if (mode.value == 2) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.computed))
+        res.push(...store.propertyList.filter(p => p.computed))
     }
     return res
 })

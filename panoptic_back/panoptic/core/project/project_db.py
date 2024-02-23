@@ -7,8 +7,9 @@ from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tags, Tag, \
     TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions, SetMode
+from panoptic.models.computed_properties import computed_properties
 from panoptic.models.results import DeleteTagResult
-from panoptic.utils import convert_to_instance_values, clean_value
+from panoptic.utils import convert_to_instance_values, clean_value, get_computed_values
 
 
 class ProjectDb:
@@ -29,7 +30,7 @@ class ProjectDb:
 
     async def get_properties(self) -> Dict[int, Property]:
         properties = await self._db.get_properties()
-        return {prop.id: prop for prop in properties}
+        return {prop.id: prop for prop in [*properties, *computed_properties.values()]}
 
     async def update_property(self, update: PropertyUpdate) -> Property:
         existing_property = await self._db.get_property(update.id)
@@ -45,6 +46,23 @@ class ProjectDb:
     # =====================================================
     # =============== Property Values =====================
     # =====================================================
+
+    async def get_property_values(self, property_ids: list[int], instances: list[Instance]) \
+            -> list[InstancePropertyValue]:
+        instance_ids = [i.id for i in instances]
+        sha1s = list({img.sha1 for img in instances})
+        instance_values = await self._db.get_instance_property_values(property_ids=property_ids,
+                                                                      instance_ids=instance_ids)
+        image_values = await self._db.get_image_property_values(property_ids=property_ids, sha1s=sha1s)
+        converted_values = convert_to_instance_values(image_values, instances)
+
+        computed_ids = computed_properties.keys()
+        if property_ids:
+            computed_ids = [pId for pId in property_ids if pId < 0]
+        computed_values = [v for i in instances for v in get_computed_values(i, computed_ids)]
+        print(image_values)
+        print(computed_values)
+        return [*instance_values, *converted_values, *computed_values]
 
     async def set_property_values(self, property_id: int, instance_ids: list[int], value: Any):
         prop = await self._db.get_property(property_id)
@@ -118,45 +136,6 @@ class ProjectDb:
             res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
             return [*res, *res_del]
 
-    #
-    # async def add_property_values(self, property_id: int, value: Any, image_ids: list[int] = None,
-    #                               sha1s: list[int] = None):
-    #     if image_ids and sha1s:
-    #         raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
-    #
-    #     prop = await self._db.get_property(property_id)
-    #     if prop.mode == 'id' and not image_ids:
-    #         raise TypeError(f'Property {property_id}: {prop.name} needs image ids as key [mode: {prop.mode}]')
-    #     if prop.mode == 'sha1' and not sha1s:
-    #         raise TypeError(f'Property {property_id}: {prop.name} needs sha1s as key [mode: {prop.mode}]')
-    #
-    #     if prop.id != PropertyType.multi_tags:
-    #         raise TypeError('add_property_values is only supported for multi_tag properties')
-    #
-    #     if value and not isinstance(value, list):
-    #         value = [int(value)]
-    #
-    #     current_values = await self._db.get_property_values(property_ids=[property_id], image_ids=image_ids,
-    #                                                         sha1s=sha1s)
-    #     if image_ids:
-    #         value_index = {v.image_id: v.value for v in current_values}
-    #         [value_index.update({id_: []}) for id_ in image_ids if id_ not in value_index]
-    #         [value_index[id_].extend(value) for id_ in image_ids]
-    #         values = [list(set(value_index[id_])) for id_ in image_ids]
-    #         await self._db.set_multiple_property_values(property_id, values, image_ids)
-    #     else:
-    #         value_index = {v.sha1: v.value for v in current_values}
-    #         [value_index.update({sha1: []}) for sha1 in sha1s if sha1 not in value_index]
-    #         [value_index[sha1].extend(value) for sha1 in sha1s]
-    #         values = [list(set(value_index[sha1])) for sha1 in sha1s]
-    #         await self._db.set_multiple_property_values(property_id, values, sha1s)
-    #
-    #     updated_ids = image_ids
-    #     if not image_ids:
-    #         images = await self._db.get_instances(sha1s=sha1s)
-    #         updated_ids = [img.id for img in images]
-    #     return updated_ids, value
-
     # =====================================================
     # =================== Instances =======================
     # =====================================================
@@ -169,16 +148,6 @@ class ProjectDb:
     async def get_instances(self, ids: list[int] = None, sha1s: list[str] = None):
         images = await self._db.get_instances(ids=ids, sha1s=sha1s)
         return images
-
-    async def get_property_values(self, property_ids: list[int], instances: list[Instance]) \
-            -> list[InstancePropertyValue]:
-        instance_ids = [i.id for i in instances]
-        sha1s = list({img.sha1 for img in instances})
-        instance_values = await self._db.get_instance_property_values(property_ids=property_ids,
-                                                                      instance_ids=instance_ids)
-        image_values = await self._db.get_image_property_values(property_ids=property_ids, sha1s=sha1s)
-        converted_values = convert_to_instance_values(image_values, instances)
-        return [*instance_values, *converted_values]
 
     async def get_instances_with_properties(self, instance_ids: list[int] = None, property_ids: list[int] = None) \
             -> list[Instance]:
