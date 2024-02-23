@@ -48,14 +48,14 @@ function toggleProperty(property: Property) {
                         <span v-else><TagBadge :tag="store.data.folders[image.properties[property.id].value].name" :color="-1" /></span>
                     </td>
 
-                    <td v-if="property.mode == PropertyMode.sha1" class="text-center btn-icon border-left"
+                    <td v-if="!property.computed" class="text-center btn-icon border-left"
                         style="padding: 4px 3px 0px 5px; width: 20px;" @click="emits('paint', getImageProperty(props.image.id, property.id))">
                         <wTT message="modals.image.fill_property_tooltip">
                             <i class="bi bi-paint-bucket"></i>
                         </wTT>
                     </td>
 
-                    <td v-if="property.mode == PropertyMode.sha1" class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
+                    <td v-if="!property.computed" class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
                         @click="toggleProperty(property)">
                         <wTT message="modals.image.toggle_property_tooltip">
                             <i class="bi bi-eye" :class="(props.visibleProperties[property.id] ? 'text-primary' : '')" />

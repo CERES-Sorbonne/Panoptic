@@ -36,6 +36,7 @@ export interface Property {
     name: string
     type: PropertyType
     mode: PropertyMode
+    computed?: boolean
     tags?: TagIndex
 }
 
@@ -54,9 +55,9 @@ export enum PropertyType {
     checkbox = "checkbox",
     path = "path",
     image_link = "image_link",
-    _ahash = "average hash",
+    _ahash = "ahash",
     _sha1 = "sha1",
-    _folders = "folders",
+    _folders = "folder",
     _id = "id",
     _width = "width",
     _height = "height"
@@ -64,8 +65,7 @@ export enum PropertyType {
 
 export enum PropertyMode {
     sha1 = 'sha1',
-    id = 'id',
-    computed = 'computed'
+    id = 'id'
 }
 
 export interface PropertyValue {

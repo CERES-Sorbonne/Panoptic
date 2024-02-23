@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
     PropertyType
+from panoptic.models.computed_properties import ComputedId
 
 
 def get_datadir() -> pathlib.Path:
@@ -150,3 +151,22 @@ def clean_value(prop: Property, v: Any):
         return None
 
     return v
+
+
+def get_computed_values(instance: Instance, computed_ids: list[int]):
+    res = []
+    for i in computed_ids:
+        if i == ComputedId.id:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.id))
+        if i == ComputedId.sha1:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.sha1))
+        if i == ComputedId.ahash:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.ahash))
+        if i == ComputedId.folder:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.folder_id))
+        if i == ComputedId.width:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.width))
+        if i == ComputedId.height:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.height))
+
+    return res
