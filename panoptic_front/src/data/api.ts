@@ -21,7 +21,7 @@ export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
     // console.log(res.data)
     const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }]))
-    return images
+    return keysToCamel(images)
 }
 
 export const apiGetTags = async () => {
@@ -31,7 +31,7 @@ export const apiGetTags = async () => {
 
 export const apiGetProperties = async () => {
     const res = await axios.get('/property')
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiAddTag = async (
@@ -51,7 +51,7 @@ export const apiAddTag = async (
 
 export const apiAddTagParent = async (tagId: number, parentId: number) => {
     const res = await axios.post('tag/parent', { tagId, parentId })
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiAddProperty = async (name: string, type: PropertyType, mode: PropertyMode): Promise<Property> => {
@@ -82,12 +82,12 @@ export const apiSetTagPropertyValue = async (propertyId: number, instanceIds: nu
 
 export const apiUpdateTag = async (id: number, color?: number, parentId?: number, value?: any): Promise<Tag> => {
     const res = await axios.patch('/tags', { id, color, parent_id: parentId, value })
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiDeleteTagParent = async (id: number, parentId: number): Promise<any> => {
     const res = await axios.delete('/tags/parent', { params: { tag_id: id, parent_id: parentId } })
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiDeleteTag = async (tag_id: number): Promise<DeleteTagResult> => {

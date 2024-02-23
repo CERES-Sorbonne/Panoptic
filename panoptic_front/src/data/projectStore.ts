@@ -97,7 +97,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updateRoutine(routine)
         updatePropertyOptions()
 
-        computeTagCount(imageList.value, properties)
+        // computeTagCount(imageList.value, properties)
 
         countImagePerFolder(data.folders, imageList.value)
 
@@ -276,11 +276,12 @@ export const useProjectStore = defineStore('projectStore', () => {
             color = r
         }
         const newTag: Tag = await apiAddTag(propertyId, tagValue, color, parentId)
-        newTag.count = 0
-        if (!data.properties[propertyId].tags) {
-            data.properties[propertyId].tags = {}
-        }
-        data.properties[propertyId].tags[newTag.id] = newTag
+        // newTag.count = 0
+        importTags([newTag])
+        // if (!data.properties[propertyId].tags) {
+        //     data.properties[propertyId].tags = {}
+        // }
+        // data.properties[propertyId].tags[newTag.id] = newTag
         return newTag
     }
 
@@ -288,6 +289,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         const tag = await apiAddTagParent(tagId, parentId) as Tag
         Object.assign(data.properties[tag.propertyId].tags[tag.id], tag)
         const parent = data.properties[tag.propertyId].tags[parentId]
+        console.log(parent)
         if (!parent || parent.children.indexOf(tagId) >= 0) return
         parent.children.push(tagId)
     }
@@ -315,9 +317,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         const res = await apiDeleteTag(tagId)
         importPropertyValues(res.updatedValues)
         importTags(res.updatedTags)
+        data.tags[tagId].deleted = true
 
-        await nextTick()
         await tabManager.collection.update()
+        
     }
 
     function importPropertyValues(values: InstancePropertyValue[]) {
@@ -331,7 +334,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importTags(tags: Tag[]) {
-        const updated = new Set()
+        const updated = new Set<number>()
         for (let tag of tags) {
             data.tags[tag.id] = tag
             if (!(tag.propertyId in data.properties)) {
@@ -345,7 +348,9 @@ export const useProjectStore = defineStore('projectStore', () => {
             updated.add(tag.propertyId)
 
         }
-        for (let propId in updated) {
+        console.log(updated)
+        for (let propId of updated) {
+            console.log(propId)
             setTagsChildren(data.properties[propId].tags)
         }
         computeTagCount(imageList.value, data.properties)

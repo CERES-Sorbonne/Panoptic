@@ -1,5 +1,4 @@
-import { CollectionManager } from "@/core/CollectionManager"
-import { FilterOperator, FilterState } from "@/core/FilterManager"
+import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 
@@ -12,7 +11,7 @@ export interface Image {
     height: number
     url: string
     fullUrl: string
-    folder_id: number
+    folderId: number
     extension: string
     properties: {
         [id: number]: InstancePropertyValue
@@ -91,7 +90,7 @@ export interface PropertyRef extends PropertyValue {
 }
 
 export interface PropertyValueUpdate extends PropertyValue {
-    updated_ids: number[]
+    updatedIds: number[]
 }
 
 export enum PropertyID {

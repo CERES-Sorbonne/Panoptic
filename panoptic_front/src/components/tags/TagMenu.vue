@@ -53,7 +53,7 @@ const filteredTagList = computed(() => {
     }
 
     filtered.sort((t1, t2) => t2.count - t1.count)
-
+    filtered = filtered.filter(t => !t.deleted)
     return filtered
 })
 
