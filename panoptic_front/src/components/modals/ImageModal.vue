@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, ModalId, Property, PropertyRef } from '@/data/models';
+import { Image, ModalId, Property, PropertyRef, PropertyType } from '@/data/models';
 import Modal from './Modal.vue';
 import { Ref, computed, nextTick, onMounted, provide, reactive, ref, vModelDynamic, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
@@ -41,13 +41,18 @@ function onResize() {
 }
 
 function paint(property: PropertyRef) {
-    if(viewMode.value != 0) return
+    if (viewMode.value != 0) return
 
     let images = groupManager.result.root.images
     if (Object.keys(groupManager.selectedImages).length) {
         images = Object.keys(groupManager.selectedImages).map(id => project.data.images[id])
     }
-    project.setPropertyValue(property.propertyId, images, property.value)
+    if (property.type == PropertyType.multi_tags) {
+        const mode = property.value == undefined ? 'set' : 'add'
+        project.setTagPropertyValue(property.propertyId, images, property.value, mode)
+    } else {
+        project.setPropertyValue(property.propertyId, images, property.value)
+    }
     visibleProperties[property.propertyId] = true
 }
 
@@ -62,23 +67,23 @@ function onHide() {
 }
 
 async function onModalDataChange(value: ImageIterator) {
-    if(panoptic.openModalId != ModalId.IMAGE) return
+    if (panoptic.openModalId != ModalId.IMAGE) return
 
-    
-    if(iterator.value) {
+
+    if (iterator.value) {
         navigationHistory.value.push(iterator.value)
         await nextTick()
-        if(historyElem.value) {
+        if (historyElem.value) {
             historyElem.value.scrollTop = historyElem.value.scrollHeight
         }
-        
+
     }
     iterator.value = value
 }
 
 function nextImage() {
     const next = iterator.value.nextImages()
-    if(next) {
+    if (next) {
         iterator.value = next
         clearNavigationHistory()
     }
@@ -86,7 +91,7 @@ function nextImage() {
 
 function prevImage() {
     const prev = iterator.value.prevImages()
-    if(prev) {
+    if (prev) {
         iterator.value = prev
         clearNavigationHistory()
     }
@@ -112,9 +117,8 @@ watch(modalData, onModalDataChange)
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
-                    {{ image.properties }}
                     <ImagePropertyCol :image="iterator" :width="600" :image-height="500"
-                        :visible-properties="visibleProperties" @paint="paint"/>
+                        :visible-properties="visibleProperties" @paint="paint" />
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
                         <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
                             :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e" />
@@ -122,7 +126,7 @@ watch(modalData, onModalDataChange)
                     <div class="history text-center" v-if="navigationHistory.length > 0" ref="historyElem">
                         <b>{{ $t('modals.image.history') }}</b>
                         <div v-for="it, index in navigationHistory" class="bordered">
-                            <CenteredImage :image="it.image" :width="100" :height="100" @click="rollback(index)"/>
+                            <CenteredImage :image="it.image" :width="100" :height="100" @click="rollback(index)" />
                         </div>
                     </div>
                 </div>
