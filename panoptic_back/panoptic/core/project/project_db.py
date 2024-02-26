@@ -5,7 +5,7 @@ from typing import Any, Dict
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
-from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tags, Tag, \
+from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tag, \
     TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions, SetMode
 from panoptic.models.computed_properties import computed_properties
 from panoptic.models.results import DeleteTagResult
@@ -155,30 +155,6 @@ class ProjectDb:
         instance_values = await self.get_property_values(property_ids=property_ids, instances=instances)
         instance_index: dict[int, Instance] = {i.id: i for i in instances}
         [instance_index[v.instance_id].properties.update({v.property_id: v}) for v in instance_values]
-        # [setattr(, str(v.property_id), v) for v in instance_values]
-        #
-        # def assign_value(prop_value):
-        #     image_index[prop_value.image_id].properties[prop_value.property_id] = prop_value
-        #
-        # # fill the index with ids bound property values
-        # [assign_value(prop_value) for prop_value in property_values if prop_value.image_id >= 0]
-        #
-        # sha1_properties = {}
-        #
-        # def register_sha1_value(prop_value: PropertyValue):
-        #     if prop_value.sha1 not in sha1_properties:
-        #         sha1_properties[prop_value.sha1] = []
-        #     sha1_properties[prop_value.sha1].append(prop_value)
-        #
-        # # populate the index of sha1 properties with prop_values that are bound to sha1s
-        # [register_sha1_value(prop_values) for prop_values in property_values if prop_values.image_id < 0]
-
-        # def assign_sha1_value(image_id, prop_value: PropertyValue):
-        #     image_index[image_id].properties[prop_value.property_id] = prop_value
-        #
-        # # assign the sha1 bound property values to the images with corresponding sha1s
-        # [assign_sha1_value(img.id, prop_value) for img in instances if img.sha1 in sha1_properties for prop_value in
-        #  sha1_properties[img.sha1]]
 
         return instances
 

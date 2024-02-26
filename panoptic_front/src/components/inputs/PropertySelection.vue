@@ -20,7 +20,7 @@ const filteredProperties = computed(() => {
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }
-    properties = properties.filter(p =>  p.id != PropertyID.id)
+    // properties = properties.filter(p =>  p.id != PropertyID.id)
     return properties.filter(p => p.name.includes(propertyFilter.value))
 })
 
