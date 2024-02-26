@@ -346,7 +346,7 @@ export class FilterManager {
 
         if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
-            filtered = filtered.filter(img => folderSet.has(img.folder_id))
+            filtered = filtered.filter(img => folderSet.has(img.folderId))
         }
         this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter))
         console.timeEnd('Filter')
