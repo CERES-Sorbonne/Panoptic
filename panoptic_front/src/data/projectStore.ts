@@ -83,7 +83,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         // properties[PropertyID.height] = { id: PropertyID.height, name: 'height', type: PropertyType._height, mode: PropertyMode.computed }
 
 
-        data.properties = properties
+        importProperties(properties)
         objValues(images).forEach((i) => importImage(i))
 
 
@@ -147,6 +147,10 @@ export const useProjectStore = defineStore('projectStore', () => {
             import: {} as ImportState
         })
         tabManager = undefined
+    }
+
+    function importProperties(properties: Property[]) {
+        properties.forEach(p => data.properties[p.id] = p)
     }
 
     function verifyData() {
@@ -320,15 +324,17 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.tags[tagId].deleted = true
 
         await tabManager.collection.update()
-        
+
     }
 
     function importPropertyValues(values: InstancePropertyValue[]) {
         for (let val of values) {
-            if(val.value !== undefined) {
-                data.images[val.instanceId].properties[val.propertyId] = val
+            const props = data.properties[val.propertyId]
+            const ids = props.mode == PropertyMode.id ? [val.instanceId] : data.sha1Index[data.images[val.instanceId].sha1].map(i => i.id)
+            if (val.value !== undefined) {
+                ids.forEach(i => data.images[i].properties[val.propertyId] = val)
             } else {
-                delete data.images[val.instanceId].properties[val.propertyId]
+                ids.forEach(i => delete data.images[i].properties[val.propertyId])
             }
         }
     }
@@ -358,7 +364,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function addProperty(name: string, type: PropertyType, mode: PropertyMode) {
         const newProperty: Property = await apiAddProperty(name, type, mode)
-        data.properties[newProperty.id] = newProperty
+        importProperties([newProperty])
         updatePropertyOptions()
         getTab().visibleProperties[newProperty.id] = true
     }

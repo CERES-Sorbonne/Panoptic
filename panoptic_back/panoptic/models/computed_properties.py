@@ -8,6 +8,7 @@ class ComputedId:
     folder = -4
     width = -5
     height = -6
+    path = -7
 
 
 id_property = Property(id=ComputedId.id, name='id', type='id', mode='id', computed=True)
@@ -16,6 +17,8 @@ ahash_property = Property(id=ComputedId.ahash, name='average hash', type='ahash'
 folder_property = Property(id=ComputedId.folder, name='folder', type='folder', mode='id', computed=True)
 width_property = Property(id=ComputedId.width, name='width', type='width', mode='sha1', computed=True)
 height_property = Property(id=ComputedId.height, name='height', type='height', mode='sha1', computed=True)
+path_property = Property(id=ComputedId.path, name='path', type='path', mode='id', computed=True)
 
 computed_properties = {p.id: p for p in
-                       [id_property, sha1_property, ahash_property, folder_property, width_property, height_property]}
+                       [id_property, sha1_property, ahash_property, folder_property, width_property, height_property,
+                        path_property]}

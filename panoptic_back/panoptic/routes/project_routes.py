@@ -32,7 +32,7 @@ async def create_property_route(payload: PropertyPayload) -> Property:
 
 
 @project_router.get("/property")
-async def get_properties_route() -> Dict[int, Property]:
+async def get_properties_route() -> list[Property]:
     return await project.db.get_properties()
 
 
@@ -41,11 +41,12 @@ async def update_property_route(payload: PropertyUpdate) -> Property:
     return await project.db.update_property(payload)
 
 
-# @project_router.post('/property/file')
-# async def properties_by_file(file: UploadFile):
-#     data = pd.read_csv(file.file, sep=";")
-#     return await read_properties_file(data)
-#
+@project_router.post('/property/file')
+async def properties_by_file(file):
+    pass
+    # data = pd.read_csv(file.file, sep=";")
+    # return await read_properties_file(data)
+
 #
 # @project_router.post('/export')
 # async def export_properties_route(req: ExportPropertiesPayload):

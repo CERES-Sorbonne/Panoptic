@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from random import randint
 from typing import Any, Dict
 
@@ -6,7 +7,8 @@ from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tag, \
-    TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions, SetMode
+    TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions, SetMode, \
+    PropertyMode
 from panoptic.models.computed_properties import computed_properties
 from panoptic.models.results import DeleteTagResult
 from panoptic.utils import convert_to_instance_values, clean_value, get_computed_values
@@ -18,6 +20,9 @@ class ProjectDb:
 
         self.on_import_instance = ImportInstanceEvent()
 
+    async def close(self):
+        await self._db.close()
+
     def get_raw_db(self):
         return self._db
 
@@ -28,9 +33,9 @@ class ProjectDb:
     async def add_property(self, name: str, property_type: PropertyType, mode='id') -> Property:
         return await self._db.add_property(name, property_type.value, mode)
 
-    async def get_properties(self) -> Dict[int, Property]:
+    async def get_properties(self) -> list[Property]:
         properties = await self._db.get_properties()
-        return {prop.id: prop for prop in [*properties, *computed_properties.values()]}
+        return [*properties, *computed_properties.values()]
 
     async def update_property(self, update: PropertyUpdate) -> Property:
         existing_property = await self._db.get_property(update.id)
@@ -47,7 +52,7 @@ class ProjectDb:
     # =============== Property Values =====================
     # =====================================================
 
-    async def get_property_values(self, property_ids: list[int], instances: list[Instance]) \
+    async def get_property_values(self, instances: list[Instance], property_ids: list[int] = None, no_computed=False) \
             -> list[InstancePropertyValue]:
         instance_ids = [i.id for i in instances]
         sha1s = list({img.sha1 for img in instances})
@@ -56,23 +61,24 @@ class ProjectDb:
         image_values = await self._db.get_image_property_values(property_ids=property_ids, sha1s=sha1s)
         converted_values = convert_to_instance_values(image_values, instances)
 
-        computed_ids = computed_properties.keys()
-        if property_ids:
+        computed_ids = [] if no_computed else computed_properties.keys()
+        if computed_ids and property_ids:
             computed_ids = [pId for pId in property_ids if pId < 0]
         computed_values = [v for i in instances for v in get_computed_values(i, computed_ids)]
-        print(image_values)
-        print(computed_values)
         return [*instance_values, *converted_values, *computed_values]
 
     async def set_property_values(self, property_id: int, instance_ids: list[int], value: Any):
         prop = await self._db.get_property(property_id)
         value = clean_value(prop, value)
-        if prop.mode == 'id':
+        # print(property_id, value)
+        if prop.mode == PropertyMode.id:
+            # print('mode id')
             if value is None:
                 await self._db.delete_instance_property_value(property_id, instance_ids)
             else:
                 await self._db.set_instance_property_value(property_id, instance_ids, value)
-        if prop.mode == 'sha1':
+        if prop.mode == PropertyMode.sha1:
+            # print('mode sha1')
             instances = await self._db.get_instances(ids=instance_ids)
             sha1s = {i.sha1 for i in instances}
             if value is None:
@@ -88,8 +94,7 @@ class ProjectDb:
         pairs = [(i, v) for i, v in zip(instance_ids, values)]
         to_delete = [p for p in pairs if p[1] is None]
         to_update = [p for p in pairs if p[1] is not None]
-
-        if prop.mode == 'id':
+        if prop.mode == PropertyMode.id:
             if to_update:
                 ids = [v[0] for v in to_update]
                 vals = [v[1] for v in to_update]
@@ -97,7 +102,7 @@ class ProjectDb:
             if to_delete:
                 ids = [v[0] for v in to_delete]
                 await self._db.delete_instance_property_value(property_id=prop.id, instance_ids=ids)
-        if prop.mode == 'sha1':
+        if prop.mode == PropertyMode.sha1:
             if to_update:
                 ids = [v[0] for v in to_update]
                 instances = await self._db.get_instances(ids=ids)
@@ -152,11 +157,30 @@ class ProjectDb:
     async def get_instances_with_properties(self, instance_ids: list[int] = None, property_ids: list[int] = None) \
             -> list[Instance]:
         instances = await self._db.get_instances(instance_ids)
-        instance_values = await self.get_property_values(property_ids=property_ids, instances=instances)
+        instance_values = await self.get_property_values(instances=instances, property_ids=property_ids)
         instance_index: dict[int, Instance] = {i.id: i for i in instances}
         [instance_index[v.instance_id].properties.update({v.property_id: v}) for v in instance_values]
 
         return instances
+
+    async def empty_or_clone(self, paths: list[str]) -> list[Instance]:
+        instances = await self.get_instances()
+        path_to_instances = defaultdict(list)
+        res: list[Instance] = []
+        for i in instances:
+            path_to_instances[i.url].append(i)
+        for path in paths:
+            if not path_to_instances[path]:
+                raise Exception('{path} is not already imported in panoptic. '
+                                'Impossible to import the data before importing the file')
+            matches = sorted(path_to_instances[path], key=lambda x: x.id)
+            values = await self.get_property_values(instances=[matches[0]], no_computed=True)
+            if not values:
+                res.append(matches[0])
+            else:
+                new_instance = await self._db.clone_instance(matches[0])
+                res.append(new_instance)
+        return res
 
     # ========== Tags ==========
     async def get_tags(self, prop: int = None) -> list[Tag]:
@@ -204,7 +228,7 @@ class ProjectDb:
     async def delete_tag(self, tag_id: int):
         tag = await self._db.get_tag_by_id(tag_id)
         instances = await self._db.get_instances()
-        values = await self.get_property_values([tag.property_id], instances)
+        values = await self.get_property_values(instances, [tag.property_id])
 
         to_update = [v for v in values if tag_id in v.value]
         [v.value.remove(tag_id) for v in to_update if tag_id in v.value]

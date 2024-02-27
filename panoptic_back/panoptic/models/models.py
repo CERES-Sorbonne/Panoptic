@@ -30,11 +30,16 @@ class PropertyType(Enum):
     height = 'height'
 
 
+class PropertyMode(Enum):
+    id = 'id'
+    sha1 = 'sha1'
+
+
 class Property(BaseModel):
     id: int
     name: str
     type: PropertyType
-    mode: str
+    mode: PropertyMode
     computed: bool = False
 
 

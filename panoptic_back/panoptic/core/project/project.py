@@ -68,6 +68,7 @@ class Project:
     async def close(self):
         self.is_loaded = False
         self.base_path = ''
+        await self.db.close()
 
     async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
                           copy_images: bool = False):
