@@ -79,7 +79,7 @@ class ImportInstanceTask(Task):
         # url = os.path.join('/static/' + global_file_path.split(os.getenv('PANOPTIC_ROOT'))[1].replace('\\', '/'))
         if not os.path.exists(os.path.join(project_path, "mini")):
             os.mkdir(os.path.join(project_path, "mini"))
-        url = f"/images/{file_path}"
+        url = file_path
         image = image.convert('RGB')
         mini = image.copy()
         mini.thumbnail(size=(200, 200))

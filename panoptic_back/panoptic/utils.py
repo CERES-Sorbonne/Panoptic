@@ -168,5 +168,7 @@ def get_computed_values(instance: Instance, computed_ids: list[int]):
             res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.width))
         if i == ComputedId.height:
             res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.height))
+        if i == ComputedId.path:
+            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.url))
 
     return res
