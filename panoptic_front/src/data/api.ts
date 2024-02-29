@@ -33,7 +33,7 @@ export interface ApiTab {
 export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
     // console.log(res.data)
-    const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }]))
+    const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + '/images/' + v.url }]))
     return keysToCamel(images)
 }
 
