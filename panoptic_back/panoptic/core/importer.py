@@ -1,13 +1,11 @@
 from __future__ import annotations
+
 import csv
 from collections import defaultdict
-from io import TextIOWrapper
 from random import randint
 from typing import TYPE_CHECKING
 
 from fastapi import UploadFile
-from pydantic import BaseModel
-from pydantic.typing import PathLike
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project

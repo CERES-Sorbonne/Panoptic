@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from fastapi_camelcase import CamelModel
 
-from .models import PropertyType, ActionParam, ActionContext, SetMode, ImportOptions, ColumnOption
+from .models import PropertyType, ActionParam, ActionContext, SetMode, ColumnOption
 
 
 class ImagePayload(CamelModel):

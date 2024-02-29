@@ -1,8 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
-from dataclass_wizard import JSONWizard
-from fastapi_camelcase import CamelModel
 
 from panoptic.models import InstancePropertyValue, Tag
 
