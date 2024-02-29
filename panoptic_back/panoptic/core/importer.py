@@ -67,7 +67,7 @@ class Importer:
         row_to_sha1: dict[int, str] = {}
         instances = await self.project.db.get_instances()
         key_desc = PropertyDescription(col=0, name='key', type=None, mode=PropertyMode.id)
-        if file_key == '#':
+        if file_key == 'id':
             key_desc.type = PropertyType.id
             key_desc.id = -1
             id_to_sha1 = {i.id: i.sha1 for i in instances}
@@ -126,7 +126,7 @@ class Importer:
         rows = list(reader)
         row_to_id: dict[int, int] = {}
         # map every row to and instance id
-        if file_key == '#':
+        if file_key == 'id':
             [row_to_id.update({i: int(row[0])}) for i, row in enumerate(rows)]
         # if file path give map to an existing and empty instance or a new clone
         if file_key == '/':
