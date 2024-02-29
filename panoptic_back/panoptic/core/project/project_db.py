@@ -33,8 +33,10 @@ class ProjectDb:
     async def add_property(self, name: str, property_type: PropertyType, mode='id') -> Property:
         return await self._db.add_property(name, property_type.value, mode)
 
-    async def get_properties(self) -> list[Property]:
+    async def get_properties(self, no_computed=False) -> list[Property]:
         properties = await self._db.get_properties()
+        if no_computed:
+            return properties
         return [*properties, *computed_properties.values()]
 
     async def update_property(self, update: PropertyUpdate) -> Property:

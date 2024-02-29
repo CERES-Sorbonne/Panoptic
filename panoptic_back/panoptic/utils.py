@@ -172,3 +172,12 @@ def get_computed_values(instance: Instance, computed_ids: list[int]):
             res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.url))
 
     return res
+
+
+def all_equal(l: list):
+    if len(l) == 1:
+        return True
+    for i in range(len(l) - 1):
+        if l[i] != l[i + 1]:
+            return False
+    return True

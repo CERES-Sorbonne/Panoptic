@@ -1,9 +1,9 @@
 import logging
 import os
 from sys import platform
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from starlette.responses import FileResponse
@@ -13,7 +13,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
     TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
-    ExecuteActionPayload, SetTagPropertyValuePayload
+    ExecuteActionPayload, SetTagPropertyValuePayload, ImportOptions, OptionsPayload
 
 project_router = APIRouter()
 
@@ -44,8 +44,25 @@ async def update_property_route(payload: PropertyUpdate) -> Property:
 @project_router.post('/property/file')
 async def properties_by_file(file):
     pass
-    # data = pd.read_csv(file.file, sep=";")
-    # return await read_properties_file(data)
+
+
+@project_router.post('/upload_file')
+async def upload_file_route(file: UploadFile):
+    await project.importer.upload_csv(file)
+    return await project.importer.analyse_file()
+
+
+@project_router.post('/import_file')
+async def upload_file_route(req: OptionsPayload):
+    return await project.importer.import_file(req.options)
+
+#
+# @project_router.post('/analyse_file')
+# async def analyse_file_route():
+#     return await project.importer.analyse_file(test.file)
+#     # data = pd.read_csv(file.file, sep=";")
+#     # return await read_properties_file(data)
+
 
 #
 # @project_router.post('/export')
