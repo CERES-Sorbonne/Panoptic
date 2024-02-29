@@ -79,7 +79,7 @@ class Exporter:
                     value = image.properties[prop.id].value
                     # if it's a tag let's fetch tag value from tag id
                     if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
-                        print('is tag !!')
+                        # print('is tag !!')
                         if type(value) != list:
                             row.append(None)
                             continue

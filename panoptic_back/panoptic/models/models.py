@@ -5,7 +5,6 @@ from enum import Enum
 from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
-from dataclass_wizard import JSONWizard
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
