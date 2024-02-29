@@ -6,7 +6,7 @@ from concurrent.futures import Executor
 from typing import Dict, List
 
 from panoptic.core.task.task import Task
-from panoptic.models import StatusUpdate, TaskState
+from panoptic.models import TaskState
 
 logger = logging.getLogger('TaskQueue')
 

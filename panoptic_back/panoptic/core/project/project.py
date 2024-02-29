@@ -37,7 +37,7 @@ class Project:
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents()
         self.action = ProjectActions()
-        self.task_queue = TaskQueue(self.executor)
+        self.task_queue = TaskQueue(self.executor, num_workers=4)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
 
