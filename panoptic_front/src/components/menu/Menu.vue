@@ -23,12 +23,13 @@ const inputFile = ref(null)
 const isUploading = ref(false)
 
 const handleInput = async (e: any) => {
-    isUploading.value = true
-    console.log(isUploading.value)
-    const file = e.target.files[0]
-    const res = await apiUploadPropertyCsv(file)
-    panoptic.showModal(ModalId.IMPORT, res)
-    isUploading.value = false
+    panoptic.showModal(ModalId.IMPORT)
+    // isUploading.value = true
+    // console.log(isUploading.value)
+    // const file = e.target.files[0]
+    // const res = await apiUploadPropertyCsv(file)
+    // panoptic.showModal(ModalId.IMPORT, res)
+    // isUploading.value = false
 }
 
 function promptFolder() {
@@ -128,10 +129,10 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             <span class="sr-only" />
                         </span>
                         <span v-else class="me-3">
-                            <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden />
+                            
                             <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i
                                     class="bi bi-file-earmark-arrow-up btn-icon text-secondary"
-                                    @click="inputFile.click()" /></wTT>
+                                    @click="handleInput" /></wTT>
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i

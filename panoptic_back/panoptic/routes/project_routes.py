@@ -13,7 +13,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, \
     Tab, AddTagParentPayload, PropertyUpdate, \
     TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
-    ExecuteActionPayload, SetTagPropertyValuePayload, ImportOptions, OptionsPayload
+    ExecuteActionPayload, SetTagPropertyValuePayload, ImportOptions, OptionsPayload, ExportPropertiesPayload
 
 project_router = APIRouter()
 
@@ -64,12 +64,12 @@ async def upload_file_route(req: OptionsPayload):
 #     # return await read_properties_file(data)
 
 
-#
-# @project_router.post('/export')
-# async def export_properties_route(req: ExportPropertiesPayload):
-#     await panoptic.project.export_data(req.name, req.images, req.properties, req.export_images)
-#     return True
-#
+
+@project_router.post('/export')
+async def export_properties_route(req: ExportPropertiesPayload):
+    await project.export_data(req.name, req.images, req.properties, req.export_images)
+    return True
+
 
 
 @project_router.delete('/property/{property_id}')

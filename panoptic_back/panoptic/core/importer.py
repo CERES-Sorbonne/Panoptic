@@ -11,14 +11,14 @@ from pydantic.typing import PathLike
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag, Property
+from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag, Property, ImportOptions
 
 
 def parse_list(value: str):
     if value is None or value == '':
         return None
-    value = value.replace('[', '')
-    value = value.replace(']', '')
+    # value = value.replace('[', '')
+    # value = value.replace(']', '')
     return value.split(',')
 
 

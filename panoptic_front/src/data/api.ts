@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, ActionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
+import { ActionContext, ActionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel } from '@/utils/utils'
 import {createReadStream} from 'fs'
@@ -188,7 +188,7 @@ export const apiUploadPropFile = async (file: any) => {
 
 export async function apiUploadPropertyCsv(file) {
     const res = await uploadFile('/upload_file', file)
-    return res.data
+    return res.data as PropertyDescription[]
 }
 
 export async function apiImportFile(options) {

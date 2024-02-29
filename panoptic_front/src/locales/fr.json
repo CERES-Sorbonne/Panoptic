@@ -187,6 +187,9 @@
         },
         "settings": {
             "title": "Parametres Projet"
+        },
+        "import": {
+            "title": "Importer Fichier"
         }
     },
     "mini_ui": {

@@ -7,7 +7,7 @@ from typing import List
 from showinfm import show_in_file_manager
 
 from panoptic.core.db.db_connection import DbConnection
-from panoptic.core.exporter import export_data
+from panoptic.core.exporter import Exporter
 from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
@@ -39,6 +39,7 @@ class Project:
         self.action = ProjectActions()
         self.task_queue = TaskQueue(self.executor)
         self.importer = Importer(project=self)
+        self.exporter = Exporter(project=self)
 
         self.plugin_loaded = False
         self.plugins: List[Plugin] = []
@@ -74,8 +75,9 @@ class Project:
 
     async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
                           copy_images: bool = False):
-        export_path = await export_data(name=name, path=self.base_path, image_ids=ids, properties=properties,
-                                        copy_images=copy_images)
+        export_path = await self.exporter.export_data(name=name, path=self.base_path, instance_ids=ids,
+                                                      properties=properties,
+                                                      copy_images=copy_images)
         # export_path = "lala"
         show_in_file_manager(export_path)
         return export_path
@@ -134,4 +136,3 @@ class Project:
         db_actions = await self.db.get_raw_db().get_action_params()
         db_actions = [a for a in db_actions if a.value]
         self.action.set_action_functions(db_actions)
-

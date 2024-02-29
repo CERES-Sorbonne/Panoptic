@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import datetime
 import os
 import shutil
-from typing import List
+from typing import List, TYPE_CHECKING
 
 import pandas as pd
-
-
-from panoptic.models import PropertyType, Instance
+if TYPE_CHECKING:
+    from panoptic.core.project.project import Project
+from panoptic.models import PropertyType, Instance, Property
 
 
 def _copy_images(images: List[Instance], destination_folder: str) -> None:
@@ -19,62 +21,70 @@ def _copy_images(images: List[Instance], destination_folder: str) -> None:
             print(f'File {url} not found !')
 
 
-async def _build_export_data(images: [Instance], properties_list=None):
-    """
-    Allow to export selected images and properties into a csv file
-    """
-    from panoptic.core import get_properties, get_tags
-    properties = await get_properties()
-    tags = await get_tags()
+def get_name(p: Property):
+    if p.id == -1:
+        return p.name
+    return f'{p.name}[{p.type.value}]'
 
-    # filter properties id that we want to keep
-    properties_list = list(properties.keys()) if not properties_list else properties_list
-    properties = [properties[pid] for pid in properties_list]
-    columns = ["key", "sha1[string]"] + [f"{p.name}[{p.id.value}]" for p in properties]
-    rows = []
-    for image in images:
-        row = [image.name, image.sha1]
-        for prop in properties:
-            if prop.id in image.properties:
-                value = image.properties[prop.id].value
-                # if it's a tag let's fetch tag value from tag id
-                if prop.id == PropertyType.tag or prop.id == PropertyType.multi_tags:
-                    if type(value) != list:
-                        row.append(None)
-                        continue
-                    row.append(",".join([tags[prop.id][t].value for t in value]))
+
+class Exporter:
+    def __init__(self, project: Project):
+        self.project = project
+
+    async def export_data(self, path, name: str = None, instance_ids: [int] = None, properties=None,
+                          copy_images: bool = False) -> str:
+        if not name:
+            name = str(datetime.datetime.now())
+        base_export_folder = os.path.join(path, 'exports')
+        # Create the export folder if it doesn't exist
+        os.makedirs(base_export_folder, exist_ok=True)
+
+        export_folder = os.path.join(base_export_folder, name)
+        if os.path.exists(export_folder):
+            shutil.rmtree(export_folder)
+        os.makedirs(export_folder)
+
+        instances = await self.project.db.get_instances_with_properties(instance_ids)
+        # Create a CSV file with the data
+        if properties:
+            data_file_path = os.path.join(export_folder, 'data.csv')
+            df = await self._build_export_data(instances, properties)
+            df.to_csv(data_file_path, index=False)
+
+        if copy_images:
+            # Create a folder for images and copy them
+            image_folder_path = os.path.join(export_folder, 'images')
+            _copy_images(instances, image_folder_path)
+
+        return export_folder
+
+    async def _build_export_data(self, images: [Instance], properties_list: list[int]):
+        """
+        Allow to export selected images and properties into a csv file
+        """
+        properties = await self.project.db.get_properties()
+        tags = await self.project.db.get_tags()
+
+        # filter properties id that we want to keep
+        id_to_prop = {p.id: p for p in properties}
+        columns = [get_name(id_to_prop[p]) for p in properties_list]
+        rows = []
+        for image in images:
+            row = []
+            for prop_id in properties_list:
+                prop = id_to_prop[prop_id]
+                if prop.id in image.properties:
+                    value = image.properties[prop.id].value
+                    # if it's a tag let's fetch tag value from tag id
+                    if prop.id == PropertyType.tag or prop.id == PropertyType.multi_tags:
+                        if type(value) != list:
+                            row.append(None)
+                            continue
+                        row.append(",".join([tags[prop.id][t].value for t in value]))
+                    else:
+                        row.append(value)
                 else:
-                    row.append(value)
-            else:
-                row.append(None)
-        rows.append(row)
-    df = pd.DataFrame.from_records(rows, columns=columns)
-    return df
-
-
-async def export_data(path, name: str = None, image_ids: [int] = None, properties=None, copy_images: bool = False) -> str:
-    from panoptic.core import get_full_images
-    if not name:
-        name = str(datetime.datetime.now())
-    base_export_folder = os.path.join(path, 'exports')
-    # Create the export folder if it doesn't exist
-    os.makedirs(base_export_folder, exist_ok=True)
-
-    export_folder = os.path.join(base_export_folder, name)
-    if os.path.exists(export_folder):
-        shutil.rmtree(export_folder)
-    os.makedirs(export_folder)
-
-    images = await get_full_images(image_ids)
-    # Create a CSV file with the data
-    if properties:
-        data_file_path = os.path.join(export_folder, 'data.csv')
-        df = await _build_export_data(images, properties)
-        df.to_csv(data_file_path, index=False)
-
-    if copy_images:
-        # Create a folder for images and copy them
-        image_folder_path = os.path.join(export_folder, 'images')
-        _copy_images(images, image_folder_path)
-
-    return export_folder
+                    row.append(None)
+            rows.append(row)
+        df = pd.DataFrame.from_records(rows, columns=columns)
+        return df
