@@ -524,9 +524,6 @@ export class FilterManager {
     }
 
     private nextIndex() {
-        if (this.state.filter == undefined || Object.keys(this.filterIndex).length == 0) {
-            return 0
-        }
         let index = Math.max(...Object.keys(this.filterIndex).map(Number)) + 1
         if(index === this.lastFilterId) {
             index +=1
