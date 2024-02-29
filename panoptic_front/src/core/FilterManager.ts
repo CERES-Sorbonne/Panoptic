@@ -62,7 +62,7 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
         case PropertyType._height:
             return [FilterOperator.equal, FilterOperator.lower, FilterOperator.leq, FilterOperator.greater, FilterOperator.geq]
         case PropertyType._id:
-            return [FilterOperator.equal]
+            return [FilterOperator.equal, FilterOperator.equalNot]
         default:
             return []
     }
@@ -234,15 +234,20 @@ function defaultOperator(propertyType: PropertyType) {
         case PropertyType.checkbox:
             return FilterOperator.isTrue
 
+        case PropertyType.color:
+        case PropertyType.image_link:
+        case PropertyType.number:
+        case PropertyType.string:
+        case PropertyType.path:
+        case PropertyType.url:
         case PropertyType.multi_tags:
         case PropertyType.tag:
             return FilterOperator.isSet
 
         case PropertyType.date:
             return FilterOperator.greater
-
         default:
-            return FilterOperator.isSet
+            return FilterOperator.equal
     }
 }
 
@@ -300,12 +305,14 @@ export class FilterManager {
     state: FilterState
     result: FilterResult
 
+    lastFilterId: number
     filterIndex: { [filterId: number]: AFilter }
 
     lastImages: Image[]
     onChange: EventEmitter
 
     constructor(state?: FilterState) {
+        this.lastFilterId = null
         this.filterIndex = {}
         this.result = reactive({ images: [] })
         this.onChange = new EventEmitter()
@@ -520,7 +527,12 @@ export class FilterManager {
         if (this.state.filter == undefined || Object.keys(this.filterIndex).length == 0) {
             return 0
         }
-        return Math.max(...Object.keys(this.filterIndex).map(Number)) + 1
+        let index = Math.max(...Object.keys(this.filterIndex).map(Number)) + 1
+        if(index === this.lastFilterId) {
+            index +=1
+        }
+        this.lastFilterId = index
+        return index
     }
 
     private recursiveRegister(filter: AFilter) {

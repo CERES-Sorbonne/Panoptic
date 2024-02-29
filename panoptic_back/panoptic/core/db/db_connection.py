@@ -30,7 +30,6 @@ class DbConnection:
         async with self.conn.executescript('PRAGMA foreign_keys = 1') as cursor:
             await self.conn.commit()
 
-
         # check if the db is empty or has missing tables
         for table_name, create_query in tables.items():
             # Check if the table exists
