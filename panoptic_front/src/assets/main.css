@@ -133,7 +133,51 @@ body {
 .base-btn {
   border-radius: 3px;
   padding: 2px;
+  position: relative;
+  top: -2px;
   cursor: pointer;
+}
+
+.bb,
+.bbc,
+.bbb {
+  border-radius: 3px;
+  padding: 1px 3px;
+  position: relative;
+  top: -1px;
+  cursor: pointer;
+}
+
+.sb,
+.sbc,
+.sbb {
+  border-radius: 3px;
+  padding: 0px 2px;
+  /* position: relative; */
+  cursor: pointer;
+}
+
+.bbc,
+.sbc {
+  background-color: hsl(0, 0%, 95%);
+}
+
+.bbb {
+  border: 1px solid var(--border-color);
+  top: -2px;
+}
+.sbb {
+  border: 1px solid var(--border-color);
+  top: -1px;
+}
+
+.bbc:hover,
+.bb:hover,
+.bbb:hover,
+.sb:hover,
+.sbc:hover,
+.sbb:hover {
+  background-color: hsl(0, 0%, 90%) !important;
 }
 
 .base-btn:hover {
