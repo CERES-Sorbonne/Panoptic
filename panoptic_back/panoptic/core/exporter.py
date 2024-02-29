@@ -65,6 +65,8 @@ class Exporter:
         properties = await self.project.db.get_properties()
         tags = await self.project.db.get_tags()
 
+        tag_index = {t.id: t for t in tags}
+
         # filter properties id that we want to keep
         id_to_prop = {p.id: p for p in properties}
         columns = [get_name(id_to_prop[p]) for p in properties_list]
@@ -76,11 +78,12 @@ class Exporter:
                 if prop.id in image.properties:
                     value = image.properties[prop.id].value
                     # if it's a tag let's fetch tag value from tag id
-                    if prop.id == PropertyType.tag or prop.id == PropertyType.multi_tags:
+                    if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
+                        print('is tag !!')
                         if type(value) != list:
                             row.append(None)
                             continue
-                        row.append(",".join([tags[prop.id][t].value for t in value]))
+                        row.append(",".join([tag_index[t].value for t in value]))
                     else:
                         row.append(value)
                 else:
