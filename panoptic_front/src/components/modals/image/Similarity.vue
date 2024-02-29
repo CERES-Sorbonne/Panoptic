@@ -15,7 +15,7 @@ const props = defineProps<{
     width: number
     height: number
     similarGroup?: GroupManager
-    visibleProperties: {[id: number]: boolean}
+    visibleProperties: { [id: number]: boolean }
 }>()
 const similarGroup = props.similarGroup ?? new GroupManager()
 similarGroup.setSha1Mode(true)
@@ -31,16 +31,16 @@ const state = reactive({
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => project.data.properties[k]))
 
 async function setSimilar() {
+    if (!project.hasSimilaryFunction) return
     // if (modalMode.value != ImageModalMode.Similarity) return
-
-    const res = await apiGetSimilarImages({instanceIds: [props.image.id]})
+    const res = await apiGetSimilarImages({ instanceIds: [props.image.id] })
     res.matches.sort((a, b) => b.score - a.score)
     search.value = res
     updateSimilarGroup()
 }
 
 function updateSimilarGroup() {
-    if(!search.value) return
+    if (!search.value) return
 
     var matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
 
@@ -64,23 +64,26 @@ watch(() => props.width, updateSimilarGroup)
 </script>
 
 <template>
-    <div class="bg-white">
-        <div class="d-flex mb-1">
-        <SelectCircle v-if="similarGroup.hasResult()" :model-value="similarGroup.result.root.view.selected"
-            @update:model-value="v => similarGroup.toggleAll()" style="margin-top: -1px;"/>
-        <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
-        <wTT message="modals.image.similarity_filter_tooltip">
-            <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist"
-                @update:model-value="similarGroup.clearSelection()" />
-        </wTT>
-        <div>min: {{ minSimilarityDist }}%</div>
-        <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">({{
-            similarGroup.result.root.children.length }} images)</div>
-    </div>
+    <div v-if="!project.hasSimilaryFunction" class="ps-2">No Similary Function found.</div>
+    <template v-else>
+        <div class="bg-white">
+            <div class="d-flex mb-1">
+                <SelectCircle v-if="similarGroup.hasResult()" :model-value="similarGroup.result.root.view.selected"
+                    @update:model-value="v => similarGroup.toggleAll()" style="margin-top: -1px;" />
+                <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
+                <wTT message="modals.image.similarity_filter_tooltip">
+                    <RangeInput class="me-2" :min="0" :max="100" v-model="minSimilarityDist"
+                        @update:model-value="similarGroup.clearSelection()" />
+                </wTT>
+                <div>min: {{ minSimilarityDist }}%</div>
+                <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">({{
+                    similarGroup.result.root.children.length }} images)</div>
+            </div>
 
 
-    <TreeScroller class="" :image-size="70" :height="props.height-25" :width="props.width" :group-manager="similarGroup"
-        :properties="properties" :hide-options="true" :hide-group="true" :sha1-scores="state.sha1Scores" ref="scrollerElem" />
-    </div>
-
+            <TreeScroller class="" :image-size="70" :height="props.height - 25" :width="props.width"
+                :group-manager="similarGroup" :properties="properties" :hide-options="true" :hide-group="true"
+                :sha1-scores="state.sha1Scores" ref="scrollerElem" />
+        </div>
+    </template>
 </template>
