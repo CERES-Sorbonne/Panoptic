@@ -56,6 +56,16 @@ export const useProjectStore = defineStore('projectStore', () => {
     const folderRoots = computed(() => {
         return Object.values(data.folders).filter(f => f.parent == null) as Folder[]
     })
+    const hasSimilaryFunction = computed(() => {
+        const action = actions.value.find(a => a.name == 'find_similar')
+        if(!action) return false
+        return action.selectedFunction != undefined
+    })
+    const hasGroupFunction = computed(() => {
+        const action = actions.value.find(a => a.name == 'group')
+        if(!action) return false
+        return action.selectedFunction != undefined
+    })
 
     // =======================
     // =======Functions=======
@@ -503,7 +513,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginDefaults,
-        actions, setActionFunctions,
+        actions, setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
         backendStatus, reload
     }

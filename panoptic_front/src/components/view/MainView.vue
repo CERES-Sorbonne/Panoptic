@@ -112,7 +112,7 @@ watch(() => props.height, async () => {
             <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"
                 :height="scrollerHeight - 0" :properties="visibleProperties"
                 :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList"
-                :width="scrollerWidth - 10" @recommend="setRecoImages" />
+                :width="scrollerWidth - 25" @recommend="setRecoImages" />
         </template>
         <template v-if="tabManager.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
