@@ -40,6 +40,10 @@ export interface Property {
     tags?: TagIndex
 }
 
+export interface PropertyDescription extends Property {
+    col: number
+}
+
 export type PropertyIndex = { [propertyId: number]: Property }
 
 export enum PropertyType {
@@ -186,6 +190,8 @@ export interface PropertyOption {
 }
 
 
+
+
 export enum ModalId {
     IMAGE = 'image',
     IMAGE_ZOOM = 'image_zoom',
@@ -194,7 +200,8 @@ export enum ModalId {
     FOLDERTOPROP = 'folder_to_property',
     EXPORT = "export",
     FOLDERSELECTION = 'explorer',
-    SETTINGS = "settings"
+    SETTINGS = "settings",
+    IMPORT = "import"
 }
 
 export interface ImportState {

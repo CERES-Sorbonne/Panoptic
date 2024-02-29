@@ -6,9 +6,22 @@ import axios from 'axios'
 import { ActionContext, ActionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel } from '@/utils/utils'
+import {createReadStream} from 'fs'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
+
+async function uploadFile(route: string, file) {
+    let formData = new FormData();
+    formData.append('file', file)
+    const res = await axios.post(route,
+        formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+    return res
+}
 
 export interface ApiTab {
     id?: number,
@@ -171,6 +184,16 @@ export const apiUploadPropFile = async (file: any) => {
         }
     })
     return res
+}
+
+export async function apiUploadPropertyCsv(file) {
+    const res = await uploadFile('/upload_file', file)
+    return res.data
+}
+
+export async function apiImportFile(options) {
+    const res = await axios.post('/import_file', {options})
+    return res.data
 }
 
 export const apiExportProperties = async (name?: string, images?: number[], properties?: number[], exportImages = false) => {

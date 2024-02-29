@@ -4,7 +4,7 @@ from typing import Any, List
 
 from fastapi_camelcase import CamelModel
 
-from .models import PropertyType, ActionParam, ActionContext, SetMode
+from .models import PropertyType, ActionParam, ActionContext, SetMode, ImportOptions, ColumnOption
 
 
 class ImagePayload(CamelModel):
@@ -88,3 +88,7 @@ class ExecuteActionPayload(CamelModel):
     action: str
     function: str = None
     context: ActionContext
+
+
+class OptionsPayload(CamelModel):
+    options: dict[int, ColumnOption]

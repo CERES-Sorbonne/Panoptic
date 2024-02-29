@@ -10,6 +10,7 @@ import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
 import { usePanopticStore } from '@/data/panopticStore';
 import TaskStatus from './TaskStatus.vue';
+import { apiUploadPropertyCsv } from '@/data/api';
 
 const store = useProjectStore()
 const panoptic = usePanopticStore()
@@ -25,7 +26,8 @@ const handleInput = async (e: any) => {
     isUploading.value = true
     console.log(isUploading.value)
     const file = e.target.files[0]
-    let res = await store.uploadPropFile(file)
+    const res = await apiUploadPropertyCsv(file)
+    panoptic.showModal(ModalId.IMPORT, res)
     isUploading.value = false
 }
 

@@ -179,6 +179,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
     }
 
+    async function reload() {
+        nextTick(() => init())
+    }
+
     async function updateActions() {
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
@@ -501,7 +505,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePluginInfos, setPluginDefaults,
         actions, setActionFunctions,
         setDefaultVectors,
-        backendStatus
+        backendStatus, reload
     }
 
 })

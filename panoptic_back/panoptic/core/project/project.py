@@ -15,6 +15,7 @@ from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
+from panoptic.core.importer import Importer
 from panoptic.models import StatusUpdate, PluginDefaultParams, ActionParam
 from panoptic.plugin import Plugin
 
@@ -37,6 +38,7 @@ class Project:
         self.on = ProjectEvents()
         self.action = ProjectActions()
         self.task_queue = TaskQueue(self.executor)
+        self.importer = Importer(project=self)
 
         self.plugin_loaded = False
         self.plugins: List[Plugin] = []

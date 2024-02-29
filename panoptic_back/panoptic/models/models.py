@@ -43,6 +43,12 @@ class Property(BaseModel):
     computed: bool = False
 
 
+class PropertyDescription(Property):
+    id: int | None
+    type: PropertyType | None
+    col: int
+
+
 class PropertyUpdate(BaseModel):
     id: int
     name: str
@@ -254,6 +260,15 @@ class SetMode(Enum):
     set = 'set'
     add = 'add'
     delete = 'delete'
+
+
+class ColumnOption(BaseModel):
+    ignore = False
+    property_mode: PropertyMode | None
+
+
+ImportOptions = dict[int, ColumnOption]
+
 
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
