@@ -12,7 +12,6 @@ import wTT from '../tooltips/withToolTip.vue'
 import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
-import { localeData } from 'moment';
 
 const props = defineProps({
     tab: TabManager,

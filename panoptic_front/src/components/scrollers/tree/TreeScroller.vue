@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
 import ImageLineVue from './ImageLine.vue';
-import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
+// import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
 import { GroupManager, Group, GroupType, GroupIterator, ImageIterator } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, PropertyID } from '@/data/models';
+import { RecycleScroller } from 'vue-virtual-scroller';
 
 const props = defineProps({
     imageSize: Number,
@@ -30,7 +31,7 @@ const scroller = ref(null)
 const MARGIN_STEP = 20
 
 const visiblePropertiesNb = computed(() => props.properties.length)
-const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1 || (p.mode == PropertyMode.computed && p.id != PropertyID.id)))
+const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1))
 const visiblePropertiesClusterNb = computed(() => visiblePropertiesCluster.value.length)
 
 const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
@@ -294,7 +295,7 @@ watch(() => props.width, () => {
 
 <template>
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="800" :min-item-size="props.imageSize" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
+        :buffer="800" :min-item-size="0" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->

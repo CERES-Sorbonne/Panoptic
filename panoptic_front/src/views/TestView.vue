@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue';
-import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
-import VueResizable from 'vue-resizable'
 
-import Vue3DraggableResizable from 'vue3-draggable-resizable'
-import { DraggableContainer } from 'vue3-draggable-resizable'
 //default styles
 import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css'
-import { useResizeObserver } from '@vueuse/core'
-import contenteditable from 'vue-contenteditable';
 import TextInput from '@/components/inputs/TextInput.vue';
 
 

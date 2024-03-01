@@ -11,8 +11,8 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import "bootstrap"
 import '@/assets/customize.scss'
 import '@vueform/toggle/themes/default.css'
-// import './components/vuefinder/dist/style.css'
-// import VueFinder from './components/vuefinder/src/index.js'
+import VueVirtualScroller from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 const i18n = createI18n({
     legacy: false,
@@ -25,6 +25,7 @@ const pinia = createPinia()
 
 const app = createApp(App)
 app.use(pinia)
+app.use(VueVirtualScroller)
 
 import router from './router'
 app.use(router)
