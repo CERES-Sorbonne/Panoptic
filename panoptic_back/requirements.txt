@@ -18,3 +18,4 @@ pydantic<2.0.0
 psutil
 starlette
 numpy
+show-in-file-manager
