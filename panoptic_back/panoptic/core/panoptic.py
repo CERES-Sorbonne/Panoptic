@@ -10,8 +10,8 @@ from panoptic.utils import get_datadir
 
 
 class ProjectId(BaseModel):
-    name: str | None
-    path: str | None
+    name: str | None = None
+    path: str | None = None
 
 
 class PanopticData(BaseModel):
