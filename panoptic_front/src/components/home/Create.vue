@@ -2,6 +2,7 @@
 import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { computed, ref } from 'vue';
+import { goNext } from '@/utils/utils';
 
 const panoptic = usePanopticStore()
 
@@ -25,7 +26,7 @@ function prompPath() {
 </script>
 
 <template>
-    <div class="" id="create-project">
+    <div class="">
         <h3 class="mb-3">{{$t('main.home.create_title')}}</h3>
         <div class="d-flex text-start input mb-2">
             <div class="info">{{ $t('main.home.label.folder') }}</div>
@@ -33,7 +34,7 @@ function prompPath() {
                 <span v-if="path != ''">{{ path }}</span>
                 <span v-else class="text-placeholder">{{ $t('main.home.label.path_placeholder') }}</span>
             </div>
-            <div class="folder" style="cursor: pointer;" @click="prompPath"><i class="bi bi-folder"></i></div>
+            <div id="select-folder" class="folder" style="cursor: pointer;" @click="prompPath();goNext()"><i class="bi bi-folder"></i></div>
         </div>
 
         <div class="d-flex text-start input">
@@ -46,7 +47,7 @@ function prompPath() {
         <div class="d-flex mt-2">
             <div class="flex-grow-1"></div>
             <div class="btn-grey hover-grey" @click="emits('cancel')">{{ $t('main.home.label.cancel') }}</div>
-            <div class="ms-2" :class="validForm ? 'btn-blue' : 'btn-grey text-dim'" @click="emits('create', {path, name})">{{ $t('main.home.label.create') }}</div>
+            <div id="confirm-create" class="ms-2" :class="validForm ? 'btn-blue' : 'btn-grey text-dim'" @click="emits('create', {path, name});goNext()">{{ $t('main.home.label.create') }}</div>
         </div>
     </div>
 </template>

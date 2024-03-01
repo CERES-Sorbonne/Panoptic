@@ -199,3 +199,10 @@ export function pad(num) {
     if (num.length < 2) num = "0" + num;
     return num;
 }
+
+export function goNext(){
+    let elem = document.getElementsByClassName('v-step__button-next')[0] as HTMLElement
+    if(elem){
+        elem.click()
+    }
+}
