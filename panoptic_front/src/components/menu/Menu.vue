@@ -4,11 +4,10 @@ import { ModalId } from '../../data/models';
 import { ref, defineEmits, watch } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
-import { sleep } from '@/utils/utils';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
-import router from '@/router';
 import { usePanopticStore } from '@/data/panopticStore';
+import { goNext } from '@/utils/utils';
 
 const store = useProjectStore()
 const panoptic = usePanopticStore()
@@ -56,7 +55,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                 <div class="ps-2 pe-2" style="padding-bottom: 9.5px">
                     <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
-                        <div class="ms-auto plus" @click="promptFolder">
+                        <div id="add_folder" class="ms-auto plus" @click="promptFolder();goNext();">
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>
@@ -67,31 +66,32 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                 </div>
-                <div class="p-2"
-                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
-                    <div class="custom-hr" />
-                    <div v-if="store.status.import.done" class="float-end"><i class="bi bi-x base-hover"
-                            @click="showImport = false"></i></div>
-                    <div class="text-center"><b>{{ $t('main.menu.import_status_title') }}</b></div>
-
-                    <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
-                    </div>
-                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
-                        aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
-                        <div class="progress-bar"
-                            :style="`width: ${store.status.import.imported / store.status.import.to_import * 100}%`">
+                <div id="import">
+                    <div class="p-2"
+                        v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
+                        <div class="custom-hr" />
+                        <div v-if="store.status.import.done" class="float-end"><i class="bi bi-x base-hover"
+                                @click="showImport = false"></i></div>
+                        <div class="text-center"><b>{{ $t('main.menu.import_status_title') }}</b></div>
+                        <div class="w-100 text-center" style="font-size: 10px;">
+                            {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
+                        </div>
+                        <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
+                            aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
+                            <div class="progress-bar"
+                                :style="`width: ${store.status.import.imported / store.status.import.to_import * 100}%`">
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="p-2" v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0  && showImport" >
-                    <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
-                    </div>
-                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
-                        aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
-                        <div class="progress-bar"
-                            :style="`width: ${store.status.import.computed / store.status.import.to_import * 100}%`">
+                    <div class="p-2" v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0  && showImport" >
+                        <div class="w-100 text-center" style="font-size: 10px;">
+                            {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
+                        </div>
+                        <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
+                            aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
+                            <div class="progress-bar"
+                                :style="`width: ${store.status.import.computed / store.status.import.to_import * 100}%`">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             </div>
                         </template>
                         <div class="property-item m-0 p-0"></div>
-                        <div @click="panoptic.showModal(ModalId.PROPERTY, undefined)" class="btn-icon base-hover mt-1"
+                        <div id="add-property" @click="panoptic.showModal(ModalId.PROPERTY, undefined);goNext()" class="btn-icon base-hover mt-1"
                             style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                             <span>{{ $t('main.nav.properties.add_property') }}</span>
