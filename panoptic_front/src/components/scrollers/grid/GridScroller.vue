@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
+// import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
@@ -7,7 +7,7 @@ import { Group, GroupManager, GroupType, ImageIterator, ROOT_ID } from '@/core/G
 import { Property, GroupLine, Image, RowLine, PileRowLine, ScrollerLine } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
-
+import {RecycleScroller} from 'vue-virtual-scroller';
 const store = useProjectStore()
 
 const props = defineProps({

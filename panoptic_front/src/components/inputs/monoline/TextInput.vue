@@ -21,7 +21,7 @@ const minWidth = computed(() => Math.max(props.width + 1, 100))
 </script>
 
 <template>
-    <Dropdown :offset="'-0,-24'" :no-shadow="true" ref="dropdownElem">
+    <Dropdown :offset="-24" :no-shadow="true" ref="dropdownElem" :teleport="true">
         <template v-slot:button>
             <div class="btn-class"
                 :style="{ width: props.width + 'px', height: props.height + 'px', lineHeight: props.height + 'px' }">

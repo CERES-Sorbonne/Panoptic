@@ -49,7 +49,7 @@ async function apply() {
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem">
+    <Dropdown ref="dropdownElem" :teleport="true">
         <template #button>
             <div :class="props.noBorder ? '' : 'button'">
                 <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
