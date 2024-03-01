@@ -180,8 +180,8 @@ class UpdateCounter(CamelModel):
 
 class StatusUpdate(CamelModel):
     tasks: List[TaskState] = []
-    plugin_loaded = False
-    update = UpdateCounter()
+    plugin_loaded: bool = False
+    update: UpdateCounter = UpdateCounter()
 
 
 class TaskState(BaseModel):
@@ -200,10 +200,10 @@ class Clusters:
 
 
 class ActionContext(CamelModel):
-    instance_ids: List[int] | None
-    property_ids: List[int] | None
-    file: str | None
-    text: str | None
+    instance_ids: List[int] | None = None
+    property_ids: List[int] | None = None
+    file: str | None = None
+    text: str | None = None 
     ui_inputs: Dict[str, Any] = {}
 
 
@@ -262,7 +262,7 @@ class SetMode(Enum):
 
 
 class ColumnOption(BaseModel):
-    ignore = False
+    ignore:bool = False
     property_mode: PropertyMode | None
 
 

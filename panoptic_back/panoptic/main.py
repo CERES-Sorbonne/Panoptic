@@ -12,7 +12,7 @@ from panoptic.routes.project_routes import project_router
 from panoptic.routes.project_selection_routes import selection_router, set_panoptic
 from panoptic.utils import get_base_path
 
-if __name__ == '__main__':
+def start():
     panoptic = Panoptic()
     panoptic.load_data()
 
@@ -52,3 +52,6 @@ if __name__ == '__main__':
         webbrowser.open(FRONT_URL)
 
     uvicorn.run(app, port=PORT)
+
+if __name__ == '__main__':
+    start()

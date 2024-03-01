@@ -111,7 +111,7 @@ def get_model_params_description(model: BaseModel):
     res: List[ParamDescription] = []
     fields = model.__fields__
     for field_name, field_info in fields.items():
-        field_type = field_info.type_
+        field_type = field_info.annotation
         default_value = field_info.default
         description = get_param_comment_from_model(model, field_name)
         res.append(ParamDescription(name=field_name, description=description, type=to_str_type(field_type),
