@@ -367,12 +367,27 @@ export class GroupManager {
             this.saveImagesToGroup(group)
         }
 
-        Object.keys(lastCustom).forEach(target => {
-            if (this.result.index[target]?.children.length == 0) {
-                this.addCustomGroups(target, lastCustom[target])
-            }
+        // Object.keys(lastCustom).forEach(target => {
+        //     if (this.result.index[target]?.children.length == 0) {
+        //         this.addCustomGroups(target, lastCustom[target])
+        //     }
+        // })
 
-        })
+        let insert = true
+        let toInsert = new Set(Object.keys(lastCustom))
+        console.log(lastCustom)
+
+        while(insert) {
+            insert = false
+            for(let target of Array.from(toInsert)) {
+                if (this.result.index[target]) {
+                    this.addCustomGroups(target, lastCustom[target])
+                    toInsert.delete(target)
+                    insert = true
+                }
+            }
+        }
+
 
         if (this.state.sha1Mode) {
             this.groupLeafsBySha1()
@@ -440,6 +455,7 @@ export class GroupManager {
         this.result.root = undefined
         this.clearLastSelected()
         this.clearSelection()
+        this.customGroups = {}
         this.lastOrder = {}
         if (emit) this.onChange.emit()
     }
@@ -525,12 +541,14 @@ export class GroupManager {
         }
         if (this.state.groupBy.includes(propertyId)) return
         this.state.groupBy.push(propertyId)
+        this.customGroups = {}
     }
 
     delGroupOption(propertyId: number) {
         const index = this.state.groupBy.indexOf(propertyId)
         if (index < 0) return
         this.state.groupBy.splice(index, 1)
+        this.customGroups = {}
     }
 
     addCustomGroups(targetGroupId: string, groups: Group[], emit?: boolean) {
