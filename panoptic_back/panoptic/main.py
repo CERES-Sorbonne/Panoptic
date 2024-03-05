@@ -1,5 +1,4 @@
 import os
-import sys
 import webbrowser
 
 import uvicorn
@@ -41,18 +40,19 @@ def start():
     # static directory route
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
-
-    def api(path):
-        return 'http://localhost:' + str(PORT) + '/' + path
-
     dev_url = 'http://localhost:5173/'
     prod_url = 'http://localhost:' + str(PORT) + '/'
-    FRONT_URL = dev_url if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else prod_url
+    front_url = dev_url if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else prod_url
 
     if not os.environ.get('REMOTE'):
-        webbrowser.open(FRONT_URL)
+        webbrowser.open(front_url)
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        await panoptic.close()
 
     uvicorn.run(app, port=PORT)
+
 
 if __name__ == '__main__':
     start()

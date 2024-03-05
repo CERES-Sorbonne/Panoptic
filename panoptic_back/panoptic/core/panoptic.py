@@ -108,14 +108,18 @@ class Panoptic:
     def get_plugin_paths(self):
         return self.data.plugins
 
-    async def close(self):
+    async def close_project(self):
         self.project_id = None
         self.data.last_opened = {}
         self.save_data()
-        # await self.project.close()
+        await self.project.close()
         self.project = None
         from panoptic.routes.project_routes import set_project
         set_project(self.project)
+
+    async def close(self):
+        if self.project:
+            await self.project.close()
 
     def is_loaded(self):
         return self.project_id is not None

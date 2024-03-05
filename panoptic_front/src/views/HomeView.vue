@@ -86,10 +86,10 @@ onMounted(() => {
                 <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
 
                 <div class="plugin-preview mt-5">
-                    <h4 class="text-center">
+                    <h5 class="text-center">
                         Plugins
                         <span class="sb bi bi-plus" style="position: relative; top:1px" @click="promptPlugin"></span>
-                    </h4>
+                    </h5>
 
                     <div v-for="path in panoptic.data.plugins" class="ps-1"><span @click="delPlugin(path)"
                             class="bi bi-x base-hover"></span> {{ path }}</div>
