@@ -389,7 +389,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         const imageIds = images.map(i => i.id)
-
+        console.log('ids', imageIds)
         const values = await apiSetPropertyValue(propertyId, imageIds, value)
 
         importPropertyValues(values)
@@ -407,6 +407,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         const imageIds = images.map(i => i.id)
+        console.log('ids', imageIds)
         const values = await apiSetTagPropertyValue(propertyId, imageIds, value, mode)
         importPropertyValues(values)
         computeTagCount(imageList.value, data.properties)

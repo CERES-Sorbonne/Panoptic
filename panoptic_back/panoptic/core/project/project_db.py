@@ -127,21 +127,24 @@ class ProjectDb:
         instances = await self.get_instances_with_properties(instance_ids=instance_ids, property_ids=[property_id])
 
         to_set = [i for i in instances if property_id not in i.properties]
-        res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set], value=value)
+        if to_set:
+            set_res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set], value=value)
+        else:
+            set_res = []
         if mode == SetMode.add:
             to_add = [i for i in instances if property_id in i.properties]
             ids = [i.id for i in to_add]
             vals = [[*i.properties[property_id].value, *value] for i in to_add]
             vals = [[*{*v}] for v in vals]
             res_add = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
-            return [*res, *res_add]
+            return [*set_res, *res_add]
 
         if mode == SetMode.delete:
             to_del = [i for i in instances if property_id in i.properties]
             ids = [i.id for i in to_del]
             vals = [[v for v in i.properties[property_id].value if v not in value] for i in to_del]
             res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
-            return [*res, *res_del]
+            return [*set_res, *res_del]
 
     # =====================================================
     # =================== Instances =======================

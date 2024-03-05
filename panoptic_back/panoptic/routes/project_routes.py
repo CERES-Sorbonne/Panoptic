@@ -104,6 +104,7 @@ async def set_property_values_route(payload: SetPropertyValuePayload):
 
 @project_router.post('/set_tag_property_value')
 async def set_tag_property_value(payload: SetTagPropertyValuePayload):
+    print(payload)
     values = await project.db.set_tag_property_value(property_id=payload.property_id, instance_ids=payload.instance_ids,
                                                      value=payload.value, mode=payload.mode)
     return values
