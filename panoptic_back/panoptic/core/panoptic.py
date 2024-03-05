@@ -27,6 +27,12 @@ class Panoptic:
         self.project_id = None
         self.project: Project | None = None
 
+        if not self.data.plugins:
+            from plugins import FaissPlugin
+            module_path = os.path.abspath(FaissPlugin.__file__)
+            module_path = module_path.replace('/__init__.py', '')
+            self.data.plugins.append(module_path)
+
     def load_data(self):
         try:
             with open(self.global_file_path, 'r') as file:
