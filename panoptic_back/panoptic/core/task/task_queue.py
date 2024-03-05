@@ -80,6 +80,7 @@ class TaskQueue:
                     logger.error("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
                     logger.error(e)
                 if state.remain == 0 and state.computing == 0:
+                    state.done = True
                     await task.run_if_last()
 
             except Exception as e:
