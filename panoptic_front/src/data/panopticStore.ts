@@ -65,7 +65,8 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function createProject(path: string, name: string) {
-        const projectPath = path + '/' + name
+        path = path.endsWith('\\') ? path : path + '/'
+        const projectPath = path + name
         data.status = await apiCreateProject(projectPath, name)
         await loadProject(projectPath)
     }

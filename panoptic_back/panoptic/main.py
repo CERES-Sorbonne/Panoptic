@@ -12,6 +12,7 @@ from panoptic.routes.project_routes import project_router
 from panoptic.routes.project_selection_routes import selection_router, set_panoptic
 from panoptic.utils import get_base_path
 
+
 def start():
     panoptic = Panoptic()
     panoptic.load_data()
