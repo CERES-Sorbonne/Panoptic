@@ -92,6 +92,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function addPlugin(path) {
+        if(!path) return
         await apiAddPlugin(path)
         data.plugins = await apiGetPlugins()
     }
