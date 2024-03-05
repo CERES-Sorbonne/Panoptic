@@ -79,7 +79,7 @@ export class TabManager {
     }
 
     getVisibleSha1Properties() {
-        return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1 || (p.mode == PropertyMode.computed && p.id != PropertyID.id))
+        return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1)
     }
 
 }
