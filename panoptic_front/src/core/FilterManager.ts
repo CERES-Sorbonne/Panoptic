@@ -344,12 +344,32 @@ export class FilterManager {
         this.lastImages = images
         let filtered = images
 
-        // if(this.state.query) {
-        //     const res = await apiGetSimilarImagesFromText(this.state.query)
-        //     const isValid = new Set<string>()
-        //     res.forEach(r => isValid.add(r.sha1))
-        //     filtered = filtered.filter(i => isValid.has(i.sha1))
-        // }
+        if (this.state.query) {
+            const query = this.state.query
+            const project = useProjectStore()
+            const props = Object.values(project.data.properties)
+            const textProps = props.filter(p => p.type == PropertyType.string)
+            const tagProps = props.filter(p => isTag(p.type))
+            filtered = filtered.filter(img => {
+                for (let p of textProps) {
+                    if (img.properties[p.id] && img.properties[p.id].value.includes(query)) {
+                        return true
+                    }
+                }
+                for (let p of tagProps) {
+                    const value = img.properties[p.id]?.value
+                    if (!value) continue
+                    console.log(project.data.tags)
+                    const tagNames = value.map(tId => project.data.tags[tId].value)
+                    for (let name of tagNames) {
+                        if (name.includes(query)) {
+                            return true
+                        }
+                    }
+                }
+                return false
+            })
+        }
 
         if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
@@ -525,8 +545,8 @@ export class FilterManager {
 
     private nextIndex() {
         let index = Math.max(...Object.keys(this.filterIndex).map(Number)) + 1
-        if(index === this.lastFilterId) {
-            index +=1
+        if (index === this.lastFilterId) {
+            index += 1
         }
         this.lastFilterId = index
         return index

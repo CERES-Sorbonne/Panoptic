@@ -53,7 +53,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 <template>
     <div class="d-flex flex-row p-2">
         <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
-            <div class="d-flex flex-row search-input me-5">
+            <div class="d-flex flex-row search-input me-5"  :class="localQuery ? 'border-primary' : ''">
                 <div class="bi bi-search float-start bi-sm"></div>
                 <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery" @change="setQuery"/>
                 <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
