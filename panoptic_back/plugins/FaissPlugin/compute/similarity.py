@@ -53,7 +53,7 @@ class SimilarityFaissWithLabel:
         self.tree = index
         self.tree.add(np.asarray(vectors))
 
-    def query(self, image: np.ndarray, k=500):
+    def query(self, image: np.ndarray, k=2500):
         faiss.normalize_L2(image)
         vector = image.reshape(1, -1)
         dist, ind = self.tree.search(vector, k)  # len(self.image_labels))
