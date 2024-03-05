@@ -60,12 +60,13 @@ class FaissPlugin(Plugin):
     async def find_images(self, context: ActionContext):
         instances = await self.project.db.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
+        ignore_sha1s = set(sha1s)
         vectors = await self.project.db.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
         vector_datas = [x.data for x in vectors]
         res = get_similar_images(vector_datas)
-        index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in sha1s}
+        index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in ignore_sha1s}
 
         res_sha1s = list(index.keys())
         res_instances = await self.project.db.get_instances(sha1s=res_sha1s)
-        matches = [InstanceMatch(id=i.id, score=index[i.sha1]) for i in res_instances]
+        matches = [InstanceMatch(id=i.id, score=index[i.sha1]) for i in res_instances if i.sha1 in index]
         return SearchResult(matches=matches)

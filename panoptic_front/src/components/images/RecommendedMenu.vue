@@ -51,8 +51,6 @@ function acceptRecommend(image: Image) {
             else {
                 store.setPropertyValue(v.propertyId, image, value)
             }
-
-
         }
     })
     removeImage(image.sha1)
@@ -80,7 +78,7 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
             break
         }
         let pile = piles[i]
-        let img = pile.images[0]
+        // let img = pile.images[0]
         if (blacklist.has(pile.sha1)) {
             continue
         }
@@ -122,8 +120,8 @@ async function getReco() {
     sha1s.length = 0
     sha1s.push(...resSha1s)
 
-    computeLines()
     blacklist.clear()
+    computeLines()
 
     emits('update')
 }

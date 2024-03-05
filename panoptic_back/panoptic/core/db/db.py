@@ -100,7 +100,7 @@ class Db:
 
     async def set_instance_property_value(self, property_id: int, instance_ids: List[int], value: Any):
         json_value = json.dumps(value)
-
+        print(property_id, instance_ids, value)
         t = Table('instance_property_values')
         query = Query.into(t).columns('property_id', 'instance_id', 'value')
         query = query.insert(*[(property_id, iid, json_value) for iid in instance_ids])
