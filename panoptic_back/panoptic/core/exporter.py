@@ -34,7 +34,7 @@ class Exporter:
     async def export_data(self, path, name: str = None, instance_ids: [int] = None, properties=None,
                           copy_images: bool = False) -> str:
         if not name:
-            name = str(datetime.datetime.now())
+            name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         base_export_folder = os.path.join(path, 'exports')
         # Create the export folder if it doesn't exist
         os.makedirs(base_export_folder, exist_ok=True)
