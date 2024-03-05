@@ -42,7 +42,7 @@ async def load_project_route(path: PathRequest):
 
 @selection_router.post("/close")
 async def close_project():
-    await panoptic.close()
+    await panoptic.close_project()
     return await get_status_route()
 
 
