@@ -108,7 +108,7 @@ watch(() => props.height, async () => {
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tabManager.state.display == 'tree'">
             <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"
-                :height="scrollerHeight - 0" :properties="visibleProperties"
+                :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
                 :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList"
                 :width="scrollerWidth - 25" @recommend="setRecoImages" />
         </template>
