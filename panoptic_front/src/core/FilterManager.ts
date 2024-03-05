@@ -293,6 +293,10 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
                     propertyValue = new Set(propertyValue)
                 }
             }
+            if(propType == PropertyType.string && propertyValue) {
+                propertyValue = propertyValue.toLowerCase()
+                nfilter.value = nfilter.value.toLowerCase()
+            }
 
             let subRes = computeFilter(nfilter, propertyValue)
             res = groupOperatorFnc(res, subRes)
@@ -345,21 +349,21 @@ export class FilterManager {
         let filtered = images
 
         if (this.state.query) {
-            const query = this.state.query
+            const query = this.state.query.toLocaleLowerCase()
             const project = useProjectStore()
             const props = Object.values(project.data.properties)
             const textProps = props.filter(p => p.type == PropertyType.string)
             const tagProps = props.filter(p => isTag(p.type))
             filtered = filtered.filter(img => {
                 for (let p of textProps) {
-                    if (img.properties[p.id] && img.properties[p.id].value.includes(query)) {
+                    if (img.properties[p.id] && img.properties[p.id].value.toLocaleLowerCase().includes(query)) {
                         return true
                     }
                 }
                 for (let p of tagProps) {
                     const value = img.properties[p.id]?.value
                     if (!value) continue
-                    const tagNames = value.map(tId => project.data.tags[tId].value)
+                    const tagNames = value.map(tId => project.data.tags[tId].value.toLocaleLowerCase())
                     for (let name of tagNames) {
                         if (name.includes(query)) {
                             return true
