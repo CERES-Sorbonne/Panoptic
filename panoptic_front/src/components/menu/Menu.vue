@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { ModalId } from '../../data/models';
-import { ref, defineEmits, watch } from 'vue';
+import { ref, defineEmits, watch, computed } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import { sleep } from '@/utils/utils';
@@ -32,6 +32,8 @@ const handleInput = async (e: any) => {
     // isUploading.value = false
 }
 
+const tasks = computed(() => store.backendStatus.tasks.filter(t => !(t.name == 'Load Plugin' && t.done)))
+
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
 }
@@ -51,8 +53,10 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
                     <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
-                        <div class="flex-grow-1 text-capitalize" @click="">{{ panoptic.data.status.selectedProject?.name }}</div>
-                        <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i class="bi bi-gear"></i></div>
+                        <div class="flex-grow-1 text-capitalize" @click="">{{ panoptic.data.status.selectedProject?.name }}
+                        </div>
+                        <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i class="bi bi-gear"></i>
+                        </div>
                         <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i
                                 class="bi bi-arrow-left-right"></i></div>
                     </div>
@@ -72,19 +76,20 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                 </div>
-                <div class="custom-hr" />
-                <div class="pt-1 pb-2">
-                    <div class="d-flex align-items-center ps-2 pe-2 " style="height: 30px;">
-                        <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
-                    </div>
+                <div v-if="tasks && tasks.length">
                     <div class="custom-hr" />
-                    <div v-if="store.backendStatus" class="ps-2 pe-2">
-                        <div v-for="task, i in store.backendStatus.tasks" class="p-1">
-                            <div v-if="i" class="custom-hr" />
-                            <TaskStatus :task="task" />
+                    <div  class="pt-1 pb-2" >
+                        <div class="d-flex align-items-center ps-2 pe-2 " style="height: 30px;">
+                            <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
+                        </div>
+                        <div class="custom-hr" />
+                        <div v-if="store.backendStatus" class="ps-2 pe-2">
+                            <div v-for="task, i in tasks" class="p-1">
+                                <div v-if="i" class="custom-hr" />
+                                <TaskStatus :task="task" />
+                            </div>
                         </div>
                     </div>
-
                 </div>
 
 
@@ -129,10 +134,10 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             <span class="sr-only" />
                         </span>
                         <span v-else class="me-3">
-                            
+
                             <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i
-                                    class="bi bi-file-earmark-arrow-up btn-icon text-secondary"
-                                    @click="handleInput" /></wTT>
+                                    class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="handleInput" />
+                            </wTT>
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
