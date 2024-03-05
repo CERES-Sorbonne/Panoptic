@@ -25,7 +25,7 @@ watch(localValue, () => {
 <template>
     <div class="d-flex">
         <div v-if="props.label" class="me-1">{{ props.label }}</div>
-        <div class="me-1">[{{ props.type }}]</div>
+        <!-- <div class="me-1">[{{ props.type }}]</div> -->
         <div v-if="props.type == 'str'">
             <input type="text" v-model="localValue" />
         </div>
