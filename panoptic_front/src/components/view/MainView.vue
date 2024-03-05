@@ -84,15 +84,13 @@ onMounted(() => {
         })
     })
 })
-
-watch(tabManager.state, () => {
+watch(tabManager.state, (state) => {
     store.updateTab(tabManager.state)
 }, { deep: true })
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
 })
-
 
 </script>
 

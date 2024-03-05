@@ -68,7 +68,6 @@ export function countImagePerFolder(folders: FolderIndex, images: Image[]) {
 }
 
 export function setTagsChildren(tags: TagIndex) {
-    console.log(tags)
     for(let tagId in tags) {
         const tag = tags[tagId]
         tag.children = []

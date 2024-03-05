@@ -375,7 +375,6 @@ export class GroupManager {
 
         let insert = true
         let toInsert = new Set(Object.keys(lastCustom))
-        console.log(lastCustom)
 
         while(insert) {
             insert = false
