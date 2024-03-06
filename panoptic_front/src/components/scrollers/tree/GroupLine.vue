@@ -138,7 +138,7 @@ function closeChildren() {
                 </wTT>
             </div>
             <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
-                <div class="cluster-close" @click="clear"><i class="bi bi-x" />IA</div>
+                <div class="sbb cluster-close" @click="clear">x clusters</div>
             </div>
         </div>
 
@@ -173,17 +173,10 @@ function closeChildren() {
 }
 
 .cluster-close {
-    background-color: rgb(186, 90, 184);
-    border-radius: 5px;
-    color: white;
-    height: 20px;
-    font-size: 14px;
-    padding: 0px 3px !important;
-    cursor: pointer;
-    line-height: 20px;
-}
-
-.cluster-close:hover {
-    color: rgb(235, 209, 30);
+    font-size: 12px;
+    padding: 0px 3px;
+    line-height: 16px;
+    color: grey;
+    border: 2px solid var(--border-color);
 }
 </style>
