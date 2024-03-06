@@ -162,6 +162,7 @@ export interface FolderIndex {
 // }
 
 export interface TabState {
+
     version: number
     id: number
     name: string
@@ -177,6 +178,7 @@ export interface TabState {
     selectedFolders: { [key: number]: boolean }
     sha1Mode: boolean
     propertyOptions: { [key: number]: PropertyOption }
+    similarityDist: number
 }
 
 export interface TabIndex {
