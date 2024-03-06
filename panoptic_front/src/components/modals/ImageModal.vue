@@ -8,6 +8,7 @@ import ImagePropertyCol from './image/ImagePropertyCol.vue';
 import { GroupManager, ImageIterator } from '@/core/GroupManager';
 import MiddleCol from './image/MiddleCol.vue';
 import { usePanopticStore } from '@/data/panopticStore';
+import { keyState } from '@/data/keyState';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
@@ -109,6 +110,16 @@ function rollback(index) {
 watch(showHistory, () => nextTick(onResize))
 watch(colElem, onResize)
 watch(modalData, onModalDataChange)
+watch(() => keyState.left, (state) => {
+    if(state && !showHistory.value) {
+        prevImage()
+    }
+})
+watch(() => keyState.right, (state) => {
+    if(state && !showHistory.value) {
+        nextImage()
+    }
+})
 </script>
 
 <template>
