@@ -25,8 +25,7 @@ watch(keyState, () => {
 
     const rect = elem.value.getBoundingClientRect()
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
-    console.log('absoluteHover', rect.x, rect.y, props.image.id)
-    console.log('mousePosition', keyState.mouseX, keyState.mouseY, props.image.id)
+    
     if (isActive && (!absoluteHover || !keyState.ctrl)) {
         // panoptic.hideModal()
         zoomModal.hide()
