@@ -47,8 +47,10 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         }
     }
 
-    async function loadProject(path: string) {
-        data.status = await apiLoadProject(path)
+    async function loadProject(path: string, noCall?: boolean) {
+        if(!noCall) {
+            data.status = await apiLoadProject(path)
+        }
         // console.log(data.status)
         router.push('/view')
         project.clear()
@@ -68,12 +70,12 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         path = path.endsWith('\\') ? path : path + '/'
         const projectPath = path + name
         data.status = await apiCreateProject(projectPath, name)
-        await loadProject(projectPath)
+        await loadProject(projectPath, true)
     }
 
     async function importProject(path: string) {
         data.status = await apiImportProject(path)
-        await loadProject(path)
+        await loadProject(path, true)
     }
 
     function showModal(modalId: ModalId, data?: any) {

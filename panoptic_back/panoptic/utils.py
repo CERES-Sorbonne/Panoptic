@@ -6,8 +6,7 @@ from typing import List, Any, Callable, Awaitable, Dict
 
 from pydantic import BaseModel
 
-from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
-    PropertyType
+from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property
 from panoptic.models.computed_properties import ComputedId
 
 
