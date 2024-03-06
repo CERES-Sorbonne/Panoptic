@@ -16,7 +16,7 @@ const props = defineProps<{
 
 const properties = computed(() => {
     const res = [store.data.properties[PropertyID.id]]
-    res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id))
+    res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id && p.id != PropertyID.id))
     return res
 })
 
