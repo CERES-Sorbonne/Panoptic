@@ -133,7 +133,6 @@ export const apiImportFolder = async () => {
 
 export const apiGetTabs = async () => {
     let res = await axios.get('/tabs')
-    console.log(res.data[0].data.filterState.filter.id)
     return res.data as ApiTab[]
 }
 
