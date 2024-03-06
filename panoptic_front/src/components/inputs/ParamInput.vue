@@ -6,9 +6,20 @@ const props = defineProps<{
     type: string
     label?: string
 }>();
+
+defineExpose({focus})
+
 const emits = defineEmits(['update:modelValue']);
 
+const elem = ref(null)
 const localValue = ref(props.modelValue)
+
+function focus() {
+    console.log('focus', elem.value)
+    if(elem.value) {
+        elem.value.focus()
+    }
+}
 
 watch(() => props.modelValue, () => localValue.value = props.modelValue)
 watch(localValue, () => {
@@ -27,16 +38,16 @@ watch(localValue, () => {
         <div v-if="props.label" class="me-1">{{ props.label }}</div>
         <!-- <div class="me-1">[{{ props.type }}]</div> -->
         <div v-if="props.type == 'str'">
-            <input type="text" v-model="localValue" />
+            <input type="text" v-model="localValue" ref="elem"/>
         </div>
         <div v-if="props.type == 'int'">
-            <input type="number" step="1" v-model="localValue" />
+            <input type="number" step="1" v-model="localValue" ref="elem" />
         </div>
         <div v-if="props.type == 'float'">
-            <input type="number" v-model="localValue" />
+            <input type="number" v-model="localValue" ref="elem" />
         </div>
         <div v-if="props.type == 'bool'">
-            <input type="checkbox" v-model="localValue" />
+            <input type="checkbox" v-model="localValue" ref="elem" />
         </div>
     </div>
 </template>
