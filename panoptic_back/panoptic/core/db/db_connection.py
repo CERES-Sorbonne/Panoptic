@@ -25,7 +25,6 @@ class DbConnection:
         """
         # create connection
         self.conn = await aiosqlite.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
-
         # use foreign_keys checks
         async with self.conn.executescript('PRAGMA foreign_keys = 1') as cursor:
             await self.conn.commit()

@@ -35,7 +35,6 @@ async def get_status_route():
 
 @selection_router.post("/load")
 async def load_project_route(path: PathRequest):
-    print('load', path.path)
     await panoptic.load_project(path.path)
     return await get_status_route()
 
@@ -55,13 +54,13 @@ async def delete_project_route(req: PathRequest):
 @selection_router.post("/create_project")
 async def create_project_route(req: ProjectRequest):
     await panoptic.create_project(req.name, req.path)
-    return await load_project_route(PathRequest(path=req.path))
+    return await get_status_route()
 
 
 @selection_router.post("/import_project")
 async def import_project_route(req: PathRequest):
-    panoptic.import_project(req.path)
-    return await load_project_route(req)
+    await panoptic.import_project(req.path)
+    return await get_status_route()
 
 
 @selection_router.get("/filesystem/ls/{path:path}")

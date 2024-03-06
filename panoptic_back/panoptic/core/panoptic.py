@@ -1,5 +1,6 @@
 import json
 import os
+from asyncio import sleep
 from pathlib import Path
 from typing import List
 
@@ -55,7 +56,7 @@ class Panoptic:
         self.data.projects.append(project)
         await self.load_project(path)
 
-    def import_project(self, path: str):
+    async def import_project(self, path: str):
         p = Path(path)
         if not (p / 'panoptic.db').exists():
             raise ValueError('Folder is not a panoptic project_id (No panoptic.db file found)')
@@ -63,7 +64,7 @@ class Panoptic:
             raise f"ProjectId is already imported."
         project = ProjectId(path=str(p), name=str(p.name))
         self.data.projects.append(project)
-        self.load_project(path)
+        await self.load_project(path)
 
     def remove_project(self, path):
         self.data.projects = [p for p in self.data.projects if p.path != path]

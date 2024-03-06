@@ -16,10 +16,7 @@ const props = defineProps<{
 }>()
 const emits = defineEmits(['result'])
 
-// const localAction = ref(null)
 const localInputs = ref(null)
-const inputElem = ref(null)
-
 const defaultFunction = computed(() => project.actions.find(a => a.name == props.action).selectedFunction)
 const localFunction = ref(null)
 
@@ -108,7 +105,5 @@ watch(() => project.actions, loadAction)
 .sep {
     padding-left: 2px;
     padding-right: 2px;
-    /* background-color: aqua; */
-    /* border-left: 1px solid var(--border-color); */
 }
 </style>

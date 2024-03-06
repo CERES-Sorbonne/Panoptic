@@ -189,17 +189,11 @@ async def get_tabs_route():
 
 @project_router.post("/tab")
 async def add_tab_route(tab: Tab):
-    print('add')
-    print(tab.data)
-    print('----')
     return await project.ui.add_tab(tab.data)
 
 
 @project_router.patch("/tab")
 async def update_tab_route(tab: Tab):
-    print('update')
-    print(tab.data)
-    print('---')
     return await project.ui.update_tab(tab)
 
 

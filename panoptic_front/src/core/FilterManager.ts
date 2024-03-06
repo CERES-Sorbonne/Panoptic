@@ -10,7 +10,7 @@ import { Image, PropertyType } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
-import { reactive, ref, toRefs } from "vue";
+import { reactive, toRefs } from "vue";
 
 
 export function operatorHasInput(operator: FilterOperator) {
@@ -336,7 +336,6 @@ export class FilterManager {
 
         this.filterIndex = {}
         this.recursiveRegister(this.state.filter)
-        console.log(JSON.stringify(this.state.filter))
     }
 
     clear() {

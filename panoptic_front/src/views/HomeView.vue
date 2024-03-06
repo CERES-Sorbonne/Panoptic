@@ -121,6 +121,7 @@ onMounted(() => {
     background-color: rgb(246, 246, 247);
     color: rgb(45, 45, 45);
     border-right: 1px solid var(--border-color);
+    overflow-y: scroll;
 }
 
 .project {
