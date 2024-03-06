@@ -116,7 +116,7 @@ watch(() => props.height, async () => {
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :manager="tabManager.collection.groupManager" :height="scrollerHeight - 15"
                     :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" />
+                    :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" :hide-if-modal="true" />
             </div>
         </template>
 
