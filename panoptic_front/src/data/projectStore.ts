@@ -73,7 +73,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function init() {
         if (!tabManager) {
-            tabManager = new TabManager(getTab())
+            tabManager = new TabManager(data.tabs[data.selectedTabId])
         }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
@@ -201,7 +201,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function getTab() {
-        return data.tabs[data.selectedTabId]
+        return getTabManager().state
     }
 
     async function addTab(tabName: string) {
@@ -228,7 +228,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function selectTab(tabId: number) {
         data.selectedTabId = tabId
-        await tabManager.load(getTab())
+        await tabManager.load(data.tabs[data.selectedTabId])
         updatePropertyOptions()
     }
 
