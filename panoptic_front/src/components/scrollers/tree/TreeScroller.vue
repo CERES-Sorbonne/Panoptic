@@ -302,7 +302,7 @@ watch(() => props.width, () => {
 
 <template>
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="800" :min-item-size="0" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
+        :buffer="400" :min-item-size="0" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
         <template v-slot="{ item, index, active }">
             <template v-if="active && !hideFromModal">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
