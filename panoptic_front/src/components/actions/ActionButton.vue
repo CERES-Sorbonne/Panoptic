@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch, computed } from 'vue';
+import { defineProps, defineEmits, ref, onMounted, watch, computed, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { ActionContext, ExecuteActionPayload } from '@/data/models';
 import { apiCallActions } from '@/data/api';
@@ -18,6 +18,7 @@ const emits = defineEmits(['result'])
 
 // const localAction = ref(null)
 const localInputs = ref(null)
+const inputElem = ref(null)
 
 const defaultFunction = computed(() => project.actions.find(a => a.name == props.action).selectedFunction)
 const localFunction = ref(null)
@@ -47,7 +48,7 @@ function loadInput() {
 
 async function call() {
     const uiInputs = {}
-    for(let input of localInputs.value) {
+    for (let input of localInputs.value) {
         uiInputs[input.name] = input.defaultValue
     }
 
@@ -55,6 +56,12 @@ async function call() {
     const req: ExecuteActionPayload = { action: props.action, function: localFunction.value, context: context }
     const res = await apiCallActions(req)
     emits('result', res)
+}
+
+function setRef(elem, i) {
+    if(i == 0 && elem) {
+        elem.focus()
+    }
 }
 
 onMounted(loadAction)
@@ -70,18 +77,20 @@ watch(() => project.actions, loadAction)
             <template #button>
                 <div class="sep base-hover"><i class="bi bi-chevron-down"></i></div>
             </template>
-            <template #popup="{hide}">
-                <ActionSelect style="font-size: 10px; margin: 2px 2px 0 0;" class="text-end" v-model="localFunction" :action="props.action" /> 
+            <template #popup="{ hide }">
+                <ActionSelect style="font-size: 10px; margin: 2px 2px 0 0;" class="text-end" v-model="localFunction"
+                    :action="props.action" />
                 <div class="p-2">
-                    <div v-for="input in localInputs" class="mb-1">
-                        <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name" />
-                    </div>
-                    <div class="d-flex">
-                        <div class="flex-grow-1"></div>
-                        <div class="mt-1 base-btn text-center me-2 ps-1 pe-1" @click="hide">Cancel</div>
-                        <div class="mt-1 base-btn text-center ps-1 pe-1" @click="call(); hide();">Call</div>
-                    </div>
-                    
+                    <form @submit.prevent="call(); hide();">
+                        <div v-for="input, i in localInputs" class="mb-1">
+                            <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name" :ref="r => setRef(r, i)" />
+                        </div>
+                        <div class="d-flex">
+                            <div class="flex-grow-1"></div>
+                            <div class="mt-1 base-btn text-center me-2 ps-1 pe-1" @click="hide">Cancel</div>
+                            <div class="mt-1 base-btn text-center ps-1 pe-1" @click="call(); hide();">Call</div>
+                        </div>
+                    </form>
                 </div>
             </template>
         </Dropdown>
