@@ -64,8 +64,10 @@ class Exporter:
         """
         properties = await self.project.db.get_properties()
         tags = await self.project.db.get_tags()
-
         tag_index = {t.id: t for t in tags}
+
+        folders = await self.project.db.get_folders()
+        folder_index = {f.id: f for f in folders}
 
         # filter properties id that we want to keep
         id_to_prop = {p.id: p for p in properties}
@@ -84,6 +86,8 @@ class Exporter:
                             row.append(None)
                             continue
                         row.append(",".join([tag_index[t].value for t in value]))
+                    elif prop.type == PropertyType.folder:
+                        row.append(folder_index[value].name)
                     else:
                         row.append(value)
                 else:
