@@ -83,7 +83,7 @@ watch(() => project.actions, loadAction)
                 <div class="p-2">
                     <form @submit.prevent="call(); hide();">
                         <div v-for="input, i in localInputs" class="mb-1">
-                            <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name" :ref="r => setRef(r, i)" />
+                            <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name" :ref="r => setRef(r, i)" :desc="input.description" />
                         </div>
                         <div class="d-flex">
                             <div class="flex-grow-1"></div>
