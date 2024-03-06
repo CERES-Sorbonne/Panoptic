@@ -24,7 +24,7 @@ class SimilarityTreeWithLabel:
         self.image_labels = sha1_list
         self.tree = KDTree(vectors)
 
-    def query(self, image: np.ndarray, k=500):
+    def query(self, image: np.ndarray, k=9999):
         dist, ind = self.tree.query(image.reshape(1, -1), k)
         indices = [x for x in ind[0]]
         distances = [x for x in dist[0]]
@@ -53,7 +53,7 @@ class SimilarityFaissWithLabel:
         self.tree = index
         self.tree.add(np.asarray(vectors))
 
-    def query(self, image: np.ndarray, k=2500):
+    def query(self, image: np.ndarray, k=99999):
         faiss.normalize_L2(image)
         vector = image.reshape(1, -1)
         dist, ind = self.tree.search(vector, k)  # len(self.image_labels))
