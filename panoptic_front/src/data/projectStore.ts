@@ -307,7 +307,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         const tag = await apiAddTagParent(tagId, parentId) as Tag
         Object.assign(data.properties[tag.propertyId].tags[tag.id], tag)
         const parent = data.properties[tag.propertyId].tags[parentId]
-        console.log(parent)
         if (!parent || parent.children.indexOf(tagId) >= 0) return
         parent.children.push(tagId)
     }
@@ -368,9 +367,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             updated.add(tag.propertyId)
 
         }
-        console.log(updated)
         for (let propId of updated) {
-            console.log(propId)
             setTagsChildren(data.properties[propId].tags)
         }
         computeTagCount(imageList.value, data.properties)
@@ -389,7 +386,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         const imageIds = images.map(i => i.id)
-        console.log('ids', imageIds)
         const values = await apiSetPropertyValue(propertyId, imageIds, value)
 
         importPropertyValues(values)
@@ -407,7 +403,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         const imageIds = images.map(i => i.id)
-        console.log('ids', imageIds)
         const values = await apiSetTagPropertyValue(propertyId, imageIds, value, mode)
         importPropertyValues(values)
         computeTagCount(imageList.value, data.properties)
