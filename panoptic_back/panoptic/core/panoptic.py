@@ -43,6 +43,10 @@ class Panoptic:
             return PanopticData(projects=[])
 
     def save_data(self):
+        directory = os.path.dirname(self.global_file_path)
+        # Create the directory if it doesn't exist
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         with open(self.global_file_path, 'w') as file:
             json.dump(self.data.dict(), file, indent=2)
 
