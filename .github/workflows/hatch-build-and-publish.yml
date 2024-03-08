@@ -125,6 +125,11 @@ jobs:
           cd panoptic_back
           hatch build
 
+      - name: Move dist files
+        run: |
+          mkdir -p dist
+          mv panoptic_back/dist/* dist/
+
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@v1.8.11
         with:
