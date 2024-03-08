@@ -6,8 +6,8 @@ import aiosqlite
 from panoptic.core.project.project import Project
 from panoptic.utils import clean_value
 
-source_db_file = '/Users/david/Downloads/panoptic_images-fixes.db'
-target_folder = '/Users/david/panoptic-projects/panoptic_images-fixes'
+source_db_file = '/Users/david/Downloads/panoptic_video.db'
+target_folder = '/Users/david/panoptic-projects/panoptic_video'
 
 
 async def run():
@@ -28,6 +28,10 @@ async def run():
             async for row in cursor:
                 row = list(row)
                 row[5] = row[5][8:]
+                width = row[-1]
+                height = row[-2]
+                row[-2] = width
+                row[-1] = height
                 instances.append(row)
         async with db.execute('SELECT * FROM folders') as cursor:
             async for row in cursor:

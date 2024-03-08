@@ -130,16 +130,15 @@ def group_by_sha1(instances: List[Instance]):
 
 def convert_to_instance_values(values: list[ImagePropertyValue], instances: list[Instance]) \
         -> list[InstancePropertyValue]:
-    image_index = {i.sha1: [] for i in instances}
-    [image_index[i.sha1].append(i) for i in instances]
+    sha1_to_instances = {i.sha1: [] for i in instances}
+    [sha1_to_instances[i.sha1].append(i) for i in instances]
 
-    value_index = {v.sha1: v for v in values}
+    def converter2(value: ImagePropertyValue):
+        targets = sha1_to_instances[value.sha1]
+        return [InstancePropertyValue(instance_id=i.id, property_id=value.property_id, value=value.value) for i in targets]
 
-    def converter(instance: Instance):
-        value: ImagePropertyValue = value_index[instance.sha1]
-        return InstancePropertyValue(instance_id=instance.id, property_id=value.property_id, value=value.value)
-
-    return [converter(i) for i in instances if i.sha1 in value_index]
+    pre_res = [converter2(v) for v in values]
+    return [v for vv in pre_res for v in vv]
 
 
 def clean_value(prop: Property, v: Any):
