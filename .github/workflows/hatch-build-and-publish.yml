@@ -134,8 +134,8 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.8.11
         with:
           user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }} # PYPI_API_TOKEN
-          repository-url: https://test.pypi.org/legacy/ # uncomment for test.pypi.org
+          password: ${{ secrets.PYPI_API_TOKEN }} # PYPI_API_TOKEN
+#          repository-url: https://test.pypi.org/legacy/ # uncomment for test.pypi.org
 
       - name: Update the about.py file
         uses: stefanzweifel/git-auto-commit-action@v5
