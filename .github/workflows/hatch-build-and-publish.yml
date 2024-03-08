@@ -1,0 +1,145 @@
+name: Hatch Build and Publish
+run-name: HATCH to PyPI by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  get-ref:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get current branch
+        id: check_step
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          if [[ -z "$raw" ]]; then
+            raw=$(git branch -r --contains ${{ github.sha }})
+          fi
+          if [[ -z "$raw" ]]; then
+            echo "No branch found for ${{ github.ref }} or ${{ github.sha }}."
+            echo "This is probably a tag push without a branch."
+            exit 1
+          fi
+          BRANCH=${raw##*/}
+          BRANCH=$(echo $BRANCH | base64 -w 0)
+          echo "BRANCH=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Branch is $BRANCH."
+
+    outputs:
+      branch-name: ${{ steps.check_step.outputs.BRANCH }}
+
+  get-tag:
+    runs-on: ubuntu-latest
+    needs: get-ref
+    steps:
+      - name: Decode ref
+        id: decode_ref
+        run: |
+          name=${{ needs.get-ref.outputs.branch-name }}
+          name=$(echo $name | base64 -d)
+          echo "NAME=$name" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+            ref: ${{ env.NAME }}
+            fetch-depth: 0
+
+      - name: Set env
+        id: set-env
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG=$(echo $GITHUB_REF | cut -d / -f 3)
+            echo "TAG=$TAG" >> $GITHUB_ENV
+          fi
+
+    outputs:
+      tag: ${{ env.TAG }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: release
+    needs:
+        - get-ref
+        - get-tag
+    steps:
+      - name: Decode ref
+        id: decode_ref
+        run: |
+          name=${{ needs.get-ref.outputs.branch-name }}
+          echo "Encoded ref is $name"
+          name=$(echo $name | base64 -d)
+          echo "Decoded ref is $name"
+          echo "REF=$name" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip 
+          pip install hatch
+
+      - name: Version bump
+        if : ${{ github.event_name != 'push' }}
+        run: |
+          cd panoptic_back
+          hatch version fix
+          echo "Version bumped"
+
+      - name: Version from tag
+        if : ${{ github.event_name == 'push' }}
+        run: |
+          TAG=${{ needs.get-tag.outputs.tag }}
+          echo "TAG=$TAG"
+          hatch version $TAG 
+          # && echo "Version set to $TAG" || echo "Version already exists" && exit 1
+
+      - name: Build package
+        run: |
+          cd panoptic_back
+          hatch build
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@v1.8.11
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }} # PYPI_API_TOKEN
+          repository-url: https://test.pypi.org/legacy/ # uncomment for test.pypi.org
+
+      - name: Update the about.py file
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update about.py file"
+          file_pattern: "panoptic_back/panoptic/__init__.py"
+          status_options: '--untracked-files=no'
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.REF }}
