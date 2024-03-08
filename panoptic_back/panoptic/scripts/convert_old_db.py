@@ -6,8 +6,8 @@ import aiosqlite
 from panoptic.core.project.project import Project
 from panoptic.utils import clean_value
 
-source_db_file = '/Users/david/Downloads/panoptic-edouard.db'
-target_folder = '/Users/david/panoptic-projects/panoptic-edouard'
+source_db_file = '/Users/david/Downloads/panoptic_images-fixes.db'
+target_folder = '/Users/david/panoptic-projects/panoptic_images-fixes'
 
 
 async def run():
@@ -82,6 +82,8 @@ async def run():
                 val[1] = [val[1]]
                 await project.db.get_raw_db().set_image_property_value(*val)
         for val in instance_values:
+            if val[0] not in prop_index:
+                continue
             v = clean_value(prop_index[val[0]], val[2])
             if type(v) is not int:
                 v = json.loads(v)
