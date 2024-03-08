@@ -4,8 +4,6 @@ run-name: HATCH to PyPI by @${{ github.actor }}
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     tags:
       - 'v*.*.*'
 
