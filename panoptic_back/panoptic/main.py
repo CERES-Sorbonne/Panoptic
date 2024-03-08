@@ -16,8 +16,9 @@ def start():
     panoptic = Panoptic()
     panoptic.load_data()
 
+    HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend
-    PORT = 8000
+    PORT = os.getenv("PANOPTIC_PORT", 8000)
 
     # FastAPI setup
     app = FastAPI()
@@ -51,7 +52,7 @@ def start():
     async def shutdown_event():
         await panoptic.close()
 
-    uvicorn.run(app, port=PORT)
+    uvicorn.run(app, host=HOST, port=PORT)
 
 
 if __name__ == '__main__':
