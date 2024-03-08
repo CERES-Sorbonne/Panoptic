@@ -38,6 +38,12 @@ class Db:
         prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
         return prop
 
+    async def import_property(self, id_: int, name: str, property_type: str, mode: str) -> Property:
+        query = 'INSERT INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?) on conflict do nothing'
+        cursor = await self.conn.execute_query(query, (id_, name, property_type, mode))
+        prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
+        return prop
+
     async def get_properties(self) -> list[Property]:
         query = "SELECT * from properties"
         cursor = await self.conn.execute_query(query)
@@ -100,7 +106,6 @@ class Db:
 
     async def set_instance_property_value(self, property_id: int, instance_ids: List[int], value: Any):
         json_value = json.dumps(value)
-        print(property_id, instance_ids, value)
         t = Table('instance_property_values')
         query = Query.into(t).columns('property_id', 'instance_id', 'value')
         query = query.insert(*[(property_id, iid, json_value) for iid in instance_ids])
@@ -154,20 +159,6 @@ class Db:
         await self.conn.execute_query(query.get_sql())
         return True
 
-    # async def delete_property_value(self, property_id: int, image_ids: List[int] = None, sha1s: List[int] = None):
-    #     if image_ids and sha1s:
-    #         raise TypeError('Only image_ids or sha1s should be given as keys. Never both')
-    #
-    #     t = Table('property_values')
-    #     query = Query.from_(t).delete().where(t.property_id == property_id)
-    #
-    #     if image_ids:
-    #         query = query.where(t.image_id.isin(image_ids))
-    #     elif sha1s:
-    #         query = query.where(t.sha1.isin(sha1s))
-    #
-    #     await self._conn.execute_query(query.get_sql())
-
     # =====================================================
     # ====================== Tag ==========================
     # =====================================================
@@ -175,6 +166,11 @@ class Db:
     async def add_tag(self, property_id: int, value: str, parents: str, color: int):
         query = "INSERT INTO tags (property_id, value, parents, color) VALUES (?, ?, ?, ?)"
         cursor = await self.conn.execute_query(query, (property_id, value, parents, color))
+        return cursor.lastrowid
+
+    async def import_tag(self, id_: int, property_id: int, value: str, parents: str, color: int):
+        query = "INSERT INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
+        cursor = await self.conn.execute_query(query, (id_, property_id, value, parents, color))
         return cursor.lastrowid
 
     async def get_tag_by_id(self, tag_id):
@@ -239,23 +235,6 @@ class Db:
                 return True
         return False
 
-    # async def create_clones(self, image: Instance, nb_clones: int) -> list[int]:
-    #     table = Table('images')
-    #     query = Query.into(table).columns(
-    #         'folder_id',
-    #         'name',
-    #         'extension',
-    #         'sha1',
-    #         'url',
-    #         'width',
-    #         'height').insert(*[Parameter('?') for _ in range(7)])
-    #     data = [(
-    #         image.folder_id, image.name, image.extension, image.sha1, image.url, image.width, image.height)] * nb_clones
-    #     await self._conn.execute_query_many(query.get_sql(), data)
-    #     new_query = "SELECT id FROM images ORDER BY id DESC LIMIT ?"
-    #     cursor = await self._conn.execute_query(new_query, (nb_clones,))
-    #     return [x[0] for x in await cursor.fetchall()]
-
     # =====================================================
     # ================= Instances =========================
     # =====================================================
@@ -287,6 +266,34 @@ class Db:
         return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
                         height=height)
 
+    async def import_instance(self, id_: int, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
+                           height: int,
+                           ahash: str):
+        table = Table('instances')
+        query = Query.into(table).columns(
+            'id',
+            'folder_id',
+            'name',
+            'extension',
+            'sha1',
+            'url',
+            'width',
+            'height',
+            'ahash').insert((
+            id_,
+            folder_id,
+            name,
+            extension,
+            sha1,
+            url,
+            width,
+            height,
+            ahash))
+        cursor = await self.conn.execute_query(query.get_sql())
+
+        return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
+                        height=height)
+
     async def clone_instance(self, i: Instance):
         return await self.add_instance(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash)
 
@@ -314,12 +321,6 @@ class Db:
             return Instance(*res)
         return False
 
-    # async def get_sha1_count(self):
-    #     query = "SELECT count( DISTINCT sha1 ) FROM instances"
-    #     cursor = await self._conn.execute_query(query)
-    #     row = await cursor.fetchone()
-    #     return row[0]
-
     # =====================================================
     # ================== Folders ==========================
     # =====================================================
@@ -327,6 +328,14 @@ class Db:
     async def add_folder(self, path: str, name: str, parent: int = None):
         query = 'INSERT INTO folders (path, name, parent) VALUES (?, ?, ?) ON CONFLICT(path) DO NOTHING'
         await self.conn.execute_query(query, (path, name, parent))
+        cursor = await self.conn.execute_query('SELECT * FROM folders WHERE path = ?', (path,))
+        row = await cursor.fetchone()
+        folder = Folder(**auto_dict(row, cursor))
+        return folder
+
+    async def import_folder(self, id_: int, path: str, name: str, parent: int = None):
+        query = 'INSERT INTO folders (id, path, name, parent) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO NOTHING'
+        await self.conn.execute_query(query, (id_, path, name, parent))
         cursor = await self.conn.execute_query('SELECT * FROM folders WHERE path = ?', (path,))
         row = await cursor.fetchone()
         folder = Folder(**auto_dict(row, cursor))
@@ -383,65 +392,6 @@ class Db:
         query = "DELETE from tabs WHERE id = ?"
         await self.conn.execute_query(query, (tab_id,))
         return tab_id
-
-    # async def get_property_values_with_tag(self, tag_id: int) -> list[PropertyValue]:
-    #     query = "SELECT * from property_values where value like ?"
-    #     cursor = await self._conn.execute_query(query, (f"[%{tag_id}%]",))
-    #     return [PropertyValue(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-
-    # async def set_property_values(self, property_id: int, value: Any, image_ids: List[int] = None,
-    #                               sha1s: List[str] = None):
-    #     """
-    #     Set property values for several image_ids / sha1 but with only one possible value !
-    #     """
-    #     value = json.dumps(value)
-    #     t = Table('property_values')
-    #     query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
-    #     if image_ids:
-    #         query = query.insert(*[(property_id, img_id, '', value) for img_id in image_ids])
-    #     elif sha1s:
-    #         query = query.insert(*[(property_id, -1, sha1, value) for sha1 in sha1s])
-    #
-    #     query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
-    #     await self._conn.execute_query(query)
-    #
-    #     updated_ids = image_ids
-    #     if not image_ids:
-    #         images = await self.get_instances(sha1s=sha1s)
-    #         updated_ids = [img.id for img in images]
-    #     return updated_ids, json.loads(value)
-
-    # async def set_multiple_property_values(self, property_id: int, values: list[Any],
-    #                                        images_ids_or_sha1: List[int | str] = None):
-    #     """
-    #     Set property values for several image_ids / sha1 and several values, there must be as much ids / sha1 than values
-    #     """
-    #     t = Table('property_values')
-    #     query = Query.into(t).columns('property_id', 'image_id', 'sha1', 'value')
-    #     if isinstance(images_ids_or_sha1[0], str):
-    #         query = query.insert((property_id, -1, Parameter('?'), Parameter('?')))
-    #     else:
-    #         query = query.insert((property_id, Parameter('?'), '', Parameter('?')))
-    #     query = query.get_sql() + ' ON CONFLICT (property_id, image_id, sha1) DO UPDATE SET value=excluded.value'
-    #     await self._conn.execute_query_many(query, [(id_, json.dumps(value)) for id_, value in
-    #                                                 zip(images_ids_or_sha1, values)])
-
-    # async def set_computed_value(self, sha1: str, ahash: str, vector: np.array):
-    #     t = Table('computed_values')
-    #     query = Query.into(t).columns('sha1', 'ahash', 'vector').insert(sha1, ahash, Parameter('?'))
-    #     query = query.on_conflict('sha1').do_update('vector', Parameter('?'))
-    #     # query = query.get_sql() + " ON CONFLICT(sha1) DO NOTHING"
-    #     await self._conn.execute_query(query.get_sql(), (vector, vector))
-    #     return ComputedValue(sha1, ahash, vector)
-    #
-    # async def get_sha1s_by_filenames(self, filenames: list[str]) -> list[str]:
-    #     query = "SELECT sha1 from images where name in " + "(" + ','.join('?' * len(filenames)) + ') order by name'
-    #     cursor = await self._conn.execute_query(query, tuple(filenames))
-    #     return await cursor.fetchall()
-    #
-    # async def vacuum(self):
-    #     query = "VACUUM"
-    #     await self._conn.execute_query(query)
 
     # =====================================================
     # ================== Vectors ==========================
