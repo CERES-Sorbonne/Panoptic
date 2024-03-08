@@ -135,7 +135,8 @@ def convert_to_instance_values(values: list[ImagePropertyValue], instances: list
 
     def converter2(value: ImagePropertyValue):
         targets = sha1_to_instances[value.sha1]
-        return [InstancePropertyValue(instance_id=i.id, property_id=value.property_id, value=value.value) for i in targets]
+        return [InstancePropertyValue(instance_id=i.id, property_id=value.property_id, value=value.value) for i in
+                targets]
 
     pre_res = [converter2(v) for v in values]
     return [v for vv in pre_res for v in vv]
