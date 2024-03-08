@@ -4,9 +4,7 @@ import json
 import aiosqlite
 
 from panoptic.core.project.project import Project
-from panoptic.models import PropertyType
 from panoptic.utils import clean_value
-
 
 source_db_file = '/Users/david/Downloads/panoptic_cat.db'
 target_folder = '/Users/david/panoptic-projects/panoptic_cat'
