@@ -23,7 +23,7 @@ def get_datadir() -> pathlib.Path:
 
     home = pathlib.Path.home()
     if os.getenv('IS_DOCKER', False):
-        return pathlib.Path('/projects')
+        return pathlib.Path('/data')
     elif sys.platform == "win32":
         return home / "AppData/Roaming"
     elif sys.platform == "linux":
