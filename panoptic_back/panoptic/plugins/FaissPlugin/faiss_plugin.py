@@ -1,3 +1,5 @@
+import os.path
+
 from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
@@ -34,6 +36,16 @@ class FaissPlugin(Plugin):
         project.on.import_instance.register(self.compute_image_vector)
         project.action.find_images.register(self, self.find_images)
         project.action.group_images.register(self, self.compute_clusters)
+
+    async def start(self):
+        await super().start()
+        vectors = await self.project.db.get_vectors(self.name, 'clip')
+
+        # TODO: handle this properly with an import hook
+        if not os.path.exists(os.path.join(self.project.base_path, 'tree_faiss.pkl')) and len(vectors) > 0:
+            from panoptic.plugins.FaissPlugin.create_faiss_index import compute_faiss_index
+            await compute_faiss_index(self.project.base_path, self.project.db, self.name, 'clip')
+            reload_tree(self.project.base_path)
 
     async def compute_image_vector(self, instance: Instance):
         task = ComputeVectorTask(self.project, self.name, 'clip', instance)
