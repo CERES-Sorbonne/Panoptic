@@ -20,19 +20,19 @@ class PropertyPayload(CamelModel):
 class UpdatePropertyPayload(CamelModel):
     id: int
     name: str
-    # id: PropertyType | None
+    # id: PropertyType | None = None
 
 
 class ExportPropertiesPayload(CamelModel):
-    name: str | None
-    properties: list[int] | None
-    images: list[int] | None
-    export_images: bool | None
+    name: str | None = None
+    properties: list[int] | None = None
+    images: list[int] | None = None
+    export_images: bool | None = None
 
 
 class SetPropertyValuePayload(CamelModel):
     property_id: int
-    instance_ids: list[int] | None
+    instance_ids: list[int] | None = None
     value: Any
 
 
@@ -55,8 +55,8 @@ class AddTagParentPayload(CamelModel):
 class UpdateTagPayload(CamelModel):
     id: int
     value: str
-    parent_id: list[int] | None
-    color: int | None
+    parent_id: list[int] | None = None
+    color: int | None = None
 
 
 class MakeClusterPayload(CamelModel):
