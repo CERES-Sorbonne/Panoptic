@@ -116,6 +116,7 @@ jobs:
         run: |
           TAG=${{ needs.get-tag.outputs.tag }}
           echo "TAG=$TAG"
+          cd panoptic_back
           hatch version $TAG 
           # && echo "Version set to $TAG" || echo "Version already exists" && exit 1
 
