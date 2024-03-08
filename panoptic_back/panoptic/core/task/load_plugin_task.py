@@ -46,7 +46,6 @@ class LoadPluginTask(Task):
         plugin = plugin_module.plugin_class(self.project, self.path)
         await plugin.start()
         self.project.plugins.append(plugin)
-        # print(plugin.get_description())
 
     async def run_if_last(self):
         await self.project.update_actions_from_db()
