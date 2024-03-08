@@ -1,4 +1,4 @@
-FROM tyrannas/panoptic-clip-base:latest
+FROM ceressorbonne/panoptic-clip-base:latest
 
 COPY . /app 
 WORKDIR ./app/panoptic_back/ 
