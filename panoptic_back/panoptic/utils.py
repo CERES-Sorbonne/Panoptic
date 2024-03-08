@@ -22,8 +22,9 @@ def get_datadir() -> pathlib.Path:
     """
 
     home = pathlib.Path.home()
-
-    if sys.platform == "win32":
+    if os.getenv('IS_DOCKER', False):
+        return pathlib.Path('/data')
+    elif sys.platform == "win32":
         return home / "AppData/Roaming"
     elif sys.platform == "linux":
         return home / ".local/share"
