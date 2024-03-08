@@ -15,7 +15,7 @@ from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag
 
 
 def parse_list(value: str):
-    if value is None or value == '':
+    if value is None or value == '' or pd.isnull(value):
         return None
     # value = value.replace('[', '')
     # value = value.replace(']', '')
