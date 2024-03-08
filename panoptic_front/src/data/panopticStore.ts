@@ -38,17 +38,22 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     async function init() {
         // console.log('init')
         data.init = false
-        data.status = await apiGetStatus()
-        data.plugins = await apiGetPlugins()
-        data.init = true
-        // console.log('end init')
-        if(data.status.isLoaded) {
-            project.init()
+        try {
+            data.status = await apiGetStatus()
+            data.plugins = await apiGetPlugins()
+            data.init = true
+            // console.log('end init')
+            if (data.status.isLoaded) {
+                project.init()
+            }
+        }
+        catch { 
+            setTimeout(() => init(), 1000)
         }
     }
 
     async function loadProject(path: string, noCall?: boolean) {
-        if(!noCall) {
+        if (!noCall) {
             data.status = await apiLoadProject(path)
         }
         // console.log(data.status)
@@ -62,7 +67,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         router.push('/')
     }
 
-    async function deleteProject(path:string) {
+    async function deleteProject(path: string) {
         data.status = await apiDeleteProject(path)
     }
 
@@ -94,7 +99,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function addPlugin(path) {
-        if(!path) return
+        if (!path) return
         await apiAddPlugin(path)
         data.plugins = await apiGetPlugins()
     }

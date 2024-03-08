@@ -76,7 +76,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div class="main-menu flex-grow-1">
+        <div v-if="panoptic.data.init" class="main-menu flex-grow-1">
             <div class="icon">👀</div>
             <h1 class="m-0 p-0">Panoptic</h1>
             <h6 class="dimmed-2">Version pre-2.0</h6>
@@ -95,6 +95,9 @@ onMounted(() => {
                             class="bi bi-x base-hover"></span> {{ path }}</div>
                 </div>
             </div>
+        </div>
+        <div v-else class="text-center mt-5 w-100">
+            <p>Waiting for Server...</p>
         </div>
     </div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
 import { Image, SearchResult } from '@/data/models';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import RangeInput from '@/components/inputs/RangeInput.vue';

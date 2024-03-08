@@ -11,7 +11,7 @@ from fastapi import UploadFile
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag, Property, ImportOptions
+from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag, Property, ImportOptions, SetMode
 
 
 def parse_list(value: str):
@@ -111,7 +111,10 @@ class Importer:
                     name_to_tag[tag.value] = tag
                 # replace tag names by tag ids
                 values = [[name_to_tag[t].id for t in v] if v else None for v in values]
-            await self.project.db.set_property_values_array(prop_id, ids, values)
+                for id_, value in zip(ids, values):
+                    await self.project.db.set_tag_property_value(prop_id, [id_], value, SetMode.add)
+            else:
+                await self.project.db.set_property_values_array(prop_id, ids, values)
 
     async def analyse_file(self):
         # TODO: refactor all this to use pandas methods properly
