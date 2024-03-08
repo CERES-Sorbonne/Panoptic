@@ -107,7 +107,7 @@ class Importer:
                 # create missing tags
                 to_create = [t for t in import_tags if t not in name_to_tag]
                 for tag_name in to_create:
-                    tag = await self.project.db.add_tag(prop_id, tag_name, None, randint(0, 11))
+                    tag = await self.project.db.add_tag(prop_id, tag_name, 0, randint(0, 11))
                     name_to_tag[tag.value] = tag
                 # replace tag names by tag ids
                 values = [[name_to_tag[t].id for t in v] if v else None for v in values]

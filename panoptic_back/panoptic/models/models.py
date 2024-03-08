@@ -43,8 +43,8 @@ class Property(BaseModel):
 
 
 class PropertyDescription(Property):
-    id: int | None
-    type: PropertyType | None
+    id: int | None = None
+    type: PropertyType | None = None
     col: int
 
 
@@ -80,8 +80,8 @@ class ImagePropertyValue(CamelModel):
 class Tag:
     id: int
     property_id: int
-    parents: list[int]
     value: str
+    parents: list[int]
     color: int
 
     def __post_init__(self):
@@ -91,8 +91,8 @@ class Tag:
 class TagUpdate(CamelModel):
     id: int
     value: str
-    parent_id: list[int] | None
-    color: int | None
+    parent_id: list[int] | None = None
+    color: int | None = None
 
 
 @dataclass(slots=True)
@@ -143,12 +143,12 @@ class Vector:
 class VectorDescription(CamelModel):
     source: str
     type: str
-    count: int | None
+    count: int | None = None
 
 
 class ProjectVectorDescriptions(CamelModel):
     vectors: list[VectorDescription] = []
-    default_vectors: VectorDescription | None
+    default_vectors: VectorDescription | None = None
 
 
 class Parameters(BaseModel):
@@ -157,7 +157,7 @@ class Parameters(BaseModel):
 
 
 class Folder(BaseModel):
-    id: int | None
+    id: int | None = None
     path: str
     name: str
     parent: int | None = None
@@ -203,13 +203,13 @@ class ActionContext(CamelModel):
     instance_ids: List[int] | None = None
     property_ids: List[int] | None = None
     file: str | None = None
-    text: str | None = None 
+    text: str | None = None
     ui_inputs: Dict[str, Any] = {}
 
 
 class ParamDescription(CamelModel):
     name: str
-    description: str | None
+    description: str | None = None
     type: str
     default_value: Any
 
@@ -217,13 +217,13 @@ class ParamDescription(CamelModel):
 class FunctionDescription(CamelModel):
     id: str
     name: str
-    description: str | None
+    description: str | None = None
     action: str
     params: List[ParamDescription] = []
 
 
 class PluginBaseParamsDescription(BaseModel):
-    description: str | None
+    description: str | None = None
     params: List[ParamDescription] = []
 
 
@@ -237,7 +237,7 @@ class PluginDefaultParams(BaseModel):
 
 class PluginDescription(CamelModel):
     name: str
-    description: str | None
+    description: str | None = None
     path: str
     base_params: PluginBaseParamsDescription
     registered_functions: List[FunctionDescription] = []
@@ -246,7 +246,7 @@ class PluginDescription(CamelModel):
 
 class ActionDescription(CamelModel):
     name: str
-    selected_function: str | None
+    selected_function: str | None = None
     available_functions: List[str] = []
 
 
@@ -263,7 +263,7 @@ class SetMode(Enum):
 
 class ColumnOption(BaseModel):
     ignore:bool = False
-    property_mode: PropertyMode | None
+    property_mode: PropertyMode | None = None
 
 
 ImportOptions = dict[int, ColumnOption]
