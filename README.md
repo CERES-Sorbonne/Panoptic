@@ -38,13 +38,13 @@ Start by installing docker:
 
 ### Option 1 : One folder to rule them all
 Make a folder for the docker with a subfolder for the images `/path/to/your/folder/images`.
-```bash
+```console
 docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
 ```
 ### Option 2 : Separate data and images folders
 Make a folder for the panoptic datas (database, thumbnails, etc.) `/path/to/your/data/`.
 And another one withe your images (could be an existing one) `/path/to/your/images/`.
-```bash
+```console
 docker run -it -p 8000:8000 \
 -v /path/to/your/data:/data \
 -v /path/to/your/images:/data/images \
@@ -59,7 +59,7 @@ As if you were to launch it with the python version
 
 ### Restart
 If you happen to stop panoptic, you can re launch it with :
-```bash
+```console
 docker start -ia panoptic
 ```
 
