@@ -1,6 +1,9 @@
 # Panoptic 👀
 
-This documentation also exist in [French](./README-FR.md)
+[![PyPI - Version](https://img.shields.io/pypi/v/panoptic.svg)](https://pypi.org/project/panoptic)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/panoptic.svg)](https://pypi.org/project/panoptic)
+
+This documentation also exist in [French](https://github.com/CERES-Sorbonne/Panoptic/blob/main/README-FR.md)
 
 ![Preview](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/8e6389c7-ee80-4e0f-95d8-790602bd028e)
 
