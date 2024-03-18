@@ -13,6 +13,7 @@ import '@/assets/customize.scss'
 import '@vueform/toggle/themes/default.css'
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import VueApexCharts from "vue3-apexcharts";
 
 const i18n = createI18n({
     legacy: false,
@@ -26,6 +27,7 @@ const pinia = createPinia()
 const app = createApp(App)
 app.use(pinia)
 app.use(VueVirtualScroller)
+app.use(VueApexCharts)
 
 import router from './router'
 app.use(router)
