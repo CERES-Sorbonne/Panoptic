@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi_camelcase import CamelModel
 
-from .models import PropertyType
+from .models import PropertyType, ActionParam, ActionContext, SetMode, ColumnOption
 
 
 class ImagePayload(CamelModel):
@@ -20,27 +20,24 @@ class PropertyPayload(CamelModel):
 class UpdatePropertyPayload(CamelModel):
     id: int
     name: str
-    # type: PropertyType | None
+    # id: PropertyType | None = None
 
 
 class ExportPropertiesPayload(CamelModel):
-    name: str | None
-    properties: list[int] | None
-    images: list[int] | None
-    export_images: bool | None
+    name: str | None = None
+    properties: list[int] | None = None
+    images: list[int] | None = None
+    export_images: bool | None = None
 
 
 class SetPropertyValuePayload(CamelModel):
     property_id: int
-    image_ids: list[int] | None
-    sha1s: list[str] | None
+    instance_ids: list[int] | None = None
     value: Any
-    mode: str | None
 
 
-class DeleteImagePropertyPayload(CamelModel):
-    property_id: int
-    image_id: int
+class SetTagPropertyValuePayload(SetPropertyValuePayload):
+    mode: SetMode
 
 
 class AddTagPayload(CamelModel):
@@ -58,8 +55,8 @@ class AddTagParentPayload(CamelModel):
 class UpdateTagPayload(CamelModel):
     id: int
     value: str
-    parent_id: list[int] | None
-    color: int | None
+    parent_id: list[int] | None = None
+    color: int | None = None
 
 
 class MakeClusterPayload(CamelModel):
@@ -81,3 +78,17 @@ class ChangeProjectPayload(CamelModel):
 
 class StrPayload(CamelModel):
     value: str
+
+
+class UpdateActionsPayload(CamelModel):
+    updates: list[ActionParam]
+
+
+class ExecuteActionPayload(CamelModel):
+    action: str
+    function: str = None
+    context: ActionContext
+
+
+class OptionsPayload(CamelModel):
+    options: dict[int, ColumnOption]

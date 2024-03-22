@@ -1,13 +1,15 @@
 <script setup lang="ts">
 
 import { ModalId } from '../../data/models';
-import { ref, defineEmits, watch } from 'vue';
+import { ref, defineEmits, watch, computed } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { goNext } from '@/utils/utils';
+import TaskStatus from './TaskStatus.vue';
+import { apiUploadPropertyCsv } from '@/data/api';
 
 const store = useProjectStore()
 const panoptic = usePanopticStore()
@@ -20,12 +22,16 @@ const inputFile = ref(null)
 const isUploading = ref(false)
 
 const handleInput = async (e: any) => {
-    isUploading.value = true
-    console.log(isUploading.value)
-    const file = e.target.files[0]
-    let res = await store.uploadPropFile(file)
-    isUploading.value = false
+    panoptic.showModal(ModalId.IMPORT)
+    // isUploading.value = true
+    // console.log(isUploading.value)
+    // const file = e.target.files[0]
+    // const res = await apiUploadPropertyCsv(file)
+    // panoptic.showModal(ModalId.IMPORT, res)
+    // isUploading.value = false
 }
+
+const tasks = computed(() => store.backendStatus.tasks.filter(t => !(t.name == 'Load Plugin' && t.done)))
 
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
@@ -46,7 +52,10 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
                     <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
-                        <div class="flex-grow-1" @click="">{{ panoptic.data.status.selectedProject.name }}</div>
+                        <div class="flex-grow-1 text-capitalize" @click="">{{ panoptic.data.status.selectedProject?.name }}
+                        </div>
+                        <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i class="bi bi-gear"></i>
+                        </div>
                         <div class="base-hover p-1" style="margin-right: 6px;" @click="panoptic.closeProject()"><i
                                 class="bi bi-arrow-left-right"></i></div>
                     </div>
@@ -66,32 +75,50 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                 </div>
-                <div id="import">
-                    <div class="p-2"
-                        v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
-                        <div class="custom-hr" />
-                        <div v-if="store.status.import.done" class="float-end"><i class="bi bi-x base-hover"
-                                @click="showImport = false"></i></div>
-                        <div class="text-center"><b>{{ $t('main.menu.import_status_title') }}</b></div>
-                        <div class="w-100 text-center" style="font-size: 10px;">
-                            {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
+                <div v-if="tasks && tasks.length">
+                    <div class="custom-hr" />
+                    <div  class="pt-1 pb-2" >
+                        <div class="d-flex align-items-center ps-2 pe-2 " style="height: 30px;">
+                            <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
                         </div>
-                        <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
-                            aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
-                            <div class="progress-bar"
-                                :style="`width: ${store.status.import.imported / store.status.import.to_import * 100}%`">
+                        <div class="custom-hr" />
+                        <div v-if="store.backendStatus" class="ps-2 pe-2">
+                            <div v-for="task, i in tasks" class="p-1">
+                                <div v-if="i" class="custom-hr" />
+                                <TaskStatus :task="task" />
                             </div>
                         </div>
                     </div>
-                    <div class="p-2" v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0  && showImport" >
-                        <div class="w-100 text-center" style="font-size: 10px;">
-                            {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
+                </div>
+
+
+
+                <div class="p-2"
+                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
+                    <div class="custom-hr" />
+                    <div v-if="store.status.import.done" class="float-end"><i class="bi bi-x base-hover"
+                            @click="showImport = false"></i></div>
+                    <div class="text-center"><b>{{ $t('main.menu.import_status_title') }}</b></div>
+
+                    <div class="w-100 text-center" style="font-size: 10px;">
+                        {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
+                    </div>
+                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
+                        aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
+                        <div class="progress-bar"
+                            :style="`width: ${store.status.import.imported / store.status.import.to_import * 100}%`">
                         </div>
-                        <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
-                            aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
-                            <div class="progress-bar"
-                                :style="`width: ${store.status.import.computed / store.status.import.to_import * 100}%`">
-                            </div>
+                    </div>
+                </div>
+                <div class="p-2"
+                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
+                    <div class="w-100 text-center" style="font-size: 10px;">
+                        {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
+                    </div>
+                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
+                        aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
+                        <div class="progress-bar"
+                            :style="`width: ${store.status.import.computed / store.status.import.to_import * 100}%`">
                         </div>
                     </div>
                 </div>
@@ -106,10 +133,10 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             <span class="sr-only" />
                         </span>
                         <span v-else class="me-3">
-                            <input type="file" ref="inputFile" accept="text/csv" @change="handleInput" hidden />
+
                             <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i
-                                    class="bi bi-file-earmark-arrow-up btn-icon text-secondary"
-                                    @click="inputFile.click()" /></wTT>
+                                    class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="handleInput" />
+                            </wTT>
                         </span>
                         <span class="me-3">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i

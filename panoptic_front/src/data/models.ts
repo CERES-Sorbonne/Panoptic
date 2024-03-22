@@ -1,5 +1,4 @@
-import { CollectionManager } from "@/core/CollectionManager"
-import { FilterOperator, FilterState } from "@/core/FilterManager"
+import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 
@@ -12,10 +11,10 @@ export interface Image {
     height: number
     url: string
     fullUrl: string
-    folder_id: number
+    folderId: number
     extension: string
     properties: {
-        [id: number]: PropertyValue
+        [id: number]: InstancePropertyValue
     }
     dist?: number
     containerRatio?: number
@@ -37,7 +36,12 @@ export interface Property {
     name: string
     type: PropertyType
     mode: PropertyMode
+    computed?: boolean
     tags?: TagIndex
+}
+
+export interface PropertyDescription extends Property {
+    col: number
 }
 
 export type PropertyIndex = { [propertyId: number]: Property }
@@ -55,9 +59,9 @@ export enum PropertyType {
     checkbox = "checkbox",
     path = "path",
     image_link = "image_link",
-    _ahash = "average hash",
+    _ahash = "ahash",
     _sha1 = "sha1",
-    _folders = "folders",
+    _folders = "folder",
     _id = "id",
     _width = "width",
     _height = "height"
@@ -65,15 +69,22 @@ export enum PropertyType {
 
 export enum PropertyMode {
     sha1 = 'sha1',
-    id = 'id',
-    computed = 'computed'
+    id = 'id'
 }
 
 export interface PropertyValue {
     propertyId: number
     value: any
+
+    // ui only
     valueEnd?: any // allow to specidy an interval [value, valueEnd] in special cases like date grouping
     unit?: DateUnit
+}
+
+export interface InstancePropertyValue {
+    propertyId: number
+    instanceId: number
+    value: any
 }
 
 export interface PropertyRef extends PropertyValue {
@@ -83,7 +94,7 @@ export interface PropertyRef extends PropertyValue {
 }
 
 export interface PropertyValueUpdate extends PropertyValue {
-    updated_ids: number[]
+    updatedIds: number[]
 }
 
 export enum PropertyID {
@@ -101,16 +112,23 @@ export enum PropertyID {
 
 export interface Tag {
     id: number;
-    property_id: number;
+    propertyId: number;
     parents: number[];
     value: string;
     color?: number;
     children?: number[]
     count?: number
+    deleted?: boolean
 }
 
 export interface TagIndex {
     [tagId: number]: Tag
+}
+
+export interface DeleteTagResult {
+    tagId: number
+    updatedValues: any[]
+    updatedTags: Tag[]
 }
 
 //=============================
@@ -144,6 +162,8 @@ export interface FolderIndex {
 // }
 
 export interface TabState {
+
+    version: number
     id: number
     name: string
     display: string
@@ -158,6 +178,7 @@ export interface TabState {
     selectedFolders: { [key: number]: boolean }
     sha1Mode: boolean
     propertyOptions: { [key: number]: PropertyOption }
+    similarityDist: number
 }
 
 export interface TabIndex {
@@ -170,6 +191,9 @@ export interface PropertyOption {
     size: number
 }
 
+
+
+
 export enum ModalId {
     IMAGE = 'image',
     IMAGE_ZOOM = 'image_zoom',
@@ -177,15 +201,38 @@ export enum ModalId {
     SHA1PILE = 'sha1pile',
     FOLDERTOPROP = 'folder_to_property',
     EXPORT = "export",
-    FOLDERSELECTION = 'explorer'
+    FOLDERSELECTION = 'explorer',
+    SETTINGS = "settings",
+    IMPORT = "import"
 }
 
 export interface ImportState {
     to_import: number
     imported: number
     computed: number
-    new_images?: Array<Image>,
+    new_images?: Image[],
     done: boolean
+}
+
+export interface StatusUpdate {
+    tasks: TaskState[];
+    // updated_images: Image[];
+    pluginLoaded?: boolean
+    update: UpdateCounter
+}
+
+export interface DataUpdate {
+    images?: Image[]
+    properties?: Property[]
+}
+
+export interface TaskState {
+    name: string;
+    id: string;
+    total: number;
+    remain: number;
+    computing: number;
+    done: boolean;
 }
 
 export interface SyncResult {
@@ -274,4 +321,94 @@ export const DateUnitFactor = {
     [DateUnit.Minute]: 60,
     [DateUnit.Second]: 1,
 
+}
+
+export interface UpdateCounter {
+    action: number;
+    image: number;
+}
+
+
+// ================== Plugins ==================
+
+export interface ParamDescription {
+    name: string
+    description: string
+    type: string
+}
+
+export interface FunctionDescription {
+    id: string
+    name: string
+    description: string | null
+    action: string
+    params: ParamDescription[]
+}
+
+export interface PluginBaseParamsDescription {
+    description: string
+    params: ParamDescription[]
+}
+
+
+export interface PluginDescription {
+    name: string
+    description: string
+    path: string
+    baseParams: PluginBaseParamsDescription
+    registeredFunctions: FunctionDescription[]
+    defaults: PluginDefaultParams
+}
+
+export interface PluginDefaultParams {
+    name: string
+    base: { [param: string]: any }
+    functions: { [func: string]: { [param: string]: any } }
+}
+
+// ============= Actions ==============
+export interface ActionDescription {
+    name: string
+    selectedFunction?: string
+    availableFunctions?: string[]
+}
+
+export interface ActionParam {
+    name: string
+    value: string
+}
+
+export interface ActionContext {
+    instanceIds?: number[]
+    propertyIds?: number[]
+    file?: string
+    text?: string
+    uiInputs?: { [key: string]: any }
+}
+
+export interface ExecuteActionPayload {
+    action: string
+    function?: string
+    context: ActionContext
+}
+
+export interface InstanceMatch {
+    id: number;
+    score: number;
+}
+
+export interface SearchResult {
+    matches: InstanceMatch[];
+}
+
+// ========== Vectors ===============
+export interface VectorDescription {
+    source: string
+    type: string
+    count?: number
+}
+
+export interface ProjectVectorDescription {
+    vectors: VectorDescription[]
+    defaultVectors: VectorDescription
 }

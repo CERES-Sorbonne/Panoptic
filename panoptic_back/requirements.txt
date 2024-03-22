@@ -3,11 +3,9 @@ aiosqlite
 fastapi-camelcase
 fastapi
 imagehash
-opencv-python
 pandas
 pytesseract
 scikit-learn
-pyqt5
 transformers
 uvicorn
 python-multipart
@@ -15,7 +13,9 @@ pypika
 orjson
 torch
 faiss-cpu
-qtawesome
 requests
-pydantic<2.0.0
+pydantic
 psutil
+starlette
+numpy
+show-in-file-manager

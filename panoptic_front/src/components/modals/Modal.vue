@@ -34,7 +34,7 @@ const modalStyle = computed(() => {
 })
 const bodyStyle = computed(() => {
     // return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
-    return { width: '100%', height: '100%' }
+    return { width: '100%', height: '100%', overflowY: 'scroll' } as any
 })
 
 function hide() {

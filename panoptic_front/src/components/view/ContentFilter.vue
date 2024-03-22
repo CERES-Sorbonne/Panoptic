@@ -12,7 +12,6 @@ import wTT from '../tooltips/withToolTip.vue'
 import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
-import { localeData } from 'moment';
 
 const props = defineProps({
     tab: TabManager,
@@ -27,7 +26,8 @@ const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupMa
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 
-function updateSha1Mode(value) {
+function updateSha1Mode(event) {
+    const value = event.target.checked
     props.tab.collection.groupManager.setSha1Mode(value, true)
 }
 
@@ -54,7 +54,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 <template>
     <div class="d-flex flex-row p-2">
         <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
-            <div class="d-flex flex-row search-input me-5">
+            <div class="d-flex flex-row search-input me-5"  :class="localQuery ? 'border-primary' : ''">
                 <div class="bi bi-search float-start bi-sm"></div>
                 <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery" @change="setQuery"/>
                 <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
@@ -79,10 +79,10 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div>
             <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
         </div>
-        <div class="ms-5">
+        <div class="ms-5" style="font-size: 13px;">
             <wTT message="main.menu.image_mode_tooltip">
-                <Toggle :model-value="props.tab.collection.groupManager.state.sha1Mode" @update:model-value="updateSha1Mode" :on-label="$t('main.menu.sha1_images')"
-                    :off-label="$t('main.menu.all_images')" class="custom-toggle" />
+                <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode" @change="updateSha1Mode"/>
+                <span class="ms-1">Mode Image unique</span>
             </wTT>
         </div>
         <SelectionStamp v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"

@@ -26,6 +26,8 @@ const props = defineProps({
 })
 
 const realMessage = computed(() => {
+    if(!props.message) return
+    
     if (['main', 'modals'].indexOf(props.message.split('.')[0]) > -1) {
         return t(props.message)
     }
@@ -36,7 +38,7 @@ const realMessage = computed(() => {
 </script>
 
 <template>
-    <Tooltip style="display: inline;" :teleport="true" :placement="props.pos" class="m-0 p-0">
+    <Tooltip style="display: inline;" :teleport="true" :placement="props.pos" :disabled="!props.message" class="m-0 p-0">
         <div class="text-nowrap d-flex m-0 p-0">
             <span v-if="props.icon && props.iconPos === 'left'" style="cursor: pointer;"> <i
                     class="bi bi-question-circle small-icon"></i></span>

@@ -58,7 +58,6 @@ tabManager.collection.groupManager.onChange.addListener(() => {
 })
 
 function setRecoImages(groupId: string) {
-    console.log('set reco', groupId)
     recoGroup.value = tabManager.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())
 }
@@ -68,7 +67,7 @@ async function setSearchedImages(textInput: string) {
         searchedImages.value = []
     }
     else {
-        searchedImages.value = await getSimilarImagesFromText(textInput)
+        searchedImages.value = await getSimilarImagesFromText({ text: textInput })
     }
 }
 
@@ -85,15 +84,13 @@ onMounted(() => {
         })
     })
 })
-
-watch(tabManager.state, () => {
+watch(tabManager.state, (state) => {
     store.updateTab(tabManager.state)
 }, { deep: true })
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
 })
-
 
 </script>
 
@@ -111,15 +108,15 @@ watch(() => props.height, async () => {
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tabManager.state.display == 'tree'">
             <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"
-                :height="scrollerHeight - 0" :properties="visibleProperties"
+                :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
                 :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList"
-                :width="scrollerWidth - 10" @recommend="setRecoImages" />
+                :width="scrollerWidth - 25" @recommend="setRecoImages" />
         </template>
         <template v-if="tabManager.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :manager="tabManager.collection.groupManager" :height="scrollerHeight - 15"
                     :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" />
+                    :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" :hide-if-modal="true" />
             </div>
         </template>
 

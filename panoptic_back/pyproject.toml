@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "panoptic"
+dynamic = ["version"]
+description = 'Explore and analyze large datasets of images'
+readme = "../README.md"
+requires-python = ">=3.9"
+license = "MPL-2.0"
+keywords = [
+    "Data visualization",
+    "Image analysis",
+    "Machine learning",
+    "Image clustering",
+    "Image corpora",
+    "Web application",
+]
+authors = []
+maintainers = []
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+]
+dependencies = [
+    "aiofiles",
+    "aiosqlite",
+    "faiss-cpu",
+    "fastapi",
+    "fastapi-camelcase",
+    "imagehash",
+    "numpy",
+    "orjson",
+    "pandas",
+    "psutil",
+    "pydantic",
+    "pypika",
+    "pytesseract",
+    "python-multipart",
+    "requests",
+    "scikit-learn",
+    "show-in-file-manager",
+    "starlette",
+    "torch",
+    "transformers",
+    "uvicorn",
+]
+
+[project.urls]
+Repository = "https://github.com/CERES-Sorbonne/panoptic"
+Documentation = "https://github.com/CERES-Sorbonne/panoptic#readme"
+Issues = "https://github.com/CERES-Sorbonne/panoptic/issues"
+"Lab's website" = "https://ceres.sorbonne-universite.fr/"
+
+[project.scripts]
+panoptic = "panoptic.main:start"
+
+[tool.hatch.version]
+path = "panoptic/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/panoptic",
+    "../README*",
+]
+ignore-vcs = true
+
+

@@ -1,5 +1,9 @@
 # Panoptic
 
+[![PyPI - Version](https://img.shields.io/pypi/v/panoptic.svg)](https://pypi.org/project/panoptic)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/panoptic.svg)](https://pypi.org/project/panoptic)
+
+
 ![Aperçu](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/8e6389c7-ee80-4e0f-95d8-790602bd028e)
 
 Panoptic est un outil d'exploration et d'annotation de large corpus d'images, utilisant des outils d'analyse d'image et de machine learning pour faciliter ces tâches. 
@@ -49,11 +53,19 @@ Cela implique d'avoir créé un dossier spécial appelé "images", dans le dossi
 
 Il faut ensuite lancer la commande suivante (avec Docker de lancé au préalable)
 
-`docker run -it -p 8000:8000 -v /chemin/vers/le/dossier:/data --name panoptic ceressorbonne/panoptic`
+```console
+docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
+```
 
 ### Option 2: Un dossier pour les images, et un dossier pour les données panoptic:
 
-`docker run -it -p 8000:8000 -v /chemin/vers/le/dossier/ou/stocker/les/donnees/panoptic:/data -v /chemin/vers/le/dossier/images:/data/images --name panoptic ceressorbonne/panoptic`
+```console
+docker run -it -p 8000:8000 \
+-v /path/to/your/data:/data \
+-v /path/to/your/images:/data/images \
+--name panoptic \
+ceressorbonne/panoptic
+```
 
 ## Installation (développement)
 

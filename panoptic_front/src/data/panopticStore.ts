@@ -1,6 +1,6 @@
 import { defineStore } from "pinia"
 import { computed, nextTick, reactive, ref } from "vue"
-import { apiCloseProject, apiCreateProject, apiDeleteProject, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
+import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
 import { ModalId } from "./models"
@@ -21,6 +21,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     const data = reactive({
         status: {} as SelectionStatus,
+        plugins: [],
         init: false
     })
 
@@ -37,16 +38,24 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     async function init() {
         // console.log('init')
         data.init = false
-        data.status = await apiGetStatus()
-        data.init = true
-        // console.log('end init')
-        if(data.status.isLoaded) {
-            project.init()
+        try {
+            data.status = await apiGetStatus()
+            data.plugins = await apiGetPlugins()
+            data.init = true
+            // console.log('end init')
+            if (data.status.isLoaded) {
+                project.init()
+            }
+        }
+        catch { 
+            setTimeout(() => init(), 1000)
         }
     }
 
-    async function loadProject(path: string) {
-        data.status = await apiLoadProject(path)
+    async function loadProject(path: string, noCall?: boolean) {
+        if (!noCall) {
+            data.status = await apiLoadProject(path)
+        }
         // console.log(data.status)
         router.push('/view')
         project.clear()
@@ -58,19 +67,20 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         router.push('/')
     }
 
-    async function deleteProject(path:string) {
+    async function deleteProject(path: string) {
         data.status = await apiDeleteProject(path)
     }
 
     async function createProject(path: string, name: string) {
-        const projectPath = path + '/' + name
+        path = path.endsWith('\\') ? path : path + '/'
+        const projectPath = path + name
         data.status = await apiCreateProject(projectPath, name)
-        await loadProject(projectPath)
+        await loadProject(projectPath, true)
     }
 
     async function importProject(path: string) {
         data.status = await apiImportProject(path)
-        await loadProject(path)
+        await loadProject(path, true)
     }
 
     function showModal(modalId: ModalId, data?: any) {
@@ -88,10 +98,22 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modalData.value = null
     }
 
+    async function addPlugin(path) {
+        if (!path) return
+        await apiAddPlugin(path)
+        data.plugins = await apiGetPlugins()
+    }
+
+    async function delPlugin(path) {
+        await apiDelPlugin(path)
+        data.plugins = await apiGetPlugins()
+    }
+
     return {
         init, data, state,
         modalData, hideModal, showModal, openModalId,
         isProjectLoaded,
-        loadProject, closeProject, deleteProject, createProject, importProject
+        loadProject, closeProject, deleteProject, createProject, importProject,
+        addPlugin, delPlugin
     }
 })

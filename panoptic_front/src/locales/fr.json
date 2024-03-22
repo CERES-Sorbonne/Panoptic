@@ -18,6 +18,10 @@
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images"
             },
+            "tasks": {
+                "title": "Tache de fond",
+                "done": "Fini"
+            },
             "properties": {
                 "title": "Propriétés",
                 "properties_tooltip": "Les différents champs associés à chaque image",
@@ -183,6 +187,12 @@
             "properties_visible": "Visible",
             "properties_none": "Aucune",
             "export_images": "Inclure les images"
+        },
+        "settings": {
+            "title": "Parametres Projet"
+        },
+        "import": {
+            "title": "Importer Fichier"
         }
     },
     "tutorial": {
@@ -206,6 +216,15 @@
         "step-15": "Une fois les calculs terminés, vous pouvez utiliser les fonctionnalités de machine learning de panoptic. Pour créer des groupes automatiques par exemple.",
         "step-16": "Cliquez sur une image pour l'ouvrir en grand, sur le côté sont affichées les images similaires à cette image.",
         "step-17": "Faites varier le pourcentage de similarité minimum pour afficher plus ou moins d'images similaires."
+    },
+    "action": {
+        "find_similar": "Similaire",
+        "group": "Grouper",
+        "filter": "Filtrer",
+        "action_images": "Action Images",
+        "action_group": "Action Groupes",
+        "import": "Importer",
+        "export": "Exporter"
     },
     "tmp": "Tooltip to be written"
 }

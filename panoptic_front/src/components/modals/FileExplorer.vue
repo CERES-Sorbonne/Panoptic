@@ -48,7 +48,7 @@ const parents = computed(() => {
 })
 
 const isValidPath = computed(() => {
-    if(props.mode === "images" && selectedFolder.value.images > 0){
+    if(props.mode === "images"){
         return true
     }
     else if(props.mode === "import" && selectedFolder.value.isProject){

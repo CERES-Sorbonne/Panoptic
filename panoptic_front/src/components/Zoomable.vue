@@ -18,12 +18,14 @@ watch(keyState, () => {
     if (!isActive && !isHover) return
 
     if (isHover && !isActive && keyState.ctrl) {
+        console.log('hover', props.image.id)
         // panoptic.showModal(ModalId.IMAGE_ZOOM, props.image.image)
         zoomModal.show(props.image)
     }
 
     const rect = elem.value.getBoundingClientRect()
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
+    
     if (isActive && (!absoluteHover || !keyState.ctrl)) {
         // panoptic.hideModal()
         zoomModal.hide()

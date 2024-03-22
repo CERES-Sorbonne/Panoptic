@@ -45,7 +45,8 @@ function updateLocal() {
 }
 
 function save() {
-    if (arrayEqual(localValue.value, propValue.value ?? [])) return
+    // console.log(localValue.value, propValue.value)
+    if (arrayEqual(localValue.value, (propValue.value ?? []))) return
 
     store.setPropertyValue(props.property.id, props.image, localValue.value)
 }

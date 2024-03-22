@@ -10,6 +10,7 @@ import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup 
 import { GroupLine } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { computeMLGroups } from '@/utils/utils'
+import ActionButton from '@/components/actions/ActionButton.vue'
 
 const store = useProjectStore()
 
@@ -47,24 +48,14 @@ const groupName = computed(() => {
 
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
-async function computeClusters() {
-    let sha1s: string[] = group.value.images.map(i => i.sha1)
-    let mlGroups = await computeMLGroups(sha1s, props.item.nbClusters)
-    console.log(mlGroups)
-    let distances = mlGroups.distances
-    mlGroups = mlGroups.clusters
-    // props.item.data.groups = []
-
-    let groups = []
-    for (let [index, sha1s] of mlGroups.entries()) {
-        let images = []
-        sha1s.forEach(sha1 => images.push(...store.data.sha1Index[sha1]))
-
-        const cluster = buildGroup('cluster:' + String(index) + ':' + props.item.id, images, GroupType.Cluster)
-        cluster.meta.score = distances[index]
-
-        groups.push(cluster)
-    }
+async function addClusters(groupResult) {
+    console.log(groupResult)
+    const groups = groupResult.groups.map((group, index) => {
+        const instances = group.ids.map(i => store.data.images[i])
+        const res = buildGroup('cluster:' + String(index) + ':' + props.item.id, instances, GroupType.Cluster)
+        res.meta.score = Math.round(group.score)
+        return res
+    })
     props.manager.addCustomGroups(group.value.id, groups, true)
 }
 
@@ -131,9 +122,11 @@ function closeChildren() {
                 <StampDropdown :images="images" />
             </div>
             <div class="ms-2" v-if="!hasSubgroups">
-                <wTT message="main.view.group_clusters_tooltip">
+                <!-- <wTT message="main.view.group_clusters_tooltip">
                     <ClusterButton v-model="props.item.nbClusters" @click="computeClusters" />
-                </wTT>
+                </wTT> -->
+                <ActionButton action="group" :image-ids="images.map(i => i.id)" style="font-size: 10px;"
+                    @result="addClusters" />
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 
@@ -145,7 +138,7 @@ function closeChildren() {
                 </wTT>
             </div>
             <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
-                <div class="cluster-close" @click="clear"><i class="bi bi-x" />IA</div>
+                <div class="sbb cluster-close" @click="clear">x clusters</div>
             </div>
         </div>
 
@@ -180,17 +173,10 @@ function closeChildren() {
 }
 
 .cluster-close {
-    background-color: rgb(186, 90, 184);
-    border-radius: 5px;
-    color: white;
-    height: 20px;
-    font-size: 14px;
-    padding: 0px 3px !important;
-    cursor: pointer;
-    line-height: 20px;
-}
-
-.cluster-close:hover {
-    color: rgb(235, 209, 30);
+    font-size: 12px;
+    padding: 0px 3px;
+    line-height: 16px;
+    color: grey;
+    border: 2px solid var(--border-color);
 }
 </style>

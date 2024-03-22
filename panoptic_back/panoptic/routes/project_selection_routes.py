@@ -6,12 +6,17 @@ import psutil
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from panoptic.core import importer
-from panoptic.db import db_utils
-from panoptic.core.panoptic import panoptic
-from panoptic.routes.project_routes import PathRequest
+from panoptic.core.panoptic import Panoptic
+from panoptic.models import PathRequest
 
 selection_router = APIRouter()
+
+panoptic: Panoptic | None = None
+
+
+def set_panoptic(pano: Panoptic):
+    global panoptic
+    panoptic = pano
 
 
 class ProjectRequest(BaseModel):
@@ -30,17 +35,13 @@ async def get_status_route():
 
 @selection_router.post("/load")
 async def load_project_route(path: PathRequest):
-    print('load', path.path)
-    await db_utils.load_project(path.path)
     await panoptic.load_project(path.path)
-    importer.set_project_path(path.path)
     return await get_status_route()
 
 
 @selection_router.post("/close")
 async def close_project():
-    await panoptic.close()
-    await db_utils.close()
+    await panoptic.close_project()
     return await get_status_route()
 
 
@@ -53,13 +54,13 @@ async def delete_project_route(req: PathRequest):
 @selection_router.post("/create_project")
 async def create_project_route(req: ProjectRequest):
     await panoptic.create_project(req.name, req.path)
-    return await load_project_route(PathRequest(path=req.path))
+    return await get_status_route()
 
 
 @selection_router.post("/import_project")
 async def import_project_route(req: PathRequest):
-    panoptic.import_project(req.path)
-    return await load_project_route(req)
+    await panoptic.import_project(req.path)
+    return await get_status_route()
 
 
 @selection_router.get("/filesystem/ls/{path:path}")
@@ -70,6 +71,21 @@ def api(path: str = ""):
 @selection_router.get('/filesystem/info')
 def filesystem_info_route():
     return list_index()
+
+
+@selection_router.get('/plugins')
+async def get_plugins_route():
+    return panoptic.get_plugin_paths()
+
+
+@selection_router.post('/plugins')
+async def add_plugins_route(path: PathRequest):
+    return panoptic.add_plugin_path(path.path)
+
+
+@selection_router.delete('/plugins')
+async def del_plugins_route(path: str):
+    return panoptic.del_plugin_path(path)
 
 
 def images_in_folder(folder_path):

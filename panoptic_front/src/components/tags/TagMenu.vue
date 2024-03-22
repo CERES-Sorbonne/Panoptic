@@ -38,7 +38,7 @@ const tagFilter = ref('')
 
 
 const tagProposals = ref(null);
-const selectedIndex = ref(undefined)
+const selectedIndex = ref(0)
 
 const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredTagList.value.some(t => t.value == tagFilter.value))
 
@@ -53,7 +53,7 @@ const filteredTagList = computed(() => {
     }
 
     filtered.sort((t1, t2) => t2.count - t1.count)
-
+    filtered = filtered.filter(t => !t.deleted)
     return filtered
 })
 
@@ -139,7 +139,7 @@ watch(filteredTagList, () => {
                         <TagBadge :tag="tag.value" :color="tag.color" />
                     </div>
                     <div v-if="props.canLink" :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
-                        <TagChildSelectDropdown :property-id="tag.property_id" :tag-id="tag.id" @hide="focus" />
+                        <TagChildSelectDropdown :property-id="tag.propertyId" :tag-id="tag.id" @hide="focus" />
                     </div>
                     <div v-if="props.canCustomize || props.canDelete"
                         :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">

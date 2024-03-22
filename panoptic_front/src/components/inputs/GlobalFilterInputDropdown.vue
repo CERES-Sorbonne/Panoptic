@@ -47,8 +47,12 @@ watch(() => props.manager.state.filter.filters, () => {
     <Dropdown ref="dropdownElem">
         <template #button>
             <div>
-                <div v-if="selectedFilterSet.length" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
+                <div v-if="selectedFilterSet.length || props.manager.state.query" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
                     style="cursor:pointer;">
+                    <div v-if="props.manager.state.query">
+                        <span class="text-primary">Text Query</span>
+                        <span v-if="selectedFilterSet.length" class="or-separator">|</span>
+                    </div>
                     <div v-for="filter, index in selectedFilterSet">
                         <span v-if="index > 0" class="or-separator">|</span>
                         <PropertyIcon v-if="filter.propertyId == PropertyID.id" :type="store.data.properties[filter.propertyId].type" style="margin-right: 2px;"/>

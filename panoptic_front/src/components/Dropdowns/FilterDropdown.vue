@@ -42,10 +42,10 @@ const popupElem = ref(null)
 
 const mode = ref(State.CLOSED)
 
-const localFilterId = ref(-1)
+const localFilterId = ref(null)
 const localValue = ref(null)
 
-const filterId = computed(() => props.filterId != undefined ? props.filterId : localFilterId.value)
+const filterId = computed(() => props.filterId !== undefined ? props.filterId : localFilterId.value)
 const filter = computed(() => {
     if (filterId.value == undefined || filterId.value == -1) return
     return (props.manager.filterIndex[filterId.value] as Filter)
@@ -69,6 +69,8 @@ function show() {
 
 function hide() {
     if (dropdownElem.value) dropdownElem.value.hide()
+    // localFilterId.value = null
+    // localValue.value = null
 }
 
 function onHide() {
@@ -123,7 +125,7 @@ function updateLocal() {
     localValue.value = filter.value.value
 }
 onMounted(updateLocal)
-watch(() => filter.value?.value, () => updateLocal())
+watch(() => filter.value, () => updateLocal())
 
 </script>
 
