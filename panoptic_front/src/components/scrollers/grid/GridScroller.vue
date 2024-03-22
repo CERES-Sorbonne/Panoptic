@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
+// import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ImageIterator, ROOT_ID } from '@/core/GroupManager';
-import { Property, GroupLine, Image, RowLine, PileRowLine, ScrollerLine } from '@/data/models';
+import { Property, GroupLine, Image, RowLine, PileRowLine, ScrollerLine, ModalId } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
-
+import {RecycleScroller} from 'vue-virtual-scroller';
+import { usePanopticStore } from '@/data/panopticStore';
 const store = useProjectStore()
+const panoptic = usePanopticStore()
 
 const props = defineProps({
     manager: GroupManager,
@@ -16,6 +18,7 @@ const props = defineProps({
     width: Number,
     selectedProperties: Array<Property>,
     showImages: Boolean,
+    hideIfModal: Boolean
 })
 
 defineExpose({
@@ -50,6 +53,9 @@ const scrollerStyle = computed(() => ({
     width: scrollerWidth.value + 'px',
     // overflowX: 'hidden'
 }))
+
+const hideFromModal = computed(() => props.hideIfModal && panoptic.openModalId == ModalId.IMAGE)
+
 
 function computeLines() {
     console.time('Table compute lines')
@@ -216,7 +222,7 @@ onUnmounted(() => {
             @scroll-start="handleUpdate">
 
             <template v-slot="{ item, index, active }">
-                <template v-if="active">
+                <template v-if="active && !hideFromModal">
                     <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"

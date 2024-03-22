@@ -35,7 +35,6 @@ export function buildFolderNodes(folders: Array<Folder>) {
 }
 
 export function computeTagCount(images: Image[], properties: PropertyIndex) {
-
     for(let property of Object.values(properties) as Property[]) {
         if(!property.tags) continue
         for(let tag of Object.values(property.tags) as Tag[]) {
@@ -65,7 +64,7 @@ export function countImagePerFolder(folders: FolderIndex, images: Image[]) {
         folder.count = 0
     })
 
-    images.forEach(img => folderToParents[img.folder_id].forEach(id => folders[id].count += 1))
+    images.forEach(img => folderToParents[img.folderId].forEach(id => folders[id].count += 1))
 }
 
 export function setTagsChildren(tags: TagIndex) {

@@ -6,7 +6,8 @@ import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
-import { getSimilarImages } from '@/utils/utils';
+import { apiGetSimilarImages } from '@/data/api';
+import { isTag } from '@/utils/utils';
 interface Sha1Pile {
     sha1: string
     images: Image[]
@@ -42,8 +43,14 @@ function removeImage(sha1: string) {
 function acceptRecommend(image: Image) {
     propertyValues.forEach(v => {
         if (v.value != UNDEFINED_KEY) {
-            let mode = store.data.properties[v.propertyId].type == PropertyType.multi_tags ? 'add' : null
-            store.setPropertyValue(v.propertyId, image, v.value, mode)
+            const prop = store.data.properties[v.propertyId]
+            let value = v.value
+            if (prop.type == PropertyType.multi_tags) {
+                store.setTagPropertyValue(v.propertyId, image, [value], 'add')
+            }
+            else {
+                store.setPropertyValue(v.propertyId, image, value)
+            }
         }
     })
     removeImage(image.sha1)
@@ -71,7 +78,7 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
             break
         }
         let pile = piles[i]
-        let img = pile.images[0]
+        // let img = pile.images[0]
         if (blacklist.has(pile.sha1)) {
             continue
         }
@@ -99,9 +106,10 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
 async function getReco() {
     if (!props.group) return
     console.log('get reco')
-    const requestSha1s = props.group.images.map(i => i.sha1)
-    let res = await getSimilarImages(requestSha1s) as any[]
-    const resSha1s = res.map(r => r.sha1)
+    const instanceIds = props.group.images.map(i => i.id)
+    let res = await apiGetSimilarImages({ instanceIds })
+    res.matches.sort((a, b) => b.score - a.score)
+    const resSha1s = Array.from(new Set(res.matches.map(r => store.data.images[r.id].sha1)))
 
     propertyValues.length = 0
     let current = props.group
@@ -112,8 +120,8 @@ async function getReco() {
     sha1s.length = 0
     sha1s.push(...resSha1s)
 
-    computeLines()
     blacklist.clear()
+    computeLines()
 
     emits('update')
 }

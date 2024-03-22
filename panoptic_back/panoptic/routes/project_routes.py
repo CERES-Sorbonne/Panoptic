@@ -1,69 +1,86 @@
 import logging
 import os
 from sys import platform
-from typing import Optional
+from typing import Optional, Dict, Any
 
-import aiofiles as aiofiles
-import pandas as pd
-from fastapi import UploadFile, APIRouter
+from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from starlette.responses import Response, FileResponse
-from panoptic.core.panoptic import panoptic
-from panoptic import core
-from panoptic.compute.similarity import get_similar_images_from_text
-from panoptic.core import create_property, create_tag, \
-    update_tag, get_tags, get_properties, delete_property, update_property, delete_tag, delete_tag_parent, add_folder, \
-    make_clusters, get_similar_images, read_properties_file, get_full_images, set_property_values, \
-    tag_add_parent
-from panoptic.db import db
-from panoptic.models import Property, Tag, Properties, PropertyPayload, \
-    SetPropertyValuePayload, AddTagPayload, DeleteImagePropertyPayload, \
-    UpdateTagPayload, UpdatePropertyPayload, Tab, MakeClusterPayload, GetSimilarImagesPayload, \
-    Clusters, GetSimilarImagesFromTextPayload, AddTagParentPayload, StrPayload, ExportPropertiesPayload
+from starlette.responses import FileResponse
+
+from panoptic.core.project.project import Project
+from panoptic.models import Property, Tag, PropertyPayload, \
+    SetPropertyValuePayload, AddTagPayload, \
+    Tab, AddTagParentPayload, PropertyUpdate, \
+    TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
+    ExecuteActionPayload, SetTagPropertyValuePayload, ImportOptions, OptionsPayload, ExportPropertiesPayload
 
 project_router = APIRouter()
+
+project: Project | None = None
+
+
+def set_project(p: Project | None):
+    global project
+    project = p
 
 
 # Route pour créer une property et l'insérer dans la table des properties
 @project_router.post("/property")
 async def create_property_route(payload: PropertyPayload) -> Property:
-    return await create_property(payload.name, payload.type, payload.mode)
+    return await project.db.add_property(payload.name, payload.type, payload.mode)
 
 
 @project_router.get("/property")
-async def get_properties_route() -> Properties:
-    return await get_properties()
+async def get_properties_route() -> list[Property]:
+    return await project.db.get_properties()
 
 
 @project_router.patch("/property")
-async def update_property_route(payload: UpdatePropertyPayload) -> Property:
-    return await update_property(payload)
+async def update_property_route(payload: PropertyUpdate) -> Property:
+    return await project.db.update_property(payload)
 
 
 @project_router.post('/property/file')
-async def properties_by_file(file: UploadFile):
-    data = pd.read_csv(file.file, sep=";")
-    return await read_properties_file(data)
+async def properties_by_file(file):
+    pass
+
+
+@project_router.post('/upload_file')
+async def upload_file_route(file: UploadFile):
+    await project.importer.upload_csv(file)
+    return await project.importer.analyse_file()
+
+
+@project_router.post('/import_file')
+async def upload_file_route(req: OptionsPayload):
+    return await project.importer.import_file(req.options)
+
+#
+# @project_router.post('/analyse_file')
+# async def analyse_file_route():
+#     return await project.importer.analyse_file(test.file)
+#     # data = pd.read_csv(file.file, sep=";")
+#     # return await read_properties_file(data)
+
 
 
 @project_router.post('/export')
 async def export_properties_route(req: ExportPropertiesPayload):
-    await panoptic.project.export_data(req.name, req.images, req.properties, req.export_images)
+    await project.export_data(req.name, req.images, req.properties, req.export_images)
     return True
 
 
 
 @project_router.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
-    await delete_property(property_id)
-    return await get_properties()
+    await project.db.delete_property(property_id)
+    return await project.db.get_properties()
 
 
-# Route pour récupérer la liste de toutes les images
 @project_router.get("/images", response_class=ORJSONResponse)
-async def get_images_route():
-    images = await get_full_images()
+async def get_all_images_route():
+    images = await project.db.get_instances_with_properties()
     return ORJSONResponse(images)
 
 
@@ -72,87 +89,73 @@ async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
             file_path = '/' + file_path
-    async with aiofiles.open(file_path, 'rb') as f:
-        data = await f.read()
-
-    ext = file_path.split('.')[-1]
-
-    # # media_type here sets the media type of the actual response sent to the client.
-    return Response(content=data, media_type="image/" + ext)
+    return FileResponse(path=file_path)
 
 
 # Route pour ajouter une property à une image dans la table de jointure entre image et property
 # On retourne le payload pour pouvoir valider l'update côté front
 @project_router.post("/image_property")
-async def add_image_property(payload: SetPropertyValuePayload):
-    updated, value = await set_property_values(property_id=payload.property_id, image_ids=payload.image_ids,
-                                               sha1s=payload.sha1s, value=payload.value)
-    return {'updated_ids': updated, 'value': value}
+async def set_property_values_route(payload: SetPropertyValuePayload):
+    values = await project.db.set_property_values(property_id=payload.property_id,
+                                                  instance_ids=payload.instance_ids,
+                                                  value=payload.value)
+    return values
 
 
-# Route pour supprimer une property d'une image dans la table de jointure entre image et property
-@project_router.delete("/image_property")
-async def delete_property_value_route(payload: DeleteImagePropertyPayload) -> DeleteImagePropertyPayload:
-    await db.delete_property_value(payload.property_id, image_ids=[payload.image_id])
-    return payload
+@project_router.post('/set_tag_property_value')
+async def set_tag_property_value(payload: SetTagPropertyValuePayload):
+    print(payload)
+    values = await project.db.set_tag_property_value(property_id=payload.property_id, instance_ids=payload.instance_ids,
+                                                     value=payload.value, mode=payload.mode)
+    return values
 
 
 @project_router.post("/tags")
 async def add_tag(payload: AddTagPayload) -> Tag:
     if not payload.parent_id:
         payload.parent_id = 0
-    return await create_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
+    return await project.db.add_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
 
 
 @project_router.post("/tag/parent")
 async def add_tag_parent(payload: AddTagParentPayload) -> Tag:
-    return await tag_add_parent(payload.tag_id, payload.parent_id)
+    return await project.db.add_tag_parent(payload.tag_id, payload.parent_id)
 
 
 @project_router.get("/tags", response_class=ORJSONResponse)
-async def get_tags_route(property: Optional[str] = None):
-    tags = await get_tags(property)
+async def get_tags_route(prop: Optional[int] = None):
+    tags = await project.db.get_tags(prop)
     return ORJSONResponse(tags)
 
 
 @project_router.patch("/tags")
-async def update_tag_route(payload: UpdateTagPayload) -> Tag:
-    return await update_tag(payload)
+async def update_tag_route(payload: TagUpdate) -> Tag:
+    return await project.db.update_tag(payload)
 
 
 @project_router.delete("/tags")
-async def delete_tag_route(tag_id: int) -> list[int]:
-    return await delete_tag(tag_id)
+async def delete_tag_route(tag_id: int):
+    return await project.db.delete_tag(tag_id)
 
 
 @project_router.delete("/tags/parent")
 async def delete_tag_parent_route(tag_id: int, parent_id: int):
-    res = await delete_tag_parent(tag_id, parent_id)
+    res = await project.db.delete_tag_parent(tag_id, parent_id)
     return res
 
 
 @project_router.get("/folders")
 async def get_folders_route():
-    res = await db.get_folders()
+    res = await project.db.get_folders()
     return res
 
 
+# TODO
 @project_router.get('/import_status')
 async def get_import_status_route():
-    image_import = core.importer
-    new_image = image_import.get_new_images()
-
-    update = []
-    if new_image:
-        update = await get_full_images(new_image)
-
-    res = {
-        'to_import': image_import.total_import,
-        'imported': image_import.current_import,
-        'computed': image_import.current_computed,
-        'new_images': update,
-        'done': image_import.import_done()
-    }
+    if not project:
+        return None
+    res = project.get_status_update()
     return res
 
 
@@ -167,73 +170,90 @@ class IdRequest(BaseModel):
 @project_router.post("/folders")
 async def add_folder_route(path: PathRequest):
     # TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
-    nb_images = await add_folder(path.path)
+    nb_images = await project.import_folder(path.path)
     return await get_folders_route()
 
 
 @project_router.post("/reimport_folder")
 async def reimport_folder_route(req: IdRequest):
-    folder = await db.get_folder(req.id)
+    folder = await project.db.get_folder(req.id)
     if not folder:
         raise Exception(f'Folder id does not exist [{req.id}]')
-    await add_folder(folder.path)
+    await project.import_folder(folder.path)
 
 
 @project_router.get("/tabs")
 async def get_tabs_route():
-    return await db.get_tabs()
+    return await project.ui.get_tabs()
 
 
 @project_router.post("/tab")
 async def add_tab_route(tab: Tab):
-    return await db.add_tab(tab.data)
+    return await project.ui.add_tab(tab.data)
 
 
 @project_router.patch("/tab")
 async def update_tab_route(tab: Tab):
-    return await db.update_tab(tab)
+    return await project.ui.update_tab(tab)
 
 
 @project_router.delete("/tab")
 async def delete_tab_route(tab_id: int):
-    return await db.delete_tab(tab_id)
+    return await project.ui.delete_tab(tab_id)
 
 
-@project_router.post("/clusters")
-async def make_clusters_route(payload: MakeClusterPayload) -> Clusters:
-    return await make_clusters(payload.nb_groups, payload.image_list)
+@project_router.get('/actions_description')
+async def get_actions_description_route():
+    res = project.action.get_actions_description()
+    return res
 
 
-@project_router.post("/similar/image")
-async def get_similar_images_route(payload: GetSimilarImagesPayload) -> list:
-    return await get_similar_images(payload.sha1_list)
+@project_router.post('/actions_functions')
+async def set_actions_update_route(actions_update: UpdateActionsPayload):
+    await project.set_action_updates(actions_update.updates)
+    return await get_actions_description_route()
 
 
-@project_router.post("/similar/text")
-async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
-    return await get_similar_images_from_text(payload.input_text)
+@project_router.post('/action_execute')
+async def execute_action_route(req: ExecuteActionPayload):
+    res = await project.action.actions[req.action].call(req.context, function=req.function)
+    return res
 
 
-@project_router.get("/version/ui")
-async def get_ui_version_route():
-    return await db.get_ui_version()
+@project_router.get('/plugins_info')
+async def get_plugins():
+    res = await project.plugins_info()
+    return res
 
 
-@project_router.post("/version/ui")
-async def post_ui_version_route(req: StrPayload):
-    return await db.set_ui_version(req.value)
+@project_router.post('/plugins_params')
+async def post_plugin_params_route(params: PluginDefaultParams):
+    res = await project.set_plugin_default_params(params)
+    return res
+
+
+@project_router.get('/vectors_info')
+async def get_vectors_info():
+    vectors_description = await project.db.get_vectors_info()
+    return vectors_description
+
+
+@project_router.post('/default_vectors')
+async def set_default_vectors(vector_description: VectorDescription):
+    await project.db.set_default_vectors(vector_description)
+    return await get_vectors_info()
+
+
+#
+# @project_router.post("/similar/text")
+# async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
+#     return await get_similar_images_from_text(payload.input_text)
 
 
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
-    path = os.path.join(panoptic.project_id.path, 'mini', file_path)
-    async with aiofiles.open(path, 'rb') as f:
-        data = await f.read()
-
-    ext = path.split('.')[-1]
-
-    # # media_type here sets the media type of the actual response sent to the client.
-    return Response(content=data, media_type="image/" + ext)
+    path = os.path.join(project.base_path, 'mini', file_path)
+    return FileResponse(path=path)
 
 
 class EndpointFilter(logging.Filter):

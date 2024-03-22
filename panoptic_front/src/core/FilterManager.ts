@@ -5,13 +5,13 @@
  * Images are first filtered by folders then by properties
  */
 
-import { apiGetSimilarImagesFromText } from "@/data/api";
 import { propertyDefault } from "@/data/builder";
 import { Image, PropertyType } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
 import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
-import { reactive, ref, toRefs } from "vue";
+import { reactive, toRefs } from "vue";
+
 
 export function operatorHasInput(operator: FilterOperator) {
     switch (operator) {
@@ -62,7 +62,7 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
         case PropertyType._height:
             return [FilterOperator.equal, FilterOperator.lower, FilterOperator.leq, FilterOperator.greater, FilterOperator.geq]
         case PropertyType._id:
-            return [FilterOperator.equal]
+            return [FilterOperator.equal, FilterOperator.equalNot]
         default:
             return []
     }
@@ -234,13 +234,18 @@ function defaultOperator(propertyType: PropertyType) {
         case PropertyType.checkbox:
             return FilterOperator.isTrue
 
+        case PropertyType.color:
+        case PropertyType.image_link:
+        case PropertyType.number:
+        case PropertyType.string:
+        case PropertyType.path:
+        case PropertyType.url:
         case PropertyType.multi_tags:
         case PropertyType.tag:
-            return FilterOperator.containsAny
+            return FilterOperator.isSet
 
         case PropertyType.date:
             return FilterOperator.greater
-
         default:
             return FilterOperator.equal
     }
@@ -288,6 +293,10 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
                     propertyValue = new Set(propertyValue)
                 }
             }
+            if(propType == PropertyType.string && propertyValue) {
+                propertyValue = propertyValue.toLowerCase()
+                nfilter.value = nfilter.value.toLowerCase()
+            }
 
             let subRes = computeFilter(nfilter, propertyValue)
             res = groupOperatorFnc(res, subRes)
@@ -300,16 +309,17 @@ export class FilterManager {
     state: FilterState
     result: FilterResult
 
+    lastFilterId: number
     filterIndex: { [filterId: number]: AFilter }
 
     lastImages: Image[]
     onChange: EventEmitter
 
     constructor(state?: FilterState) {
+        this.lastFilterId = null
         this.filterIndex = {}
         this.result = reactive({ images: [] })
         this.onChange = new EventEmitter()
-
         if (state) {
             this.state = reactive(state)
             this.recursiveRegister(this.state.filter)
@@ -337,16 +347,35 @@ export class FilterManager {
         this.lastImages = images
         let filtered = images
 
-        if(this.state.query) {
-            const res = await apiGetSimilarImagesFromText(this.state.query)
-            const isValid = new Set<string>()
-            res.forEach(r => isValid.add(r.sha1))
-            filtered = filtered.filter(i => isValid.has(i.sha1))
+        if (this.state.query) {
+            const query = this.state.query.toLocaleLowerCase()
+            const project = useProjectStore()
+            const props = Object.values(project.data.properties)
+            const textProps = props.filter(p => p.type == PropertyType.string)
+            const tagProps = props.filter(p => isTag(p.type))
+            filtered = filtered.filter(img => {
+                for (let p of textProps) {
+                    if (img.properties[p.id] && img.properties[p.id].value.toLocaleLowerCase().includes(query)) {
+                        return true
+                    }
+                }
+                for (let p of tagProps) {
+                    const value = img.properties[p.id]?.value
+                    if (!value) continue
+                    const tagNames = value.map(tId => project.data.tags[tId].value.toLocaleLowerCase())
+                    for (let name of tagNames) {
+                        if (name.includes(query)) {
+                            return true
+                        }
+                    }
+                }
+                return false
+            })
         }
 
         if (this.state.folders.length > 0) {
             const folderSet = new Set(this.state.folders)
-            filtered = filtered.filter(img => folderSet.has(img.folder_id))
+            filtered = filtered.filter(img => folderSet.has(img.folderId))
         }
         this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter))
         console.timeEnd('Filter')
@@ -371,7 +400,7 @@ export class FilterManager {
     }
 
     addNewFilterGroup(parentId: number = undefined) {
-        let group = this.createFilterGroup()
+        let group = createFilterGroup()
 
         if (parentId != undefined) {
             let parent = this.filterIndex[parentId] as FilterGroup
@@ -459,11 +488,11 @@ export class FilterManager {
     // used to remove properties that doesnt exist anymore from filters 
     public verifyState() {
         const store = useProjectStore()
-        const recurive = (group: FilterGroup) => {
+        const recursive = (group: FilterGroup) => {
             const toRem = new Set()
             group.filters.forEach(f => {
                 if (f.isGroup) {
-                    recurive(f)
+                    recursive(f)
                 }
                 else {
                     const filter = f as Filter
@@ -474,7 +503,7 @@ export class FilterManager {
             })
             group.filters = group.filters.filter(f => !toRem.has(f.id))
         }
-        recurive(this.state.filter)
+        recursive(this.state.filter)
     }
 
     private initFilterState() {
@@ -483,6 +512,7 @@ export class FilterManager {
         this.registerFilter(this.state.filter)
     }
 
+ 
     private registerFilter(filter: AFilter) {
         if (filter.id >= 0) {
             console.error('registerFilter should not receive a filter with valid id')
@@ -505,26 +535,21 @@ export class FilterManager {
         return filter
     }
 
-    private createFilterGroup() {
-        let filter: FilterGroup = {
-            filters: [],
-            groupOperator: FilterOperator.or,
-            depth: 0,
-            isGroup: true,
-            id: -1
-        }
-        return filter
-    }
-
     private nextIndex() {
-        if (this.state.filter == undefined || Object.keys(this.filterIndex).length == 0) {
-            return 0
+        const ids = Object.keys(this.filterIndex).map(Number)
+        let index = 0
+        if(ids.length) {
+            index = Math.max(...ids) + 1
         }
-        return Math.max(...Object.keys(this.filterIndex).map(Number)) + 1
+        if (index === this.lastFilterId) {
+            index += 1
+        }
+        this.lastFilterId = index
+        return index
     }
 
     private recursiveRegister(filter: AFilter) {
-        if (filter.id == undefined || filter.id == -1) {
+        if (filter.id < 0) {
             filter = this.registerFilter(filter)
         } else {
             this.filterIndex[filter.id] = filter

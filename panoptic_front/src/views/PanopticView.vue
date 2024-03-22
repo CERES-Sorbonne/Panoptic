@@ -37,11 +37,15 @@ onMounted(async () => {
         if (ev.key == 'Control') keyState.ctrl = true;
         if (ev.key == 'Alt') keyState.alt = true;
         if (ev.key == 'Shift') keyState.shift = true;
+        if (ev.key == 'ArrowLeft') keyState.left = true;
+        if (ev.key == 'ArrowRight') keyState.right = true;
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;
         if (ev.key == 'Alt') keyState.alt = false;
         if (ev.key == 'Shift') keyState.shift = false;
+        if (ev.key == 'ArrowLeft') keyState.left = false;
+        if (ev.key == 'ArrowRight') keyState.right = false;
     })
     window.addEventListener('mousemove', (ev) => {
         keyState.ctrl = ev.ctrlKey

@@ -3,9 +3,11 @@ import { PropertyOption, PropertyType, TabState } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
+import { softwareUiVersion } from "./projectStore";
 
 export function buildTabState(): TabState {
     return reactive({
+        version: softwareUiVersion,
         id: -1,
         name: 'Tab',
         display: 'tree',

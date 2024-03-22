@@ -1,28 +1,8 @@
-import { PropertyID, PropertyMode, PropertyOption, PropertyType } from "@/data/models"
-import { FilterState } from "./FilterManager"
-import { GroupState } from "./GroupManager"
-import { SortState } from "./SortManager"
+import { PropertyMode, TabState } from "@/data/models"
 import { CollectionManager } from "./CollectionManager"
 import { useProjectStore } from "@/data/projectStore"
 import { reactive, toRefs } from "vue"
 import { EventEmitter } from "@/utils/utils"
-
-export interface TabState {
-    id: number
-    name: string
-    display: string
-
-    filterState: FilterState
-    sortState: SortState,
-    groupState: GroupState,
-
-    imageSize: number
-    visibleProperties: { [key: number]: boolean }
-    visibleFolders: { [key: number]: boolean }
-    selectedFolders: { [key: number]: boolean }
-    sha1Mode: boolean
-    propertyOptions: { [key: number]: PropertyOption }
-}
 
 export class TabManager {
     isLoaded: boolean
@@ -79,7 +59,7 @@ export class TabManager {
     }
 
     getVisibleSha1Properties() {
-        return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1 || (p.mode == PropertyMode.computed && p.id != PropertyID.id))
+        return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1)
     }
 
 }

@@ -1,5 +1,7 @@
-FROM python:3
+FROM python:3.12.2-bullseye
 
+RUN pip3 install -U pip
+RUN pip3 install MarkupSafe
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 RUN pip3 install --force-reinstall transformers typing-extensions
 

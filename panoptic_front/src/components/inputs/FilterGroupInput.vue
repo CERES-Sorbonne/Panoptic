@@ -49,13 +49,13 @@ function updateOperator(filterId: number, operator: FilterOperator.and | FilterO
     <div class="filter-group">
         <table class="table table-sm">
             <tr v-for="children, index in filters">
-                <td class="align-top ps-2">
+                <td class="align-top p-0 m-0">
                     <div v-if="index == 0" class="m-0 p-0">{{ $t('modals.filters.where') }}</div>
                     <template v-else-if="index == 1">
 
                         <Dropdown>
                             <template #button>
-                                <div class="p-0 hover-light ps-1" style="width: 50px; cursor: pointer; border-radius: 3px;">
+                                <div class="p-0 hover-light ps-1 bb" style="width: 50px;">
                                     <span class="">{{ $t('modals.filters.' + filter.groupOperator) }}</span>
                                 </div>
                             </template>

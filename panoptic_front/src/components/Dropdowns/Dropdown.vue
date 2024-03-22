@@ -4,7 +4,7 @@ import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
 
 const props = defineProps({
-    offset: { default: '0,0', type: String },
+    offset: { default: 0, type: Number },
     noShadow: Boolean,
     autoFocus: { default: true, type: Boolean },
     teleport: Boolean
@@ -69,7 +69,7 @@ onUnmounted(() => {
 <template>
     <div class="p-0 m-0" ref="globalElem">
         <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
-        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="2" no-auto-focus :boundary="boudaryElem"
+        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" no-auto-focus :boundary="boudaryElem"
             :auto-hide="false" :prevent-overflow="true" :container="props.teleport ? 'body' : globalElem">
             <!-- <template #reference> -->
             <div class="m-0 p-0" ref="buttonElem">

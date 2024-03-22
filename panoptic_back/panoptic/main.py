@@ -1,5 +1,4 @@
 import os
-import sys
 import webbrowser
 
 import uvicorn
@@ -7,17 +6,19 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-from panoptic.core.panoptic import panoptic
+from panoptic.core.panoptic import Panoptic
 from panoptic.routes.project_routes import project_router
-from panoptic.routes.project_selection_routes import selection_router
+from panoptic.routes.project_selection_routes import selection_router, set_panoptic
+from panoptic.utils import get_base_path
 
 
-if __name__ == '__main__':
-
+def start():
+    panoptic = Panoptic()
     panoptic.load_data()
 
+    HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend
-    PORT = 8000
+    PORT = os.getenv("PANOPTIC_PORT", 8000)
 
     # FastAPI setup
     app = FastAPI()
@@ -29,24 +30,30 @@ if __name__ == '__main__':
         allow_headers=["*"],
     )
 
+    BASE_PATH = get_base_path()
     # base path for the static folder
-    if getattr(sys, 'frozen', False):
-        # Le programme est exécuté en mode fichier unique
-        BASE_PATH = sys._MEIPASS
-    else:
-        # Le programme est exécuté en mode script
-        BASE_PATH = os.path.dirname(__file__)
 
     app.include_router(selection_router)
     app.include_router(project_router)
 
+    set_panoptic(panoptic)
+
     # static directory route
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
+    dev_url = 'http://localhost:5173/'
+    prod_url = 'http://localhost:' + str(PORT) + '/'
+    front_url = dev_url if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else prod_url
 
-    def api(path):
-        return 'http://localhost:' + str(PORT) + '/' + path
-    FRONT_URL = 'http://localhost:5173/' if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else api("/")
-    webbrowser.open(FRONT_URL)
+    if not os.environ.get('REMOTE'):
+        webbrowser.open(front_url)
 
-    uvicorn.run(app, port=PORT)
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        await panoptic.close()
+
+    uvicorn.run(app, host=HOST, port=PORT)
+
+
+if __name__ == '__main__':
+    start()

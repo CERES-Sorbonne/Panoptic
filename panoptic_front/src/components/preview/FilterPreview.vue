@@ -15,7 +15,7 @@ const property = computed(() => store.data.properties[props.filter.propertyId])
 
 </script>
 <template>
-    <td class="d-flex hover-light ps-1 overflow-hidden">
+    <td class="d-flex bb ps-1 overflow-hidden">
         <!-- <div class="m-0 p-0 me-2">
             <PropertyPreview v-model="props.filter.propertyId" />
         </div> -->

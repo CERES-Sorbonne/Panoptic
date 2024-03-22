@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { ImageIterator } from '@/core/GroupManager';
@@ -12,7 +13,7 @@ const props = defineProps<{
     image: ImageIterator
     width: number
     imageHeight: number
-    visibleProperties: {[id: number]: boolean}
+    visibleProperties: { [id: number]: boolean }
 }>()
 
 const emits = defineEmits<{
@@ -29,13 +30,13 @@ const showHistory: Ref<boolean> = inject('showHistory')
 const properties = computed(() => {
     const res = []
     if (mode.value == 0) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.sha1))
+        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed))
     }
     if (mode.value == 1) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id))
+        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed))
     }
     if (mode.value == 2) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.computed))
+        res.push(...store.propertyList.filter(p => p.computed))
     }
     return res
 })
@@ -52,27 +53,29 @@ function setMode(value) {
 <template>
     <div class="main2 bg-white h-100 d-flex flex-column " :style="{ width: props.width + 'px' }">
         <div class="image-container position-relative">
-            <CenteredImage :image="props.image.image" :height="props.imageHeight" :width="props.width-1" />
-            <div class="image-nav d-flex" v-if="!showHistory">
-                <div class="arrow" @click="prevImage"><i class="bi bi-arrow-left"></i></div>
-                <div class="flex-grow-1"></div>
-                <div class="arrow" @click="nextImage"><i class="bi bi-arrow-right"></i></div>
-            </div>
+            <Zoomable :image="props.image.image">
+                <CenteredImage :image="props.image.image" :height="props.imageHeight" :width="props.width - 1" />
+                <div class="image-nav d-flex" v-if="!showHistory && props.image.nextImages">
+                    <div class="arrow" @click="prevImage"><i class="bi bi-arrow-left"></i></div>
+                    <div class="flex-grow-1"></div>
+                    <div class="arrow" @click="nextImage"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </Zoomable>
         </div>
         <div class="custom-hr"></div>
-        <div>
-            <a href="http://localhost:8000/download-zip" download>download</a>
-        </div>
         <div class="d-flex text-center">
-            <div class="option flex-grow-1" :class="mode == 0 ? 'selected' : ''" @click="setMode(0)">Propriétés d'image</div>
+            <div class="option flex-grow-1" :class="mode == 0 ? 'selected' : ''" @click="setMode(0)">Propriétés d'image
+            </div>
             <div class="sep"></div>
-            <div class="option flex-grow-1" :class="mode == 1 ? 'selected' : ''" @click="setMode(1)">Propriétés d'instance</div>
+            <div class="option flex-grow-1" :class="mode == 1 ? 'selected' : ''" @click="setMode(1)">Propriétés d'instance
+            </div>
             <div class="sep"></div>
             <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonées</div>
         </div>
         <div class="custom-hr"></div>
         <div class="flex-grow-1 overflow-scroll">
-            <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties" @paint="e => emits('paint', e)" />
+            <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties"
+                @paint="e => emits('paint', e)" />
         </div>
     </div>
 </template>
@@ -101,6 +104,7 @@ function setMode(value) {
     line-height: 10px;
     border-radius: 50%;
 }
+
 .arrow:hover {
     background-color: var(--tab-grey);
 }
@@ -122,5 +126,4 @@ function setMode(value) {
     padding: 5px 6px;
     border-bottom: 1px solid var(--border-color);
     background-color: var(--grey);
-}
-</style>
+}</style>

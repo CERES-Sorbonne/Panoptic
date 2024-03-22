@@ -5,6 +5,7 @@ import { Image, ModalId } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group } from '@/core/GroupManager';
 import { usePanopticStore } from '@/data/panopticStore';
+import Zoomable from '../Zoomable.vue';
 const panoptic = usePanopticStore()
 const store = useProjectStore()
 const props = defineProps({
@@ -15,23 +16,29 @@ const props = defineProps({
 const emits = defineEmits(['accept', 'refuse'])
 
 const imageContainerStyle = computed(() => `width: ${props.size}px; height: ${props.size}px;`)
-const imageStyle = computed(() => `max-width: ${props.size - 2}px; max-height: ${props.size -1}px;`)
+const imageStyle = computed(() => `max-width: ${props.size - 2}px; max-height: ${props.size - 1}px;`)
 const image = computed(() => props.pile.images[0])
 
 </script>
 
 <template>
     <div class="">
-        <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, image)">
-            <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div>
-            <img :src="image.url" :style="imageStyle" />
-        </div>
+        <Zoomable :image="image">
+            <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, { image })">
+                <!-- <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div> -->
+                <img :src="image.url" :style="imageStyle" />
+            </div>
+        </Zoomable>
         <div class="d-flex flex-row">
             <wTT message="main.recommand.accept">
-                <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-success validate clickable unselectable" style="font-size: 10px;" @click="emits('accept', image)"> ✓ </div>
+                <div :style="'width: ' + ((props.size / 2)) + 'px;'"
+                    class="text-center text-success validate clickable unselectable" style="font-size: 10px;"
+                    @click="emits('accept', image)"> ✓ </div>
             </wTT>
             <wTT message="main.recommand.refuse">
-                <div :style="'width: ' + ((props.size / 2)) + 'px;'" class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;" @click="emits('refuse', image)"> ✕ </div>
+                <div :style="'width: ' + ((props.size / 2)) + 'px;'"
+                    class="text-center text-danger refuse clickable unselectable" style="font-size: 10px;"
+                    @click="emits('refuse', image)"> ✕ </div>
             </wTT>
         </div>
     </div>
@@ -48,11 +55,11 @@ const image = computed(() => props.pile.images[0])
     border: 1px solid var(--refuse-border);
 }
 
-.refuse:hover{
+.refuse:hover {
     background-color: var(--refuse-border);
 }
 
-.validate:hover{
+.validate:hover {
     background-color: var(--validate-border);
 }
 
@@ -84,5 +91,4 @@ img {
     left: 0;
     right: 0;
     margin: auto;
-}
-</style>
+}</style>

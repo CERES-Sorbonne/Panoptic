@@ -26,7 +26,7 @@ function select(propId) {
 <template>
     <Dropdown ref="dropdownElem" :auto-focus="false">
         <template #button>
-            <div class="m-0 base-btn" style="padding: 1px 2px;">
+            <div class="m-0 bb" style="">
                 <PropertyIcon :type="props.modelValue.type" />
                 {{ props.modelValue.name }}</div>
         </template>
