@@ -75,7 +75,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                 </div>
-                <div v-if="tasks && tasks.length">
+                <div id="import" v-if="tasks && tasks.length">
                     <div class="custom-hr" />
                     <div  class="pt-1 pb-2" >
                         <div class="d-flex align-items-center ps-2 pe-2 " style="height: 30px;">

@@ -6,6 +6,7 @@ import { ref, onMounted, watch, computed, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
+import { goNext } from '@/utils/utils';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
@@ -101,14 +102,14 @@ onMounted(() => {
                             </div>
                         </div>
                         <div class="">
-                            <PropertyTypeDropdown v-model="newProperty.type" class="input-lg" />
+                            <PropertyTypeDropdown id="select-property" v-model="newProperty.type" class="input-lg" />
                         </div>
 
                     </form>
                 </div>
                 <div class="modal-footer pt-2 pb-2">
                     <button type="button" @click="hide">{{ $t("modals.properties.cancel") }}</button>
-                    <button type="button" @click="saveProperty">{{ $t("modals.properties.confirm") }}</button>
+                    <button id="confirm-property" type="button" @click="saveProperty();goNext()">{{ $t("modals.properties.confirm") }}</button>
                 </div>
             </div>
         </div>

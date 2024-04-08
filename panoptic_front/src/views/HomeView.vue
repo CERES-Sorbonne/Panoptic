@@ -81,14 +81,11 @@ onMounted(() => {
         <div v-if="panoptic.data.init" class="main-menu flex-grow-1">
             <div class="icon">👀</div>
             <h1 class="m-0 p-0">Panoptic</h1>
-            <h6 class="dimmed-2">Version pre-2.0</h6>
+            <h6 class="dimmed-2">Version 0.3</h6>
 
             <div id="main-menu" class="create-menu mt-5 pt-5">
                 <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject"/>
                 <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
-            <div class="create-menu mt-5 pt-5">
-                <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
-                <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
 
                 <div class="plugin-preview mt-5">
                     <h5 class="text-center">

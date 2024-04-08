@@ -1,9 +1,13 @@
 <script setup>
 
-import { onMounted, inject } from 'vue'
+import { ModalId } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
+import { onMounted, inject, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n({ useScope: 'global' })
+
+const panoptic = usePanopticStore()
 
 const tours = inject('tours')
 const props = defineProps({
@@ -60,6 +64,9 @@ const step_projects = [
         target: '#add_folder',
         content: t('tutorial.step-4'),
         hideNext: true,
+        before: () => new Promise((resolve, reject) => {
+            setTimeout(() => resolve('foo'), 300)
+        }),
         params: {
             placement: "bottom",
         }
@@ -77,6 +84,9 @@ const step_projects = [
     },
     {
         target: '#import',
+        before: () => new Promise((resolve, reject) => {
+            setTimeout(() => resolve('foo'), 300)
+        }),
         content: t('tutorial.step-5'),
         params: {
             placement: "right",
@@ -95,7 +105,7 @@ const step_projects = [
         content: t('tutorial.step-7'),
         hideNext: true,
         before: () => new Promise((resolve, reject) => {
-            setTimeout(() => resolve('foo'), 300)
+            setTimeout(() => resolve('foo'), 250)
         }),
         params: {
             placement: "right",
@@ -112,9 +122,86 @@ const step_projects = [
     {
         target: '#main-content',
         content: t('tutorial.step-9'),
+        params: {
+            placement: "bottom",
+        }
+    },
+    {
+        target: '#main-content',
+        content: t('tutorial.step-10'),
+        params: {
+            placement: "bottom",
+        }
+    },
+    {
+        target: '#add-group-button',
+        content: t('tutorial.step-11'),
+        params: {
+            placement: "bottom",
+        },
         hideNext: true,
+    },
+    {
+        target: '#main-content',
+        content: t('tutorial.step-12'),
+        params: {
+            placement: "bottom",
+        },
+    },
+    {
+        target: '#main-content',
+        content: t('tutorial.step-13'),
+        params: {
+            placement: "bottom",
+        },
+    },
+    {
+        target: '#main-content',
+        content: t('tutorial.step-13a'),
+        params: {
+            placement: "bottom",
+        },
+    },
+    {
+        target: '#selection-stamp',
+        content: t('tutorial.step-13b'),
+        params: {
+            placement: "bottom",
+        },
+    },
+    {
+        target: '#remove-group-button',
+        content: t('tutorial.step-14'),
         params: {
             placement: "top",
+        },
+    },
+    {
+        target: '#add-tab-button',
+        content: t('tutorial.step-14b'),
+        params: {
+            placement: "bottom",
+        },
+    },
+    {
+        target: '#group-action-button',
+        content: t('tutorial.step-15'),
+        params: {
+            placement: "bottom"
+        }
+    },
+    {
+        target: '#main-content',
+        content: t('tutorial.step-16'),
+        params: {
+            placement: "bottom"
+        }
+    },
+    {
+        target: '#main-content',
+        content: t('tutorial.step-17'),
+        params: {
+            placement: "bottom"
         }
     },
 
@@ -122,9 +209,25 @@ const step_projects = [
 
 const steps = props.tutorial === 'home' ? steps_home : step_projects
 
+let currentStep = parseInt(localStorage.getItem('currentStep') || '0')
+
 onMounted(() => {
-    tours.myTour.start()
+    console.log(currentStep)
+    if(currentStep === 5 && panoptic.openModalId === ModalId.PROPERTY && steps.length - 1 > currentStep){
+        tours.myTour.start(currentStep)
+    }
+    else{
+        tours.myTour.start()
+    }
 })
+
+// Watch for changes in currentStep and update localStorage accordingly
+function updateCurrentStep(newStep) {
+    if(newStep !== -1 && newStep){
+        localStorage.setItem('currentStep', newStep.toString())
+        currentStep = newStep
+    }
+}
 
 </script>
 <template>
@@ -144,12 +247,13 @@ onMounted(() => {
                     :id="tour.currentStep"
                 >
                     <template #actions
-                                    v-if="steps[tour.currentStep].hideNext === true">
+                                    v-if="steps[tour.currentStep].hideNext === true || tour.isLast">
                         <div class="v-step__buttons">
-                            <button @click="tour.skip" v-if="!tour.isLast"
-                            class="v-step__button v-step__button-skip">{{ "Skip" }}</button>
-                            <button @click.prevent="tour.nextStep" v-if="!tour.isLast"
-                            class="v-step__button v-step__button-next" style="display: none !important">{{ "Next" }}</button>
+                            <button @click="tour.skip();updateCurrentStep(-1)" v-if="!tour.isLast"
+                            class="v-step__button v-step__button-skip">{{ $t('tutorial.buttons.skip') }}</button>
+                            <button @click="tour.nextStep();updateCurrentStep(tour.currentStep + 1)" v-if="!tour.isLast"
+                            class="v-step__button v-step__button-next" :style="steps[tour.currentStep].hideNext ? 'display: none !important' : ''">{{ $t('tutorial.buttons.next') }}</button>
+                            <button class="v-step__button v-step__button-stop" v-if="tour.isLast" @click="tour.stop()">{{ $t('tutorial.buttons.finish') }}</button>
                         </div>
                     </template>
                 </v-step>

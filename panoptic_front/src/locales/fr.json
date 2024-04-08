@@ -43,7 +43,8 @@
                 "3_tooltip": "Une signature moyenne, deux images très proches visuellement auront le même ahash",
                 "4_tooltip": "Dossier contenant l'image source",
                 "5_tooltip": "Largeur de l'image",
-                "6_tooltip": "Hauteur de l'image"
+                "6_tooltip": "Hauteur de l'image",
+                "7_tooltip": "Le chemin de l'image sur le disque"
             }
         },
         "menu": {
@@ -51,7 +52,7 @@
             "rename_tab_tooltip": "Renommer l'onglet",
             "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
-            "search_tooltip": "Chercher des images correspondant au texte en utilisant le modèle CLIP",
+            "search_tooltip": "Chercher des images ayant le texte cherché dans l'une de leurs propriétés.",
             "grid_tooltip": "Passer en vue grille d'images",
             "table_tooltip": "Passer en vue tableau",
             "image_size_tooltip": "Taille des images",
@@ -196,30 +197,38 @@
         }
     },
     "tutorial": {
+        "buttons":{
+            "skip": "Passer",
+            "next": "Suivant",
+            "finish": "Terminer"
+        },
         "step-1": "Bienvenue sur Panoptic, vous n'avez pas de projet pour le moment.",
         "step-2": "Cliquez ici pour créer un nouveau projet.",
         "step-3": "Sélectionnez ici le dossier dans lequel les données panoptic seront stockées (nb: ça n'est pas le dossier d'où proviennent les images)",
         "step-3a": "Choisissez le dossier dans lequel créer le projet et confirmez",
         "step-3b": "Rentrez un nom de projet puis cliquez pour finaliser et créer le projet.",
         "step-4": "Vous n'avez pas d'images pour le moment, cliquez ici pour ajouter un dossier d'images.",
+        "step-4b": "Choisissez votre dossier d'image et cliquez ici pour confirmer",
         "step-5": "Les images s'importent ici, et des calculs sont effectués, cela peut prendre un certain temps.",
         "step-6": "Avant que les calculs ne soient terminés, vous pouvez créer une propriété, les propriétés servent à créer des annotations.",
         "step-7": "Il faut choisir le type de propriété, pour cet exemple choisissez le type Label, vous pourrez survoler les autres types pour plus d'informations.",
         "step-8": "Entrez également un nom par exemple 'catégorie' et confirmez.",
         "step-9": "La propriété s'affiche maintenant sous toutes les images avec la valeur 'None' cliquez dessus pour modifier cette valeur, et entrez un mot clé, par exemple 'test'.",
         "step-10": "Vous venez donc d'assigner le label 'test' à cette image. Au dela des annotations, les propriétés permettent de filtrer, grouper, et trier des images",
-        "step-11": "Vous pouvez ainsi grouper par la propriété que nous venons de créer.",
-        "step-12": "Si vous assignez la valeur 'test' à une autre image, celle ci sera automatiquement déplacée dans le groupe 'test'",
-        "step-13": "Vous pouvez également assigner une valeur à plusieurs images en même temps, par exemple la valeur 'test2' ce qui crééra un nouveau groupe d'images.",
+        "step-11": "Vous pouvez maintenant grouper les images en appuyant sur le '+' et en sélectionnant 'catégorie'. Cela va créer deux groupes d'images 'catégorie: indéfinie' et 'catégorie: test'",
+        "step-12": "Si vous assignez la valeur 'test' à une autre image, celle ci sera automatiquement déplacée dans le groupe 'catégorie: test'",
+        "step-13": "Survolez une image du groupe 'catégorie: _indéfini' et appuyez sur l'icone de sélection en haut à gauche.",
+        "step-13a": "Sélectionnez plusieurs images de la même façon, ou maintenez SHIFT et cliquez sur l'icone de sélection d'une autre image pour sélectionner toutes les images entre les deux.",
+        "step-13b": "Vous pouvez maintenant assigner une valeur à plusieurs images en même temps, par exemple la valeur 'test2' ce qui crééra un nouveau groupe d'images; 'catégorie: test2'.",
         "step-14": "Cliquez à nouveau sur 'catégorie' pour enlever le groupage. Les filtres et les tris fonctionnent de la même façon.",
         "step-14b": "Cliquez ici pour créer un nouvel onglet, les filtres, groupes et tris sont propres à chaque onglet et ces dernier permettent facilement d'altérner entre des sous corpus.",
         "step-15": "Une fois les calculs terminés, vous pouvez utiliser les fonctionnalités de machine learning de panoptic. Pour créer des groupes automatiques par exemple.",
         "step-16": "Cliquez sur une image pour l'ouvrir en grand, sur le côté sont affichées les images similaires à cette image.",
-        "step-17": "Faites varier le pourcentage de similarité minimum pour afficher plus ou moins d'images similaires."
+        "step-17": "Retrouvez des tutoriels plus détaillés sur le site du CERES: https://ceres.sorbonne-université.fr/outils/panoptic"
     },
     "action": {
         "find_similar": "Similaire",
-        "group": "Grouper",
+        "group": "Créer des clusters",
         "filter": "Filtrer",
         "action_images": "Action Images",
         "action_group": "Action Groupes",
