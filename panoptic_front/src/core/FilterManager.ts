@@ -355,7 +355,7 @@ export class FilterManager {
             const tagProps = props.filter(p => isTag(p.type))
             filtered = filtered.filter(img => {
                 for (let p of textProps) {
-                    if (img.properties[p.id] && img.properties[p.id].value.toLocaleLowerCase().includes(query)) {
+                    if (img.properties[p.id] && img.properties[p.id].value && img.properties[p.id].value.toLocaleLowerCase().includes(query)) {
                         return true
                     }
                 }

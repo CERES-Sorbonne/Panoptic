@@ -34,7 +34,7 @@ class Importer:
         self._df: pd.DataFrame | None = None
 
     async def upload_csv(self, file: UploadFile):
-        file_data = pd.read_csv(file.file, delimiter=';', encoding='utf-8')
+        file_data = pd.read_csv(file.file, delimiter=';', encoding='utf-8', keep_default_na=False)
         self._df = file_data
 
         return True
