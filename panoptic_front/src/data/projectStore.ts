@@ -22,6 +22,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     let routine = 0
 
+    const showTutorial = ref(false)
+
     const data = reactive({
         images: {} as ImageIndex,
         sha1Index: {} as Sha1ToImages,
@@ -127,6 +129,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         status.loaded = true
 
         // tabManager.collection.update(data.images)
+        if(localStorage.getItem('tutorialFinished') != 'true') {
+            showTutorial.value = true
+        }
     }
 
     async function updateRoutine(i: number) {
@@ -511,7 +516,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePluginInfos, setPluginDefaults,
         actions, setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
-        backendStatus, reload
+        backendStatus, reload,
+        showTutorial
     }
 
 })
