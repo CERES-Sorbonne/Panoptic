@@ -3,7 +3,7 @@
 import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
-import { onMounted, inject, watch, nextTick } from 'vue'
+import { onMounted, inject, watch, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n({ useScope: 'global' })
@@ -213,8 +213,22 @@ const steps = props.tutorial === 'home' ? steps_home : step_projects
 
 let currentStep = parseInt(localStorage.getItem('currentStep') || '0')
 
-watch(() => project.showTutorial, async () => {
-    if (project.showTutorial) {
+const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
+const showTutorial = computed(() => ((!hasProjects.value && panoptic.data.init) || project.showTutorial))
+
+watch(showTutorial, async () => {
+    start()
+})
+
+onMounted(() => {
+    start()
+})
+
+async function start() {
+    if (showTutorial.value) {
+        if(!hasProjects.value) {
+            localStorage.setItem('tutorialFinished', 'false')
+        }
         await nextTick()
         console.log(currentStep)
         if (currentStep === 5 && panoptic.openModalId === ModalId.PROPERTY && steps.length - 1 > currentStep) {
@@ -225,11 +239,7 @@ watch(() => project.showTutorial, async () => {
         }
     }
 
-})
-
-// onMounted(() => {
-
-// })
+}
 
 // Watch for changes in currentStep and update localStorage accordingly
 function updateCurrentStep(newStep) {
@@ -245,7 +255,7 @@ function notifyFinished() {
 
 </script>
 <template>
-    <v-tour v-if="project.showTutorial" name="myTour" :steps="steps"
+    <v-tour v-if="showTutorial" name="myTour" :steps="steps"
         :options="{ enabledButtons: { buttonPrevious: false } }">
         <template #default="tour">
             <v-step v-if="tour.steps[tour.currentStep]" :key="tour.currentStep" :step="tour.steps[tour.currentStep]"
