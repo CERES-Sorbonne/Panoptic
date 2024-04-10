@@ -70,7 +70,7 @@ onUnmounted(() => {
     <div class="p-0 m-0" ref="globalElem">
         <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
         <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" no-auto-focus :boundary="boudaryElem"
-            :auto-hide="false" :prevent-overflow="true" :container="props.teleport ? 'body' : globalElem">
+            :auto-hide="false" :prevent-overflow="true" :container="props.teleport ? '#popup' : globalElem">
             <!-- <template #reference> -->
             <div class="m-0 p-0" ref="buttonElem">
                 <slot name="button"></slot>
