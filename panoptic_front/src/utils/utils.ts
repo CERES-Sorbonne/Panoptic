@@ -198,6 +198,13 @@ export function pad(num) {
     return num;
 }
 
+export function goNext(){
+    let elem = document.getElementsByClassName('v-step__button-next')[0] as HTMLElement
+    if(elem){
+        elem.click()
+    }
+}
+
 // https://stackoverflow.com/questions/54242239/how-to-convert-snake-case-to-camelcase-in-typescripts
 export function keysToCamel(o) {
     if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function') {

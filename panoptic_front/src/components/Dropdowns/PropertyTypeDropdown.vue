@@ -2,7 +2,8 @@
 import { PropertyType } from '@/data/models';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { computed, reactive, ref } from 'vue';
+import { computed } from 'vue';
+import { goNext } from '@/utils/utils';
 
 const props = defineProps({
     modelValue: String as () => PropertyType
@@ -23,13 +24,13 @@ const filtered = computed(() => types.filter(t => t != PropertyType.image_link &
             </span>
         </button>
         <ul class="dropdown-menu">
-            <li v-for="type_ in filtered" @click="emits('update:modelValue', type_)">
-                <a class="dropdown-item" href="#">
+            <li v-for="type_ in filtered" @click="emits('update:modelValue', type_);goNext()">
+                <span class="dropdown-item">
                     <wTT :message="'modals.properties.' + type_ + '_tooltip'" >
                         <PropertyIcon :type="type_"/>
                         {{ $t('modals.properties.' + type_) }}
                     </wTT>
-                </a>
+                </span>
             </li>
         </ul>
     </div>

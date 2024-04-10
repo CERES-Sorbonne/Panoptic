@@ -77,7 +77,7 @@ const langs = ['fr', 'en']
                     
                 </template>
             </div>
-            <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"><span class="bi bi-plus"></span></button></wTT>
+            <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab" id="add-tab-button" ><span class="bi bi-plus"></span></button></wTT>
             <div class="lang">
                 <i class="bi bi-translate" style="margin-right:0.5rem"></i>
                 <select v-model="$i18n.locale" @change="props.reRender()">

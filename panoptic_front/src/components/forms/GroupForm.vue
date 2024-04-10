@@ -62,7 +62,7 @@ const groups = computed(() => {
         <div class="bg-medium bg d-flex flex-row m-0 ms-1 p-0  align-items-center" v-if="selectedProperties.length">
             <template v-for="group, index in groups">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
-                <div class="base-hover m-1 ps-1 pe-1" @click="del(group.property.id)">
+                <div class="base-hover m-1 ps-1 pe-1" @click="del(group.property.id)" id="remove-group-button">
                     {{ group.property.name }}
                 </div>
                 <wTT v-if="group.option.type == GroupSortType.Size" message="main.menu.sort.group_order_nb_tooltip">
@@ -89,7 +89,7 @@ const groups = computed(() => {
             </template>
             <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading ms-1"></i>
         </div>
-        <PropertyDropdown :group-ids="props.manager.state.groupBy" @select="prop => add(prop)" />
+        <PropertyDropdown id="add-group-button" :group-ids="props.manager.state.groupBy" @select="prop => add(prop)"/>
 
     </div>
 </template>

@@ -4,11 +4,10 @@ import { ModalId } from '../../data/models';
 import { ref, defineEmits, watch, computed } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
-import { sleep } from '@/utils/utils';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
-import router from '@/router';
 import { usePanopticStore } from '@/data/panopticStore';
+import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
 import { apiUploadPropertyCsv } from '@/data/api';
 
@@ -65,7 +64,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                 <div class="ps-2 pe-2" style="padding-bottom: 9.5px">
                     <div class="d-flex align-items-center">
                         <div><b>{{ $t('main.nav.folders.title') }}</b></div>
-                        <div class="ms-auto plus" @click="promptFolder">
+                        <div id="add_folder" class="ms-auto plus" @click="promptFolder();goNext();">
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>
@@ -76,7 +75,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                 </div>
-                <div v-if="tasks && tasks.length">
+                <div id="import" v-if="tasks && tasks.length">
                     <div class="custom-hr" />
                     <div  class="pt-1 pb-2" >
                         <div class="d-flex align-items-center ps-2 pe-2 " style="height: 30px;">
@@ -158,7 +157,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             </div>
                         </template>
                         <div class="property-item m-0 p-0"></div>
-                        <div @click="panoptic.showModal(ModalId.PROPERTY, undefined)" class="btn-icon base-hover mt-1"
+                        <div id="add-property" @click="panoptic.showModal(ModalId.PROPERTY, undefined);goNext()" class="btn-icon base-hover mt-1"
                             style="line-height: 25px;">
                             <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                             <span>{{ $t('main.nav.properties.add_property') }}</span>

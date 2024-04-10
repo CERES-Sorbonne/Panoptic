@@ -86,6 +86,7 @@ class Project:
         return [await p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
+        folder = os.path.normpath(folder)
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
                       i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
