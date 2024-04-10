@@ -4,6 +4,7 @@ import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
 import { apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/api';
 import { DirInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
+import { goNext } from '@/utils/utils';
 
 const props = defineProps({
     mode: {
@@ -95,6 +96,7 @@ async function open() {
         return false
     }
     emits('select', selectedFolder.value.path)
+    goNext()
 }
 
 
@@ -146,7 +148,7 @@ onUpdated(() => {
             <div class="bg-success">
                 <div class="path d-flex">
                     <div class="path-string flex-grow-1">{{ selectedFolder.path }}</div>
-                    <div class="open flex-shrink-0" :class="{valid: isValidPath}" @click="open">{{ $t('modals.fs.open') }}</div>
+                    <div id="confirm-modal" class="open flex-shrink-0" :class="{valid: isValidPath}" @click="open">{{ $t('modals.fs.open') }}</div>
                 </div>
             </div>
         </div>

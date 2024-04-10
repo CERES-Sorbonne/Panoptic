@@ -95,7 +95,7 @@ watch(() => props.height, async () => {
 </script>
 
 <template>
-    <div class="" ref="filterElem">
+    <div id="main-content" ref="filterElem">
         <ContentFilter :tab="tabManager" :compute-status="computeStatus" @search-images="setSearchedImages" />
     </div>
     <div ref="boxElem" class="m-0 p-0">

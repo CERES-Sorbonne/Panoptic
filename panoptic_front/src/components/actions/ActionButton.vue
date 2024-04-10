@@ -68,7 +68,7 @@ watch(() => project.actions, loadAction)
 </script>
 
 <template>
-    <div class="main d-flex" v-if="localFunction">
+    <div id="group-action-button" class="main d-flex" v-if="localFunction">
         <div @click="call">{{ $t('action.' + props.action) }}</div>
         <Dropdown :teleport="true">
             <template #button>

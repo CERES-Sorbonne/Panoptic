@@ -7,6 +7,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
 import { computed, onMounted, reactive, ref } from 'vue';
+import Tutorial from '@/tutorials/Tutorial.vue';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
@@ -18,7 +19,7 @@ interface Project {
 
 const menuMode = ref(0) // 0 options 1 create
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
-
+const showTutorial = computed(() => !hasProjects.value && panoptic.data.init)
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
 function correctHyphen(path) {
@@ -53,6 +54,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Tutorial v-if="showTutorial"/>
     <div class="window d-flex">
         <div v-if="hasProjects" class="project-menu">
             <div v-for="project in panoptic.data.status.projects" class="d-flex">
@@ -79,11 +81,11 @@ onMounted(() => {
         <div v-if="panoptic.data.init" class="main-menu flex-grow-1">
             <div class="icon">👀</div>
             <h1 class="m-0 p-0">Panoptic</h1>
-            <h6 class="dimmed-2">Version pre-2.0</h6>
+            <h6 class="dimmed-2">Version 0.3</h6>
 
-            <div class="create-menu mt-5 pt-5">
-                <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
-                <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
+            <div id="main-menu" class="create-menu mt-5 pt-5">
+                <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject"/>
+                <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
 
                 <div class="plugin-preview mt-5">
                     <h5 class="text-center">
