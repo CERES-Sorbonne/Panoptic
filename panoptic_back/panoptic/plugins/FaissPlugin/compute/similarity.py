@@ -54,6 +54,7 @@ class SimilarityFaissWithLabel:
         self.tree.add(np.asarray(vectors))
 
     def query(self, image: np.ndarray, k=99999):
+        # by normalizing it allows to search by cosine distance instead of inner product, need to do text / image sim
         faiss.normalize_L2(image)
         vector = image.reshape(1, -1)
         dist, ind = self.tree.search(vector, k)  # len(self.image_labels))

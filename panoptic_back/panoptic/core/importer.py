@@ -15,7 +15,7 @@ from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag
 
 
 def parse_list(value: str):
-    if value is None or value == '':
+    if value is None or value == '' or pd.isnull(value):
         return None
     # value = value.replace('[', '')
     # value = value.replace(']', '')
@@ -75,7 +75,7 @@ class Importer:
             id_list = list(self._df.id)
             [row_to_id.update({i: id_}) for i, id_ in enumerate(id_list)]
         # if file path give map to an existing and empty instance or a new clone
-        if file_key == '/':
+        if file_key == 'path':
             path_list = list(self._df.path)
             instances = await self.project.db.empty_or_clone(path_list)
             [row_to_id.update({i: instance.id}) for i, instance in enumerate(instances)]
@@ -148,7 +148,7 @@ class Importer:
             id_to_sha1 = {i.id: i.sha1 for i in instances}
             id_list = list(self._df.id)
             [row_to_sha1.update({i: id_to_sha1[id_]}) for i, id_ in enumerate(id_list)]
-        if file_key == '/':
+        if file_key == 'path':
             key_desc.id = -7
             key_desc.type = PropertyType.path
             path_list = list(self._df.path)

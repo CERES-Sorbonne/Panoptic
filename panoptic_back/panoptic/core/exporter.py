@@ -49,7 +49,7 @@ class Exporter:
         if properties:
             data_file_path = os.path.join(export_folder, 'data.csv')
             df = await self._build_export_data(instances, properties)
-            df.to_csv(data_file_path, index=False)
+            df.to_csv(data_file_path, index=False, sep=";")
 
         if copy_images:
             # Create a folder for images and copy them
