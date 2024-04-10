@@ -41,7 +41,7 @@ function toggleProperty(property: Property) {
                     </td>
                     <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
                         <PropInput v-if="property.id > 0" :property="store.data.properties[property.id]" :image="image"
-                            :width="-1" :min-height="20" />
+                            :width="-1" :min-height="20"/>
                     </td>
                     <td v-else class="border-left" colspan="2"  style="width: 100%;">
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{ image.properties[property.id].value }}</p>
@@ -55,7 +55,7 @@ function toggleProperty(property: Property) {
                         </wTT>
                     </td>
 
-                    <td v-if="!property.computed" class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
+                    <td v-if="!property.computed && property.mode != PropertyMode.id" class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
                         @click="toggleProperty(property)">
                         <wTT message="modals.image.toggle_property_tooltip">
                             <i class="bi bi-eye" :class="(props.visibleProperties[property.id] ? 'text-primary' : '')" />
