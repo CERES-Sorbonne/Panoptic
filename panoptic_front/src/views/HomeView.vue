@@ -19,7 +19,7 @@ interface Project {
 
 const menuMode = ref(0) // 0 options 1 create
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
-
+const showTutorial = computed(() => !hasProjects.value && panoptic.data.init)
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
 function correctHyphen(path) {
@@ -54,7 +54,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Tutorial v-if="hasProjects"/>
+    <Tutorial v-if="showTutorial"/>
     <div class="window d-flex">
         <div v-if="hasProjects" class="project-menu">
             <div v-for="project in panoptic.data.status.projects" class="d-flex">
