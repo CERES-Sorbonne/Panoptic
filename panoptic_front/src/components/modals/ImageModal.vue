@@ -25,6 +25,7 @@ const visibleProperties = reactive({})
 const navigationHistory: Ref<ImageIterator[]> = ref([])
 const iterator: Ref<ImageIterator> = ref(null)
 
+const active = computed(() => panoptic.openModalId == ModalId.IMAGE)
 // const iterator = computed(() => panoptic.modalData as ImageIterator)
 const image = computed(() => iterator.value?.image as Image)
 
@@ -112,11 +113,13 @@ watch(showHistory, () => nextTick(onResize))
 watch(colElem, onResize)
 watch(modalData, onModalDataChange)
 watch(() => keyState.left, (state) => {
+    if(!active.value) return
     if (state && !showHistory.value) {
         prevImage()
     }
 })
 watch(() => keyState.right, (state) => {
+    if(!active.value) return
     if (state && !showHistory.value) {
         nextImage()
     }
