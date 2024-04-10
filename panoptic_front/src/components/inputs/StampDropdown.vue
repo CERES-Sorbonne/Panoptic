@@ -18,14 +18,18 @@ const dropdownElem = ref(null)
 const popupElem = ref(null)
 
 function close() {
-    dropdownElem.value?.hide()
     clear()
+    dropdownElem.value?.hide()
 }
 
 function clear() {
     Object.keys(stamp).forEach((k: any) => delete stamp[k])
     erase.clear()
-    nextTick(() => dropdownElem.value.focus())
+    nextTick(() => {
+        if(dropdownElem.value) {
+            dropdownElem.value.focus()
+        }
+    })
 }
 
 async function apply() {
@@ -42,6 +46,7 @@ async function apply() {
             await store.setPropertyValue(propId, props.images, value, true)
         }
     })
+    store.getTabManager().collection.groupManager.clearSelection()
     store.getTabManager().collection.update()
     close()
 }
