@@ -9,6 +9,7 @@ import { GroupManager, ImageIterator } from '@/core/GroupManager';
 import MiddleCol from './image/MiddleCol.vue';
 import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
+import Modal2 from './Modal2.vue';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
@@ -24,6 +25,7 @@ const visibleProperties = reactive({})
 const navigationHistory: Ref<ImageIterator[]> = ref([])
 const iterator: Ref<ImageIterator> = ref(null)
 
+const active = computed(() => panoptic.openModalId == ModalId.IMAGE)
 // const iterator = computed(() => panoptic.modalData as ImageIterator)
 const image = computed(() => iterator.value?.image as Image)
 
@@ -111,20 +113,23 @@ watch(showHistory, () => nextTick(onResize))
 watch(colElem, onResize)
 watch(modalData, onModalDataChange)
 watch(() => keyState.left, (state) => {
-    if(state && !showHistory.value) {
+    if(!active.value) return
+    if (state && !showHistory.value) {
         prevImage()
     }
 })
 watch(() => keyState.right, (state) => {
-    if(state && !showHistory.value) {
+    if(!active.value) return
+    if (state && !showHistory.value) {
         nextImage()
     }
 })
 </script>
 
 <template>
-    <Modal :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
-        <template #title><b>ID: {{ image.id }}</b> | {{ image.width }} x {{ image.height }} | {{ image.name }}</template>
+    <Modal2 :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
+        <template #title><b>ID: {{ image.id }}</b> | {{ image.width }} x {{ image.height }} | {{ image.name
+            }}</template>
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
@@ -143,7 +148,7 @@ watch(() => keyState.right, (state) => {
                 </div>
             </div>
         </template>
-    </Modal>
+    </Modal2>
 </template>
 
 <style scoped>

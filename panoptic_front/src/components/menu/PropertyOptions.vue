@@ -87,11 +87,12 @@ function deleteProperty() {
         store.deleteProperty(props.property.id)
 }
 
-function renameProperty() {
+async function renameProperty() {
     if (localName.value == '') {
         return
     }
-    store.updateProperty(props.property.id, localName.value)
+    await store.updateProperty(props.property.id, localName.value)
+    toggleOptionsMenu()
 }
 
 watch(() => props.property, () => {

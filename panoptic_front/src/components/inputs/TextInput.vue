@@ -81,7 +81,11 @@ function updateHeight() {
 
 function contentClick() {
     if (props.urlMode && keyState.alt && props.modelValue) {
-        window.open(props.modelValue as string, '_blank').focus();
+        let url = props.modelValue as string
+        if(!url.startsWith('http')) {
+            url = 'http://' + url
+        }
+        window.open(url, '_blank').focus()
     }
 }
 
