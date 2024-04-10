@@ -87,7 +87,7 @@ watch(() => props.width, updateSimilarGroup)
 
 
             <TreeScroller class="" :image-size="70" :height="props.height - 25" :width="props.width"
-                :group-manager="similarGroup" :properties="properties" :hide-options="true" :hide-group="true"
+                :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
                 :sha1-scores="state.sha1Scores" ref="scrollerElem" />
         </div>
     </template>

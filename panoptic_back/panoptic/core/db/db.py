@@ -63,8 +63,8 @@ class Db:
             return None
 
     async def update_property(self, new_property: Property):
-        query = "UPDATE properties SET name = ?, id = ? WHERE id = ?"
-        await self.conn.execute_query(query, (new_property.name, new_property.type.value, new_property.id))
+        query = "UPDATE properties SET name = ? WHERE id = ?"
+        await self.conn.execute_query(query, (new_property.name, new_property.id))
 
     async def delete_property(self, property_id):
         query = "DELETE from properties WHERE id = ?"
