@@ -429,7 +429,7 @@ export class GroupManager {
         this.removeSha1Groups()
         for (let group of Object.values(this.result.index) as Group[]) {
             if (group.children.length > 0) continue
-            if (group.type == GroupType.Cluster) continue
+            // if (group.type == GroupType.Cluster) continue
             this.groupBySha1(group)
         }
     }
@@ -438,7 +438,7 @@ export class GroupManager {
         this.invalidateIterators()
         for (let group of Object.values(this.result.index) as Group[]) {
             if (group.subGroupType != GroupType.Sha1) continue
-            if (group.type == GroupType.Cluster) continue
+            // if (group.type == GroupType.Cluster) continue
             this.removeChildren(group)
         }
     }
@@ -558,11 +558,11 @@ export class GroupManager {
         this.customGroups[targetGroupId] = groups
         this.setChildGroup(parent, groups)
 
-        if (parent.subGroupType == GroupType.Cluster) {
-            groups.forEach(g => {
-                this.groupBySha1(g)
-            })
-        }
+        // if (parent.subGroupType == GroupType.Cluster) {
+        //     groups.forEach(g => {
+        //         this.groupBySha1(g)
+        //     })
+        // }
         setOrder(this.result.root)
         if (emit) this.onChange.emit(this.result)
     }
