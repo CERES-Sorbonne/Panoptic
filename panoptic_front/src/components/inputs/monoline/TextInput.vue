@@ -40,7 +40,7 @@ function contentClick(e) {
         <template v-slot:button>
             <div class="btn-class" @mouseenter="isHover = true" @mouseleave="isHover = false"
                 :style="{ width: props.width + 'px', height: props.height + 'px', lineHeight: props.height + 'px', color: (urlMode ? 'blue' : 'inherit') }">
-                <span v-if="propRef.value" @click="contentClick">{{ propRef.value }}</span>
+                <span v-if="propRef.value != undefined" @click="contentClick">{{ propRef.value }}</span>
                 <span v-else class="text-secondary">None...</span>
             </div>
         </template>

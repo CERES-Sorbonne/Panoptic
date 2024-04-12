@@ -6,7 +6,8 @@ from typing import List, Any, Callable, Awaitable, Dict
 
 from pydantic import BaseModel
 
-from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property
+from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
+    PropertyType
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -144,7 +145,7 @@ def convert_to_instance_values(values: list[ImagePropertyValue], instances: list
 
 def clean_value(prop: Property, v: Any):
     # avoid setting to None
-    if v == 0:
+    if v == 0 or v == '0':
         return 0
 
     if not v:

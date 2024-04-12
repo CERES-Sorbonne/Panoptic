@@ -41,8 +41,8 @@ function updateFromStore() {
 
 function save() {
     emits('save')
-    if (!propRef.value.value && localValue.value == '') return
-    if (propRef.value.value == localValue.value) return
+    // if (!propRef.value.value && localValue.value == '') return
+    if (propRef.value.value === localValue.value) return
 
     // console.log(propRef.value.value, localValue.value)
     store.setPropertyValue(props.property.id, props.image, localValue.value)
