@@ -41,12 +41,18 @@ function removeImage(sha1: string) {
 }
 
 function acceptRecommend(image: Image) {
+    console.log(propertyValues)
     propertyValues.forEach(v => {
+        console.log(v.value)
         if (v.value != UNDEFINED_KEY) {
             const prop = store.data.properties[v.propertyId]
             let value = v.value
+            console.log(prop.type)
             if (prop.type == PropertyType.multi_tags) {
                 store.setTagPropertyValue(v.propertyId, image, [value], 'add')
+            }
+            else if (prop.type == PropertyType.tag) {
+                store.setPropertyValue(v.propertyId, image, [value])
             }
             else {
                 store.setPropertyValue(v.propertyId, image, value)
