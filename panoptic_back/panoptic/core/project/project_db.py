@@ -72,7 +72,7 @@ class ProjectDb:
     async def set_property_values(self, property_id: int, instance_ids: list[int], value: Any):
         prop = await self._db.get_property(property_id)
         value = clean_value(prop, value)
-        # print(property_id, value)
+        print(property_id, value)
         if prop.mode == PropertyMode.id:
             # print('mode id')
             if value is None:
@@ -145,6 +145,9 @@ class ProjectDb:
             vals = [[v for v in i.properties[property_id].value if v not in value] for i in to_del]
             res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
             return [*set_res, *res_del]
+
+    async def add_property_tag_values(self, property_id: int, instance_ids: list[int], values: list[list[int]]):
+        pass
 
     # =====================================================
     # =================== Instances =======================
