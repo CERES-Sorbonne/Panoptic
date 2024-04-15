@@ -1,8 +1,9 @@
 # syntax = docker/dockerfile:experimental
+# To run from the root of the repository: DOCKER_BUILDKIT=1 docker build -f docker/cpu/Dockerfile-panoptic -t ceressorbonne/panoptic ../..
 
 FROM ceressorbonne/panoptic-clip-base:latest
 
-COPY ../.. ./app/
+COPY . ./app/
 WORKDIR ./app/panoptic_back/ 
 
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install -U pip
@@ -10,12 +11,18 @@ RUN --mount=type=cache,target=/root/.cache/pip pip3 install -U pip
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install --force-reinstall fastapi==0.99.1 fastapi-camelcase==1.0.5
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install .
 
-RUN rm -rf /root/.cache/pip
-RUN rm -rf /root/.cache/torch/hub/checkpoints
+RUN rm -rf /root/.cache/pip \
+    && rm -rf /root/.cache/torch/hub/checkpoints \
+    && rm -rf /root/.cache/torch/transformers \
+    && rm -rf /root/.cache/huggingface/transformers \
+    && rm -rf /root/.cache/huggingface/datasets \
+    && rm -rf /root/.cache/huggingface/tokenizers \
+    && rm -rf /root/.cache/huggingface/accelerate  \
+    && rm -rf /root/.cache/huggingface/omniscient
 
-RUN mkdir -p /data/
-RUN chown -R 1000:1000 /data/
-RUN chmod -R 777 /data/
+RUN mkdir -p /data/ \
+    && chown -R 1000:1000 /data/ \
+    && chmod -R 777 /data/
 
 ENV PANOPTIC_HOST="0.0.0.0"
 ENV IS_DOCKER="True"
