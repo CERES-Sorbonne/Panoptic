@@ -37,6 +37,7 @@ const importOptions = computed(() => {
 })
 
 async function importFile() {
+    console.log(importOptions.value)
     await apiImportFile(importOptions.value)
     panoptic.hideModal()
     store.reload()
