@@ -14,6 +14,29 @@ if TYPE_CHECKING:
 from panoptic.models import PropertyType, PropertyMode, PropertyDescription, Tag, Property, ImportOptions, SetMode
 
 
+def clean_type(type_: PropertyType):
+    valid = {
+        PropertyType.string,
+        PropertyType.number,
+        PropertyType.tag,
+        PropertyType.multi_tags,
+        PropertyType.image_link,
+        PropertyType.url,
+        PropertyType.date,
+        PropertyType.path,
+        PropertyType.color,
+        PropertyType.checkbox,
+        PropertyType.id,
+        PropertyType.sha1,
+        PropertyType.ahash,
+        PropertyType.width,
+        PropertyType.height
+    }
+    if type_ not in valid:
+        return PropertyType.string
+    return type_
+
+
 def parse_list(value: str):
     if value is None or value == '' or pd.isnull(value):
         return None
@@ -25,6 +48,7 @@ def parse_list(value: str):
 def parse_header(index: int, name: str):
     name, remain = name.split('[')
     type_ = PropertyType(remain.split(']')[0])
+    type_ = clean_type(type_)
     return index, name, type_
 
 
@@ -51,7 +75,7 @@ class Importer:
         col_to_prop: dict[int, Property] = {}
 
         # map col to existing property if possible
-        db_props = await self.project.db.get_properties()
+        db_props = await self.project.db.get_properties(no_computed=True)
         for prop in db_props:
             for col_i, name, type_ in file_props:
                 if name == prop.name and type_ == prop.type:
@@ -61,7 +85,7 @@ class Importer:
         for col_i, name, type_ in file_props:
             if col_i not in col_to_prop:
                 # use options info to determine property mode
-                mode = options[col_i].property_mode if col_i in options else PropertyMode.id
+                mode = options[col_i].mode if col_i in options else PropertyMode.id
                 # fallback to id mode if None
                 mode = PropertyMode.id if not mode else mode
                 print('create property: ', name, type_, mode)
@@ -170,4 +194,3 @@ class Importer:
                     break
 
         return [key_desc, *import_props]
-

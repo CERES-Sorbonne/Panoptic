@@ -262,13 +262,11 @@ class SetMode(Enum):
 
 
 class ColumnOption(BaseModel):
-    ignore:bool = False
-    property_mode: PropertyMode | None = None
+    ignore: bool = False
+    mode: PropertyMode | None = None
 
 
 ImportOptions = dict[int, ColumnOption]
-
-
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
 Tags: TypeAlias = dict[int, dict[int, Tag]]
