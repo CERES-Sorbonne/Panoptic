@@ -20,7 +20,7 @@ const props = defineProps<{
 const similarGroup = props.similarGroup ?? new GroupManager()
 similarGroup.setSha1Mode(true)
 
-
+const useFilter = ref(true)
 const scrollerElem = ref(null)
 const search = ref<SearchResult>(null)
 const minSimilarityDist = computed(() => project.getTabManager().state.similarityDist ?? 80)
@@ -42,7 +42,13 @@ async function setSimilar() {
 function updateSimilarGroup() {
     if (!search.value) return
 
-    var matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
+    let matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
+
+    if(useFilter.value) {
+        const tab = project.getTabManager()
+        const valid = new Set(tab.collection.filterManager.result.images.map(i => i.id))
+        matches = matches.filter(m => valid.has(m.id))
+    }
 
     const images = matches.map(m => project.data.images[m.id])
     state.sha1Scores = {}
@@ -62,27 +68,39 @@ function setSimilarDist(value: number) {
     similarGroup.clearSelection()
 }
 
+function toggleFilter() {
+    useFilter.value = !useFilter.value
+}
+
 onMounted(setSimilar)
 watch(() => props.image, setSimilar)
 watch(minSimilarityDist, updateSimilarGroup)
 watch(() => props.width, updateSimilarGroup)
+watch(useFilter, updateSimilarGroup)
 </script>
 
 <template>
     <div v-if="!project.hasSimilaryFunction" class="ps-2">No Similary Function found.</div>
     <template v-else>
         <div class="bg-white">
-            <div class="d-flex mb-1">
+            <div class="d-flex mb-1 flex-center" style="height: 25px;">
                 <SelectCircle v-if="similarGroup.hasResult()" :model-value="similarGroup.result.root.view.selected"
                     @update:model-value="v => similarGroup.toggleAll()" style="margin-top: -1px;" />
+                <div class="sep ms-1 me-1"></div>
+                <div class="text-secondary" @click="toggleFilter">
+                    <span v-if="useFilter" class="bi bi-funnel-fill bb text-primary"></span>
+                    <span v-else class="bi bi-funnel bb"></span>
+                </div>
+                <div class="sep ms-1 me-1"></div>
                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                 <wTT message="modals.image.similarity_filter_tooltip">
                     <RangeInput class="me-2" :min="0" :max="100" :model-value="minSimilarityDist"
                         @update:model-value="setSimilarDist" />
                 </wTT>
                 <div>min: {{ minSimilarityDist }}%</div>
-                <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">({{
-                    similarGroup.result.root.children.length }} images)</div>
+                <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">
+                    ({{ similarGroup.result.root.children.length }} images)
+                </div>
             </div>
 
 
