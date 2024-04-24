@@ -31,6 +31,8 @@ const propertyValues = reactive([]) as PropertyValue[]
 
 const blacklist = reactive(new Set())
 
+const useFilter = ref(true)
+
 function removeImage(sha1: string) {
     let index = sha1s.indexOf(sha1)
     if (index < 0) {
@@ -115,6 +117,11 @@ async function getReco() {
     const instanceIds = props.group.images.map(i => i.id)
     let res = await apiGetSimilarImages({ instanceIds })
     res.matches.sort((a, b) => b.score - a.score)
+    if(useFilter.value) {
+        const tab = store.getTabManager()
+        const valid = new Set(tab.collection.groupManager.result.root.images.map(i => i.id))
+        res.matches = res.matches.filter(m => valid.has(m.id))
+    }
     const resSha1s = Array.from(new Set(res.matches.map(r => store.data.images[r.id].sha1)))
 
     propertyValues.length = 0
@@ -132,6 +139,10 @@ async function getReco() {
     emits('update')
 }
 
+function toggleFilter() {
+    useFilter.value = !useFilter.value
+}
+
 onMounted(getReco)
 watch(() => props.group, () => {
     getReco()
@@ -139,12 +150,36 @@ watch(() => props.group, () => {
 })
 watch(() => props.imageSize, computeLines)
 watch(() => props.width, computeLines)
+watch(useFilter, getReco)
 
 </script>
 
 <template>
     <div class="reco-container">
-        <div class="d-flex flex-row m-0 ps-2 pb-2">
+        <div class="d-flex flex-row m-0 ps-2 center mb-1 mt-0" style="height: 25px;">
+
+            <div class="text-secondary pe-1" @click="emits('close')">
+                <span class="bi bi-x-lg bb " style=""></span>
+            </div>
+
+            <div class="b-left pe-1"></div>
+
+            <div class="text-secondary pe-1" @click="emits('scroll', props.group.id)">
+                <!-- {{ $t('main.recommand.group') }} -->
+                <span class="bi bi-arrow-down-circle bb"></span>
+            </div>
+
+            <div class="b-left pe-1"></div>
+
+            <div class="text-secondary pe-1" @click="toggleFilter">
+                <span v-if="useFilter" class="bi bi-funnel-fill bb text-primary"></span>
+                <span v-else class="bi bi-funnel bb"></span>
+            </div>
+
+            <div class="b-left pe-1"></div>
+
+            <!-- <div style="border-right: 1px solid black; height: 20px;"></div> -->
+
             <wTT icon-pos="left" message="main.recommand.tooltip" :icon="true"><span class="text-secondary me-2">{{
                 $t('main.recommand.title') }}</span></wTT>
             <div class="flex-grow-1">
@@ -155,10 +190,6 @@ watch(() => props.width, computeLines)
                     </template>
                 </div>
             </div>
-            <span class="text-secondary scroll ps-1 pe-1 clickable" @click="emits('scroll', props.group.id)">{{
-                $t('main.recommand.group') }}</span>
-            <span class="text-secondary me-1 close  ps-1 pe-1 clickable" @click="emits('close')"><i
-                    class="bi bi-x"></i></span>
         </div>
         <div :style="'margin-left:' + imageMargin + 'px;'">
             <div v-for="line in lines">
@@ -179,10 +210,11 @@ watch(() => props.width, computeLines)
 }
 
 .close {
-    border-right: 2px solid var(--border-color);
+    /* border-right: 2px solid var(--border-color);
     border-bottom: 2px solid var(--border-color);
-    border-left: 2px solid var(--border-color);
+    border-left: 2px solid var(--border-color); */
     font-size: 14px;
+    /* height: 20px; */
 }
 
 .scroll {
@@ -207,5 +239,18 @@ watch(() => props.width, computeLines)
 
 .active {
     border-left: 1px solid blue;
+}
+
+.b-left {
+    border-left: 1px solid var(--border-color);
+    height: 80%;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    /* Horizontal centering */
+    align-items: center;
+    /* Vertical centering */
 }
 </style>
