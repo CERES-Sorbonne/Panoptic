@@ -41,13 +41,14 @@ class LoadPluginTask(Task):
     async def run(self):
         path = Path(self.path)
         name = str(path.name)
-        file_path = path / '__init__.py'
+        file_path = path
+        if file_path.name != '__init__.py':
+            file_path = path / '__init__.py'
         plugin_module = await self._async(import_module_from_path, name, file_path)
         plugin = plugin_module.plugin_class(self.project, self.path)
         await plugin.start()
         self.project.plugins.append(plugin)
 
     async def run_if_last(self):
-        await self.project.update_actions_from_db()
         self.project.plugin_loaded = True
         self.project.ui.update_counter.action += 1

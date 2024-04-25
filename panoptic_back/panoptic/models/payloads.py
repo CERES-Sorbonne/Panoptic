@@ -85,10 +85,19 @@ class UpdateActionsPayload(CamelModel):
 
 
 class ExecuteActionPayload(CamelModel):
-    action: str
     function: str = None
     context: ActionContext
 
 
 class OptionsPayload(CamelModel):
     options: dict[int, ColumnOption]
+
+
+class UIDataPayload(CamelModel):
+    key: str = None
+    data: Any = None
+
+
+class PluginParamsPayload(CamelModel):
+    plugin: str
+    params: Any

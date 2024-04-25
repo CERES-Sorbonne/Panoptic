@@ -1,9 +1,9 @@
 import logging
 import os
 from sys import platform
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, UploadFile
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from starlette.responses import FileResponse
@@ -11,9 +11,10 @@ from starlette.responses import FileResponse
 from panoptic.core.project.project import Project
 from panoptic.models import Property, Tag, PropertyPayload, \
     SetPropertyValuePayload, AddTagPayload, \
-    Tab, AddTagParentPayload, PropertyUpdate, \
-    TagUpdate, Clusters, ActionContext, PluginDefaultParams, UpdateActionsPayload, VectorDescription, \
-    ExecuteActionPayload, SetTagPropertyValuePayload, ImportOptions, OptionsPayload, ExportPropertiesPayload
+    AddTagParentPayload, PropertyUpdate, \
+    TagUpdate, VectorDescription, \
+    ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
+    PluginParamsPayload
 
 project_router = APIRouter()
 
@@ -56,6 +57,7 @@ async def upload_file_route(file: UploadFile):
 async def upload_file_route(req: OptionsPayload):
     return await project.importer.import_file(req.options)
 
+
 #
 # @project_router.post('/analyse_file')
 # async def analyse_file_route():
@@ -64,12 +66,10 @@ async def upload_file_route(req: OptionsPayload):
 #     # return await read_properties_file(data)
 
 
-
 @project_router.post('/export')
 async def export_properties_route(req: ExportPropertiesPayload):
     await project.export_data(req.name, req.images, req.properties, req.export_images)
     return True
-
 
 
 @project_router.delete('/property/{property_id}')
@@ -182,42 +182,53 @@ async def reimport_folder_route(req: IdRequest):
     await project.import_folder(folder.path)
 
 
-@project_router.get("/tabs")
-async def get_tabs_route():
-    return await project.ui.get_tabs()
+#
+# @project_router.get("/tabs")
+# async def get_tabs_route():
+#     return await project.ui.get_tabs()
+#
+#
+# @project_router.post("/tab")
+# async def add_tab_route(tab: Tab):
+#     return await project.ui.add_tab(tab.data)
+#
+#
+# @project_router.patch("/tab")
+# async def update_tab_route(tab: Tab):
+#     return await project.ui.update_tab(tab)
+#
+#
+# @project_router.delete("/tab")
+# async def delete_tab_route(tab_id: int):
+#     return await project.ui.delete_tab(tab_id)
 
 
-@project_router.post("/tab")
-async def add_tab_route(tab: Tab):
-    return await project.ui.add_tab(tab.data)
-
-
-@project_router.patch("/tab")
-async def update_tab_route(tab: Tab):
-    return await project.ui.update_tab(tab)
-
-
-@project_router.delete("/tab")
-async def delete_tab_route(tab_id: int):
-    return await project.ui.delete_tab(tab_id)
-
-
-@project_router.get('/actions_description')
-async def get_actions_description_route():
-    res = project.action.get_actions_description()
-    return res
-
-
-@project_router.post('/actions_functions')
-async def set_actions_update_route(actions_update: UpdateActionsPayload):
-    await project.set_action_updates(actions_update.updates)
-    return await get_actions_description_route()
-
+# @project_router.get('/actions_description')
+# async def get_actions_description_route():
+#     res = project.action.get_actions_description()
+#     return res
+#
+#
+# @project_router.post('/actions_functions')
+# async def set_actions_update_route(actions_update: UpdateActionsPayload):
+#     await project.set_action_updates(actions_update.updates)
+#     return await get_actions_description_route()
+#
+#
+# @project_router.post('/action_execute')
+# async def execute_action_route(req: ExecuteActionPayload):
+#     res = await project.action.actions[req.action].call(req.context, function=req.function)
+#     return res
 
 @project_router.post('/action_execute')
 async def execute_action_route(req: ExecuteActionPayload):
-    res = await project.action.actions[req.action].call(req.context, function=req.function)
-    return res
+    return await project.action.call(req.function, req.context)
+
+
+@project_router.get('/actions')
+async def get_action_descriptions():
+    actions = project.action.actions.values()
+    return {a.id: a.description for a in actions}
 
 
 @project_router.get('/plugins_info')
@@ -226,10 +237,24 @@ async def get_plugins():
     return res
 
 
-@project_router.post('/plugins_params')
-async def post_plugin_params_route(params: PluginDefaultParams):
-    res = await project.set_plugin_default_params(params)
-    return res
+@project_router.get('/ui_data/{key:path}')
+async def get_ui_data(key: str):
+    if key:
+        return await project.db.get_ui_data(key=key)
+    return await project.db.get_all_ui_data()
+
+
+@project_router.post('/ui_data')
+async def set_ui_data(req: UIDataPayload):
+    if not req.key:
+        raise Exception('set_ui_data UIDataPayload: no key given')
+    return await project.db.set_ui_data(req.key, req.data)
+
+
+@project_router.post('/plugin_params')
+async def post_plugin_params_route(req: PluginParamsPayload):
+    await project.set_plugin_params(req.plugin, req.params)
+    return await get_plugins()
 
 
 @project_router.get('/vectors_info')

@@ -16,7 +16,7 @@ const selectedCategory = ref(categories.value[0])
 <template>
   <div class="row">
     <div class="col category">
-      <ActionSettings :actions="project.actions" />
+      <ActionSettings />
     </div>
     <div class="col category">
       <VectorSettings />

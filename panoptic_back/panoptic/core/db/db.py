@@ -266,9 +266,10 @@ class Db:
         return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
                         height=height)
 
-    async def import_instance(self, id_: int, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
-                           height: int,
-                           ahash: str):
+    async def import_instance(self, id_: int, folder_id: int, name: str, extension: str, sha1: str, url: str,
+                              width: int,
+                              height: int,
+                              ahash: str):
         table = Table('instances')
         query = Query.into(table).columns(
             'id',
@@ -372,26 +373,26 @@ class Db:
     # ================== UI TABS ==========================
     # =====================================================
 
-    async def add_tab(self, data):
-        query = 'INSERT INTO tabs (data) VALUES (?)'
-        cursor = await self.conn.execute_query(query, (json.dumps(data),))
-        row = await cursor.fetchone()
-        tab = Tab(id=cursor.lastrowid, data=data)
-        return tab
-
-    async def get_tabs(self) -> List[Tab]:
-        query = "SELECT * from tabs"
-        cursor = await self.conn.execute_query(query)
-        return [Tab(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-
-    async def update_tab(self, tab: Tab):
-        query = "UPDATE tabs SET data = ? WHERE id = ?"
-        await self.conn.execute_query(query, (json.dumps(tab.data), tab.id))
-
-    async def delete_tab(self, tab_id: int):
-        query = "DELETE from tabs WHERE id = ?"
-        await self.conn.execute_query(query, (tab_id,))
-        return tab_id
+    # async def add_tab(self, data):
+    #     query = 'INSERT INTO tabs (data) VALUES (?)'
+    #     cursor = await self.conn.execute_query(query, (json.dumps(data),))
+    #     row = await cursor.fetchone()
+    #     tab = Tab(id=cursor.lastrowid, data=data)
+    #     return tab
+    #
+    # async def get_tabs(self) -> List[Tab]:
+    #     query = "SELECT * from tabs"
+    #     cursor = await self.conn.execute_query(query)
+    #     return [Tab(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+    #
+    # async def update_tab(self, tab: Tab):
+    #     query = "UPDATE tabs SET data = ? WHERE id = ?"
+    #     await self.conn.execute_query(query, (json.dumps(tab.data), tab.id))
+    #
+    # async def delete_tab(self, tab_id: int):
+    #     query = "DELETE from tabs WHERE id = ?"
+    #     await self.conn.execute_query(query, (tab_id,))
+    #     return tab_id
 
     # =====================================================
     # ================== Vectors ==========================
@@ -439,53 +440,99 @@ class Db:
             return [VectorDescription(**auto_dict(r, cursor)) for r in rows]
         return []
 
+    async def set_default_vector_id(self, vector_id: str):
+        await self.conn.set_param('default_vector', vector_id)
+
+    async def get_default_db_vector_id(self):
+        await self.conn.get_param('default_vector')
+
     # =====================================================
     # ================== Plugins ==========================
     # =====================================================
 
-    async def get_plugin_default_params(self, plugin_name: str):
-        t = Table('plugin_defaults')
-        query = Query.from_(t).select('name', 'base', 'functions')
-        query = query.where(t.name == plugin_name)
-        cursor = await self.conn.execute_query(query.get_sql())
+    async def get_plugin_data(self, key: str):
+        query = "SELECT * FROM plugin_data WHERE key=?"
+        cursor = await self.conn.execute_query(query, (key,))
         row = await cursor.fetchone()
         if row:
-            return PluginDefaultParams(**auto_dict(row, cursor))
-        return PluginDefaultParams(name=plugin_name)
+            return json.loads(row[1])
+        return None
 
-    async def set_plugin_default_params(self, params: PluginDefaultParams):
-        query = f"""
-                    INSERT OR REPLACE INTO plugin_defaults (name, base, functions)
-                    VALUES (?, ?, ?);
-                """
-        await self.conn.execute_query(query, (params.name, json.dumps(params.base), json.dumps(params.functions)))
-        return params
+    async def set_plugin_data(self, key: str, data):
+        query = "INSERT OR REPLACE INTO plugin_data (key, value) VALUES (?, ?)"
+        await self.conn.execute_query(query, (key, json.dumps(data)))
+        return data
+
+
+
+    # async def get_plugin_default_params(self, plugin_name: str):
+    #     t = Table('plugin_defaults')
+    #     query = Query.from_(t).select('name', 'base', 'functions')
+    #     query = query.where(t.name == plugin_name)
+    #     cursor = await self.conn.execute_query(query.get_sql())
+    #     row = await cursor.fetchone()
+    #     if row:
+    #         return PluginDefaultParams(**auto_dict(row, cursor))
+    #     return PluginDefaultParams(name=plugin_name)
+    #
+    # async def set_plugin_default_params(self, params: PluginDefaultParams):
+    #     query = f"""
+    #                 INSERT OR REPLACE INTO plugin_defaults (name, base, functions)
+    #                 VALUES (?, ?, ?);
+    #             """
+    #     await self.conn.execute_query(query, (params.name, json.dumps(params.base), json.dumps(params.functions)))
+    #     return params
 
     # =====================================================
     # ================== Actions ==========================
     # =====================================================
 
-    async def get_action_params(self):
-        query = "SELECT * FROM action_params"
+    # async def get_action_params(self):
+    #     query = "SELECT * FROM action_params"
+    #     cursor = await self.conn.execute_query(query)
+    #     rows = await cursor.fetchall()
+    #     if rows:
+    #         return [ActionParam(**auto_dict(r, cursor)) for r in rows]
+    #     return []
+    #
+    # async def get_action_param(self, name: str):
+    #     query = "SELECT * FROM action_params WHERE name=?"
+    #     cursor = await self.conn.execute_query(query, (name,))
+    #     row = await cursor.fetchone()
+    #     if row:
+    #         return ActionParam(**auto_dict(row, cursor))
+    #     return None
+    #
+    # async def set_action_param(self, update: ActionParam):
+    #     print('update', update)
+    #     query = f"""
+    #                 INSERT OR REPLACE INTO action_params (name, value)
+    #                 VALUES (?, ?);
+    #             """
+    #     await self.conn.execute_query(query, (update.name, update.value))
+    #     return update
+
+    # =====================================================
+    # ================== UI_DATA ==========================
+    # =====================================================
+
+    async def get_ui_data(self, key: str):
+        query = "SELECT * FROM ui_data WHERE key=?"
+        cursor = await self.conn.execute_query(query, (key,))
+        row = await cursor.fetchone()
+        if row:
+            return json.loads(row[1])
+        return None
+
+    async def get_all_ui_data(self):
+        query = "SELECT * FROM ui_data"
         cursor = await self.conn.execute_query(query)
         rows = await cursor.fetchall()
         if rows:
-            return [ActionParam(**auto_dict(r, cursor)) for r in rows]
-        return []
-
-    async def get_action_param(self, name: str):
-        query = "SELECT * FROM action_params WHERE name=?"
-        cursor = await self.conn.execute_query(query, (name,))
-        row = await cursor.fetchone()
-        if row:
-            return ActionParam(**auto_dict(row, cursor))
+            return {r[0]: json.loads(r[1]) for r in rows}
         return None
 
-    async def set_action_param(self, update: ActionParam):
-        print('update', update)
-        query = f"""
-                    INSERT OR REPLACE INTO action_params (name, value)
-                    VALUES (?, ?);
-                """
-        await self.conn.execute_query(query, (update.name, update.value))
-        return update
+    async def set_ui_data(self, key: str, data):
+        query = "INSERT OR REPLACE INTO ui_data (key, value) VALUES (?, ?)"
+        await self.conn.execute_query(query, (key, json.dumps(data)))
+        return data

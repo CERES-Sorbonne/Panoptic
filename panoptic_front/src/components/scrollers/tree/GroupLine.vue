@@ -102,6 +102,7 @@ function closeChildren() {
             <SelectCircle :small="true" :model-value="group.view.selected"
                 @update:model-value="emits('select', group.id)" />
         </div>
+        {{ group.order}}
         <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
             <template v-for="propValue in propertyValues">
@@ -121,6 +122,11 @@ function closeChildren() {
             <div v-if="!hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
+            <div class="ms-2">
+                <ActionButton action="action_group" :image-ids="images.map(i => i.id)" style="font-size: 10px;"
+                    @result="addClusters" />
+            </div>
+
             <div class="ms-2" v-if="!hasSubgroups">
                 <!-- <wTT message="main.view.group_clusters_tooltip">
                     <ClusterButton v-model="props.item.nbClusters" @click="computeClusters" />

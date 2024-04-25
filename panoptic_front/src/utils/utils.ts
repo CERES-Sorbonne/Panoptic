@@ -1,5 +1,5 @@
 import { Group } from "@/core/GroupManager"
-import { apiGetMLGroups, apiGetSimilarImages, apiGetSimilarImagesFromText } from "@/data/api"
+import { apiGetMLGroups} from "@/data/api"
 import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property, ActionContext } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Exception } from "sass"
@@ -182,9 +182,9 @@ export async function computeMLGroups(context: ActionContext) {
     return res
 }
 
-export async function getSimilarImagesFromText(context: ActionContext) {
-    return await apiGetSimilarImagesFromText(context)
-}
+// export async function getSimilarImagesFromText(context: ActionContext) {
+//     return await apiGetSimilarImagesFromText(context)
+// }
 
 type ObjectValues<T> = T[keyof T][];
 

@@ -144,11 +144,23 @@ class VectorDescription(CamelModel):
     source: str
     type: str
     count: int | None = None
+    id: str = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.id = f"{self.source}:{self.type}"
+
+# @dataclass(slots=True)
+# class VectorPack:
+#     id: str
+#     source: str
+#     type: str
+#     vectors: list[Vector]
 
 
 class ProjectVectorDescriptions(CamelModel):
     vectors: list[VectorDescription] = []
-    default_vectors: VectorDescription | None = None
+    default_vectors: str | None = None
 
 
 class Parameters(BaseModel):
@@ -208,18 +220,22 @@ class ActionContext(CamelModel):
 
 
 class ParamDescription(CamelModel):
+    id: str = None
     name: str
+    label: str = None
     description: str | None = None
     type: str
     default_value: Any
+    possible_values: Any | None = None
 
 
 class FunctionDescription(CamelModel):
     id: str
     name: str
-    description: str | None = None
-    action: str
+    label: str = None
+    description: str = None
     params: List[ParamDescription] = []
+    hooks: list[str] = []
 
 
 class PluginBaseParamsDescription(BaseModel):
@@ -241,7 +257,6 @@ class PluginDescription(CamelModel):
     path: str
     base_params: PluginBaseParamsDescription
     registered_functions: List[FunctionDescription] = []
-    defaults: PluginDefaultParams
 
 
 class ActionDescription(CamelModel):
@@ -264,6 +279,18 @@ class SetMode(Enum):
 class ColumnOption(BaseModel):
     ignore: bool = False
     mode: PropertyMode | None = None
+
+
+class PropertyInputOptions(CamelModel):
+    types: list[PropertyType] = None
+    modes: list[PropertyMode] = None
+
+
+class PropertyRequest(CamelModel):
+    id: int = None
+    name: str = None
+    type: PropertyType = None
+    mode: PropertyMode = None
 
 
 ImportOptions = dict[int, ColumnOption]

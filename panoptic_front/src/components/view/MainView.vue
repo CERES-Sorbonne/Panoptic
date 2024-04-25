@@ -12,7 +12,6 @@ import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
-import { getSimilarImagesFromText } from '@/utils/utils';
 
 const store = useProjectStore()
 const tabManager = store.getTabManager()
@@ -62,15 +61,6 @@ function setRecoImages(groupId: string) {
     nextTick(() => updateScrollerHeight())
 }
 
-async function setSearchedImages(textInput: string) {
-    if (textInput === "") {
-        searchedImages.value = []
-    }
-    else {
-        searchedImages.value = await getSimilarImagesFromText({ text: textInput })
-    }
-}
-
 function closeReco() {
     recoGroup.value = {} as Group
     nextTick(() => updateScrollerHeight())
@@ -85,7 +75,7 @@ onMounted(() => {
     })
 })
 watch(tabManager.state, (state) => {
-    store.updateTab(tabManager.state)
+    store.updateTabs()
 }, { deep: true })
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
@@ -96,7 +86,7 @@ watch(() => props.height, async () => {
 
 <template>
     <div id="main-content" ref="filterElem">
-        <ContentFilter :tab="tabManager" :compute-status="computeStatus" @search-images="setSearchedImages" />
+        <ContentFilter :tab="tabManager" :compute-status="computeStatus" />
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">

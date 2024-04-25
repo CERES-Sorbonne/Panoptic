@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, PropertyType, PropertyValue, Recommendation } from '@/data/models';
+import { Image, PropertyType, PropertyValue } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
-import { apiGetSimilarImages } from '@/data/api';
-import { isTag } from '@/utils/utils';
+import { useActionStore } from '@/data/actionStore';
 interface Sha1Pile {
     sha1: string
     images: Image[]
 }
 const store = useProjectStore()
+const actions = useActionStore()
 const props = defineProps({
     imageSize: Number,
     group: Object as () => Group,
@@ -115,7 +115,7 @@ async function getReco() {
     if (!props.group) return
     console.log('get reco')
     const instanceIds = props.group.images.map(i => i.id)
-    let res = await apiGetSimilarImages({ instanceIds })
+    let res = await actions.getSimilarImages({ instanceIds })
     res.matches.sort((a, b) => b.score - a.score)
     if(useFilter.value) {
         const tab = store.getTabManager()

@@ -16,7 +16,7 @@ const elem = ref(null)
 const localValue = ref(props.modelValue)
 
 function focus() {
-    console.log('focus', elem.value)
+    // console.log('focus', elem.value)
     if (elem.value) {
         elem.value.focus()
     }

@@ -1,14 +1,22 @@
 from __future__ import annotations
 
-from typing import List, Any, Dict
+from typing import List, Any
 from typing import TYPE_CHECKING
 
-from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription, PluginDefaultParams
+from pydantic import BaseModel
+
+from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription
 from panoptic.utils import get_model_params_description
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
+
+def assign_attributes(target: BaseModel, source):
+    if not target:
+        return
+    target = target.copy(update=source)
+    return target
 
 class Plugin:
     def __init__(self, name: str, project: Project, plugin_path: str):
@@ -17,20 +25,18 @@ class Plugin:
         self.project = project
         self.registered_functions: List[FunctionDescription] = []
         self.path = plugin_path
+        self.base_key = f'{self.name}.base'
 
     async def start(self):
-        db_defaults = await self.project.db.get_raw_db().get_plugin_default_params(self.name)
-        self.update_default_values(db_defaults)
+        db_defaults = await self.project.db.get_plugin_data(self.base_key)
+        self.params = assign_attributes(self.params, db_defaults)
 
-    def update_default_values(self, params: PluginDefaultParams):
-        if not self.params:
-            return
+    async def update_params(self, params: Any):
+        self.params = assign_attributes(self.params, params)
+        await self.project.db.set_plugin_data(self.base_key, self.params.dict())
+        return self.params
 
-        for param in params.base:
-            if params.base[param]:
-                setattr(self.params, param, params.base[param])
-
-    def _get_param_description(self, db_base: Dict[str, Any]):
+    def _get_param_description(self):
         if not self.params:
             return PluginBaseParamsDescription()
         description = self.params.__doc__
@@ -38,10 +44,9 @@ class Plugin:
             description = description[0: description.index('@')]
 
         params = get_model_params_description(self.params)
-        # print('params', params)
         for p in params:
-            if p.name in db_base and db_base[p.name]:
-                p.default_value = db_base[p.name]
+            p.id = p.name
+            p.default_value = self.params.__dict__[p.id]
         return PluginBaseParamsDescription(description=description, params=params)
 
     async def get_description(self):
@@ -49,22 +54,8 @@ class Plugin:
         description = self.__doc__
         path = self.path
 
-        defaults = PluginDefaultParams(name=name)
-        db_defaults = await self.project.db.get_raw_db().get_plugin_default_params(plugin_name=name)
-
-        base_params = self._get_param_description(db_defaults.base)
-        # print(base_params)
-
-        for param in base_params.params:
-            defaults.base[param.name] = param.default_value
-
-        for function in self.registered_functions:
-            defaults.functions[function.name] = {}
-            for param in function.params:
-                defaults.functions[function.name][param.name] = param.default_value
-                if function.name in db_defaults.functions and param.name in db_defaults.functions[function.name]:
-                    defaults.functions[function.name][param.name] = db_defaults.functions[function.name][param.name]
+        base_params = self._get_param_description()
 
         res = PluginDescription(name=name, description=description, path=path, base_params=base_params,
-                                registered_functions=self.registered_functions, defaults=defaults)
+                                registered_functions=self.registered_functions)
         return res

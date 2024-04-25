@@ -64,6 +64,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     async function closeProject() {
         data.status = await apiCloseProject()
+        project.clear()
         router.push('/')
     }
 
