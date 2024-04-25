@@ -332,10 +332,14 @@ export interface UpdateCounter {
 // ================== Plugins ==================
 
 export interface ParamDescription {
+    id?: string
     name: string
-    description: string
+    label?: string
+    description?: string | null
     type: string
-}
+    defaultValue: any
+    possibleValues?: any
+  }
 
 export interface FunctionDescription {
     id: string
@@ -367,10 +371,22 @@ export interface PluginDefaultParams {
 }
 
 // ============= Actions ==============
-export interface ActionDescription {
+
+export class FunctionDescription {
+    id: string
     name: string
-    selectedFunction?: string
-    availableFunctions?: string[]
+    label: string
+    description: string
+    params: ParamDescription[]
+    hooks: string[]
+}
+
+export interface Actions {
+    [id: string]: FunctionDescription
+}
+
+export interface ParamDefaults {
+    [id: string]: any
 }
 
 export interface ActionParam {
@@ -387,8 +403,7 @@ export interface ActionContext {
 }
 
 export interface ExecuteActionPayload {
-    action: string
-    function?: string
+    function: string
     context: ActionContext
 }
 

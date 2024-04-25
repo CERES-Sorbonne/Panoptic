@@ -2,7 +2,7 @@ import atexit
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List
+from typing import List, Any
 
 from showinfm import show_in_file_manager
 
@@ -52,8 +52,9 @@ class Project:
         self.ui = ProjectUi(self.db.get_raw_db())
 
         self.db.on_import_instance.redirect(self.on.import_instance)
-
-        for plugin_path in self.plugin_paths:
+        from panoptic.plugins import DefaultPlugin
+        paths = [DefaultPlugin.__file__, *self.plugin_paths]
+        for plugin_path in paths:
             task = LoadPluginTask(self, plugin_path)
             self.task_queue.add_task(task)
 
@@ -120,20 +121,11 @@ class Project:
                 current_folder = child
         return root_folder, file_to_folder_id
 
-    async def set_plugin_default_params(self, params: PluginDefaultParams):
-        await self.db.set_plugin_default_params(params)
-        plugin = [p for p in self.plugins if p.name == params.name][0]
-        plugin.update_default_values(params)
-        return params
+    async def set_plugin_params(self, plugin_name: str, params: Any):
+        plugin = [p for p in self.plugins if p.name == plugin_name]
+        if not plugin:
+            return
+        plugin = plugin[0]
+        await plugin.update_params(params)
+        return plugin
 
-    async def set_action_updates(self, updates: List[ActionParam]):
-        self.action.set_action_functions(updates)
-        for action in updates:
-            # make sure we don't override other ActionParams
-            if action.name in self.action.actions:
-                await self.db.get_raw_db().set_action_param(action)
-
-    async def update_actions_from_db(self):
-        db_actions = await self.db.get_raw_db().get_action_params()
-        db_actions = [a for a in db_actions if a.value]
-        self.action.set_action_functions(db_actions)

@@ -7,8 +7,9 @@ import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import RangeInput from '@/components/inputs/RangeInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import { useProjectStore } from '@/data/projectStore';
-import { apiGetSimilarImages } from '@/data/api';
+import { useActionStore } from '@/data/actionStore';
 const project = useProjectStore()
+const actions = useActionStore()
 
 const props = defineProps<{
     image: Image
@@ -31,9 +32,9 @@ const state = reactive({
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => project.data.properties[k]))
 
 async function setSimilar() {
-    if (!project.hasSimilaryFunction) return
+    if (!actions.hasSimilaryFunction) return
     // if (modalMode.value != ImageModalMode.Similarity) return
-    const res = await apiGetSimilarImages({ instanceIds: [props.image.id] })
+    const res = await actions.getSimilarImages({ instanceIds: [props.image.id] })
     res.matches.sort((a, b) => b.score - a.score)
     search.value = res
     updateSimilarGroup()
@@ -80,7 +81,7 @@ watch(useFilter, updateSimilarGroup)
 </script>
 
 <template>
-    <div v-if="!project.hasSimilaryFunction" class="ps-2">No Similary Function found.</div>
+    <div v-if="!actions.hasSimilaryFunction" class="ps-2">No Similary Function found.</div>
     <template v-else>
         <div class="bg-white">
             <div class="d-flex mb-1 flex-center" style="height: 25px;">

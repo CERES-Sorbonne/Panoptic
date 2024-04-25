@@ -1,4 +1,4 @@
-software_db_version = 1
+software_db_version = 2
 
 DB_VERSION = 'db_version'
 
@@ -37,8 +37,6 @@ def create_properties_table():
     );
     """
     return query
-
-
 
 
 def create_instances_table():
@@ -164,6 +162,26 @@ def create_actions_table():
     return query
 
 
+def create_ui_data():
+    query = """
+    CREATE TABLE ui_data (
+        key TEXT PRIMARY KEY,
+        value JSON
+    );
+    """
+    return query
+
+
+def create_plugin_data():
+    query = """
+    CREATE TABLE plugin_data (
+        key TEXT PRIMARY KEY,
+        value JSON
+    );
+    """
+    return query
+
+
 # tables2 = {
 #     'folders': create_folders_table(),
 #     'tabs': create_tabs_table(),
@@ -186,7 +204,8 @@ tables = {
     'instance_property_values': create_instance_property_values_table(),
     'tags': create_tags_table(),
     'vectors': create_vectors_table(),
-    'plugin_defaults': create_plugin_defaults_table(),
-    'action_params': create_actions_table(),
-    'tabs': create_tabs_table(),
+    # 'action_params': create_actions_table(),
+    # 'tabs': create_tabs_table(),
+    'ui_data': create_ui_data(),
+    'plugin_data': create_plugin_data(),
 }

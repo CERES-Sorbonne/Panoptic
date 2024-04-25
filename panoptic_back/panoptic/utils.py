@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
 from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
-    PropertyType
+    PropertyType, PropertyRequest
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -92,6 +92,8 @@ def to_str_type(type_):
         return 'bool'
     if type_ is pathlib.Path:
         return 'path'
+    if type_ is PropertyRequest:
+        return 'property'
     return None
 
 

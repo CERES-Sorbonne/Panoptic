@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, ActionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription } from './models'
+import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel } from '@/utils/utils'
 import {createReadStream} from 'fs'
@@ -22,12 +22,6 @@ async function uploadFile(route: string, file) {
     })
     return res
 }
-
-export interface ApiTab {
-    id?: number,
-    data: TabState
-}
-
 // axios.interceptors.response.use()
 
 export const apiGetImages = async (): Promise<ImageIndex> => {
@@ -131,25 +125,19 @@ export const apiImportFolder = async () => {
     return res.data
 }
 
-export const apiGetTabs = async () => {
-    let res = await axios.get('/tabs')
-    return res.data as ApiTab[]
+export async function apiGetTabs() {
+    let res = await apiGetUIData('tabs')
+    if(!res) {
+        return {} as TabIndex
+    }
+    return res as TabIndex
 }
 
-export const apiAddTab = async (tab: ApiTab) => {
-    let res = await axios.post('/tab', tab)
-    return res.data as ApiTab
-}
-
-export const apiUpdateTab = async (tab: ApiTab) => {
-    let res = await axios.patch('/tab', tab)
-    return res.data as TabState
-}
-
-export const apiDeleteTab = async (tabId: number) => {
-    let res = await axios.delete('/tab', { params: { tab_id: tabId } })
+export async function apiSetTabs(tabs: TabIndex) {
+    let res = await apiSetUIData('tabs', tabs)
     return res.data
 }
+
 
 export const apiGetMLGroups = async (context: ActionContext) => {
     let res = await axios.post('/clusters', context)
@@ -163,16 +151,16 @@ export const apiGetStatusUpdate = async () => {
     return res.data as StatusUpdate
 }
 
-export const apiGetSimilarImages = async (context: ActionContext) => {
-    let req: ExecuteActionPayload = {action: 'find_similar', context: context}
-    let res = await apiCallActions(req)
-    return res as SearchResult
-}
+// export const apiGetSimilarImages = async (context: ActionContext) => {
+//     let req: ExecuteActionPayload = {action: 'find_similar', context: context}
+//     let res = await apiCallActions(req)
+//     return res as SearchResult
+// }
 
-export const apiGetSimilarImagesFromText = async (context: ActionContext) => {
-    let res = await axios.post('/similar/text', context)
-    return res.data
-}
+// export const apiGetSimilarImagesFromText = async (context: ActionContext) => {
+//     let res = await axios.post('/similar/text', context)
+//     return res.data
+// }
 
 export const apiUploadPropFile = async (file: any) => {
     let formData = new FormData();
@@ -265,20 +253,14 @@ export async function apiGetPluginsInfo() {
     return res.data as PluginDescription[]
 }
 
-export async function apiSetPluginDefaults(defaults: PluginDefaultParams) {
-    let res = await axios.post('/plugins_params', defaults)
-    return res.data as PluginDefaultParams
+export async function apiSetPluginParams(plugin: string, params: any) {
+    let res = await axios.post('/plugin_params', {plugin, params})
+    return res.data as PluginDescription[]
 }
 
 export async function apiGetActions() {
-    let res = await axios.get('/actions_description')
-    return res.data as ActionDescription[]
-}
-
-export async function apiSetActions(actionUpdates: ActionParam[]) {
-    console.log(actionUpdates)
-    let res = await axios.post('/actions_functions', { updates: actionUpdates })
-    return res.data as ActionDescription[]
+    let res = await axios.get('/actions')
+    return res.data as Actions
 }
 
 export async function apiCallActions(req: ExecuteActionPayload) {
@@ -295,3 +277,22 @@ export async function apiSetDefaultVector(vector: VectorDescription) {
     let res = await axios.post('/default_vectors', vector)
     return res.data as ProjectVectorDescription
 }
+
+export async function apiGetUIData(key: string) {
+    let res = await axios.get('/ui_data/' + key)
+    return res.data as any
+}
+
+export async function apiSetUIData(key: string, data: any) {
+    let res = await axios.post('/ui_data', {key, data})
+    return res.data as any
+}
+
+export async function apiGetParamDefaults() {
+    return await apiGetUIData('param_defaults') as ParamDefaults
+}
+export async function apiSetParamDefaults(defaults: ParamDefaults) {
+    return await apiSetUIData('param_defaults', defaults)
+}
+
+

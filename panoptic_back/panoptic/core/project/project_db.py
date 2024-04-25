@@ -1,13 +1,13 @@
 import json
 from collections import defaultdict
 from random import randint
-from typing import Any, Dict
+from typing import Any
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tag, \
-    TagUpdate, Vector, PluginDefaultParams, VectorDescription, ActionParam, ProjectVectorDescriptions, SetMode, \
+    TagUpdate, Vector, VectorDescription, ProjectVectorDescriptions, SetMode, \
     PropertyMode
 from panoptic.models.computed_properties import computed_properties
 from panoptic.models.results import DeleteTagResult
@@ -128,7 +128,8 @@ class ProjectDb:
 
         to_set = [i for i in instances if property_id not in i.properties]
         if to_set:
-            set_res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set], value=value)
+            set_res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set],
+                                                     value=value)
         else:
             set_res = []
         if mode == SetMode.add:
@@ -277,11 +278,11 @@ class ProjectDb:
         return await self._db.get_vectors(source, type_, sha1s)
 
     async def get_default_vectors(self, sha1s: list[str] = None):
-        default = await self._db.get_action_param('get_vectors')
+        default = await self._db.get_default_db_vector_id()
         if not default:
             raise Exception('No default vectors set. Make sure vectors are computed')
-        default = VectorDescription(**json.loads(default.value))
-        return await self._db.get_vectors(default.source, default.type, sha1s)
+        source, type_ = default.split('.')
+        return await self._db.get_vectors(source, type_, sha1s)
 
     async def add_vector(self, vector: Vector):
         return await self._db.add_vector(vector)
@@ -290,15 +291,24 @@ class ProjectDb:
         return await self._db.vector_exist(source, type_, sha1)
 
     async def set_default_vectors(self, vector: VectorDescription):
-        await self._db.set_action_param(ActionParam(name='get_vectors', value=json.dumps(vector.json())))
+        await self._db.set_default_vector_id(vector_id=vector.id)
 
     async def get_vectors_info(self):
         vectors = await self._db.get_vector_descriptions()
-        default = await self._db.get_action_param('get_vectors')
-        if default:
-            default = VectorDescription(**json.loads(default.value))
+        default = await self._db.get_default_db_vector_id()
         return ProjectVectorDescriptions(vectors=vectors, default_vectors=default)
 
-    # ============ Plugins =============
-    async def set_plugin_default_params(self, params: PluginDefaultParams):
-        return await self._db.set_plugin_default_params(params)
+    async def get_ui_data(self, key: str):
+        return await self._db.get_ui_data(key)
+
+    async def get_all_ui_data(self):
+        return await self._db.get_all_ui_data()
+
+    async def set_ui_data(self, key: str, value: Any):
+        return await self._db.set_ui_data(key, value)
+
+    async def get_plugin_data(self, key: str):
+        return await self._db.get_plugin_data(key)
+
+    async def set_plugin_data(self, key: str, value: Any):
+        return await self._db.set_plugin_data(key, value)

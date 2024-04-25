@@ -18,7 +18,7 @@ class FaissPluginParams(BaseModel):
     @test_str: a str param
     """
     test_int: int = 0
-    test_str: str = ''
+    test_str: str = 'gouzi'
     test_bool: bool = False
 
 
@@ -34,8 +34,8 @@ class FaissPlugin(Plugin):
         reload_tree(project.base_path)
 
         project.on.import_instance.register(self.compute_image_vector)
-        project.action.find_images.register(self, self.find_images)
-        project.action.group_images.register(self, self.compute_clusters)
+        project.action.easy_add(self, self.find_images, ['similar'])
+        project.action.easy_add(self, self.compute_clusters, ['group'])
 
     async def start(self):
         await super().start()
