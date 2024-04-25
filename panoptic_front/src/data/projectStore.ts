@@ -5,13 +5,12 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, ref, watch } from "vue";
-import { ActionParam, Actions, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, InstancePropertyValue, ModalId, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyID, PropertyIndex, PropertyMode, PropertyType, PropertyValue, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, UpdateCounter, VectorDescription } from "./models";
-import { buildTabState, defaultPropertyOption, objValues, propertyDefault } from "./builder";
+import { computed, nextTick, reactive, ref } from "vue";
+import { Actions, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
-import { usePanopticStore } from "./panopticStore";
 import { sleep } from "@/utils/utils";
 
 let tabManager: TabManager = undefined
@@ -58,16 +57,6 @@ export const useProjectStore = defineStore('projectStore', () => {
     const folderRoots = computed(() => {
         return Object.values(data.folders).filter(f => f.parent == null) as Folder[]
     })
-    // const hasSimilaryFunction = computed(() => {
-    //     const action = actions.value.find(a => a.name == 'find_similar')
-    //     if(!action) return false
-    //     return action.selectedFunction != undefined
-    // })
-    // const hasGroupFunction = computed(() => {
-    //     const action = actions.value.find(a => a.name == 'group')
-    //     if(!action) return false
-    //     return action.selectedFunction != undefined
-    // })
 
     // =======================
     // =======Functions=======
@@ -86,14 +75,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
-
-        // properties[PropertyID.id] = { id: PropertyID.id, name: '', type: 'id', mode: PropertyMode.computed }
-        // properties[PropertyID.sha1] = { id: PropertyID.sha1, name: 'sha1', type: PropertyType._sha1, mode: PropertyMode.computed }
-        // properties[PropertyID.ahash] = { id: PropertyID.ahash, name: 'average hash', type: PropertyType._ahash, mode: PropertyMode.computed }
-        // properties[PropertyID.folders] = { id: PropertyID.folders, name: 'folders', type: PropertyType._folders, mode: PropertyMode.computed }
-        // properties[PropertyID.width] = { id: PropertyID.width, name: 'width', type: PropertyType._width, mode: PropertyMode.computed }
-        // properties[PropertyID.height] = { id: PropertyID.height, name: 'height', type: PropertyType._height, mode: PropertyMode.computed }
-
 
         importProperties(properties)
         objValues(images).forEach((i) => importImage(i))
@@ -116,7 +97,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         // console.time('tab state')
         let tabs = await apiGetTabs()
         await loadTabs(tabs)
-        verifySelectedTab()
         verifyData()
         // console.timeEnd('tab state')
 
@@ -221,10 +201,13 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function removeTab(tabId: number) {
         if (objValues(data.tabs).length == 1) {
             await addTab('Tab1')
+        } else {
+            let index = objValues(data.tabs).sort((a, b) => a.id - b.id).findIndex(t => t.id == tabId)
+            index = index != 0 ? index - 1 : 1
+            await selectTab(objValues(data.tabs)[index].id)
         }
         delete data.tabs[tabId]
         await apiSetTabs(data.tabs)
-        verifySelectedTab()
     }
 
     async function updateTabs() {
@@ -232,30 +215,31 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function selectTab(tabId: number) {
+        objValues(data.tabs).forEach(t => {
+            if (t.id == tabId) t.selected = true
+            else t.selected = false
+        })
         data.selectedTabId = tabId
         await tabManager.load(data.tabs[data.selectedTabId])
         updatePropertyOptions()
     }
 
     async function loadTabs(tabs: TabIndex) {
-        for(let tab of Object.values(tabs) as TabState[]) {
+        for (let tab of Object.values(tabs) as TabState[]) {
             if (tab.version != softwareUiVersion) continue
             data.tabs[tab.id] = tab
         }
         if (Object.keys(data.tabs).length == 0) {
             await addTab('Tab1')
         } else {
-            await selectTab(tabs[0].id)
+            const selected = objValues(data.tabs).find(t => t.selected)
+            if (selected) {
+                await selectTab(selected.id)
+            } else {
+                await selectTab(tabs[0].id)
+            }
         }
-        verifySelectedTab()
         updatePropertyOptions()
-    }
-
-    function verifySelectedTab() {
-        if (getTab() != undefined) {
-            return
-        }
-        data.selectedTabId = Number(Object.keys(data.tabs)[0])
     }
 
     function importImage(img: Image) {
