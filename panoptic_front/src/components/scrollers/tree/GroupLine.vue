@@ -102,7 +102,6 @@ function closeChildren() {
             <SelectCircle :small="true" :model-value="group.view.selected"
                 @update:model-value="emits('select', group.id)" />
         </div>
-        {{ group.order}}
         <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
             <template v-for="propValue in propertyValues">

@@ -167,6 +167,7 @@ export interface TabState {
     id: number
     name: string
     display: string
+    selected?: boolean
 
     filterState: FilterState
     sortState: SortState,
