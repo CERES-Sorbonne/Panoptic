@@ -2,10 +2,15 @@
 @import "../node_modules/bootstrap/scss/variables";
 @import "../node_modules/bootstrap/scss/mixins";
 
-$theme-colors: map-merge($theme-colors, (
-  "selected": #eae8e8,
-  "light": #fbfbfb,
-  "medium": #e5e3e3
-));
+$theme-colors: map-merge($theme-colors, ("selected": #eae8e8,
+      "light": #fbfbfb,
+      "medium": #e5e3e3));
+
+
+
+$spinner-width-sm: 13px;
+$spinner-height-sm: $spinner-width-sm;
+$spinner-border-width-sm: 2px;
+
 
 @import "../node_modules/bootstrap/scss/bootstrap";
