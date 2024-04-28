@@ -7,7 +7,7 @@ import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
 import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
+import { GroupLine, Image, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { computeMLGroups } from '@/utils/utils'
 import ActionButton from '@/components/actions/ActionButton.vue'
@@ -84,28 +84,33 @@ function closeChildren() {
     emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 
+const saving = ref(false)
 async function saveHirachy() {
+    if(saving.value) return
+
+    saving.value = true
     const children = group.value.children
     const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.sha1)
     let id = 0
-    const idFunc = () => { id -= 1; return id}
-    const imageTags: {[imgId: number]: number[]} = {}
-    group.value.images.forEach(i => imageTags[i.id] = [])
-    const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), imageTags)
-    const fakeIdToReal: {[id: number]: Tag} = {0: {id: 0, value: '', parents: [], propertyId: property.id}}
+    const idFunc = () => { id -= 1; return id }
+    // const imageTags: {[imgId: number]: number[]} = {}
+    const tagToImages: { [tagId: number]: Image[] } = {}
+    // group.value.images.forEach(i => imageTags[i.id] = [])
+    const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), tagToImages)
+    const fakeIdToReal: { [id: number]: Tag } = { 0: { id: 0, value: '', parents: [], propertyId: property.id } }
 
     let todo = [...tags]
     let depth = 1
-    while(todo.length) {
+    while (todo.length) {
         const keep = []
-        for(let tag of tags) {
-            if(tag.parents.length > depth) {
+        for (let tag of tags) {
+            if (tag.parents.length > depth) {
                 keep.push(tag)
                 continue
             } else if (tag.parents.length == depth) {
-                const oldLast = tag.parents[tag.parents.length-1]
+                const oldLast = tag.parents[tag.parents.length - 1]
                 tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
-                const lastParent = tag.parents[tag.parents.length-1]
+                const lastParent = tag.parents[tag.parents.length - 1]
                 const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
                 const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
                 fakeIdToReal[tag.id] = realTag
@@ -116,29 +121,36 @@ async function saveHirachy() {
     }
     console.log('created tags')
 
-    for(let imgId in imageTags) {
-        // console.log(imageTags[imgId])
-        const tags = imageTags[imgId].map(id => fakeIdToReal[id]).map(t => t.id)
-        store.setPropertyValue(property.id, [store.data.images[imgId]], tags, true)
+    // for(let imgId in imageTags) {
+    //     // console.log(imageTags[imgId])
+    //     const tags = imageTags[imgId].map(id => fakeIdToReal[id]).map(t => t.id)
+    //     store.setPropertyValue(property.id, [store.data.images[imgId]], tags, true)
+    // }
+    for (let tagId in tagToImages) {
+        const images = tagToImages[tagId]
+        const realTag = fakeIdToReal[tagId]
+        await store.setTagPropertyValue(property.id, images, [realTag.id], 'add', true)
     }
+
+    saving.value = false
 }
 
-function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, imageTags: {[imgId: number]: number[]}) {
+function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Image[] }) {
     const res: Tag[] = []
     const prefix = parentTag?.value ?? ''
     const parents = [...parentTag.parents, parentTag.id]
 
-    for(let i = 0; i < children.length; i++) {
+    for (let i = 0; i < children.length; i++) {
         const child = children[i]
         const value = prefix + '.' + i
         const tag = buildTag(idFunc(), parentTag.propertyId, value, parents)
         res.push(tag)
-        
-        if(child.children.length && child.subGroupType != GroupType.Sha1) {
-            const subRes = childrenToTags(child.children, idFunc, tag, imageTags)
+
+        if (child.children.length && child.subGroupType != GroupType.Sha1) {
+            const subRes = childrenToTags(child.children, idFunc, tag, tagToImages)
             res.push(...subRes)
         } else {
-            child.images.forEach(i => imageTags[i.id].push(tag.id))
+            tagToImages[tag.id] = child.images
         }
     }
     return res
@@ -210,7 +222,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, ima
                 <div class="sbb cluster-close" @click="saveHirachy">
                     <span style="position: relative; top: 1px">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
-                        <i class="bi bi-diagram-3"></i>
+                        <i v-if="!saving" class="bi bi-diagram-3"></i>
+                        <div v-else class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
                     </span>
                 </div>
             </div>
