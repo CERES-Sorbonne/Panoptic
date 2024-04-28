@@ -63,7 +63,6 @@ function computeLines() {
 
     let lastGroupId = undefined
     let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
-
     while (current) {
         const group = current.group
         if (lastGroupId != group.id && group.id != ROOT_ID) {

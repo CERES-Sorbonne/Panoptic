@@ -38,7 +38,7 @@ onMounted(async () => {
         if (ev.key == 'Alt') keyState.alt = true;
         if (ev.key == 'Shift') keyState.shift = true;
         if (ev.key == 'ArrowLeft') keyState.left = true;
-        if (ev.key == 'ArrowRight') keyState.right = true;
+        if (ev.key == 'ArrowRight') {keyState.right = true; console.log('keeeyy')}
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;

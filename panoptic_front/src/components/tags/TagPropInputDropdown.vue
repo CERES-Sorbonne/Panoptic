@@ -6,7 +6,7 @@
  */
 
 import TagInputDropdown from './TagInputDropdown.vue';
-import { nextTick, onMounted, ref, toRefs, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual, computedPropValue } from '@/utils/utils';
 import { Property, Image } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
@@ -65,6 +65,7 @@ watch(propValue, updateLocal)
 // watch(localValue, save)
 watch(() => props.minHeight, onResize)
 watch(() => props.width, onResize)
+watch(() => props.image.id, () => console.log("lala"))
 </script>
 
 <template>
