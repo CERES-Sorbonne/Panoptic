@@ -7,7 +7,7 @@ import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
 import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine } from '@/data/models'
+import { GroupLine, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { computeMLGroups } from '@/utils/utils'
 import ActionButton from '@/components/actions/ActionButton.vue'
@@ -49,7 +49,6 @@ const groupName = computed(() => {
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
 async function addClusters(groupResult) {
-    console.log(groupResult)
     const groups = groupResult.groups.map((group, index) => {
         const instances = group.ids.map(i => store.data.images[i])
         const res = buildGroup('cluster:' + String(index) + ':' + props.item.id, instances, GroupType.Cluster)
@@ -85,13 +84,73 @@ function closeChildren() {
     emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 
+async function saveHirachy() {
+    const children = group.value.children
+    const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.sha1)
+    let id = 0
+    const idFunc = () => { id -= 1; return id}
+    const imageTags: {[imgId: number]: number[]} = {}
+    group.value.images.forEach(i => imageTags[i.id] = [])
+    const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), imageTags)
+    const fakeIdToReal: {[id: number]: Tag} = {0: {id: 0, value: '', parents: [], propertyId: property.id}}
+
+    let todo = [...tags]
+    let depth = 1
+    while(todo.length) {
+        const keep = []
+        for(let tag of tags) {
+            if(tag.parents.length > depth) {
+                keep.push(tag)
+                continue
+            } else if (tag.parents.length == depth) {
+                const oldLast = tag.parents[tag.parents.length-1]
+                tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
+                const lastParent = tag.parents[tag.parents.length-1]
+                const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
+                const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
+                fakeIdToReal[tag.id] = realTag
+            }
+        }
+        depth += 1
+        todo = keep
+    }
+    console.log('created tags')
+
+    for(let imgId in imageTags) {
+        // console.log(imageTags[imgId])
+        const tags = imageTags[imgId].map(id => fakeIdToReal[id]).map(t => t.id)
+        store.setPropertyValue(property.id, [store.data.images[imgId]], tags, true)
+    }
+}
+
+function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, imageTags: {[imgId: number]: number[]}) {
+    const res: Tag[] = []
+    const prefix = parentTag?.value ?? ''
+    const parents = [...parentTag.parents, parentTag.id]
+
+    for(let i = 0; i < children.length; i++) {
+        const child = children[i]
+        const value = prefix + '.' + i
+        const tag = buildTag(idFunc(), parentTag.propertyId, value, parents)
+        res.push(tag)
+        
+        if(child.children.length && child.subGroupType != GroupType.Sha1) {
+            const subRes = childrenToTags(child.children, idFunc, tag, imageTags)
+            res.push(...subRes)
+        } else {
+            child.images.forEach(i => imageTags[i.id].push(tag.id))
+        }
+    }
+    return res
+}
+
 </script>
 
 <template>
     <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden" @mouseenter="hoverGroup = true"
         @mouseleave="hoverGroup = false">
-        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2" @click="$emit('scroll', parentId)"
-            @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
+        <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
+            @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
@@ -113,9 +172,10 @@ function closeChildren() {
         <div v-if="group.type == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
             <ClusterBadge :value="group.meta.score" />
         </div>
-        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.images.length }} Images</div>
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.images.length }} Images
+        </div>
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
-            subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
+        subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-2">
@@ -144,6 +204,15 @@ function closeChildren() {
             </div>
             <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
                 <div class="sbb cluster-close" @click="clear">x clusters</div>
+            </div>
+
+            <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
+                <div class="sbb cluster-close" @click="saveHirachy">
+                    <span style="position: relative; top: 1px">
+                        <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
+                        <i class="bi bi-diagram-3"></i>
+                    </span>
+                </div>
             </div>
         </div>
 

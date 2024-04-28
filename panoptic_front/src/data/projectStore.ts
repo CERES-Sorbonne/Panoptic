@@ -366,6 +366,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         importProperties([newProperty])
         updatePropertyOptions()
         getTab().visibleProperties[newProperty.id] = true
+        return newProperty
     }
 
     async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, dontEmit?: boolean) {
