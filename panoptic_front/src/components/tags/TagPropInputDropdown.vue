@@ -65,7 +65,6 @@ watch(propValue, updateLocal)
 // watch(localValue, save)
 watch(() => props.minHeight, onResize)
 watch(() => props.width, onResize)
-watch(() => props.image.id, () => console.log("lala"))
 </script>
 
 <template>

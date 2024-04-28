@@ -3,7 +3,7 @@ import GridScroller from '@/components/scrollers/grid/GridScroller.vue';
 import { GroupManager } from '@/core/GroupManager';
 import { Image, PropertyID, PropertyMode } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 
 const store = useProjectStore()
 
@@ -20,17 +20,21 @@ const properties = computed(() => {
     return res
 })
 
-onMounted(() => {
+function update() {
     props.groupManager.clear()
     props.groupManager.setSha1Mode(false)
     const images = store.data.sha1Index[props.image.sha1]
     props.groupManager.group(images, undefined, true)
-})
+}
+
+onMounted(update)
+watch(() => props.image, update)
 </script>
 
 <template>
-    <div v-if="props.groupManager.hasResult()" class="m-0 p-0" style="overflow-x: scroll; overflow-y: hidden;" :style="{ width: props.width + 'px' }">
-        <GridScroller :show-images="false" :manager="props.groupManager" :height="props.height" :width="props.width -15"
+    <div v-if="props.groupManager.hasResult()" class="m-0 p-0" style="overflow-x: scroll; overflow-y: hidden;"
+        :style="{ width: props.width + 'px' }">
+        <GridScroller :show-images="false" :manager="props.groupManager" :height="props.height" :width="props.width - 15"
             :selected-properties="properties" />
     </div>
 </template>
