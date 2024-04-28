@@ -131,6 +131,10 @@ export interface DeleteTagResult {
     updatedTags: Tag[]
 }
 
+export function buildTag(id: number, propertyId: number, value: string, parents?: number[]) {
+    return {id, propertyId, value, parents: parents ?? []}
+}
+
 //=============================
 //===========Folders===========
 //=============================
