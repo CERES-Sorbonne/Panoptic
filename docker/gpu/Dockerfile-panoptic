@@ -20,12 +20,16 @@ RUN rm -rf /root/.cache/pip \
     && rm -rf /root/.cache/huggingface/accelerate  \
     && rm -rf /root/.cache/huggingface/omniscient
 
+#RUN mkdir -p /data/ \
+#    && chown -R 1000:1000 /data/ \
+#    && chmod -R 777 /data/
+
 RUN mkdir -p /data/ \
-    && chown -R 1000:1000 /data/ \
     && chmod -R 777 /data/
 
 ENV PANOPTIC_HOST="0.0.0.0"
 ENV IS_DOCKER="True"
+ENV PANOPTIC_DATA_DIR="/data/"
 
 EXPOSE 8000
 
