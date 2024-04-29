@@ -25,7 +25,9 @@ def get_datadir() -> pathlib.Path:
 
     home = pathlib.Path.home()
     if os.getenv('PANOPTIC_DATA_DIR', ""):
-        return pathlib.Path(os.getenv('PANOPTIC_DATA_DIR')) / "panoptic_data"
+        path = pathlib.Path(os.getenv('PANOPTIC_DATA_DIR')) / "panoptic_data"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
     elif os.getenv('IS_DOCKER', False):
         return pathlib.Path('/data')
     elif sys.platform == "win32":
