@@ -18,6 +18,7 @@ const inputElem = ref(null)
 const filename = ref(null)
 const properties = ref([])
 const take = ref({})
+const loading = ref(false)
 
 const importOptions = computed(() => {
     const res = {}
@@ -38,6 +39,7 @@ const importOptions = computed(() => {
 
 async function importFile() {
     console.log(importOptions.value)
+    loading.value = true
     await apiImportFile(importOptions.value)
     panoptic.hideModal()
     store.reload()
@@ -108,8 +110,10 @@ function clear() {
                         </td>
                     </tr>
                 </table>
-                <div class="d-flex mt-2">
-                    <div class="bbb" @click="importFile">Import</div>
+                <div class="d-flex mt-2 flex-center">
+                    <div v-if="!loading" class="bbb" @click="importFile">Import</div>
+                    <div v-if="loading" class="spinner-border spinner-border-sm" style="position: relative; top: -1px" role="status">
+                    </div>
                 </div>
             </div>
         </template>
