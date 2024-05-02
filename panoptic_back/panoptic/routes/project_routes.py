@@ -56,7 +56,7 @@ async def upload_file_route(file: UploadFile):
 
 @project_router.post('/import/confirm')
 async def import_parse_route(req: ImportPayload):
-    await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative)
+    await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative, fusion=req.fusion)
     await project.importer.confirm_import()
 
 
