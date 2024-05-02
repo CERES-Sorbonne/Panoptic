@@ -132,15 +132,14 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             style="width:10px;height:10px;margin-top:5px;">
                             <span class="sr-only" />
                         </span>
-                        <span v-else class="me-3">
-
-                            <wTT pos="right" message="main.nav.properties.import_properties_tooltip"><i
-                                    class="bi bi-file-earmark-arrow-up btn-icon text-secondary" @click="handleInput" />
+                        <span v-else class="bb me-1">
+                            <wTT pos="right" message="main.nav.properties.import_properties_tooltip">
+                                <i class="bi bi-box-arrow-in-up text-secondary" style="position: relative; top:0px; font-size: 15px;" @click="handleInput" />
                             </wTT>
                         </span>
-                        <span class="me-3">
+                        <span class="bb me-2">
                             <wTT pos="right" message="main.nav.properties.export_properties_tooltip"><i
-                                    class="bi bi-box-arrow-down btn-icon text-secondary"
+                                    class="bi bi-box-arrow-up text-secondary" style="position: relative; top: 0px; font-size: 15px;"
                                     @click="panoptic.showModal(ModalId.EXPORT, undefined)" /></wTT>
                         </span>
                     </div>
