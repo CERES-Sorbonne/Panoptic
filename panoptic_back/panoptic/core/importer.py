@@ -161,7 +161,6 @@ class Importer:
                     ids = trie.search_by_word(path[::-1])
                 row_to_ids.append(ids)
 
-            # TODO: manage selection mode first / last / all / new
             if fusion == 'first':
                 for i in range(len(row_to_ids)):
                     row_to_ids[i] = [row_to_ids[i][0]] if row_to_ids[i] else []
