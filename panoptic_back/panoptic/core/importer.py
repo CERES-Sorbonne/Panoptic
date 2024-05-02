@@ -114,7 +114,8 @@ class Importer:
 
         return file_key, col_to_prop
 
-    async def parse_file(self, exclude: list[int] = None):
+    async def parse_file(self, exclude: list[int] = None, properties: dict[int, Property] = None,
+                         relative: bool = False):
         data = ImportData()
 
         columns = list(self._df.columns)
@@ -126,7 +127,10 @@ class Importer:
         exclude = set(exclude) if exclude else set()
         for i, name, type_ in file_props:
             if i not in exclude:
-                col_to_prop[i] = Property(id=-i, name=name, type=type_, mode=PropertyMode.id)
+                if i in properties:
+                    col_to_prop[i] = properties[i]
+                else:
+                    col_to_prop[i] = Property(id=-i, name=name, type=type_, mode=PropertyMode.id)
 
         # merge with db properties if possible
         for db_prop in db_properties:
@@ -151,7 +155,10 @@ class Importer:
             for inst in instances:
                 trie.insert(inst.url[::-1], inst.id)
             for path in paths:
-                ids = trie.search_by_prefix(path[::-1])
+                if relative:
+                    ids = trie.search_by_prefix(path[::-1])
+                else:
+                    ids = trie.search_by_word(path[::-1])
                 row_to_ids.append(ids)
 
             # TODO: manage selection mode first / last / all / new

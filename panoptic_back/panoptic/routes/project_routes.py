@@ -14,7 +14,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     AddTagParentPayload, PropertyUpdate, \
     TagUpdate, VectorDescription, \
     ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
-    PluginParamsPayload
+    PluginParamsPayload, ImportPayload
 
 project_router = APIRouter()
 
@@ -47,16 +47,22 @@ async def properties_by_file(file):
     pass
 
 
-@project_router.post('/upload_file')
+@project_router.post('/import/upload')
 async def upload_file_route(file: UploadFile):
     key, props = await project.importer.upload_csv(file)
     return {"key": key, "properties": props}
     # return await project.importer.analyse_file()
 
 
-@project_router.post('/import_file')
-async def upload_file_route(req: OptionsPayload):
-    return await project.importer.import_file(req.options)
+@project_router.post('/import/confirm')
+async def import_parse_route(req: ImportPayload):
+    await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative)
+    await project.importer.confirm_import()
+
+
+# @project_router.post('/import_file')
+# async def upload_file_route(req: OptionsPayload):
+#     return await project.importer.import_file(req.options)
 
 
 #
