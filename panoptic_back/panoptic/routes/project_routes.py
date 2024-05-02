@@ -42,11 +42,6 @@ async def update_property_route(payload: PropertyUpdate) -> Property:
     return await project.db.update_property(payload)
 
 
-@project_router.post('/property/file')
-async def properties_by_file(file):
-    pass
-
-
 @project_router.post('/import/upload')
 async def upload_file_route(file: UploadFile):
     key, props = await project.importer.upload_csv(file)
@@ -58,19 +53,6 @@ async def upload_file_route(file: UploadFile):
 async def import_parse_route(req: ImportPayload):
     await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative, fusion=req.fusion)
     await project.importer.confirm_import()
-
-
-# @project_router.post('/import_file')
-# async def upload_file_route(req: OptionsPayload):
-#     return await project.importer.import_file(req.options)
-
-
-#
-# @project_router.post('/analyse_file')
-# async def analyse_file_route():
-#     return await project.importer.analyse_file(test.file)
-#     # data = pd.read_csv(file.file, sep=";")
-#     # return await read_properties_file(data)
 
 
 @project_router.post('/export')
