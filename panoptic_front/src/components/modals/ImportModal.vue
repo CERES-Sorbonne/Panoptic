@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { apiExportProperties, apiImportFile, apiUploadPropertyCsv } from '@/data/api';
+import { apiExportProperties, apiConfirmImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import * as bootstrap from 'bootstrap';
@@ -19,29 +19,20 @@ const filename = ref(null)
 const properties = ref(null)
 const take = ref({})
 const loading = ref(false)
-const fusion = ref('first')
-
-const importOptions = computed(() => {
-    const res = {}
-    const taken = take.value
-    properties.value.forEach(p => {
-        res[p.col] = {}
-        if (!taken[p.col]) {
-            res[p.col].ignored = true
-        }
-        else if (p.id == null) {
-            res[p.col].mode = p.mode
-        }
-    })
-    delete res[0]
-    return res
-})
+const fusion = ref('new')
+const relative = ref(false)
 
 async function importFile() {
     // console.log(importOptions.value)
     loading.value = true
-    return
-    await apiImportFile(importOptions.value)
+    const exclude = Object.keys(properties.value.properties).filter(i => !take.value[i]).map(Number)
+    const params = {
+        fusion: fusion.value,
+        properties: properties.value.properties,
+        exclude: exclude,
+        relative: relative.value
+    }
+    await apiConfirmImport(params)
     panoptic.hideModal()
     store.reload()
 }
@@ -61,6 +52,8 @@ function clear() {
     properties.value = null
     inputElem.value.value = null
     take.value = {}
+    relative.value = false
+    fusion.value = 'new'
 }
 </script>
 
@@ -78,7 +71,6 @@ function clear() {
                 <div v-else class="sbc" @click="inputElem.click()">Upload <i class="bi bi-file-earmark-arrow-up" />
                 </div>
             </div>
-            {{ properties }}
             <div v-if="filename" class="p-2">
                 <table>
                     <tr>
@@ -111,9 +103,9 @@ function clear() {
                             </span>
                         </td>
                     </tr>
-                    <tr>
-                        <td colspan="5" class="pt-2">
-                            <div v-if="properties.key == 'path'" class="d-flex">
+                    <tr v-if="properties.key == 'path'" >
+                        <td colspan="3" class="pt-2">
+                            <div class="d-flex">
                                 <div class="me-1">Fusion Mode</div>
                                 <select v-model="fusion" :disabled="loading">
                                     <option value="first">First</option>
@@ -122,6 +114,10 @@ function clear() {
                                     <option value="all">All</option>
                                 </select>
                             </div>
+                        </td>
+                        <td colspan="2" class="pt-2">
+                            Relatif Path
+                            <input type="checkbox" v-model="relative"/>
                         </td>
                     </tr>
                     <tr>

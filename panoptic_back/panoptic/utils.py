@@ -242,6 +242,15 @@ class Trie:
         self._find_suffixes(node, suffixes)
         return suffixes
 
+    def search_by_word(self, word):
+        node = self.root
+        for char in word:
+            if char not in node.children:
+                return []  # No words with the given prefix exist
+            node = node.children[char]
+        res = node.ids
+        return res
+
     def _find_suffixes(self, node, suffixes):
         if node.is_end_of_word:
             suffixes.extend(node.ids)  # Assuming prefix is constructed from the path traversed so far

@@ -175,12 +175,12 @@ export const apiUploadPropFile = async (file: any) => {
 }
 
 export async function apiUploadPropertyCsv(file) {
-    const res = await uploadFile('/upload_file', file)
-    return res.data as PropertyDescription[]
+    const res = await uploadFile('/import/upload', file)
+    return res.data
 }
 
-export async function apiImportFile(options) {
-    const res = await axios.post('/import_file', {options})
+export async function apiConfirmImport(options) {
+    const res = await axios.post('/import/confirm', options)
     return res.data
 }
 
