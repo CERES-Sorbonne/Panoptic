@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import sqlite3
@@ -9,6 +10,16 @@ from panoptic.core.db.create import tables, DB_VERSION, software_db_version
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
 aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='float32'))
+
+DB_LOCK = asyncio.Lock()
+
+
+def db_lock(func):
+    async def wrapper(*args, **kwargs):
+        async with DB_LOCK:
+            return await func(*args, **kwargs)
+
+    return wrapper
 
 
 class DbConnection:
