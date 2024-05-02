@@ -73,6 +73,11 @@ def filesystem_info_route():
     return list_index()
 
 
+@selection_router.get("/filesystem/count/{path:path}")
+def fs_count_route(path: str = ""):
+    return {"count": count_contents(path), "path": path }
+
+
 @selection_router.get('/plugins')
 async def get_plugins_route():
     return panoptic.get_plugin_paths()
@@ -109,6 +114,14 @@ def list_contents(full_path: str = '/'):
     images = images_in_folder(full_path)
 
     return {'images': images[0:40], 'directories': directories}
+
+
+def count_contents(full_path: str):
+    folder = os.path.normpath(full_path)
+    all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
+    all_images = [i for i in all_files if
+                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+    return len(all_images)
 
 
 def list_disk():

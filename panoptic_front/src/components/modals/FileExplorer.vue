@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
 
-import { apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/api';
+import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/api';
 import { DirInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';
@@ -21,9 +21,10 @@ const fastList = reactive([] as DirInfo[])
 const partitionList = reactive([] as DirInfo[])
 const imageList = reactive([] as string[])
 const openFolders = reactive([] as DirInfo[][])
-const selectedFolder = ref({path: ""} as DirInfo)
-
+const selectedFolder = ref({ path: "" } as DirInfo)
+const selectedFullCount = ref(null)
 const scrollerElem = ref(null)
+const isCounting = ref(false)
 
 const baseRoot = computed(() => {
     if (openFolders.length == 0 || openFolders[0].length == 0) return '/'
@@ -48,13 +49,13 @@ const parents = computed(() => {
 })
 
 const isValidPath = computed(() => {
-    if(props.mode === "images"){
+    if (props.mode === "images") {
         return true
     }
-    else if(props.mode === "import" && selectedFolder.value.isProject){
+    else if (props.mode === "import" && selectedFolder.value.isProject) {
         return true
     }
-    else if(props.mode === "create" && !selectedFolder.value.isProject){
+    else if (props.mode === "create" && !selectedFolder.value.isProject) {
         return true
     }
     return false
@@ -78,6 +79,8 @@ async function setOpenFolder(folder: DirInfo) {
     selectedFolder.value = folder
     imageList.length = 0
     imageList.push(...res.images)
+    selectedFullCount.value = null
+    isCounting.value = false
 }
 
 async function openSubFolder(folder: DirInfo, folderIndex: number) {
@@ -89,14 +92,26 @@ async function openSubFolder(folder: DirInfo, folderIndex: number) {
     selectedFolder.value = folder
     imageList.length = 0
     imageList.push(...res.images)
+    selectedFullCount.value = null
+    isCounting.value = false
 }
 
 async function open() {
-    if(!isValidPath.value){
+    if (!isValidPath.value) {
         return false
     }
     emits('select', selectedFolder.value.path)
     goNext()
+}
+
+async function count() {
+    if (isCounting.value || selectedFullCount.value != null) return
+    isCounting.value = true
+    const res = await apiGetFilesystemCount(selectedFolder.value.path)
+    if (res.path == selectedFolder.value.path) {
+        selectedFullCount.value = res.count
+    }
+    isCounting.value = false
 }
 
 
@@ -148,7 +163,18 @@ onUpdated(() => {
             <div class="bg-success">
                 <div class="path d-flex">
                     <div class="path-string flex-grow-1">{{ selectedFolder.path }}</div>
-                    <div id="confirm-modal" class="open flex-shrink-0" :class="{valid: isValidPath}" @click="open">{{ $t('modals.fs.open') }}</div>
+                    <div class="count text-center" style="min-width: 70px;" @click="count">
+                        <span v-if="selectedFullCount != null" class="me-1">({{ selectedFullCount }} Images)</span>
+                        <span v-else-if="!isCounting">Count</span>
+                        <span v-if="isCounting">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </span>
+                    </div>
+                    <div id="confirm-modal" class="open flex-shrink-0" :class="{ valid: isValidPath }" @click="open">
+                        {{ $t('modals.fs.open') }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -160,7 +186,7 @@ onUpdated(() => {
 
     </div>
 </template>
-  
+
 <style scoped>
 .folder-cols {
     overflow: auto;
@@ -196,13 +222,23 @@ onUpdated(() => {
     padding: 4px 6px;
     /* background-color: rgb(225, 226, 227); */
     background-color: rgb(142, 148, 156);
-    
+
     color: white;
     cursor: pointer;
     border-bottom-right-radius: 5px;
 }
 
-.valid{
+.count {
+    padding: 4px 6px;
+    /* background-color: rgb(225, 226, 227); */
+    background-color: rgb(142, 148, 156);
+
+    color: white;
+    cursor: pointer;
+    /* border-bottom-right-radius: 5px; */
+}
+
+.valid {
     background-color: rgb(73, 134, 213);
 }
 
@@ -257,4 +293,3 @@ onUpdated(() => {
     margin: 4px 0px;
 }
 </style>
- 

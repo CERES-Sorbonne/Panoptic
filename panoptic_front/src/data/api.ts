@@ -198,6 +198,12 @@ export async function apiGetFilesystemLs(path: string) {
     return res.data as { directories: DirInfo[], images: [] }
 }
 
+export async function apiGetFilesystemCount(path: string) {
+    let res = await axios.get('/filesystem/count' + '/' + path)
+    return res.data as { path: string, count: number }
+}
+
+
 export async function apiGetStatus() {
     let res = await axios.get('/status')
     return res.data as SelectionStatus
