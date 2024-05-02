@@ -2,6 +2,7 @@ import asyncio
 import os
 import pathlib
 import sys
+from queue import Queue
 from typing import List, Any, Callable, Awaitable, Dict
 
 from pydantic import BaseModel
@@ -151,7 +152,6 @@ def convert_to_instance_values(values: list[ImagePropertyValue], instances: list
 
 
 def clean_value(prop: Property, v: Any):
-
     if prop.type == PropertyType.date and v:
         return parse_date(v)
 
@@ -193,3 +193,64 @@ def all_equal(l: list):
         if l[i] != l[i + 1]:
             return False
     return True
+
+
+def is_circular(tree: dict[int, set[int]], link: tuple[int, int]):
+    tree[0] = {0}
+    child, parent = link
+    visited = set()
+    queue = Queue()
+    queue.put(parent)
+    while not queue.empty():
+        tag = queue.get()
+        visited.add(tag)
+        if tag == child:
+            return True
+        to_visit = [t for t in tree[tag] if t not in visited]
+        [queue.put(t) for t in to_visit]
+    return False
+
+
+class Node:
+    def __init__(self):
+        self.children = {}  # A dictionary to store children nodes indexed by characters
+        self.is_end_of_word = False  # Marks the end of a word (suffix)
+        self.ids = []
+
+
+class Trie:
+    def __init__(self):
+        self.root = Node()
+
+    def insert(self, word, id_):
+        node = self.root
+        for char in word:
+            if char not in node.children:
+                node.children[char] = Node()
+            node = node.children[char]
+        node.is_end_of_word = True  # Marking the end of a suffix (string)
+        node.ids.append(id_)
+
+    def search_by_prefix(self, prefix):
+        node = self.root
+        for char in prefix:
+            if char not in node.children:
+                return []  # No words with the given prefix exist
+            node = node.children[char]
+
+        suffixes = []
+        self._find_suffixes(node, suffixes)
+        return suffixes
+
+    def _find_suffixes(self, node, suffixes):
+        if node.is_end_of_word:
+            suffixes.extend(node.ids)  # Assuming prefix is constructed from the path traversed so far
+
+        for char, child in node.children.items():
+            self._find_suffixes(child, suffixes)
+
+
+def chunk_list(input_list, n):
+    """Split a list into chunks of a given size."""
+    # Use a list comprehension to create chunks
+    return [input_list[i:i + n] for i in range(0, len(input_list), n)]

@@ -50,6 +50,7 @@ export function computeTagCount(images: Image[], properties: PropertyIndex) {
             if(!propValue.value || !Array.isArray(propValue.value)) continue
 
             for(let tagId of propValue.value) {
+                if(!property.tags[tagId]) continue
                 property.tags[tagId].count += 1
             }
         }

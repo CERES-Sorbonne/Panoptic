@@ -49,8 +49,9 @@ async def properties_by_file(file):
 
 @project_router.post('/upload_file')
 async def upload_file_route(file: UploadFile):
-    await project.importer.upload_csv(file)
-    return await project.importer.analyse_file()
+    key, props = await project.importer.upload_csv(file)
+    return {"key": key, "properties": props}
+    # return await project.importer.analyse_file()
 
 
 @project_router.post('/import_file')

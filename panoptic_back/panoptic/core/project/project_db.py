@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 from random import randint
+from time import time
 from typing import Any
 
 from panoptic.core.db.db import Db
@@ -11,7 +12,7 @@ from panoptic.models import Property, PropertyUpdate, PropertyType, InstanceProp
     PropertyMode
 from panoptic.models.computed_properties import computed_properties
 from panoptic.models.results import DeleteTagResult
-from panoptic.utils import convert_to_instance_values, clean_value, get_computed_values
+from panoptic.utils import convert_to_instance_values, clean_value, get_computed_values, is_circular
 
 
 class ProjectDb:
@@ -32,6 +33,9 @@ class ProjectDb:
 
     async def add_property(self, name: str, property_type: PropertyType, mode='id') -> Property:
         return await self._db.add_property(name, property_type.value, mode)
+
+    async def add_properties(self, properties: list[Property]):
+        return await self._db.add_properties(properties)
 
     async def get_properties(self, no_computed=False) -> list[Property]:
         properties = await self._db.get_properties()
@@ -159,6 +163,9 @@ class ProjectDb:
         res = await self._db.add_instance(folder_id, name, extension, sha1, url, width, height, ahash)
         self.on_import_instance.emit(res)
 
+    async def add_instances(self, instances: list[Instance]):
+        return await self._db.add_instances(instances)
+
     async def get_instances(self, ids: list[int] = None, sha1s: list[str] = None):
         images = await self._db.get_instances(ids=ids, sha1s=sha1s)
         return images
@@ -191,6 +198,10 @@ class ProjectDb:
                 res.append(new_instance)
         return res
 
+    async def test_empty(self, instance_ids: list[int]):
+        res = await self._db.count_instance_values(instance_ids)
+        return set([i for i in instance_ids if i not in res])
+
     # ========== Tags ==========
     async def get_tags(self, prop: int = None) -> list[Tag]:
         tag_list = await self._db.get_tags(prop)
@@ -208,6 +219,43 @@ class ProjectDb:
             parents = [parent_id]
             tag_id = await self._db.add_tag(property_id, value, json.dumps(parents), color)
         return await self._db.get_tag_by_id(tag_id)
+
+    async def add_tags(self, tags: list[Tag]) -> list[Tag]:
+        new_tags = await self._db.add_tags(tags)
+        if len(new_tags) != len(tags):
+            raise Exception('Failed to add all tags. Unexpected Behavior')
+        fake_to_id = {t.id: new_t.id for t, new_t in zip(tags, new_tags)}
+
+        def correct(tid: int):
+            return fake_to_id[tid] if tid in fake_to_id else tid
+
+        for t, new_t in zip(tags, new_tags):
+            new_t.parents = [correct(p) for p in t.parents]
+
+        await self.set_tags_parents([(t.id, t.parents) for t in new_tags])
+
+        return new_tags
+
+    async def set_tags_parents(self, links: list[tuple[int, list[int]]]):
+        tree = await self.get_tag_tree()
+        for i in range(len(links)):
+            child, parents = links[i]
+            valid_parents = []
+            for parent in parents:
+                if is_circular(tree, (child, parent)):
+                    continue
+                valid_parents.append(parent)
+                tree[child].add(parent)
+            links[i] = (child, valid_parents)
+
+        await self._db.set_tags_parents(links)
+
+
+
+    async def get_tag_tree(self):
+        tags = await self.get_tags()
+        tree: dict[int, set[int]] = {t.id: set(t.parents) for t in tags}
+        return tree
 
     async def add_tag_parent(self, tag_id, parent_id):
         tag = await self._db.get_tag_by_id(tag_id)

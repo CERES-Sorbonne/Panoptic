@@ -16,20 +16,20 @@ const store = useProjectStore()
 // const properties = computed(() => panoptic.modalData as PropertyDescription[])
 const inputElem = ref(null)
 const filename = ref(null)
-const properties = ref([])
+const properties = ref(null)
 const take = ref({})
 const loading = ref(false)
+const fusion = ref('first')
 
 const importOptions = computed(() => {
     const res = {}
-    console.log(properties.value)
     const taken = take.value
     properties.value.forEach(p => {
         res[p.col] = {}
-        if(!taken[p.col]) {
+        if (!taken[p.col]) {
             res[p.col].ignored = true
         }
-        else if(p.id == null) {
+        else if (p.id == null) {
             res[p.col].mode = p.mode
         }
     })
@@ -38,8 +38,9 @@ const importOptions = computed(() => {
 })
 
 async function importFile() {
-    console.log(importOptions.value)
+    // console.log(importOptions.value)
     loading.value = true
+    return
     await apiImportFile(importOptions.value)
     panoptic.hideModal()
     store.reload()
@@ -52,12 +53,12 @@ async function uploadFile(e) {
     const res = await apiUploadPropertyCsv(file)
     filename.value = file.name
     properties.value = res
-    properties.value.forEach(p => take.value[p.col] = true)
+    Object.keys(properties.value.properties).forEach(k => take.value[k] = true)
 }
 
 function clear() {
     filename.value = null
-    properties.value = []
+    properties.value = null
     inputElem.value.value = null
     take.value = {}
 }
@@ -74,8 +75,10 @@ function clear() {
                 <div class="me-1">File</div>
                 <input type="file" ref="inputElem" accept="text/csv" @change="uploadFile" hidden />
                 <div v-if="filename" class="sbb" @click="clear">{{ filename }}</div>
-                <div v-else class="sbc" @click="inputElem.click()">Upload <i class="bi bi-file-earmark-arrow-up" /></div>
+                <div v-else class="sbc" @click="inputElem.click()">Upload <i class="bi bi-file-earmark-arrow-up" />
+                </div>
             </div>
+            {{ properties }}
             <div v-if="filename" class="p-2">
                 <table>
                     <tr>
@@ -86,21 +89,20 @@ function clear() {
                         <th class="border">Mode</th>
                     </tr>
 
-                    <tr v-for="p, i in properties" class="border" :class="!take[p.col] ? 'dimmed' : ''">
-                        <td class="border text-center"><input v-if="i != 0" type="checkbox" v-model="take[p.col]" /></td>
-                        <td class="border text-center">{{ p.col }}</td>
+                    <tr v-for="p, i in properties.properties" class="border" :class="!take[i] ? 'dimmed' : ''">
+                        <td class="border text-center"><input v-if="i != 0" type="checkbox" v-model="take[i]" /></td>
+                        <td class="border text-center">{{ i }}</td>
                         <td class="border">
                             <PropertyIcon :type="p.type" /> {{ p.name }}
                         </td>
                         <td class="border text-center">
-                            <div v-if="p.id != null" class="exist"></div>
+                            <div v-if="p.id > 0" class="exist"></div>
                         </td>
                         <td class="border">
-                            <span v-if="p.id == null">
-                                <select id="base" name="base" v-model="p.mode" :disabled="!take[p.col]">
+                            <span v-if="p.id < 0">
+                                <select id="base" name="base" v-model="p.mode" :disabled="!take[i]">
                                     <option value="sha1">Image</option>
                                     <option value="id">Instance</option>
-                                    <!-- Add more options as needed -->
                                 </select>
                             </span>
                             <span v-else>
@@ -109,12 +111,35 @@ function clear() {
                             </span>
                         </td>
                     </tr>
+                    <tr>
+                        <td colspan="5" class="pt-2">
+                            <div v-if="properties.key == 'path'" class="d-flex">
+                                <div class="me-1">Fusion Mode</div>
+                                <select v-model="fusion" :disabled="loading">
+                                    <option value="first">First</option>
+                                    <option value="last">Last</option>
+                                    <option value="new">New</option>
+                                    <option value="all">All</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" class="">
+                            <div class="d-flex mt-2 flex-center w-100">
+                                <div v-if="!loading" class="bbb text-center w-100" @click="importFile">Import
+                                </div>
+                                <div v-if="loading" class="text-center w-100 border rounded">
+                                    <div class="spinner-border spinner-border-sm"
+                                        style="position: relative; top: -1px" role="status">
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
                 </table>
-                <div class="d-flex mt-2 flex-center">
-                    <div v-if="!loading" class="bbb" @click="importFile">Import</div>
-                    <div v-if="loading" class="spinner-border spinner-border-sm" style="position: relative; top: -1px" role="status">
-                    </div>
-                </div>
+
             </div>
         </template>
     </Modal>
@@ -146,5 +171,4 @@ td {
 th {
     padding: 2px 3px;
 }
-
 </style>

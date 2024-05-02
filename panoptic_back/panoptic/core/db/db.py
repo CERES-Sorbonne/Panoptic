@@ -5,9 +5,9 @@ import json
 from typing import List, Any
 
 import numpy as np
-from pypika import Table, Parameter, PostgreSQLQuery
+from pypika import Table, Parameter, PostgreSQLQuery, Order, functions
 
-from panoptic.core.db.db_connection import DbConnection
+from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict
 from panoptic.models import Instance, ComputedValue, Vector, PluginDefaultParams, ActionParam, \
     VectorDescription, InstancePropertyValue, ImagePropertyValue
@@ -32,11 +32,23 @@ class Db:
     # =================== Properties ======================
     # =====================================================
 
+    @db_lock
     async def add_property(self, name: str, property_type: str, mode: str) -> Property:
         query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'
         cursor = await self.conn.execute_query(query, (name, property_type, mode))
         prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
         return prop
+
+    @db_lock
+    async def add_properties(self, properties: list[Property]) -> list[Property]:
+        table = Table('properties')
+        query = Query.into(table).columns('name', 'type', 'mode', )
+        query = query.insert(*[(p.name, p.type, p.mode) for p in properties])
+        await self.conn.execute_query(query.get_sql())
+
+        added = await self.get_properties(last=len(properties))
+        added.reverse()
+        return added
 
     async def import_property(self, id_: int, name: str, property_type: str, mode: str) -> Property:
         query = 'INSERT INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?) on conflict do nothing'
@@ -44,9 +56,13 @@ class Db:
         prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
         return prop
 
-    async def get_properties(self) -> list[Property]:
+    async def get_properties(self, last: int = None) -> list[Property]:
         query = "SELECT * from properties"
-        cursor = await self.conn.execute_query(query)
+        if last:
+            query += ' ORDER BY id DESC LIMIT ?'
+            cursor = await self.conn.execute_query(query, (last,))
+        else:
+            cursor = await self.conn.execute_query(query)
         return [Property(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
 
     async def get_property(self, property_id) -> [Property | None]:
@@ -159,14 +175,38 @@ class Db:
         await self.conn.execute_query(query.get_sql())
         return True
 
+    async def count_instance_values(self, instance_ids: list[int]):
+        values = Table('instance_property_values')
+        query = Query.from_(values).select('instance_id', functions.Count('*'))
+        query = query.where(values.instance_id.isin(instance_ids))
+        query = query.groupby(values.instance_id)
+        print(query.get_sql())
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        res = {r[0]: r[1] for r in rows}
+        # print(res)
+        return res
+
     # =====================================================
     # ====================== Tag ==========================
     # =====================================================
 
+    @db_lock
     async def add_tag(self, property_id: int, value: str, parents: str, color: int):
         query = "INSERT INTO tags (property_id, value, parents, color) VALUES (?, ?, ?, ?)"
         cursor = await self.conn.execute_query(query, (property_id, value, parents, color))
         return cursor.lastrowid
+
+    @db_lock
+    async def add_tags(self, tags: list[Tag]) -> list[Tag]:
+        table = Table('tags')
+        query = Query.into(table).columns('property_id', 'value', 'parents', 'color')
+        query = query.insert(*[(p.property_id, p.value, json.dumps([0]), p.color) for p in tags])
+        await self.conn.execute_query(query.get_sql())
+
+        added = await self.get_last_tags(limit=len(tags))
+        added.reverse()
+        return added
 
     async def import_tag(self, id_: int, property_id: int, value: str, parents: str, color: int):
         query = "INSERT INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
@@ -193,6 +233,12 @@ class Db:
         query = "UPDATE tags SET parents = ?, value = ?, color = ? WHERE id = ?"
         await self.conn.execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
 
+    async def set_tags_parents(self, links: list[tuple[int, list[int]]]):
+        query = """
+            UPDATE tags SET parents = ? WHERE id = ? ;
+        """
+        await self.conn.execute_query_many(query, [(json.dumps(p), c) for c, p in links])
+
     async def get_tag_ancestors(self, tag: Tag, acc=None):
         if not acc:
             acc = []
@@ -214,6 +260,14 @@ class Db:
             params = (prop,)
         cursor = await self.conn.execute_query(query, params)
         return [Tag(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+
+    async def get_last_tags(self, limit: int):
+        query = "SELECT * FROM tags ORDER BY id DESC LIMIT ?"
+        cursor = await self.conn.execute_query(query, (limit,))
+        rows = await cursor.fetchall()
+        if rows:
+            return [Tag(**auto_dict(row, cursor)) for row in rows]
+        return []
 
     async def delete_tag_by_id(self, tag_id: int) -> int:
         query = "DELETE FROM tags WHERE id = ?"
@@ -239,6 +293,7 @@ class Db:
     # ================= Instances =========================
     # =====================================================
 
+    @db_lock
     async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
                            height: int,
                            ahash: str):
@@ -265,6 +320,25 @@ class Db:
 
         return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
                         height=height)
+
+    @db_lock
+    async def add_instances(self, instances: list[Instance]):
+        table = Table('instances')
+        query = Query.into(table).columns(
+            'folder_id',
+            'name',
+            'extension',
+            'sha1',
+            'url',
+            'width',
+            'height',
+            'ahash')
+        query = query.insert(*[(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash) for i in instances])
+        await self.conn.execute_query(query.get_sql())
+
+        added = await self.get_instances(last=len(instances))
+        added.reverse()
+        return added
 
     async def import_instance(self, id_: int, folder_id: int, name: str, extension: str, sha1: str, url: str,
                               width: int,
@@ -298,7 +372,7 @@ class Db:
     async def clone_instance(self, i: Instance):
         return await self.add_instance(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash)
 
-    async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None):
+    async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None, last: int = None):
         img_table = Table('instances')
         query = Query.from_(img_table).select('*')
 
@@ -306,6 +380,8 @@ class Db:
             query = query.where(img_table.id.isin(ids))
         if sha1s:
             query = query.where(img_table.sha1.isin(sha1s))
+        if last:
+            query = query.orderby(img_table.id, order=Order.desc).limit(last)
 
         cursor = await self.conn.execute_query(query.get_sql())
         instance = [Instance(*instance) for instance in await cursor.fetchall()]
@@ -462,8 +538,6 @@ class Db:
         query = "INSERT OR REPLACE INTO plugin_data (key, value) VALUES (?, ?)"
         await self.conn.execute_query(query, (key, json.dumps(data)))
         return data
-
-
 
     # async def get_plugin_default_params(self, plugin_name: str):
     #     t = Table('plugin_defaults')
