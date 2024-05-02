@@ -33,6 +33,7 @@ async function importFile() {
         relative: relative.value
     }
     await apiConfirmImport(params)
+    clear()
     panoptic.hideModal()
     store.reload()
 }
@@ -54,6 +55,7 @@ function clear() {
     take.value = {}
     relative.value = false
     fusion.value = 'new'
+    loading.value = false
 }
 </script>
 

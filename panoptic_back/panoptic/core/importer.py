@@ -115,7 +115,7 @@ class Importer:
         return file_key, col_to_prop
 
     async def parse_file(self, exclude: list[int] = None, properties: dict[int, Property] = None,
-                         relative: bool = False):
+                         relative: bool = False, fusion: str = 'new'):
         data = ImportData()
 
         columns = list(self._df.columns)
@@ -162,14 +162,13 @@ class Importer:
                 row_to_ids.append(ids)
 
             # TODO: manage selection mode first / last / all / new
-            mode = 'new'
-            if mode == 'first':
+            if fusion == 'first':
                 for i in range(len(row_to_ids)):
                     row_to_ids[i] = [row_to_ids[i][0]] if row_to_ids[i] else []
-            if mode == 'last':
+            if fusion == 'last':
                 for i in range(len(row_to_ids)):
                     row_to_ids[i] = [row_to_ids[i][-1]] if row_to_ids[i] else []
-            if mode == 'new':
+            if fusion == 'new':
                 to_test = [vv for v in row_to_ids for vv in v]
                 empty = await self.project.db.test_empty(to_test)
                 for i in range(len(row_to_ids)):
