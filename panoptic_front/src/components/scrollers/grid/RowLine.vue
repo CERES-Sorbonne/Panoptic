@@ -197,7 +197,7 @@ watch(rowHeight, emitResizeOnce)
                 :url-mode="false" :width="inputWidth[property.id]" />
             <TagPropInputDropdown v-else-if="isTag(property.type)" :property="property" :image="image" :can-create="true"
                 :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
-                :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]"
+                :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]" :teleport="true"
                 @update:height="h => sizes[property.id] = h" />
             <CheckboxPropInput v-else-if="property.type == PropertyType.checkbox"
                 :min-height="propMinRowHeight[property.id]" ref="inputElems" @update:height="h => sizes[property.id] = (h)"
