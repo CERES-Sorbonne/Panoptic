@@ -67,6 +67,7 @@ function onShow() {
 function onHide() {
     iterator.value = undefined
     navigationHistory.value = []
+    groupManager.clearSelection()
 }
 
 async function onModalDataChange(value: ImageIterator) {
