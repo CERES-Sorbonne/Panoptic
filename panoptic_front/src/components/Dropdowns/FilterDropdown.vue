@@ -8,7 +8,7 @@
 
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
-import { PropertyID, PropertyType} from '@/data/models';
+import { PropertyID, PropertyType } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import OperatorDropdown from '../inputs/OperatorDropdown.vue';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
@@ -18,6 +18,8 @@ import Dropdown from './Dropdown.vue';
 import { Filter, FilterManager, FilterOperator, operatorHasInput } from '@/core/FilterManager';
 import { propertyDefault } from '@/data/builder';
 import { isTag } from '@/utils/utils';
+import DatePropInput from '../inputs/DatePropInput.vue';
+import StandaloneDateInput from '../inputs/monoline/StandaloneDateInput.vue';
 const store = useProjectStore()
 enum State {
     CLOSED = 0,
@@ -93,6 +95,7 @@ function updateProperty(propId) {
 }
 
 function updateOperator(operator: FilterOperator) {
+    localValue.value = null
     props.manager.updateFilter(filterId.value, { operator })
     props.manager.update(true)
     if (inputElem.value) {
@@ -101,7 +104,7 @@ function updateOperator(operator: FilterOperator) {
 }
 
 function updateValue() {
-    // console.log('update value')
+    console.log('update value', localValue.value)
     props.manager.updateFilter(filterId.value, { value: localValue.value })
     props.manager.update(true)
 }
@@ -122,7 +125,11 @@ function updateIfChanged() {
 
 function updateLocal() {
     if (!filter.value) return
+    if(store.data.properties[filter.value.propertyId].type == PropertyType.date && filter.value.value) {
+        localValue.value = new Date(filter.value.value)
+    } else {
     localValue.value = filter.value.value
+    }
 }
 onMounted(updateLocal)
 watch(() => filter.value, () => updateLocal())
@@ -161,7 +168,11 @@ watch(() => filter.value, () => updateLocal())
                             <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
                                 :property="filterProperty" v-model="localValue"
                                 @update:model-value="() => { hide(); updateIfChanged() }" />
-                            <StandaloneTextInput v-else :no-html="true" v-model="localValue" :width="-1" :min-height="20"
+                            <StandaloneDateInput v-else-if="filterProperty.type == PropertyType.date"
+                                :property="filterProperty" v-model="localValue"
+                                @update:model-value="() => { hide(); updateIfChanged() }" />
+                            <StandaloneTextInput v-else :no-html="true" v-model="localValue" :width="-1"
+                                :min-height="20"
                                 :no-nl="store.data.properties[filter.propertyId].type == PropertyType.number"
                                 :url-mode="store.data.properties[filter.propertyId].type == PropertyType.url"
                                 :only-number="store.data.properties[filter.propertyId].type == PropertyType.number"
