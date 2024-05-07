@@ -70,7 +70,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
     },
     [PropertyType.path]: (x?: string) => {
         if (!x) return ''
-        return x
+        return x.toLocaleLowerCase()
     },
     [PropertyType.string]: (x?: string) => {
         if (!x) return ''
@@ -82,7 +82,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
     },
     [PropertyType.url]: (x?: string) => {
         if (!x) return ''
-        return x
+        return x.toLocaleLowerCase()
     },
     [PropertyType._ahash]: (x: string) => {
         return x
