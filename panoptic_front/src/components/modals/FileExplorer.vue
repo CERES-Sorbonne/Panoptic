@@ -201,10 +201,6 @@ onUpdated(() => {
     border-right: 1px solid var(--border-color);
 }
 
-.path {
-    /* border-top: 1px solid var(--border-color); */
-    /* border-bottom: 1px solid var(--border-color); */
-}
 
 .path-label {
     padding: 4px 6px;
