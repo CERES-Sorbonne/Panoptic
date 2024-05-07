@@ -74,7 +74,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
     },
     [PropertyType.string]: (x?: string) => {
         if (!x) return ''
-        return x
+        return x.toLocaleLowerCase()
     },
     [PropertyType.tag]: (x?: string) => {
         if (!x) return ''
