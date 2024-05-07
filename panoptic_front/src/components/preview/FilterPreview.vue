@@ -26,7 +26,7 @@ const property = computed(() => store.data.properties[props.filter.propertyId])
         </div>
         <!-- </td>
     <td class="w-100"> -->
-        <div class="m-0 p-0 me-2" v-if="operatorHasInput(props.filter.operator)" style="width: 150px;">
+        <div class="m-0 p-0 me-2" v-if="operatorHasInput(props.filter.operator)" style="min-width: 150px; max-width: 250px;">
             <PropertyValuePreview :property="property" :value="props.filter.value" />
         </div>
         <!-- </td> -->

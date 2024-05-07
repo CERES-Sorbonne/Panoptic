@@ -8,10 +8,10 @@ import { getImageProperty, pad } from '@/utils/utils';
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 
 
-const props = defineProps({
-    modelValue: Date,
-    width: Number
-})
+const props = defineProps<{
+    modelValue?: Date
+    width?: number
+}>()
 const emits = defineEmits(['update:modelValue', 'blur'])
 
 let _no_reset_flag = false
@@ -73,7 +73,7 @@ function onEsc() {
 }
 
 function updateLocalValue() {
-    if(props.modelValue == internal.value) return
+    if(String(props.modelValue) == String(internal.value)) return
 
     if(props.modelValue) {
         internal.value = new Date(props.modelValue)
@@ -101,7 +101,9 @@ onMounted(() => {
     updateLocalValue()
 })
 
-
+function log(e) {
+    console.log(e, typeof(e))
+}
 
 </script>
 

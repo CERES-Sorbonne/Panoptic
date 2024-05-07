@@ -137,8 +137,8 @@ const operatorMap: { [operator in FilterOperator]?: any } = {
         return a <= b
     },
     [FilterOperator.lower]: (a: any, b: any) => {
-        if (b == undefined) return true;
-        if (a == undefined) return false;
+        if (b == undefined) return true
+        if (a == undefined) return false
         return a < b
     },
     [FilterOperator.greater]: (a: any, b: any) => {
@@ -211,7 +211,7 @@ const operatorMap: { [operator in FilterOperator]?: any } = {
 function createFilterGroup() {
     let filter: FilterGroup = {
         filters: [],
-        groupOperator: FilterOperator.or,
+        groupOperator: FilterOperator.and,
         depth: 0,
         isGroup: true,
         id: -1
@@ -284,6 +284,10 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
             let property = image.properties[propId]
             let propertyValue = property ? property.value : undefined
 
+            if(propType == PropertyType.date && nfilter.value) {
+                nfilter.value = new Date(nfilter.value)
+            }
+
             if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && isTag(propType)) {
                 let filterValue = nfilter.value as number[]
 
@@ -297,7 +301,6 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
                 propertyValue = propertyValue.toLowerCase()
                 nfilter.value = nfilter.value.toLowerCase()
             }
-
             let subRes = computeFilter(nfilter, propertyValue)
             res = groupOperatorFnc(res, subRes)
         }
