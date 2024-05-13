@@ -12,6 +12,7 @@ from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
+from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
@@ -40,6 +41,7 @@ class Project:
         self.task_queue = TaskQueue(self.executor, num_workers=4)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
+        self.undo_queue: UndoQueue | None = None
 
         self.plugin_loaded = False
         self.plugins: List[Plugin] = []
@@ -57,6 +59,8 @@ class Project:
         for plugin_path in paths:
             task = LoadPluginTask(self, plugin_path)
             self.task_queue.add_task(task)
+
+        self.undo_queue = UndoQueue(self.db)
 
         self.is_loaded = True
 

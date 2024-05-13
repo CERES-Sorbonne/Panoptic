@@ -301,4 +301,14 @@ export async function apiSetParamDefaults(defaults: ParamDefaults) {
     return await apiSetUIData('param_defaults', defaults)
 }
 
+export async function apiUndo() {
+    const res = await axios.post('/undo')
+    return res.data
+}
+
+export async function apiRedo() {
+    const res = await axios.post('/redo')
+    return res.data
+}
+
 

@@ -14,7 +14,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     AddTagParentPayload, PropertyUpdate, \
     TagUpdate, VectorDescription, \
     ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
-    PluginParamsPayload, ImportPayload
+    PluginParamsPayload, ImportPayload, DbCommit
 
 project_router = APIRouter()
 
@@ -29,7 +29,10 @@ def set_project(p: Project | None):
 # Route pour créer une property et l'insérer dans la table des properties
 @project_router.post("/property")
 async def create_property_route(payload: PropertyPayload) -> Property:
-    return await project.db.add_property(payload.name, payload.type, payload.mode)
+    res = await project.db.add_property(payload.name, payload.type, payload.mode)
+    commit = DbCommit(created_properties=[res.id])
+    project.undo_queue.add_commit(commit)
+    return res
 
 
 @project_router.get("/property")
@@ -258,6 +261,14 @@ async def set_default_vectors(vector_description: VectorDescription):
     return await get_vectors_info()
 
 
+@project_router.post('/undo')
+async def undo_route():
+    return await project.undo_queue.undo()
+
+
+@project_router.post('/redo')
+async def undo_route():
+    return await project.undo_queue.redo()
 #
 # @project_router.post("/similar/text")
 # async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:

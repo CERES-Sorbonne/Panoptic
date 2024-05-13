@@ -98,7 +98,6 @@ onUnmounted(() => {
     /* box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -webkit-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1);
 -moz-box-shadow: 2px 2px 4px 0px rgba(195,202,217,1); */
-
 }
 
 .popup:focus {

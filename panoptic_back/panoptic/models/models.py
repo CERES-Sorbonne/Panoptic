@@ -62,17 +62,25 @@ class PropertyUpdate(BaseModel):
 #
 #     value: Any
 
-
 @dataclass(slots=True)
-class InstancePropertyValue:
+class InstancePropertyValueKey:
     property_id: int
     instance_id: int
+
+
+@dataclass(slots=True)
+class ImagePropertyValueKey:
+    property_id: int
+    sha1: str
+
+
+@dataclass(slots=True)
+class InstancePropertyValue(InstancePropertyValueKey):
     value: Any
 
 
-class ImagePropertyValue(CamelModel):
-    property_id: int
-    sha1: str
+@dataclass(slots=True)
+class ImagePropertyValue(ImagePropertyValueKey):
     value: Any
 
 
@@ -149,6 +157,7 @@ class VectorDescription(CamelModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.id = f"{self.source}:{self.type}"
+
 
 # @dataclass(slots=True)
 # class VectorPack:
@@ -291,6 +300,21 @@ class PropertyRequest(CamelModel):
     name: str = None
     type: PropertyType = None
     mode: PropertyMode = None
+
+
+@dataclass(slots=True)
+class DbCommit:
+    created_instances: list[id] = field(default_factory=list)
+    created_properties: list[id] = field(default_factory=list)
+    created_tags: list[id] = field(default_factory=list)
+    created_instance_values: list[InstancePropertyValueKey] = field(default_factory=list)
+    created_image_values: list[ImagePropertyValueKey] = field(default_factory=list)
+
+    old_instances: list[Instance] = field(default_factory=list)
+    old_properties: list[Property] = field(default_factory=list)
+    old_tags: list[Tag] = field(default_factory=list)
+    old_instance_values: list[InstancePropertyValue] = field(default_factory=list)
+    old_image_values: list[ImagePropertyValue] = field(default_factory=list)
 
 
 ImportOptions = dict[int, ColumnOption]

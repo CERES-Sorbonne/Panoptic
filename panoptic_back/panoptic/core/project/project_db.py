@@ -207,6 +207,9 @@ class ProjectDb:
         tag_list = await self._db.get_tags(prop)
         return tag_list
 
+    async def get_tags_by_ids(self, ids: list[int]):
+        return await self._db.get_tags_by_ids(ids)
+
     async def add_tag(self, property_id, value, parent_id, color: int) -> Tag:
         existing_tag = await self._db.get_tag(property_id, value)
         if existing_tag is not None:
@@ -249,8 +252,6 @@ class ProjectDb:
             links[i] = (child, valid_parents)
 
         await self._db.set_tags_parents(links)
-
-
 
     async def get_tag_tree(self):
         tags = await self.get_tags()

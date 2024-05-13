@@ -10,7 +10,7 @@ from pypika import Table, Parameter, PostgreSQLQuery, Order, functions
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict
 from panoptic.models import Instance, ComputedValue, Vector, PluginDefaultParams, ActionParam, \
-    VectorDescription, InstancePropertyValue, ImagePropertyValue
+    VectorDescription, InstancePropertyValue, ImagePropertyValue, InstancePropertyValueKey, ImagePropertyValueKey
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -51,9 +51,9 @@ class Db:
         return added
 
     async def import_property(self, id_: int, name: str, property_type: str, mode: str) -> Property:
-        query = 'INSERT INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?) on conflict do nothing'
+        query = 'INSERT OR REPLACE INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?)'
         cursor = await self.conn.execute_query(query, (id_, name, property_type, mode))
-        prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
+        prop = Property(id=id_, name=name, type=property_type, mode=mode)
         return prop
 
     async def get_properties(self, last: int = None) -> list[Property]:
@@ -105,6 +105,17 @@ class Db:
         res = [InstancePropertyValue(**auto_dict(instance, cursor)) for instance in await cursor.fetchall()]
         return res
 
+    async def get_instance_property_values_from_keys(self, keys: list[InstancePropertyValueKey]) \
+            -> list[InstancePropertyValue]:
+
+        query = """
+            SELECT * FROM instance_property_values WHERE property_id = ? AND instance_id = ?
+        """
+
+        cursor = await self.conn.execute_query_many(query, [(k.property_id, k.instance_id) for k in keys])
+        res = [InstancePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()]
+        return res
+
     async def get_image_property_values(self, property_ids: List[int] = None, sha1s: list[str] = None) \
             -> list[ImagePropertyValue]:
         values = Table('image_property_values')
@@ -120,6 +131,17 @@ class Db:
         res = [ImagePropertyValue(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
         return res
 
+    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyValueKey]) \
+            -> list[ImagePropertyValue]:
+
+        query = """
+            SELECT * FROM image_property_values WHERE property_id = ? AND sha1 = ?
+        """
+
+        cursor = await self.conn.execute_query_many(query, [(k.property_id, k.sha1) for k in keys])
+        res = [ImagePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()]
+        return res
+
     async def set_instance_property_value(self, property_id: int, instance_ids: List[int], value: Any):
         json_value = json.dumps(value)
         t = Table('instance_property_values')
@@ -128,6 +150,11 @@ class Db:
         query = query.get_sql() + ' ON CONFLICT (property_id, instance_id) DO UPDATE SET value=excluded.value'
         await self.conn.execute_query(query)
         return value
+
+    async def import_instance_property_values(self, values: list[InstancePropertyValue]):
+        query = "INSERT OR REPLACE INTO instance_property_values (property_id, instance_id, value) VALUES (?, ?, ?)"
+        await self.conn.execute_query_many(query, [(v.property_id, v.instance_id, json.dumps(v.value)) for v in values])
+        return values
 
     async def set_image_property_value(self, property_id: int, sha1s: List[str], value: Any):
         json_value = json.dumps(value)
@@ -138,6 +165,11 @@ class Db:
         query = query.get_sql() + ' ON CONFLICT (property_id, sha1) DO UPDATE SET value=excluded.value'
         await self.conn.execute_query(query)
         return value
+
+    async def import_image_property_values(self, values: list[ImagePropertyValue]):
+        query = "INSERT OR REPLACE INTO image_property_values (property_id, sha1, value) VALUES (?, ?, ?)"
+        await self.conn.execute_query_many(query, [(v.property_id, v.sha1, json.dumps(v.value)) for v in values])
+        return values
 
     async def set_instance_property_array_values(self, property_id: int, instance_ids: list[int], values: list[Any]):
         """
@@ -213,6 +245,12 @@ class Db:
         cursor = await self.conn.execute_query(query, (id_, property_id, value, parents, color))
         return cursor.lastrowid
 
+    async def import_tags(self, tags: list[Tag]):
+        query = "INSERT INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
+        cursor = await self.conn.execute_query_many(query, [(t.id, t.property_id, t.value, t.parents, t.color)
+                                                            for t in tags])
+        return cursor.lastrowid
+
     async def get_tag_by_id(self, tag_id):
         query = "SELECT * FROM tags WHERE id = ?"
         cursor = await self.conn.execute_query(query, (tag_id,))
@@ -260,6 +298,16 @@ class Db:
             params = (prop,)
         cursor = await self.conn.execute_query(query, params)
         return [Tag(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+
+    async def get_tags_by_ids(self, ids: list[int]):
+        table = Table('tags')
+        query = Query.from_(table).select('*').where(table.id.isin(ids))
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        if rows:
+            tags = [Tag(**auto_dict(row, cursor)) for row in rows]
+            return tags
+        return []
 
     async def get_last_tags(self, limit: int):
         query = "SELECT * FROM tags ORDER BY id DESC LIMIT ?"
