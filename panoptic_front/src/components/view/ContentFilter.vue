@@ -12,6 +12,7 @@ import wTT from '../tooltips/withToolTip.vue'
 import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
+import { apiRedo, apiUndo } from '@/data/api';
 
 const props = defineProps({
     tab: TabManager,
@@ -84,6 +85,12 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                 <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode" @change="updateSha1Mode"/>
                 <span class="ms-1">Mode Image unique</span>
             </wTT>
+        </div>
+        <div class="ms-4">
+            <span class="bi bi-x bb" @click="apiUndo"></span>
+        </div>
+        <div class="ms-4">
+            <span class="bi bi-circle bb" @click="apiRedo"></span>
         </div>
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />
