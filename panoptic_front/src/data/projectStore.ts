@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref } from "vue";
-import { Actions, Colors, Folder, FolderIndex, Image, ImageIndex, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { Actions, Colors, DbCommit, Folder, FolderIndex, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiSetPropertyValue, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs } from "./api";
+import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { sleep } from "@/utils/utils";
@@ -143,8 +143,81 @@ export const useProjectStore = defineStore('projectStore', () => {
         tabManager = undefined
     }
 
+    function applyCommit(commit: DbCommit) {
+        if (commit.emptyImageValues) {
+            commit.emptyImageValues.forEach(v => {
+                data.sha1Index[v.sha1].forEach(i => {
+                    delete data.images[i.id].properties[v.propertyId]
+                })
+            })
+        }
+        if (commit.emptyInstanceValues) {
+            commit.emptyInstanceValues.forEach(v => {
+                delete data.images[v.instanceId].properties[v.propertyId]
+            })
+        }
+        if (commit.emptyTags) {
+            commit.emptyTags.forEach(i => {
+                delete data.tags[i]
+            })
+        }
+        if (commit.emptyProperties) {
+            commit.emptyProperties.forEach(i => {
+                delete data.properties[i]
+            })
+        }
+        if (commit.emptyInstances) {
+            commit.emptyInstances.forEach(i => {
+                delete data.images[i]
+            })
+        }
+
+        if (commit.instances) {
+            commit.instances.forEach(i => importImage(i))
+        }
+        if (commit.properties) {
+            importProperties(commit.properties)
+        }
+        if (commit.tags) {
+            importTags(commit.tags)
+        }
+        if (commit.instanceValues) {
+            importInstanceValues(commit.instanceValues)
+        }
+        if (commit.imageValues) {
+            importImageValues(commit.imageValues)
+        }
+    }
+
     function importProperties(properties: Property[]) {
         properties.forEach(p => data.properties[p.id] = p)
+    }
+
+    function importInstanceValues(instanceValues: InstancePropertyValue[]) {
+        for (let v of instanceValues) {
+            if (v.value == undefined) continue
+
+            if (data.properties[v.propertyId].type == PropertyType.date) {
+                v.value = new Date(v.value)
+            }
+            const value = { propertyId: v.propertyId, instanceId: v.instanceId, value: v.value } as InstancePropertyValue
+            data.images[v.instanceId].properties[v.propertyId] = value
+        }
+    }
+
+    function importImageValues(instanceValues: ImagePropertyValue[]) {
+        for (let v of instanceValues) {
+            if (v.value == undefined) continue
+
+            if (data.properties[v.propertyId].type == PropertyType.date) {
+                v.value = new Date(v.value)
+            }
+            for (let img of data.sha1Index[v.sha1]) {
+                const value = { propertyId: v.propertyId, instanceId: img.id, value: v.value } as InstancePropertyValue
+                data.images[img.id].properties[v.propertyId] = value
+            }
+
+        }
     }
 
     function verifyData() {
@@ -373,15 +446,34 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!Array.isArray(images)) {
             images = [images]
         }
-
-        const imageIds = images.map(i => i.id)
-        const values = await apiSetPropertyValue(propertyId, imageIds, value)
-
-        importPropertyValues(values)
+        const mode = data.properties[propertyId].mode
+        const instanceValues: InstancePropertyValue[] = []
+        const imageValues: ImagePropertyValue[] = []
+        if (mode == PropertyMode.id) {
+            const values = images.map(i => ({ propertyId: propertyId, instanceId: i.id, value: value } as InstancePropertyValue))
+            instanceValues.push(...values)
+        }
+        if (mode == PropertyMode.sha1) {
+            const values = images.map(i => ({ propertyId: propertyId, sha1: i.sha1, value: value } as ImagePropertyValue))
+            imageValues.push(...values)
+        }
+        const commit = await apiSetPropertyValues(instanceValues, imageValues)
+        applyCommit(commit)
 
         if (data.properties[propertyId].tags != undefined) {
             computeTagCount(imageList.value, data.properties)
         }
+
+        if (!dontEmit) tabManager.collection.update()
+    }
+
+    async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[], dontEmit?: boolean) {
+        const commit = await apiSetPropertyValues(instanceValues, imageValues)
+        applyCommit(commit)
+
+        // if (data.properties[propertyId].tags != undefined) {
+        //     computeTagCount(imageList.value, data.properties)
+        // }
 
         if (!dontEmit) tabManager.collection.update()
     }
@@ -483,6 +575,18 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.vectors = await apiSetDefaultVector(vector)
     }
 
+    async function undo() {
+        const commit = await apiUndo()
+        applyCommit(commit)
+        getTabManager().collection.update()
+    }
+
+    async function redo() {
+        const commit = await apiRedo()
+        applyCommit(commit)
+        getTabManager().collection.update()
+    }
+
     return {
         // variables
         data, status,
@@ -492,11 +596,12 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // functions
         init, clear, rerender, addFolder, reImportFolder,
-        addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue,
+        addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTab, removeTab, updateTabs, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginParams,
+        undo, redo,
         actions,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,

@@ -3,9 +3,9 @@
  */
 
 import axios from 'axios'
-import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex } from './models'
+import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit } from './models'
 import { SelectionStatus } from './panopticStore'
-import { keysToCamel } from '@/utils/utils'
+import { keysToCamel, keysToSnake } from '@/utils/utils'
 import {createReadStream} from 'fs'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -66,15 +66,20 @@ export const apiAddProperty = async (name: string, type: PropertyType, mode: Pro
     return keysToCamel(res.data)
 }
 
-export const apiSetPropertyValue = async (propertyId: number, instanceIds: number[], value: any): Promise<InstancePropertyValue[]> => {
-    // only arrays are tags lists
-    if (Array.isArray(value)) {
-        value = value.map(Number)
-    }
-    // console.log({imageIds, sha1s, propertyId, value})
-    const res = await axios.post('/image_property', { instanceIds, propertyId, value })
-    // console.log(res.data)
-    return keysToCamel(res.data)
+// export const apiSetPropertyValue = async (propertyId: number, instanceIds: number[], value: any): Promise<InstancePropertyValue[]> => {
+//     // only arrays are tags lists
+//     if (Array.isArray(value)) {
+//         value = value.map(Number)
+//     }
+//     // console.log({imageIds, sha1s, propertyId, value})
+//     const res = await axios.post('/image_property', { instanceIds, propertyId, value })
+//     // console.log(res.data)
+//     return keysToCamel(res.data)
+// }
+
+export async function apiSetPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
+    const res = await axios.post('/set_instance_property_values', { instance_values: keysToSnake(instanceValues), image_values: keysToSnake(imageValues) })
+    return keysToCamel(res.data) as DbCommit
 }
 
 export const apiSetTagPropertyValue = async (propertyId: number, instanceIds: number[], value: any, mode): Promise<InstancePropertyValue[]> => {
@@ -303,12 +308,12 @@ export async function apiSetParamDefaults(defaults: ParamDefaults) {
 
 export async function apiUndo() {
     const res = await axios.post('/undo')
-    return res.data
+    return keysToCamel(res.data) as DbCommit
 }
 
 export async function apiRedo() {
     const res = await axios.post('/redo')
-    return res.data
+    return keysToCamel(res.data) as DbCommit
 }
 
 

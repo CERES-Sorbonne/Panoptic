@@ -87,6 +87,12 @@ export interface InstancePropertyValue {
     value: any
 }
 
+export interface ImagePropertyValue {
+    propertyId: number
+    sha1: string
+    value: any
+}
+
 export interface PropertyRef extends PropertyValue {
     type: PropertyType
     imageId: number
@@ -132,7 +138,7 @@ export interface DeleteTagResult {
 }
 
 export function buildTag(id: number, propertyId: number, value: string, parents?: number[]) {
-    return {id, propertyId, value, parents: parents ?? []}
+    return { id, propertyId, value, parents: parents ?? [] }
 }
 
 //=============================
@@ -344,7 +350,7 @@ export interface ParamDescription {
     type: string
     defaultValue: any
     possibleValues?: any
-  }
+}
 
 export interface FunctionDescription {
     id: string
@@ -431,4 +437,19 @@ export interface VectorDescription {
 export interface ProjectVectorDescription {
     vectors: VectorDescription[]
     defaultVectors: VectorDescription
+}
+
+// ========= Commit =================
+export interface DbCommit {
+    emptyInstances?: number[]
+    emptyProperties?: string[]
+    emptyTags?: string[]
+    emptyInstanceValues? : InstancePropertyValue[]
+    emptyImageValues?: ImagePropertyValue[]
+
+    instances?: Image[]
+    properties?: Property[]
+    tags?: Tag[]
+    instanceValues?: InstancePropertyValue[]
+    imageValues?: ImagePropertyValue[]
 }

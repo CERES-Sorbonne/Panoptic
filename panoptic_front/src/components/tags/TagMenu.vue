@@ -127,7 +127,7 @@ watch(filteredTagList, () => {
 <template>
     <div class="m-0 p-0">
         <div class="w-100 mb-1">
-            <input type="text" class="w-100" v-model="tagFilter" ref="searchElem" style="font-size: 13px;"
+            <input type="text" class="w-100" v-model="tagFilter" ref="searchElem" style="font-size: 13px; min-width: 100px;"
                 @keydown.down="moveSelected(1)" @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""/>
         </div>
 

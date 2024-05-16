@@ -108,12 +108,17 @@ class Db:
     async def get_instance_property_values_from_keys(self, keys: list[InstancePropertyValueKey]) \
             -> list[InstancePropertyValue]:
 
-        query = """
-            SELECT * FROM instance_property_values WHERE property_id = ? AND instance_id = ?
-        """
+        chunk_size = 500
+        res = []
+        query = 'SELECT * FROM instance_property_values WHERE '
+        chunked_keys = [keys[i:i + chunk_size] for i in range(0, len(keys), chunk_size)]
 
-        cursor = await self.conn.execute_query_many(query, [(k.property_id, k.instance_id) for k in keys])
-        res = [InstancePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()]
+        for chunk in chunked_keys:
+            conditions = ' OR '.join(['(property_id = ? AND instance_id = ?)'] * len(chunk))
+            full_query = query + conditions
+            params = [p for k in chunk for p in (k.property_id, k.instance_id)]
+            cursor = await self.conn.execute_query(full_query, tuple(params))
+            res.extend([InstancePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
     async def get_image_property_values(self, property_ids: List[int] = None, sha1s: list[str] = None) \
@@ -133,13 +138,17 @@ class Db:
 
     async def get_image_property_values_from_keys(self, keys: list[ImagePropertyValueKey]) \
             -> list[ImagePropertyValue]:
+        chunk_size = 500
+        res = []
+        query = 'SELECT * FROM image_property_values WHERE '
+        chunked_keys = [keys[i:i + chunk_size] for i in range(0, len(keys), chunk_size)]
 
-        query = """
-            SELECT * FROM image_property_values WHERE property_id = ? AND sha1 = ?
-        """
-
-        cursor = await self.conn.execute_query_many(query, [(k.property_id, k.sha1) for k in keys])
-        res = [ImagePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()]
+        for chunk in chunked_keys:
+            conditions = ' OR '.join(['(property_id = ? AND sha1 = ?)'] * len(chunk))
+            full_query = query + conditions
+            params = [p for k in chunk for p in (k.property_id, k.sha1)]
+            cursor = await self.conn.execute_query(full_query, tuple(params))
+            res.extend([ImagePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
     async def set_instance_property_value(self, property_id: int, instance_ids: List[int], value: Any):
@@ -200,11 +209,22 @@ class Db:
         await self.conn.execute_query(query.get_sql())
         return True
 
+    async def delete_instance_property_values(self, values: list[InstancePropertyValueKey]):
+        query = "DELETE FROM instance_property_values WHERE property_id = ? AND instance_id = ?"
+        await self.conn.execute_query_many(query, [(v.property_id, v.instance_id) for v in values])
+        return True
+
     async def delete_image_property_value(self, property_id: int, sha1s: list[str]):
         t = Table('image_property_values')
         query = Query.from_(t).delete().where(t.property_id == property_id)
         query = query.where(t.sha1.isin(sha1s))
+        print(query.get_sql())
         await self.conn.execute_query(query.get_sql())
+        return True
+
+    async def delete_image_property_values(self, values: list[ImagePropertyValueKey]):
+        query = "DELETE FROM image_property_values WHERE property_id = ? AND sha1 = ?"
+        await self.conn.execute_query_many(query, [(v.property_id, v.sha1) for v in values])
         return True
 
     async def count_instance_values(self, instance_ids: list[int]):
