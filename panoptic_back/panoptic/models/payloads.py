@@ -4,7 +4,8 @@ from typing import Any
 
 from fastapi_camelcase import CamelModel
 
-from .models import PropertyType, ActionParam, ActionContext, SetMode, ColumnOption, Property
+from .models import PropertyType, ActionParam, ActionContext, SetMode, ColumnOption, Property, InstancePropertyValue, \
+    ImagePropertyValue
 
 
 class ImagePayload(CamelModel):
@@ -34,6 +35,11 @@ class SetPropertyValuePayload(CamelModel):
     property_id: int
     instance_ids: list[int] | None = None
     value: Any
+
+
+class PropertyValuesPayload(CamelModel):
+    instance_values: list[InstancePropertyValue] = []
+    image_values: list[ImagePropertyValue] = []
 
 
 class SetTagPropertyValuePayload(SetPropertyValuePayload):

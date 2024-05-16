@@ -12,7 +12,9 @@ import wTT from '../tooltips/withToolTip.vue'
 import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
-import { apiRedo, apiUndo } from '@/data/api';
+import { useProjectStore } from '@/data/projectStore';
+
+const project = useProjectStore()
 
 const props = defineProps({
     tab: TabManager,
@@ -87,10 +89,10 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             </wTT>
         </div>
         <div class="ms-4">
-            <span class="bi bi-x bb" @click="apiUndo"></span>
+            <span class="bi bi-x bb" @click="project.undo"></span>
         </div>
         <div class="ms-4">
-            <span class="bi bi-circle bb" @click="apiRedo"></span>
+            <span class="bi bi-circle bb" @click="project.redo"></span>
         </div>
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />

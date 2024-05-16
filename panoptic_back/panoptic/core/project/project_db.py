@@ -124,35 +124,35 @@ class ProjectDb:
                 await self._db.delete_image_property_value(property_id=prop.id, sha1s=sha1s)
         return [InstancePropertyValue(property_id=property_id, instance_id=p[0], value=p[1]) for p in pairs]
 
-    async def set_tag_property_value(self, property_id: int, instance_ids: list[int], value: list[int], mode: SetMode):
-        if mode == SetMode.set:
-            return await self.set_property_values(property_id=property_id, instance_ids=instance_ids, value=value)
-
-        instances = await self.get_instances_with_properties(instance_ids=instance_ids, property_ids=[property_id])
-
-        to_set = [i for i in instances if property_id not in i.properties]
-        if to_set:
-            set_res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set],
-                                                     value=value)
-        else:
-            set_res = []
-        if mode == SetMode.add:
-            to_add = [i for i in instances if property_id in i.properties]
-            ids = [i.id for i in to_add]
-            vals = [[*i.properties[property_id].value, *value] for i in to_add]
-            vals = [[*{*v}] for v in vals]
-            res_add = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
-            return [*set_res, *res_add]
-
-        if mode == SetMode.delete:
-            to_del = [i for i in instances if property_id in i.properties]
-            ids = [i.id for i in to_del]
-            vals = [[v for v in i.properties[property_id].value if v not in value] for i in to_del]
-            res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
-            return [*set_res, *res_del]
-
-    async def add_property_tag_values(self, property_id: int, instance_ids: list[int], values: list[list[int]]):
-        pass
+    # async def set_tag_property_value(self, property_id: int, instance_ids: list[int], value: list[int], mode: SetMode):
+    #     if mode == SetMode.set:
+    #         return await self.set_property_values(property_id=property_id, instance_ids=instance_ids, value=value)
+    #
+    #     instances = await self.get_instances_with_properties(instance_ids=instance_ids, property_ids=[property_id])
+    #
+    #     to_set = [i for i in instances if property_id not in i.properties]
+    #     if to_set:
+    #         set_res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set],
+    #                                                  value=value)
+    #     else:
+    #         set_res = []
+    #     if mode == SetMode.add:
+    #         to_add = [i for i in instances if property_id in i.properties]
+    #         ids = [i.id for i in to_add]
+    #         vals = [[*i.properties[property_id].value, *value] for i in to_add]
+    #         vals = [[*{*v}] for v in vals]
+    #         res_add = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
+    #         return [*set_res, *res_add]
+    #
+    #     if mode == SetMode.delete:
+    #         to_del = [i for i in instances if property_id in i.properties]
+    #         ids = [i.id for i in to_del]
+    #         vals = [[v for v in i.properties[property_id].value if v not in value] for i in to_del]
+    #         res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
+    #         return [*set_res, *res_del]
+    #
+    # async def add_property_tag_values(self, property_id: int, instance_ids: list[int], values: list[list[int]]):
+    #     pass
 
     # =====================================================
     # =================== Instances =======================
@@ -179,24 +179,24 @@ class ProjectDb:
 
         return instances
 
-    async def empty_or_clone(self, paths: list[str]) -> list[Instance]:
-        instances = await self.get_instances()
-        path_to_instances = defaultdict(list)
-        res: list[Instance] = []
-        for i in instances:
-            path_to_instances[i.url].append(i)
-        for path in paths:
-            if not path_to_instances[path]:
-                raise Exception('{path} is not already imported in panoptic. '
-                                'Impossible to import the data before importing the file')
-            matches = sorted(path_to_instances[path], key=lambda x: x.id)
-            values = await self.get_property_values(instances=[matches[0]], no_computed=True)
-            if not values:
-                res.append(matches[0])
-            else:
-                new_instance = await self._db.clone_instance(matches[0])
-                res.append(new_instance)
-        return res
+    # async def empty_or_clone(self, paths: list[str]) -> list[Instance]:
+    #     instances = await self.get_instances()
+    #     path_to_instances = defaultdict(list)
+    #     res: list[Instance] = []
+    #     for i in instances:
+    #         path_to_instances[i.url].append(i)
+    #     for path in paths:
+    #         if not path_to_instances[path]:
+    #             raise Exception('{path} is not already imported in panoptic. '
+    #                             'Impossible to import the data before importing the file')
+    #         matches = sorted(path_to_instances[path], key=lambda x: x.id)
+    #         values = await self.get_property_values(instances=[matches[0]], no_computed=True)
+    #         if not values:
+    #             res.append(matches[0])
+    #         else:
+    #             new_instance = await self._db.clone_instance(matches[0])
+    #             res.append(new_instance)
+    #     return res
 
     async def test_empty(self, instance_ids: list[int]):
         res = await self._db.count_instance_values(instance_ids)

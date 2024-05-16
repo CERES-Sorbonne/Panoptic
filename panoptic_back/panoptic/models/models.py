@@ -62,26 +62,26 @@ class PropertyUpdate(BaseModel):
 #
 #     value: Any
 
-@dataclass(slots=True)
+@dataclass
 class InstancePropertyValueKey:
     property_id: int
     instance_id: int
 
 
-@dataclass(slots=True)
+@dataclass
 class ImagePropertyValueKey:
     property_id: int
     sha1: str
 
 
-@dataclass(slots=True)
+@dataclass
 class InstancePropertyValue(InstancePropertyValueKey):
-    value: Any
+    value: Any | None = None
 
 
-@dataclass(slots=True)
+@dataclass
 class ImagePropertyValue(ImagePropertyValueKey):
-    value: Any
+    value: Any | None = None
 
 
 @dataclass(slots=True)
@@ -304,17 +304,17 @@ class PropertyRequest(CamelModel):
 
 @dataclass(slots=True)
 class DbCommit:
-    created_instances: list[id] = field(default_factory=list)
-    created_properties: list[id] = field(default_factory=list)
-    created_tags: list[id] = field(default_factory=list)
-    created_instance_values: list[InstancePropertyValueKey] = field(default_factory=list)
-    created_image_values: list[ImagePropertyValueKey] = field(default_factory=list)
+    empty_instances: list[id] = field(default_factory=list)
+    empty_properties: list[id] = field(default_factory=list)
+    empty_tags: list[id] = field(default_factory=list)
+    empty_instance_values: list[InstancePropertyValueKey] = field(default_factory=list)
+    empty_image_values: list[ImagePropertyValueKey] = field(default_factory=list)
 
-    old_instances: list[Instance] = field(default_factory=list)
-    old_properties: list[Property] = field(default_factory=list)
-    old_tags: list[Tag] = field(default_factory=list)
-    old_instance_values: list[InstancePropertyValue] = field(default_factory=list)
-    old_image_values: list[ImagePropertyValue] = field(default_factory=list)
+    instances: list[Instance] = field(default_factory=list)
+    properties: list[Property] = field(default_factory=list)
+    tags: list[Tag] = field(default_factory=list)
+    instance_values: list[InstancePropertyValue] = field(default_factory=list)
+    image_values: list[ImagePropertyValue] = field(default_factory=list)
 
 
 ImportOptions = dict[int, ColumnOption]

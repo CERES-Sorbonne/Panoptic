@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, PropertyType, PropertyValue } from '@/data/models';
+import { Image, ImagePropertyValue, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
@@ -42,25 +42,30 @@ function removeImage(sha1: string) {
     computeLines()
 }
 
-function acceptRecommend(image: Image) {
-    console.log(propertyValues)
+async function acceptRecommend(image: Image) {
+    const imageValues: ImagePropertyValue[] = []
+    const instanceValues: InstancePropertyValue[] = []
+
     propertyValues.forEach(v => {
-        console.log(v.value)
         if (v.value != UNDEFINED_KEY) {
             const prop = store.data.properties[v.propertyId]
             let value = v.value
-            console.log(prop.type)
             if (prop.type == PropertyType.multi_tags) {
-                store.setTagPropertyValue(v.propertyId, image, [value], 'add')
+                value = image.properties[v.propertyId]?.value ?? []
+                value = [...value, v.value]
             }
             else if (prop.type == PropertyType.tag) {
-                store.setPropertyValue(v.propertyId, image, [value])
+                value = [value]
             }
-            else {
-                store.setPropertyValue(v.propertyId, image, value)
+            if(prop.mode == PropertyMode.id) {
+                instanceValues.push({instanceId: image.id, propertyId: prop.id, value: value})
+            } else {
+                imageValues.push({propertyId: prop.id, sha1: image.sha1, value: value})
             }
         }
     })
+    await store.setPropertyValues(instanceValues, imageValues)
+    
     removeImage(image.sha1)
 }
 

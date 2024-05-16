@@ -14,7 +14,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     AddTagParentPayload, PropertyUpdate, \
     TagUpdate, VectorDescription, \
     ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
-    PluginParamsPayload, ImportPayload, DbCommit
+    PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload
 
 project_router = APIRouter()
 
@@ -30,8 +30,6 @@ def set_project(p: Project | None):
 @project_router.post("/property")
 async def create_property_route(payload: PropertyPayload) -> Property:
     res = await project.db.add_property(payload.name, payload.type, payload.mode)
-    commit = DbCommit(created_properties=[res.id])
-    project.undo_queue.add_commit(commit)
     return res
 
 
@@ -42,7 +40,10 @@ async def get_properties_route() -> list[Property]:
 
 @project_router.patch("/property")
 async def update_property_route(payload: PropertyUpdate) -> Property:
-    return await project.db.update_property(payload)
+    props = await project.db.update_property(payload)
+    # commit = DbCommit(properties=[props])
+    # project.undo_queue.add_commit(commit)
+    return props
 
 
 @project_router.post('/import/upload')
@@ -86,20 +87,27 @@ async def get_image(file_path: str):
 
 # Route pour ajouter une property à une image dans la table de jointure entre image et property
 # On retourne le payload pour pouvoir valider l'update côté front
-@project_router.post("/image_property")
-async def set_property_values_route(payload: SetPropertyValuePayload):
-    values = await project.db.set_property_values(property_id=payload.property_id,
-                                                  instance_ids=payload.instance_ids,
-                                                  value=payload.value)
-    return values
+# @project_router.post("/image_property")
+# async def set_property_values_route(payload: SetPropertyValuePayload):
+#     values = await project.db.set_property_values(property_id=payload.property_id,
+#                                                   instance_ids=payload.instance_ids,
+#                                                   value=payload.value)
+#     return values
 
 
-@project_router.post('/set_tag_property_value')
-async def set_tag_property_value(payload: SetTagPropertyValuePayload):
-    print(payload)
-    values = await project.db.set_tag_property_value(property_id=payload.property_id, instance_ids=payload.instance_ids,
-                                                     value=payload.value, mode=payload.mode)
-    return values
+@project_router.post("/set_instance_property_values")
+async def set_instance_property_values_route(payload: PropertyValuesPayload):
+    commit = DbCommit(instance_values=payload.instance_values, image_values=payload.image_values)
+    res = await project.undo_queue.do(commit)
+    return res
+
+
+# @project_router.post('/set_tag_property_value')
+# async def set_tag_property_value(payload: SetTagPropertyValuePayload):
+#     print(payload)
+#     values = await project.db.set_tag_property_value(property_id=payload.property_id, instance_ids=payload.instance_ids,
+#                                                      value=payload.value, mode=payload.mode)
+#     return values
 
 
 @project_router.post("/tags")

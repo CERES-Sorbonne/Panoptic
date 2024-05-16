@@ -226,3 +226,22 @@ function toCamel(s: string): string {
         return $1.toUpperCase().replace('-', '').replace('_', '');
     });
 }
+
+export function keysToSnake(o: unknown): unknown {
+    if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function') {
+      const n = {};
+      Object.keys(o).forEach((k) => {
+        n[toSnake(k)] = keysToSnake(o[k]);
+      });
+      return n;
+    } else if (Array.isArray(o)) {
+      return o.map((i) => {
+        return keysToSnake(i);
+      });
+    }
+    return o;
+  }
+
+  function toSnake(s: string): string {
+    return s.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  }

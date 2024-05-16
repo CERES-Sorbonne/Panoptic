@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Image, PropertyType } from '@/data/models';
+import { Image, ImagePropertyValue, InstancePropertyValue, PropertyMode, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
 import { useProjectStore } from '@/data/projectStore'
 import Dropdown from '../dropdowns/Dropdown.vue';
+import { isTag, objValues } from '@/utils/utils';
 const store = useProjectStore()
 
 const props = defineProps({
@@ -26,7 +27,7 @@ function clear() {
     Object.keys(stamp).forEach((k: any) => delete stamp[k])
     erase.clear()
     nextTick(() => {
-        if(dropdownElem.value) {
+        if (dropdownElem.value) {
             dropdownElem.value.focus()
         }
     })
@@ -36,16 +37,26 @@ async function apply() {
 
     erase.forEach(k => stamp[k] = undefined)
 
-    Object.keys(stamp).map(Number).forEach(async propId => {
-        let value = stamp[propId]
-        if(store.data.properties[propId].type == PropertyType.multi_tags) {
-            const mode = value != undefined ? 'add' : 'set'
-            await store.setTagPropertyValue(propId, props.images, value, mode)
+    const instanceValues: InstancePropertyValue[] = []
+    const imageValues: ImagePropertyValue[] = []
+
+    for (let propId of Object.keys(stamp).map(Number)) {
+        for (let img of props.images) {
+            let stampValue = stamp[propId]
+            if (isTag(store.data.properties[propId].type) && img.properties[propId]?.value && stampValue) {
+                stampValue = Array.from(new Set([...img.properties[propId].value, ...stampValue]))
+            }
+            if (store.data.properties[propId].mode == PropertyMode.id) {
+                const value: InstancePropertyValue = { propertyId: propId, instanceId: img.id, value: stampValue }
+                instanceValues.push(value)
+            } else {
+                const value: ImagePropertyValue = { propertyId: propId, sha1: img.sha1, value: stampValue }
+                imageValues.push(value)
+            }
         }
-        else {
-            await store.setPropertyValue(propId, props.images, value, true)
-        }
-    })
+    }
+    await store.setPropertyValues(instanceValues, imageValues)
+
     store.getTabManager().collection.groupManager.clearSelection()
     store.getTabManager().collection.update()
     close()
@@ -58,14 +69,14 @@ async function apply() {
         <template #button>
             <div :class="props.noBorder ? '' : 'button'">
                 <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
-                    $t('main.menu.selected_images') }}</span>
+        $t('main.menu.selected_images') }}</span>
                 <span v-else>{{ $t('modals.tagging.button') }}</span>
             </div>
         </template>
         <template #popup>
             <div @keydown.escape.prevent.stop="">
                 <div class="m-2" style="width: 300px;">
-                    <StampForm :values="stamp" :erase="erase" @blur="dropdownElem.focus"/>
+                    <StampForm :values="stamp" :erase="erase" @blur="dropdownElem.focus" />
                 </div>
 
                 <div class="d-flex pe-2 mb-2">
@@ -83,4 +94,5 @@ async function apply() {
             </div>
         </template>
 
-</Dropdown></template>
+    </Dropdown>
+</template>
