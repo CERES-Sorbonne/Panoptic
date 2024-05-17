@@ -340,8 +340,8 @@ export class GroupManager {
         this.clear()
     }
 
-    group(images: Image[], order?: ImageOrder, emit?: boolean) {
-        console.time('Group')
+    group(images: Image[], order?: ImageOrder, emit?: boolean, time?: boolean) {
+        if(time) console.time('Group')
         this.invalidateIterators()
         this.lastOrder = order
         const lastIndex = this.result.index ?? {}
@@ -401,7 +401,7 @@ export class GroupManager {
 
         setOrder(this.result.root)
 
-        console.timeEnd('Group')
+        if(time) console.timeEnd('Group')
         if (emit) this.onChange.emit(this.result)
         return this.result
     }
