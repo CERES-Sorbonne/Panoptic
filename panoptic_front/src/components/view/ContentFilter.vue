@@ -88,12 +88,12 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                 <span class="ms-1">Mode Image unique</span>
             </wTT>
         </div>
-        <div class="ms-4">
+        <!-- <div class="ms-4">
             <span class="bi bi-x bb" @click="project.undo"></span>
         </div>
         <div class="ms-4">
             <span class="bi bi-circle bb" @click="project.redo"></span>
-        </div>
+        </div> -->
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />
     </div>
