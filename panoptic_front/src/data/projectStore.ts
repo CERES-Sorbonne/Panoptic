@@ -11,7 +11,7 @@ import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
-import { sleep } from "@/utils/utils";
+import { getTagChildren, getTagParents, sleep } from "@/utils/utils";
 
 let tabManager: TabManager = undefined
 
@@ -430,6 +430,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         for (let propId of updated) {
             setTagsChildren(data.properties[propId].tags)
+        }
+        for(let tag of tags) {
+            tag.allChildren = getTagChildren(tag)
+            tag.allParents = getTagParents(tag)
         }
         computeTagCount(imageList.value, data.properties)
     }

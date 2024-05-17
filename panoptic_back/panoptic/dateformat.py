@@ -1,4 +1,3 @@
-import dateparser
 import pendulum
 pendulum.set_locale('fr')
 

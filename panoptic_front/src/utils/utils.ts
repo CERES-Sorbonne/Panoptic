@@ -162,8 +162,7 @@ export function getGroupParents(group: Group): Group[] {
 
 export function getTagChildren(tag: Tag) {
     const store = useProjectStore()
-    const property = store.data.properties[tag.propertyId]
-    const tags = property.tags
+    const tags = store.data.tags
 
     const res = []
     const recursive = (t: Tag) => {
@@ -171,6 +170,25 @@ export function getTagChildren(tag: Tag) {
         if (t.children) {
             t.children.forEach(cId => recursive(tags[cId]))
         }
+
+    }
+    recursive(tag)
+    return res
+}
+
+export function getTagParents(tag: Tag) {
+    const store = useProjectStore()
+    const tags = store.data.tags
+    // console.log(tag)
+    const res = []
+    const recursive = (t: Tag) => {
+        for(let pId of t.parents) {
+            if(pId == 0) continue
+            recursive(tags[pId])
+        }
+        // if (t.parents) {
+        //     t.parents.forEach(cId => recursive(tags[cId]))
+        // }
 
     }
     recursive(tag)

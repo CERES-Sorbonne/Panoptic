@@ -125,6 +125,9 @@ export interface Tag {
     children?: number[]
     count?: number
     deleted?: boolean
+
+    allParents?: number[]
+    allChildren?: number[]
 }
 
 export interface TagIndex {

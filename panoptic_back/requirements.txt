@@ -19,3 +19,9 @@ psutil
 starlette
 numpy
 show-in-file-manager
+
+panoptic
+Pillow
+scipy
+tqdm
+pendulum
