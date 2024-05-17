@@ -3,13 +3,14 @@ from __future__ import annotations
 import math
 import os
 import pickle
-from typing import List
+from typing import List, Any
 
 import faiss
 import numpy as np
 from faiss import index_factory
 from scipy.stats import hmean
 from sklearn.cluster import DBSCAN, KMeans, estimate_bandwidth, MeanShift
+from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score
 from sklearn.neighbors import KDTree
 from panoptic.models import ComputedValue, Vector
@@ -100,8 +101,20 @@ def get_similar_images(vectors: list[np.ndarray]):
     vector = np.mean(vectors, axis=0)
     return SIMILARITY_TREE.query(np.asarray([vector]))
 
+def get_umap_coordinates(vectors: List[Vector]) -> Any:
+    data = np.asarray([v.data for v in vectors])
+
+    # Apply t-SNE
+    tsne = TSNE(n_components=2, perplexity=30, random_state=None)
+    tsne_result = tsne.fit_transform(data)
+
+    # Prepare the dictionary
+    result_dict = {vectors[i].sha1: tsne_result[i].tolist() for i in range(tsne_result.shape[0])}
+
+    return result_dict
 
 def make_clusters(vectors: List[Vector], *, method='kmeans', **kwargs) -> (list[list[str]], list[int]):
+    coords = get_umap_coordinates(vectors)
     res_clusters = []
     res_distances = []
     vectors, sha1 = zip(*[(i.data, i.sha1) for i in vectors])
@@ -137,7 +150,7 @@ def make_clusters(vectors: List[Vector], *, method='kmeans', **kwargs) -> (list[
     # TODO: trouver un meilleur indicateur que juste la moyenne des distances ?
     # TODO: virer les groupes avec une seule image ?
     sorted_clusters = [cluster for _, cluster in sorted(zip(res_distances, res_clusters))]
-    return sorted_clusters, sorted(res_distances)
+    return sorted_clusters, sorted(res_distances), coords
 
 
 def _make_clusters_dbscan(vectors, eps=3, *args, **kwargs) -> np.ndarray:

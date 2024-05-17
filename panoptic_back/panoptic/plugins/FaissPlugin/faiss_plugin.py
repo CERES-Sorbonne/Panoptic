@@ -1,5 +1,7 @@
 import os.path
 
+import numpy as np
+from PIL import Image
 from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
@@ -10,6 +12,8 @@ from panoptic.utils import group_by_sha1
 from .compute import reload_tree, get_similar_images, make_clusters
 from .compute_vector_task import ComputeVectorTask
 
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 class FaissPluginParams(BaseModel):
     """
@@ -63,10 +67,13 @@ class FaissPlugin(Plugin):
             return None
 
         vectors = await self.project.db.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
-        clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
+        clusters, distances, coords = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
 
         groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
                   cluster, distance in zip(clusters, distances)]
+
+        coords = [(xy[0], xy[1], sha1_to_instance[sha1][0].url) for sha1, xy in coords.items()]
+        self.plot_images(coords)
         return GroupResult(groups=groups)
 
     async def find_images(self, context: ActionContext):
@@ -82,3 +89,32 @@ class FaissPlugin(Plugin):
         res_instances = await self.project.db.get_instances(sha1s=res_sha1s)
         matches = [InstanceMatch(id=i.id, score=index[i.sha1]) for i in res_instances if i.sha1 in index]
         return SearchResult(matches=matches)
+
+    def plot_images(self, tsne_results):
+        """
+        Plots images on a 2D plane based on their t-SNE coordinates.
+
+        Parameters:
+        tsne_results (list of tuples): List of tuples (x, y, image_path).
+        """
+        # Create a figure
+        fig, ax = plt.subplots(figsize=(40, 40))
+
+        # Plot each image
+        for x, y, image_path in tsne_results:
+            # Load the image
+            img = Image.open(image_path)
+            # Create an offset image (allows us to place the image on the plot)
+            img = np.array(img)
+            im = OffsetImage(img, zoom=0.05)  # Adjust zoom as needed
+            ab = AnnotationBbox(im, (x, y), frameon=False)
+            ax.add_artist(ab)
+
+        # Set limits and labels
+        ax.set_xlim(min(x for x, y, path in tsne_results) - 10, max(x for x, y, path in tsne_results) + 10)
+        ax.set_ylim(min(y for x, y, path in tsne_results) - 10, max(y for x, y, path in tsne_results) + 10)
+        plt.xlabel('t-SNE component 1')
+        plt.ylabel('t-SNE component 2')
+
+        # Show the plot
+        plt.show()
