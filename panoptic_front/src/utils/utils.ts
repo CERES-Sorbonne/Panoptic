@@ -184,12 +184,9 @@ export function getTagParents(tag: Tag) {
     const recursive = (t: Tag) => {
         for(let pId of t.parents) {
             if(pId == 0) continue
+            res.push(pId)
             recursive(tags[pId])
         }
-        // if (t.parents) {
-        //     t.parents.forEach(cId => recursive(tags[cId]))
-        // }
-
     }
     recursive(tag)
     return res

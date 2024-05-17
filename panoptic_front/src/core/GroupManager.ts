@@ -682,8 +682,13 @@ export class GroupManager {
 
             // treat all values as possible array to avoid writing different code for multi_tags
             let values = Array.isArray(value) ? value : [value]
+            if(isTag(property.type) && values[0] !== undefined) {
+                const withParents = new Set(values)
+                values.forEach(v => store.data.tags[v].allParents.forEach(p => withParents.add(p)))
+                values = Array.from(withParents)
+            }
 
-            // for all properties != multi_tags : values.length == 1
+            // for all properties != multi_tags -> values.length == 1
             for (let v of values) {
                 const key = v == undefined ? UNDEFINED_KEY : String(v)
                 if (!subGroups[key]) {
