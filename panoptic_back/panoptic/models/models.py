@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import TypeAlias, Any, Union, Dict, List
 
@@ -315,6 +316,8 @@ class DbCommit:
     tags: list[Tag] = field(default_factory=list)
     instance_values: list[InstancePropertyValue] = field(default_factory=list)
     image_values: list[ImagePropertyValue] = field(default_factory=list)
+
+    timestamp: datetime = field(default_factory=datetime.now)
 
 
 ImportOptions = dict[int, ColumnOption]
