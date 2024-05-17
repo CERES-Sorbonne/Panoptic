@@ -56,7 +56,7 @@ dependencies = [
     "torch;sys_platform != 'darwin'",
     "transformers",
     "uvicorn",
-    "dateparser",
+    "pendulum",
 ]
 
 [project.urls]
