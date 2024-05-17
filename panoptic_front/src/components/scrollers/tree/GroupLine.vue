@@ -7,7 +7,7 @@ import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
 import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine, Image, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
+import { GroupLine, Image, InstancePropertyValue, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { computeMLGroups } from '@/utils/utils'
 import ActionButton from '@/components/actions/ActionButton.vue'
@@ -90,7 +90,7 @@ async function saveHirachy() {
 
     saving.value = true
     const children = group.value.children
-    const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.sha1)
+    const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.id)
     let id = 0
     const idFunc = () => { id -= 1; return id }
     // const imageTags: {[imgId: number]: number[]} = {}
@@ -126,11 +126,17 @@ async function saveHirachy() {
     //     const tags = imageTags[imgId].map(id => fakeIdToReal[id]).map(t => t.id)
     //     store.setPropertyValue(property.id, [store.data.images[imgId]], tags, true)
     // }
+    const instanceValues: InstancePropertyValue[] = []
     for (let tagId in tagToImages) {
         const images = tagToImages[tagId]
         const realTag = fakeIdToReal[tagId]
-        await store.setTagPropertyValue(property.id, images, [realTag.id], 'add', true)
+        for(let img of images) {
+            instanceValues.push({propertyId: property.id, instanceId: img.id, value: [realTag.id]})
+        }
+        // await store.setTagPropertyValue(property.id, images, [realTag.id], 'add', true)
     }
+
+    await store.setPropertyValues(instanceValues, [])
 
     saving.value = false
 }
