@@ -86,7 +86,7 @@ function closeChildren() {
 
 const saving = ref(false)
 async function saveHirachy() {
-    if(saving.value) return
+    if (saving.value) return
 
     saving.value = true
     const children = group.value.children
@@ -97,43 +97,46 @@ async function saveHirachy() {
     const tagToImages: { [tagId: number]: Image[] } = {}
     // group.value.images.forEach(i => imageTags[i.id] = [])
     const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), tagToImages)
+    console.log(tagToImages)
     const fakeIdToReal: { [id: number]: Tag } = { 0: { id: 0, value: '', parents: [], propertyId: property.id } }
 
-    let todo = [...tags]
-    let depth = 1
-    while (todo.length) {
-        const keep = []
-        for (let tag of tags) {
-            if (tag.parents.length > depth) {
-                keep.push(tag)
-                continue
-            } else if (tag.parents.length == depth) {
-                const oldLast = tag.parents[tag.parents.length - 1]
-                tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
-                const lastParent = tag.parents[tag.parents.length - 1]
-                const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
-                const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
-                fakeIdToReal[tag.id] = realTag
-            }
-        }
-        depth += 1
-        todo = keep
+    tags.sort((a, b) => a.parents.length - b.parents.length)
+    for (let tag of tags) {
+        const oldLast = tag.parents[tag.parents.length - 1]
+        tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
+        const lastParent = tag.parents[tag.parents.length - 1]
+        const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
+        const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
+        fakeIdToReal[tag.id] = realTag
     }
+    // let depth = 1
+    // while (todo.length) {
+    //     const keep = []
+    //     for (let tag of tags) {
+    //         if (tag.parents.length > depth) {
+    //             keep.push(tag)
+    //             continue
+    //         } else if (tag.parents.length == depth) {
+    //             const oldLast = tag.parents[tag.parents.length - 1]
+    //             tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
+    //             const lastParent = tag.parents[tag.parents.length - 1]
+    //             const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
+    //             const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
+    //             fakeIdToReal[tag.id] = realTag
+    //         }
+    //     }
+    //     depth += 1
+    //     todo = keep
+    // }
     console.log('created tags')
 
-    // for(let imgId in imageTags) {
-    //     // console.log(imageTags[imgId])
-    //     const tags = imageTags[imgId].map(id => fakeIdToReal[id]).map(t => t.id)
-    //     store.setPropertyValue(property.id, [store.data.images[imgId]], tags, true)
-    // }
     const instanceValues: InstancePropertyValue[] = []
     for (let tagId in tagToImages) {
         const images = tagToImages[tagId]
         const realTag = fakeIdToReal[tagId]
-        for(let img of images) {
-            instanceValues.push({propertyId: property.id, instanceId: img.id, value: [realTag.id]})
+        for (let img of images) {
+            instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [realTag.id] })
         }
-        // await store.setTagPropertyValue(property.id, images, [realTag.id], 'add', true)
     }
 
     await store.setPropertyValues(instanceValues, [])

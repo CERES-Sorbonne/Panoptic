@@ -435,9 +435,8 @@ export const useProjectStore = defineStore('projectStore', () => {
             tag.allChildren = getTagChildren(tag)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag)
-            // console.log(tag.allParents)
         }
-        computeTagCount(imageList.value, data.properties)
+        computeTagCount()
     }
 
     async function addProperty(name: string, type: PropertyType, mode: PropertyMode) {
@@ -467,7 +466,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         applyCommit(commit)
 
         if (data.properties[propertyId].tags != undefined) {
-            computeTagCount(imageList.value, data.properties)
+            computeTagCount()
         }
 
         if (!dontEmit) tabManager.collection.update()
@@ -492,7 +491,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         const imageIds = images.map(i => i.id)
         const values = await apiSetTagPropertyValue(propertyId, imageIds, value, mode)
         importPropertyValues(values)
-        computeTagCount(imageList.value, data.properties)
+        computeTagCount()
 
         if (!dontEmit) tabManager.collection.update()
     }

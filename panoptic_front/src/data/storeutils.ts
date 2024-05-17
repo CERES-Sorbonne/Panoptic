@@ -1,5 +1,7 @@
-import { getFolderAndParents } from "@/utils/utils"
+import { getFolderAndParents, isTag, objValues } from "@/utils/utils"
 import { Folder, FolderIndex, Image, Property, PropertyIndex, PropertyValue, Tag, TagIndex } from "./models"
+import { GroupManager, UNDEFINED_KEY } from "@/core/GroupManager"
+import { useProjectStore } from "./projectStore"
 
 export function computeContainerRatio(img: Image) {
     let ratio = img.width / img.height
@@ -34,25 +36,21 @@ export function buildFolderNodes(folders: Array<Folder>) {
     return res
 }
 
-export function computeTagCount(images: Image[], properties: PropertyIndex) {
-    for(let property of Object.values(properties) as Property[]) {
-        if(!property.tags) continue
-        for(let tag of Object.values(property.tags) as Tag[]) {
-            tag.count = 0
-        }
-    }
+export function computeTagCount() {
+    const store = useProjectStore()
+    const tags = store.data.tags
+    const images = store.imageList
+    const properties = store.propertyList.filter(p => isTag(p.type))
 
-    for(let img of images) {
-        for(let propValue of Object.values(img.properties) as PropertyValue[]) {
-            const property = properties[propValue.propertyId]
-            if(!property) continue
-            if(!property.tags) continue
-            if(!propValue.value || !Array.isArray(propValue.value)) continue
-
-            for(let tagId of propValue.value) {
-                if(!property.tags[tagId]) continue
-                property.tags[tagId].count += 1
-            }
+    for(let prop of properties) {
+        const grouper = new GroupManager()
+        grouper.setGroupOption(prop.id)
+        grouper.group(images)
+        const root = grouper.result.root
+        for(let group of root.children) {
+            let value = group.meta.propertyValues[0].value
+            if(value == undefined) continue
+            tags[value].count = group.images.length
         }
     }
 }
