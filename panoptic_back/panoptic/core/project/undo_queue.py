@@ -54,6 +54,7 @@ class UndoQueue:
 
     async def _apply_commit(self, commit: DbCommit):
         inverse = DbCommit()
+        inverse.timestamp = commit.timestamp
         properties = {p.id: p for p in await self._db.get_properties(no_computed=True)}
         print('apply commit')
         print(commit)
