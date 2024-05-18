@@ -43,6 +43,8 @@ watch(() => project.status.onUndo, () => {
                     + {{ project.data.history.redo.length - maxShow }}
                 </div>
                 <div v-for="commit in redos" class="border mb-1 p-1">
+                    <span class="me">{{ new Date(commit.timestamp).toLocaleTimeString('fr-Fr', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                    <span class="sep ms-1 me-1"></span>
                     <span v-if="commit.tags">{{ commit.tags }} {{ $t('dropdown.history.tags') }}</span>
                     <span v-if="commit.values">{{ commit.values }} {{ $t('dropdown.history.values') }}</span>
                 </div>
