@@ -320,6 +320,19 @@ class DbCommit:
     timestamp: datetime = field(default_factory=datetime.now)
 
 
+@dataclass
+class CommitStat:
+    timestamp: datetime
+    tags: int = 0
+    values: int = 0
+
+
+@dataclass
+class CommitHistory:
+    undo: list[CommitStat] = field(default_factory=list)
+    redo: list[CommitStat] = field(default_factory=list)
+
+
 ImportOptions = dict[int, ColumnOption]
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]

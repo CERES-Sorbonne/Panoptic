@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref } from "vue";
-import { Actions, Colors, DbCommit, Folder, FolderIndex, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { Actions, Colors, CommitHistory, DbCommit, Folder, FolderIndex, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo } from "./api";
+import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo, apiGetHistory } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { getTagChildren, getTagParents, sleep } from "@/utils/utils";
@@ -32,7 +32,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         folders: {} as FolderIndex,
         plugins: [] as PluginDescription[],
         vectors: {} as ProjectVectorDescription,
-        tags: {} as TagIndex
+        tags: {} as TagIndex,
+        history: {} as CommitHistory
     })
 
     const status = reactive({
@@ -40,6 +41,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         projectNotOpen: false,
         changed: false,
         renderNb: 0,
+        onUndo: 0,
         import: {} as ImportState,
         syncResult: {} as SyncResult
     })
@@ -111,6 +113,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
         }
+
+        getHistory()
     }
 
     async function updateRoutine(i: number) {
@@ -138,6 +142,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             projectNotOpen: false,
             changed: false,
             renderNb: 0,
+            onUndo: 0,
             import: {} as ImportState
         })
         tabManager = undefined
@@ -468,7 +473,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (data.properties[propertyId].tags != undefined) {
             computeTagCount()
         }
-
+        getHistory()
         if (!dontEmit) tabManager.collection.update()
     }
 
@@ -476,9 +481,16 @@ export const useProjectStore = defineStore('projectStore', () => {
         const commit = await apiSetPropertyValues(instanceValues, imageValues)
         applyCommit(commit)
 
-        // if (data.properties[propertyId].tags != undefined) {
-        //     computeTagCount(imageList.value, data.properties)
-        // }
+        const propIds = new Set<number>()
+        instanceValues.forEach(v => propIds.add(v.propertyId))
+        imageValues.forEach(v => propIds.add(v.propertyId))
+
+        const tagProps = Array.from(propIds).filter(p => data.properties[p].type)
+        if(tagProps.length) {
+            computeTagCount()
+        }
+
+        getHistory()
 
         if (!dontEmit) tabManager.collection.update()
     }
@@ -492,7 +504,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         const values = await apiSetTagPropertyValue(propertyId, imageIds, value, mode)
         importPropertyValues(values)
         computeTagCount()
-
+        getHistory()
         if (!dontEmit) tabManager.collection.update()
     }
 
@@ -581,15 +593,26 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function undo() {
+        if(!data.history.undo.length) return
         const commit = await apiUndo()
         applyCommit(commit)
+        getHistory()
+        status.onUndo++
         getTabManager().collection.update()
     }
 
     async function redo() {
+        if(!data.history.redo.length) return
         const commit = await apiRedo()
         applyCommit(commit)
+        getHistory()
+        status.onUndo++
         getTabManager().collection.update()
+    }
+
+    async function getHistory() {
+        const res = await apiGetHistory()
+        data.history = res
     }
 
     return {

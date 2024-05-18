@@ -456,3 +456,14 @@ export interface DbCommit {
     instanceValues?: InstancePropertyValue[]
     imageValues?: ImagePropertyValue[]
 }
+
+export interface CommitStat {
+    timestamp: string
+    tags: number
+    values: number
+}
+
+export interface CommitHistory {
+    undo: CommitStat[]
+    redo: CommitStat[]
+}

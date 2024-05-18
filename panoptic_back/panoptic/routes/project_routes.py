@@ -14,7 +14,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     AddTagParentPayload, PropertyUpdate, \
     TagUpdate, VectorDescription, \
     ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
-    PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload
+    PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload, CommitHistory
 
 project_router = APIRouter()
 
@@ -102,12 +102,10 @@ async def set_instance_property_values_route(payload: PropertyValuesPayload):
     return res
 
 
-# @project_router.post('/set_tag_property_value')
-# async def set_tag_property_value(payload: SetTagPropertyValuePayload):
-#     print(payload)
-#     values = await project.db.set_tag_property_value(property_id=payload.property_id, instance_ids=payload.instance_ids,
-#                                                      value=payload.value, mode=payload.mode)
-#     return values
+@project_router.get("/history")
+async def get_history_route():
+    undo, redo = project.undo_queue.stats()
+    return CommitHistory(undo=undo, redo=redo)
 
 
 @project_router.post("/tags")

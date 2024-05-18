@@ -235,5 +235,12 @@
         "import": "Importer",
         "export": "Exporter"
     },
-    "tmp": "Tooltip to be written"
+    "tmp": "Tooltip to be written",
+    "dropdown": {
+        "history": {
+            "button": "Historique",
+            "values": "valeur(s) modifiée(s)",
+            "tags": "tag(s) modifié(s)"
+        }
+    }
 }
