@@ -13,6 +13,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import { useProjectStore } from '@/data/projectStore';
+import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 
 const project = useProjectStore()
 
@@ -94,6 +95,9 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div class="ms-4">
             <span class="bi bi-circle bb" @click="project.redo"></span>
         </div> -->
+        <div class="ms-4">
+            <HistoryDropdown />
+        </div>
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />
     </div>

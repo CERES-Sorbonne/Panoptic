@@ -1,5 +1,5 @@
 from panoptic.core.project.project_db import ProjectDb
-from panoptic.models import DbCommit
+from panoptic.models import DbCommit, CommitStat
 from panoptic.utils import clean_value
 
 
@@ -42,23 +42,34 @@ class UndoQueue:
         self._to_undo.append(inverse)
         return commit
 
+    def stats(self):
+        def to_stats(c: DbCommit):
+            tag_count = len(c.tags) + len(c.empty_tags)
+            value_count = len(c.empty_instance_values) + len(c.instance_values)
+            value_count += len(c.empty_image_values) + len(c.empty_image_values)
+            return CommitStat(timestamp=c.timestamp, tags=tag_count, values=value_count)
+        undo = [to_stats(c) for c in self._to_undo]
+        redo = [to_stats(c) for c in self._to_redo]
+        return undo, redo
+
     async def _apply_commit(self, commit: DbCommit):
         inverse = DbCommit()
         properties = {p.id: p for p in await self._db.get_properties(no_computed=True)}
-
+        print('apply commit')
+        print(commit)
         if commit.instance_values:
             for v in commit.instance_values:
                 v.value = clean_value(properties[v.property_id], v.value)
                 if v.value is None:
                     commit.empty_instance_values.append(v)
-            commit.instance_values.extend([v for v in commit.instance_values if v.value is not None])
+            commit.instance_values = [v for v in commit.instance_values if v.value is not None]
 
         if commit.image_values:
             for v in commit.image_values:
                 v.value = clean_value(properties[v.property_id], v.value)
                 if v.value is None:
                     commit.empty_image_values.append(v)
-            commit.image_values.extend([v for v in commit.image_values if v.value is not None])
+            commit.image_values = [v for v in commit.image_values if v.value is not None]
 
         if commit.empty_image_values:
             current = await self._raw_db.get_image_property_values_from_keys(commit.empty_image_values)
@@ -114,6 +125,7 @@ class UndoQueue:
 
         if commit.instance_values:
             current = await self._raw_db.get_instance_property_values_from_keys(commit.instance_values)
+            print(current)
             existing = {}
             for v in current:
                 if v.property_id not in existing:

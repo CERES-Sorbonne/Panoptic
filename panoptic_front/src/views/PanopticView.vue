@@ -39,6 +39,9 @@ onMounted(async () => {
         if (ev.key == 'Shift') keyState.shift = true;
         if (ev.key == 'ArrowLeft') keyState.left = true;
         if (ev.key == 'ArrowRight') {keyState.right = true; console.log('keeeyy')}
+
+        if(ev.key == 'Z' && keyState.ctrl) store.redo()
+        if(ev.key == 'z' && keyState.ctrl) store.undo()
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;

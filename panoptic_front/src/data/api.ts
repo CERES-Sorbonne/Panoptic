@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit } from './models'
+import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitStat, CommitHistory } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 import {createReadStream} from 'fs'
@@ -314,6 +314,11 @@ export async function apiUndo() {
 export async function apiRedo() {
     const res = await axios.post('/redo')
     return keysToCamel(res.data) as DbCommit
+}
+
+export async function apiGetHistory() {
+    const res = await axios.get('/history')
+    return res.data as CommitHistory
 }
 
 
