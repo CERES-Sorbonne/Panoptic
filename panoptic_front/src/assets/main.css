@@ -538,3 +538,7 @@ input[type=number]::-webkit-inner-spin-button {
   border-left: 1px solid var(--border-color);
   height: 80%;
 }
+
+.disabled {
+  background-color: rgb(219, 219, 219);
+}

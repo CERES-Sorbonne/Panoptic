@@ -18,6 +18,7 @@ def assign_attributes(target: BaseModel, source):
     target = target.copy(update=source)
     return target
 
+
 class Plugin:
     def __init__(self, name: str, project: Project, plugin_path: str):
         self.params: Any | None = None

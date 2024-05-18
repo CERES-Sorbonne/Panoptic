@@ -50,7 +50,7 @@ async function call() {
 
     if (setDefault.value) {
         const funcId = localFunction.value
-        for(let i in localInputs.value) {
+        for (let i in localInputs.value) {
             actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
         }
         await actions.updateParamDefaults()
@@ -85,23 +85,26 @@ watch(() => project.actions, loadAction)
                 <div class="bb" style="margin: 0 1px; font-size: 8px;"><i class="bi bi-chevron-down"></i></div>
             </template>
             <template #popup="{ hide }">
-                <ActionSelect style="font-size: 10px; margin: 2px 2px 0 0;" class="text-end" v-model="localFunction"
-                    :action="props.action" />
-                <div class="p-2 pb-1">
-                    <form @submit.prevent="call(); hide();" class="">
-                        <div v-for="input, i in localInputs" class="mb-1">
-                            <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name"
-                                :ref="r => setRef(r, i)" :desc="input.description" />
-                        </div>
-                        <div class="d-flex flex-center mt-3" style="height: 20px;">
-                            <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                    style="position: relative; top: 2px" /></div>
-                            <div class="text-secondary">params as default</div>
-                            <div class="flex-grow-1"></div>
-                            <div class="bb" @click="hide">Cancel</div>
-                            <div class="bb" @click="call(); hide();">Call</div>
-                        </div>
-                    </form>
+                <div style="min-width: 200px;">
+                    <ActionSelect style="font-size: 10px; margin: 2px 2px 0 0;" class="text-end" v-model="localFunction"
+                        :action="props.action" />
+                    <div class="p-2 pb-1">
+                        <form @submit.prevent="call(); hide();" class="">
+                            <div v-for="input, i in localInputs" class="mb-1">
+                                <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name"
+                                    :ref="r => setRef(r, i)" :desc="input.description" />
+                                {{ input.defaultValue }}
+                            </div>
+                            <div class="d-flex flex-center mt-3" style="height: 20px;">
+                                <div class="me-1"><input type="checkbox" v-model="setDefault"
+                                        style="position: relative; top: 2px" /></div>
+                                <div class="text-secondary">as default</div>
+                                <div class="flex-grow-1"></div>
+                                <div class="bb" @click="hide">Cancel</div>
+                                <div class="bb" @click="call(); hide();">Call</div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </template>
         </Dropdown>

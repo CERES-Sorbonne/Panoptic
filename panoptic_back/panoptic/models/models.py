@@ -291,18 +291,6 @@ class ColumnOption(BaseModel):
     mode: PropertyMode | None = None
 
 
-class PropertyInputOptions(CamelModel):
-    types: list[PropertyType] = None
-    modes: list[PropertyMode] = None
-
-
-class PropertyRequest(CamelModel):
-    id: int = None
-    name: str = None
-    type: PropertyType = None
-    mode: PropertyMode = None
-
-
 @dataclass(slots=True)
 class DbCommit:
     empty_instances: list[id] = field(default_factory=list)
@@ -331,6 +319,10 @@ class CommitStat:
 class CommitHistory:
     undo: list[CommitStat] = field(default_factory=list)
     redo: list[CommitStat] = field(default_factory=list)
+
+
+class PropertyId(int):
+    pass
 
 
 ImportOptions = dict[int, ColumnOption]

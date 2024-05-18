@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, watch } from 'vue';
+import { defineProps, defineEmits, ref, watch, onMounted } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
+import PropertySelection from './PropertySelection.vue';
+import PropertyDropdown from '../properties/PropertyDropdown.vue';
+import { useProjectStore } from '@/data/projectStore';
+import { usePanopticStore } from '@/data/panopticStore';
+import { ModalId } from '@/data/models';
+
+const project = useProjectStore()
+const panoptic = usePanopticStore()
+
 const props = defineProps<{
     modelValue: any
     type: string
@@ -14,7 +23,7 @@ const emits = defineEmits(['update:modelValue']);
 
 const elem = ref(null)
 const localValue = ref(props.modelValue)
-
+const defaultProperty = ref(project.propertyList[0])
 function focus() {
     // console.log('focus', elem.value)
     if (elem.value) {
@@ -30,6 +39,12 @@ watch(localValue, () => {
             toSend = undefined
         }
         emits('update:modelValue', toSend)
+    }
+})
+
+onMounted(() => {
+    if(props.type == 'property' && props.modelValue == undefined) {
+        localValue.value = project.propertyList[0]?.id
     }
 })
 </script>
@@ -50,6 +65,10 @@ watch(localValue, () => {
             </div>
             <div v-if="props.type == 'bool'">
                 <input type="checkbox" v-model="localValue" ref="elem" />
+            </div>
+            <div v-if="props.type == 'property'">
+                <div v-if="!project.propertyList.length" class="disabled rounded ps-1 pe-1" >Create Property First</div>
+                <PropertyDropdown v-else v-model="defaultProperty" @update:model-value="localValue = defaultProperty.id"/>
             </div>
         </div>
     </wTT>
