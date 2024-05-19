@@ -33,6 +33,7 @@ function loadInput() {
     const funcId = localFunction.value
     if (!funcId) return
 
+    if(!actions.index[funcId]) return
     const params = actions.index[funcId].params
 
     // const inputs = []
@@ -43,6 +44,7 @@ function loadInput() {
 }
 
 async function call() {
+    console.log(localFunction.value, defaultFunction.value)
     const uiInputs = {}
     for (let input of localInputs.value) {
         if(input.type == 'property' && !input.defaultValue && project.propertyList.length) {
@@ -50,25 +52,27 @@ async function call() {
         }
         uiInputs[input.name] = input.defaultValue
     }
-
-    if (setDefault.value) {
-        const funcId = localFunction.value
-        for (let i in localInputs.value) {
-            actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
-        }
-        await actions.updateParamDefaults()
-    }
-
     const context: ActionContext = { instanceIds: props.imageIds, propertyIds: props.propertyIds, uiInputs }
     const req: ExecuteActionPayload = { function: localFunction.value, context: context }
     const res = await project.call(req)
-    console.log(res)
 
     if(res.groups) {
         emits('groups', res.groups)
     }
     if(res.instances) {
         emits('instances', res.instances)
+    }
+
+    if (setDefault.value) {
+        const funcId = localFunction.value
+        for (let i in localInputs.value) {
+            actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
+        }
+        await actions.updateDefaultParams()
+
+        const update = {}
+        update[props.action] = localFunction.value
+        await actions.updateDefaultActions(update)
     }
 }
 
@@ -82,7 +86,7 @@ onMounted(loadAction)
 watch(defaultFunction, loadAction)
 watch(() => props.action, loadAction)
 watch(localFunction, loadInput)
-watch(() => project.actions, loadAction)
+watch(project.actions, loadAction)
 </script>
 
 <template>

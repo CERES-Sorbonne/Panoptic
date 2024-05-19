@@ -2,7 +2,7 @@
 import { Property, PropertyID } from '@/data/models';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import PropertyIcon from './PropertyIcon.vue';
 import { useProjectStore } from '@/data/projectStore';
 
@@ -20,6 +20,8 @@ function select(propId) {
     dropdownElem.value.hide()
     emits('update:modelValue', store.data.properties[propId])
 }
+
+onMounted(() => console.log(props.modelValue))
 
 </script>
 

@@ -33,6 +33,10 @@ function focus() {
 
 watch(() => props.modelValue, () => localValue.value = props.modelValue)
 watch(localValue, () => {
+    if(props.type == 'property' && localValue.value in project.data.properties) {
+        defaultProperty.value = project.data.properties[localValue.value]
+    }
+
     if (localValue.value != props.modelValue) {
         let toSend = localValue.value
         if (localValue.value == '' || localValue.value == false) {
@@ -46,6 +50,10 @@ onMounted(() => {
     if(props.type == 'property' && props.modelValue == undefined) {
         localValue.value = project.propertyList[0]?.id
     }
+    if(props.type == 'property' && localValue.value in project.data.properties) {
+        defaultProperty.value = project.data.properties[localValue.value]
+    }
+
 })
 </script>
 
