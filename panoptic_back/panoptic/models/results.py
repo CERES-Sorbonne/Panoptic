@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from panoptic.models import InstancePropertyValue, Tag
+from panoptic.models import InstancePropertyValue, Tag, DbCommit
 
 
 @dataclass(slots=True)
@@ -21,9 +21,10 @@ class ActionResult:
     instances: Group = None
     groups: list[Group] = None
 
-    properties: list[int] = None
     datas: list[dict] = None
     urls: list[str] = None
+
+    commit: DbCommit = None
 
     errors: list[str] = None
 

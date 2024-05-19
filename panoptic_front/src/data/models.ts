@@ -446,6 +446,7 @@ export interface ActionResult {
     properties?: number[]
     datas?: any[]
     urls?: string[]
+    commit?: DbCommit
 
     errors?: string[]
 }

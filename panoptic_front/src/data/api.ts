@@ -276,7 +276,9 @@ export async function apiGetActions() {
 
 export async function apiCallActions(req: ExecuteActionPayload) {
     let res = await axios.post('/action_execute', req)
-    return res.data as ActionResult
+    const ares: ActionResult = res.data
+    if(ares.commit) ares.commit = keysToCamel(ares.commit)
+    return ares
 }
 
 export async function apiGetVectorInfo() {
