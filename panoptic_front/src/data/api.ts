@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitStat, CommitHistory } from './models'
+import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitStat, CommitHistory, ActionResult } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 import {createReadStream} from 'fs'
@@ -276,7 +276,7 @@ export async function apiGetActions() {
 
 export async function apiCallActions(req: ExecuteActionPayload) {
     let res = await axios.post('/action_execute', req)
-    return res.data
+    return res.data as ActionResult
 }
 
 export async function apiGetVectorInfo() {

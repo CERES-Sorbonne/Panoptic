@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext, PropertyId
+from panoptic.models.results import ActionResult
 from panoptic.plugin import Plugin
 
 
@@ -23,3 +24,4 @@ class DefaultPlugin(Plugin):
 
     async def convert_to_tags(self, context: ActionContext, source: PropertyId):
         print(self.name, source)
+        return ActionResult()

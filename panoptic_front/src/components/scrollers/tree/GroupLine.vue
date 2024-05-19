@@ -6,8 +6,8 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterButton from './ClusterButton.vue'
-import { Group, GroupManager, GroupResult, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine, Image, InstancePropertyValue, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
+import { Group, GroupManager, GroupTree, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
+import { GroupLine, GroupResult, Image, InstancePropertyValue, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { computeMLGroups } from '@/utils/utils'
 import ActionButton from '@/components/actions/ActionButton.vue'
@@ -19,7 +19,7 @@ const props = defineProps({
     manager: GroupManager,
     parentIds: Array<string>,
     hoverBorder: String,
-    data: Object as () => GroupResult,
+    data: Object as () => GroupTree,
     hideOptions: Boolean
 })
 
@@ -42,17 +42,18 @@ const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.vie
 
 const groupName = computed(() => {
     if (group.value.type == GroupType.All) return 'All'
-    if (group.value.type == GroupType.Cluster) return 'Cluster ' + group.value.parentIdx
+    if (group.value.type == GroupType.Cluster) return group.value.name ?? ('Cluster ' + group.value.parentIdx)
     return 'tmp name'
 })
 
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
-async function addClusters(groupResult) {
-    const groups = groupResult.groups.map((group, index) => {
+async function addClusters(clusters: GroupResult[]) {
+    const groups = clusters.map((group, index) => {
         const instances = group.ids.map(i => store.data.images[i])
         const res = buildGroup('cluster:' + String(index) + ':' + props.item.id, instances, GroupType.Cluster)
         res.meta.score = Math.round(group.score)
+        res.name = group.name
         return res
     })
     props.manager.addCustomGroups(group.value.id, groups, true)
@@ -202,17 +203,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             <div v-if="!hasSubgroups" class="ms-2">
                 <StampDropdown :images="images" />
             </div>
-            <div class="ms-2">
-                <ActionButton action="action_group" :image-ids="images.map(i => i.id)" style="font-size: 10px;"
-                    @result="addClusters" />
-            </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
-                <!-- <wTT message="main.view.group_clusters_tooltip">
-                    <ClusterButton v-model="props.item.nbClusters" @click="computeClusters" />
-                </wTT> -->
                 <ActionButton action="group" :image-ids="images.map(i => i.id)" style="font-size: 10px;"
-                    @result="addClusters" />
+                    @groups="addClusters" />
             </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from panoptic.models import InstancePropertyValue, Tag
@@ -8,14 +8,24 @@ from panoptic.models import InstancePropertyValue, Tag
 
 @dataclass(slots=True)
 class Group:
-    ids: list[int]
+    ids: list[int] = None
+    sha1s: list[str] = None
+    scores: list[int] = None
+
     score: int = None
-    meta: Any = None
+    name: str = None
 
 
-@dataclass(slots=True)
-class GroupResult:
-    groups: list[Group]
+@dataclass
+class ActionResult:
+    instances: Group = None
+    groups: list[Group] = None
+
+    properties: list[int] = None
+    datas: list[dict] = None
+    urls: list[str] = None
+
+    errors: list[str] = None
 
 
 @dataclass(slots=True)
@@ -33,13 +43,6 @@ class SearchResult:
 class ActionError:
     type: str
     data: Any
-
-
-@dataclass
-class ActionResult:
-    action: str
-    result: Any
-    errors: list[ActionError] = None
 
 
 @dataclass(slots=True)

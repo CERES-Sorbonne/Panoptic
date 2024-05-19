@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, ImagePropertyValue, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
+import { Image, ImagePropertyValue, InstanceMatch, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
+import { Exception } from 'sass';
 interface Sha1Pile {
     sha1: string
     images: Image[]
@@ -121,13 +122,33 @@ async function getReco() {
     console.log('get reco')
     const instanceIds = props.group.images.map(i => i.id)
     let res = await actions.getSimilarImages({ instanceIds })
-    res.matches.sort((a, b) => b.score - a.score)
+    console.log(res)
+    if(!res.instances) throw new Error('No instances in ActionResult')
+
+    let matches = []
+    const scores = res.instances.scores ?? []
+    if(res.instances.ids) {
+        for(let i in res.instances.ids) {
+            const match: InstanceMatch = {id: res.instances.ids[i], score: scores[i]}
+            matches.push(match)
+        }
+    } else {
+        for(let i in res.instances.sha1s) {
+            const sha1 = res.instances.sha1s[i]
+            for(let img of store.data.sha1Index[sha1]) {
+                const match: InstanceMatch = {id: img.id, score: scores[i]}
+                matches.push(match)
+            }
+        }
+    }
+    
+    matches.sort((a, b) => b.score - a.score)
     if(useFilter.value) {
         const tab = store.getTabManager()
         const valid = new Set(tab.collection.groupManager.result.root.images.map(i => i.id))
-        res.matches = res.matches.filter(m => valid.has(m.id))
+        matches = matches.filter(m => valid.has(m.id))
     }
-    const resSha1s = Array.from(new Set(res.matches.map(r => store.data.images[r.id].sha1)))
+    const resSha1s = Array.from(new Set(matches.map(r => store.data.images[r.id].sha1)))
 
     propertyValues.length = 0
     let current = props.group

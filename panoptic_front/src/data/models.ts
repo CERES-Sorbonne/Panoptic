@@ -430,6 +430,27 @@ export interface SearchResult {
     matches: InstanceMatch[];
 }
 
+export interface GroupResult {
+    ids?: number[]
+    sha1s?: number[]
+    scores?: number[]
+
+    score?: number
+    name?: string
+}
+
+export interface ActionResult {
+    instances?: GroupResult
+    groups?: GroupResult[]
+
+    properties?: number[]
+    datas?: any[]
+    urls?: string[]
+
+    errors?: string[]
+}
+
+
 // ========== Vectors ===============
 export interface VectorDescription {
     source: string

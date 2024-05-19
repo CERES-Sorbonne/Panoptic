@@ -33,6 +33,7 @@ export interface GroupState {
 
 export interface Group {
     id: string
+    name?: string
     images: Image[]
     type: GroupType
     subGroupType?: GroupType
@@ -63,7 +64,7 @@ export interface GroupMetaData {
 
 export interface GroupIndex { [key: string]: Group }
 
-export interface GroupResult {
+export interface GroupTree {
     root: Group
     index: GroupIndex
     imageToGroups: { [imgId: number]: string[] }
@@ -310,7 +311,7 @@ export function createGroupState(): GroupState {
 
 export class GroupManager {
     state: GroupState
-    result: GroupResult
+    result: GroupTree
 
     lastOrder: ImageOrder
     customGroups: { [parentGroupId: string]: Group[] }
