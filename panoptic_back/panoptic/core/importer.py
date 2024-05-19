@@ -201,6 +201,8 @@ class Importer:
 
                 if tag_map is not None:
                     value = parse_list(value)
+                    if not value:
+                        continue
                     for tag_name in value:
                         if tag_name not in tag_map:
                             tag_map[tag_name] = Tag(id=gen_tag_id(), property_id=prop.id, value=tag_name, parents=[0],
