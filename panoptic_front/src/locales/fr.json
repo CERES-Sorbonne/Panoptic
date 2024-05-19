@@ -229,6 +229,7 @@
     "action": {
         "find_similar": "Similaire",
         "group": "Créer des clusters",
+        "execute": "Executer",
         "filter": "Filtrer",
         "action_images": "Action Images",
         "action_group": "Action Groupes",

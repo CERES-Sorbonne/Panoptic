@@ -208,6 +208,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                 <ActionButton action="group" :image-ids="images.map(i => i.id)" style="font-size: 10px;"
                     @groups="addClusters" />
             </div>
+            <div class="ms-2">
+                <ActionButton action="execute" :image-ids="images.map(i => i.id)" style="font-size: 10px;"
+                    @groups="addClusters" />
+            </div>
             <div v-if="(hasImages || hasPiles) && !hasSubgroups" style="margin-left: 2px;">
 
             </div>

@@ -20,7 +20,7 @@ class DefaultPlugin(Plugin):
         super().__init__(name='TestPlugin1', project=project, plugin_path=plugin_path)
         # self.params = TestParams()
 
-        self.project.action.easy_add(self, self.convert_to_tags, ['group'])
+        self.project.action.easy_add(self, self.convert_to_tags, ['execute'])
 
     async def convert_to_tags(self, context: ActionContext, source: PropertyId):
         prop = await self.project.db.add_property('PluginProp', PropertyType.string)
