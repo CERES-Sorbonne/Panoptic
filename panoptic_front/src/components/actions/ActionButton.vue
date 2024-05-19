@@ -61,7 +61,7 @@ async function call() {
 
     const context: ActionContext = { instanceIds: props.imageIds, propertyIds: props.propertyIds, uiInputs }
     const req: ExecuteActionPayload = { function: localFunction.value, context: context }
-    const res = await apiCallActions(req)
+    const res = await project.call(req)
     console.log(res)
 
     if(res.groups) {
