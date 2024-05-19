@@ -23,6 +23,7 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function load() {
         if (!project.status.loaded) return
+        if (!Object.keys(project.actions).length) return
         index.value = project.actions
         const defaults = apiGetUIData('param_defaults')
 

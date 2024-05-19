@@ -26,5 +26,5 @@ class DefaultPlugin(Plugin):
         prop = await self.project.db.add_property('PluginProp', PropertyType.string)
         values = [InstancePropertyValue(property_id=prop.id, instance_id=i, value='I LOVE PLUGINS') for i in context.instance_ids]
         commit = DbCommit(instance_values=values, properties=[prop])
-        await self.project.undo_queue.do(commit)
+        commit = await self.project.undo_queue.do(commit)
         return ActionResult(commit=commit)
