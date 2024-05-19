@@ -17,7 +17,7 @@ const props = defineProps<{
     imageIds?: number[]
     propertyIds?: number[]
 }>()
-const emits = defineEmits(['result'])
+const emits = defineEmits(['instances', 'groups'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
@@ -45,6 +45,9 @@ function loadInput() {
 async function call() {
     const uiInputs = {}
     for (let input of localInputs.value) {
+        if(input.type == 'property' && !input.defaultValue && project.propertyList.length) {
+            input.defaultValue = project.propertyList[0].id
+        }
         uiInputs[input.name] = input.defaultValue
     }
 
@@ -60,7 +63,13 @@ async function call() {
     const req: ExecuteActionPayload = { function: localFunction.value, context: context }
     const res = await apiCallActions(req)
     console.log(res)
-    emits('result', res)
+
+    if(res.groups) {
+        emits('groups', res.groups)
+    }
+    if(res.instances) {
+        emits('instances', res.instances)
+    }
 }
 
 function setRef(elem, i) {

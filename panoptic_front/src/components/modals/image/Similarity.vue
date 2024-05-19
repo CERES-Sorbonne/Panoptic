@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
-import { Image, SearchResult } from '@/data/models';
+import { Image, InstanceMatch, SearchResult } from '@/data/models';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
@@ -35,8 +35,25 @@ async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
     // if (modalMode.value != ImageModalMode.Similarity) return
     const res = await actions.getSimilarImages({ instanceIds: [props.image.id] })
-    res.matches.sort((a, b) => b.score - a.score)
-    search.value = res
+    if (!res.instances) throw new Error('No instances in ActionResult')
+
+    let matches: InstanceMatch[] = []
+    const scores = res.instances.scores ?? []
+    if (res.instances.ids) {
+        for (let i in res.instances.ids) {
+            const match: InstanceMatch = { id: res.instances.ids[i], score: scores[i] }
+            matches.push(match)
+        }
+    } else {
+        for (let i in res.instances.sha1s) {
+            const sha1 = res.instances.sha1s[i]
+            for (let img of project.data.sha1Index[sha1]) {
+                const match: InstanceMatch = { id: img.id, score: scores[i] }
+                matches.push(match)
+            }
+        }
+    }
+    search.value = {matches}
     updateSimilarGroup()
 }
 
@@ -45,7 +62,7 @@ function updateSimilarGroup() {
 
     let matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
 
-    if(useFilter.value) {
+    if (useFilter.value) {
         const tab = project.getTabManager()
         const valid = new Set(tab.collection.filterManager.result.images.map(i => i.id))
         matches = matches.filter(m => valid.has(m.id))

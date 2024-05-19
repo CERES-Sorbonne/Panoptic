@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import Instance, ActionContext
-from panoptic.models.results import GroupResult, Group, InstanceMatch, SearchResult
+from panoptic.models.results import Group, InstanceMatch, SearchResult, ActionResult
 from panoptic.plugin import Plugin
 from panoptic.utils import group_by_sha1
 from .compute import reload_tree, get_similar_images, make_clusters
@@ -67,7 +67,10 @@ class FaissPlugin(Plugin):
 
         groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
                   cluster, distance in zip(clusters, distances)]
-        return GroupResult(groups=groups)
+        for i, g in enumerate(groups):
+            g.name = f"Cluster {i}"
+
+        return ActionResult(groups=groups)
 
     async def find_images(self, context: ActionContext):
         instances = await self.project.db.get_instances(context.instance_ids)
@@ -79,6 +82,7 @@ class FaissPlugin(Plugin):
         index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in ignore_sha1s}
 
         res_sha1s = list(index.keys())
-        res_instances = await self.project.db.get_instances(sha1s=res_sha1s)
-        matches = [InstanceMatch(id=i.id, score=index[i.sha1]) for i in res_instances if i.sha1 in index]
-        return SearchResult(matches=matches)
+        res_scores = [index[sha1] for sha1 in res_sha1s]
+
+        res = Group(sha1s=res_sha1s, scores=res_scores)
+        return ActionResult(instances=res)

@@ -49,7 +49,7 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getSimilarImages(ctx: ActionContext) {
         const res = await apiCallActions({function: defaultActions.similar, context: ctx})
-        return res as SearchResult
+        return res
     }
 
     function clear() {
