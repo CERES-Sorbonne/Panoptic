@@ -19,8 +19,6 @@ class UndoQueue:
             return DbCommit()
         last = self._to_undo.pop()
         inverse = await self._apply_commit(last)
-        print('undo')
-        print(inverse)
         self._to_redo.append(inverse)
         return last
 
@@ -29,16 +27,12 @@ class UndoQueue:
             return DbCommit()
         last = self._to_redo.pop()
         inverse = await self._apply_commit(last)
-        print('redo')
-        print(inverse)
         self._to_undo.append(inverse)
         return last
 
     async def do(self, commit: DbCommit):
         self._to_redo.clear()
         inverse = await self._apply_commit(commit)
-        print('do')
-        print(inverse)
         self._to_undo.append(inverse)
         return commit
 
@@ -56,8 +50,6 @@ class UndoQueue:
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
         properties = {p.id: p for p in await self._db.get_properties(no_computed=True)}
-        print('apply commit')
-        print(commit)
         if commit.instance_values:
             for v in commit.instance_values:
                 v.value = clean_value(properties[v.property_id], v.value)
