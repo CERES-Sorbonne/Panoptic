@@ -25,6 +25,7 @@ class DefaultPlugin(Plugin):
     async def convert_to_tags(self, context: ActionContext, source: PropertyId):
         prop = await self.project.db.add_property('PluginProp', PropertyType.string)
         values = [InstancePropertyValue(property_id=prop.id, instance_id=i, value='I LOVE PLUGINS') for i in context.instance_ids]
-        commit = DbCommit(instance_values=values, properties=[prop])
+        commit = DbCommit(instance_values=values)
         commit = await self.project.undo_queue.do(commit)
+        commit.properties = [prop]
         return ActionResult(commit=commit)
