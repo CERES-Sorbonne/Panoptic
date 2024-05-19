@@ -46,15 +46,6 @@ def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
             for t in types if types[t][0] in possible_inputs]
 
 
-def get_registered_function_description(function_id: str, function: AsyncCallable, action_name: str):
-    name = function.__name__
-    description = function.__doc__
-    if description and '@' in description:
-        description = description[0: description.index('@')]
-    params = get_params_description(function)
-    return FunctionDescription(id=function_id, name=name, description=description, action=action_name, params=params)
-
-
 def get_function_description(source: Plugin, function: AsyncCallable):
     name = function.__name__
     function_id = f'{source.name}.{name}'

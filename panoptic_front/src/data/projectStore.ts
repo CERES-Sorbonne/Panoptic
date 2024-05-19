@@ -107,14 +107,17 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.plugins = plugins
         data.vectors = vectors
         actions.value = apiActions
+
+
+        await getHistory()
+        await updateActions()
+
         status.loaded = true
 
         // tabManager.collection.update(data.images)
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
         }
-
-        getHistory()
     }
 
     async function updateRoutine(i: number) {
@@ -148,7 +151,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         tabManager = undefined
     }
 
-    function applyCommit(commit: DbCommit) {
+    async function applyCommit(commit: DbCommit) {
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 data.sha1Index[v.sha1].forEach(i => {
@@ -192,6 +195,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (commit.imageValues) {
             importImageValues(commit.imageValues)
         }
+        await getHistory()
     }
 
     function importProperties(properties: Property[]) {
@@ -321,15 +325,6 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importImage(img: Image) {
-        // Object.keys(img.properties).forEach(pId => img.properties[pId] = Object.assign({ propertyId: Number(pId) }, { value: img.properties[pId] }))
-        // TODO: FILL THIS DATA SERVER SERVER SIDE TO MAKE IT AVAILABLE TO PLUGINS AUTOMATICALY
-        // img.properties[PropertyID.id] = { propertyId: PropertyID.id, value: img.id }
-        // img.properties[PropertyID.sha1] = { propertyId: PropertyID.sha1, value: img.sha1 }
-        // img.properties[PropertyID.ahash] = { propertyId: PropertyID.ahash, value: img.ahash }
-        // img.properties[PropertyID.folders] = { propertyId: PropertyID.folders, value: img.folder_id }
-        // img.properties[PropertyID.width] = { propertyId: PropertyID.width, value: img.width }
-        // img.properties[PropertyID.height] = { propertyId: PropertyID.height, value: img.height }
-
         for (let pId in img.properties) {
             const propValue = img.properties[pId]
             if (propValue.value == undefined) continue
@@ -596,7 +591,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         if(!data.history.undo.length) return
         const commit = await apiUndo()
         applyCommit(commit)
-        getHistory()
         status.onUndo++
         getTabManager().collection.update()
     }
@@ -605,7 +599,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         if(!data.history.redo.length) return
         const commit = await apiRedo()
         applyCommit(commit)
-        getHistory()
         status.onUndo++
         getTabManager().collection.update()
     }
