@@ -14,7 +14,7 @@ from panoptic.models import Property, Tag, PropertyPayload, \
     AddTagParentPayload, PropertyUpdate, \
     TagUpdate, VectorDescription, \
     ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
-    PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload, CommitHistory
+    PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload, CommitHistory, Update
 
 project_router = APIRouter()
 
@@ -157,6 +157,24 @@ async def get_import_status_route():
     return res
 
 
+@project_router.get('/update')
+async def get_update_route():
+    if not project:
+        return None
+    update = Update()
+    if project.ui.commits:
+        update.commits = [*project.ui.commits]
+    if project.ui.plugins:
+        update.plugins = [*project.ui.plugins]
+    if project.ui.actions:
+        update.actions = [*project.ui.actions]
+    project.ui.clear()
+
+    update.status = project.get_status_update()
+
+    return update
+
+
 class PathRequest(BaseModel):
     path: str
 
@@ -275,6 +293,8 @@ async def undo_route():
 @project_router.post('/redo')
 async def undo_route():
     return await project.undo_queue.redo()
+
+
 #
 # @project_router.post("/similar/text")
 # async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
@@ -289,10 +309,11 @@ async def get_image(file_path: str):
 
 class EndpointFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        update = record.getMessage().find("/update") > -1
         state = record.getMessage().find("/import_status") > -1
         small_img = record.getMessage().find("/small/images/") > -1
         img = record.getMessage().find("/images/") > -1
-        return not (state or small_img or img)
+        return not (state or small_img or img or update)
 
 
 # Filter out /endpoint

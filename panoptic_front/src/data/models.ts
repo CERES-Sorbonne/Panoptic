@@ -489,3 +489,10 @@ export interface CommitHistory {
     undo: CommitStat[]
     redo: CommitStat[]
 }
+
+export interface Update {
+    commits?: DbCommit[]
+    plugins?: PluginDescription[]
+    actions?: FunctionDescription[]
+    status?: StatusUpdate
+}

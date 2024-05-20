@@ -52,5 +52,39 @@ async def test_import_file():
         raise e
 
 
+async def run_command(command):
+    # Create the subprocess
+    process = await asyncio.create_subprocess_shell(
+        command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
 
-asyncio.run(test_import_file())
+    # Capture the output and error
+    stdout, stderr = await process.communicate()
+
+    # Decode the output and error from bytes to strings
+    stdout = stdout.decode('utf-8')
+    stderr = stderr.decode('utf-8')
+
+    return stdout, stderr
+
+
+# Example usage
+async def main():
+    file_path = '/Users/david/Desktop/Capture d’écran 2024-05-19 à 20.24.10.png'
+    command = f'shortcuts run ocr-img -i "{file_path}"'
+    stdout, stderr = await run_command(command)
+
+    print('Output:', stdout)
+    print('Error:', stderr)
+
+asyncio.run(main())
+#
+# import subprocess
+#
+# file_path = '/Users/david/Desktop/Capture d’écran 2024-05-19 à 20.24.10.png'
+# ocr_out = subprocess.check_output(
+#     f'shortcuts run ocr-img -i "{file_path}"', shell=True
+# )
+# print(ocr_out.decode('utf-8'))

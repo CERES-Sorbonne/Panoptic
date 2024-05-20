@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref } from "vue";
-import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo, apiGetHistory, apiCallActions } from "./api";
+import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { getTagChildren, getTagParents, sleep } from "@/utils/utils";
@@ -110,7 +110,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
 
         await getHistory()
-        await updateActions()
+        // await updateActions()
 
         status.loaded = true
 
@@ -122,12 +122,36 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function updateRoutine(i: number) {
         while (routine == i) {
-            const status = await apiGetStatusUpdate()
-            if (!status) return
-
-            applyStatusUpdate(status)
+            const update = await apiGetUpdate()
+            console.log(update)
+            if (update) {
+                if (update.status) {
+                    await applyStatusUpdate(update.status)
+                }
+                if(update.actions) {
+                    importActions(update.actions)
+                }
+                if(update.plugins) {
+                    importPlugins(update.plugins)
+                }
+                if(update.commits) {
+                    for(let commit of update.commits) {
+                        await applyCommit(commit)
+                    }
+                    tabManager.collection.update()
+                }
+            }
             await sleep(1000)
         }
+    }
+
+    function importActions(actionList: FunctionDescription[]) {
+        actions.value = {}
+        actionList.forEach(a => actions.value[a.id] = a)
+    }
+
+    function importPlugins(plugins: PluginDescription[]) {
+        data.plugins = plugins
     }
 
     function clear() {
@@ -195,7 +219,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (commit.imageValues) {
             importImageValues(commit.imageValues)
         }
-        await getHistory()
+        // await getHistory()
     }
 
     function importProperties(properties: Property[]) {
@@ -234,37 +258,37 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function applyStatusUpdate(update: StatusUpdate) {
-        // console.log(update)
-        if (!status.loaded) return
-        // console.log(update.update)
-        const old = backendStatus.value
-        const actionChanged = update.update.action > old.update.action
-        const imageChanged = update.update.image > old.update.image
+        // // console.log(update)
+        // if (!status.loaded) return
+        // // console.log(update.update)
+        // const old = backendStatus.value
+        // const actionChanged = update.update.action > old.update.action
+        // const imageChanged = update.update.image > old.update.image
 
         backendStatus.value = update
 
-        if (imageChanged) {
-            // console.log('init again')
-            nextTick(() => init())
-        }
+        // if (imageChanged) {
+        //     // console.log('init again')
+        //     nextTick(() => init())
+        // }
 
-        // const newLoaded = backendStatus.value && !backendStatus.value.pluginLoaded && update.pluginLoaded
+        // // const newLoaded = backendStatus.value && !backendStatus.value.pluginLoaded && update.pluginLoaded
 
-        if (actionChanged) {
-            await updateActions()
-        }
+        // if (actionChanged) {
+        //     await updateActions()
+        // }
     }
 
     async function reload() {
         nextTick(() => init())
     }
 
-    async function updateActions() {
-        let plugins = await apiGetPluginsInfo()
-        let apiActions = await apiGetActions()
-        data.plugins = plugins
-        actions.value = apiActions
-    }
+    // async function updateActions() {
+    //     let plugins = await apiGetPluginsInfo()
+    //     let apiActions = await apiGetActions()
+    //     data.plugins = plugins
+    //     actions.value = apiActions
+    // }
 
     function getTab() {
         return getTabManager().state
@@ -325,6 +349,10 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importImage(img: Image) {
+
+        img.fullUrl = SERVER_PREFIX + '/images/' + img.url
+        img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
+
         for (let pId in img.properties) {
             const propValue = img.properties[pId]
             if (propValue.value == undefined) continue
@@ -431,7 +459,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         for (let propId of updated) {
             setTagsChildren(data.properties[propId].tags)
         }
-        for(let tag of tags) {
+        for (let tag of tags) {
             tag.allChildren = getTagChildren(tag)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag)
@@ -481,7 +509,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         imageValues.forEach(v => propIds.add(v.propertyId))
 
         const tagProps = Array.from(propIds).filter(p => data.properties[p].type)
-        if(tagProps.length) {
+        if (tagProps.length) {
             computeTagCount()
         }
 
@@ -588,7 +616,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function undo() {
-        if(!data.history.undo.length) return
+        if (!data.history.undo.length) return
         const commit = await apiUndo()
         applyCommit(commit)
         status.onUndo++
@@ -596,7 +624,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function redo() {
-        if(!data.history.redo.length) return
+        if (!data.history.redo.length) return
         const commit = await apiRedo()
         applyCommit(commit)
         status.onUndo++
@@ -610,10 +638,10 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function call(req: ExecuteActionPayload) {
         const res = await apiCallActions(req)
-        if(res.commit) {
+        if (res.commit) {
             applyCommit(res.commit)
             console.log(res.commit)
-            if(res.commit.properties) {
+            if (res.commit.properties) {
                 res.commit.properties.forEach(p => getTab().visibleProperties[p.id] = true)
             }
         }

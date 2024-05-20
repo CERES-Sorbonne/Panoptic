@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitStat, CommitHistory, ActionResult } from './models'
+import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitStat, CommitHistory, ActionResult, Update } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 import {createReadStream} from 'fs'
@@ -27,8 +27,8 @@ async function uploadFile(route: string, file) {
 export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
     // console.log(res.data)
-    const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + '/images/' + v.url }]))
-    return keysToCamel(images)
+    // const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + '/images/' + v.url }]))
+    return keysToCamel(Object.values(res.data))
 }
 
 export const apiGetTags = async () => {
@@ -321,6 +321,11 @@ export async function apiRedo() {
 export async function apiGetHistory() {
     const res = await axios.get('/history')
     return res.data as CommitHistory
+}
+
+export async function apiGetUpdate() {
+    const res = await axios.get('/update')
+    return res.data as Update
 }
 
 
