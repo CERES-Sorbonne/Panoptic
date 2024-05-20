@@ -7,6 +7,8 @@ import numpy
 from PIL import Image
 from imagehash import MeanFunc, ImageHash, ANTIALIAS
 
+from panoptic.models import DbCommit, Instance
+
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
@@ -62,13 +64,16 @@ class ImportInstanceTask(Task):
             return db_image
 
         sha1, url, width, height, ahash = await self._async(self._import_image, self.file, raw_db.get_project_path())
-
-        image = await self.db.add_instance(folder_id, name, extension, sha1, url, width, height, str(ahash))
+        instance = Instance(-1, folder_id, name, extension, sha1, url, height, width, str(ahash))
+        instances = await self.db.add_instances(instances=[instance])
         # print(f'imported image: {image.id} : {image.sha1}')
-        return image
+
+        self.project.ui.commits.append(DbCommit(instances=instances))
+        return instances[0]
 
     async def run_if_last(self):
-        self.project.ui.update_counter.image += 1
+        pass
+        # self.project.ui.update_counter.image += 1
 
     @staticmethod
     def _import_image(file_path, project_path: str):

@@ -206,6 +206,14 @@ class StatusUpdate(CamelModel):
     update: UpdateCounter = UpdateCounter()
 
 
+@dataclass
+class Update:
+    commits: list[DbCommit] = None
+    plugins: list[PluginDescription] = None
+    actions: list[ActionDescription] = None
+    status: StatusUpdate = None
+
+
 class TaskState(BaseModel):
     name: str
     id: str
