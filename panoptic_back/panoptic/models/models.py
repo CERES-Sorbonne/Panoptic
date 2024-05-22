@@ -35,7 +35,8 @@ class PropertyMode(Enum):
     sha1 = 'sha1'
 
 
-class Property(BaseModel):
+@dataclass
+class Property:
     id: int
     name: str
     type: PropertyType
@@ -307,6 +308,7 @@ class DbCommit:
     empty_instance_values: list[InstancePropertyValueKey] = field(default_factory=list)
     empty_image_values: list[ImagePropertyValueKey] = field(default_factory=list)
 
+    folders: list[Folder] = field(default_factory=list)
     instances: list[Instance] = field(default_factory=list)
     properties: list[Property] = field(default_factory=list)
     tags: list[Tag] = field(default_factory=list)

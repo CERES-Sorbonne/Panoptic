@@ -1,8 +1,6 @@
 import { Group } from "@/core/GroupManager"
-import { apiGetMLGroups} from "@/data/api"
-import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property, ActionContext } from "@/data/models"
+import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
-import { Exception } from "sass"
 import { Ref, computed } from "vue"
 
 export function hasProperty(image: Image, propertyId: number) {
@@ -189,11 +187,6 @@ export function getTagParents(tag: Tag) {
         }
     }
     recursive(tag)
-    return res
-}
-
-export async function computeMLGroups(context: ActionContext) {
-    let res = await apiGetMLGroups(context)
     return res
 }
 

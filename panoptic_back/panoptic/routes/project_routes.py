@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from sys import platform
@@ -25,6 +26,19 @@ def set_project(p: Project | None):
     global project
     project = p
 
+
+@project_router.get("/db_state")
+async def get_db_state_route():
+    instances = await project.db.get_instances()
+    get_properties = project.db.get_properties()
+    get_tags = project.db.get_tags()
+    get_values = project.db.get_property_values(instances)
+
+    get_all = asyncio.gather(get_properties, get_tags, get_values)
+    properties, tags, values = await get_all
+
+    state = DbCommit(instances=instances, properties=properties, tags=tags, instance_values=values)
+    return ORJSONResponse(state)
 
 # Route pour créer une property et l'insérer dans la table des properties
 @project_router.post("/property")
@@ -145,15 +159,6 @@ async def delete_tag_parent_route(tag_id: int, parent_id: int):
 @project_router.get("/folders")
 async def get_folders_route():
     res = await project.db.get_folders()
-    return res
-
-
-# TODO
-@project_router.get('/import_status')
-async def get_import_status_route():
-    if not project:
-        return None
-    res = project.get_status_update()
     return res
 
 

@@ -3,10 +3,9 @@
  */
 
 import axios from 'axios'
-import { ActionContext, FunctionDescription, ActionParam, DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDefaultParams, PluginDescription, ProjectVectorDescription, Property, PropertyDescription, PropertyMode, PropertyType, PropertyValueUpdate, SearchResult, StatusUpdate, TabState, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitStat, CommitHistory, ActionResult, Update } from './models'
+import { DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update } from './models'
 import { SelectionStatus } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
-import {createReadStream} from 'fs'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -26,9 +25,12 @@ async function uploadFile(route: string, file) {
 
 export const apiGetImages = async (): Promise<ImageIndex> => {
     const res = await axios.get(`/images`)
-    // console.log(res.data)
-    // const images = Object.fromEntries(Object.entries(res.data as ImageIndex).map(([k, v]) => [k, { ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + '/images/' + v.url }]))
     return keysToCamel(Object.values(res.data))
+}
+
+export async function apiGetDbState() {
+    const res = await axios.get('/db_state')
+    return keysToCamel(res.data) as DbCommit
 }
 
 export const apiGetTags = async () => {
@@ -66,31 +68,10 @@ export const apiAddProperty = async (name: string, type: PropertyType, mode: Pro
     return keysToCamel(res.data)
 }
 
-// export const apiSetPropertyValue = async (propertyId: number, instanceIds: number[], value: any): Promise<InstancePropertyValue[]> => {
-//     // only arrays are tags lists
-//     if (Array.isArray(value)) {
-//         value = value.map(Number)
-//     }
-//     // console.log({imageIds, sha1s, propertyId, value})
-//     const res = await axios.post('/image_property', { instanceIds, propertyId, value })
-//     // console.log(res.data)
-//     return keysToCamel(res.data)
-// }
-
 export async function apiSetPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
     const res = await axios.post('/set_instance_property_values', { instance_values: keysToSnake(instanceValues), image_values: keysToSnake(imageValues) })
     return keysToCamel(res.data) as DbCommit
 }
-
-export const apiSetTagPropertyValue = async (propertyId: number, instanceIds: number[], value: any, mode): Promise<InstancePropertyValue[]> => {
-    if (Array.isArray(value)) {
-        value = value.map(Number)
-    }
-    const res = await axios.post('/set_tag_property_value', { instanceIds, propertyId, value, mode })
-    return keysToCamel(res.data)
-}
-
-
 
 export const apiUpdateTag = async (id: number, color?: number, parentId?: number, value?: any): Promise<Tag> => {
     const res = await axios.patch('/tags', { id, color, parent_id: parentId, value })
@@ -142,30 +123,6 @@ export async function apiSetTabs(tabs: TabIndex) {
     let res = await apiSetUIData('tabs', tabs)
     return res.data
 }
-
-
-export const apiGetMLGroups = async (context: ActionContext) => {
-    let res = await axios.post('/clusters', context)
-    return res.data
-}
-
-export const apiGetStatusUpdate = async () => {
-    let res = await axios.get('/import_status')
-    // res.data.new_images = Object.entries(res.data.new_images as ImageIndex).map(([k, v]) => ({ ...v, url: SERVER_PREFIX + '/small/images/' + v.sha1 + '.jpeg', fullUrl: SERVER_PREFIX + v.url }))
-    // console.log(res.data)
-    return res.data as StatusUpdate
-}
-
-// export const apiGetSimilarImages = async (context: ActionContext) => {
-//     let req: ExecuteActionPayload = {action: 'find_similar', context: context}
-//     let res = await apiCallActions(req)
-//     return res as SearchResult
-// }
-
-// export const apiGetSimilarImagesFromText = async (context: ActionContext) => {
-//     let res = await axios.post('/similar/text', context)
-//     return res.data
-// }
 
 export const apiUploadPropFile = async (file: any) => {
     let formData = new FormData();
@@ -299,13 +256,6 @@ export async function apiGetUIData(key: string) {
 export async function apiSetUIData(key: string, data: any) {
     let res = await axios.post('/ui_data', {key, data})
     return res.data as any
-}
-
-export async function apiGetParamDefaults() {
-    return await apiGetUIData('param_defaults') as ParamDefaults
-}
-export async function apiSetParamDefaults(defaults: ParamDefaults) {
-    return await apiSetUIData('param_defaults', defaults)
 }
 
 export async function apiUndo() {

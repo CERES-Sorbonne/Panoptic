@@ -8,7 +8,7 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref } from "vue";
 import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetImages, apiGetStatusUpdate, apiGetProperties, apiGetTabs, apiGetTags, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTagPropertyValue, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX } from "./api";
+import { apiAddFolder, apiAddProperty, apiAddTag, apiAddTagParent, apiDeleteProperty, apiDeleteTag, apiDeleteTagParent, apiGetFolders, apiGetTabs, apiReImportFolder, apiUpdateProperty, apiUpdateTag, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiSetPropertyValues, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { getTagChildren, getTagParents, sleep } from "@/utils/utils";
@@ -70,23 +70,21 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
-        let images = await apiGetImages()
-        let tags = await apiGetTags()
-        let properties = await apiGetProperties()
         let folders = await apiGetFolders()
+        let dbState = await apiGetDbState()
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
-
-        importProperties(properties)
-        objValues(images).forEach((i) => importImage(i))
-
-
-        importTags(tags)
+        let tabs = await apiGetTabs()
+        
 
         data.folders = buildFolderNodes(folders)
+        applyCommit(dbState)
 
-        backendStatus.value = await apiGetStatusUpdate()
+
+        data.plugins = plugins
+        data.vectors = vectors
+        actions.value = apiActions
 
         routine += 1
         updateRoutine(routine)
@@ -96,34 +94,20 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         countImagePerFolder(data.folders, imageList.value)
 
-        // console.time('tab state')
-        let tabs = await apiGetTabs()
-        await loadTabs(tabs)
-        verifyData()
-        // console.timeEnd('tab state')
-
-        // console.log('UI Version:', softwareUiVersion)
-
-        data.plugins = plugins
-        data.vectors = vectors
-        actions.value = apiActions
-
-
-        await getHistory()
-        // await updateActions()
-
-        status.loaded = true
-
-        // tabManager.collection.update(data.images)
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
         }
+
+        await loadTabs(tabs)
+        verifyData()
+        await getHistory()
+        status.loaded = true
     }
 
     async function updateRoutine(i: number) {
         while (routine == i) {
             const update = await apiGetUpdate()
-            console.log(update)
+            // console.log(update)
             if (update) {
                 if (update.status) {
                     await applyStatusUpdate(update.status)
@@ -175,7 +159,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         tabManager = undefined
     }
 
-    async function applyCommit(commit: DbCommit) {
+    function applyCommit(commit: DbCommit) {
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 data.sha1Index[v.sha1].forEach(i => {
@@ -219,7 +203,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (commit.imageValues) {
             importImageValues(commit.imageValues)
         }
-        // await getHistory()
     }
 
     function importProperties(properties: Property[]) {
@@ -233,6 +216,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             if (data.properties[v.propertyId].type == PropertyType.date) {
                 v.value = new Date(v.value)
             }
+            // if(v.propertyId < 0) console.log(v)
             const value = { propertyId: v.propertyId, instanceId: v.instanceId, value: v.value } as InstancePropertyValue
             data.images[v.instanceId].properties[v.propertyId] = value
         }
@@ -352,18 +336,19 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         img.fullUrl = SERVER_PREFIX + '/images/' + img.url
         img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
+        img.properties = {}
 
-        for (let pId in img.properties) {
-            const propValue = img.properties[pId]
-            if (propValue.value == undefined) continue
+        // for (let pId in img.properties) {
+        //     const propValue = img.properties[pId]
+        //     if (propValue.value == undefined) continue
 
-            const property = data.properties[pId]
-            if (!property) continue
-            if (property.type == PropertyType.date) {
-                const date = new Date(propValue.value)
-                propValue.value = date
-            }
-        }
+        //     const property = data.properties[pId]
+        //     if (!property) continue
+        //     if (property.type == PropertyType.date) {
+        //         const date = new Date(propValue.value)
+        //         propValue.value = date
+        //     }
+        // }
 
         img.containerRatio = computeContainerRatio(img)
 
@@ -518,14 +503,21 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!dontEmit) tabManager.collection.update()
     }
 
-    async function setTagPropertyValue(propertyId: number, images: Image[] | Image, value: any, mode: string, dontEmit?: boolean) {
+    async function setTagPropertyValue(propertyId: number, images: Image[] | Image, value: any, dontEmit?: boolean) {
         if (!Array.isArray(images)) {
             images = [images]
         }
-
-        const imageIds = images.map(i => i.id)
-        const values = await apiSetTagPropertyValue(propertyId, imageIds, value, mode)
-        importPropertyValues(values)
+        const currentValues = images.map(i => ({value: i.properties[propertyId]?.value ?? [], img: i}))
+        if(data.properties[propertyId].mode == PropertyMode.id) {
+            const values: InstancePropertyValue[] = currentValues.map(v => ({propertyId: propertyId, instanceId: v.img.id, value: v.value}))
+            const commit = await apiSetPropertyValues(values, [])
+            applyCommit(commit)
+        }
+        else {
+            const values: ImagePropertyValue[] = currentValues.map(v => ({propertyId: propertyId, sha1: v.img.sha1, value: v.value}))
+            const commit = await apiSetPropertyValues([], values)
+            applyCommit(commit)
+        }
         computeTagCount()
         getHistory()
         if (!dontEmit) tabManager.collection.update()

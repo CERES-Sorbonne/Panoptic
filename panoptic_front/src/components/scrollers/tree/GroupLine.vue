@@ -5,11 +5,9 @@ import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
-import ClusterButton from './ClusterButton.vue'
 import { Group, GroupManager, GroupTree, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine, GroupResult, Image, InstancePropertyValue, PropertyMode, PropertyType, Tag, TagIndex, buildTag } from '@/data/models'
+import { GroupLine, GroupResult, Image, InstancePropertyValue, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
-import { computeMLGroups } from '@/utils/utils'
 import ActionButton from '@/components/actions/ActionButton.vue'
 
 const store = useProjectStore()
@@ -94,9 +92,7 @@ async function saveHirachy() {
     const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.id)
     let id = 0
     const idFunc = () => { id -= 1; return id }
-    // const imageTags: {[imgId: number]: number[]} = {}
     const tagToImages: { [tagId: number]: Image[] } = {}
-    // group.value.images.forEach(i => imageTags[i.id] = [])
     const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), tagToImages)
     console.log(tagToImages)
     const fakeIdToReal: { [id: number]: Tag } = { 0: { id: 0, value: '', parents: [], propertyId: property.id } }
@@ -110,25 +106,6 @@ async function saveHirachy() {
         const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
         fakeIdToReal[tag.id] = realTag
     }
-    // let depth = 1
-    // while (todo.length) {
-    //     const keep = []
-    //     for (let tag of tags) {
-    //         if (tag.parents.length > depth) {
-    //             keep.push(tag)
-    //             continue
-    //         } else if (tag.parents.length == depth) {
-    //             const oldLast = tag.parents[tag.parents.length - 1]
-    //             tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
-    //             const lastParent = tag.parents[tag.parents.length - 1]
-    //             const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
-    //             const realTag = await store.addTag(tag.propertyId, tag.value, lastParent, color)
-    //             fakeIdToReal[tag.id] = realTag
-    //         }
-    //     }
-    //     depth += 1
-    //     todo = keep
-    // }
     console.log('created tags')
 
     const instanceValues: InstancePropertyValue[] = []
