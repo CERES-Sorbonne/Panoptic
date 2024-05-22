@@ -51,8 +51,7 @@ function paint(property: PropertyRef) {
         images = Object.keys(groupManager.selectedImages).map(id => project.data.images[id])
     }
     if (property.type == PropertyType.multi_tags) {
-        const mode = property.value == undefined ? 'set' : 'add'
-        project.setTagPropertyValue(property.propertyId, images, property.value, mode)
+        project.setTagPropertyValue(property.propertyId, images, property.value)
     } else {
         project.setPropertyValue(property.propertyId, images, property.value)
     }
