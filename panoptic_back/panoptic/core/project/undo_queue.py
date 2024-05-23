@@ -1,5 +1,5 @@
 from panoptic.core.project.project_db import ProjectDb
-from panoptic.models import DbCommit, CommitStat
+from panoptic.models import DbCommit, CommitStat, InstancePropertyValue, ImagePropertyValue
 from panoptic.utils import clean_value
 
 
@@ -18,7 +18,7 @@ class UndoQueue:
         if not self._to_undo:
             return DbCommit()
         last = self._to_undo.pop()
-        inverse = await self._apply_commit(last)
+        inverse = await self.apply_commit(last)
         self._to_redo.append(inverse)
         return last
 
@@ -26,13 +26,13 @@ class UndoQueue:
         if not self._to_redo:
             return DbCommit()
         last = self._to_redo.pop()
-        inverse = await self._apply_commit(last)
+        inverse = await self.apply_commit(last)
         self._to_undo.append(inverse)
         return last
 
     async def do(self, commit: DbCommit):
         self._to_redo.clear()
-        inverse = await self._apply_commit(commit)
+        inverse = await self.apply_commit(commit)
         self._to_undo.append(inverse)
         return commit
 
@@ -46,10 +46,20 @@ class UndoQueue:
         redo = [to_stats(c) for c in self._to_redo]
         return undo, redo
 
-    async def _apply_commit(self, commit: DbCommit):
+    async def apply_commit(self, commit: DbCommit):
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
-        properties = {p.id: p for p in await self._db.get_properties(no_computed=True)}
+
+        instance_id_map: dict[int, int] = {}
+        property_id_map: dict[int, int] = {}
+        tag_id_map: dict[int, int] = {}
+
+        properties = {p.id: p for p in await self._db.get_properties()}
+        # add new properties to index
+        if commit.properties:
+            for p in commit.properties:
+                properties[p.id] = p
+
         if commit.instance_values:
             for v in commit.instance_values:
                 v.value = clean_value(properties[v.property_id], v.value)
@@ -80,7 +90,7 @@ class UndoQueue:
             [await self._db.delete_tag(tid) for tid in commit.empty_tags]
 
         if commit.empty_properties:
-            current = await self._db.get_properties(no_computed=True)
+            current = await self._db.get_properties()
             inverse.properties.extend([p for p in current if p.id in commit.empty_properties])
             [await self._db.delete_property(pid) for pid in commit.empty_properties]
 
@@ -93,37 +103,62 @@ class UndoQueue:
         if commit.instances:
             ids = [i.id for i in commit.instances]
             current = await self._db.get_instances(ids=ids)
-            for i in commit.instances:
-                await self._raw_db.import_instance(i.id, i.folder_id, i.name, i.extension, i.sha1, i.url, i.width,
-                                                   i.height, i.ahash)
-            inverse.empty_instances.extend([i for i in ids if i not in {ii.id for ii in current}])
+            db_instances = await self._raw_db.import_instances(commit.instances)
+            instance_id_map = {old: new.id for old, new in zip(ids, db_instances)}
+
+            current_ids = {i.id for i in current}
+            inverse.empty_instances.extend([i.id for i in db_instances if i.id not in current_ids])
             inverse.instances.extend(current)
 
         if commit.properties:
             ids = [p.id for p in commit.properties]
-            current = [p for p in await self._db.get_properties(no_computed=True) if p.id in ids]
-            for p in commit.properties:
-                await self._raw_db.import_property(p.id, p.name, p.type.value, p.mode.value)
+            current = await self._raw_db.get_properties(ids=ids)
+            db_properties = await self._raw_db.import_properties(commit.properties)
+            property_id_map = {old: new.id for old, new in zip(ids, db_properties)}
+            print(property_id_map)
 
-            inverse.empty_properties.extend([i for i in ids if i not in {p.id for p in current}])
+            current_ids = {p.id for p in current}
+            inverse.empty_properties.extend([p.id for p in db_properties if p.id not in current_ids])
             inverse.properties.extend(current)
 
         if commit.tags:
             ids = [t.id for t in commit.tags]
             current = await self._db.get_tags_by_ids(ids=ids)
-            await self._raw_db.import_tags(commit.tags)
+            for tag in commit.tags:
+                if tag.property_id in property_id_map:
+                    tag.property_id = property_id_map[tag.property_id]
+            db_tags = await self._raw_db.import_tags(commit.tags)
+            print(ids, db_tags)
+            tag_id_map = {old: new.id for old, new in zip(ids, db_tags)}
 
-            inverse.empty_tags.extend([t.id for t in commit.tags if t.id not in {tt.id for tt in current}])
+            current_ids = {tt.id for tt in current}
+            inverse.empty_tags.extend([t.id for t in db_tags if t.id not in current_ids])
             inverse.tags.extend(current)
 
+        def correct_property_id(value: InstancePropertyValue | ImagePropertyValue):
+            if value.property_id in property_id_map:
+                value.property_id = property_id_map[value.property_id]
+
+        def correct_instance_id(value: InstancePropertyValue):
+            if value.instance_id in instance_id_map:
+                value.instance_id = instance_id_map[value.instance_id]
+
+        def correct_tag_id(value: InstancePropertyValue | ImagePropertyValue):
+            if isinstance(value.value, list):
+                value.value = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in value.value]
+
         if commit.instance_values:
+            [correct_property_id(v) for v in commit.instance_values]
+            [correct_instance_id(v) for v in commit.instance_values]
+            [correct_tag_id(v) for v in commit.instance_values]
+
             current = await self._raw_db.get_instance_property_values_from_keys(commit.instance_values)
-            print(current)
             existing = {}
             for v in current:
                 if v.property_id not in existing:
                     existing[v.property_id] = {}
                 existing[v.property_id][v.instance_id] = True
+            print(commit.instance_values)
             await self._raw_db.import_instance_property_values(commit.instance_values)
 
             missing_ids = [v for v in commit.instance_values
@@ -132,6 +167,9 @@ class UndoQueue:
             inverse.instance_values.extend(current)
 
         if commit.image_values:
+            [correct_property_id(v) for v in commit.instance_values]
+            [correct_tag_id(v) for v in commit.instance_values]
+
             current = await self._raw_db.get_image_property_values_from_keys(commit.image_values)
             existing = {}
             for v in current:

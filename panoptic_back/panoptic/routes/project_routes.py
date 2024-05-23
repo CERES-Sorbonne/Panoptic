@@ -30,7 +30,7 @@ def set_project(p: Project | None):
 @project_router.get("/db_state")
 async def get_db_state_route():
     instances = await project.db.get_instances()
-    get_properties = project.db.get_properties()
+    get_properties = project.db.get_properties(computed=True)
     get_tags = project.db.get_tags()
     get_values = project.db.get_property_values(instances)
 
@@ -49,7 +49,7 @@ async def create_property_route(payload: PropertyPayload) -> Property:
 
 @project_router.get("/property")
 async def get_properties_route() -> list[Property]:
-    return await project.db.get_properties()
+    return await project.db.get_properties(computed=True)
 
 
 @project_router.patch("/property")
@@ -82,7 +82,7 @@ async def export_properties_route(req: ExportPropertiesPayload):
 @project_router.delete('/property/{property_id}')
 async def delete_property_route(property_id: str):
     await project.db.delete_property(property_id)
-    return await project.db.get_properties()
+    return await project.db.get_properties(computed=True)
 
 
 @project_router.get("/images", response_class=ORJSONResponse)

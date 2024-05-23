@@ -11,7 +11,8 @@ from panoptic.utils import Trie, chunk_list
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance
+from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstancePropertyValue, \
+    ImagePropertyValue, DbCommit
 
 
 @dataclass
@@ -99,7 +100,7 @@ class Importer:
         columns = list(self._df.columns)
         file_key = columns[0]
         file_props = [parse_header(i, col_name) for i, col_name in enumerate(columns[1:], start=1) if col_name]
-        db_properties = await self.project.db.get_properties(no_computed=True)
+        db_properties = await self.project.db.get_properties()
         col_to_prop: dict[int, Property] = {}
 
         for i, name, type_ in file_props:
@@ -121,7 +122,7 @@ class Importer:
         columns = list(self._df.columns)
         file_key = columns[0]
         file_props = [parse_header(i + 1, col_name) for i, col_name in enumerate(columns[1:]) if col_name]
-        db_properties = await self.project.db.get_properties(no_computed=True)
+        db_properties = await self.project.db.get_properties()
         col_to_prop: dict[int, Property] = {}
 
         exclude = set(exclude) if exclude else set()
@@ -269,17 +270,40 @@ class Importer:
                 tag_fake_id_map[tag.id] = new_tag
 
         values = data.values
-        for v in values:
-            print(f"start property {v.property_id}")
-            for chunk in chunk_list(list(zip(v.instance_ids, v.values)), 10000):
-                ids, chunk_values = zip(*chunk)
-                # print(ids, chunk_values)
-                ids = [correct_instance_id(i) for i in ids]
-                property_id = correct_property_id(v.property_id)
-                # print(chunk_values[0])
-                if isinstance(chunk_values[0], list):
-                    # print('is tag')
-                    chunk_values = [[correct_tag_id(tid) for tid in vals] for vals in chunk_values]
-                await self.project.db.set_property_values_array(property_id, ids, chunk_values)
+        props: dict[int, Property] = {p.id: p for p in await self.project.db.get_properties()}
+
+        image_values = []
+        instance_values = []
+        instance_ids = {id_ for v in values for id_ in v.instance_ids}
+        instances: dict[int, Instance] = {i.id: i for i in await self.project.db.get_instances(ids=list(instance_ids))}
+
+        for import_values in values:
+            for id_, value in zip(import_values.instance_ids, import_values.values):
+                if props[import_values.property_id].mode == PropertyMode.id:
+                    instance_values.append(InstancePropertyValue(property_id=import_values.property_id, instance_id=id_,
+                                                                 value=value))
+                else:
+                    image_values.append(ImagePropertyValue(property_id=import_values.property_id,
+                                                           sha1=instances[id_].sha1, value=value))
+        commit = DbCommit(image_values=image_values, instance_values=instance_values)
+        await self.project.undo_queue.apply_commit(commit)
+
+
+        # for v in values:
+        #     print(f"start property {v.property_id}")
+            # for chunk in chunk_list(list(zip(v.instance_ids, v.values)), 10000):
+            #     ids, chunk_values = zip(*chunk)
+            #     # print(ids, chunk_values)
+            #     ids = [correct_instance_id(i) for i in ids]
+            #     property_id = correct_property_id(v.property_id)
+            #     prop = props[v.property_id]
+            #     # print(chunk_values[0])
+            #     if isinstance(chunk_values[0], list):
+            #         # print('is tag')
+            #         chunk_values = [[correct_tag_id(tid) for tid in vals] for vals in chunk_values]
+            #     # if prop.mode == PropertyMode.id:
+            #         # values = [InstancePropertyValue(property_id=property_id, instance_id=i, value=v) for v in chunk_values]
+            #     # await self.project.db.set_property_values_array(property_id, ids, chunk_values)
+
                 # print(f"imported {len(chunk)} values")
         print("import finished")

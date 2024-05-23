@@ -62,7 +62,7 @@ class Exporter:
         """
         Allow to export selected images and properties into a csv file
         """
-        properties = await self.project.db.get_properties()
+        properties = await self.project.db.get_properties(computed=True)
         tags = await self.project.db.get_tags()
         tag_index = {t.id: t for t in tags}
 
