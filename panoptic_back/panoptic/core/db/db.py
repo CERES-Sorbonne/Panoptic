@@ -10,7 +10,8 @@ from pypika import Table, Parameter, PostgreSQLQuery, Order, functions
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict
 from panoptic.models import Instance, ComputedValue, Vector, PluginDefaultParams, ActionParam, \
-    VectorDescription, InstancePropertyValue, ImagePropertyValue, InstancePropertyValueKey, ImagePropertyValueKey
+    VectorDescription, InstancePropertyValue, ImagePropertyValue, InstancePropertyValueKey, ImagePropertyValueKey, \
+    PropertyType, PropertyMode
 from panoptic.models import Tag, Property, Folder, Tab
 
 Query = PostgreSQLQuery
@@ -22,11 +23,58 @@ class Db:
             raise Exception('DbConnection is not started. Execute await conn.start() before')
         self.conn = conn
 
+        self._last_instance_id = 0
+        self._last_property_id = 0
+        self._last_tag_id = 0
+
     async def close(self):
         await self.conn.conn.close()
 
     def get_project_path(self):
         return self.conn.folder_path
+
+    # =====================================================
+    # ====================== IDs ==========================
+    # =====================================================
+
+    @db_lock
+    async def get_new_instance_ids(self, nb: int):
+        last_id = self._last_instance_id
+
+        query = "SELECT id FROM instances ORDER BY id DESC LIMIT 1"
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchone()
+        if res:
+            last_id = res[0]
+        ids = [last_id + i + 1 for i in range(nb)]
+        self._last_instance_id = ids[-1]
+        return ids
+
+    @db_lock
+    async def get_new_property_ids(self, nb: int):
+        last_id = self._last_property_id
+
+        query = "SELECT id FROM properties ORDER BY id DESC LIMIT 1"
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchone()
+        if res:
+            last_id = res[0]
+        ids = [last_id + i + 1 for i in range(nb)]
+        self._last_property_id = ids[-1]
+        return ids
+
+    @db_lock
+    async def get_new_tag_ids(self, nb: int):
+        last_id = self._last_tag_id
+
+        query = "SELECT id FROM tags ORDER BY id DESC LIMIT 1"
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchone()
+        if res:
+            last_id = res[0]
+        ids = [last_id + i + 1 for i in range(nb)]
+        self._last_tag_id = ids[-1]
+        return ids
 
     # =====================================================
     # =================== Properties ======================
@@ -46,7 +94,7 @@ class Db:
         query = query.insert(*[(p.name, p.type, p.mode) for p in properties])
         await self.conn.execute_query(query.get_sql())
 
-        added = await self.get_properties(last=len(properties))
+        added = await self.get_properties()
         added.reverse()
         return added
 
@@ -56,14 +104,31 @@ class Db:
         prop = Property(id=id_, name=name, type=property_type, mode=mode)
         return prop
 
-    async def get_properties(self, last: int = None) -> list[Property]:
-        query = "SELECT * from properties"
-        if last:
-            query += ' ORDER BY id DESC LIMIT ?'
-            cursor = await self.conn.execute_query(query, (last,))
-        else:
-            cursor = await self.conn.execute_query(query)
-        return [Property(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
+    async def import_properties(self, properties: list[Property]) -> list[Property]:
+        fake_ids = [i for i in properties if i.id < 0]
+        if fake_ids:
+            real_ids = await self.get_new_property_ids(len(fake_ids))
+            for prop, id_ in zip(fake_ids, real_ids):
+                prop.id = id_
+
+        query = "INSERT OR REPLACE INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?)"
+        values = [
+            (p.id, p.name, p.type.value, p.mode.value) for p in properties
+        ]
+        await self.conn.execute_query_many(query, values)
+        return properties
+
+    async def get_properties(self, ids: list[int] = None) -> list[Property]:
+        table = Table('properties')
+        query = Query.from_(table).select('*')
+        if ids:
+            query = query.where(table.id.isin(ids))
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        if rows:
+            properties = [Property(row[0], row[1], PropertyType(row[2]), PropertyMode(row[3])) for row in rows]
+            return properties
+        return []
 
     async def get_property(self, property_id) -> [Property | None]:
         query = """
@@ -266,10 +331,16 @@ class Db:
         return cursor.lastrowid
 
     async def import_tags(self, tags: list[Tag]):
+        fake_ids = [i for i in tags if i.id < 0]
+        if fake_ids:
+            real_ids = await self.get_new_tag_ids(len(fake_ids))
+            for prop, id_ in zip(fake_ids, real_ids):
+                prop.id = id_
+
         query = "INSERT INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
-        cursor = await self.conn.execute_query_many(query, [(t.id, t.property_id, t.value, t.parents, t.color)
-                                                            for t in tags])
-        return cursor.lastrowid
+        await self.conn.execute_query_many(query, [(t.id, t.property_id, t.value, json.dumps(t.parents),
+                                                             t.color) for t in tags])
+        return tags
 
     async def get_tag_by_id(self, tag_id):
         query = "SELECT * FROM tags WHERE id = ?"
@@ -401,7 +472,8 @@ class Db:
             'width',
             'height',
             'ahash')
-        query = query.insert(*[(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash) for i in instances])
+        query = query.insert(
+            *[(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash) for i in instances])
         await self.conn.execute_query(query.get_sql())
 
         added = await self.get_instances(last=len(instances))
@@ -436,6 +508,21 @@ class Db:
 
         return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
                         height=height)
+
+    async def import_instances(self, instances: list[Instance]):
+        fake_ids = [i for i in instances if i.id < 0]
+        if fake_ids:
+            real_ids = await self.get_new_instance_ids(len(fake_ids))
+            for instance, id_ in zip(fake_ids, real_ids):
+                instance.id = id_
+
+        query = "INSERT OR REPLACE INTO instances (id,folder_id,name,extension,sha1,url,width,height,ahash) VALUES " \
+                "(?,?,?,?,?,?,?,?,?)"
+        values = [
+            (i.id, i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash) for i in instances
+        ]
+        await self.conn.execute_query_many(query, values)
+        return instances
 
     async def clone_instance(self, i: Instance):
         return await self.add_instance(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash)

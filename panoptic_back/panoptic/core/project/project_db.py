@@ -1,15 +1,12 @@
 import json
-from collections import defaultdict
 from random import randint
-from time import time
 from typing import Any
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tag, \
-    TagUpdate, Vector, VectorDescription, ProjectVectorDescriptions, SetMode, \
-    PropertyMode
+    TagUpdate, Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode
 from panoptic.models.computed_properties import computed_properties
 from panoptic.models.results import DeleteTagResult
 from panoptic.utils import convert_to_instance_values, clean_value, get_computed_values, is_circular
@@ -18,6 +15,7 @@ from panoptic.utils import convert_to_instance_values, clean_value, get_computed
 class ProjectDb:
     def __init__(self, conn: DbConnection):
         self._db = Db(conn)
+        self._fake_id_counter = -100
 
         self.on_import_instance = ImportInstanceEvent()
 
@@ -27,9 +25,16 @@ class ProjectDb:
     def get_raw_db(self):
         return self._db
 
+    def _get_fake_id(self):
+        self._fake_id_counter -= 1
+        return self._fake_id_counter
+
     # =====================================================
     # =================== Properties ======================
     # =====================================================
+
+    def create_property(self, name: str, type_: PropertyType, mode: PropertyMode) -> Property:
+        return Property(id=self._get_fake_id(), name=name, type=type_, mode=mode)
 
     async def add_property(self, name: str, property_type: PropertyType, mode='id') -> Property:
         return await self._db.add_property(name, property_type.value, mode)
@@ -37,9 +42,9 @@ class ProjectDb:
     async def add_properties(self, properties: list[Property]):
         return await self._db.add_properties(properties)
 
-    async def get_properties(self, no_computed=False) -> list[Property]:
+    async def get_properties(self, computed=False) -> list[Property]:
         properties = await self._db.get_properties()
-        if no_computed:
+        if not computed:
             return properties
         return [*properties, *computed_properties.values()]
 
@@ -124,39 +129,14 @@ class ProjectDb:
                 await self._db.delete_image_property_value(property_id=prop.id, sha1s=sha1s)
         return [InstancePropertyValue(property_id=property_id, instance_id=p[0], value=p[1]) for p in pairs]
 
-    # async def set_tag_property_value(self, property_id: int, instance_ids: list[int], value: list[int], mode: SetMode):
-    #     if mode == SetMode.set:
-    #         return await self.set_property_values(property_id=property_id, instance_ids=instance_ids, value=value)
-    #
-    #     instances = await self.get_instances_with_properties(instance_ids=instance_ids, property_ids=[property_id])
-    #
-    #     to_set = [i for i in instances if property_id not in i.properties]
-    #     if to_set:
-    #         set_res = await self.set_property_values(property_id=property_id, instance_ids=[i.id for i in to_set],
-    #                                                  value=value)
-    #     else:
-    #         set_res = []
-    #     if mode == SetMode.add:
-    #         to_add = [i for i in instances if property_id in i.properties]
-    #         ids = [i.id for i in to_add]
-    #         vals = [[*i.properties[property_id].value, *value] for i in to_add]
-    #         vals = [[*{*v}] for v in vals]
-    #         res_add = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
-    #         return [*set_res, *res_add]
-    #
-    #     if mode == SetMode.delete:
-    #         to_del = [i for i in instances if property_id in i.properties]
-    #         ids = [i.id for i in to_del]
-    #         vals = [[v for v in i.properties[property_id].value if v not in value] for i in to_del]
-    #         res_del = await self.set_property_values_array(property_id=property_id, instance_ids=ids, values=vals)
-    #         return [*set_res, *res_del]
-    #
-    # async def add_property_tag_values(self, property_id: int, instance_ids: list[int], values: list[list[int]]):
-    #     pass
-
     # =====================================================
     # =================== Instances =======================
     # =====================================================
+
+    def create_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
+                              height: int, ahash: str):
+        return Instance(id=self._get_fake_id(), folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url,
+                        height=height, width=width, ahash=ahash)
 
     async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
                            height: int, ahash: str):
@@ -179,30 +159,19 @@ class ProjectDb:
 
         return instances
 
-    # async def empty_or_clone(self, paths: list[str]) -> list[Instance]:
-    #     instances = await self.get_instances()
-    #     path_to_instances = defaultdict(list)
-    #     res: list[Instance] = []
-    #     for i in instances:
-    #         path_to_instances[i.url].append(i)
-    #     for path in paths:
-    #         if not path_to_instances[path]:
-    #             raise Exception('{path} is not already imported in panoptic. '
-    #                             'Impossible to import the data before importing the file')
-    #         matches = sorted(path_to_instances[path], key=lambda x: x.id)
-    #         values = await self.get_property_values(instances=[matches[0]], no_computed=True)
-    #         if not values:
-    #             res.append(matches[0])
-    #         else:
-    #             new_instance = await self._db.clone_instance(matches[0])
-    #             res.append(new_instance)
-    #     return res
-
     async def test_empty(self, instance_ids: list[int]):
         res = await self._db.count_instance_values(instance_ids)
         return set([i for i in instance_ids if i not in res])
 
     # ========== Tags ==========
+
+    def create_tag(self, property_id: int, value: str, parent_ids: list[int] = None, color=-1):
+        if parent_ids is None:
+            parent_ids = []
+        if color < 0:
+            color = randint(0, 11)
+        return Tag(id=self._get_fake_id(), property_id=property_id, value=value, parents=parent_ids, color=color)
+
     async def get_tags(self, prop: int = None) -> list[Tag]:
         tag_list = await self._db.get_tags(prop)
         return tag_list

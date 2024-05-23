@@ -65,7 +65,7 @@ async def run():
             await project.db.get_raw_db().import_instance(*instance, ahash)
         for prop in properties:
             await project.db.get_raw_db().import_property(*prop)
-        prop_index = {p.id: p for p in await project.db.get_properties()}
+        prop_index = {p.id: p for p in await project.db.get_properties(computed=True)}
 
         for tag in tags:
             if tag[1] in prop_index:

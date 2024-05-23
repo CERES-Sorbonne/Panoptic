@@ -5,31 +5,48 @@ from fastapi import UploadFile
 
 from panoptic.core.importer import ImportData, ImportValues, Importer
 from panoptic.core.project.project import Project
-from panoptic.models import Property, PropertyType, PropertyMode, Tag
+from panoptic.models import Property, PropertyType, PropertyMode, Tag, Instance
 
 
 async def test_import_data():
     project = Project('/Users/david/panoptic-projects/refactorZ', [])
     await project.start()
 
-    instances = await project.db.get_instances()
 
-    new_i = instances[0:10]
-    for i in range(len(new_i)):
-        new_i[i].id = -i - 1
+    props = await project.db.get_properties()
+    print(type(props[0].mode))
 
-    data = ImportData()
-    data.instances = new_i
+    # instances = await project.db.get_instances(ids=[1])
+    # instances[0].id = -1
+    # res = await project.db.get_raw_db().import_instances(instances)
+    # print(res)
+    # res = await project.db.get_raw_db().get_new_instance_ids(10)
+    # print(res)
+    #
+    # res = await project.db.get_raw_db().get_new_property_ids(10)
+    # print(res)
+    #
+    # res = await project.db.get_raw_db().get_new_tag_ids(10)
+    # print(res)
 
-    data.properties = [Property(id=-1, name='testing', type=PropertyType.multi_tags, mode=PropertyMode.id)]
-    data.tags = [Tag(id=-1, property_id=-1, value='AAAA', parents=[0], color=0),
-                 Tag(id=-2, property_id=-1, value='BBBB', parents=[-1], color=1),
-                 Tag(id=-3, property_id=-1, value='CCCC', parents=[-1], color=2),
-                 Tag(id=-4, property_id=-1, value='DDDD', parents=[-2], color=3)]
-
-    data.values = [ImportValues(property_id=-1, instance_ids=[-1, -2, -3], values=[[-1], [-2], [-3]])]
-
-    await project.importer.import_data(data)
+    # instances = await project.db.get_instances()
+    #
+    # new_i = instances[0:10]
+    # for i in range(len(new_i)):
+    #     new_i[i].id = -i - 1
+    #
+    # data = ImportData()
+    # data.instances = new_i
+    #
+    # data.properties = [Property(id=-1, name='testing', type=PropertyType.multi_tags, mode=PropertyMode.id)]
+    # data.tags = [Tag(id=-1, property_id=-1, value='AAAA', parents=[0], color=0),
+    #              Tag(id=-2, property_id=-1, value='BBBB', parents=[-1], color=1),
+    #              Tag(id=-3, property_id=-1, value='CCCC', parents=[-1], color=2),
+    #              Tag(id=-4, property_id=-1, value='DDDD', parents=[-2], color=3)]
+    #
+    # data.values = [ImportValues(property_id=-1, instance_ids=[-1, -2, -3], values=[[-1], [-2], [-3]])]
+    #
+    # await project.importer.import_data(data)
 
     await project.close()
 
@@ -79,7 +96,7 @@ async def main():
     print('Output:', stdout)
     print('Error:', stderr)
 
-asyncio.run(main())
+asyncio.run(test_import_data())
 #
 # import subprocess
 #

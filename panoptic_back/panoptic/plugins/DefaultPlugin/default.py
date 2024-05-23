@@ -48,13 +48,24 @@ class DefaultPlugin(Plugin):
 
     async def ocr(self, context: ActionContext):
         instances = await self.project.db.get_instances(ids=context.instance_ids)
-        tasks = [ocr(i) for i in instances]
+        # tasks = [ocr(i) for i in instances]
 
-        prop = await self.project.db.add_property('OCR', PropertyType.string)
-        values = await asyncio.gather(*tasks)
-        for v in values:
-            v.property_id = prop.id
-        commit = DbCommit(instance_values=list(values))
-        commit = await self.project.undo_queue.do(commit)
-        commit.properties = [prop]
-        return ActionResult(commit=commit)
+        # prop = await self.project.db.add_property('OCR', PropertyType.string)
+        # values = await asyncio.gather(*tasks)
+        # for v in values:
+        #     v.property_id = prop.id
+        # commit = DbCommit(instance_values=list(values))
+        # commit = await self.project.undo_queue.do(commit)
+        # commit.properties = [prop]
+
+        commit = DbCommit()
+        prop = self.project.db.create_property('PluginProp', PropertyType.multi_tags, PropertyMode.id)
+        tag = self.project.db.create_tag(property_id=prop.id, value='test')
+        values = [InstancePropertyValue(property_id=prop.id, instance_id=i.id, value=[tag.id]) for i in instances]
+
+        commit.properties.append(prop)
+        commit.tags.append(tag)
+        commit.instance_values.extend(values)
+
+        res = await self.project.undo_queue.do(commit)
+        return ActionResult(commit=res)
