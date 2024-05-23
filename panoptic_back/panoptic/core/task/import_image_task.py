@@ -65,11 +65,11 @@ class ImportInstanceTask(Task):
 
         sha1, url, width, height, ahash = await self._async(self._import_image, self.file, raw_db.get_project_path())
         instance = Instance(-1, folder_id, name, extension, sha1, url, height, width, str(ahash))
-        instances = await self.db.add_instances(instances=[instance])
-        # print(f'imported image: {image.id} : {image.sha1}')
 
-        self.project.ui.commits.append(DbCommit(instances=instances))
-        return instances[0]
+        commit = DbCommit(instances=[instance])
+        await self.project.undo_queue.apply_commit(commit)
+        self.project.ui.commits.append(commit)
+        return commit.instances[0]
 
     async def run_if_last(self):
         pass
