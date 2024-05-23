@@ -229,63 +229,89 @@ class Importer:
         await self.project.importer.import_data(self._data)
 
     async def import_data(self, data: ImportData):
-        instance_fake_id_map: dict[int, Instance] = {}
-        property_fake_id_map: dict[int, Property] = {}
-        tag_fake_id_map: dict[int, Tag] = {}
 
-        def correct_instance_id(id_: int):
-            return id_ if id_ not in instance_fake_id_map else instance_fake_id_map[id_].id
+        instance_values: list[InstancePropertyValue] = []
+        image_values: list[ImagePropertyValue] = []
 
-        def correct_property_id(id_: int):
-            return id_ if id_ not in property_fake_id_map else property_fake_id_map[id_].id
+        properties = await self.project.db.get_properties()
+        property_index = {p.id: p for p in [*data.properties, *properties]}
+        instance_ids = {id_ for v in data.values for id_ in v.instance_ids}
+        instances = await self.project.db.get_instances(ids=list(instance_ids))
+        instance_index: dict[int, Instance] = {i.id: i for i in [*instances, *data.instances]}
 
-        def correct_tag_id(id_: int):
-            return id_ if id_ not in tag_fake_id_map else tag_fake_id_map[id_].id
-
-        instances_to_add = [i for i in data.instances if i.id < 0]
-        if instances_to_add:
-            new_instances = await self.project.db.add_instances(instances_to_add)
-            if len(instances_to_add) != len(new_instances):
-                raise Exception('instances_to_add and new_instances should have equal length. Unexpected behavior')
-            for instance, new_instance in zip(instances_to_add, new_instances):
-                instance_fake_id_map[instance.id] = new_instance
-
-        properties_to_add = [p for p in data.properties if p.id < 0]
-        if properties_to_add:
-            new_properties = await self.project.db.add_properties(properties_to_add)
-            if len(properties_to_add) != len(new_properties):
-                raise Exception('properties_to_add and new_properties should have equal length. Unexpected behavior')
-            for prop, new_prop in zip(properties_to_add, new_properties):
-                property_fake_id_map[prop.id] = new_prop
-
-        for t in data.tags:
-            t.property_id = correct_property_id(t.property_id)
-        tags_to_add = [tag for tag in data.tags if tag.id < 0]
-        if tags_to_add:
-            new_tags = await self.project.db.add_tags(tags_to_add)
-            if len(tags_to_add) != len(new_tags):
-                raise Exception("tags_to_add and new_tags should have equal length. Unexpected behavior")
-
-            for tag, new_tag in zip(tags_to_add, new_tags):
-                tag_fake_id_map[tag.id] = new_tag
-
-        values = data.values
-        props: dict[int, Property] = {p.id: p for p in await self.project.db.get_properties()}
-
-        image_values = []
-        instance_values = []
-        instance_ids = {id_ for v in values for id_ in v.instance_ids}
-        instances: dict[int, Instance] = {i.id: i for i in await self.project.db.get_instances(ids=list(instance_ids))}
-
-        for import_values in values:
+        for import_values in data.values:
             for id_, value in zip(import_values.instance_ids, import_values.values):
-                if props[import_values.property_id].mode == PropertyMode.id:
+                if property_index[import_values.property_id].mode == PropertyMode.id:
                     instance_values.append(InstancePropertyValue(property_id=import_values.property_id, instance_id=id_,
                                                                  value=value))
                 else:
                     image_values.append(ImagePropertyValue(property_id=import_values.property_id,
-                                                           sha1=instances[id_].sha1, value=value))
-        commit = DbCommit(image_values=image_values, instance_values=instance_values)
+                                                           sha1=instance_index[id_].sha1, value=value))
+
+        commit = DbCommit()
+        commit.instances = data.instances
+        commit.properties = data.properties
+        commit.tags = data.tags
+        commit.instance_values = instance_values
+        commit.image_values = image_values
+
+        # instance_fake_id_map: dict[int, Instance] = {}
+        # property_fake_id_map: dict[int, Property] = {}
+        # tag_fake_id_map: dict[int, Tag] = {}
+        #
+        # def correct_instance_id(id_: int):
+        #     return id_ if id_ not in instance_fake_id_map else instance_fake_id_map[id_].id
+        #
+        # def correct_property_id(id_: int):
+        #     return id_ if id_ not in property_fake_id_map else property_fake_id_map[id_].id
+        #
+        # def correct_tag_id(id_: int):
+        #     return id_ if id_ not in tag_fake_id_map else tag_fake_id_map[id_].id
+        #
+        # instances_to_add = [i for i in data.instances if i.id < 0]
+        # if instances_to_add:
+        #     new_instances = await self.project.db.add_instances(instances_to_add)
+        #     if len(instances_to_add) != len(new_instances):
+        #         raise Exception('instances_to_add and new_instances should have equal length. Unexpected behavior')
+        #     for instance, new_instance in zip(instances_to_add, new_instances):
+        #         instance_fake_id_map[instance.id] = new_instance
+        #
+        # properties_to_add = [p for p in data.properties if p.id < 0]
+        # if properties_to_add:
+        #     new_properties = await self.project.db.add_properties(properties_to_add)
+        #     if len(properties_to_add) != len(new_properties):
+        #         raise Exception('properties_to_add and new_properties should have equal length. Unexpected behavior')
+        #     for prop, new_prop in zip(properties_to_add, new_properties):
+        #         property_fake_id_map[prop.id] = new_prop
+        #
+        # for t in data.tags:
+        #     t.property_id = correct_property_id(t.property_id)
+        # tags_to_add = [tag for tag in data.tags if tag.id < 0]
+        # if tags_to_add:
+        #     new_tags = await self.project.db.add_tags(tags_to_add)
+        #     if len(tags_to_add) != len(new_tags):
+        #         raise Exception("tags_to_add and new_tags should have equal length. Unexpected behavior")
+        #
+        #     for tag, new_tag in zip(tags_to_add, new_tags):
+        #         tag_fake_id_map[tag.id] = new_tag
+        #
+        # values = data.values
+        # props: dict[int, Property] = {p.id: p for p in await self.project.db.get_properties()}
+        #
+        # image_values = []
+        # instance_values = []
+        # instance_ids = {id_ for v in values for id_ in v.instance_ids}
+        # instances: dict[int, Instance] = {i.id: i for i in await self.project.db.get_instances(ids=list(instance_ids))}
+        #
+        # for import_values in values:
+        #     for id_, value in zip(import_values.instance_ids, import_values.values):
+        #         if props[import_values.property_id].mode == PropertyMode.id:
+        #             instance_values.append(InstancePropertyValue(property_id=import_values.property_id, instance_id=id_,
+        #                                                          value=value))
+        #         else:
+        #             image_values.append(ImagePropertyValue(property_id=import_values.property_id,
+        #                                                    sha1=instances[id_].sha1, value=value))
+        # commit = DbCommit(image_values=image_values, instance_values=instance_values)
         await self.project.undo_queue.apply_commit(commit)
 
 
