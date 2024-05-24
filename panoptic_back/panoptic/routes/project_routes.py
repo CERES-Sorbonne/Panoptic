@@ -10,12 +10,9 @@ from pydantic import BaseModel
 from starlette.responses import FileResponse
 
 from panoptic.core.project.project import Project
-from panoptic.models import Property, Tag, PropertyPayload, \
-    SetPropertyValuePayload, AddTagPayload, \
-    AddTagParentPayload, PropertyUpdate, \
-    TagUpdate, VectorDescription, \
-    ExecuteActionPayload, SetTagPropertyValuePayload, OptionsPayload, ExportPropertiesPayload, UIDataPayload, \
-    PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload, CommitHistory, Update
+from panoptic.models import Property, Tag, AddTagPayload, VectorDescription, ExecuteActionPayload, \
+    ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload, \
+    CommitHistory, Update
 
 project_router = APIRouter()
 
@@ -40,24 +37,18 @@ async def get_db_state_route():
     state = DbCommit(instances=instances, properties=properties, tags=tags, instance_values=values)
     return ORJSONResponse(state)
 
+
 # Route pour créer une property et l'insérer dans la table des properties
 @project_router.post("/property")
-async def create_property_route(payload: PropertyPayload) -> Property:
-    res = await project.db.add_property(payload.name, payload.type, payload.mode)
-    return res
+async def create_property_route(payload: Property) -> Property:
+    commit = DbCommit(properties=[payload])
+    await project.undo_queue.do(commit)
+    return commit.properties[0]
 
 
 @project_router.get("/property")
 async def get_properties_route() -> list[Property]:
     return await project.db.get_properties(computed=True)
-
-
-@project_router.patch("/property")
-async def update_property_route(payload: PropertyUpdate) -> Property:
-    props = await project.db.update_property(payload)
-    # commit = DbCommit(properties=[props])
-    # project.undo_queue.add_commit(commit)
-    return props
 
 
 @project_router.post('/import/upload')
@@ -99,16 +90,6 @@ async def get_image(file_path: str):
     return FileResponse(path=file_path)
 
 
-# Route pour ajouter une property à une image dans la table de jointure entre image et property
-# On retourne le payload pour pouvoir valider l'update côté front
-# @project_router.post("/image_property")
-# async def set_property_values_route(payload: SetPropertyValuePayload):
-#     values = await project.db.set_property_values(property_id=payload.property_id,
-#                                                   instance_ids=payload.instance_ids,
-#                                                   value=payload.value)
-#     return values
-
-
 @project_router.post("/set_instance_property_values")
 async def set_instance_property_values_route(payload: PropertyValuesPayload):
     commit = DbCommit(instance_values=payload.instance_values, image_values=payload.image_values)
@@ -126,12 +107,11 @@ async def get_history_route():
 async def add_tag(payload: AddTagPayload) -> Tag:
     if not payload.parent_id:
         payload.parent_id = 0
-    return await project.db.add_tag(payload.property_id, payload.value, payload.parent_id, payload.color)
-
-
-@project_router.post("/tag/parent")
-async def add_tag_parent(payload: AddTagParentPayload) -> Tag:
-    return await project.db.add_tag_parent(payload.tag_id, payload.parent_id)
+    commit = DbCommit(
+        tags=[Tag(id=-1, property_id=payload.property_id, value=payload.value, parents=[], color=payload.color)]
+    )
+    await project.undo_queue.do(commit)
+    return commit.tags[0]
 
 
 @project_router.get("/tags", response_class=ORJSONResponse)
@@ -141,19 +121,16 @@ async def get_tags_route(prop: Optional[int] = None):
 
 
 @project_router.patch("/tags")
-async def update_tag_route(payload: TagUpdate) -> Tag:
-    return await project.db.update_tag(payload)
+async def update_tag_route(payload: Tag) -> Tag:
+    commit = DbCommit(tags=[payload])
+    await project.undo_queue.do(commit)
+    return commit.tags[0]
 
 
 @project_router.delete("/tags")
 async def delete_tag_route(tag_id: int):
+    # TODO how to make it with a commit
     return await project.db.delete_tag(tag_id)
-
-
-@project_router.delete("/tags/parent")
-async def delete_tag_parent_route(tag_id: int, parent_id: int):
-    res = await project.db.delete_tag_parent(tag_id, parent_id)
-    return res
 
 
 @project_router.get("/folders")
@@ -202,44 +179,6 @@ async def reimport_folder_route(req: IdRequest):
         raise Exception(f'Folder id does not exist [{req.id}]')
     await project.import_folder(folder.path)
 
-
-#
-# @project_router.get("/tabs")
-# async def get_tabs_route():
-#     return await project.ui.get_tabs()
-#
-#
-# @project_router.post("/tab")
-# async def add_tab_route(tab: Tab):
-#     return await project.ui.add_tab(tab.data)
-#
-#
-# @project_router.patch("/tab")
-# async def update_tab_route(tab: Tab):
-#     return await project.ui.update_tab(tab)
-#
-#
-# @project_router.delete("/tab")
-# async def delete_tab_route(tab_id: int):
-#     return await project.ui.delete_tab(tab_id)
-
-
-# @project_router.get('/actions_description')
-# async def get_actions_description_route():
-#     res = project.action.get_actions_description()
-#     return res
-#
-#
-# @project_router.post('/actions_functions')
-# async def set_actions_update_route(actions_update: UpdateActionsPayload):
-#     await project.set_action_updates(actions_update.updates)
-#     return await get_actions_description_route()
-#
-#
-# @project_router.post('/action_execute')
-# async def execute_action_route(req: ExecuteActionPayload):
-#     res = await project.action.actions[req.action].call(req.context, function=req.function)
-#     return res
 
 @project_router.post('/action_execute')
 async def execute_action_route(req: ExecuteActionPayload):
@@ -298,12 +237,6 @@ async def undo_route():
 @project_router.post('/redo')
 async def undo_route():
     return await project.undo_queue.redo()
-
-
-#
-# @project_router.post("/similar/text")
-# async def get_similar_images_from_text_route(payload: GetSimilarImagesFromTextPayload) -> list:
-#     return await get_similar_images_from_text(payload.input_text)
 
 
 @project_router.get('/small/images/{file_path:path}')

@@ -46,7 +46,7 @@ class ActionError:
     data: Any
 
 
-@dataclass(slots=True)
+@dataclass
 class DeleteTagResult:
     tag_id: int
     updated_values: list[InstancePropertyValue]
