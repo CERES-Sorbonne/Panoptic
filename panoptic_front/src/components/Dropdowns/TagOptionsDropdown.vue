@@ -33,14 +33,14 @@ async function updateFromStore() {
 }
 
 function setColor(color: number) {
-    store.updateTag(props.propertyId, props.tagId, Number(color), undefined, tag.value.value)
+    store.updateTag(props.tagId, undefined, Number(color))
     dropdown.value.hide()
 }
 
 function setName(name: string) {
     if(name == tag.value.value) return
     console.log('set')
-    store.updateTag(props.propertyId, props.tagId, Number(tag.value.color), undefined, name)
+    store.updateTag(props.tagId, name)
 }
 
 function deleteTag() {

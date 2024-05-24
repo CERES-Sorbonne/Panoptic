@@ -79,7 +79,7 @@ function addTag() {
     if (!tagName) {
         return
     }
-    globalStore.addTag(node.propertyId, tagName, node.id, null)
+    globalStore.addTag(node.propertyId, tagName, node.id)
     props.node.expanded = true
 }
 

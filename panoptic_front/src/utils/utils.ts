@@ -180,8 +180,8 @@ export function getTagParents(tag: Tag) {
     // console.log(tag)
     const res = []
     const recursive = (t: Tag) => {
-        for(let pId of t.parents) {
-            if(pId == 0) continue
+        for (let pId of t.parents) {
+            if (pId == 0) continue
             res.push(pId)
             recursive(tags[pId])
         }
@@ -206,9 +206,9 @@ export function pad(num) {
     return num;
 }
 
-export function goNext(){
+export function goNext() {
     let elem = document.getElementsByClassName('v-step__button-next')[0] as HTMLElement
-    if(elem){
+    if (elem) {
         elem.click()
     }
 }
@@ -237,19 +237,62 @@ function toCamel(s: string): string {
 
 export function keysToSnake(o: unknown): unknown {
     if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function') {
-      const n = {};
-      Object.keys(o).forEach((k) => {
-        n[toSnake(k)] = keysToSnake(o[k]);
-      });
-      return n;
+        const n = {};
+        Object.keys(o).forEach((k) => {
+            n[toSnake(k)] = keysToSnake(o[k]);
+        });
+        return n;
     } else if (Array.isArray(o)) {
-      return o.map((i) => {
-        return keysToSnake(i);
-      });
+        return o.map((i) => {
+            return keysToSnake(i);
+        });
     }
     return o;
-  }
+}
 
-  function toSnake(s: string): string {
+function toSnake(s: string): string {
     return s.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-  }
+}
+
+export function deepCopy<T>(source: T): T {
+    if (source === null || typeof source !== 'object') {
+        return source;
+    }
+
+    if (Array.isArray(source)) {
+        const copy: any[] = [];
+        for (const element of source) {
+            copy.push(deepCopy(element));
+        }
+        return copy as any as T;
+    }
+
+    if (source instanceof Date) {
+        return new Date(source.getTime()) as any as T;
+    }
+
+    if (source instanceof Map) {
+        const copy = new Map();
+        source.forEach((value, key) => {
+            copy.set(deepCopy(key), deepCopy(value));
+        });
+        return copy as any as T;
+    }
+
+    if (source instanceof Set) {
+        const copy = new Set();
+        source.forEach((value) => {
+            copy.add(deepCopy(value));
+        });
+        return copy as any as T;
+    }
+
+    const copy: { [key: string]: any } = {};
+    for (const key in source) {
+        if (source.hasOwnProperty(key)) {
+            copy[key] = deepCopy(source[key]);
+        }
+    }
+
+    return copy as T;
+}

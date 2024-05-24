@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import dataclasses
+from dataclasses import field, dataclass
 from datetime import datetime
 from enum import Enum
 from typing import TypeAlias, Any, Union, Dict, List
@@ -8,6 +9,7 @@ from typing import TypeAlias, Any, Union, Dict, List
 import numpy
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
+# from pydantic.dataclasses import dataclass
 
 
 class PropertyType(Enum):
@@ -77,7 +79,7 @@ class ImagePropertyValue(ImagePropertyValueKey):
     value: Any | None = None
 
 
-@dataclass(slots=True)
+@dataclass
 class Tag:
     id: int
     property_id: int
@@ -96,7 +98,7 @@ class TagUpdate(CamelModel):
     color: int | None = None
 
 
-@dataclass(slots=True)
+@dataclass
 class Instance:
     # Should be equal order to SQL
     id: int
@@ -113,27 +115,27 @@ class Instance:
     properties: dict[int, InstancePropertyValue] = field(default_factory=dict)
 
 
-# @dataclass(slots=True)
+# @dataclass
 # class Image:
 #     sha1: str
 #     path: str
 #     properties: dict[int, PropertyValue] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass
 class ImageImportTask:
     image_path: str
     folder_id: int
 
 
-@dataclass(slots=True)
+@dataclasses.dataclass
 class ComputedValue:
     sha1: str
     ahash: str
     vector: numpy.ndarray
 
 
-@dataclass(slots=True)
+@dataclasses.dataclass
 class Vector:
     source: str
     type: str
@@ -152,7 +154,7 @@ class VectorDescription(CamelModel):
         self.id = f"{self.source}:{self.type}"
 
 
-# @dataclass(slots=True)
+# @dataclass
 # class VectorPack:
 #     id: str
 #     source: str
@@ -215,7 +217,7 @@ class TaskState(BaseModel):
     done: bool = True
 
 
-@dataclass(slots=True)
+@dataclass
 class Clusters:
     clusters: list[list[str]]
     distances: list[int]
@@ -291,11 +293,11 @@ class ColumnOption(BaseModel):
     mode: PropertyMode | None = None
 
 
-@dataclass(slots=True)
+@dataclass
 class DbCommit:
-    empty_instances: list[id] = field(default_factory=list)
-    empty_properties: list[id] = field(default_factory=list)
-    empty_tags: list[id] = field(default_factory=list)
+    empty_instances: list[int] = field(default_factory=list)
+    empty_properties: list[int] = field(default_factory=list)
+    empty_tags: list[int] = field(default_factory=list)
     empty_instance_values: list[InstancePropertyValueKey] = field(default_factory=list)
     empty_image_values: list[ImagePropertyValueKey] = field(default_factory=list)
 
@@ -307,6 +309,8 @@ class DbCommit:
     image_values: list[ImagePropertyValue] = field(default_factory=list)
 
     timestamp: datetime = field(default_factory=datetime.now)
+
+    undo: bool | None = False
 
 
 @dataclass

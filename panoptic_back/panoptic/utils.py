@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
 from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
-    PropertyType, PropertyId
+    PropertyType, PropertyId, Tag
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -263,3 +263,22 @@ def chunk_list(input_list, n):
     """Split a list into chunks of a given size."""
     # Use a list comprehension to create chunks
     return [input_list[i:i + n] for i in range(0, len(input_list), n)]
+
+
+def get_all_parent(tag: Tag, index: dict[int, Tag]) -> set[int]:
+    res = set(tag.parents)
+    for p in tag.parents:
+        [res.add(pId) for pId in get_all_parent(index[p], index)]
+    return res
+
+
+def clean_and_separate_values(values, index: dict[int, Property]):
+    valid = []
+    empty = []
+    for v in values:
+        v.value = clean_value(index[v.property_id], v.value)
+        if v.value is None:
+            empty.append(v)
+        else:
+            valid.append(v)
+    return valid, empty

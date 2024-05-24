@@ -467,8 +467,8 @@ export interface ProjectVectorDescription {
 // ========= Commit =================
 export interface DbCommit {
     emptyInstances?: number[]
-    emptyProperties?: string[]
-    emptyTags?: string[]
+    emptyProperties?: number[]
+    emptyTags?: number[]
     emptyInstanceValues? : InstancePropertyValue[]
     emptyImageValues?: ImagePropertyValue[]
 

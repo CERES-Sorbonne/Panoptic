@@ -1,6 +1,6 @@
 from panoptic.core.project.project_db import ProjectDb
-from panoptic.models import DbCommit, CommitStat, InstancePropertyValue, ImagePropertyValue
-from panoptic.utils import clean_value
+from panoptic.models import DbCommit, CommitStat, InstancePropertyValue, ImagePropertyValue, Property
+from panoptic.utils import clean_value, clean_and_separate_values
 
 
 class UndoQueue:
@@ -47,6 +47,8 @@ class UndoQueue:
         return undo, redo
 
     async def apply_commit(self, commit: DbCommit):
+        print('commit:')
+        print(commit)
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
 
@@ -61,44 +63,14 @@ class UndoQueue:
                 properties[p.id] = p
 
         if commit.instance_values:
-            for v in commit.instance_values:
-                v.value = clean_value(properties[v.property_id], v.value)
-                if v.value is None:
-                    commit.empty_instance_values.append(v)
-            commit.instance_values = [v for v in commit.instance_values if v.value is not None]
+            valid, empty = clean_and_separate_values(commit.instance_values, properties)
+            commit.empty_instances.extend(empty)
+            commit.instance_values = valid
 
         if commit.image_values:
-            for v in commit.image_values:
-                v.value = clean_value(properties[v.property_id], v.value)
-                if v.value is None:
-                    commit.empty_image_values.append(v)
-            commit.image_values = [v for v in commit.image_values if v.value is not None]
-
-        if commit.empty_image_values:
-            current = await self._raw_db.get_image_property_values_from_keys(commit.empty_image_values)
-            inverse.image_values.extend(current)
-            await self._raw_db.delete_image_property_values(commit.empty_image_values)
-
-        if commit.empty_instance_values:
-            current = await self._raw_db.get_instance_property_values_from_keys(commit.empty_instance_values)
-            inverse.instance_values.extend(current)
-            await self._raw_db.delete_instance_property_values(commit.empty_instance_values)
-
-        if commit.empty_tags:
-            current = await self._db.get_tags_by_ids(commit.empty_tags)
-            inverse.tags.extend(current)
-            [await self._db.delete_tag(tid) for tid in commit.empty_tags]
-
-        if commit.empty_properties:
-            current = await self._db.get_properties()
-            inverse.properties.extend([p for p in current if p.id in commit.empty_properties])
-            [await self._db.delete_property(pid) for pid in commit.empty_properties]
-
-        if commit.empty_instances:
-            current = await self._db.get_instances(ids=commit.empty_instances)
-            inverse.instances.extend(current)
-            # TODO: or not to do ?
-            # await self._db.delete_instance(ids=commit.empty_instances)
+            valid, empty = clean_and_separate_values(commit.image_values, properties)
+            commit.empty_image_values.extend(empty)
+            commit.image_values = valid
 
         if commit.instances:
             ids = [i.id for i in commit.instances]
@@ -115,7 +87,6 @@ class UndoQueue:
             current = await self._raw_db.get_properties(ids=ids)
             db_properties = await self._raw_db.import_properties(commit.properties)
             property_id_map = {old: new.id for old, new in zip(ids, db_properties)}
-            print(property_id_map)
 
             current_ids = {p.id for p in current}
             inverse.empty_properties.extend([p.id for p in db_properties if p.id not in current_ids])
@@ -127,8 +98,8 @@ class UndoQueue:
             for tag in commit.tags:
                 if tag.property_id in property_id_map:
                     tag.property_id = property_id_map[tag.property_id]
+            await self._db.verify_tags(commit.tags)
             db_tags = await self._raw_db.import_tags(commit.tags)
-            print(ids, db_tags)
             tag_id_map = {old: new.id for old, new in zip(ids, db_tags)}
 
             current_ids = {tt.id for tt in current}
@@ -183,4 +154,34 @@ class UndoQueue:
             inverse.empty_image_values.extend(missing_ids)
             inverse.image_values.extend(current)
 
+        if commit.empty_image_values:
+            current = await self._raw_db.get_image_property_values_from_keys(commit.empty_image_values)
+            inverse.image_values.extend(current)
+            await self._raw_db.delete_image_property_values(commit.empty_image_values)
+
+        if commit.empty_instance_values:
+            current = await self._raw_db.get_instance_property_values_from_keys(commit.empty_instance_values)
+            inverse.instance_values.extend(current)
+            await self._raw_db.delete_instance_property_values(commit.empty_instance_values)
+        if commit.empty_tags:
+            current = await self._db.get_tags_by_ids(commit.empty_tags)
+            inverse.tags.extend(current)
+            tags, instance_values, image_values, empty_inst, empty_img = await self._db.delete_tags(commit.empty_tags)
+            commit.tags.extend(tags)
+            commit.instance_values.extend(instance_values)
+            commit.image_values.extend(image_values)
+            commit.empty_instance_values.extend(empty_inst)
+            commit.empty_image_values.extend(empty_img)
+
+        if commit.empty_properties:
+            current = await self._db.get_properties()
+            inverse.properties.extend([p for p in current if p.id in commit.empty_properties])
+            [await self._db.delete_property(pid) for pid in commit.empty_properties]
+
+        if commit.empty_instances:
+            current = await self._db.get_instances(ids=commit.empty_instances)
+            inverse.instances.extend(current)
+            # TODO: or not to do ?
+            # await self._db.delete_instance(ids=commit.empty_instances)
+        print(commit)
         return inverse
