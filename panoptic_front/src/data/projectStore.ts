@@ -174,17 +174,16 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         if (commit.emptyTags) {
             commit.emptyTags.forEach(i => {
-                // if(data.properties[data.tags[i].propertyId]) {
-                //     delete data.properties[data.tags[i].propertyId].tags[i]
-                // }
                 data.tags[i].deleted = true
-                // nextTick(() => delete data.tags[i])
             })
         }
-        if (commit.emptyProperties) {
+        if (commit.emptyProperties.length) {
             commit.emptyProperties.forEach(i => {
                 delete data.properties[i]
             })
+            getTabManager().collection.groupManager.clear()
+            verifyData()
+            reload()
         }
         if (commit.emptyInstances) {
             commit.emptyInstances.forEach(i => {
