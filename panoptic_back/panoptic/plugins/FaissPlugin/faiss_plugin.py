@@ -4,8 +4,8 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import Instance, ActionContext
-from panoptic.models.results import Group, InstanceMatch, SearchResult, ActionResult
-from panoptic.plugin import Plugin
+from panoptic.models.results import Group, ActionResult
+from panoptic.core.plugin.plugin import Plugin
 from panoptic.utils import group_by_sha1
 from .compute import reload_tree, get_similar_images, make_clusters
 from .compute_vector_task import ComputeVectorTask
@@ -34,35 +34,35 @@ class FaissPlugin(Plugin):
         reload_tree(project.base_path)
 
         project.on.import_instance.register(self.compute_image_vector)
-        project.action.easy_add(self, self.find_images, ['similar'])
-        project.action.easy_add(self, self.compute_clusters, ['group'])
+        self.add_action_easy(self, self.find_images, ['similar'])
+        self.add_action_easy(self, self.compute_clusters, ['group'])
 
     async def start(self):
         await super().start()
-        vectors = await self.project.db.get_vectors(self.name, 'clip')
+        vectors = await self.project.get_vectors(self.name, 'clip')
 
         # TODO: handle this properly with an import hook
         if not os.path.exists(os.path.join(self.project.base_path, 'tree_faiss.pkl')) and len(vectors) > 0:
             from panoptic.plugins.FaissPlugin.create_faiss_index import compute_faiss_index
-            await compute_faiss_index(self.project.base_path, self.project.db, self.name, 'clip')
+            await compute_faiss_index(self.project.base_path, self.project, self.name, 'clip')
             reload_tree(self.project.base_path)
 
     async def compute_image_vector(self, instance: Instance):
         task = ComputeVectorTask(self.project, self.name, 'clip', instance)
-        self.project.task_queue.add_task(task)
+        self.project.add_task(task)
 
     async def compute_clusters(self, context: ActionContext, nb_clusters: int = 10):
         """
         Computes images clusters with Faiss
         @nb_clusters: requested number of clusters
         """
-        instances = await self.project.db.get_instances(context.instance_ids)
+        instances = await self.project.get_instances(context.instance_ids)
         sha1_to_instance = group_by_sha1(instances)
         sha1s = list(sha1_to_instance.keys())
         if not sha1s:
             return None
 
-        vectors = await self.project.db.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
+        vectors = await self.project.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
 
         groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
@@ -73,10 +73,10 @@ class FaissPlugin(Plugin):
         return ActionResult(groups=groups)
 
     async def find_images(self, context: ActionContext):
-        instances = await self.project.db.get_instances(context.instance_ids)
+        instances = await self.project.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
         ignore_sha1s = set(sha1s)
-        vectors = await self.project.db.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
+        vectors = await self.project.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
         vector_datas = [x.data for x in vectors]
         res = get_similar_images(vector_datas)
         index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in ignore_sha1s}

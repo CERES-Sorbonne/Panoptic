@@ -1,13 +1,10 @@
 import asyncio
-from pathlib import Path
-
-from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
-from panoptic.models import ActionContext, PropertyId, PropertyType, PropertyMode, InstancePropertyValue, DbCommit, \
+from panoptic.models import ActionContext, PropertyType, PropertyMode, DbCommit, \
     Instance, ImagePropertyValue, Property
 from panoptic.models.results import ActionResult
-from panoptic.plugin import Plugin
+from panoptic.core.plugin.plugin import Plugin
 
 
 # class TestParams(BaseModel):
@@ -43,13 +40,12 @@ async def ocr(instance: Instance, prop: Property):
 class DefaultPlugin(Plugin):
     def __init__(self, project: Project, plugin_path: str):
         super().__init__(name='TestPlugin1', project=project, plugin_path=plugin_path)
-        # self.params = TestParams()
-        self.project.action.easy_add(self, self.ocr, ['execute'])
+        self.add_action_easy(self, self.ocr, ['execute'])
 
     async def ocr(self, context: ActionContext):
         commit = DbCommit()
-        prop = self.project.db.create_property('OCR', PropertyType.string, PropertyMode.sha1)
-        instances = await self.project.db.get_instances(ids=context.instance_ids)
+        prop = self.project.create_property('OCR', PropertyType.string, PropertyMode.sha1)
+        instances = await self.project.get_instances(ids=context.instance_ids)
         unique_sha1 = list({i.sha1: i for i in instances}.values())
         tasks = [ocr(i, prop) for i in unique_sha1]
         values = await asyncio.gather(*tasks)
@@ -57,5 +53,5 @@ class DefaultPlugin(Plugin):
         commit.properties.append(prop)
         commit.image_values.extend(values)
 
-        res = await self.project.undo_queue.do(commit)
+        res = await self.project.do(commit)
         return ActionResult(commit=res)
