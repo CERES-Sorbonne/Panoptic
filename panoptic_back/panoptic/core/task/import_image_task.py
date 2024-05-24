@@ -67,7 +67,7 @@ class ImportInstanceTask(Task):
         instance = Instance(-1, folder_id, name, extension, sha1, url, height, width, str(ahash))
 
         commit = DbCommit(instances=[instance])
-        await self.project.undo_queue.apply_commit(commit)
+        await self.project.db.apply_commit(commit)
         self.project.ui.commits.append(commit)
         return commit.instances[0]
 
