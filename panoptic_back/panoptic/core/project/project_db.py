@@ -1,3 +1,4 @@
+from collections import defaultdict
 from random import randint
 from typing import Any
 
@@ -7,7 +8,7 @@ from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.models import Property, PropertyType, InstancePropertyValue, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode
 from panoptic.models.computed_properties import computed_properties
-from panoptic.utils import convert_to_instance_values, get_computed_values
+from panoptic.utils import convert_to_instance_values, get_computed_values, get_all_parent, clean_and_separate_values
 
 
 class ProjectDb:
@@ -40,7 +41,7 @@ class ProjectDb:
             return properties
         return [*properties, *computed_properties.values()]
 
-    async def delete_property(self, property_id: str):
+    async def delete_property(self, property_id: int):
         await self._db.delete_property(property_id)
 
     # =====================================================
@@ -67,7 +68,7 @@ class ProjectDb:
     # =====================================================
 
     def create_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
-                              height: int, ahash: str):
+                        height: int, ahash: str):
         return Instance(id=self._get_fake_id(), folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url,
                         height=height, width=width, ahash=ahash)
 
@@ -104,32 +105,68 @@ class ProjectDb:
     async def get_tags_by_ids(self, ids: list[int]):
         return await self._db.get_tags_by_ids(ids)
 
-    async def delete_tag(self, tag_id: int):
-        tag = await self._db.get_tag_by_id(tag_id)
-        prop = await self._db.get_property(tag.property_id)
-        instance_values = None
-        image_values = None
+    async def delete_tags(self, ids: list[int]):
+        to_delete = set(ids)
+        db_tags = await self.get_tags()
+        remain = [t for t in db_tags if t.id not in to_delete]
+        updated_tags = [t for t in remain if any([pId in to_delete for pId in t.parents])]
+        for t in updated_tags:
+            t.parents = [pId for pId in t.parents if pId not in to_delete]
+
+        property_ids = list({t.property_id for t in db_tags})
 
         def remove_tag(value):
-            value.value = [v for v in value.value if v != tag_id]
-        if prop.mode == PropertyMode.id:
-            instance_values = await self._db.get_instance_property_values(property_ids=[prop.id])
-            to_update = [v for v in instance_values if tag_id in v.value]
-            [remove_tag(v) for v in to_update]
-            await self._db.import_instance_property_values(to_update)
-        if prop.mode == PropertyMode.sha1:
-            image_values = await self._db.get_image_property_values(property_ids=[prop.id])
-            to_update = [v for v in image_values if tag_id in v.value]
-            [remove_tag(v) for v in to_update]
-            await self._db.import_image_property_values(to_update)
+            value.value = [v for v in value.value if v not in to_delete]
 
-        tags = await self._db.get_tags(tag.property_id)
-        updated_tags = [t for t in tags if tag_id in t.parents]
-        [t.parents.remove(tag_id) for t in updated_tags]
+        instance_values = await self._db.get_instance_property_values(property_ids=property_ids)
+        updated_instance_values = [v for v in instance_values if any(tId in to_delete for tId in v.value)]
+        [remove_tag(v) for v in updated_instance_values]
+
+        image_values = await self._db.get_image_property_values(property_ids=property_ids)
+        updated_image_values = [v for v in image_values if any(tId in to_delete for tId in v.value)]
+        [remove_tag(v) for v in updated_image_values]
+
         await self._db.import_tags(updated_tags)
-        await self._db.delete_tag_by_id(tag_id)
 
-        return tag_id, updated_tags, instance_values, image_values
+        props = {p.id: p for p in await self._db.get_properties()}
+        valid, empty_instance_values = clean_and_separate_values(instance_values, props)
+        if valid:
+            await self._db.import_instance_property_values(valid)
+        if empty_instance_values:
+            await self._db.delete_instance_property_values(empty_instance_values)
+
+        valid, empty_image_values = clean_and_separate_values(image_values, props)
+        if valid:
+            await self._db.import_image_property_values(valid)
+        if empty_image_values:
+            await self._db.delete_image_property_values(empty_image_values)
+
+        for i in to_delete:
+            await self._db.delete_tag_by_id(i)
+
+        return updated_tags, updated_instance_values, updated_image_values, empty_instance_values, empty_image_values
+
+    async def verify_tags(self, tags: list[Tag]):
+        for tag in tags:
+            if tag.parents is None:
+                tag.parents = []
+            if tag.color < 0 or tag.color is None:
+                tag.color = randint(0, 11)
+        tag_groups: dict[int, list[Tag]] = defaultdict(list)
+        [tag_groups[t.property_id].append(t) for t in tags]
+        for propId in tag_groups:
+            tags = tag_groups[propId]
+            tag_index: dict[int, Tag] = {t.id: t for t in await self.get_tags(propId)}
+            updated_tags = [t for t in tags if t.id in tag_index]
+            new_tags = [t for t in tags if t.id not in tag_index]
+            for tag in new_tags:
+                tag_index[tag.id] = tag
+            for tag in updated_tags:
+                parents = list(*tag.parents)
+                for parent_id in parents:
+                    all_parents = get_all_parent(tag_index[parent_id], tag_index)
+                    if tag.id in all_parents:
+                        tag.parents.remove(parent_id)
 
     # =========== Folders ===========
     async def add_folder(self, path: str, name: str, parent: int = None):

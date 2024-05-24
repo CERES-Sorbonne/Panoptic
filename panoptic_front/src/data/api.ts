@@ -5,7 +5,7 @@
 import axios from 'axios'
 import { DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update } from './models'
 import { SelectionStatus } from './panopticStore'
-import { keysToCamel, keysToSnake } from '@/utils/utils'
+import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
@@ -43,63 +43,63 @@ export const apiGetProperties = async () => {
     return keysToCamel(res.data)
 }
 
-export const apiAddTag = async (
-    propertyId: number,
-    value: string,
-    color?: number,
-    parentId?: number
-): Promise<Tag> => {
-    const res = await axios.post('/tags', {
-        propertyId,
-        value,
-        color,
-        parentId,
-    })
-    return keysToCamel(res.data)
-}
+// export const apiAddTag = async (
+//     propertyId: number,
+//     value: string,
+//     color?: number,
+//     parentId?: number
+// ): Promise<Tag> => {
+//     const res = await axios.post('/tags', {
+//         propertyId,
+//         value,
+//         color,
+//         parentId,
+//     })
+//     return keysToCamel(res.data)
+// }
 
-export const apiAddTagParent = async (tagId: number, parentId: number) => {
-    const res = await axios.post('tag/parent', { tagId, parentId })
-    return keysToCamel(res.data)
-}
+// export const apiAddTagParent = async (tagId: number, parentId: number) => {
+//     const res = await axios.post('tag/parent', { tagId, parentId })
+//     return keysToCamel(res.data)
+// }
 
-export const apiAddProperty = async (name: string, type: PropertyType, mode: PropertyMode): Promise<Property> => {
-    const res = await axios.post('/property', { name, type, mode })
-    return keysToCamel(res.data)
-}
+// export const apiAddProperty = async (name: string, type: PropertyType, mode: PropertyMode): Promise<Property> => {
+//     const res = await axios.post('/property', { name, type, mode })
+//     return keysToCamel(res.data)
+// }
 
-export async function apiSetPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
-    const res = await axios.post('/set_instance_property_values', { instance_values: keysToSnake(instanceValues), image_values: keysToSnake(imageValues) })
-    return keysToCamel(res.data) as DbCommit
-}
+// export async function apiSetPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
+//     const res = await axios.post('/set_instance_property_values', { instance_values: keysToSnake(instanceValues), image_values: keysToSnake(imageValues) })
+//     return keysToCamel(res.data) as DbCommit
+// }
 
-export const apiUpdateTag = async (id: number, color?: number, parentId?: number, value?: any): Promise<Tag> => {
-    const res = await axios.patch('/tags', { id, color, parent_id: parentId, value })
-    return keysToCamel(res.data)
-}
+// export const apiUpdateTag = async (id: number, color?: number, parentId?: number, value?: any): Promise<Tag> => {
+//     const res = await axios.patch('/tags', { id, color, parent_id: parentId, value })
+//     return keysToCamel(res.data)
+// }
 
-export const apiDeleteTagParent = async (id: number, parentId: number): Promise<any> => {
-    const res = await axios.delete('/tags/parent', { params: { tag_id: id, parent_id: parentId } })
-    return keysToCamel(res.data)
-}
+// export const apiDeleteTagParent = async (id: number, parentId: number): Promise<any> => {
+//     const res = await axios.delete('/tags/parent', { params: { tag_id: id, parent_id: parentId } })
+//     return keysToCamel(res.data)
+// }
 
-export const apiDeleteTag = async (tag_id: number): Promise<DeleteTagResult> => {
-    const res = await axios.delete('/tags', { params: { tag_id } })
-    return keysToCamel(res.data)
-}
+// export const apiDeleteTag = async (tag_id: number): Promise<DeleteTagResult> => {
+//     const res = await axios.delete('/tags', { params: { tag_id } })
+//     return keysToCamel(res.data)
+// }
 
 export const apiAddFolder = async (folder: string) => {
     return await axios.post('/folders', { path: folder })
 }
 
-export const apiUpdateProperty = async (propertyId: number, name?: string): Promise<Property> => {
-    return await axios.patch('/property', { id: propertyId, name })
-}
+// export const apiUpdateProperty = async (propertyId: number, name?: string): Promise<Property> => {
+//     return await axios.patch('/property', { id: propertyId, name })
+// }
 
-export const apiDeleteProperty = async (propertyId: number) => {
-    const res = await axios.delete(`/property/${propertyId}`)
-    return res.data
-}
+// export const apiDeleteProperty = async (propertyId: number) => {
+//     const res = await axios.delete(`/property/${propertyId}`)
+//     return res.data
+// }
 
 export const apiGetFolders = async () => {
     let res = await axios.get('/folders')
@@ -265,6 +265,19 @@ export async function apiUndo() {
 
 export async function apiRedo() {
     const res = await axios.post('/redo')
+    return keysToCamel(res.data) as DbCommit
+}
+
+export async function apiCommit(commit: DbCommit) {
+    const fixed: any = keysToSnake(deepCopy(commit))
+    if(commit.instances) fixed.instances = commit.instances.map(i => keysToSnake(i))
+    if(commit.properties) fixed.properties = commit.properties.map(p => keysToSnake(p))
+    if(commit.tags) fixed.tags = commit.tags.map(t => keysToSnake(t))
+    if(commit.instanceValues) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
+    if(commit.imageValues) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
+
+    // console.log(fixed)
+    const res = await axios.post('/commit', fixed)
     return keysToCamel(res.data) as DbCommit
 }
 

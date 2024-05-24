@@ -10,9 +10,8 @@ from pydantic import BaseModel
 from starlette.responses import FileResponse
 
 from panoptic.core.project.project import Project
-from panoptic.models import Property, Tag, AddTagPayload, VectorDescription, ExecuteActionPayload, \
-    ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, PropertyValuesPayload, \
-    CommitHistory, Update
+from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
+    ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update
 
 project_router = APIRouter()
 
@@ -36,14 +35,6 @@ async def get_db_state_route():
 
     state = DbCommit(instances=instances, properties=properties, tags=tags, instance_values=values)
     return ORJSONResponse(state)
-
-
-# Route pour créer une property et l'insérer dans la table des properties
-@project_router.post("/property")
-async def create_property_route(payload: Property) -> Property:
-    commit = DbCommit(properties=[payload])
-    await project.undo_queue.do(commit)
-    return commit.properties[0]
 
 
 @project_router.get("/property")
@@ -70,18 +61,6 @@ async def export_properties_route(req: ExportPropertiesPayload):
     return True
 
 
-@project_router.delete('/property/{property_id}')
-async def delete_property_route(property_id: str):
-    await project.db.delete_property(property_id)
-    return await project.db.get_properties(computed=True)
-
-
-@project_router.get("/images", response_class=ORJSONResponse)
-async def get_all_images_route():
-    images = await project.db.get_instances_with_properties()
-    return ORJSONResponse(images)
-
-
 @project_router.get('/images/{file_path:path}')
 async def get_image(file_path: str):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
@@ -90,47 +69,16 @@ async def get_image(file_path: str):
     return FileResponse(path=file_path)
 
 
-@project_router.post("/set_instance_property_values")
-async def set_instance_property_values_route(payload: PropertyValuesPayload):
-    commit = DbCommit(instance_values=payload.instance_values, image_values=payload.image_values)
-    res = await project.undo_queue.do(commit)
-    return res
-
-
 @project_router.get("/history")
 async def get_history_route():
     undo, redo = project.undo_queue.stats()
     return CommitHistory(undo=undo, redo=redo)
 
 
-@project_router.post("/tags")
-async def add_tag(payload: AddTagPayload) -> Tag:
-    if not payload.parent_id:
-        payload.parent_id = 0
-    commit = DbCommit(
-        tags=[Tag(id=-1, property_id=payload.property_id, value=payload.value, parents=[], color=payload.color)]
-    )
-    await project.undo_queue.do(commit)
-    return commit.tags[0]
-
-
 @project_router.get("/tags", response_class=ORJSONResponse)
 async def get_tags_route(prop: Optional[int] = None):
     tags = await project.db.get_tags(prop)
     return ORJSONResponse(tags)
-
-
-@project_router.patch("/tags")
-async def update_tag_route(payload: Tag) -> Tag:
-    commit = DbCommit(tags=[payload])
-    await project.undo_queue.do(commit)
-    return commit.tags[0]
-
-
-@project_router.delete("/tags")
-async def delete_tag_route(tag_id: int):
-    # TODO how to make it with a commit
-    return await project.db.delete_tag(tag_id)
 
 
 @project_router.get("/folders")
@@ -237,6 +185,15 @@ async def undo_route():
 @project_router.post('/redo')
 async def undo_route():
     return await project.undo_queue.redo()
+
+
+@project_router.post('/commit')
+async def commit_route(commit: DbCommit):
+    if commit.undo:
+        await project.undo_queue.do(commit)
+        return commit
+    await project.undo_queue.apply_commit(commit)
+    return commit
 
 
 @project_router.get('/small/images/{file_path:path}')

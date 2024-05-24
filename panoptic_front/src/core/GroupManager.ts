@@ -263,6 +263,7 @@ function sortGroupByProperty(group: Group, direction: number) {
             const type = isTag(prop.type) ? PropertyType.tag : prop.type
             let value = propValue.value
             if (isTag(type) && value != undefined) {
+                // console.log(prop, prop.tags[value], value)
                 value = prop.tags[value].value
             }
             value = sortParser[type](value)
@@ -685,6 +686,7 @@ export class GroupManager {
             let values = Array.isArray(value) ? value : [value]
             if(isTag(property.type) && values[0] !== undefined) {
                 const withParents = new Set(values)
+                values = values.filter(v => store.data.tags[v])
                 values.forEach(v => store.data.tags[v].allParents.forEach(p => withParents.add(p)))
                 values = Array.from(withParents)
             }
@@ -882,6 +884,7 @@ export class GroupManager {
     }
 
     unselectGroup(group: Group) {
+        console.log('unselect')
         this.unselectImages(group.images.map(i => i.id))
 
         const recursive = (g: Group) => {
