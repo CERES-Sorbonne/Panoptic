@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List
 
 from panoptic.models import ActionContext, FunctionDescription, ParamDescription, PropertyId
-from panoptic.plugin import Plugin
+from panoptic.core.plugin.plugin import Plugin
 from panoptic.utils import AsyncCallable, to_str_type
 
 

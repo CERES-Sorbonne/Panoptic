@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
+from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription
-from panoptic.utils import get_model_params_description
+from panoptic.utils import get_model_params_description, AsyncCallable
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
@@ -23,19 +24,26 @@ class Plugin:
     def __init__(self, name: str, project: Project, plugin_path: str):
         self.params: Any | None = None
         self.name: str = name
-        self.project = project
+        self._project = project
+        self.project = PluginProjectInterface(self._project)
         self.registered_functions: List[FunctionDescription] = []
         self.path = plugin_path
         self.base_key = f'{self.name}.base'
 
     async def start(self):
-        db_defaults = await self.project.db.get_plugin_data(self.base_key)
+        db_defaults = await self._project.db.get_plugin_data(self.base_key)
         self.params = assign_attributes(self.params, db_defaults)
 
     async def update_params(self, params: Any):
         self.params = assign_attributes(self.params, params)
-        await self.project.db.set_plugin_data(self.base_key, self.params.dict())
+        await self._project.db.set_plugin_data(self.base_key, self.params.dict())
         return self.params
+
+    def add_action(self, function: AsyncCallable, description: FunctionDescription):
+        self._project.action.add(function, description)
+
+    def add_action_easy(self, source: Plugin, function: AsyncCallable, hooks: list[str] = None):
+        self._project.action.easy_add(source, function, hooks)
 
     def _get_param_description(self):
         if not self.params:

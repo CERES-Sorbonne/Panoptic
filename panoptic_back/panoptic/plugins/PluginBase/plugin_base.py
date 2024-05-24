@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext
-from panoptic.plugin import Plugin
+from panoptic.core.plugin.plugin import Plugin
 
 
 class TestParams(BaseModel):
@@ -19,7 +19,7 @@ class PluginBase(Plugin):
         super().__init__(name='TestPlugin1', project=project, plugin_path=plugin_path)
         self.params = TestParams()
 
-        self.project.action.group_images.register(self, self.firefly)
+        self._project.action.group_images.register(self, self.firefly)
 
     async def firefly(self, context: ActionContext, damage: int):
         pass

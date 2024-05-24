@@ -255,7 +255,7 @@ class Db:
                 parent_tag = await self.get_tag_by_id(parent)
                 return await self.get_tag_ancestors(parent_tag, acc)
 
-    async def get_tags(self, prop: int) -> list[Tag]:
+    async def get_tags(self, prop: int = None) -> list[Tag]:
         query = "SELECT * FROM tags "
         params = None
         if prop:

@@ -35,8 +35,8 @@ class ProjectDb:
     def create_property(self, name: str, type_: PropertyType, mode: PropertyMode) -> Property:
         return Property(id=self._get_fake_id(), name=name, type=type_, mode=mode)
 
-    async def get_properties(self, computed=False) -> list[Property]:
-        properties = await self._db.get_properties()
+    async def get_properties(self, ids: list[int] = None, computed=False) -> list[Property]:
+        properties = await self._db.get_properties(ids)
         if not computed:
             return properties
         return [*properties, *computed_properties.values()]
@@ -98,6 +98,18 @@ class ProjectDb:
     async def get_tags(self, prop: int = None) -> list[Tag]:
         tag_list = await self._db.get_tags(prop)
         return tag_list
+
+    async def get_tags2(self, ids: list[int], property_ids: list[int]):
+        if not ids and not property_ids:
+            return await self._db.get_tags()
+        if ids:
+            return await self._db.get_tags_by_ids(ids)
+
+        res = []
+        for prop_id in property_ids:
+            res.extend(await self._db.get_tags(prop_id))
+        return res
+
 
     async def _delete_tags(self, ids: list[int]):
         to_delete = set(ids)

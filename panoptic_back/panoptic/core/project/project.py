@@ -18,7 +18,7 @@ from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import StatusUpdate
-from panoptic.plugin import Plugin
+from panoptic.core.plugin.plugin import Plugin
 
 nb_workers = 4
 
