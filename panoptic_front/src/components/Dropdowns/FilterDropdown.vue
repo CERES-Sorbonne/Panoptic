@@ -125,11 +125,7 @@ function updateIfChanged() {
 
 function updateLocal() {
     if (!filter.value) return
-    if(store.data.properties[filter.value.propertyId].type == PropertyType.date && filter.value.value) {
-        localValue.value = new Date(filter.value.value)
-    } else {
     localValue.value = filter.value.value
-    }
 }
 onMounted(updateLocal)
 watch(() => filter.value, () => updateLocal())

@@ -286,6 +286,7 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
 
             if(propType == PropertyType.date && nfilter.value) {
                 nfilter.value = new Date(nfilter.value)
+                propertyValue = new Date(propertyValue)
             }
 
             if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && isTag(propType)) {
