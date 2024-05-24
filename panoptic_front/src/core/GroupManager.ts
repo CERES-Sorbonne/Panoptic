@@ -197,6 +197,7 @@ function closestDate(date: Date, stepSize: number, unit: DateUnit) {
         unit = DateUnit.Day
     }
     if (date == undefined) return
+    date = new Date(date)
     let step = stepSize * DateUnitFactor[unit]
     if (unit == DateUnit.Second || unit == DateUnit.Minute || unit == DateUnit.Hour || unit == DateUnit.Day || unit == DateUnit.Week) {
         step *= 1000 // DateUnitFactors are in seconds, getTime in miliseconds

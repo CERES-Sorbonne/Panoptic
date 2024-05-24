@@ -58,7 +58,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
     },
     [PropertyType.date]: (x?: Date) => {
         if (!x) return 0
-        return x.getTime()
+        return (new Date(x)).getTime()
     },
     [PropertyType.multi_tags]: (x?: number[]) => {
         if (!x) return 0

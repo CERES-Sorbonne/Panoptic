@@ -15,16 +15,15 @@ const props = defineProps({
 
 const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
 const localValue = computed(() => {
-    if(propRef.value.value) return new Date(propRef.value.value)
+    if(propRef.value.value) return propRef.value.value
     return undefined
 })
 
 
 function save(date: Date) {
-    date = new Date(date)
+    const toSave = new Date(date).toISOString()
     console.log(date)
-    console.log(date.toUTCString())
-    store.setPropertyValue(props.property.id, props.image, new Date(date.getTime()))
+    store.setPropertyValue(props.property.id, props.image, toSave)
 }
 
 </script>
