@@ -2,17 +2,15 @@
 from __future__ import annotations
 
 import json
-from typing import List, Any
+from typing import List
 
-import numpy as np
-from pypika import Table, Parameter, PostgreSQLQuery, Order, functions
+from pypika import Table, PostgreSQLQuery, Order, functions
 
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict
-from panoptic.models import Instance, ComputedValue, Vector, PluginDefaultParams, ActionParam, \
-    VectorDescription, InstancePropertyValue, ImagePropertyValue, InstancePropertyValueKey, ImagePropertyValueKey, \
-    PropertyType, PropertyMode
-from panoptic.models import Tag, Property, Folder, Tab
+from panoptic.models import Instance, Vector, VectorDescription, InstancePropertyValue, ImagePropertyValue, \
+    InstancePropertyValueKey, ImagePropertyValueKey, PropertyType, PropertyMode
+from panoptic.models import Tag, Property, Folder
 
 Query = PostgreSQLQuery
 
@@ -80,30 +78,6 @@ class Db:
     # =================== Properties ======================
     # =====================================================
 
-    @db_lock
-    async def add_property(self, name: str, property_type: str, mode: str) -> Property:
-        query = 'INSERT INTO properties (name, type, mode) VALUES (?, ?, ?) on conflict do nothing'
-        cursor = await self.conn.execute_query(query, (name, property_type, mode))
-        prop = Property(id=cursor.lastrowid, name=name, type=property_type, mode=mode)
-        return prop
-
-    @db_lock
-    async def add_properties(self, properties: list[Property]) -> list[Property]:
-        table = Table('properties')
-        query = Query.into(table).columns('name', 'type', 'mode', )
-        query = query.insert(*[(p.name, p.type, p.mode) for p in properties])
-        await self.conn.execute_query(query.get_sql())
-
-        added = await self.get_properties()
-        added.reverse()
-        return added
-
-    async def import_property(self, id_: int, name: str, property_type: str, mode: str) -> Property:
-        query = 'INSERT OR REPLACE INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?)'
-        cursor = await self.conn.execute_query(query, (id_, name, property_type, mode))
-        prop = Property(id=id_, name=name, type=property_type, mode=mode)
-        return prop
-
     async def import_properties(self, properties: list[Property]) -> list[Property]:
         fake_ids = [i for i in properties if i.id < 0]
         if fake_ids:
@@ -130,7 +104,7 @@ class Db:
             return properties
         return []
 
-    async def get_property(self, property_id) -> [Property | None]:
+    async def get_property(self, property_id) -> Property | None:
         query = """
                 SELECT *
                 FROM properties
@@ -142,10 +116,6 @@ class Db:
             return Property(**auto_dict(row, cursor))
         else:
             return None
-
-    async def update_property(self, new_property: Property):
-        query = "UPDATE properties SET name = ? WHERE id = ?"
-        await self.conn.execute_query(query, (new_property.name, new_property.id))
 
     async def delete_property(self, property_id):
         query = "DELETE from properties WHERE id = ?"
@@ -216,75 +186,19 @@ class Db:
             res.extend([ImagePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
-    async def set_instance_property_value(self, property_id: int, instance_ids: List[int], value: Any):
-        json_value = json.dumps(value)
-        t = Table('instance_property_values')
-        query = Query.into(t).columns('property_id', 'instance_id', 'value')
-        query = query.insert(*[(property_id, iid, json_value) for iid in instance_ids])
-        query = query.get_sql() + ' ON CONFLICT (property_id, instance_id) DO UPDATE SET value=excluded.value'
-        await self.conn.execute_query(query)
-        return value
-
     async def import_instance_property_values(self, values: list[InstancePropertyValue]):
         query = "INSERT OR REPLACE INTO instance_property_values (property_id, instance_id, value) VALUES (?, ?, ?)"
         await self.conn.execute_query_many(query, [(v.property_id, v.instance_id, json.dumps(v.value)) for v in values])
         return values
-
-    async def set_image_property_value(self, property_id: int, sha1s: List[str], value: Any):
-        json_value = json.dumps(value)
-
-        t = Table('image_property_values')
-        query = Query.into(t).columns('property_id', 'sha1', 'value')
-        query = query.insert(*[(property_id, sha1, json_value) for sha1 in sha1s])
-        query = query.get_sql() + ' ON CONFLICT (property_id, sha1) DO UPDATE SET value=excluded.value'
-        await self.conn.execute_query(query)
-        return value
 
     async def import_image_property_values(self, values: list[ImagePropertyValue]):
         query = "INSERT OR REPLACE INTO image_property_values (property_id, sha1, value) VALUES (?, ?, ?)"
         await self.conn.execute_query_many(query, [(v.property_id, v.sha1, json.dumps(v.value)) for v in values])
         return values
 
-    async def set_instance_property_array_values(self, property_id: int, instance_ids: list[int], values: list[Any]):
-        """
-            Allows to set different values to each instance.
-        """
-        t = Table('instance_property_values')
-        query = Query.into(t).columns('property_id', 'instance_id', 'value')
-        query = query.insert((property_id, Parameter('?'), Parameter('?')))
-        query = query.get_sql() + ' ON CONFLICT (property_id, instance_id) DO UPDATE SET value=excluded.value'
-        await self.conn.execute_query_many(query, [(idd, json.dumps(value)) for idd, value in
-                                                   zip(instance_ids, values)])
-
-    async def set_image_property_array_values(self, property_id: int, sha1s: list[str], values: list[Any]):
-        """
-            Allows to set different values to each image.
-        """
-        t = Table('image_property_values')
-        query = Query.into(t).columns('property_id', 'sha1', 'value')
-        query = query.insert((property_id, Parameter('?'), Parameter('?')))
-        query = query.get_sql() + ' ON CONFLICT (property_id, sha1) DO UPDATE SET value=excluded.value'
-        await self.conn.execute_query_many(query, [(sha1, json.dumps(value)) for sha1, value in
-                                                   zip(sha1s, values)])
-
-    async def delete_instance_property_value(self, property_id: int, instance_ids: list[int]):
-        t = Table('instance_property_values')
-        query = Query.from_(t).delete().where(t.property_id == property_id)
-        query = query.where(t.instance_id.isin(instance_ids))
-        await self.conn.execute_query(query.get_sql())
-        return True
-
     async def delete_instance_property_values(self, values: list[InstancePropertyValueKey]):
         query = "DELETE FROM instance_property_values WHERE property_id = ? AND instance_id = ?"
         await self.conn.execute_query_many(query, [(v.property_id, v.instance_id) for v in values])
-        return True
-
-    async def delete_image_property_value(self, property_id: int, sha1s: list[str]):
-        t = Table('image_property_values')
-        query = Query.from_(t).delete().where(t.property_id == property_id)
-        query = query.where(t.sha1.isin(sha1s))
-        print(query.get_sql())
-        await self.conn.execute_query(query.get_sql())
         return True
 
     async def delete_image_property_values(self, values: list[ImagePropertyValueKey]):
@@ -308,28 +222,6 @@ class Db:
     # ====================== Tag ==========================
     # =====================================================
 
-    @db_lock
-    async def add_tag(self, property_id: int, value: str, parents: str, color: int):
-        query = "INSERT INTO tags (property_id, value, parents, color) VALUES (?, ?, ?, ?)"
-        cursor = await self.conn.execute_query(query, (property_id, value, parents, color))
-        return cursor.lastrowid
-
-    @db_lock
-    async def add_tags(self, tags: list[Tag]) -> list[Tag]:
-        table = Table('tags')
-        query = Query.into(table).columns('property_id', 'value', 'parents', 'color')
-        query = query.insert(*[(p.property_id, p.value, json.dumps([0]), p.color) for p in tags])
-        await self.conn.execute_query(query.get_sql())
-
-        added = await self.get_last_tags(limit=len(tags))
-        added.reverse()
-        return added
-
-    async def import_tag(self, id_: int, property_id: int, value: str, parents: str, color: int):
-        query = "INSERT INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
-        cursor = await self.conn.execute_query(query, (id_, property_id, value, parents, color))
-        return cursor.lastrowid
-
     async def import_tags(self, tags: list[Tag]):
         fake_ids = [i for i in tags if i.id < 0]
         if fake_ids:
@@ -349,24 +241,6 @@ class Db:
         if not row:
             return
         return Tag(**auto_dict(row, cursor))
-
-    async def get_tag(self, property_id, value):
-        query = "SELECT * FROM tags WHERE property_id = ? AND value = ?"
-        cursor = await self.conn.execute_query(query, (property_id, value))
-        row = await cursor.fetchone()
-        if not row:
-            return
-        return Tag(**auto_dict(row, cursor))
-
-    async def update_tag(self, tag: Tag):
-        query = "UPDATE tags SET parents = ?, value = ?, color = ? WHERE id = ?"
-        await self.conn.execute_query(query, (json.dumps(tag.parents), tag.value, tag.color, tag.id))
-
-    async def set_tags_parents(self, links: list[tuple[int, list[int]]]):
-        query = """
-            UPDATE tags SET parents = ? WHERE id = ? ;
-        """
-        await self.conn.execute_query_many(query, [(json.dumps(p), c) for c, p in links])
 
     async def get_tag_ancestors(self, tag: Tag, acc=None):
         if not acc:
@@ -400,114 +274,14 @@ class Db:
             return tags
         return []
 
-    async def get_last_tags(self, limit: int):
-        query = "SELECT * FROM tags ORDER BY id DESC LIMIT ?"
-        cursor = await self.conn.execute_query(query, (limit,))
-        rows = await cursor.fetchall()
-        if rows:
-            return [Tag(**auto_dict(row, cursor)) for row in rows]
-        return []
-
     async def delete_tag_by_id(self, tag_id: int) -> int:
         query = "DELETE FROM tags WHERE id = ?"
         await self.conn.execute_query(query, (tag_id,))
         return tag_id
 
-    async def get_tags_by_parent_id(self, parent_id: int):
-        query = "SELECT tags.* FROM tags, json_each(tags.parents) WHERE json_each.value = ?"
-        cursor = await self.conn.execute_query(query, (parent_id,))
-        return [Tag(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-
-    async def tag_in_ancestors(self, tag_id, parent_id) -> bool:
-        if not parent_id:
-            return False
-        else:
-            parent = await self.get_tag_by_id(parent_id)
-            ancestors = await self.get_tag_ancestors(parent)
-            if tag_id in ancestors:
-                return True
-        return False
-
     # =====================================================
     # ================= Instances =========================
     # =====================================================
-
-    @db_lock
-    async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
-                           height: int,
-                           ahash: str):
-        table = Table('instances')
-        query = Query.into(table).columns(
-            'folder_id',
-            'name',
-            'extension',
-            'sha1',
-            'url',
-            'width',
-            'height',
-            'ahash').insert((
-            folder_id,
-            name,
-            extension,
-            sha1,
-            url,
-            width,
-            height,
-            ahash))
-        cursor = await self.conn.execute_query(query.get_sql())
-        id_ = cursor.lastrowid
-
-        return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
-                        height=height)
-
-    @db_lock
-    async def add_instances(self, instances: list[Instance]):
-        table = Table('instances')
-        query = Query.into(table).columns(
-            'folder_id',
-            'name',
-            'extension',
-            'sha1',
-            'url',
-            'width',
-            'height',
-            'ahash')
-        query = query.insert(
-            *[(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash) for i in instances])
-        await self.conn.execute_query(query.get_sql())
-
-        added = await self.get_instances(last=len(instances))
-        added.reverse()
-        return added
-
-    async def import_instance(self, id_: int, folder_id: int, name: str, extension: str, sha1: str, url: str,
-                              width: int,
-                              height: int,
-                              ahash: str):
-        table = Table('instances')
-        query = Query.into(table).columns(
-            'id',
-            'folder_id',
-            'name',
-            'extension',
-            'sha1',
-            'url',
-            'width',
-            'height',
-            'ahash').insert((
-            id_,
-            folder_id,
-            name,
-            extension,
-            sha1,
-            url,
-            width,
-            height,
-            ahash))
-        cursor = await self.conn.execute_query(query.get_sql())
-
-        return Instance(id=id_, folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url, width=width,
-                        height=height)
 
     async def import_instances(self, instances: list[Instance]):
         fake_ids = [i for i in instances if i.id < 0]
@@ -523,9 +297,6 @@ class Db:
         ]
         await self.conn.execute_query_many(query, values)
         return instances
-
-    async def clone_instance(self, i: Instance):
-        return await self.add_instance(i.folder_id, i.name, i.extension, i.sha1, i.url, i.width, i.height, i.ahash)
 
     async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None, last: int = None):
         img_table = Table('instances')
@@ -601,31 +372,6 @@ class Db:
         return folder_id
 
     # =====================================================
-    # ================== UI TABS ==========================
-    # =====================================================
-
-    # async def add_tab(self, data):
-    #     query = 'INSERT INTO tabs (data) VALUES (?)'
-    #     cursor = await self.conn.execute_query(query, (json.dumps(data),))
-    #     row = await cursor.fetchone()
-    #     tab = Tab(id=cursor.lastrowid, data=data)
-    #     return tab
-    #
-    # async def get_tabs(self) -> List[Tab]:
-    #     query = "SELECT * from tabs"
-    #     cursor = await self.conn.execute_query(query)
-    #     return [Tab(**auto_dict(row, cursor)) for row in await cursor.fetchall()]
-    #
-    # async def update_tab(self, tab: Tab):
-    #     query = "UPDATE tabs SET data = ? WHERE id = ?"
-    #     await self.conn.execute_query(query, (json.dumps(tab.data), tab.id))
-    #
-    # async def delete_tab(self, tab_id: int):
-    #     query = "DELETE from tabs WHERE id = ?"
-    #     await self.conn.execute_query(query, (tab_id,))
-    #     return tab_id
-
-    # =====================================================
     # ================== Vectors ==========================
     # =====================================================
 
@@ -693,53 +439,6 @@ class Db:
         query = "INSERT OR REPLACE INTO plugin_data (key, value) VALUES (?, ?)"
         await self.conn.execute_query(query, (key, json.dumps(data)))
         return data
-
-    # async def get_plugin_default_params(self, plugin_name: str):
-    #     t = Table('plugin_defaults')
-    #     query = Query.from_(t).select('name', 'base', 'functions')
-    #     query = query.where(t.name == plugin_name)
-    #     cursor = await self.conn.execute_query(query.get_sql())
-    #     row = await cursor.fetchone()
-    #     if row:
-    #         return PluginDefaultParams(**auto_dict(row, cursor))
-    #     return PluginDefaultParams(name=plugin_name)
-    #
-    # async def set_plugin_default_params(self, params: PluginDefaultParams):
-    #     query = f"""
-    #                 INSERT OR REPLACE INTO plugin_defaults (name, base, functions)
-    #                 VALUES (?, ?, ?);
-    #             """
-    #     await self.conn.execute_query(query, (params.name, json.dumps(params.base), json.dumps(params.functions)))
-    #     return params
-
-    # =====================================================
-    # ================== Actions ==========================
-    # =====================================================
-
-    # async def get_action_params(self):
-    #     query = "SELECT * FROM action_params"
-    #     cursor = await self.conn.execute_query(query)
-    #     rows = await cursor.fetchall()
-    #     if rows:
-    #         return [ActionParam(**auto_dict(r, cursor)) for r in rows]
-    #     return []
-    #
-    # async def get_action_param(self, name: str):
-    #     query = "SELECT * FROM action_params WHERE name=?"
-    #     cursor = await self.conn.execute_query(query, (name,))
-    #     row = await cursor.fetchone()
-    #     if row:
-    #         return ActionParam(**auto_dict(row, cursor))
-    #     return None
-    #
-    # async def set_action_param(self, update: ActionParam):
-    #     print('update', update)
-    #     query = f"""
-    #                 INSERT OR REPLACE INTO action_params (name, value)
-    #                 VALUES (?, ?);
-    #             """
-    #     await self.conn.execute_query(query, (update.name, update.value))
-    #     return update
 
     # =====================================================
     # ================== UI_DATA ==========================

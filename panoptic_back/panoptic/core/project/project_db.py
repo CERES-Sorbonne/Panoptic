@@ -1,15 +1,13 @@
-import json
 from random import randint
 from typing import Any
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
-from panoptic.models import Property, PropertyUpdate, PropertyType, InstancePropertyValue, Instance, Tag, \
-    TagUpdate, Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode
+from panoptic.models import Property, PropertyType, InstancePropertyValue, Instance, Tag, \
+    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode
 from panoptic.models.computed_properties import computed_properties
-from panoptic.models.results import DeleteTagResult
-from panoptic.utils import convert_to_instance_values, clean_value, get_computed_values, is_circular
+from panoptic.utils import convert_to_instance_values, get_computed_values
 
 
 class ProjectDb:
@@ -36,25 +34,11 @@ class ProjectDb:
     def create_property(self, name: str, type_: PropertyType, mode: PropertyMode) -> Property:
         return Property(id=self._get_fake_id(), name=name, type=type_, mode=mode)
 
-    async def add_property(self, name: str, property_type: PropertyType, mode='id') -> Property:
-        return await self._db.add_property(name, property_type.value, mode)
-
-    async def add_properties(self, properties: list[Property]):
-        return await self._db.add_properties(properties)
-
     async def get_properties(self, computed=False) -> list[Property]:
         properties = await self._db.get_properties()
         if not computed:
             return properties
         return [*properties, *computed_properties.values()]
-
-    async def update_property(self, update: PropertyUpdate) -> Property:
-        existing_property = await self._db.get_property(update.id)
-        if not existing_property:
-            raise Exception(f'Property {update.id} does not exist')
-        new_property = existing_property.copy(update=update.dict(exclude_unset=True))
-        await self._db.update_property(new_property)
-        return new_property
 
     async def delete_property(self, property_id: str):
         await self._db.delete_property(property_id)
@@ -78,57 +62,6 @@ class ProjectDb:
         computed_values = [v for i in instances for v in get_computed_values(i, computed_ids)]
         return [*instance_values, *converted_values, *computed_values]
 
-    async def set_property_values(self, property_id: int, instance_ids: list[int], value: Any):
-        prop = await self._db.get_property(property_id)
-        value = clean_value(prop, value)
-        print(property_id, value)
-        if prop.mode == PropertyMode.id:
-            # print('mode id')
-            if value is None:
-                await self._db.delete_instance_property_value(property_id, instance_ids)
-            else:
-                await self._db.set_instance_property_value(property_id, instance_ids, value)
-        if prop.mode == PropertyMode.sha1:
-            # print('mode sha1')
-            instances = await self._db.get_instances(ids=instance_ids)
-            sha1s = {i.sha1 for i in instances}
-            if value is None:
-                await self._db.delete_image_property_value(property_id, list(sha1s))
-            else:
-                await self._db.set_image_property_value(property_id, list(sha1s), value)
-
-        return [InstancePropertyValue(property_id=property_id, instance_id=i, value=value) for i in instance_ids]
-
-    async def set_property_values_array(self, property_id: int, instance_ids: list[int], values: list[Any]):
-        prop = await self._db.get_property(property_id)
-        values = [clean_value(prop, v) for v in values]
-        pairs = [(i, v) for i, v in zip(instance_ids, values)]
-        to_delete = [p for p in pairs if p[1] is None]
-        to_update = [p for p in pairs if p[1] is not None]
-        if prop.mode == PropertyMode.id:
-            if to_update:
-                ids = [v[0] for v in to_update]
-                vals = [v[1] for v in to_update]
-                await self._db.set_instance_property_array_values(property_id=prop.id, instance_ids=ids, values=vals)
-            if to_delete:
-                ids = [v[0] for v in to_delete]
-                await self._db.delete_instance_property_value(property_id=prop.id, instance_ids=ids)
-        if prop.mode == PropertyMode.sha1:
-            if to_update:
-                ids = [v[0] for v in to_update]
-                instances = await self._db.get_instances(ids=ids)
-                index = {i.id: i.sha1 for i in instances}
-                sha1_pairs = [(index[v[0]], v[1]) for v in to_update]
-                sha1s = [p[0] for p in sha1_pairs]
-                vals = [p[1] for p in sha1_pairs]
-                await self._db.set_image_property_array_values(property_id=prop.id, sha1s=sha1s, values=vals)
-            if to_delete:
-                ids = [v[0] for v in to_delete]
-                instances = await self._db.get_instances(ids=ids)
-                sha1s = list({i.sha1 for i in instances})
-                await self._db.delete_image_property_value(property_id=prop.id, sha1s=sha1s)
-        return [InstancePropertyValue(property_id=property_id, instance_id=p[0], value=p[1]) for p in pairs]
-
     # =====================================================
     # =================== Instances =======================
     # =====================================================
@@ -137,14 +70,6 @@ class ProjectDb:
                               height: int, ahash: str):
         return Instance(id=self._get_fake_id(), folder_id=folder_id, name=name, extension=extension, sha1=sha1, url=url,
                         height=height, width=width, ahash=ahash)
-
-    async def add_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
-                           height: int, ahash: str):
-        res = await self._db.add_instance(folder_id, name, extension, sha1, url, width, height, ahash)
-        self.on_import_instance.emit(res)
-
-    async def add_instances(self, instances: list[Instance]):
-        return await self._db.add_instances(instances)
 
     async def get_instances(self, ids: list[int] = None, sha1s: list[str] = None):
         images = await self._db.get_instances(ids=ids, sha1s=sha1s)
@@ -179,107 +104,32 @@ class ProjectDb:
     async def get_tags_by_ids(self, ids: list[int]):
         return await self._db.get_tags_by_ids(ids)
 
-    async def add_tag(self, property_id, value, parent_id, color: int) -> Tag:
-        existing_tag = await self._db.get_tag(property_id, value)
-        if existing_tag is not None:
-            if await self._db.tag_in_ancestors(existing_tag.id, parent_id):
-                raise Exception("Adding a tag that is an ancestor of himself")
-            existing_tag.parents = list({*existing_tag.parents, parent_id})
-            await self._db.update_tag(existing_tag)
-            tag_id = existing_tag.id
-        else:
-            parents = [parent_id]
-            tag_id = await self._db.add_tag(property_id, value, json.dumps(parents), color)
-        return await self._db.get_tag_by_id(tag_id)
-
-    async def add_tags(self, tags: list[Tag]) -> list[Tag]:
-        new_tags = await self._db.add_tags(tags)
-        if len(new_tags) != len(tags):
-            raise Exception('Failed to add all tags. Unexpected Behavior')
-        fake_to_id = {t.id: new_t.id for t, new_t in zip(tags, new_tags)}
-
-        def correct(tid: int):
-            return fake_to_id[tid] if tid in fake_to_id else tid
-
-        for t, new_t in zip(tags, new_tags):
-            new_t.parents = [correct(p) for p in t.parents]
-
-        await self.set_tags_parents([(t.id, t.parents) for t in new_tags])
-
-        return new_tags
-
-    async def set_tags_parents(self, links: list[tuple[int, list[int]]]):
-        tree = await self.get_tag_tree()
-        for i in range(len(links)):
-            child, parents = links[i]
-            valid_parents = []
-            for parent in parents:
-                if is_circular(tree, (child, parent)):
-                    continue
-                valid_parents.append(parent)
-                tree[child].add(parent)
-            links[i] = (child, valid_parents)
-
-        await self._db.set_tags_parents(links)
-
-    async def get_tag_tree(self):
-        tags = await self.get_tags()
-        tree: dict[int, set[int]] = {t.id: set(t.parents) for t in tags}
-        return tree
-
-    async def add_tag_parent(self, tag_id, parent_id):
-        tag = await self._db.get_tag_by_id(tag_id)
-        parent = await self._db.get_tag_by_id(parent_id)
-        if tag is None:
-            raise Exception(f"Tag: {tag_id} doesnt exist")
-        if parent is None:
-            raise Exception(f"Parent Tag: {parent_id} doesnt exist")
-        if await self._db.tag_in_ancestors(tag.id, parent_id):
-            raise Exception("Adding a tag that is an ancestor of himself")
-        tag.parents = list({*tag.parents, parent_id})
-        tag.color = parent.color
-        await self._db.update_tag(tag)
-        return tag
-
-    async def update_tag(self, update: TagUpdate) -> Tag:
-        existing_tag = await self._db.get_tag_by_id(update.id)
-        if not existing_tag:
-            raise Exception("Trying to modify non existent tag")
-        if update.color is not None:
-            existing_tag.color = update.color
-        if update.value is not None:
-            existing_tag.value = update.value
-        await self._db.update_tag(existing_tag)
-        return existing_tag
-
     async def delete_tag(self, tag_id: int):
         tag = await self._db.get_tag_by_id(tag_id)
-        instances = await self._db.get_instances()
-        values = await self.get_property_values(instances, [tag.property_id])
+        prop = await self._db.get_property(tag.property_id)
+        instance_values = None
+        image_values = None
 
-        to_update = [v for v in values if tag_id in v.value]
-        [v.value.remove(tag_id) for v in to_update if tag_id in v.value]
-
-        ids = [v.instance_id for v in to_update]
-        vals = [v.value for v in to_update]
-        await self.set_property_values_array(tag.property_id, ids, vals)
+        def remove_tag(value):
+            value.value = [v for v in value.value if v != tag_id]
+        if prop.mode == PropertyMode.id:
+            instance_values = await self._db.get_instance_property_values(property_ids=[prop.id])
+            to_update = [v for v in instance_values if tag_id in v.value]
+            [remove_tag(v) for v in to_update]
+            await self._db.import_instance_property_values(to_update)
+        if prop.mode == PropertyMode.sha1:
+            image_values = await self._db.get_image_property_values(property_ids=[prop.id])
+            to_update = [v for v in image_values if tag_id in v.value]
+            [remove_tag(v) for v in to_update]
+            await self._db.import_image_property_values(to_update)
 
         tags = await self._db.get_tags(tag.property_id)
         updated_tags = [t for t in tags if tag_id in t.parents]
         [t.parents.remove(tag_id) for t in updated_tags]
-        [await self._db.update_tag(t) for t in updated_tags]
-
+        await self._db.import_tags(updated_tags)
         await self._db.delete_tag_by_id(tag_id)
-        # print(to_update, updated_tags)
-        return DeleteTagResult(tag_id=tag.property_id, updated_values=to_update, updated_tags=updated_tags)
 
-    async def delete_tag_parent(self, tag_id: int, parent_id: int) -> list[int]:
-        tag = await self._db.get_tag_by_id(tag_id)
-        tag.parents.remove(parent_id)
-        color = randint(0, 11)
-        tag.color = color
-        await self._db.update_tag(tag)
-        return tag
+        return tag_id, updated_tags, instance_values, image_values
 
     # =========== Folders ===========
     async def add_folder(self, path: str, name: str, parent: int = None):

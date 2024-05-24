@@ -55,15 +55,6 @@ class PropertyUpdate(BaseModel):
     name: str
 
 
-# @dataclass(slots=True)
-# class PropertyValue:
-#     property_id: int
-#
-#     image_id: int
-#     sha1: str
-#
-#     value: Any
-
 @dataclass
 class InstancePropertyValueKey:
     property_id: int

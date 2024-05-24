@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from fastapi import UploadFile
 
-from panoptic.utils import Trie, chunk_list
+from panoptic.utils import Trie
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
@@ -57,8 +57,6 @@ def clean_type(type_: PropertyType):
 def parse_list(value: str):
     if value is None or value == '' or pd.isnull(value):
         return None
-    # value = value.replace('[', '')
-    # value = value.replace(']', '')
     return value.split(',')
 
 
@@ -214,15 +212,6 @@ class Importer:
                 values.extend(v for v in [value] * len(row_to_ids[row_i]))
             to_import.append(ImportValues(property_id=prop.id, instance_ids=ids, values=values))
         data.values = to_import
-        #
-        # print(f"Add {len(data.properties)} properties")
-        # print(data.properties)
-        #
-        # print(f"Add {len(data.tags)} tags")
-        # print(data.tags)
-        #
-        # print(f"Add {sum([len(v.values) for v in data.values], 0)} values")
-
         self._data = data
 
     async def confirm_import(self):
@@ -254,82 +243,5 @@ class Importer:
         commit.tags = data.tags
         commit.instance_values = instance_values
         commit.image_values = image_values
-
-        # instance_fake_id_map: dict[int, Instance] = {}
-        # property_fake_id_map: dict[int, Property] = {}
-        # tag_fake_id_map: dict[int, Tag] = {}
-        #
-        # def correct_instance_id(id_: int):
-        #     return id_ if id_ not in instance_fake_id_map else instance_fake_id_map[id_].id
-        #
-        # def correct_property_id(id_: int):
-        #     return id_ if id_ not in property_fake_id_map else property_fake_id_map[id_].id
-        #
-        # def correct_tag_id(id_: int):
-        #     return id_ if id_ not in tag_fake_id_map else tag_fake_id_map[id_].id
-        #
-        # instances_to_add = [i for i in data.instances if i.id < 0]
-        # if instances_to_add:
-        #     new_instances = await self.project.db.add_instances(instances_to_add)
-        #     if len(instances_to_add) != len(new_instances):
-        #         raise Exception('instances_to_add and new_instances should have equal length. Unexpected behavior')
-        #     for instance, new_instance in zip(instances_to_add, new_instances):
-        #         instance_fake_id_map[instance.id] = new_instance
-        #
-        # properties_to_add = [p for p in data.properties if p.id < 0]
-        # if properties_to_add:
-        #     new_properties = await self.project.db.add_properties(properties_to_add)
-        #     if len(properties_to_add) != len(new_properties):
-        #         raise Exception('properties_to_add and new_properties should have equal length. Unexpected behavior')
-        #     for prop, new_prop in zip(properties_to_add, new_properties):
-        #         property_fake_id_map[prop.id] = new_prop
-        #
-        # for t in data.tags:
-        #     t.property_id = correct_property_id(t.property_id)
-        # tags_to_add = [tag for tag in data.tags if tag.id < 0]
-        # if tags_to_add:
-        #     new_tags = await self.project.db.add_tags(tags_to_add)
-        #     if len(tags_to_add) != len(new_tags):
-        #         raise Exception("tags_to_add and new_tags should have equal length. Unexpected behavior")
-        #
-        #     for tag, new_tag in zip(tags_to_add, new_tags):
-        #         tag_fake_id_map[tag.id] = new_tag
-        #
-        # values = data.values
-        # props: dict[int, Property] = {p.id: p for p in await self.project.db.get_properties()}
-        #
-        # image_values = []
-        # instance_values = []
-        # instance_ids = {id_ for v in values for id_ in v.instance_ids}
-        # instances: dict[int, Instance] = {i.id: i for i in await self.project.db.get_instances(ids=list(instance_ids))}
-        #
-        # for import_values in values:
-        #     for id_, value in zip(import_values.instance_ids, import_values.values):
-        #         if props[import_values.property_id].mode == PropertyMode.id:
-        #             instance_values.append(InstancePropertyValue(property_id=import_values.property_id, instance_id=id_,
-        #                                                          value=value))
-        #         else:
-        #             image_values.append(ImagePropertyValue(property_id=import_values.property_id,
-        #                                                    sha1=instances[id_].sha1, value=value))
-        # commit = DbCommit(image_values=image_values, instance_values=instance_values)
         await self.project.undo_queue.apply_commit(commit)
-
-
-        # for v in values:
-        #     print(f"start property {v.property_id}")
-            # for chunk in chunk_list(list(zip(v.instance_ids, v.values)), 10000):
-            #     ids, chunk_values = zip(*chunk)
-            #     # print(ids, chunk_values)
-            #     ids = [correct_instance_id(i) for i in ids]
-            #     property_id = correct_property_id(v.property_id)
-            #     prop = props[v.property_id]
-            #     # print(chunk_values[0])
-            #     if isinstance(chunk_values[0], list):
-            #         # print('is tag')
-            #         chunk_values = [[correct_tag_id(tid) for tid in vals] for vals in chunk_values]
-            #     # if prop.mode == PropertyMode.id:
-            #         # values = [InstancePropertyValue(property_id=property_id, instance_id=i, value=v) for v in chunk_values]
-            #     # await self.project.db.set_property_values_array(property_id, ids, chunk_values)
-
-                # print(f"imported {len(chunk)} values")
         print("import finished")
