@@ -9,7 +9,7 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue';
 
 
 const props = defineProps<{
-    modelValue?: Date
+    modelValue?: string
     width?: number
 }>()
 const emits = defineEmits(['update:modelValue', 'blur'])
@@ -18,7 +18,7 @@ let _no_reset_flag = false
 
 const dateElem = ref(null)
 const focusElem = ref(null)
-const internal = ref(null as Date)
+const internal = ref(null)
 const dropdownElem = ref(null)
 
 
@@ -28,11 +28,10 @@ const buttonStyle = computed(() => ({
 
 
 const datePreview = computed(() => {
-    const date = internal.value
-    if (date == undefined) {
+    if (internal.value == undefined) {
         return undefined
     }
-    
+    const date = new Date(internal.value)
     const res = date.getUTCFullYear() + '/' + pad(date.getUTCMonth()+1) + '/' + pad(date.getUTCDate()) + ' ' + pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes())
 
     return res
@@ -76,7 +75,7 @@ function updateLocalValue() {
     if(String(props.modelValue) == String(internal.value)) return
 
     if(props.modelValue) {
-        internal.value = new Date(props.modelValue)
+        internal.value = props.modelValue
     } else {
         internal.value = undefined
     }
@@ -88,7 +87,7 @@ function updateInternal(value: Date) {
         internal.value = undefined
         return
     }
-    internal.value = new Date(value.getTime() - value.getTimezoneOffset()*60*1000)
+    internal.value = new Date(value.getTime() - value.getTimezoneOffset()*60*1000).toISOString()
 }
 
 watch(props, ()=> {

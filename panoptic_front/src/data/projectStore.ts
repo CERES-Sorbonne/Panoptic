@@ -221,9 +221,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         for (let v of instanceValues) {
             if (v.value == undefined) continue
 
-            if (data.properties[v.propertyId].type == PropertyType.date) {
-                v.value = new Date(v.value)
-            }
+            // if (data.properties[v.propertyId].type == PropertyType.date) {
+            //     v.value = new Date(v.value)
+            // }
             // if(v.propertyId < 0) console.log(v)
             const value = { propertyId: v.propertyId, instanceId: v.instanceId, value: v.value } as InstancePropertyValue
             data.images[v.instanceId].properties[v.propertyId] = value
@@ -440,6 +440,12 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!Array.isArray(images)) {
             images = [images]
         }
+        const prop = data.properties[propertyId]
+        // if(prop.type == PropertyType.date) {
+        //     if(value) {
+        //         value = (value as Date).toISOString()
+        //     }
+        // }
         const mode = data.properties[propertyId].mode
         const instanceValues: InstancePropertyValue[] = []
         const imageValues: ImagePropertyValue[] = []
