@@ -69,6 +69,7 @@ class ImportInstanceTask(Task):
         commit = DbCommit(instances=[instance])
         await self.project.db.apply_commit(commit)
         self.project.ui.commits.append(commit)
+        self.db.on_import_instance.emit(commit.instances[0])
         return commit.instances[0]
 
     async def run_if_last(self):

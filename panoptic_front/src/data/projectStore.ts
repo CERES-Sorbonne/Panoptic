@@ -177,7 +177,7 @@ export const useProjectStore = defineStore('projectStore', () => {
                 data.tags[i].deleted = true
             })
         }
-        if (commit.emptyProperties.length) {
+        if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
                 delete data.properties[i]
             })
