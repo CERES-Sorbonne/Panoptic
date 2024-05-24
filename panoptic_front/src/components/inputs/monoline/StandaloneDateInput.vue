@@ -11,6 +11,7 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue';
 const props = defineProps<{
     modelValue?: string
     width?: number
+    teleport?: boolean
 }>()
 const emits = defineEmits(['update:modelValue', 'blur'])
 
@@ -107,7 +108,7 @@ function log(e) {
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem" @hide="onHide" :teleport="true" >
+    <Dropdown ref="dropdownElem" @hide="onHide" :teleport="props.teleport" >
         <template #button>
             <div class="drop-btn text-nowrap overflow-hidden" :style="buttonStyle" >
                 <span v-if="internal">{{ datePreview }}</span>

@@ -2,6 +2,7 @@
 import { nextTick, onUnmounted, ref } from 'vue';
 import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
+import { Exception } from 'sass';
 
 const props = defineProps({
     offset: { default: 0, type: Number },
@@ -22,6 +23,7 @@ const boudaryElem = ref(document.getElementsByTagName('body')[0])
 const visible = ref(false)
 
 async function hide() {
+    // throw new Error('lala')
     popperElem.value.hide()
 }
 
@@ -52,10 +54,10 @@ function onHide() {
 
 function clickHandler(e: Event) {
     if (popupElem.value.contains(e.target) || buttonElem.value.contains(e.target)) {
-        // console.log('inside')
+        console.log('inside')
     }
     else {
-        // console.log('outside')
+        console.log('outside')
         hide()
     }
 }
