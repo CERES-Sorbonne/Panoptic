@@ -29,5 +29,5 @@ function save(date: Date) {
 </script>
 
 <template>
-    <StandaloneDateInput :model-value="localValue" @update:model-value="save" :width="props.width"/>
+    <StandaloneDateInput :model-value="localValue" @update:model-value="save" :width="props.width" :teleport="true"/>
 </template>

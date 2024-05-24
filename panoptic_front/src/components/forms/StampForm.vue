@@ -81,7 +81,7 @@ function test() {
                                 :no-nl="property.type == PropertyType.number" :url-mode="property.type == PropertyType.url"
                                 :only-number="property.type == PropertyType.number" @blur="emits('blur')" />
                             <StandaloneDateInput v-else-if="property.type == PropertyType.date"
-                                v-model="props.values[property.id]" @blur="emits('blur')" />
+                                v-model="props.values[property.id]" />
                             <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" /> -->
                             <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]"
                                 style="height: 14px; line-height: 25px; margin-top: 4px; margin-left: 1px;" />
