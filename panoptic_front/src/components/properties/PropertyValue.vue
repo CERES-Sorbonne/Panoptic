@@ -84,7 +84,7 @@ function mapTag(id: number | string): Tag[] {
 </script>
 
 <template>
-    <div class="d-flex text-nowrap p-0 m-0">
+    <div class="d-flex text-nowrap p-0 m-0" v-if="property">
         <div class="me-2">{{ property.name }}: </div>
         <div v-if="property.type == PropertyType.color" :style="{ backgroundColor: color }" class="color-holder">
         </div>
