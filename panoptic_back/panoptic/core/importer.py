@@ -243,5 +243,5 @@ class Importer:
         commit.tags = data.tags
         commit.instance_values = instance_values
         commit.image_values = image_values
-        await self.project.undo_queue.apply_commit(commit)
+        await self.project.db.apply_commit(commit)
         print("import finished")

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext, PropertyId, PropertyType, PropertyMode, InstancePropertyValue, DbCommit, \
-    Instance
+    Instance, ImagePropertyValue, Property
 from panoptic.models.results import ActionResult
 from panoptic.plugin import Plugin
 
@@ -34,10 +34,10 @@ async def run_command(command):
     return stdout, stderr
 
 
-async def ocr(instance: Instance):
+async def ocr(instance: Instance, prop: Property):
     command = f'shortcuts run ocr-img -i "{instance.url}"'
     text, err = await run_command(command)
-    return InstancePropertyValue(property_id=-1, instance_id=instance.id, value=text)
+    return ImagePropertyValue(property_id=prop.id, sha1=instance.sha1, value=text)
 
 
 class DefaultPlugin(Plugin):
@@ -47,25 +47,15 @@ class DefaultPlugin(Plugin):
         self.project.action.easy_add(self, self.ocr, ['execute'])
 
     async def ocr(self, context: ActionContext):
-        instances = await self.project.db.get_instances(ids=context.instance_ids)
-        # tasks = [ocr(i) for i in instances]
-
-        # prop = await self.project.db.add_property('OCR', PropertyType.string)
-        # values = await asyncio.gather(*tasks)
-        # for v in values:
-        #     v.property_id = prop.id
-        # commit = DbCommit(instance_values=list(values))
-        # commit = await self.project.undo_queue.do(commit)
-        # commit.properties = [prop]
-
         commit = DbCommit()
-        prop = self.project.db.create_property('PluginProp', PropertyType.multi_tags, PropertyMode.id)
-        tag = self.project.db.create_tag(property_id=prop.id, value='test')
-        values = [InstancePropertyValue(property_id=prop.id, instance_id=i.id, value=[tag.id]) for i in instances]
+        prop = self.project.db.create_property('OCR', PropertyType.string, PropertyMode.sha1)
+        instances = await self.project.db.get_instances(ids=context.instance_ids)
+        unique_sha1 = list({i.sha1: i for i in instances}.values())
+        tasks = [ocr(i, prop) for i in unique_sha1]
+        values = await asyncio.gather(*tasks)
 
         commit.properties.append(prop)
-        commit.tags.append(tag)
-        commit.instance_values.extend(values)
+        commit.image_values.extend(values)
 
         res = await self.project.undo_queue.do(commit)
         return ActionResult(commit=res)

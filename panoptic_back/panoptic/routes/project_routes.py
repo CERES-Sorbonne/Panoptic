@@ -192,7 +192,7 @@ async def commit_route(commit: DbCommit):
     if commit.undo:
         await project.undo_queue.do(commit)
         return commit
-    await project.undo_queue.apply_commit(commit)
+    await project.db.apply_commit(commit)
     return commit
 
 
