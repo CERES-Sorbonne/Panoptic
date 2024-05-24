@@ -301,7 +301,6 @@ class Db:
     async def get_instances(self, ids: List[int] = None, sha1s: List[str] = None, last: int = None):
         img_table = Table('instances')
         query = Query.from_(img_table).select('*')
-
         if ids:
             query = query.where(img_table.id.isin(ids))
         if sha1s:

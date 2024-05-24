@@ -47,8 +47,8 @@ class UndoQueue:
         return undo, redo
 
     async def apply_commit(self, commit: DbCommit):
-        print('commit:')
-        print(commit)
+        # print('commit:')
+        # print(commit)
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
 
@@ -64,7 +64,7 @@ class UndoQueue:
 
         if commit.instance_values:
             valid, empty = clean_and_separate_values(commit.instance_values, properties)
-            commit.empty_instances.extend(empty)
+            commit.empty_instance_values.extend(empty)
             commit.instance_values = valid
 
         if commit.image_values:
