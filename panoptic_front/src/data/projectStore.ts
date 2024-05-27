@@ -8,7 +8,7 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref } from "vue";
 import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit } from "./api";
+import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { deepCopy, getTagChildren, getTagParents, sleep } from "@/utils/utils";
@@ -65,20 +65,22 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======================
 
     async function init() {
+        console.log('init')
         if (!tabManager) {
             tabManager = new TabManager(data.tabs[data.selectedTabId])
         }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
         let folders = await apiGetFolders()
-        console.time('Request')
+        // console.time('Request')
         let dbState = await apiGetDbState()
-        console.timeEnd('Request')
+        // console.timeEnd('Request')
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
         let tabs = await apiGetTabs()
 
+        backendStatus.value = (await apiGetUpdate()).status
 
         data.folders = buildFolderNodes(folders)
         console.time('commit')
