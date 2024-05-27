@@ -155,10 +155,10 @@ export class SortManager {
             this.state = createSortState()
         }
 
-        this.result = reactive({
+        this.result = {
             images: [],
             order: {}
-        })
+        }
     }
 
     load(state: SortState) {

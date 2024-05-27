@@ -329,7 +329,7 @@ export class GroupManager {
         } else {
             this.state = reactive(createGroupState())
         }
-        this.result = reactive({ root: undefined, index: {}, imageToGroups: {} })
+        this.result = { root: undefined, index: {}, imageToGroups: {} }
         this.customGroups = {}
         this.onChange = new EventEmitter()
 
