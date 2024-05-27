@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from sys import platform
+from time import time
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile
@@ -25,6 +26,7 @@ def set_project(p: Project | None):
 
 @project_router.get("/db_state")
 async def get_db_state_route():
+    now = time()
     instances = await project.db.get_instances()
     get_properties = project.db.get_properties(computed=True)
     get_tags = project.db.get_tags()
@@ -34,6 +36,7 @@ async def get_db_state_route():
     properties, tags, values = await get_all
 
     state = DbCommit(instances=instances, properties=properties, tags=tags, instance_values=values)
+    print(time() - now)
     return ORJSONResponse(state)
 
 
