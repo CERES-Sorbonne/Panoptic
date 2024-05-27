@@ -71,7 +71,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
         let folders = await apiGetFolders()
+        console.time('Request')
         let dbState = await apiGetDbState()
+        console.timeEnd('Request')
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
@@ -79,7 +81,9 @@ export const useProjectStore = defineStore('projectStore', () => {
 
 
         data.folders = buildFolderNodes(folders)
+        console.time('commit')
         applyCommit(dbState)
+        console.timeEnd('commit')
 
 
         data.plugins = plugins
@@ -243,37 +247,12 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function applyStatusUpdate(update: StatusUpdate) {
-        // // console.log(update)
-        // if (!status.loaded) return
-        // // console.log(update.update)
-        // const old = backendStatus.value
-        // const actionChanged = update.update.action > old.update.action
-        // const imageChanged = update.update.image > old.update.image
-
         backendStatus.value = update
-
-        // if (imageChanged) {
-        //     // console.log('init again')
-        //     nextTick(() => init())
-        // }
-
-        // // const newLoaded = backendStatus.value && !backendStatus.value.pluginLoaded && update.pluginLoaded
-
-        // if (actionChanged) {
-        //     await updateActions()
-        // }
     }
 
     async function reload() {
         nextTick(() => init())
     }
-
-    // async function updateActions() {
-    //     let plugins = await apiGetPluginsInfo()
-    //     let apiActions = await apiGetActions()
-    //     data.plugins = plugins
-    //     actions.value = apiActions
-    // }
 
     function getTab() {
         return getTabManager().state

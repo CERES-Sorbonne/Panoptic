@@ -31,9 +31,9 @@ class FaissPlugin(Plugin):
     def __init__(self, project: Project, plugin_path: str):
         super().__init__(name='Faiss', project=project, plugin_path=plugin_path)
         self.params = FaissPluginParams()
-        reload_tree(project.base_path)
+        reload_tree(self.project.base_path)
 
-        project.on.import_instance.register(self.compute_image_vector)
+        self.project.on_instance_import(self.compute_image_vector)
         self.add_action_easy(self, self.find_images, ['similar'])
         self.add_action_easy(self, self.compute_clusters, ['group'])
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Awaitable
 
 from panoptic.core.task.task import Task
 
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
 from panoptic.models import ImagePropertyValueKey, InstancePropertyValue, PropertyType, PropertyMode, Property, \
-    DbCommit, Vector
+    DbCommit, Vector, Instance
 
 
 class PluginProjectInterface:
@@ -52,7 +52,6 @@ class PluginProjectInterface:
     async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
         return await self._project.db.vector_exist(source, type_, sha1)
 
-
     # CREATE
 
     def create_instance(self, folder_id: int, name: str, extension: str, sha1: str, url: str, width: int,
@@ -86,3 +85,7 @@ class PluginProjectInterface:
     # TASKS
     def add_task(self, task: Task):
         self._project.task_queue.add_task(task)
+
+    # EVENTS
+    async def on_instance_import(self, callback: Callable[[Instance], Awaitable[None]]):
+        return await self._project.on.import_instance.register(callback)
