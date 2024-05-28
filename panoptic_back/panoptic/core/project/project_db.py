@@ -54,12 +54,23 @@ class ProjectDb:
         image_values = await self._db.get_image_property_values(property_ids=property_ids, sha1s=sha1s)
         converted_values = convert_to_instance_values(image_values, instances)
 
-        computed_ids = [] if no_computed else computed_properties.keys()
-        if computed_ids and property_ids:
-            computed_ids = [pId for pId in property_ids if pId < 0]
-        computed_values = [v for i in instances for v in get_computed_values(i, computed_ids)]
+        computed_values = [v for i in instances for v in get_computed_values(i)]
         return [*instance_values, *converted_values, *computed_values]
 
+    async def get_instance_property_values(self, property_ids: list[int] = None, instance_ids: list[int] = None) \
+            -> list[InstancePropertyValue]:
+        res = await self._db.get_instance_property_values(property_ids, instance_ids)
+        return res
+
+    async def get_image_property_values(self, property_ids: list[int] = None, sha1s: list[str] = None) \
+            -> list[ImagePropertyValue]:
+        res = await self._db.get_image_property_values(property_ids, sha1s)
+        return res
+
+    @staticmethod
+    def get_computed_values(instances: list[Instance]):
+        computed_values = [v for i in instances for v in get_computed_values(i)]
+        return computed_values
     # =====================================================
     # =================== Instances =======================
     # =====================================================
@@ -168,8 +179,11 @@ class ProjectDb:
             for tag in new_tags:
                 tag_index[tag.id] = tag
             for tag in updated_tags:
-                parents = list(*tag.parents)
+                print(tag)
+                parents = list(tag.parents)
                 for parent_id in parents:
+                    if parent_id == 0:
+                        continue
                     all_parents = get_all_parent(tag_index[parent_id], tag_index)
                     if tag.id in all_parents:
                         tag.parents.remove(parent_id)

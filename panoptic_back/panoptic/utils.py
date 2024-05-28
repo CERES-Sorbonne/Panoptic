@@ -165,23 +165,14 @@ def clean_value(prop: Property, v: Any):
     return v
 
 
-def get_computed_values(instance: Instance, computed_ids: list[int]):
-    res = []
-    for i in computed_ids:
-        if i == ComputedId.id:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.id))
-        if i == ComputedId.sha1:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.sha1))
-        if i == ComputedId.ahash:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.ahash))
-        if i == ComputedId.folder:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.folder_id))
-        if i == ComputedId.width:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.width))
-        if i == ComputedId.height:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.height))
-        if i == ComputedId.path:
-            res.append(InstancePropertyValue(instance_id=instance.id, property_id=i, value=instance.url))
+def get_computed_values(instance: Instance):
+    res = [InstancePropertyValue(instance_id=instance.id, property_id=-1, value=instance.id),
+           InstancePropertyValue(instance_id=instance.id, property_id=-2, value=instance.sha1),
+           InstancePropertyValue(instance_id=instance.id, property_id=-3, value=instance.ahash),
+           InstancePropertyValue(instance_id=instance.id, property_id=-4, value=instance.folder_id),
+           InstancePropertyValue(instance_id=instance.id, property_id=-5, value=instance.width),
+           InstancePropertyValue(instance_id=instance.id, property_id=-6, value=instance.height),
+           InstancePropertyValue(instance_id=instance.id, property_id=-7, value=instance.url)]
 
     return res
 
@@ -268,6 +259,8 @@ def chunk_list(input_list, n):
 def get_all_parent(tag: Tag, index: dict[int, Tag]) -> set[int]:
     res = set(tag.parents)
     for p in tag.parents:
+        if p == 0:
+            continue
         [res.add(pId) for pId in get_all_parent(index[p], index)]
     return res
 

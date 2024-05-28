@@ -30,15 +30,19 @@ async def get_db_state_route():
     instances = await project.db.get_instances()
     get_properties = project.db.get_properties(computed=True)
     get_tags = project.db.get_tags()
-    get_values = project.db.get_property_values(instances)
+    # get_values = project.db.get_property_values(instances, property_ids= no_computed=True)
+    get_image_values = project.db.get_image_property_values()
+    get_instance_values = project.db.get_instance_property_values()
 
-    get_all = asyncio.gather(get_properties, get_tags, get_values)
-    properties, tags, values = await get_all
+    get_all = asyncio.gather(get_properties, get_tags, get_image_values, get_instance_values)
+    properties, tags, img_values, instance_values = await get_all
+    computed_values = project.db.get_computed_values(instances)
+    instance_values.extend(computed_values)
 
-    state = DbCommit(instances=instances, properties=properties, tags=tags, instance_values=values)
+    state = DbCommit(instances=instances, properties=properties, tags=tags, image_values=img_values, instance_values=instance_values)
     print(time() - now)
     return ORJSONResponse(state)
-
+    # return state
 
 @project_router.get("/property")
 async def get_properties_route() -> list[Property]:
@@ -192,6 +196,7 @@ async def undo_route():
 
 @project_router.post('/commit')
 async def commit_route(commit: DbCommit):
+    print(commit)
     if commit.undo:
         await project.undo_queue.do(commit)
         return commit

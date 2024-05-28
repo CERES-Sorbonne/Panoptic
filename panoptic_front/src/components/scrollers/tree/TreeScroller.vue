@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed } from 'vue';
+import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed, Ref, shallowRef, unref } from 'vue';
 import ImageLineVue from './ImageLine.vue';
-// import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
 import { GroupManager, Group, GroupType, GroupIterator, ImageIterator } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
-import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, PropertyID, ModalId } from '@/data/models';
+import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
-import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 
 const panoptic = usePanopticStore()
@@ -28,7 +26,7 @@ const props = defineProps({
 const emits = defineEmits(['recommend'])
 
 const groupIdx = {}
-const imageLines = reactive([]) as ScrollerLine[]
+const imageLines = ref([]) as Ref<ScrollerLine[]>
 
 const hoverGroupBorder = ref('')
 
@@ -79,7 +77,7 @@ defineExpose({
 })
 
 function clear() {
-    imageLines.length = 0
+    imageLines.value = []
 }
 
 function GroupToLines(it: GroupIterator) {
@@ -108,16 +106,19 @@ function GroupToLines(it: GroupIterator) {
 
 function computeLines() {
     if (!props.groupManager.result.root) return
+    console.time('compute lines')
     clear()
     let it = props.groupManager.getGroupIterator()
+    const lines = []
     while (it) {
         const group = it.group
-        groupIdx[group.id] = imageLines.length
-        imageLines.push(...GroupToLines(it))
+        groupIdx[group.id] = imageLines.value.length
+        lines.push(...GroupToLines(it))
         it = it.nextGroup()
     }
-
+    imageLines.value = lines
     scroller.value.updateVisibleItems(true)
+    console.timeEnd('compute lines')
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -235,7 +236,7 @@ function closeGroup(groupIds) {
 }
 
 function openGroup(groupId) {
-    let index = imageLines.findIndex(line => line.id == groupId)
+    let index = imageLines.value.findIndex(line => line.id == groupId)
     if (index < 0) {
         return
     }
@@ -268,7 +269,7 @@ watch(visiblePropertiesNb, () => {
     let totalSize = scroller.value.totalSize
     let ratio = scroll / totalSize
 
-    imageLines.forEach(l => {
+    imageLines.value.forEach(l => {
         if (l.type == 'images') {
             l.size = imageLineSize.value
         }
@@ -308,10 +309,10 @@ watch(() => props.width, () => {
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
-                        :manager="props.groupManager" :hide-options="props.hideOptions" :data="props.groupManager.result"
-                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''"
-                        @group:close="closeGroup" @group:open="openGroup" @select="toggleGroupSelect"
-                        @recommend="(groupId) => emits('recommend', groupId)" />
+                        :manager="props.groupManager" :hide-options="props.hideOptions"
+                        :data="props.groupManager.result" @scroll="scrollTo" @hover="updateHoverBorder"
+                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
+                        @select="toggleGroupSelect" @recommend="(groupId) => emits('recommend', groupId)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->

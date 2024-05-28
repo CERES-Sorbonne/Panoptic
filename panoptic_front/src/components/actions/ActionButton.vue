@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, onMounted, watch, computed, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { ActionContext, ExecuteActionPayload, ParamDescription } from '@/data/models';
+import { ActionContext, ExecuteActionPayload, Image, ParamDescription } from '@/data/models';
 import { apiCallActions } from '@/data/api';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
@@ -14,7 +14,7 @@ const actions = useActionStore()
 
 const props = defineProps<{
     action: string
-    imageIds?: number[]
+    images?: Image[]
     propertyIds?: number[]
 }>()
 const emits = defineEmits(['instances', 'groups'])
@@ -52,7 +52,8 @@ async function call() {
         }
         uiInputs[input.name] = input.defaultValue
     }
-    const context: ActionContext = { instanceIds: props.imageIds, propertyIds: props.propertyIds, uiInputs }
+    const imageIds = props.images.map(i => i.id)
+    const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
     const req: ExecuteActionPayload = { function: localFunction.value, context: context }
     const res = await project.call(req)
 

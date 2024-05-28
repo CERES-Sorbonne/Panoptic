@@ -5,7 +5,7 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref, shallowReactive, shallowRef } from "vue";
 import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
@@ -14,6 +14,8 @@ import { TabManager } from "@/core/TabManager";
 import { deepCopy, getTagChildren, getTagParents, sleep } from "@/utils/utils";
 
 let tabManager: TabManager = undefined
+
+// export const images = shallowRef({})
 
 export const softwareUiVersion = 1
 
@@ -27,7 +29,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         images: {} as ImageIndex,
         sha1Index: {} as Sha1ToImages,
         properties: {} as PropertyIndex,
-        tabs: {} as TabIndex,
+        tabs: reactive({}) as TabIndex,
         selectedTabId: undefined as number,
         folders: {} as FolderIndex,
         plugins: [] as PluginDescription[],
@@ -72,9 +74,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
         let folders = await apiGetFolders()
-        // console.time('Request')
+        console.time('Request')
         let dbState = await apiGetDbState()
-        // console.timeEnd('Request')
+        console.timeEnd('Request')
+
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
@@ -166,6 +169,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function applyCommit(commit: DbCommit) {
+        // console.log(commit)
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 data.sha1Index[v.sha1].forEach(i => {
@@ -198,7 +202,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         if (commit.instances) {
-            commit.instances.forEach(i => importImage(i))
+            importImages(commit.instances)
         }
         if (commit.properties) {
             importProperties(commit.properties)
@@ -212,7 +216,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (commit.imageValues) {
             importImageValues(commit.imageValues)
         }
-        computeTagCount()
+        // computeTagCount()
 
         if(commit.emptyTags) {
             getTabManager().collection.update()
@@ -220,15 +224,22 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importProperties(properties: Property[]) {
-        properties.forEach(p => data.properties[p.id] = p)
+        for(let p of properties) {
+            if(p.id in data.properties) {
+                p.tags = data.properties[p.id].tags
+            }
+            data.properties[p.id] = p
+        }
+        //console.log(data.properties)
     }
 
     function importInstanceValues(instanceValues: InstancePropertyValue[]) {
         for (let v of instanceValues) {
-            if (v.value == undefined) continue
+            // if (v.value == undefined) continue
 
             const value = { propertyId: v.propertyId, instanceId: v.instanceId, value: v.value } as InstancePropertyValue
             data.images[v.instanceId].properties[v.propertyId] = value
+            // data.images[v.instanceId].properties2[v.propertyId] = v.value
         }
     }
 
@@ -239,6 +250,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             for (let img of data.sha1Index[v.sha1]) {
                 const value = { propertyId: v.propertyId, instanceId: img.id, value: v.value } as InstancePropertyValue
                 data.images[img.id].properties[v.propertyId] = value
+                // images.value[img.id].properties[v.propertyId] = value
             }
 
         }
@@ -314,21 +326,23 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePropertyOptions()
     }
 
-    function importImage(img: Image) {
-
-        img.fullUrl = SERVER_PREFIX + '/images/' + img.url
-        img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
-        img.properties = {}
-
-        img.containerRatio = computeContainerRatio(img)
-
-        if (!data.images[img.id]) {
-            if (!Array.isArray(data.sha1Index[img.sha1])) {
-                data.sha1Index[img.sha1] = []
+    function importImages(imgs: Image[]) {
+        for(let img of imgs) {
+            img.fullUrl = SERVER_PREFIX + '/images/' + img.url
+            img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
+            img.properties = {}
+    
+            img.containerRatio = computeContainerRatio(img)
+    
+            if (!data.images[img.id]) {
+                if (!Array.isArray(data.sha1Index[img.sha1])) {
+                    data.sha1Index[img.sha1] = []
+                }
+                data.sha1Index[img.sha1].push(img)
             }
-            data.sha1Index[img.sha1].push(img)
+            data.images[img.id] = img
+            // images.value[img.id] = img
         }
-        data.images[img.id] = img
     }
 
     async function sendCommit(commit: DbCommit) {
@@ -591,7 +605,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         const res = await apiCallActions(req)
         if (res.commit) {
             applyCommit(res.commit)
-            console.log(res.commit)
+            //console.log(res.commit)
             if (res.commit.properties) {
                 res.commit.properties.forEach(p => getTab().visibleProperties[p.id] = true)
             }

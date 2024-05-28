@@ -36,6 +36,7 @@ async function setSimilar() {
     // if (modalMode.value != ImageModalMode.Similarity) return
     const res = await actions.getSimilarImages({ instanceIds: [props.image.id] })
     if (!res.instances) throw new Error('No instances in ActionResult')
+    console.log(res)
 
     let matches: InstanceMatch[] = []
     const scores = res.instances.scores ?? []
@@ -71,6 +72,7 @@ function updateSimilarGroup() {
     const images = matches.map(m => project.data.images[m.id])
     state.sha1Scores = {}
     matches.forEach(m => state.sha1Scores[project.data.images[m.id].sha1] = m.score)
+    images.sort((a,b) => state.sha1Scores[b.sha1] - state.sha1Scores[a.sha1])
 
     similarGroup.group(images)
 
