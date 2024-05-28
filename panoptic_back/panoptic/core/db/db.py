@@ -85,7 +85,13 @@ class Db:
             for prop, id_ in zip(fake_ids, real_ids):
                 prop.id = id_
 
-        query = "INSERT OR REPLACE INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?)"
+        query = """
+        INSERT INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?) 
+        ON CONFLICT(id) DO UPDATE SET
+            name=excluded.name,
+            type=excluded.type,
+            mode=excluded.mode
+        """
         values = [
             (p.id, p.name, p.type.value, p.mode.value) for p in properties
         ]
@@ -229,7 +235,7 @@ class Db:
             for prop, id_ in zip(fake_ids, real_ids):
                 prop.id = id_
 
-        query = "INSERT INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
+        query = "INSERT OR REPLACE INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
         await self.conn.execute_query_many(query, [(t.id, t.property_id, t.value, json.dumps(t.parents),
                                                              t.color) for t in tags])
         return tags

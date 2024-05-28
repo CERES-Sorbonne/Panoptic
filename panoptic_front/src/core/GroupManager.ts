@@ -9,7 +9,7 @@ import { DateUnit, DateUnitFactor, Image, Property, PropertyValue } from "@/data
 import { Ref, nextTick, reactive, ref, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
-import { EventEmitter, isTag } from "@/utils/utils";
+import { EventEmitter, deepCopy, isTag, objValues } from "@/utils/utils";
 import { useProjectStore } from "@/data/projectStore";
 
 
@@ -254,12 +254,13 @@ function sortGroup(group: Group, option: GroupOption) {
 }
 
 function sortGroupByProperty(group: Group, direction: number) {
+    const store = useProjectStore()
     let sortable = {}
 
     for (let child of group.children) {
         const values = []
         for (let propValue of child.meta.propertyValues) {
-            const store = useProjectStore()
+
             const prop = store.data.properties[propValue.propertyId]
             const type = isTag(prop.type) ? PropertyType.tag : prop.type
             let value = propValue.value
@@ -344,7 +345,10 @@ export class GroupManager {
     }
 
     group(images: Image[], order?: ImageOrder, emit?: boolean, time?: boolean) {
-        if(time) console.time('Group')
+        time = true
+        if (time) console.time('Group')
+
+
         this.invalidateIterators()
         this.lastOrder = order
         const lastIndex = this.result.index ?? {}
@@ -354,21 +358,24 @@ export class GroupManager {
         const lastCustom = this.customGroups ?? {}
         this.customGroups = {}
         this.regsiterGroup(this.result.root)
-
+        console.log('main group', this.state.groupBy)
         if (this.state.groupBy.length > 0) {
             this.computePropertySubGroup(this.result.root, this.state.groupBy)
         }
-
         if (order) {
-            Object.values(this.result.index).map(v => v as Group).forEach(g => {
-                sortGroupImages(g, order)
-            })
+            // console.time('group order')
+            for (let group of objValues(this.result.index)) {
+                sortGroupImages(group, order)
+            }
+            // console.timeEnd('group order')
         }
 
+        // console.time('group register')
         for (let group of Object.values(this.result.index)) {
             if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) continue
             this.saveImagesToGroup(group)
         }
+        // console.timeEnd('group register')
 
         // Object.keys(lastCustom).forEach(target => {
         //     if (this.result.index[target]?.children.length == 0) {
@@ -379,9 +386,9 @@ export class GroupManager {
         let insert = true
         let toInsert = new Set(Object.keys(lastCustom))
 
-        while(insert) {
+        while (insert) {
             insert = false
-            for(let target of Array.from(toInsert)) {
+            for (let target of Array.from(toInsert)) {
                 if (this.result.index[target]) {
                     this.addCustomGroups(target, lastCustom[target])
                     toInsert.delete(target)
@@ -389,22 +396,24 @@ export class GroupManager {
                 }
             }
         }
-
-
+        // console.time('after')
+        // console.log(this.state.sha1Mode)
         if (this.state.sha1Mode) {
             this.groupLeafsBySha1()
         }
-
+        // console.timeEnd('after')
         Object.keys(this.result.index).map(id => {
             const group = this.result.index[id]
-            if(lastIndex[id]) {
+            if (lastIndex[id]) {
                 group.view = lastIndex[id].view
             }
         })
 
+        // console.time('group order')
         setOrder(this.result.root)
+        // console.timeEnd('group order')
 
-        if(time) console.timeEnd('Group')
+        if (time) console.timeEnd('Group')
         if (emit) this.onChange.emit(this.result)
         return this.result
     }
@@ -512,7 +521,7 @@ export class GroupManager {
     update(emit?: boolean) {
         this.invalidateIterators()
         if (!this.result.root) return
-        this.group(this.result.root.images, this.lastOrder, emit)
+        this.group(this.result.root.images, this.lastOrder, emit, true)
     }
 
     sort(order: ImageOrder, emit?: boolean) {
@@ -663,17 +672,54 @@ export class GroupManager {
     }
 
     private computePropertySubGroup(group: Group, groupBy: number[]) {
+        // console.time('sub group')
+        // console.log('groupBy', groupBy)
         const store = useProjectStore()
         const property = store.data.properties[groupBy[0]]
         const option = this.state.options[property.id]
         const subGroups: { [key: string]: Group } = {}
+        const tagWithParents = {}
+        console.log(property.tags)
+        if (isTag(property.type)) {
+            for (let tag of objValues(property.tags)) {
+                tagWithParents[tag.id] = new Set(tag.allParents)
+                tagWithParents[tag.id].add(tag.id)
+            }
+        }
 
         group.subGroupType = GroupType.Property
+        // console.time('image loop')
 
-        for (let img of group.images) {
+        let a = 0, b = 0, c = 0, d = 0
+
+
+        // TODO Optimisation benchmark shows acces with store is 10x slower
+        // console.time('la')
+        // const imgs = objValues(images.value)
+        // const values = []
+        // console.log(imgs.length)
+        // for (let img of imgs) {
+        //     let value = img.id
+        // }
+        // // console.log(values[0])
+        // // const id = property.id
+        // // for(let img of group.images) {
+        // //     let value = img.properties
+        // //     let laaa = value[id]?.value
+        // // }
+        // console.timeEnd('la')
+
+        // console.log(group.images[0].properties2)
+        for (let i in group.images) {
+            const img = group.images[i]
+            let now = performance.now()
             let value = img.properties[property.id]?.value
+            // let value = img.properties2[property.id]
+            d += performance.now() - now
             value = valueParser[property.type](value)
 
+
+            now = performance.now()
             let intervalEnd = undefined
             if (property.type == PropertyType.date) {
                 const res = closestDate(value, option.stepSize, option.stepUnit)
@@ -682,17 +728,26 @@ export class GroupManager {
                     intervalEnd = res.last
                 }
             }
+            a += performance.now() - now
 
+            now = performance.now()
             // treat all values as possible array to avoid writing different code for multi_tags
+            // TODO: Optimisation -> iterate of groups at end not need to create tag parents for each values
             let values = Array.isArray(value) ? value : [value]
-            if(isTag(property.type) && values[0] !== undefined) {
-                const withParents = new Set(values)
-                values = values.filter(v => store.data.tags[v])
-                values.forEach(v => store.data.tags[v].allParents.forEach(p => withParents.add(p)))
+            if (isTag(property.type) && values[0] !== undefined) {
+                const withParents = new Set()
+                for (let v of values) {
+                    if(!v) continue
+                    for (let p of tagWithParents[v]) {
+                        withParents.add(p)
+                    }
+                }
                 values = Array.from(withParents)
-            }
 
+            }
+            b += performance.now() - now
             // for all properties != multi_tags -> values.length == 1
+            now = performance.now()
             for (let v of values) {
                 const key = v == undefined ? UNDEFINED_KEY : String(v)
                 if (!subGroups[key]) {
@@ -705,11 +760,14 @@ export class GroupManager {
                 }
                 subGroups[key].images.push(img)
             }
+            c += performance.now() - now
         }
+        console.log(d, a, b, c)
+        // console.timeEnd('image loop')
 
         const children: Group[] = Object.values(subGroups)
         this.setChildGroup(group, children)
-
+        // console.timeEnd('sub group')
         if (groupBy.length > 1) {
             for (let c of children) {
                 this.computePropertySubGroup(c, groupBy.slice(1))
@@ -718,6 +776,7 @@ export class GroupManager {
 
 
         sortGroup(group, option)
+
     }
 
     private removeImageToGroups(group: Group) {

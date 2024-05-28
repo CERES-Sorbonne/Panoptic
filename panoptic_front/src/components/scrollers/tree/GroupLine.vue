@@ -36,7 +36,6 @@ const properties = computed(() => group.value.meta.propertyValues.map(v => store
 const propertyValues = computed(() => group.value.meta.propertyValues)
 const closed = computed(() => group.value.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
-const imageIds = computed(() => group.value.images.map(i => i.id))
 
 const groupName = computed(() => {
     if (group.value.type == GroupType.All) return 'All'
@@ -182,15 +181,15 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
-                <ActionButton action="group" :image-ids="imageIds" style="font-size: 10px;"
+                <ActionButton action="group" :images="group.images" style="font-size: 10px;"
                     @groups="addClusters" />
             </div>
             <div class="ms-2">
-                <ActionButton action="execute" :image-ids="imageIds" style="font-size: 10px;"
+                <ActionButton action="execute" :images="group.images" style="font-size: 10px;"
                     @groups="addClusters" />
             </div>
 
-            <!-- <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
+            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
                 class="ms-2">
                 <wTT message="main.recommand.tooltip">
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
@@ -210,7 +209,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                         </div>
                     </span>
                 </div>
-            </div> -->
+            </div>
         </div>
 
         <div v-if="hasSubgroups && hoverGroup && hasOpenChildren"

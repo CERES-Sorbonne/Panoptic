@@ -9,12 +9,12 @@ from panoptic.models import Property, PropertyType, PropertyMode, Tag, Instance
 
 
 async def test_import_data():
-    project = Project('/Users/david/panoptic-projects/refactorZ', [])
+    project = Project('/Users/david/panoptic-projects/celebs', [])
     await project.start()
 
-
-    props = await project.db.get_properties()
-    print(type(props[0].mode))
+    now = time()
+    res = await project.db.get_raw_db().get_instances2()
+    print(time() - now)
 
     # instances = await project.db.get_instances(ids=[1])
     # instances[0].id = -1
