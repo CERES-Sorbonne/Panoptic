@@ -67,18 +67,18 @@ async function recommandImages() {
 function toggleClosed() {
     if (closed.value) {
         // props.groupIndex[props.item.id].closed = false
-        props.manager.toggleGroup(group.value.id, true)
+        props.manager.toggleGroup(group.value.id, false)
         emits('group:open', props.item.id)
     }
     else {
-        props.manager.toggleGroup(group.value.id, true)
+        props.manager.toggleGroup(group.value.id, false)
         emits('group:close', props.item.id)
     }
 }
 
 function closeChildren() {
     subgroups.value.forEach((g: Group) => props.manager.closeGroup(g.id))
-    props.manager.onChange.emit()
+    // props.manager.onChange.emit()
     emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 

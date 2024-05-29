@@ -5,14 +5,16 @@ import TagBadge from '../tagtree/TagBadge.vue';
 import { UNDEFINED_KEY } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 import { pad } from '@/utils/utils'
+import { useDataStore } from '@/data/dataStore';
 
+const data = useDataStore()
 const store = useProjectStore()
 
 const props = defineProps({
     value: Object as () => PropertyValue
 })
 
-const property = computed(() => store.data.properties[props.value.propertyId])
+const property = computed(() => data.properties[props.value.propertyId])
 const type = computed(() => property.value.type)
 
 const isTag = computed(() => type.value == PropertyType.tag || type.value == PropertyType.multi_tags)
@@ -79,7 +81,7 @@ function mapTag(id: number | string): Tag[] {
     if (id == undefined) {
         return [{ value: '_indéfini', color: -1 } as Tag]
     }
-    return [store.data.properties[props.value.propertyId].tags[id as number]]
+    return [data.properties[props.value.propertyId].tags[id as number]]
 }
 </script>
 

@@ -3,18 +3,20 @@
  * Is responsible to connect the different managers together for reactivity
  */
 
-import { ImageIndex } from "@/data/models";
+import { ImageIndex, InstanceIndex } from "@/data/models";
 import { FilterManager, FilterResult, FilterState } from "./FilterManager";
 import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
+import { objValues } from "@/utils/utils";
+import { useDataStore } from "@/data/dataStore";
 
 export class CollectionManager {
-    images: ImageIndex
+    images: InstanceIndex
     filterManager: FilterManager
     sortManager: SortManager
     groupManager: GroupManager
 
-    constructor(images?: ImageIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: SelectedImages) {
+    constructor(images?: InstanceIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: SelectedImages) {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
@@ -36,18 +38,19 @@ export class CollectionManager {
     }
 
     verifyState() {
+        const data = useDataStore()
         this.filterManager.verifyState()
         this.sortManager.verifyState()
-        this.groupManager.verifyState()
+        this.groupManager.verifyState(data.properties)
     }
 
-    async update(images?: ImageIndex) {
+    async update(images?: InstanceIndex) {
         // throw new Error('update')
         // console.log('update')
         this.images = images ?? this.images
         if(!this.images) return
         
-        const filterRes = await this.filterManager.filter(Object.values(this.images))
+        const filterRes = await this.filterManager.filter(objValues(this.images))
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)
     }

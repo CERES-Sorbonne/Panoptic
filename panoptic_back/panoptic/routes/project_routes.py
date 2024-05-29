@@ -206,6 +206,8 @@ async def commit_route(commit: DbCommit):
 
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
+    print('lalaal')
+    print(file_path)
     path = os.path.join(project.base_path, 'mini', file_path)
     return FileResponse(path=path)
 

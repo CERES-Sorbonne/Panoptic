@@ -1,16 +1,15 @@
 <script setup lang="ts">
 
-import { useProjectStore } from '@/data/projectStore'
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
-import { Group, GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
+import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
-import { PropertyID, PropertyType } from '@/data/models';
+import { PropertyType } from '@/data/models';
 import GroupOptionDropdown from '../dropdowns/GroupOptionDropdown.vue';
-import { NumberOptions } from 'vue-i18n';
-const store = useProjectStore()
+import { useDataStore } from '@/data/dataStore';
 
+const data = useDataStore()
 
 const props = defineProps({
     isLoading: Boolean,
@@ -42,13 +41,13 @@ function updateGroupOption(propertyId: number, option: GroupOption) {
     props.manager.update(true)
 }
 
-const selectedProperties = computed(() => props.manager.state.groupBy.map(id => store.data.properties[id]))
+const selectedProperties = computed(() => props.manager.state.groupBy.map(id => data.properties[id]))
 const groups = computed(() => {
     const res: {option: GroupOption, property}[] = []
     props.manager.state.groupBy.forEach(pId => {
         res.push({
             option: props.manager.state.options[pId],
-            property: store.data.properties[pId]
+            property: data.properties[pId]
         })
     })
     return res

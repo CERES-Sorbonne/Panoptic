@@ -5,7 +5,7 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, ref, shallowReactive, shallowRef, triggerRef } from "vue";
+import { computed, nextTick, reactive, ref, shallowReactive, shallowRef } from "vue";
 import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
@@ -176,6 +176,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function applyCommit(commit: DbCommit) {
         dataStore.applyCommit(commit)
+        return
         // console.log(commit)
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
@@ -214,7 +215,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (commit.properties) {
             importProperties(commit.properties)
         }
-        if (commit.tags) {
+        if (commit.tags?.length) {
             importTags(commit.tags)
         }
         if (commit.instanceValues) {
@@ -261,8 +262,6 @@ export const useProjectStore = defineStore('projectStore', () => {
             }
 
         }
-        console.log('trigger')
-        triggerRef(images)
     }
 
     function verifyData() {
@@ -340,9 +339,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         imgs.forEach(img => values.push(...getComputedValues(img)))
         
         for(let img of imgs) {
-            img.fullUrl = SERVER_PREFIX + '/images/' + img.url
-            img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
-    
+            // img.fullUrl = SERVER_PREFIX + '/images/' + img.url
+            // img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
+            // console.log(img.url, img.fullUrl)
             img.containerRatio = computeContainerRatio(img)
     
             if (!images.value[img.id]) {
@@ -422,6 +421,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     function importTags(tags: Tag[]) {
         const updated = new Set<number>()
         for (let tag of tags) {
+            tag.parents = tag.parents.filter(p => p != 0)
             data.tags[tag.id] = tag
             if (!(tag.propertyId in data.properties)) {
                 console.warn('Property ' + tag.propertyId + ' must be loaded before importing tags')
@@ -438,9 +438,9 @@ export const useProjectStore = defineStore('projectStore', () => {
             setTagsChildren(data.properties[propId].tags)
         }
         for (let tag of tags) {
-            tag.allChildren = getTagChildren(tag)
+            tag.allChildren = getTagChildren(tag, data.tags)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
-            tag.allParents = getTagParents(tag)
+            tag.allParents = getTagParents(tag, data.tags)
         }
         // computeTagCount()
     }
