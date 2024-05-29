@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { Image, ImagePropertyValue, InstancePropertyValue, PropertyMode, PropertyType } from '@/data/models';
+import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
-import { useProjectStore } from '@/data/projectStore'
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { isTag, objValues } from '@/utils/utils';
-const store = useProjectStore()
+import { isTag } from '@/utils/utils';
+import { useDataStore } from '@/data/dataStore';
+import { useProjectStore } from '@/data/projectStore';
 
-const props = defineProps({
-    images: Array<Image>,
-    noBorder: Boolean,
-    showNumber: Boolean
-})
+const data = useDataStore()
+const project = useProjectStore()
+
+const props = defineProps<{
+    images: Instance[],
+    noBorder?: boolean,
+    showNumber?: boolean
+}>()
 
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
@@ -43,10 +46,10 @@ async function apply() {
     for (let propId of Object.keys(stamp).map(Number)) {
         for (let img of props.images) {
             let stampValue = stamp[propId]
-            if (isTag(store.data.properties[propId].type) && img.properties[propId]?.value && stampValue) {
-                stampValue = Array.from(new Set([...img.properties[propId].value, ...stampValue]))
+            if (isTag(data.properties[propId].type) && img.properties[propId] && stampValue) {
+                stampValue = Array.from(new Set([...img.properties[propId], ...stampValue]))
             }
-            if (store.data.properties[propId].mode == PropertyMode.id) {
+            if (data.properties[propId].mode == PropertyMode.id) {
                 const value: InstancePropertyValue = { propertyId: propId, instanceId: img.id, value: stampValue }
                 instanceValues.push(value)
             } else {
@@ -55,9 +58,9 @@ async function apply() {
             }
         }
     }
-    await store.setPropertyValues(instanceValues, imageValues)
+    await project.setPropertyValues(instanceValues, imageValues)
 
-    store.getTabManager().collection.groupManager.clearSelection()
+    project.getTabManager().collection.groupManager.clearSelection()
     // store.getTabManager().collection.update()
     close()
 }

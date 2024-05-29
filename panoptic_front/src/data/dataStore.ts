@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, shallowRef, triggerRef } from "vue";
-import { DbCommit, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, Sha1ToInstances, Tag, TagIndex } from "./models";
+import { DbCommit, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyIndex, Sha1ToInstances, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
 import { SERVER_PREFIX } from "./api";
 import { computeContainerRatio, setTagsChildren } from "./storeutils";
@@ -144,7 +144,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     return {
         instances, properties, tags,
-        instanceList, propertyList,
+        sha1Index, instanceList, propertyList,
         applyCommit
     }
 

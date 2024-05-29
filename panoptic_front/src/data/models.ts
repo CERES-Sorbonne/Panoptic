@@ -24,29 +24,6 @@ export interface InstanceIndex {
     [id: number]: Instance
 }
 
-export interface Image {
-    id: number
-    name: string
-    sha1: string
-    ahash: string
-    width: number
-    height: number
-    url: string
-    fullUrl: string
-    folderId: number
-    extension: string
-    properties: {
-        [id: number]: InstancePropertyValue
-    }
-    dist?: number
-    containerRatio?: number
-}
-
-export interface ImageIndex {
-    [id: number]: Image
-}
-
-export type Sha1ToImages = { [sha1: string]: Image[] }
 export type Sha1ToInstances = { [sha1: string]: Instance[] }
 export type Sha1Scores = { [sha1: string]: number }
 
@@ -247,7 +224,7 @@ export interface ImportState {
     to_import: number
     imported: number
     computed: number
-    new_images?: Image[],
+    new_images?: Instance[],
     done: boolean
 }
 
@@ -256,11 +233,6 @@ export interface StatusUpdate {
     // updated_images: Image[];
     pluginLoaded?: boolean
     update: UpdateCounter
-}
-
-export interface DataUpdate {
-    images?: Image[]
-    properties?: Property[]
 }
 
 export interface TaskState {
@@ -274,7 +246,7 @@ export interface TaskState {
 
 export interface SyncResult {
     newImageCount: number
-    missingImages: Image[]
+    missingImages: Instance[]
 }
 
 export const Colors = [
@@ -312,7 +284,7 @@ export interface ImageLine extends ScrollerLine {
 }
 
 export interface RowLine extends ScrollerLine {
-    data: Image,
+    data: Instance,
     iterator: ImageIterator
 }
 
@@ -495,7 +467,7 @@ export interface DbCommit {
     emptyInstanceValues? : InstancePropertyValue[]
     emptyImageValues?: ImagePropertyValue[]
 
-    instances?: Image[]
+    instances?: Instance[]
     properties?: Property[]
     tags?: Tag[]
     instanceValues?: InstancePropertyValue[]

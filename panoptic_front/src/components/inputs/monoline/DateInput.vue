@@ -1,21 +1,25 @@
 
 <script setup lang="ts">
-import { Image, Property } from '@/data/models';
-import { computed, watch } from 'vue';
+import { Instance, Property } from '@/data/models';
+import { computed } from 'vue';
 import { useProjectStore } from '@/data/projectStore'
-import { getImageProperty } from '@/utils/utils';
 import StandaloneDateInput from './StandaloneDateInput.vue';
+import { useDataStore } from '@/data/dataStore';
 
 const store = useProjectStore()
-const props = defineProps({
-    image: Object as () => Image,
-    property: Object as () => Property,
-    width: Number
-})
+const data = useDataStore()
 
-const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
+const props = defineProps<{
+    image: Instance
+    property: Property
+    width: number
+}>()
+
+
+const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
+
 const localValue = computed(() => {
-    if(propRef.value.value) return propRef.value.value
+    if(propValue.value) return propValue.value
     return undefined
 })
 

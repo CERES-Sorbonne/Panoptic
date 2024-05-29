@@ -6,7 +6,7 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, shallowReactive, shallowRef } from "vue";
-import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
@@ -30,16 +30,12 @@ export const useProjectStore = defineStore('projectStore', () => {
     // const images = shallowRef({} as ImageIndex)
     const images = shallowRef({})
 
-    const data = shallowReactive({
-        images: {} as ImageIndex,
-        sha1Index: {} as Sha1ToImages,
-        properties: {} as PropertyIndex,
-        tabs: reactive({}) as TabIndex,
+    const data = reactive({
+        tabs: {} as TabIndex,
         selectedTabId: undefined as number,
         folders: {} as FolderIndex,
         plugins: [] as PluginDescription[],
         vectors: {} as ProjectVectorDescription,
-        tags: {} as TagIndex,
         history: {} as CommitHistory,
         counter: 0
     })
@@ -50,8 +46,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         changed: false,
         renderNb: 0,
         onUndo: 0,
-        import: {} as ImportState,
-        syncResult: {} as SyncResult
+        import: {} as ImportState
     })
 
     const actions = ref({} as Actions)
@@ -62,8 +57,6 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======Computed=======
     // =======================
 
-    const propertyList = computed(() => Object.values(data.properties) as Property[])
-    const imageList = computed(() => Object.values(images.value) as Image[])
     const folderRoots = computed(() => {
         return Object.values(data.folders).filter(f => f.parent == null) as Folder[]
     })
@@ -107,7 +100,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // computeTagCount(imageList.value, properties)
 
-        countImagePerFolder(data.folders, imageList.value)
+        // TODO: put back
+        // countImagePerFolder(data.folders, imageList.value)
 
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
@@ -155,8 +149,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function clear() {
         Object.assign(data, {
-            images: {} as ImageIndex,
-            sha1Index: {} as Sha1ToImages,
+            images: {} as InstanceIndex,
+            sha1Index: {} as Sha1ToInstances,
             properties: {} as PropertyIndex,
             tabs: {} as TabIndex,
             selectedTabId: undefined as number,
@@ -176,92 +170,6 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function applyCommit(commit: DbCommit) {
         dataStore.applyCommit(commit)
-        return
-        // console.log(commit)
-        if (commit.emptyImageValues) {
-            commit.emptyImageValues.forEach(v => {
-                data.sha1Index[v.sha1].forEach(i => {
-                    delete images.value[i.id].properties[v.propertyId]
-                })
-            })
-        }
-        if (commit.emptyInstanceValues) {
-            commit.emptyInstanceValues.forEach(v => {
-                delete images.value[v.instanceId].properties[v.propertyId]
-            })
-        }
-        if (commit.emptyTags) {
-            commit.emptyTags.forEach(i => {
-                data.tags[i].deleted = true
-            })
-        }
-        if (commit.emptyProperties?.length) {
-            commit.emptyProperties.forEach(i => {
-                delete data.properties[i]
-            })
-            getTabManager().collection.groupManager.clear()
-            verifyData()
-            reload()
-        }
-        if (commit.emptyInstances) {
-            commit.emptyInstances.forEach(i => {
-                delete images.value[i]
-            })
-        }
-
-        if (commit.instances) {
-            importImages(commit.instances)
-        }
-        if (commit.properties) {
-            importProperties(commit.properties)
-        }
-        if (commit.tags?.length) {
-            importTags(commit.tags)
-        }
-        if (commit.instanceValues) {
-            importInstanceValues(commit.instanceValues)
-        }
-        if (commit.imageValues) {
-            importImageValues(commit.imageValues)
-        }
-        // computeTagCount()
-
-        if(commit.emptyTags) {
-            // getTabManager().collection.update()
-        }
-    }
-
-    function importProperties(properties: Property[]) {
-        for(let p of properties) {
-            if(p.id in data.properties) {
-                p.tags = data.properties[p.id].tags
-            }
-            data.properties[p.id] = p
-        }
-        //console.log(data.properties)
-    }
-
-    function importInstanceValues(instanceValues: InstancePropertyValue[]) {
-        for (let v of instanceValues) {
-            // if (v.value == undefined) continue
-
-            const value = { propertyId: v.propertyId, instanceId: v.instanceId, value: v.value } as InstancePropertyValue
-            images.value[v.instanceId].properties[v.propertyId] = value
-            // images.value[v.instanceId].properties2[v.propertyId] = v.value
-        }
-    }
-
-    function importImageValues(instanceValues: ImagePropertyValue[]) {
-        for (let v of instanceValues) {
-            if (v.value == undefined) continue
-
-            for (let img of data.sha1Index[v.sha1]) {
-                const value = { propertyId: v.propertyId, instanceId: img.id, value: v.value } as InstancePropertyValue
-                images.value[img.id].properties[v.propertyId] = value
-                // images.value[img.id].properties[v.propertyId] = value
-            }
-
-        }
     }
 
     function verifyData() {
@@ -334,43 +242,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePropertyOptions()
     }
 
-    function importImages(imgs: Image[]) {
-        const values = []
-        imgs.forEach(img => values.push(...getComputedValues(img)))
-        
-        for(let img of imgs) {
-            // img.fullUrl = SERVER_PREFIX + '/images/' + img.url
-            // img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
-            // console.log(img.url, img.fullUrl)
-            img.containerRatio = computeContainerRatio(img)
-    
-            if (!images.value[img.id]) {
-                if (!Array.isArray(data.sha1Index[img.sha1])) {
-                    data.sha1Index[img.sha1] = []
-                }
-                data.sha1Index[img.sha1].push(img)
-            }
-            images.value[img.id] = img
-            data.images[img.id] = img
-        }
-
-        importInstanceValues(values)
-    }
-
-    function getComputedValues(instance: Image) {
-        const res: InstancePropertyValue[] = [
-            { instanceId: instance.id, propertyId: -1, value: instance.id },
-            { instanceId: instance.id, propertyId: -2, value: instance.sha1 },
-            { instanceId: instance.id, propertyId: -3, value: instance.ahash },
-            { instanceId: instance.id, propertyId: -4, value: instance.folderId },
-            { instanceId: instance.id, propertyId: -5, value: instance.width },
-            { instanceId: instance.id, propertyId: -6, value: instance.height },
-            { instanceId: instance.id, propertyId: -7, value: instance.url }
-        ];
-    
-        return res;
-    }
-
     async function sendCommit(commit: DbCommit) {
         console.log('send commit', commit)
         const res = await apiCommit(commit)
@@ -385,14 +256,14 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function addTagParent(tagId: number, parentId: number) {
-        const tag: Tag = Object.assign({}, data.tags[tagId])
+        const tag: Tag = Object.assign({}, dataStore.tags[tagId])
         tag.parents.push(parentId)
         const res = await sendCommit({ tags: [tag] })
     }
 
     async function deleteTagParent(tagId: number, parentId: number) {
-        const tag: Tag = Object.assign({}, data.tags[tagId])
-        tag.parents.filter(p => p != parentId)
+        const tag: Tag = Object.assign({}, dataStore.tags[tagId])
+        tag.parents = tag.parents.filter(p => p != parentId)
         await sendCommit({ tags: [tag] })
     }
 
@@ -408,8 +279,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function importPropertyValues(values: InstancePropertyValue[]) {
         for (let val of values) {
-            const props = data.properties[val.propertyId]
-            const ids = props.mode == PropertyMode.id ? [val.instanceId] : data.sha1Index[images.value[val.instanceId].sha1].map(i => i.id)
+            const props = dataStore.properties[val.propertyId]
+            const ids = props.mode == PropertyMode.id ? [val.instanceId] : dataStore.sha1Index[images.value[val.instanceId].sha1].map(i => i.id)
             if (val.value !== undefined) {
                 ids.forEach(i => images.value[i].properties[val.propertyId] = val)
             } else {
@@ -418,50 +289,23 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
     }
 
-    function importTags(tags: Tag[]) {
-        const updated = new Set<number>()
-        for (let tag of tags) {
-            tag.parents = tag.parents.filter(p => p != 0)
-            data.tags[tag.id] = tag
-            if (!(tag.propertyId in data.properties)) {
-                console.warn('Property ' + tag.propertyId + ' must be loaded before importing tags')
-                continue
-            }
-            if (!data.properties[tag.propertyId].tags) {
-                data.properties[tag.propertyId].tags = {}
-            }
-            data.properties[tag.propertyId].tags[tag.id] = tag
-            updated.add(tag.propertyId)
-
-        }
-        for (let propId of updated) {
-            setTagsChildren(data.properties[propId].tags)
-        }
-        for (let tag of tags) {
-            tag.allChildren = getTagChildren(tag, data.tags)
-            tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
-            tag.allParents = getTagParents(tag, data.tags)
-        }
-        // computeTagCount()
-    }
-
     async function addProperty(name: string, type: PropertyType, mode: PropertyMode) {
         const prop: Property = { id: -1, name: name, type: type, mode: mode }
         const res = await sendCommit({ properties: [prop] })
         return res.properties[0]
     }
 
-    async function setPropertyValue(propertyId: number, images: Image[] | Image, value: any, dontEmit?: boolean) {
+    async function setPropertyValue(propertyId: number, images: Instance[] | Instance, value: any, dontEmit?: boolean) {
         if (!Array.isArray(images)) {
             images = [images]
         }
-        const prop = data.properties[propertyId]
+        const prop = dataStore.properties[propertyId]
         // if(prop.type == PropertyType.date) {
         //     if(value) {
         //         value = (value as Date).toISOString()
         //     }
         // }
-        const mode = data.properties[propertyId].mode
+        const mode = dataStore.properties[propertyId].mode
         const instanceValues: InstancePropertyValue[] = []
         const imageValues: ImagePropertyValue[] = []
         if (mode == PropertyMode.id) {
@@ -474,7 +318,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         await sendCommit({ instanceValues: instanceValues, imageValues: imageValues })
 
-        if (data.properties[propertyId].tags != undefined) {
+        if (dataStore.properties[propertyId].tags != undefined) {
             // computeTagCount()
         }
         getHistory()
@@ -488,7 +332,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         instanceValues.forEach(v => propIds.add(v.propertyId))
         imageValues.forEach(v => propIds.add(v.propertyId))
 
-        const tagProps = Array.from(propIds).filter(p => data.properties[p].type)
+        const tagProps = Array.from(propIds).filter(p => dataStore.properties[p].type)
         if (tagProps.length) {
             // computeTagCount()
         }
@@ -498,12 +342,12 @@ export const useProjectStore = defineStore('projectStore', () => {
         // if (!dontEmit) tabManager.collection.update()
     }
 
-    async function setTagPropertyValue(propertyId: number, images: Image[] | Image, value: any, dontEmit?: boolean) {
+    async function setTagPropertyValue(propertyId: number, images: Instance[] | Instance, value: any, dontEmit?: boolean) {
         if (!Array.isArray(images)) {
             images = [images]
         }
         const currentValues = images.map(i => ({ value: i.properties[propertyId]?.value ?? [], img: i }))
-        if (data.properties[propertyId].mode == PropertyMode.id) {
+        if (dataStore.properties[propertyId].mode == PropertyMode.id) {
             const values: InstancePropertyValue[] = currentValues.map(v => ({ propertyId: propertyId, instanceId: v.img.id, value: v.value }))
             await sendCommit({ instanceValues: values })
         }
@@ -517,7 +361,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function updateTag(tagId: number, value?: any, color?: number) {
-        const tag = Object.assign({}, data.tags[tagId])
+        const tag = Object.assign({}, dataStore.tags[tagId])
         if(value) {
             tag.value = value
         }
@@ -533,7 +377,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function updateProperty(propertyId: number, name?: string) {
-        const prop = deepCopy(data.properties[propertyId])
+        const prop = deepCopy(dataStore.properties[propertyId])
         prop.name = name
         sendCommit({properties: [prop]})
         updatePropertyOptions()
@@ -541,11 +385,11 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function deleteProperty(propertyId: number) {
         await sendCommit({emptyProperties: [propertyId]})
-        delete data.properties[propertyId]
+        delete dataStore.properties[propertyId]
 
         Object.values(data.tabs).forEach((t: TabState) => {
             Object.keys(t.visibleProperties).map(Number).forEach(k => {
-                if (data.properties[k] == undefined) {
+                if (dataStore.properties[k] == undefined) {
                     delete t.visibleProperties[k]
                 }
             })
@@ -571,7 +415,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             if (tab.propertyOptions == undefined) {
                 tab.propertyOptions = {}
             }
-            for (let propId in data.properties) {
+            for (let propId in dataStore.properties) {
                 tab.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.propertyOptions[propId])
             }
         }
@@ -645,7 +489,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         data, status,
         images,
         // computed
-        propertyList, imageList, folderRoots,
+        folderRoots,
 
         // functions
         init, clear, rerender, addFolder, reImportFolder,

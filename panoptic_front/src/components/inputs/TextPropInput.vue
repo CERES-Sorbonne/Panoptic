@@ -1,48 +1,46 @@
 <script setup lang="ts">
-import { Image, Property, PropertyType } from '@/data/models';
-import { getImageProperty } from '@/utils/utils';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { Instance, Property, PropertyType } from '@/data/models';
+import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue';
 import TextInput from './TextInput.vue';
 import { useProjectStore } from '@/data/projectStore'
+import { useDataStore } from '@/data/dataStore';
+
 const store = useProjectStore()
+const data = useDataStore()
 
-const props = defineProps({
-    property: Object as () => Property,
-    image: Object as () => Image,
-    noNl: {
-        type: Boolean,
-        default: false,
-    },
-    width: Number,
-    minHeight: { type: Number, default: 30 },
-    urlMode: Boolean,
-    autoFocus: Boolean,
-    noShadow: Boolean,
-    alwaysShadow: Boolean,
-    blurOnEnter:  {type: Boolean, default: true}
+const props = withDefaults(defineProps<{
+    property: Property
+    image: Instance
+    noNl?: boolean
+    width: number
+    minHeight: number
+    urlMode?: boolean
+    autoFocus?: boolean
+    noShadow?: boolean
+    alwaysShadow?: boolean
+    blurOnEnter: boolean
 
+}>(), {
+    blurOnEnter: true,
+    minHeight: 30
 })
 const emits = defineEmits({ 'update:height': Number, 'save': undefined })
 
 const localValue = ref('')
+const storeValue = computed(() => data.instances[props.image.id].properties[props.property.id])
 const elem = ref(null)
-// const inputElem = computed(() => elem.value.inputElem)
-
-const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
-const isFocus = computed(() => elem.value?.isFocus)
-
 function focus() {
     elem.value.focus()
 }
 
 function updateFromStore() {
-    localValue.value = propRef.value.value ?? ''
+    localValue.value = storeValue.value ?? ''
 }
 
 function save() {
     emits('save')
     // if (!propRef.value.value && localValue.value == '') return
-    if (propRef.value.value === localValue.value) return
+    if (storeValue.value === localValue.value) return
 
     // console.log(propRef.value.value, localValue.value)
     store.setPropertyValue(props.property.id, props.image, localValue.value)
@@ -57,7 +55,7 @@ onMounted(async () => {
         focus()
     }
 })
-watch(propRef, updateFromStore)
+watch(storeValue, updateFromStore)
 
 
 defineExpose({

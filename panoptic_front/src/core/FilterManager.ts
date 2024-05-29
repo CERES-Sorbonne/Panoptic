@@ -7,7 +7,7 @@
 
 import { propertyDefault } from "@/data/builder";
 import { useDataStore } from "@/data/dataStore";
-import { Image, Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
+import { Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
 import { EventEmitter, getTagChildren, isTag, objValues } from "@/utils/utils";
@@ -96,7 +96,7 @@ export interface FilterState {
 }
 
 export interface FilterResult {
-    images: Image[]
+    images: Instance[]
 }
 
 export interface FilterUpdate {
@@ -316,7 +316,7 @@ export class FilterManager {
     lastFilterId: number
     filterIndex: { [filterId: number]: AFilter }
 
-    lastImages: Image[]
+    lastImages: Instance[]
     onChange: EventEmitter
 
     constructor(state?: FilterState) {
@@ -331,7 +331,7 @@ export class FilterManager {
             this.initFilterState()
         }
 
-        this.verifyState()
+        this.verifyState(useDataStore().properties)
     }
 
     load(state: FilterState) {
@@ -355,7 +355,7 @@ export class FilterManager {
         if (this.state.query) {
             const query = this.state.query.toLocaleLowerCase()
             const project = useProjectStore()
-            const props = objValues(project.data.properties)
+            const props = objValues(data.properties)
             const textProps = props.filter(p => p.type == PropertyType.string)
             const tagProps = props.filter(p => isTag(p.type))
             filtered = filtered.filter(img => {
@@ -367,7 +367,7 @@ export class FilterManager {
                 for (let p of tagProps) {
                     const value = img.properties[p.id]?.value
                     if (!value) continue
-                    const tagNames = value.map(tId => project.data.tags[tId].value.toLocaleLowerCase())
+                    const tagNames = value.map(tId => data.tags[tId].value.toLocaleLowerCase())
                     for (let name of tagNames) {
                         if (name.includes(query)) {
                             return true
@@ -458,7 +458,7 @@ export class FilterManager {
 
 
     updateFilter(filterId: number, update: FilterUpdate) {
-        const store = useProjectStore()
+        const data = useDataStore()
         if (this.filterIndex[filterId] == undefined || this.filterIndex[filterId].isGroup) return
         const filter = this.filterIndex[filterId] as Filter
 
@@ -466,7 +466,7 @@ export class FilterManager {
             this.changeFilter(filter, update.propertyId)
         }
 
-        const type = store.data.properties[filter.propertyId].type
+        const type = data.properties[filter.propertyId].type
         if (update.operator != undefined && availableOperators(type).includes(update.operator)) {
             filter.operator = update.operator
         }
@@ -491,8 +491,7 @@ export class FilterManager {
     }
 
     // used to remove properties that doesnt exist anymore from filters 
-    public verifyState() {
-        const store = useProjectStore()
+    public verifyState(properties: PropertyIndex) {
         const recursive = (group: FilterGroup) => {
             const toRem = new Set()
             group.filters.forEach(f => {
@@ -501,7 +500,7 @@ export class FilterManager {
                 }
                 else {
                     const filter = f as Filter
-                    if (store.data.properties[filter.propertyId] == undefined) {
+                    if (properties[filter.propertyId] == undefined) {
                         toRem.add(filter.id)
                     }
                 }
@@ -528,8 +527,8 @@ export class FilterManager {
     }
 
     private createFilter(propertyId: number) {
-        const store = useProjectStore()
-        let property = store.data.properties[propertyId]
+        const data = useDataStore()
+        let property = data.properties[propertyId]
 
         let filter: Filter = {
             propertyId: property.id,

@@ -3,12 +3,15 @@ import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { ImageIterator } from '@/core/GroupManager';
-import { Image as ImageType, ModalId, Property, PropertyMode, PropertyRef } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
+import { useDataStore } from '@/data/dataStore';
+import { PropertyMode, PropertyRef } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
-import { Ref, computed, inject, reactive, ref } from 'vue';
-const panoptic = usePanopticStore()
+import { Ref, computed, inject, ref } from 'vue';
+
+
 const store = useProjectStore()
+const data = useDataStore()
+
 const props = defineProps<{
     image: ImageIterator
     width: number
@@ -17,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
-    paint: [e: PropertyRef]
+    paint: [e: {instanceId: number, propertyId: number}]
 }>()
 
 const mode = ref(0)
@@ -30,13 +33,13 @@ const showHistory: Ref<boolean> = inject('showHistory')
 const properties = computed(() => {
     const res = []
     if (mode.value == 0) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed))
+        res.push(...data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed))
     }
     if (mode.value == 1) {
-        res.push(...store.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed))
+        res.push(...data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed))
     }
     if (mode.value == 2) {
-        res.push(...store.propertyList.filter(p => p.computed))
+        res.push(...data.propertyList.filter(p => p.computed))
     }
     return res
 })

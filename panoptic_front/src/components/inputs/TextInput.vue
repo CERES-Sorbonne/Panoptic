@@ -1,32 +1,27 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue';
 import ContentEditable from '../ContentEditable.vue';
-import { useProjectStore } from '@/data/projectStore'
 import { keyState } from '@/data/keyState';
 
-const props = defineProps({
-    'tag': String,
-    'editable': {
-        type: [Boolean, String],
-        default: true,
-    },
-    'modelValue': undefined,
-    'noHtml': {
-        type: Boolean,
-        default: true,
-    },
-    'noNl': {
-        type: Boolean,
-        default: false,
-    },
-    width: Number,
-    minHeight: { type: Number, default: 30 },
-    urlMode: Boolean,
-    onlyNumber: Boolean,
-    noShadow: Boolean,
-    alwaysShadow: Boolean,
-    blurOnEnter: {type: Boolean, default: true}
-
+const props = withDefaults(defineProps<{
+    tag: string
+    editable: boolean | string
+    modelValue: any
+    noHtml: boolean
+    noNl: boolean
+    width: number
+    minHeight: number
+    urlMode: boolean
+    onlyNumber: boolean
+    noShadow: boolean
+    alwaysShadow: boolean
+    blurOnEnter: boolean
+}>(), {
+    editable: true,
+    noHtml: true,
+    noNl: false,
+    minHeight: 30,
+    blurOnEnter: true
 })
 
 const emit = defineEmits({
@@ -82,7 +77,7 @@ function updateHeight() {
 function contentClick() {
     if (props.urlMode && keyState.alt && props.modelValue) {
         let url = props.modelValue as string
-        if(!url.startsWith('http')) {
+        if (!url.startsWith('http')) {
             url = 'http://' + url
         }
         window.open(url, '_blank').focus()
@@ -90,7 +85,7 @@ function contentClick() {
 }
 
 function onEnter(e) {
-    if(!keyState.shift && props.blurOnEnter) {
+    if (!keyState.shift && props.blurOnEnter) {
         e.target.blur()
         e.preventDefault()
         e.stopPropagation()
@@ -115,7 +110,7 @@ watch(() => props.modelValue, () => {
         cursor: urlMode ? 'pointer' : 'inherit',
         color: urlMode ? 'blue' : ''
     }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
-        :class="((isFocus && !props.noShadow) || props.alwaysShadow )? 'focus' : 'container'" @click="focus">
+        :class="((isFocus && !props.noShadow) || props.alwaysShadow) ? 'focus' : 'container'" @click="focus">
         <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="String(props.modelValue)"
             :only-number="props.onlyNumber" :no-html="props.noHtml" :no-nl="props.noNl"
             :contenteditable="props.editable && !(urlMode)" :style="{ width: (props.width - 5) + 'px' }"
@@ -150,5 +145,4 @@ watch(() => props.modelValue, () => {
     z-index: 99 !important;
     padding: 20px;
 }
-
 </style>

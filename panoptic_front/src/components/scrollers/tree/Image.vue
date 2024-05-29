@@ -1,19 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, triggerRef, watch } from 'vue'
-import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
-import PropertyIcon from '@/components/properties/PropertyIcon.vue';
+import { computed, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import TextInput from '@/components/inputs/monoline/TextInput.vue';
-import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
 import wTT from '../../tooltips/withToolTip.vue'
-import DateInput from '@/components/inputs/monoline/DateInput.vue';
-import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
-import { Group, ImageIterator } from '@/core/GroupManager';
+import { ImageIterator } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
-import { ModalId, Property, PropertyRef, PropertyType, Image } from '@/data/models';
+import { ModalId, Property } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
-import { keyState } from '@/data/keyState';
-import { zoomModal } from '@/components/modals/zoomModal';
 import Zoomable from '@/components/Zoomable.vue';
 import { useDataStore } from '@/data/dataStore';
 import PropInput from './PropInput.vue';

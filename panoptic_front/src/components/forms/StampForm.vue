@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { PropertyType } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore'
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed } from 'vue';
 
 import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
 import StandaloneColorPropInput from '../inputs/StandaloneColorPropInput.vue';
@@ -11,7 +10,9 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagInputDropdown from '../tags/TagInputDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils';
-const store = useProjectStore()
+import { useDataStore } from '@/data/dataStore';
+
+const data = useDataStore()
 
 const props = defineProps({
     values: Object as () => { [propertyId: number]: any },
@@ -20,7 +21,7 @@ const props = defineProps({
 const emits = defineEmits(['blur'])
 
 const properties = computed(() => {
-    return store.propertyList.filter(p => p.id >= 0)
+    return data.propertyList.filter(p => p.id >= 0)
 })
 
 const propertyColor = computed(() => {
@@ -38,22 +39,6 @@ const propertyColor = computed(() => {
     })
     return res
 })
-
-function test() {
-    console.log('buuurr')
-}
-
-// function init() {
-//     properties.value.forEach(p => {
-//         if (props.values[p.id] == undefined) {
-//             props.values[p.id] = propertyDefault(p.type)
-//             console.log('init to', props.values[p.id])
-//         }
-//     })
-// }
-
-// onMounted(init)
-// watch(properties, init)
 
 </script>
 

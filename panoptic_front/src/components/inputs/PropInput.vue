@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, Property, PropertyType } from '@/data/models';
+import { Instance, Property, PropertyType } from '@/data/models';
 import TextPropInput from './TextPropInput.vue';
 import CheckboxPropInput from './CheckboxPropInput.vue';
 import ColorPropInput from './ColorPropInput.vue';
@@ -10,7 +10,7 @@ import { isTag } from '@/utils/utils';
 
 const props = defineProps({
     property: Object as () => Property,
-    image: Object as () => Image,
+    image: Object as () => Instance,
     minHeight: Number,
     width: Number
 })

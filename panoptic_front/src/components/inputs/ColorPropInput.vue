@@ -1,32 +1,34 @@
 <script setup lang="ts">
-import { Colors, Image, Property } from '@/data/models';
-import { getImageProperty } from '@/utils/utils';
-import { computed, onMounted, ref, watch } from 'vue';
+import { Colors, Instance, Property } from '@/data/models';
+import { computed, onMounted, ref, withDefaults } from 'vue';
 import { useProjectStore } from '@/data/projectStore'
 import 'vue-color-kit/dist/vue-color-kit.css'
-import * as bootstrap from 'bootstrap'
-const store = useProjectStore()
-const props = defineProps({
-    property: Object as () => Property,
-    image: Object as () => Image,
-    width: Number,
-    minHeight: { type: Number, default: 30 },
-    rounded: Boolean
+import { useDataStore } from '@/data/dataStore';
 
+const store = useProjectStore()
+const data = useDataStore()
+
+const props = withDefaults(defineProps<{
+  property: Property
+  image: Instance
+  width: number
+  minHeight: number
+  rounded?: boolean
+}>(), {
+  minHeight: 30
 })
 const emits = defineEmits({ 'update:height': Number })
 
-const isFirefox = navigator.userAgent.indexOf("Firefox") != -1
-
 const localValue = ref(null)
-const elem = ref(null)
 const dropdown = ref(null)
 
-const propRef = computed(() => getImageProperty(props.image.id, props.property.id))
+
+const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
+
 const color = computed(() => {
-    if(propRef.value.value == undefined) return 'white'
+    if(propValue.value == undefined) return 'white'
     
-    let value = Number(propRef.value.value)
+    let value = Number(propValue.value)
     if(isNaN(value) || value > 12) return 'gray'
     return Colors[value].color
 })
@@ -44,7 +46,7 @@ function unfocus() {
 }
 
 function updateFromStore() {
-    localValue.value = propRef.value.value
+    localValue.value = propValue.value
 }
 
 function set(color: number) {
@@ -60,22 +62,16 @@ function saveDropdownRef(e) {
 
 
 onMounted(updateFromStore)
-// watch(propRef, updateFromStore)
 
 
 defineExpose({
-    // localValue,
-    // inputElem
     focus
 })
-
+// TODO html template use real dropdownVue
 </script>
 
 <template>
     <div :style="{ height: props.minHeight + 'px' }" class="container">
-        <!-- <input type="color" v-model="localValue" :style="{
-            width: props.width+ 'px',
-        }" ref="elem" @focusin="isFocus = true" @focusout="isFocus = false"/> -->
         <div :ref="(el) => saveDropdownRef(el)" :class="props.rounded ? 'rounded': ''" :style="{ width: props.width + 'px', backgroundColor: color, height: 'calc(100% - 3px)' }"
             data-bs-toggle="dropdown" aria-expanded="false">
         <div class="dropdown-menu">
