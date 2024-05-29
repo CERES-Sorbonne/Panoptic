@@ -5,7 +5,7 @@ import { useProjectStore } from '@/data/projectStore'
 import 'vue-color-kit/dist/vue-color-kit.css'
 import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 
 const props = withDefaults(defineProps<{
@@ -50,7 +50,7 @@ function updateFromStore() {
 }
 
 function set(color: number) {
-    store.setPropertyValue(props.property.id, props.image, color)
+    project.setPropertyValue(props.property.id, props.image, color)
 }
 
 function saveDropdownRef(e) {

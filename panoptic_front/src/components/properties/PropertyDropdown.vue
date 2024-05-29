@@ -4,9 +4,9 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { onMounted, ref } from 'vue';
 import PropertyIcon from './PropertyIcon.vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     modelValue: Object as () => Property
@@ -18,7 +18,7 @@ const dropdownElem = ref(null)
 
 function select(propId) {
     dropdownElem.value.hide()
-    emits('update:modelValue', store.data.properties[propId])
+    emits('update:modelValue', data.properties[propId])
 }
 
 onMounted(() => console.log(props.modelValue))

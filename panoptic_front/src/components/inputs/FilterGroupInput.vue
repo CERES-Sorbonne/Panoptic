@@ -6,7 +6,10 @@ import FilterPreview from '../preview/FilterPreview.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager, FilterOperator } from '@/core/FilterManager';
-const store = useProjectStore()
+import { useDataStore } from '@/data/dataStore';
+
+const data = useDataStore()
+
 const props = defineProps({
     filter: Object as () => FilterGroup,
     manager: FilterManager,
@@ -76,7 +79,7 @@ function updateOperator(filterId: number, operator: FilterOperator.and | FilterO
                     <span v-else class="text-secondary">{{ (filter as FilterGroup).groupOperator }}</span>
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
-                    <PropertyDropdown :model-value="store.data.properties[(children as Filter).propertyId]"
+                    <PropertyDropdown :model-value="data.properties[(children as Filter).propertyId]"
                         @update:model-value="p => updateProperty(children.id, p.id)" />
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">

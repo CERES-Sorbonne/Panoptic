@@ -5,7 +5,7 @@ import { useProjectStore } from '@/data/projectStore';
 import { TabState } from '@/data/models';
 
 
-const store = useProjectStore()
+const project = useProjectStore()
 
 const editTab = ref(-1)
 const newTabName = ref('')
@@ -17,18 +17,18 @@ const props = defineProps({
 
 
 function select(id: number) {
-    if (store.data.selectedTabId == id) {
+    if (project.data.selectedTabId == id) {
         // setEditTab(id)
     }
     else {
         endEdit()
     }
-    store.selectTab(id)
+    project.selectTab(id)
 }
 
 function setEditTab(id: number) {
     editTab.value = id
-    newTabName.value = store.data.tabs[id].name
+    newTabName.value = project.data.tabs[id].name
     nextTick(() => inputElem.value[0].focus())
 }
 
@@ -38,13 +38,13 @@ function endEdit() {
 }
 
 function addTab(event: any) {
-    store.addTab('New Tab')
+    project.addTab('New Tab')
 }
 
 async function deleteTab(tab: TabState) {
     let ok = confirm('Are you sure to delete Tab: ' + tab.name)
     if(!ok) return
-    await store.removeTab(tab.id)
+    await project.removeTab(tab.id)
 }
 
 const hover = reactive({}) as any
@@ -56,12 +56,12 @@ const langs = ['fr', 'en']
 <template>
     <nav>
         <div class="d-flex d-row" style="cursor: pointer;">
-            <div class="d-flex d-row me-2" v-for="tab in store.data.tabs" @mouseenter="e => hover[tab.id] = true"
+            <div class="d-flex d-row me-2" v-for="tab in project.data.tabs" @mouseenter="e => hover[tab.id] = true"
                 @mouseleave="e => hover[tab.id] = false">
                 <!-- <i class="btn-icon bi bi-pencil tab-icon me-2" :class="hover[tab.id] ? '' : 'hidden'" style="font-size: 9px;"></i> -->
                 <template v-if="editTab != tab.id">
-                    <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab(tab.id)" class="bi bi-pencil me-1 tab-icon hover-light" :class="(hover[tab.id] && store.data.selectedTabId == tab.id)? '' : 'hidden'" style="font-size: 10px;"></i></wTT>
-                    <div class="tab-button" :class="(tab.id == store.data.selectedTabId ? ' active' : '')"
+                    <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab(tab.id)" class="bi bi-pencil me-1 tab-icon hover-light" :class="(hover[tab.id] && project.data.selectedTabId == tab.id)? '' : 'hidden'" style="font-size: 10px;"></i></wTT>
+                    <div class="tab-button" :class="(tab.id == project.data.selectedTabId ? ' active' : '')"
                         @click="select(tab.id)">
                         <span>{{ tab.name }}</span>
                     </div>
@@ -71,7 +71,7 @@ const langs = ['fr', 'en']
                     </wTT>
                 </template>
                 <template v-else>
-                    <div class="tab-button" :class="(tab.id == store.data.selectedTabId ? ' active' : '')">
+                    <div class="tab-button" :class="(tab.id == project.data.selectedTabId ? ' active' : '')">
                         <form @submit.stop.prevent="endEdit"><input @focusout="endEdit" @keydown.escape="endEdit" type="text" class="text-input" v-model="tab.name" ref="inputElem"/></form>
                     </div>
                     

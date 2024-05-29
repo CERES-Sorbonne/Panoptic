@@ -9,10 +9,11 @@ import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import { Property, PropertyType, Instance } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
-
+import TagBadge from '@/components/tagtree/TagBadge.vue';
+import { useProjectStore } from '@/data/projectStore';
 
 const data = useDataStore()
-
+const project = useProjectStore()
 
 const props = defineProps<{
     image: Instance,
@@ -28,32 +29,30 @@ const width = computed(() => props.size ?? 100)
 </script>
 
 <template>
-    <div v-if="isTag(property.type)" class="d-flex"
-        style="padding-top: 4px; padding-bottom: 4px;">
+    <div v-if="isTag(property.type)" class="d-flex" style="padding-top: 4px; padding-bottom: 4px;">
         <PropertyIcon :type="property.type" style="margin-right: 2px;" />
-        <TagPropInputDropdown :property="props.property" :image="props.image" :can-create="true"
-            :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="true"
-            :width="(width - 22)" :teleport="true" />
+        <TagPropInputDropdown :property="props.property" :image="props.image" :can-create="true" :can-customize="true"
+            :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="true" :width="(width - 22)"
+            :teleport="true" />
     </div>
     <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
-            :property="data.properties[property.id]" :width="width - 22" :min-height="20" />
+        <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image" :property="data.properties[property.id]"
+            :width="width - 22" :min-height="20" />
     </div>
     <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22"
-            :height="26" />
+        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22" :height="26" />
     </div>
     <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22"
-            :height="26" :no-nl="true" />
+        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22" :height="26"
+            :no-nl="true" />
     </div>
     <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22"
-            :height="26" :no-nl="true" />
+        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22" :height="26"
+            :no-nl="true" />
     </div>
     <div v-else-if="property.type == PropertyType.checkbox" class="d-flex flex-row overflow-hidden">
         <CheckboxPropInput :property="data.properties[property.id]" :image="image" :width="width - 22"
@@ -65,6 +64,13 @@ const width = computed(() => props.size ?? 100)
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
         <DateInput :property="data.properties[property.id]" :image="image" :width="width - 22"
             style="line-height: 25px;" />
+    </div>
+    <div v-else class="d-felx flex-row overflow-hidden text-nowrap" style="line-height: 26px;" >
+        <PropertyIcon :type="property.type" style="margin-right: 3px;"/>
+        <span v-if="property.type == PropertyType._folders">
+            <TagBadge :tag="project.data.folders[data.instances[props.image.id].properties[props.property.id]].name" :color="-1" />
+        </span>
+        <span v-else>{{ data.instances[props.image.id].properties[props.property.id] }}</span>
     </div>
 </template>
 

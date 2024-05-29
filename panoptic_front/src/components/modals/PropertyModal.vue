@@ -7,9 +7,11 @@ import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vu
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { goNext } from '@/utils/utils';
+import { useDataStore } from '@/data/dataStore';
 
 const panoptic = usePanopticStore()
-const store = useProjectStore()
+const project = useProjectStore()
+const data = useDataStore()
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
@@ -52,13 +54,13 @@ async function saveProperty() {
         nameError.value = 'Name is Empty!'
         return
     }
-    let propNames = store.propertyList.map(p => p.name)
+    let propNames = data.propertyList.map(p => p.name)
     if (propNames.includes(newProperty.name)) {
         nameError.value = 'A Property with same name already exist! Please choose a new name'
         return
     }
 
-    await store.addProperty(newProperty.name, newProperty.type, newProperty.mode)
+    await project.addProperty(newProperty.name, newProperty.type, newProperty.mode)
 
     hide()
 }

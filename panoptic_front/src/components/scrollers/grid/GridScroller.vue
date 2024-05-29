@@ -1,15 +1,16 @@
 <script setup lang="ts">
 // import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ImageIterator, ROOT_ID } from '@/core/GroupManager';
-import { Property, GroupLine, Image, RowLine, PileRowLine, ScrollerLine, ModalId } from '@/data/models';
+import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
 import {RecycleScroller} from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
-const store = useProjectStore()
+
+const project = useProjectStore()
 const panoptic = usePanopticStore()
 
 const props = defineProps({
@@ -28,16 +29,16 @@ defineExpose({
 })
 
 const hearderHeight = ref(60)
-const lines = reactive([])
+const rowLines = shallowRef([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
 
 const totalPropWidth = computed(() => {
-    const options = store.getTab().propertyOptions
+    const options = project.getTab().propertyOptions
     let propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
     if (props.showImages) {
-        propSum += store.getTab().imageSize
+        propSum += project.getTab().imageSize
     }
     return propSum
 })
@@ -59,7 +60,7 @@ const hideFromModal = computed(() => props.hideIfModal && panoptic.openModalId =
 
 function computeLines() {
     console.time('Table compute lines')
-    lines.length = 0
+    const lines = []
 
     let lastGroupId = undefined
     let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
@@ -80,10 +81,9 @@ function computeLines() {
         }
         current = current.nextImages()
     }
-
-
-
     lines.push({ id: '__filler__', type: 'fillter', size: 1000 })
+    rowLines.value = lines
+
     scroller.value.updateVisibleItems(true)
     console.timeEnd('Table compute lines')
 }
@@ -107,7 +107,7 @@ function computeImageLine(it: ImageIterator, groupId: string, imageIndex) {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
-        size: lineSizes[image.id] ?? (store.getTab().imageSize + 4),
+        size: lineSizes[image.id] ?? (project.getTab().imageSize + 4),
         index: imageIndex,
         groupId: groupId,
         iterator: it
@@ -121,7 +121,7 @@ function computePileLine(it: ImageIterator) {
         id: group.id + '-sha1:' + String(group.images[0].sha1),
         data: group,
         type: 'pile',
-        size: lineSizes[group.images[0].id] ?? (store.getTab().imageSize + 4),
+        size: lineSizes[group.images[0].id] ?? (project.getTab().imageSize + 4),
         iterator: it
     }
     return res
@@ -145,7 +145,7 @@ let oldIndex = 0
 function handleUpdate() {
     let newScroll = scroller.value.getScroll().start
     let sizes = scroller.value.sizes
-    let length = lines.length
+    let length = rowLines.value.length
     let last = length - 1
     if (oldIndex > last) {
         oldScroll = 0
@@ -167,10 +167,6 @@ function handleUpdate() {
     oldScroll = newScroll
     oldIndex = newIndex
 
-    let grpId = lines[newIndex].groupId
-    // if (currentGroup.id != grpId) {
-    //     Object.assign(currentGroup, props.data.index[grpId])
-    // }
 }
 
 function openGroup(groupId: string) {
@@ -196,7 +192,7 @@ function selectGroup(groupId: string) {
 }
 
 function clear() {
-    lines.length = 0
+    rowLines.value = []
 }
 
 const changeHandler = () => computeLines()
@@ -216,7 +212,7 @@ onUnmounted(() => {
         <TableHeader :manager="props.manager" :properties="props.selectedProperties" :missing-width="missingWidth"
             :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
-        <RecycleScroller :items="lines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="400"
+        <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="400"
             :emitUpdate="false" :page-mode="false" :prerender="0" class="p-0 m-0" @scroll="handleUpdate"
             @scroll-start="handleUpdate">
 

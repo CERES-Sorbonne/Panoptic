@@ -6,7 +6,7 @@ import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed, ref } from 'vue';
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue';
 
-const store = useProjectStore()
+const project = useProjectStore()
 
 const props = defineProps({
     folders: Array<Folder>,
@@ -63,7 +63,7 @@ function toggleFolderVisible(folderId: number) {
 function toggleFolderSelect(folderId: number) {
     let selected = new Set(props.filterManager.state.folders)
     const isSelected = selected.has(folderId)
-    const isParentSelected = store.data.folders[folderId].parent != undefined && selected.has(store.data.folders[folderId].parent)
+    const isParentSelected = project.data.folders[folderId].parent != undefined && selected.has(project.data.folders[folderId].parent)
     if (isSelected && !isParentSelected) {
         selected.delete(folderId)
         getFolderChildren(folderId).forEach(c => selected.delete(c.id))
@@ -72,7 +72,7 @@ function toggleFolderSelect(folderId: number) {
         unselectParent(folderId, selected)
         selected.add(folderId)
         getFolderChildren(folderId).forEach(c => selected.add(c.id))
-        getFolderAndParents(store.data.folders[folderId]).forEach(c => selected.delete(c.id))
+        getFolderAndParents(project.data.folders[folderId]).forEach(c => selected.delete(c.id))
     }
 
     props.filterManager.setFolders(Array.from(selected))
@@ -81,7 +81,7 @@ function toggleFolderSelect(folderId: number) {
 }
 
 function unselectParent(folderId: number, selected: Set<number>) {
-    const parents = getFolderAndParents(store.data.folders[folderId])
+    const parents = getFolderAndParents(project.data.folders[folderId])
     let highestParent = undefined
     for (let p of parents) {
         if (selected.has(p.id)) {

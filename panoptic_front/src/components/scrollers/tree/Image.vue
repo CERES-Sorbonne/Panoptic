@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import wTT from '../../tooltips/withToolTip.vue'
 import { ImageIterator } from '@/core/GroupManager';
-import { useProjectStore } from '@/data/projectStore';
 import { ModalId, Property } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import Zoomable from '@/components/Zoomable.vue';
@@ -11,7 +10,6 @@ import { useDataStore } from '@/data/dataStore';
 import PropInput from './PropInput.vue';
 
 const panoptic = usePanopticStore()
-const store = useProjectStore()
 const data = useDataStore()
 
 

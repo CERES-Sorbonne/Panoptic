@@ -5,7 +5,7 @@ import TextInput from './TextInput.vue';
 import { useProjectStore } from '@/data/projectStore'
 import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 
 const props = withDefaults(defineProps<{
@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{
     autoFocus?: boolean
     noShadow?: boolean
     alwaysShadow?: boolean
-    blurOnEnter: boolean
+    blurOnEnter?: boolean
 
 }>(), {
     blurOnEnter: true,
@@ -43,7 +43,7 @@ function save() {
     if (storeValue.value === localValue.value) return
 
     // console.log(propRef.value.value, localValue.value)
-    store.setPropertyValue(props.property.id, props.image, localValue.value)
+    project.setPropertyValue(props.property.id, props.image, localValue.value)
 
 }
 

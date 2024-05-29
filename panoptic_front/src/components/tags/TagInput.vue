@@ -8,10 +8,8 @@
 import TagMenu from './TagMenu.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { computed, ref } from 'vue';
-import { useProjectStore } from '@/data/projectStore';
 import { Property, Tag, PropertyType } from '@/data/models';
 
-const store = useProjectStore()
 
 
 const props = defineProps({

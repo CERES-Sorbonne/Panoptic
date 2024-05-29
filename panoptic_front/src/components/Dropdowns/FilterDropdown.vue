@@ -21,7 +21,7 @@ import { isTag } from '@/utils/utils';
 import DatePropInput from '../inputs/DatePropInput.vue';
 import StandaloneDateInput from '../inputs/monoline/StandaloneDateInput.vue';
 import { useDataStore } from '@/data/dataStore';
-const store = useProjectStore()
+
 const data = useDataStore()
 
 enum State {

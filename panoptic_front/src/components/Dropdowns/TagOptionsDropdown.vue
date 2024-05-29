@@ -4,7 +4,7 @@ import Dropdown from './Dropdown.vue';
 import { useProjectStore } from '@/data/projectStore'
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps({
@@ -34,18 +34,18 @@ async function updateFromStore() {
 }
 
 function setColor(color: number) {
-    store.updateTag(props.tagId, undefined, Number(color))
+    project.updateTag(props.tagId, undefined, Number(color))
     dropdown.value.hide()
 }
 
 function setName(name: string) {
     if(name == tag.value.value) return
     console.log('set')
-    store.updateTag(props.tagId, name)
+    project.updateTag(props.tagId, name)
 }
 
 function deleteTag() {
-    store.deleteTag(props.tagId)
+    project.deleteTag(props.tagId)
     emits('delete', props.tagId)
     dropdown.value.hide()
     

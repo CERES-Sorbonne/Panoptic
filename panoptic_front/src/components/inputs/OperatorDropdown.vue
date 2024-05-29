@@ -3,7 +3,9 @@ import { useProjectStore } from '@/data/projectStore'
 import { ref, computed, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { FilterOperator, availableOperators } from '@/core/FilterManager';
-const store = useProjectStore()
+import { useDataStore } from '@/data/dataStore';
+
+const data = useDataStore()
 const props = defineProps({
     propertyId: { type: Number, required: true },
     modelValue: String as () => FilterOperator,
@@ -16,7 +18,7 @@ const emits = defineEmits(['hide', 'update:modelValue'])
 const dropdownElem = ref(null)
 
 const property = computed(() => {
-    return store.data.properties[props.propertyId]
+    return data.properties[props.propertyId]
 })
 
 const filteredOperators = computed(() => {

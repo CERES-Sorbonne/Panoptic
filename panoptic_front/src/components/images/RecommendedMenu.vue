@@ -1,25 +1,28 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { Image, ImagePropertyValue, InstanceMatch, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
+import { ImagePropertyValue, Instance, InstanceMatch, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
 import { Exception } from 'sass';
+import { useDataStore } from '@/data/dataStore';
 interface Sha1Pile {
     sha1: string
-    images: Image[]
+    images: Instance[]
 }
-const store = useProjectStore()
+const project = useProjectStore()
+const data = useDataStore()
 const actions = useActionStore()
-const props = defineProps({
-    imageSize: Number,
-    group: Object as () => Group,
-    width: Number,
-    height: Number,
-})
+
+const props = defineProps<{
+    imageSize: number
+    group: Group
+    width: number
+    height: number
+}>()
 
 const emits = defineEmits(['scroll', 'close', 'update'])
 
@@ -43,34 +46,34 @@ function removeImage(sha1: string) {
     computeLines()
 }
 
-async function acceptRecommend(image: Image) {
+async function acceptRecommend(image: Instance) {
     const imageValues: ImagePropertyValue[] = []
     const instanceValues: InstancePropertyValue[] = []
 
     propertyValues.forEach(v => {
         if (v.value != UNDEFINED_KEY) {
-            const prop = store.data.properties[v.propertyId]
+            const prop = data.properties[v.propertyId]
             let value = v.value
             if (prop.type == PropertyType.multi_tags) {
-                value = image.properties[v.propertyId]?.value ?? []
+                value = image.properties[v.propertyId] ?? []
                 value = [...value, v.value]
             }
             else if (prop.type == PropertyType.tag) {
                 value = [value]
             }
-            if(prop.mode == PropertyMode.id) {
-                instanceValues.push({instanceId: image.id, propertyId: prop.id, value: value})
+            if (prop.mode == PropertyMode.id) {
+                instanceValues.push({ instanceId: image.id, propertyId: prop.id, value: value })
             } else {
-                imageValues.push({propertyId: prop.id, sha1: image.sha1, value: value})
+                imageValues.push({ propertyId: prop.id, sha1: image.sha1, value: value })
             }
         }
     })
-    await store.setPropertyValues(instanceValues, imageValues)
-    
+    await project.setPropertyValues(instanceValues, imageValues)
+
     removeImage(image.sha1)
 }
 
-function refuseRecommend(image: Image) {
+function refuseRecommend(image: Instance) {
     blacklist.add(image.sha1)
     removeImage(image.sha1)
 }
@@ -78,7 +81,7 @@ function refuseRecommend(image: Image) {
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
-    const piles = sha1s.map((sha1: string) => ({ sha1, images: store.data.sha1Index[sha1] }))
+    const piles = sha1s.map((sha1: string) => ({ sha1, images: data.sha1Index[sha1] }))
     computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
 
@@ -123,32 +126,32 @@ async function getReco() {
     const instanceIds = props.group.images.map(i => i.id)
     let res = await actions.getSimilarImages({ instanceIds })
     console.log(res)
-    if(!res.instances) throw new Error('No instances in ActionResult')
+    if (!res.instances) throw new Error('No instances in ActionResult')
 
     let matches = []
     const scores = res.instances.scores ?? []
-    if(res.instances.ids) {
-        for(let i in res.instances.ids) {
-            const match: InstanceMatch = {id: res.instances.ids[i], score: scores[i]}
+    if (res.instances.ids) {
+        for (let i in res.instances.ids) {
+            const match: InstanceMatch = { id: res.instances.ids[i], score: scores[i] }
             matches.push(match)
         }
     } else {
-        for(let i in res.instances.sha1s) {
+        for (let i in res.instances.sha1s) {
             const sha1 = res.instances.sha1s[i]
-            for(let img of store.data.sha1Index[sha1]) {
-                const match: InstanceMatch = {id: img.id, score: scores[i]}
+            for (let img of data.sha1Index[sha1]) {
+                const match: InstanceMatch = { id: img.id, score: scores[i] }
                 matches.push(match)
             }
         }
     }
-    
+
     matches.sort((a, b) => b.score - a.score)
-    if(useFilter.value) {
-        const tab = store.getTabManager()
+    if (useFilter.value) {
+        const tab = project.getTabManager()
         const valid = new Set(tab.collection.groupManager.result.root.images.map(i => i.id))
         matches = matches.filter(m => valid.has(m.id))
     }
-    const resSha1s = Array.from(new Set(matches.map(r => store.data.images[r.id].sha1)))
+    const resSha1s = Array.from(new Set(matches.map(r => data.instances[r.id].sha1)))
 
     propertyValues.length = 0
     let current = props.group

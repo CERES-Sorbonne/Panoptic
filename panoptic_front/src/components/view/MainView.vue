@@ -13,8 +13,8 @@ import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 
-const store = useProjectStore()
-const tabManager = store.getTabManager()
+const project = useProjectStore()
+const tabManager = project.getTabManager()
 
 const props = defineProps({
     tabId: Number,
@@ -75,7 +75,7 @@ onMounted(() => {
     })
 })
 watch(tabManager.state, (state) => {
-    store.updateTabs()
+    project.updateTabs()
 }, { deep: true })
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {

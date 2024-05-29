@@ -37,8 +37,8 @@ export class TabManager {
     }
     
     saveState() {
-        const store = useProjectStore()
-        store.updateTabs()
+        const project = useProjectStore()
+        project.updateTabs()
     }
 
     setVisibleProperty(propId: number, value: boolean) {

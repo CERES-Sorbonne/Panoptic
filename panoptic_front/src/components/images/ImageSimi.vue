@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useProjectStore } from '@/data/projectStore'
-import { Image, ModalId } from '@/data/models';
+import { Instance, ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
-const store = useProjectStore()
 const panoptic = usePanopticStore()
-const props = defineProps({
-    image: Object as () => Image,
-    size: { type: Number, default: 100 }
-})
+
+const props = defineProps<{
+  image: Instance,
+  size: number
+}>()
 
 
 const imageSizes = computed(() => {

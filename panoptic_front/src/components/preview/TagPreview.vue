@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     propertyId: Number,
     value: Array<number>
 })
 
-const tags = computed(() => store.data.properties[props.propertyId].tags)
+const tags = computed(() => data.properties[props.propertyId].tags)
 </script>
 
 <template>

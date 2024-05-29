@@ -11,7 +11,7 @@ import { useProjectStore } from '@/data/projectStore'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps({
@@ -90,7 +90,7 @@ async function saveHirachy() {
 
     saving.value = true
     const children = group.value.children
-    const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.id)
+    const property = await project.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.id)
     let id = 0
     const idFunc = () => { id -= 1; return id }
     const tagToImages: { [tagId: number]: Instance[] } = {}
@@ -104,7 +104,7 @@ async function saveHirachy() {
         tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
         const lastParent = tag.parents[tag.parents.length - 1]
         const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
-        const realTag = await store.addTag(tag.propertyId, tag.value, [lastParent], color)
+        const realTag = await project.addTag(tag.propertyId, tag.value, [lastParent], color)
         fakeIdToReal[tag.id] = realTag
     }
     console.log('created tags')
@@ -118,7 +118,7 @@ async function saveHirachy() {
         }
     }
 
-    await store.setPropertyValues(instanceValues, [])
+    await project.setPropertyValues(instanceValues, [])
 
     saving.value = false
 }
