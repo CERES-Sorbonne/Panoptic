@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
-import { Property, PropertyID, PropertyType } from '@/data/models'
-import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     ignoreIds: Array<number>
@@ -16,7 +15,7 @@ const searchElem = ref(null)
 const propertyFilter = ref('')
 
 const filteredProperties = computed(() => {
-    let properties = store.propertyList
+    let properties = data.propertyList
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed, Ref, shallowRef, unref } from 'vue';
+import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed, Ref, shallowRef, unref, shallowReactive, markRaw, triggerRef } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -26,7 +26,7 @@ const props = defineProps({
 const emits = defineEmits(['recommend'])
 
 const groupIdx = {}
-const imageLines = ref([]) as Ref<ScrollerLine[]>
+const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
 
 const hoverGroupBorder = ref('')
 
@@ -107,6 +107,7 @@ function GroupToLines(it: GroupIterator) {
 function computeLines() {
     if (!props.groupManager.result.root) return
     console.time('compute lines')
+    console.time('compute lines2')
     clear()
     let it = props.groupManager.getGroupIterator()
     const lines = []
@@ -118,7 +119,10 @@ function computeLines() {
     }
     imageLines.value = lines
     scroller.value.updateVisibleItems(true)
+    console.log(imageLines.value.length)
     console.timeEnd('compute lines')
+    nextTick(() => console.timeEnd('compute lines2'))
+
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -268,7 +272,7 @@ watch(visiblePropertiesNb, () => {
     let scroll = scroller.value.getScroll().start
     let totalSize = scroller.value.totalSize
     let ratio = scroll / totalSize
-
+    const lines = []
     imageLines.value.forEach(l => {
         if (l.type == 'images') {
             l.size = imageLineSize.value
@@ -276,7 +280,9 @@ watch(visiblePropertiesNb, () => {
         else if (l.type == 'piles') {
             l.size = pileLineSize.value
         }
+        lines.push(l)
     })
+    imageLines.value = lines
     // scroller.value.updateVisibleItems(true)
     nextTick(() => {
         let goal = scroller.value.totalSize * ratio

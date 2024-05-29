@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useProjectStore } from '@/data/projectStore'
 import Dropdown from './Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { ref } from 'vue';

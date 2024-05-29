@@ -3,6 +3,7 @@ import { CollectionManager } from "./CollectionManager"
 import { useProjectStore } from "@/data/projectStore"
 import { reactive, toRefs } from "vue"
 import { EventEmitter } from "@/utils/utils"
+import { useDataStore } from "@/data/dataStore"
 
 export class TabManager {
     isLoaded: boolean
@@ -21,12 +22,12 @@ export class TabManager {
     }
 
     async load(state: TabState) {
-        const project = useProjectStore()
+        const data = useDataStore()
         Object.assign(this.state, toRefs(state))
         if(!state) return
         this.collection.load(state.filterState, state.sortState, state.groupState)
         this.isLoaded = true
-        await this.collection.update(project.data.images)
+        await this.collection.update(data.instances)
 
         this.onLoad.emit()
     }
@@ -37,7 +38,7 @@ export class TabManager {
     
     saveState() {
         const store = useProjectStore()
-        store.updateTab(this.state)
+        store.updateTabs()
     }
 
     setVisibleProperty(propId: number, value: boolean) {

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, triggerRef, watch } from 'vue'
-import PropertyInput from '@/components/inputs/PropertyInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
@@ -16,10 +15,12 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
 import { zoomModal } from '@/components/modals/zoomModal';
 import Zoomable from '@/components/Zoomable.vue';
+import { useDataStore } from '@/data/dataStore';
+import PropInput from './PropInput.vue';
 
 const panoptic = usePanopticStore()
 const store = useProjectStore()
-
+const data = useDataStore()
 
 
 const props = defineProps({
@@ -38,32 +39,12 @@ const props = defineProps({
 
 const emits = defineEmits(['resize', 'update:selected'])
 
-const image = computed(() => store.images[props.image.image.id])
-const vaaall = computed(() => store.images[props.image.image.id].properties[1])
-// watch(vaaall, (old, newx) => console.log(old, newx))
+const instance = computed(() => Object.assign({}, data.instances[props.image.image.id]))
+const image = computed(() => instance.value)
 
 const containerElem = ref(null)
 const hover = ref(false)
 
-function hasProperty(propertyId: number) {
-    return image.value.properties[propertyId] && image.value.properties[propertyId].value !== undefined
-}
-
-const imageProperties = computed(() => {
-    let res: Array<PropertyRef> = []
-    props.properties.forEach((p: Property) => {
-        let propRef: PropertyRef = {
-            propertyId: p.id,
-            type: p.type,
-            value: hasProperty(p.id) ? image.value.properties[p.id].value : undefined,
-            imageId: image.value.id,
-            mode: p.mode
-        }
-        res.push(propRef)
-
-    });
-    return res
-})
 
 const imageSizes = computed(() => {
     let ratio = image.value.width / image.value.height
@@ -90,8 +71,9 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
         <Zoomable :image="props.image.image">
-            <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, props.image)"
-                @mouseenter="hover = true" @mouseleave="hover = false">
+            <div :style="imageContainerStyle" class="img-container"
+                @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
+                @mouseleave="hover = false">
                 <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
                 <img :src="props.size < 150 ? image.url : image.fullUrl" :style="imageStyle" />
 
@@ -101,58 +83,14 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
             </div>
         </Zoomable>
 
-        <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1" message="main.view.instances_tooltip"
-            :click="false">
+        <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1"
+            message="main.view.instances_tooltip" :click="false">
             <div class="image-count">{{ props.image.sha1Group.images.length }}</div>
         </wTT>
-        <div class="prop-container" v-if="imageProperties.length > 0 && !props.hideProperties">
-            <div v-for="property, index in imageProperties">
+        <div class="prop-container" v-if="props.properties.length && !props.hideProperties">
+            <div v-for="property, index in props.properties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
-                <!-- <TagInput v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag"
-                    :property="property" :max-size="String(props.size)" :mono-tag="property.type == PropertyType.tag"
-                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]" /> -->
-                <div v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag" class="d-flex"
-                    style="padding-top: 4px; padding-bottom: 4px;">
-                    <PropertyIcon :type="property.type" style="margin-right: 2px;" />
-                    <!-- {{ vaaall?.value }} -->
-                    <TagPropInputDropdown :property="store.data.properties[property.propertyId]" :image="image"
-                        :can-create="true" :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true"
-                        :no-wrap="true" :width="(width - 22)" :teleport="true" />
-                </div>
-                <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
-                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
-                        :property="store.data.properties[property.propertyId]" :width="width - 22" :min-height="20" />
-                </div>
-                <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">
-                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
-                        :height="26" />
-                </div>
-                <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
-                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
-                        :height="26" :no-nl="true" />
-                </div>
-                <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
-                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <TextInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
-                        :height="26" :no-nl="true" />
-                </div>
-                <div v-else-if="property.type == PropertyType.checkbox" class="d-flex flex-row overflow-hidden">
-                    <CheckboxPropInput :property="store.data.properties[property.propertyId]" :image="image"
-                        :width="width - 22" :min-height="26" />
-                    <div style="line-height: 26px; margin-left: 4px;">{{ store.data.properties[property.propertyId].name }}
-                    </div>
-                </div>
-                <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 1px;">
-                    <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-                    <DateInput :property="store.data.properties[property.propertyId]" :image="image" :width="width - 22"
-                        style="line-height: 25px;" />
-                </div>
-                <PropertyInput v-else :property="property" :max-size="String(props.size)"
-                    :input-id="[...props.groupId.split('-').map(Number), property.propertyId, props.index]"
-                    style="line-height: 26px;" />
+                <PropInput :property="property" :image="instance" :size="width" />
             </div>
         </div>
         <div v-if="props.selectedPreview" class="w-100 h-100"

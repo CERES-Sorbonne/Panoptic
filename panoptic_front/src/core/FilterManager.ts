@@ -6,10 +6,11 @@
  */
 
 import { propertyDefault } from "@/data/builder";
-import { Image, PropertyType } from "@/data/models";
+import { useDataStore } from "@/data/dataStore";
+import { Image, Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
-import { EventEmitter, getTagChildren, isTag } from "@/utils/utils";
+import { EventEmitter, getTagChildren, isTag, objValues } from "@/utils/utils";
 import { reactive, toRefs } from "vue";
 
 
@@ -262,8 +263,8 @@ function computeFilter(filter: Filter, propertyValue: any) {
     return res
 }
 
-function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
-    const store = useProjectStore()
+function computeGroupFilter(image: Instance, filterGroup: FilterGroup, properties: PropertyIndex, tags: TagIndex) {
+
     if (filterGroup.filters.length == 0) {
         return true
     }
@@ -274,15 +275,14 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
 
     for (let filter of filterGroup.filters) {
         if (filter.isGroup) {
-            res = groupOperatorFnc(computeGroupFilter(image, filter), res)
+            res = groupOperatorFnc(computeGroupFilter(image, filter, properties, tags), res)
         }
         else {
             let nfilter = { ...filter } as Filter
             let propId = nfilter.propertyId
-            let propType = store.data.properties[propId].type
+            let propType = properties[propId].type
 
-            let property = image.properties[propId]
-            let propertyValue = property ? property.value : undefined
+            let propertyValue = image.properties[propId]
 
             if(propType == PropertyType.date && nfilter.value) {
                 nfilter.value = new Date(nfilter.value)
@@ -292,7 +292,7 @@ function computeGroupFilter(image: Image, filterGroup: FilterGroup) {
             if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && isTag(propType)) {
                 let filterValue = nfilter.value as number[]
 
-                const tagSet = filterValue.map((v: number) => getTagChildren(store.data.properties[propId].tags[v]))
+                const tagSet = filterValue.map((v: number) => getTagChildren(properties[propId].tags[v], tags))
                 nfilter.value = tagSet
                 if (!isEmpty(propertyValue)) {
                     propertyValue = new Set(propertyValue)
@@ -346,15 +346,16 @@ export class FilterManager {
         this.result = { images: [] }
     }
 
-    async filter(images: Image[], emit?: boolean) {
+    async filter(images: Instance[], emit?: boolean) {
         console.time('Filter')
+        const data = useDataStore()
         this.lastImages = images
         let filtered = images
 
         if (this.state.query) {
             const query = this.state.query.toLocaleLowerCase()
             const project = useProjectStore()
-            const props = Object.values(project.data.properties)
+            const props = objValues(project.data.properties)
             const textProps = props.filter(p => p.type == PropertyType.string)
             const tagProps = props.filter(p => isTag(p.type))
             filtered = filtered.filter(img => {
@@ -381,7 +382,7 @@ export class FilterManager {
             const folderSet = new Set(this.state.folders)
             filtered = filtered.filter(img => folderSet.has(img.folderId))
         }
-        this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter))
+        this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
         console.timeEnd('Filter')
 
         if (emit) this.onChange.emit(this.result)

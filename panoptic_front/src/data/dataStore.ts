@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { computed, shallowRef } from "vue";
+import { computed, shallowRef, triggerRef } from "vue";
 import { DbCommit, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, Sha1ToInstances, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
 import { SERVER_PREFIX } from "./api";
@@ -16,8 +16,8 @@ export const useDataStore = defineStore('dataStore', () => {
     const tags = shallowRef<TagIndex>({})
 
     const sha1Index = shallowRef<Sha1ToInstances>({})
-    const instanceList = computed(() => objValues(instances))
-    const propertyList = computed(() => objValues(properties))
+    const instanceList = computed(() => objValues(instances.value))
+    const propertyList = computed(() => objValues(properties.value))
 
     function importInstances(toImport: Instance[]) {
         for (let img of toImport) {
@@ -55,6 +55,7 @@ export const useDataStore = defineStore('dataStore', () => {
     function importTags(toImport: Tag[]) {
         const updated = new Set<number>()
         for (let tag of toImport) {
+            tag.parents = tag.parents.filter(p => p != 0)
             tags.value[tag.id] = tag
             if (!(tag.propertyId in properties.value)) {
                 console.warn('Property ' + tag.propertyId + ' must be loaded before importing tags')
@@ -71,9 +72,9 @@ export const useDataStore = defineStore('dataStore', () => {
             setTagsChildren(properties.value[propId].tags)
         }
         for (let tag of toImport) {
-            tag.allChildren = getTagChildren(tag)
+            tag.allChildren = getTagChildren(tag, tags.value)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
-            tag.allParents = getTagParents(tag)
+            tag.allParents = getTagParents(tag, tags.value)
         }
         // computeTagCount()
     }
@@ -95,7 +96,6 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function applyCommit(commit: DbCommit) {
-        // console.log(commit)
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 sha1Index.value[v.sha1].forEach(i => {
@@ -139,6 +139,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.imageValues?.length) {
             importImageValues(commit.imageValues)
         }
+        triggerRef(instances)
     }
 
     return {

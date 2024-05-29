@@ -4,7 +4,8 @@
  * The result is a sorted array of images and an order index (Image -> order)
  */
 
-import { Image, Property } from "@/data/models"
+import { useDataStore } from "@/data/dataStore"
+import { Image, Instance, Property } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { EventEmitter } from "@/utils/utils"
@@ -105,8 +106,8 @@ export const sortParser: { [type in PropertyType]?: any } = {
     },
 }
 
-function getSortablePropertyValue(image: Image, property: Property) {
-    let value = image.properties[property.id]?.value
+function getSortablePropertyValue(image: Instance, property: Property) {
+    let value = image.properties[property.id]
     const type = property.type
 
     if (type == PropertyType.tag) {
@@ -131,7 +132,7 @@ function sortSortable(sortable: SortableImage[], orders: number[]) {
     })
 }
 
-function getSortableImages(images: Image[], properties: Property[]): SortableImage[] {
+function getSortableImages(images: Instance[], properties: Property[]): SortableImage[] {
     const res = []
 
     for (const image of images) {
@@ -170,11 +171,11 @@ export class SortManager {
         this.result = { images: [], order: [] }
     }
 
-    sort(images: Image[], emit?: boolean): SortResult {
+    sort(images: Instance[], emit?: boolean): SortResult {
         console.time('Sort')
-        const store = useProjectStore()
+        const data = useDataStore()
         
-        const properties = this.state.sortBy.map(id => store.data.properties[id])
+        const properties = this.state.sortBy.map(id => properties[id])
         const sortable = getSortableImages(images, properties)
         
         const orders = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
@@ -183,7 +184,7 @@ export class SortManager {
         this.result.images = []
         this.result.order = {}
         for (let i = 0; i < sortable.length; i++) {
-            this.result.images.push(store.data.images[sortable[i].imageId])
+            this.result.images.push(data.instances[sortable[i].imageId])
             this.result.order[sortable[i].imageId] = i
         }
         console.timeEnd('Sort')

@@ -1,7 +1,9 @@
 import { Group } from "@/core/GroupManager"
-import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property, Instance } from "@/data/models"
+import { useDataStore } from "@/data/dataStore"
+import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, shallowRef } from "vue"
+
 
 export function hasProperty(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -158,10 +160,7 @@ export function getGroupParents(group: Group): Group[] {
     return res
 }
 
-export function getTagChildren(tag: Tag) {
-    const store = useProjectStore()
-    const tags = store.data.tags
-
+export function getTagChildren(tag: Tag, tags: TagIndex) {
     const res = []
     const recursive = (t: Tag) => {
         res.push(t.id)
@@ -174,10 +173,7 @@ export function getTagChildren(tag: Tag) {
     return res
 }
 
-export function getTagParents(tag: Tag) {
-    const store = useProjectStore()
-    const tags = store.data.tags
-    // console.log(tag)
+export function getTagParents(tag: Tag, tags) {
     const res = []
     const recursive = (t: Tag) => {
         for (let pId of t.parents) {
