@@ -3,14 +3,15 @@ import { computed } from 'vue';
 import StampDropdown from '../inputs/StampDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     selectedImagesIds: Array<number>
 })
 
-const images = computed(() => props.selectedImagesIds.map(id => store.data.images[id]))
+const images = computed(() => props.selectedImagesIds.map(id => data.instances[id]))
 
 const emits = defineEmits(['remove:selected'])
 

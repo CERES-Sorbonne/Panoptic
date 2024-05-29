@@ -1,26 +1,16 @@
 <script setup lang="ts">
-import { computed, ref, triggerRef, watch } from 'vue'
-import PropertyInput from '@/components/inputs/PropertyInput.vue';
+import { computed } from 'vue'
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
-import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TextInput from '@/components/inputs/monoline/TextInput.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
-import wTT from '../../tooltips/withToolTip.vue'
 import DateInput from '@/components/inputs/monoline/DateInput.vue';
 import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
-import { Group, ImageIterator } from '@/core/GroupManager';
-import { useProjectStore } from '@/data/projectStore';
-import { ModalId, Property, PropertyRef, PropertyType, Image, Instance } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import { keyState } from '@/data/keyState';
-import { zoomModal } from '@/components/modals/zoomModal';
-import Zoomable from '@/components/Zoomable.vue';
+import { Property, PropertyType, Instance } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 
-const panoptic = usePanopticStore()
-const store = useProjectStore()
+
 const data = useDataStore()
 
 
@@ -35,9 +25,6 @@ const emits = defineEmits(['resize', 'update:selected'])
 const width = computed(() => props.size ?? 100)
 
 
-const containerElem = ref(null)
-const hover = ref(false)
-
 </script>
 
 <template>
@@ -51,32 +38,32 @@ const hover = ref(false)
     <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
         <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image"
-            :property="store.data.properties[property.id]" :width="width - 22" :min-height="20" />
+            :property="data.properties[property.id]" :width="width - 22" :min-height="20" />
     </div>
     <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="store.data.properties[property.id]" :image="image" :width="width - 22"
+        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22"
             :height="26" />
     </div>
     <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="store.data.properties[property.id]" :image="image" :width="width - 22"
+        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22"
             :height="26" :no-nl="true" />
     </div>
     <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="store.data.properties[property.id]" :image="image" :width="width - 22"
+        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22"
             :height="26" :no-nl="true" />
     </div>
     <div v-else-if="property.type == PropertyType.checkbox" class="d-flex flex-row overflow-hidden">
-        <CheckboxPropInput :property="store.data.properties[property.id]" :image="image" :width="width - 22"
+        <CheckboxPropInput :property="data.properties[property.id]" :image="image" :width="width - 22"
             :min-height="26" />
-        <div style="line-height: 26px; margin-left: 4px;">{{ store.data.properties[property.id].name }}
+        <div style="line-height: 26px; margin-left: 4px;">{{ data.properties[property.id].name }}
         </div>
     </div>
     <div v-else-if="property.type == PropertyType.date" class="d-flex flex-row" style="padding-top: 1px;">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <DateInput :property="store.data.properties[property.id]" :image="image" :width="width - 22"
+        <DateInput :property="data.properties[property.id]" :image="image" :width="width - 22"
             style="line-height: 25px;" />
     </div>
 </template>

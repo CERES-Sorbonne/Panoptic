@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, reactive, defineExpose, onMounted, watch, computed, Ref, shallowRef, unref, shallowReactive, markRaw, triggerRef } from 'vue';
+import { ref, nextTick, defineExpose, onMounted, watch, computed, Ref, shallowRef } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -106,8 +106,8 @@ function GroupToLines(it: GroupIterator) {
 
 function computeLines() {
     if (!props.groupManager.result.root) return
-    console.time('compute lines')
-    console.time('compute lines2')
+    // console.time('compute lines')
+    // console.time('compute lines2')
     clear()
     let it = props.groupManager.getGroupIterator()
     const lines = []
@@ -119,9 +119,9 @@ function computeLines() {
     }
     imageLines.value = lines
     scroller.value.updateVisibleItems(true)
-    console.log(imageLines.value.length)
-    console.timeEnd('compute lines')
-    nextTick(() => console.timeEnd('compute lines2'))
+    // console.log(imageLines.value.length)
+    // console.timeEnd('compute lines')
+    // nextTick(() => console.timeEnd('compute lines2'))
 
 }
 
@@ -263,7 +263,7 @@ function toggleGroupSelect(groupId: string) {
 onMounted(computeLines)
 
 watch(() => props.imageSize, () => {
-    console.log('image size compute')
+    // console.log('image size compute')
     nextTick(computeLines)
 })
 

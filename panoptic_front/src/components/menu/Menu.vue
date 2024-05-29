@@ -9,26 +9,20 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
-import { apiUploadPropertyCsv } from '@/data/api';
+import { useDataStore } from '@/data/dataStore';
 
 const store = useProjectStore()
+const data = useDataStore()
 const panoptic = usePanopticStore()
 const tabManager = store.getTabManager()
 
 const emits = defineEmits(['export'])
 
 const showImport = ref(false)
-const inputFile = ref(null)
 const isUploading = ref(false)
 
 const handleInput = async (e: any) => {
     panoptic.showModal(ModalId.IMPORT)
-    // isUploading.value = true
-    // console.log(isUploading.value)
-    // const file = e.target.files[0]
-    // const res = await apiUploadPropertyCsv(file)
-    // panoptic.showModal(ModalId.IMPORT, res)
-    // isUploading.value = false
 }
 
 const tasks = computed(() => store.backendStatus.tasks.filter(t => !(t.name == 'Load Plugin' && t.done)))
@@ -146,7 +140,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
 
                     <!-- <i class="bi bi-plus btn-icon float-end" style="font-size: 25px;"></i> -->
                     <div class="mt-2" v-if="store.status.loaded">
-                        <template v-for="property in store.data.properties">
+                        <template v-for="property in data.properties">
                             <div class="property-item" v-if="property.id >= 0">
                                 <!-- <TagProperty
                                     v-if="property.type == models.PropertyType.multi_tags || property.type == models.PropertyType.tag"
@@ -169,7 +163,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     <wTT message="main.nav.computed.computed_tooltip" :icon="true"><b>{{ $t("main.nav.computed.title")
                     }}</b></wTT>
                     <div class="mt-2" v-if="store.status.loaded">
-                        <template v-for="property in store.data.properties">
+                        <template v-for="property in data.properties">
                             <div class="property-item" v-if="property.id < 0">
                                 <wTT pos="bottom"
                                     :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">

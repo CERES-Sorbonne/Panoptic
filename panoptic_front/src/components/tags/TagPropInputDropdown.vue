@@ -6,16 +6,18 @@
  */
 
 import TagInputDropdown from './TagInputDropdown.vue';
-import { nextTick, onMounted, onUnmounted, ref, toRefs, watch } from 'vue';
-import { arrayEqual, computedPropValue } from '@/utils/utils';
-import { Property, Image } from '@/data/models';
+import { computed, nextTick, onMounted, ref, toRefs, watch } from 'vue';
+import { arrayEqual } from '@/utils/utils';
+import { Instance, Property } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const data = useDataStore()
+const project = useProjectStore()
 
 const props = defineProps({
     property: Object as () => Property,
-    image: Object as () => Image,
+    image: Object as () => Instance,
     excluded: Array<number>,
     canCreate: Boolean,
     canCustomize: Boolean,
@@ -33,8 +35,7 @@ const localValue = ref([])
 
 const refProps = toRefs(props)
 // const propValue = computed(() => computedPropValue(props.property, props.image))
-const propValue = computedPropValue(refProps.property, refProps.image)
-
+const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
 
 function updateLocal() {
     localValue.value.length = 0
@@ -48,7 +49,7 @@ function save() {
     // console.log(localValue.value, propValue.value)
     if (arrayEqual(localValue.value, (propValue.value ?? []))) return
 
-    store.setPropertyValue(props.property.id, props.image, localValue.value)
+    project.setPropertyValue(props.property.id, props.image, localValue.value)
 }
 
 async function onResize() {

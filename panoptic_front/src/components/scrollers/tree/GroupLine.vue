@@ -6,11 +6,13 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { Group, GroupManager, GroupTree, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine, GroupResult, Image, InstancePropertyValue, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
+import { GroupLine, GroupResult, Instance, InstancePropertyValue, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import ActionButton from '@/components/actions/ActionButton.vue'
+import { useDataStore } from '@/data/dataStore'
 
 const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     item: Object as () => GroupLine,
@@ -32,7 +34,7 @@ const subgroups = computed(() => group.value.children)
 const hasImages = computed(() => images.value.length > 0)
 const hasPiles = computed(() => Array.isArray(piles.value))
 const hasSubgroups = computed(() => subgroups.value.length > 0 && group.value.subGroupType != GroupType.Sha1)
-const properties = computed(() => group.value.meta.propertyValues.map(v => store.data.properties[v.propertyId]))
+const properties = computed(() => group.value.meta.propertyValues.map(v => data.properties[v.propertyId]))
 const propertyValues = computed(() => group.value.meta.propertyValues)
 const closed = computed(() => group.value.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
@@ -47,7 +49,7 @@ const someValue = computed(() => group.value.meta.propertyValues.some(v => v.val
 
 async function addClusters(clusters: GroupResult[]) {
     const groups = clusters.map((group, index) => {
-        const instances = group.ids.map(i => store.data.images[i])
+        const instances = group.ids.map(i => data.instances[i])
         const res = buildGroup('cluster:' + String(index) + ':' + props.item.id, instances, GroupType.Cluster)
         res.meta.score = Math.round(group.score)
         res.name = group.name
@@ -91,7 +93,7 @@ async function saveHirachy() {
     const property = await store.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.id)
     let id = 0
     const idFunc = () => { id -= 1; return id }
-    const tagToImages: { [tagId: number]: Image[] } = {}
+    const tagToImages: { [tagId: number]: Instance[] } = {}
     const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), tagToImages)
     console.log(tagToImages)
     const fakeIdToReal: { [id: number]: Tag } = { 0: { id: 0, value: '', parents: [], propertyId: property.id } }
@@ -121,7 +123,7 @@ async function saveHirachy() {
     saving.value = false
 }
 
-function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Image[] }) {
+function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Instance[] }) {
     const res: Tag[] = []
     const prefix = parentTag?.value ?? ''
     const parents = [...parentTag.parents, parentTag.id]

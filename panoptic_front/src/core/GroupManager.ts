@@ -5,7 +5,7 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { DateUnit, DateUnitFactor, Image, Instance, Property, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
+import { DateUnit, DateUnitFactor, Instance, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
 import { Ref, nextTick, reactive, ref, toRefs } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";

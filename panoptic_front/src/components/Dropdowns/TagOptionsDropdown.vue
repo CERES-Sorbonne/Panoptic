@@ -2,9 +2,10 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 import { useProjectStore } from '@/data/projectStore'
-import { Tag } from '@/data/models';
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
+import { useDataStore } from '@/data/dataStore';
 const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     propertyId: Number,
@@ -20,7 +21,7 @@ const localColor = ref(null)
 
 const nameInput = ref(null)
 
-const tag = computed(() => store.data.properties[props.propertyId].tags[props.tagId])
+const tag = computed(() => data.properties[props.propertyId].tags[props.tagId])
 
 
 async function updateFromStore() {

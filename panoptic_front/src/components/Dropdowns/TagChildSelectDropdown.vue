@@ -4,8 +4,11 @@ import Dropdown from './Dropdown.vue';
 import { useProjectStore } from '@/data/projectStore'
 import { Tag } from '@/data/models';
 import TagInput from '../tags/TagInput.vue';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
+const data = useDataStore()
+
 const props = defineProps({
     propertyId: Number,
     tagId: Number
@@ -14,7 +17,7 @@ const emits = defineEmits(['hide'])
 
 const localChildren = ref([])
 
-const tag = computed(() => store.data.properties[props.propertyId].tags[props.tagId])
+const tag = computed(() => data.properties[props.propertyId].tags[props.tagId])
 const realChildren = computed(() => tag.value?.children ?? [])
 const excluded = computed(() => {
     const res = new Set<number>()
@@ -22,20 +25,19 @@ const excluded = computed(() => {
     const recursive = (t: Tag) => {
         if (t == undefined) return
         res.add(t.id)
-        t.parents.forEach(p => recursive(store.data.properties[props.propertyId].tags[p]))
+        t.parents.forEach(p => recursive(data.properties[props.propertyId].tags[p]))
     }
     recursive(tag.value)
     return Array.from(res)
 })
 
 function addChild(tag: Tag) {
-    // const childTag = store.tags[props.propertyId][tagId]
-    store.addTagParent(tag.id, props.tagId)
+    project.addTagParent(tag.id, props.tagId)
 }
 
 function deleteChild(tagId: number) {
-    const childTag = store.data.properties[props.propertyId].tags[tagId]
-    store.deleteTagParent(childTag.id, props.tagId, true)
+    const childTag = data.properties[props.propertyId].tags[tagId]
+    project.deleteTagParent(childTag.id, props.tagId)
 }
 
 function updateLocal() {
@@ -57,7 +59,7 @@ watch(realChildren, updateLocal)
         </template>
         <template v-slot:popup>
             <div class="p-1 main-box">
-                <TagInput v-model="localChildren" :property="store.data.properties[props.propertyId]" :excluded="excluded"
+                <TagInput v-model="localChildren" :property="data.properties[props.propertyId]" :excluded="excluded"
                     @select="addChild" @remove="deleteChild" :auto-focus="true"/>
             </div>
         </template>

@@ -1,43 +1,43 @@
 import { Group } from "@/core/GroupManager"
 import { useDataStore } from "@/data/dataStore"
-import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
+import { PropertyMode, PropertyRef, PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, shallowRef } from "vue"
 
 
-export function hasProperty(image: Image, propertyId: number) {
+export function hasProperty(image: Instance, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
 
-export function getImageProperties(id: number) {
-    const store = useProjectStore()
-    const img = store.data.images[id]
-    let res = store.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
-        let propRef: PropertyRef = {
-            propertyId: p.id,
-            type: p.type,
-            value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
-            imageId: img.id,
-            mode: p.mode
-        }
-        return propRef
-    })
-    return res
-}
+// export function getImageProperties(id: number) {
+//     const store = useProjectStore()
+//     const img = store.data.images[id]
+//     let res = store.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
+//         let propRef: PropertyRef = {
+//             propertyId: p.id,
+//             type: p.type,
+//             value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
+//             imageId: img.id,
+//             mode: p.mode
+//         }
+//         return propRef
+//     })
+//     return res
+// }
 
-export function getImageProperty(imgId: number, propId: number) {
-    const store = useProjectStore()
-    const img = store.data.images[imgId]
-    const p = store.data.properties[propId]
-    const propRef: PropertyRef = {
-        propertyId: p.id,
-        type: p.type,
-        value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
-        imageId: img.id,
-        mode: p.mode
-    }
-    return propRef
-}
+// export function getImageProperty(imgId: number, propId: number) {
+//     const store = useProjectStore()
+//     const img = store.data.images[imgId]
+//     const p = store.data.properties[propId]
+//     const propRef: PropertyRef = {
+//         propertyId: p.id,
+//         type: p.type,
+//         value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
+//         imageId: img.id,
+//         mode: p.mode
+//     }
+//     return propRef
+// }
 
 // export function isImageGroup(group: Group) {
 //     return Array.isArray(group.images) && group.images.length > 0
@@ -51,27 +51,18 @@ export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
 
-export function isTagId(propId: number) {
-    const store = useProjectStore()
-    return isTag(store.data.properties[propId].type)
-}
+// export function getChildren(tag: Tag, tags: TagIndex) {
+//     let children = new Set()
+//     const recursive = (t: Tag) => {
+//         children.add(t.id)
+//         if (!t.children) return
+//         t.children.forEach(cId => children.add(cId))
+//         t.children.forEach(cId => recursive(tags[cId]))
+//     }
+//     recursive(tag)
 
-export function getChildren(tag: Tag) {
-    const store = useProjectStore()
-    const property = store.data.properties[tag.propertyId]
-    const tags = property.tags
-
-    let children = new Set()
-    const recursive = (t: Tag) => {
-        children.add(t.id)
-        if (!t.children) return
-        t.children.forEach(cId => children.add(cId))
-        t.children.forEach(cId => recursive(tags[cId]))
-    }
-    recursive(tag)
-
-    return children
-}
+//     return children
+// }
 
 export function getFolderAndParents(folder: Folder) {
     const store = useProjectStore()
@@ -96,7 +87,7 @@ export function getFolderChildren(folderId: number) {
     return res
 }
 
-export function computedPropValue(property: Ref<Property>, image: Ref<Image>) {
+export function computedPropValue(property: Ref<Property>, image: Ref<Instance>) {
     const propValue = computed(() => {
         if (!hasProperty(image.value, property.value.id)) {
             return undefined
@@ -106,7 +97,7 @@ export function computedPropValue(property: Ref<Property>, image: Ref<Image>) {
     return propValue
 }
 
-// export function computedPropValue(property: Property, image: Image) {
+// export function computedPropValue(property: Property, image: Instance) {
 //     // return computed(() => {
 //         if (!hasProperty(image, property.id)) {
 //             return undefined
