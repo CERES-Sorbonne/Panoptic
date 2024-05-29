@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, triggerRef, watch } from 'vue'
 import PropertyInput from '@/components/inputs/PropertyInput.vue';
 import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -20,6 +20,8 @@ import Zoomable from '@/components/Zoomable.vue';
 const panoptic = usePanopticStore()
 const store = useProjectStore()
 
+
+
 const props = defineProps({
     image: ImageIterator,
     score: Number,
@@ -36,7 +38,9 @@ const props = defineProps({
 
 const emits = defineEmits(['resize', 'update:selected'])
 
-const image = computed(() => props.image.image)
+const image = computed(() => store.images[props.image.image.id])
+const vaaall = computed(() => store.images[props.image.image.id].properties[1])
+// watch(vaaall, (old, newx) => console.log(old, newx))
 
 const containerElem = ref(null)
 const hover = ref(false)
@@ -110,6 +114,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 <div v-if="property.type == PropertyType.multi_tags || property.type == PropertyType.tag" class="d-flex"
                     style="padding-top: 4px; padding-bottom: 4px;">
                     <PropertyIcon :type="property.type" style="margin-right: 2px;" />
+                    <!-- {{ vaaall?.value }} -->
                     <TagPropInputDropdown :property="store.data.properties[property.propertyId]" :image="image"
                         :can-create="true" :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true"
                         :no-wrap="true" :width="(width - 22)" :teleport="true" />

@@ -2,6 +2,28 @@ import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 
+export interface Instance {
+    id: number
+    name: string
+    sha1: string
+    ahash: string
+    width: number
+    height: number
+    url: string
+    fullUrl: string
+    folderId: number
+    extension: string
+    properties: {
+        [id: number]: any
+    }
+    dist?: number
+    containerRatio?: number
+}
+
+export interface InstanceIndex {
+    [id: number]: Instance
+}
+
 export interface Image {
     id: number
     name: string
@@ -25,6 +47,7 @@ export interface ImageIndex {
 }
 
 export type Sha1ToImages = { [sha1: string]: Image[] }
+export type Sha1ToInstances = { [sha1: string]: Instance[] }
 export type Sha1Scores = { [sha1: string]: number }
 
 // ==================================

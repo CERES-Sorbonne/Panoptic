@@ -58,7 +58,7 @@ async function apply() {
     await store.setPropertyValues(instanceValues, imageValues)
 
     store.getTabManager().collection.groupManager.clearSelection()
-    store.getTabManager().collection.update()
+    // store.getTabManager().collection.update()
     close()
 }
 
