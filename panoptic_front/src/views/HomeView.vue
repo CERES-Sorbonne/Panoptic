@@ -4,18 +4,11 @@ import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
 import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
-import { useProjectStore } from '@/data/projectStore';
 import router from '@/router';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
 
 const panoptic = usePanopticStore()
-const store = useProjectStore()
-
-interface Project {
-    path: string
-    name: string
-}
 
 const menuMode = ref(0) // 0 options 1 create
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Image, ModalId, Property, PropertyRef, PropertyType } from '@/data/models';
+import { Instance, ModalId, Property, PropertyRef, PropertyType } from '@/data/models';
 import Modal from './Modal.vue';
 import { Ref, computed, nextTick, onMounted, provide, reactive, ref, vModelDynamic, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
@@ -10,9 +10,11 @@ import MiddleCol from './image/MiddleCol.vue';
 import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
 import Modal2 from './Modal2.vue';
+import { useDataStore } from '@/data/dataStore';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
+const data = useDataStore()
 
 const groupManager = new GroupManager()
 
@@ -27,7 +29,7 @@ const iterator: Ref<ImageIterator> = ref(null)
 
 const active = computed(() => panoptic.openModalId == ModalId.IMAGE)
 // const iterator = computed(() => panoptic.modalData as ImageIterator)
-const image = computed(() => iterator.value?.image as Image)
+const image = computed(() => iterator.value?.image as Instance)
 
 const modalData = computed(() => panoptic.modalData)
 const showHistory = computed(() => navigationHistory.value.length > 0)
@@ -43,19 +45,21 @@ function onResize() {
     }
 }
 
-function paint(property: PropertyRef) {
+function paint(propRef: {propertyId: number, instanceId: number}) {
     if (viewMode.value != 0) return
+    const property = data.properties[propRef.propertyId]
+    const value = data.instances[propRef.instanceId].properties[property.id]
 
     let images = groupManager.result.root.images
     if (Object.keys(groupManager.selectedImages).length) {
-        images = Object.keys(groupManager.selectedImages).map(id => project.data.images[id])
+        images = Object.keys(groupManager.selectedImages).map(id => data.instances[id])
     }
     if (property.type == PropertyType.multi_tags) {
-        project.setTagPropertyValue(property.propertyId, images, property.value)
+        project.setTagPropertyValue(property.id, images, value)
     } else {
-        project.setPropertyValue(property.propertyId, images, property.value)
+        project.setPropertyValue(property.id, images, value)
     }
-    visibleProperties[property.propertyId] = true
+    visibleProperties[property.id] = true
 }
 
 function onShow() {

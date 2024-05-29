@@ -11,7 +11,7 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import Tutorial from '@/tutorials/Tutorial.vue';
 
-const store = useProjectStore()
+const project = useProjectStore()
 const panoptic = usePanopticStore()
 
 const mainViewRef = ref(null)
@@ -40,8 +40,8 @@ onMounted(async () => {
         if (ev.key == 'ArrowLeft') keyState.left = true;
         if (ev.key == 'ArrowRight') {keyState.right = true; console.log('keeeyy')}
 
-        if(ev.key == 'Z' && keyState.ctrl) store.redo()
-        if(ev.key == 'z' && keyState.ctrl) store.undo()
+        if(ev.key == 'Z' && keyState.ctrl) project.redo()
+        if(ev.key == 'z' && keyState.ctrl) project.undo()
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;
@@ -72,7 +72,7 @@ function showModal() {
 }
 
 function reRender() {
-    store.rerender()
+    project.rerender()
 }
 
 function redirectHome() {
@@ -82,19 +82,19 @@ function redirectHome() {
 
 <template>
     <Tutorial tutorial="project" /> <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
-    <div id="panoptic" :key="store.status.renderNb">
+    <div id="panoptic" :key="project.status.renderNb">
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-            <div v-if="store.status.loaded">
+            <div v-if="project.status.loaded">
                 <Menu @export="showModal()" />
             </div>
-            <div class="w-100" v-if="store.status.loaded">
+            <div class="w-100" v-if="project.status.loaded">
                 <div class="ms-3" ref="navElem">
                     <TabNav :re-render="reRender" />
                 </div>
                 <div class="custom-hr" v-if="hasHeight"/>
 
-                <MainView :tab-id="store.data.selectedTabId" :height="contentHeight" v-if="store.status.loaded"
+                <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" v-if="project.status.loaded"
                     ref="mainViewRef" />
             </div>
             <div v-else-if="!panoptic.isProjectLoaded" class="loading">

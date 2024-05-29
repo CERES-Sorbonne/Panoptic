@@ -1,9 +1,9 @@
-import { getFolderAndParents, isTag, objValues } from "@/utils/utils"
-import { Folder, FolderIndex, Image, Property, PropertyIndex, PropertyValue, Tag, TagIndex } from "./models"
-import { GroupManager, UNDEFINED_KEY } from "@/core/GroupManager"
-import { useProjectStore } from "./projectStore"
+import { getFolderAndParents, isTag } from "@/utils/utils"
+import { Folder, FolderIndex, Instance, TagIndex } from "./models"
+import { GroupManager } from "@/core/GroupManager"
+import { useDataStore } from "./dataStore"
 
-export function computeContainerRatio(img: Image) {
+export function computeContainerRatio(img: Instance) {
     let ratio = img.width / img.height
     return Math.max(Math.min(2, ratio), 1)
 }
@@ -37,10 +37,10 @@ export function buildFolderNodes(folders: Array<Folder>) {
 }
 
 export function computeTagCount() {
-    const store = useProjectStore()
-    const tags = store.data.tags
-    const images = store.imageList
-    const properties = store.propertyList.filter(p => isTag(p.type))
+    const data = useDataStore()
+    const tags = data.tags
+    const images = data.instanceList
+    const properties = data.propertyList.filter(p => isTag(p.type))
 
     for(let prop of properties) {
         const grouper = new GroupManager()
@@ -55,7 +55,7 @@ export function computeTagCount() {
     }
 }
 
-export function countImagePerFolder(folders: FolderIndex, images: Image[]) {
+export function countImagePerFolder(folders: FolderIndex, images: Instance[]) {
     const folderToParents: {[fId: number]: number[]} = {} 
     const folderList = Object.values(folders) as Folder[]
     folderList.forEach(folder => {

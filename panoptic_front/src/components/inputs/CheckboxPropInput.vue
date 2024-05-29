@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import { useProjectStore } from '@/data/projectStore'
 import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 
 const props = withDefaults(defineProps<{
@@ -25,7 +25,7 @@ function focus() {
 const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
 
 function toggle() {
-    store.setPropertyValue(props.property.id, props.image, !propValue.value)
+    project.setPropertyValue(props.property.id, props.image, !propValue.value)
 }
 defineExpose({
     focus

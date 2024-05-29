@@ -3,11 +3,8 @@ import SelectionStamp from '@/components/selection/SelectionStamp.vue';
 import { GroupManager } from '@/core/GroupManager';
 import Similarity from './Similarity.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { useProjectStore } from '@/data/projectStore';
 import Instances from './Instances.vue';
 import { Instance } from '@/data/models';
-
-const store = useProjectStore()
 
 const props = defineProps<{
     image: Instance

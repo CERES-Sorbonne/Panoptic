@@ -5,7 +5,7 @@
  */
 
 import { useDataStore } from "@/data/dataStore"
-import { Image, Instance, Property } from "@/data/models"
+import { FolderIndex, Instance, Property, PropertyIndex } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { EventEmitter } from "@/utils/utils"
@@ -29,7 +29,7 @@ export type ImageOrder = { [imageId: number]: number }
 
 export interface SortResult {
     order: ImageOrder
-    images: Image[]
+    images: Instance[]
 }
 
 interface SortableImage {
@@ -91,9 +91,8 @@ export const sortParser: { [type in PropertyType]?: any } = {
     [PropertyType._sha1]: (x: string) => {
         return x
     },
-    [PropertyType._folders]: (x: number) => {
-        const store = useProjectStore()
-        return store.data.folders[x].name
+    [PropertyType._folders]: (x: number, folders: FolderIndex) => {
+        return folders[x].name
     },
     [PropertyType._height]: (x: number) => {
         return x
@@ -106,7 +105,7 @@ export const sortParser: { [type in PropertyType]?: any } = {
     },
 }
 
-function getSortablePropertyValue(image: Instance, property: Property) {
+function getSortablePropertyValue(image: Instance, property: Property, folders: FolderIndex) {
     let value = image.properties[property.id]
     const type = property.type
 
@@ -117,7 +116,12 @@ function getSortablePropertyValue(image: Instance, property: Property) {
             value = undefined
         }
     }
-    value = sortParser[type](value)
+    if(type == PropertyType._folders) {
+        value = sortParser[type](value, folders)
+    } else {
+        value = sortParser[type](value)
+    }
+    
     return value
 }
 
@@ -134,10 +138,10 @@ function sortSortable(sortable: SortableImage[], orders: number[]) {
 
 function getSortableImages(images: Instance[], properties: Property[]): SortableImage[] {
     const res = []
-
+    const project = useProjectStore()
     for (const image of images) {
         const sortable: SortableImage = { imageId: image.id, values: [] }
-        properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p)))
+        properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p, project.data.folders)))
         res.push(sortable)
     }
     return res
@@ -175,7 +179,7 @@ export class SortManager {
         console.time('Sort')
         const data = useDataStore()
         
-        const properties = this.state.sortBy.map(id => properties[id])
+        const properties = this.state.sortBy.map(id => data.properties[id])
         const sortable = getSortableImages(images, properties)
         
         const orders = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
@@ -216,9 +220,8 @@ export class SortManager {
         this.state.sortBy.splice(index, 1)
     }
 
-    verifyState() {
-        const store = useProjectStore()
-        this.state.sortBy = this.state.sortBy.filter(id => store.data.properties[id])
-        Object.keys(this.state.options).filter(id => !store.data.properties[id]).forEach(id => delete this.state.options[id])
+    verifyState(properties: PropertyIndex) {
+        this.state.sortBy = this.state.sortBy.filter(id => properties[id])
+        Object.keys(this.state.options).filter(id => !properties[id]).forEach(id => delete this.state.options[id])
     }
 }

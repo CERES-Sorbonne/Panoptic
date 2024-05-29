@@ -1,85 +1,34 @@
 import { Group } from "@/core/GroupManager"
-import { useDataStore } from "@/data/dataStore"
-import { PropertyMode, PropertyRef, PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
+import { PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
-import { Ref, computed, shallowRef } from "vue"
+import { Ref, computed } from "vue"
 
 
 export function hasProperty(image: Instance, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
 }
 
-// export function getImageProperties(id: number) {
-//     const store = useProjectStore()
-//     const img = store.data.images[id]
-//     let res = store.propertyList.filter(p => p.mode == PropertyMode.id).map(p => {
-//         let propRef: PropertyRef = {
-//             propertyId: p.id,
-//             type: p.type,
-//             value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
-//             imageId: img.id,
-//             mode: p.mode
-//         }
-//         return propRef
-//     })
-//     return res
-// }
-
-// export function getImageProperty(imgId: number, propId: number) {
-//     const store = useProjectStore()
-//     const img = store.data.images[imgId]
-//     const p = store.data.properties[propId]
-//     const propRef: PropertyRef = {
-//         propertyId: p.id,
-//         type: p.type,
-//         value: hasProperty(img, p.id) ? img.properties[p.id].value : undefined,
-//         imageId: img.id,
-//         mode: p.mode
-//     }
-//     return propRef
-// }
-
-// export function isImageGroup(group: Group) {
-//     return Array.isArray(group.images) && group.images.length > 0
-// }
-
-// export function isPileGroup(group: Group) {
-//     return Array.isArray(group.imagePiles) && group.imagePiles.length > 0
-// }
 
 export function isTag(type: PropertyType) {
     return type == PropertyType.tag || type == PropertyType.multi_tags
 }
 
-// export function getChildren(tag: Tag, tags: TagIndex) {
-//     let children = new Set()
-//     const recursive = (t: Tag) => {
-//         children.add(t.id)
-//         if (!t.children) return
-//         t.children.forEach(cId => children.add(cId))
-//         t.children.forEach(cId => recursive(tags[cId]))
-//     }
-//     recursive(tag)
-
-//     return children
-// }
-
 export function getFolderAndParents(folder: Folder) {
-    const store = useProjectStore()
+    const project = useProjectStore()
     const res = []
     let current = folder
     while (current) {
         res.push(current.id)
-        current = store.data.folders[current.parent]
+        current = project.data.folders[current.parent]
     }
     return res
 }
 
 export function getFolderChildren(folderId: number) {
-    const store = useProjectStore()
+    const project = useProjectStore()
     let res: Folder[] = []
     const recursive = (fId: number) => {
-        const children = store.data.folders[fId].children
+        const children = project.data.folders[fId].children
         res.push(...children)
         children.forEach(c => recursive(c.id))
     }
@@ -97,14 +46,6 @@ export function computedPropValue(property: Ref<Property>, image: Ref<Instance>)
     return propValue
 }
 
-// export function computedPropValue(property: Property, image: Instance) {
-//     // return computed(() => {
-//         if (!hasProperty(image, property.id)) {
-//             return undefined
-//         }
-//         return image.properties[property.id].value
-//     // })
-// }
 
 export function arrayEqual(arr1: any[], arr2: any[]) {
     const set1 = new Set(arr1)

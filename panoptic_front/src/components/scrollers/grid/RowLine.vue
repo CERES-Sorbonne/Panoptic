@@ -16,7 +16,7 @@ import { isTag } from '@/utils/utils';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
 const panoptic = usePanopticStore()
-const store = useProjectStore()
+const project = useProjectStore()
 
 const props = defineProps({
     item: Object,
@@ -36,7 +36,7 @@ const hover = ref(false)
 
 
 
-const tab = computed(() => store.getTab())
+const tab = computed(() => project.getTab())
 const image = computed(() => {
     if (props.item.type == 'pile') {
         return (props.item as PileRowLine).data.images[0]
@@ -220,7 +220,7 @@ watch(rowHeight, emitResizeOnce)
             <div v-else-if="property.type == PropertyType._folders"
                 :style="{ height: propMinRowHeight[property.id] + 'px' }" class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id]?.value != undefined">
-                    <TagBadge :tag="store.data.folders[image.properties[property.id]?.value].name" :color="-1" />
+                    <TagBadge :tag="project.data.folders[image.properties[property.id]?.value].name" :color="-1" />
                 </span>
             </div>
             <div v-else :style="{ height: (propMinRowHeight[property.id]) + 'px' }" class="ps-1 overflow-hidden">

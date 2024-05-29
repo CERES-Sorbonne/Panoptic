@@ -4,12 +4,9 @@ import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { ImageIterator } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
-import { PropertyMode, PropertyRef } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { PropertyMode } from '@/data/models';
 import { Ref, computed, inject, ref } from 'vue';
 
-
-const store = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps<{

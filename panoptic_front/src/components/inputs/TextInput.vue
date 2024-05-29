@@ -5,17 +5,17 @@ import { keyState } from '@/data/keyState';
 
 const props = withDefaults(defineProps<{
     tag: string
-    editable: boolean | string
+    editable?: boolean | string
     modelValue: any
-    noHtml: boolean
-    noNl: boolean
+    noHtml?: boolean
+    noNl?: boolean
     width: number
-    minHeight: number
-    urlMode: boolean
-    onlyNumber: boolean
-    noShadow: boolean
-    alwaysShadow: boolean
-    blurOnEnter: boolean
+    minHeight?: number
+    urlMode?: boolean
+    onlyNumber?: boolean
+    noShadow?: boolean
+    alwaysShadow?: boolean
+    blurOnEnter?: boolean
 }>(), {
     editable: true,
     noHtml: true,

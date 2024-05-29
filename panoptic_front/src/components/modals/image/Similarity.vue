@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
-import { Image, InstanceMatch, SearchResult } from '@/data/models';
+import { Instance, InstanceMatch, SearchResult } from '@/data/models';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
@@ -8,11 +8,13 @@ import RangeInput from '@/components/inputs/RangeInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { useActionStore } from '@/data/actionStore';
+import { useDataStore } from '@/data/dataStore';
 const project = useProjectStore()
 const actions = useActionStore()
+const data = useDataStore()
 
 const props = defineProps<{
-    image: Image
+    image: Instance
     width: number
     height: number
     similarGroup?: GroupManager
@@ -29,14 +31,13 @@ const state = reactive({
     sha1Scores: {}
 })
 
-const properties = computed(() => Object.keys(props.visibleProperties).map(k => project.data.properties[k]))
+const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
 
 async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
     // if (modalMode.value != ImageModalMode.Similarity) return
     const res = await actions.getSimilarImages({ instanceIds: [props.image.id] })
     if (!res.instances) throw new Error('No instances in ActionResult')
-    console.log(res)
 
     let matches: InstanceMatch[] = []
     const scores = res.instances.scores ?? []
@@ -48,7 +49,7 @@ async function setSimilar() {
     } else {
         for (let i in res.instances.sha1s) {
             const sha1 = res.instances.sha1s[i]
-            for (let img of project.data.sha1Index[sha1]) {
+            for (let img of data.sha1Index[sha1]) {
                 const match: InstanceMatch = { id: img.id, score: scores[i] }
                 matches.push(match)
             }
@@ -69,9 +70,9 @@ function updateSimilarGroup() {
         matches = matches.filter(m => valid.has(m.id))
     }
 
-    const images = matches.map(m => project.data.images[m.id])
+    const images = matches.map(m => data.instances[m.id])
     state.sha1Scores = {}
-    matches.forEach(m => state.sha1Scores[project.data.images[m.id].sha1] = m.score)
+    matches.forEach(m => state.sha1Scores[data.instances[m.id].sha1] = m.score)
     images.sort((a,b) => state.sha1Scores[b.sha1] - state.sha1Scores[a.sha1])
 
     similarGroup.group(images)

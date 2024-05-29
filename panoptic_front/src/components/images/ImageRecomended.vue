@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useProjectStore } from '@/data/projectStore'
-import { Image, ModalId } from '@/data/models';
+import { ModalId } from '@/data/models';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group } from '@/core/GroupManager';
 import { usePanopticStore } from '@/data/panopticStore';
 import Zoomable from '../Zoomable.vue';
 const panoptic = usePanopticStore()
-const store = useProjectStore()
 const props = defineProps({
     pile: Object as () => Group,
     size: { type: Number, default: 100 },

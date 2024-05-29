@@ -8,8 +8,8 @@ import TagMenu from '../tags/TagMenu.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
 
-const store = useProjectStore()
-const tabManager = store.getTabManager()
+const project = useProjectStore()
+const tabManager = project.getTabManager()
 
 const props = defineProps({
     property: Object as () => Property
@@ -21,7 +21,7 @@ const localName = ref('')
 
 const fullHover = ref(false)
 
-const tab = computed(() => store.getTab())
+const tab = computed(() => project.getTab())
 const propertyVisible = computed(() => tab.value.visibleProperties[props.property.id] == true)
 
 const isInFilter = computed(() => tabManager.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
@@ -84,14 +84,14 @@ function setGroup() {
 
 function deleteProperty() {
     if (confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
-        store.deleteProperty(props.property.id)
+        project.deleteProperty(props.property.id)
 }
 
 async function renameProperty() {
     if (localName.value == '') {
         return
     }
-    await store.updateProperty(props.property.id, localName.value)
+    await project.updateProperty(props.property.id, localName.value)
     toggleOptionsMenu()
 }
 

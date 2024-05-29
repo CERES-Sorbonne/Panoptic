@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { Image, ModalId } from '@/data/models';
-import Modal from './Modal.vue';
-import { usePanopticStore } from '@/data/panopticStore';
 import { computed, onMounted, reactive, ref } from 'vue';
 import CenteredImage from '../images/CenteredImage.vue';
 import { zoomModal } from './zoomModal';
+import { Instance } from '@/data/models';
 
 
-const image = computed(() => zoomModal.image ?? { width: 0, height: 0 } as Image)
+const image = computed(() => zoomModal.image ?? { width: 0, height: 0 } as Instance)
 const rect = reactive({ width: 500, height: 500 })
 
 onMounted(onWindowResize)

@@ -4,14 +4,15 @@ import { computed, watch } from 'vue';
 import PropertyValuePreview from './PropertyValuePreview.vue';
 import { operatorHasInput, Filter } from '@/core/FilterManager'
 import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     filter: Object as () => Filter
 })
 
-const property = computed(() => store.data.properties[props.filter.propertyId])
+const property = computed(() => data.properties[props.filter.propertyId])
 
 </script>
 <template>

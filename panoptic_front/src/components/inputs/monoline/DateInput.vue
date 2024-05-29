@@ -6,7 +6,7 @@ import { useProjectStore } from '@/data/projectStore'
 import StandaloneDateInput from './StandaloneDateInput.vue';
 import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps<{
@@ -27,7 +27,7 @@ const localValue = computed(() => {
 function save(date: Date) {
     const toSave = new Date(date).toISOString()
     console.log(date)
-    store.setPropertyValue(props.property.id, props.image, toSave)
+    project.setPropertyValue(props.property.id, props.image, toSave)
 }
 
 </script>

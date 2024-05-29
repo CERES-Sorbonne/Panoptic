@@ -11,10 +11,10 @@ import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
 import { useDataStore } from '@/data/dataStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 const data = useDataStore()
 const panoptic = usePanopticStore()
-const tabManager = store.getTabManager()
+const tabManager = project.getTabManager()
 
 const emits = defineEmits(['export'])
 
@@ -25,7 +25,7 @@ const handleInput = async (e: any) => {
     panoptic.showModal(ModalId.IMPORT)
 }
 
-const tasks = computed(() => store.backendStatus.tasks.filter(t => !(t.name == 'Load Plugin' && t.done)))
+const tasks = computed(() => project.backendStatus.tasks.filter(t => !(t.name == 'Load Plugin' && t.done)))
 
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
@@ -33,10 +33,10 @@ function promptFolder() {
 
 function addFolder(path) {
     if (!path) return
-    store.addFolder(path)
+    project.addFolder(path)
 }
 
-watch(() => store.status.import.to_import, () => showImport.value = true)
+watch(() => project.status.import.to_import, () => showImport.value = true)
 
 </script>
 
@@ -63,7 +63,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                         </div>
                     </div>
                     <div class="overflow-scroll">
-                        <FolderList2 v-if="store.getTab()" :folders="store.folderRoots"
+                        <FolderList2 v-if="project.getTab()" :folders="project.folderRoots"
                             :filter-manager="tabManager.collection.filterManager"
                             :visible-folders="tabManager.state.visibleFolders" />
                     </div>
@@ -76,7 +76,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                             <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
                         </div>
                         <div class="custom-hr" />
-                        <div v-if="store.backendStatus" class="ps-2 pe-2">
+                        <div v-if="project.backendStatus" class="ps-2 pe-2">
                             <div v-for="task, i in tasks" class="p-1">
                                 <div v-if="i" class="custom-hr" />
                                 <TaskStatus :task="task" />
@@ -88,31 +88,31 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
 
 
                 <div class="p-2"
-                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
+                    v-if="project.status.import.to_import != undefined && project.status.import.to_import > 0 && showImport">
                     <div class="custom-hr" />
-                    <div v-if="store.status.import.done" class="float-end"><i class="bi bi-x base-hover"
+                    <div v-if="project.status.import.done" class="float-end"><i class="bi bi-x base-hover"
                             @click="showImport = false"></i></div>
                     <div class="text-center"><b>{{ $t('main.menu.import_status_title') }}</b></div>
 
                     <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ store.status.import.imported }} / {{ store.status.import.to_import }} importées
+                        {{ project.status.import.imported }} / {{ project.status.import.to_import }} importées
                     </div>
-                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
+                    <div v-if="project.status.import.to_import > 0" class="progress" role="progressbar"
                         aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
                         <div class="progress-bar"
-                            :style="`width: ${store.status.import.imported / store.status.import.to_import * 100}%`">
+                            :style="`width: ${project.status.import.imported / project.status.import.to_import * 100}%`">
                         </div>
                     </div>
                 </div>
                 <div class="p-2"
-                    v-if="store.status.import.to_import != undefined && store.status.import.to_import > 0 && showImport">
+                    v-if="project.status.import.to_import != undefined && project.status.import.to_import > 0 && showImport">
                     <div class="w-100 text-center" style="font-size: 10px;">
-                        {{ store.status.import.computed }} / {{ store.status.import.to_import }} computed
+                        {{ project.status.import.computed }} / {{ project.status.import.to_import }} computed
                     </div>
-                    <div v-if="store.status.import.to_import > 0" class="progress" role="progressbar"
+                    <div v-if="project.status.import.to_import > 0" class="progress" role="progressbar"
                         aria-label="Example 1px high" aria-valuemin="0" aria-valuemax="100" style="height: 1px">
                         <div class="progress-bar"
-                            :style="`width: ${store.status.import.computed / store.status.import.to_import * 100}%`">
+                            :style="`width: ${project.status.import.computed / project.status.import.to_import * 100}%`">
                         </div>
                     </div>
                 </div>
@@ -139,7 +139,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                     </div>
 
                     <!-- <i class="bi bi-plus btn-icon float-end" style="font-size: 25px;"></i> -->
-                    <div class="mt-2" v-if="store.status.loaded">
+                    <div class="mt-2" v-if="project.status.loaded">
                         <template v-for="property in data.properties">
                             <div class="property-item" v-if="property.id >= 0">
                                 <!-- <TagProperty
@@ -162,7 +162,7 @@ watch(() => store.status.import.to_import, () => showImport.value = true)
                 <div class="p-2 mt-0">
                     <wTT message="main.nav.computed.computed_tooltip" :icon="true"><b>{{ $t("main.nav.computed.title")
                     }}</b></wTT>
-                    <div class="mt-2" v-if="store.status.loaded">
+                    <div class="mt-2" v-if="project.status.loaded">
                         <template v-for="property in data.properties">
                             <div class="property-item" v-if="property.id < 0">
                                 <wTT pos="bottom"

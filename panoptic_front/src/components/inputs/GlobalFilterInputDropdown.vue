@@ -6,7 +6,9 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { PropertyID } from '@/data/models';
-const store = useProjectStore()
+import { useDataStore } from '@/data/dataStore';
+const data = useDataStore()
+
 const props = defineProps({
     manager: FilterManager
 })
@@ -55,15 +57,15 @@ watch(() => props.manager.state.filter.filters, () => {
                     </div>
                     <div v-for="filter, index in selectedFilterSet">
                         <span v-if="index > 0" class="or-separator">|</span>
-                        <PropertyIcon v-if="filter.propertyId == PropertyID.id" :type="store.data.properties[filter.propertyId].type" style="margin-right: 2px;"/>
-                        <span>{{ store.data.properties[filter.propertyId].name }}</span>
+                        <PropertyIcon v-if="filter.propertyId == PropertyID.id" :type="data.properties[filter.propertyId].type" style="margin-right: 2px;"/>
+                        <span>{{ data.properties[filter.propertyId].name }}</span>
                     </div>
                 </div>
             </div>
         </template>
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
-                <div class="m-1 p-0" v-if="Object.keys(store.data.properties).length > 0">
+                <div class="m-1 p-0" v-if="Object.keys(data.properties).length > 0">
                     <FilterGroupInput :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>

@@ -1,17 +1,15 @@
 <script setup lang="ts">
 
-import { apiExportProperties, apiConfirmImport, apiUploadPropertyCsv } from '@/data/api';
+import { apiConfirmImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
-import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
 import Modal from './Modal.vue';
-import { ModalId, PropertyDescription } from '@/data/models';
-import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import { ref } from 'vue';
+import { ModalId } from '@/data/models';
 
 const panoptic = usePanopticStore()
-const store = useProjectStore()
+const project = useProjectStore()
 
 // const properties = computed(() => panoptic.modalData as PropertyDescription[])
 const inputElem = ref(null)
@@ -35,7 +33,7 @@ async function importFile() {
     await apiConfirmImport(params)
     clear()
     panoptic.hideModal()
-    store.reload()
+    project.reload()
 }
 
 async function uploadFile(e) {

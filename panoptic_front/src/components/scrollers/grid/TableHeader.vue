@@ -10,7 +10,7 @@ import { getGroupParents } from '@/utils/utils';
 import PropertyOptions from '@/components/menu/PropertyOptions.vue';
 import { useProjectStore } from '@/data/projectStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 
 const props = defineProps({
     properties: Array<Property>,
@@ -21,7 +21,7 @@ const props = defineProps({
 })
 
 const hearderHeight = ref(30)
-const tab = computed(() => store.getTab())
+const tab = computed(() => project.getTab())
 
 const elems = reactive({})
 

@@ -6,15 +6,14 @@
  * By default only find and select is allowed
  * 
  */
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
-import { sleep } from '@/utils/utils';
-import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
+import { Property, Tag, PropertyType } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 
-const store = useProjectStore()
+const project = useProjectStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -99,7 +98,7 @@ const selectOption = async function () {
     if (selectedIndex.value == undefined) return
 
     if (isCreateSelected.value) {
-        const newTag = await store.addTag(props.property.id, tagFilter.value);
+        const newTag = await project.addTag(props.property.id, tagFilter.value);
         emits('create', newTag)
     }
     else if (selectedIndex.value < filteredTagList.value.length) {

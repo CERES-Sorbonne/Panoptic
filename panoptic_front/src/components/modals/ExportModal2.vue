@@ -3,15 +3,15 @@
 import { apiExportProperties } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
-import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import Modal from './Modal.vue';
 import { ModalId, PropertyID } from '@/data/models';
 import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
+import { useDataStore } from '@/data/dataStore';
 
-const panoptic = usePanopticStore()
-const store = useProjectStore()
+const project = useProjectStore()
+const data = useDataStore()
 
 const state = reactive({
     name: undefined,
@@ -26,7 +26,7 @@ const isLoading = ref(false)
 
 const all = computed(() => properties.value.every(p => state.properties[p.id]))
 const properties = computed(() => {
-    const tmp = Object.values(store.data.properties)
+    const tmp = Object.values(data.properties)
     tmp.sort((a,b) => a.id - b.id)
     const res = []
     const computed = tmp.filter(p => p.id < 0)
@@ -36,12 +36,12 @@ const properties = computed(() => {
 })
 
 const selectedCount = computed(() => {
-    const tabManager = store.getTabManager()
+    const tabManager = project.getTabManager()
     return Object.keys(tabManager.collection.groupManager.selectedImages).length
 })
 
 const visibleCount = computed(() => {
-    const tabManager = store.getTabManager()
+    const tabManager = project.getTabManager()
     if (state.mode == 'instance') { return tabManager.getVisibleProperties().length }
     return tabManager.getVisibleSha1Properties().length
 })
@@ -89,7 +89,7 @@ function clear() {
 
 function show() {
     clear()
-    const properties = store.getTabManager().getVisibleProperties()
+    const properties = project.getTabManager().getVisibleProperties()
     properties.forEach(p => state.properties[p.id] = true)
     state.properties[-1] = true
 }
@@ -102,10 +102,10 @@ async function buildRequest() {
         req.name = state.name
     }
     if (state.selection == 'selected') {
-        req.images = Object.keys(store.getTabManager().collection.groupManager.selectedImages).map(Number)
+        req.images = Object.keys(project.getTabManager().collection.groupManager.selectedImages).map(Number)
     }
     if (state.selection == 'filtered') {
-        req.images = store.getTabManager().collection.filterManager.result.images.map(i => i.id)
+        req.images = project.getTabManager().collection.filterManager.result.images.map(i => i.id)
     }
     isLoading.value = true
     await sleep(100)
