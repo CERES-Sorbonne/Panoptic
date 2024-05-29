@@ -358,7 +358,7 @@ export class GroupManager {
         const lastCustom = this.customGroups ?? {}
         this.customGroups = {}
         this.regsiterGroup(this.result.root)
-        console.log('main group', this.state.groupBy)
+        // console.log('main group', this.state.groupBy)
         if (this.state.groupBy.length > 0) {
             this.computePropertySubGroup(this.result.root, this.state.groupBy)
         }
@@ -679,7 +679,7 @@ export class GroupManager {
         const option = this.state.options[property.id]
         const subGroups: { [key: string]: Group } = {}
         const tagWithParents = {}
-        console.log(property.tags)
+        // console.log(property.tags)
         if (isTag(property.type)) {
             for (let tag of objValues(property.tags)) {
                 tagWithParents[tag.id] = new Set(tag.allParents)
@@ -910,7 +910,8 @@ export class GroupManager {
     unselectImages(imageIds: number[]) {
         imageIds.forEach(id => delete this.selectedImages[id])
         let groups = new Set<string>()
-        imageIds.forEach(id => this.result.imageToGroups[id].forEach(gId => groups.add(gId)))
+        // TODO verify why sometimes undefined imageToGroups[id]
+        imageIds.forEach(id => this.result.imageToGroups[id]?.forEach(gId => groups.add(gId)))
 
         groups.forEach(gId => this.propagateUnselect(this.result.index[gId]))
     }
@@ -944,7 +945,7 @@ export class GroupManager {
     }
 
     unselectGroup(group: Group) {
-        console.log('unselect')
+        // console.log('unselect')
         this.unselectImages(group.images.map(i => i.id))
 
         const recursive = (g: Group) => {

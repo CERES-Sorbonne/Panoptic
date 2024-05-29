@@ -36,8 +36,8 @@ async def get_db_state_route():
 
     get_all = asyncio.gather(get_properties, get_tags, get_image_values, get_instance_values)
     properties, tags, img_values, instance_values = await get_all
-    computed_values = project.db.get_computed_values(instances)
-    instance_values.extend(computed_values)
+    # computed_values = project.db.get_computed_values(instances)
+    # instance_values.extend(computed_values)
 
     state = DbCommit(instances=instances, properties=properties, tags=tags, image_values=img_values, instance_values=instance_values)
     print(time() - now)

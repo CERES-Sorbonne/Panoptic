@@ -173,7 +173,6 @@ def get_computed_values(instance: Instance):
            InstancePropertyValue(instance_id=instance.id, property_id=-5, value=instance.width),
            InstancePropertyValue(instance_id=instance.id, property_id=-6, value=instance.height),
            InstancePropertyValue(instance_id=instance.id, property_id=-7, value=instance.url)]
-
     return res
 
 

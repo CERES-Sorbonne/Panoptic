@@ -9,13 +9,27 @@ import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
 import Toggle from '@vueform/toggle'
 import wTT from '../tooltips/withToolTip.vue'
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, shallowRef, triggerRef, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import { useProjectStore } from '@/data/projectStore';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 
 const project = useProjectStore()
+
+// const test2 = computed(() => test.value.count)
+// function addit() {
+//     test.value.count += 1
+//     triggerRef(test)
+//     // triggerRef(images)
+// }
+
+// const img = computed(() => images.value[1])
+// const prop = computed(() => img.value.properties[8]?.value)
+
+// watch(test, () => console.log('test changed'))
+// watch(images, () => console.log('images changed'))
+// watch(img, () => console.log('immmgggggg'))
 
 const props = defineProps({
     tab: TabManager,

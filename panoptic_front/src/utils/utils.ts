@@ -1,7 +1,7 @@
 import { Group } from "@/core/GroupManager"
-import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property } from "@/data/models"
+import { PropertyMode, PropertyRef, Image, PropertyType, Tag, Folder, Property, Instance } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
-import { Ref, computed } from "vue"
+import { Ref, computed, shallowRef } from "vue"
 
 export function hasProperty(image: Image, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -295,4 +295,9 @@ export function deepCopy<T>(source: T): T {
     }
 
     return copy as T;
+}
+
+export function getComputedValues(instance: Instance) {
+    const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
+    return res;
 }

@@ -5,17 +5,18 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, ref, shallowReactive, shallowRef } from "vue";
+import { computed, nextTick, reactive, ref, shallowReactive, shallowRef, triggerRef } from "vue";
 import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, Image, ImageIndex, ImagePropertyValue, ImportState, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToImages, StatusUpdate, SyncResult, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
 import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { deepCopy, getTagChildren, getTagParents, sleep } from "@/utils/utils";
+import { useDataStore } from "./dataStore";
 
 let tabManager: TabManager = undefined
 
-// export const images = shallowRef({})
+export const test = shallowRef({count: 0})
 
 export const softwareUiVersion = 1
 
@@ -23,9 +24,13 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     let routine = 0
 
-    const showTutorial = ref(false)
+    const dataStore = useDataStore()
 
-    const data = reactive({
+    const showTutorial = ref(false)
+    // const images = shallowRef({} as ImageIndex)
+    const images = shallowRef({})
+
+    const data = shallowReactive({
         images: {} as ImageIndex,
         sha1Index: {} as Sha1ToImages,
         properties: {} as PropertyIndex,
@@ -35,7 +40,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         plugins: [] as PluginDescription[],
         vectors: {} as ProjectVectorDescription,
         tags: {} as TagIndex,
-        history: {} as CommitHistory
+        history: {} as CommitHistory,
+        counter: 0
     })
 
     const status = reactive({
@@ -57,7 +63,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======================
 
     const propertyList = computed(() => Object.values(data.properties) as Property[])
-    const imageList = computed(() => Object.values(data.images) as Image[])
+    const imageList = computed(() => Object.values(images.value) as Image[])
     const folderRoots = computed(() => {
         return Object.values(data.folders).filter(f => f.parent == null) as Folder[]
     })
@@ -169,17 +175,18 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function applyCommit(commit: DbCommit) {
+        dataStore.applyCommit(commit)
         // console.log(commit)
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 data.sha1Index[v.sha1].forEach(i => {
-                    delete data.images[i.id].properties[v.propertyId]
+                    delete images.value[i.id].properties[v.propertyId]
                 })
             })
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
-                delete data.images[v.instanceId].properties[v.propertyId]
+                delete images.value[v.instanceId].properties[v.propertyId]
             })
         }
         if (commit.emptyTags) {
@@ -197,7 +204,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         if (commit.emptyInstances) {
             commit.emptyInstances.forEach(i => {
-                delete data.images[i]
+                delete images.value[i]
             })
         }
 
@@ -219,7 +226,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         // computeTagCount()
 
         if(commit.emptyTags) {
-            getTabManager().collection.update()
+            // getTabManager().collection.update()
         }
     }
 
@@ -238,8 +245,8 @@ export const useProjectStore = defineStore('projectStore', () => {
             // if (v.value == undefined) continue
 
             const value = { propertyId: v.propertyId, instanceId: v.instanceId, value: v.value } as InstancePropertyValue
-            data.images[v.instanceId].properties[v.propertyId] = value
-            // data.images[v.instanceId].properties2[v.propertyId] = v.value
+            images.value[v.instanceId].properties[v.propertyId] = value
+            // images.value[v.instanceId].properties2[v.propertyId] = v.value
         }
     }
 
@@ -249,11 +256,13 @@ export const useProjectStore = defineStore('projectStore', () => {
 
             for (let img of data.sha1Index[v.sha1]) {
                 const value = { propertyId: v.propertyId, instanceId: img.id, value: v.value } as InstancePropertyValue
-                data.images[img.id].properties[v.propertyId] = value
+                images.value[img.id].properties[v.propertyId] = value
                 // images.value[img.id].properties[v.propertyId] = value
             }
 
         }
+        console.log('trigger')
+        triggerRef(images)
     }
 
     function verifyData() {
@@ -327,22 +336,40 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importImages(imgs: Image[]) {
+        const values = []
+        imgs.forEach(img => values.push(...getComputedValues(img)))
+        
         for(let img of imgs) {
             img.fullUrl = SERVER_PREFIX + '/images/' + img.url
             img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
-            img.properties = {}
     
             img.containerRatio = computeContainerRatio(img)
     
-            if (!data.images[img.id]) {
+            if (!images.value[img.id]) {
                 if (!Array.isArray(data.sha1Index[img.sha1])) {
                     data.sha1Index[img.sha1] = []
                 }
                 data.sha1Index[img.sha1].push(img)
             }
+            images.value[img.id] = img
             data.images[img.id] = img
-            // images.value[img.id] = img
         }
+
+        importInstanceValues(values)
+    }
+
+    function getComputedValues(instance: Image) {
+        const res: InstancePropertyValue[] = [
+            { instanceId: instance.id, propertyId: -1, value: instance.id },
+            { instanceId: instance.id, propertyId: -2, value: instance.sha1 },
+            { instanceId: instance.id, propertyId: -3, value: instance.ahash },
+            { instanceId: instance.id, propertyId: -4, value: instance.folderId },
+            { instanceId: instance.id, propertyId: -5, value: instance.width },
+            { instanceId: instance.id, propertyId: -6, value: instance.height },
+            { instanceId: instance.id, propertyId: -7, value: instance.url }
+        ];
+    
+        return res;
     }
 
     async function sendCommit(commit: DbCommit) {
@@ -383,11 +410,11 @@ export const useProjectStore = defineStore('projectStore', () => {
     function importPropertyValues(values: InstancePropertyValue[]) {
         for (let val of values) {
             const props = data.properties[val.propertyId]
-            const ids = props.mode == PropertyMode.id ? [val.instanceId] : data.sha1Index[data.images[val.instanceId].sha1].map(i => i.id)
+            const ids = props.mode == PropertyMode.id ? [val.instanceId] : data.sha1Index[images.value[val.instanceId].sha1].map(i => i.id)
             if (val.value !== undefined) {
-                ids.forEach(i => data.images[i].properties[val.propertyId] = val)
+                ids.forEach(i => images.value[i].properties[val.propertyId] = val)
             } else {
-                ids.forEach(i => delete data.images[i].properties[val.propertyId])
+                ids.forEach(i => delete images.value[i].properties[val.propertyId])
             }
         }
     }
@@ -448,10 +475,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         await sendCommit({ instanceValues: instanceValues, imageValues: imageValues })
 
         if (data.properties[propertyId].tags != undefined) {
-            computeTagCount()
+            // computeTagCount()
         }
         getHistory()
-        if (!dontEmit) tabManager.collection.update()
+        // if (!dontEmit) tabManager.collection.update()
     }
 
     async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[], dontEmit?: boolean) {
@@ -463,12 +490,12 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         const tagProps = Array.from(propIds).filter(p => data.properties[p].type)
         if (tagProps.length) {
-            computeTagCount()
+            // computeTagCount()
         }
 
         getHistory()
 
-        if (!dontEmit) tabManager.collection.update()
+        // if (!dontEmit) tabManager.collection.update()
     }
 
     async function setTagPropertyValue(propertyId: number, images: Image[] | Image, value: any, dontEmit?: boolean) {
@@ -484,9 +511,9 @@ export const useProjectStore = defineStore('projectStore', () => {
             const values: ImagePropertyValue[] = currentValues.map(v => ({ propertyId: propertyId, sha1: v.img.sha1, value: v.value }))
             await sendCommit({ imageValues: values })
         }
-        computeTagCount()
+        // computeTagCount()
         getHistory()
-        if (!dontEmit) tabManager.collection.update()
+        // if (!dontEmit) tabManager.collection.update()
     }
 
     async function updateTag(tagId: number, value?: any, color?: number) {
@@ -524,7 +551,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             })
         })
         verifyData()
-        tabManager.collection.update()
+        // tabManager.collection.update()
         // rerender()
     }
 
@@ -616,7 +643,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     return {
         // variables
         data, status,
-
+        images,
         // computed
         propertyList, imageList, folderRoots,
 
