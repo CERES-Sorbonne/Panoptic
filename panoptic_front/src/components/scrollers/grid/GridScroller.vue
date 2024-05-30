@@ -95,7 +95,7 @@ function computeLines() {
 function setLines(lines: ScrollerLine[], center: number) {
     const start = Math.max(center - props.height * 2, 0)
     const end = Math.max(center + props.height * 3, props.height * 3)
-    console.log('set lines', start, center, end)
+    // console.log('set lines', start, center, end)
     let lineSelection = []
     let acc = 0
     let startOffset = undefined
