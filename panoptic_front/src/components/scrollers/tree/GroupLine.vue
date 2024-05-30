@@ -39,6 +39,8 @@ const propertyValues = computed(() => group.value.meta.propertyValues)
 const closed = computed(() => group.value.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
+const selected = computed(() => !props.item.data.images.some(i => !props.manager.selectedImages.value[i.id]))
+
 const groupName = computed(() => {
     if (group.value.type == GroupType.All) return 'All'
     if (group.value.type == GroupType.Cluster) return group.value.name ?? ('Cluster ' + group.value.parentIdx)
@@ -158,7 +160,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="me-1">
-            <SelectCircle :small="true" :model-value="group.view.selected"
+            <SelectCircle :small="true" :model-value="selected"
                 @update:model-value="emits('select', group.id)" />
         </div>
         <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"

@@ -9,6 +9,7 @@ import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
 import { objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
+import { Ref } from "vue";
 
 export class CollectionManager {
     images: InstanceIndex
@@ -16,7 +17,7 @@ export class CollectionManager {
     sortManager: SortManager
     groupManager: GroupManager
 
-    constructor(images?: InstanceIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: SelectedImages) {
+    constructor(images?: InstanceIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)

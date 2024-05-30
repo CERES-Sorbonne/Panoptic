@@ -2,6 +2,7 @@
 import { ScrollerLine, Property, ImageLine } from '@/data/models';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
+import { Ref, computed } from 'vue';
 
 
 const props = defineProps<{
@@ -12,10 +13,17 @@ const props = defineProps<{
     hoverBorder: string,
     index: GroupIndex,
     properties: Property[],
-    selectedImages: SelectedImages
+    selectedImages: Ref<SelectedImages>
 }>()
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
+
+const selected = computed(() => {
+    const res = {}
+    props.item.data.forEach(it => res[it.image.id] = props.selectedImages.value[it.image.id])
+    // console.log(res, props.selectedImages.value, props.item.data.map(d => d.image.id))
+    return res
+})
 
 </script>
 
@@ -26,7 +34,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <Image :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[imageIt.image.id] == true" @update:selected="v => emits('update:selected-image', {id: imageIt.image.id, value:v})"
+            :properties="props.properties" :selected="selected[imageIt.image.id]" @update:selected="v => emits('update:selected-image', {id: imageIt.image.id, value:v})"
             v-for="imageIt, i in props.item.data" class="me-2 mb-2"/>
 
     </div>
