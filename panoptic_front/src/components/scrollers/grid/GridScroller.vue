@@ -29,7 +29,7 @@ defineExpose({
 })
 
 const hearderHeight = ref(60)
-const rowLines = shallowRef([])
+const rowLines = ref([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
@@ -58,13 +58,15 @@ const scrollerStyle = computed(() => ({
 
 const hideFromModal = computed(() => props.hideIfModal && panoptic.openModalId == ModalId.IMAGE)
 
-
+let dataLines = []
+let lineCenter = 0
 function computeLines() {
     console.time('Table compute lines')
     const lines = []
 
     let lastGroupId = undefined
     let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
+    // lines.push({ id: '__filler__', type: 'fillter', size: 0, index: lines.length })
     while (current) {
         const group = current.group
         if (lastGroupId != group.id && group.id != ROOT_ID) {
@@ -82,11 +84,42 @@ function computeLines() {
         }
         current = current.nextImages()
     }
-    lines.push({ id: '__filler__', type: 'fillter', size: 1000 })
-    rowLines.value = lines
+    lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length })
 
+    dataLines = lines
+    setLines(lines, oldScroll)
     scroller.value.updateVisibleItems(true)
     console.timeEnd('Table compute lines')
+}
+
+function setLines(lines: ScrollerLine[], center: number) {
+    const start = Math.max(center - props.height * 2, 0)
+    const end = Math.max(center + props.height * 3, props.height * 3)
+    console.log('set lines', start, center, end)
+    let lineSelection = []
+    let acc = 0
+    let startOffset = undefined
+    let endOffset = 0
+    for(const line of lines) {
+        if(acc + line.size > start && (acc < end || lineSelection.length < 100)) {
+            if(startOffset === undefined) {
+                startOffset = acc
+            }
+            lineSelection.push(line)
+        }
+        else if(acc >= end) {
+            endOffset += line.size
+        }
+        acc += line.size
+    }
+    lineSelection = [
+        { id: '__pre__', type: 'fillter', size: startOffset, index: lines.length },
+        ...lineSelection,
+        { id: '__post__', type: 'fillter', size: endOffset, index: lines.length }
+    ]
+    rowLines.value = lineSelection
+    lineCenter = center
+    scroller.value.scrollToPosition(center)
 }
 
 function computeGroupLine(group: Group) {
@@ -136,20 +169,8 @@ function resizeHeight(item: ScrollerLine, h) {
     if (item.type == 'image') {
         lineSizes[item.data.id] = item.size
     }
-    triggerRef(resizeEvent)
+    // setLines(dataLines, oldScroll)
 }
-
-
-watch(resizeEvent, () => {
-    console.log('resize Event')
-    for(const line of rowLines.value) {
-        if(line.actif) continue
-        if(line.type != 'image') continue
-        line.size = project.getTab().imageSize + 4
-    }
-    rowLines.value = [...rowLines.value]
-    nextTick(() => scroller.value.updateVisibleItems(true))
-})
 
 let oldScroll = 0
 let oldIndex = 0
@@ -178,6 +199,9 @@ function handleUpdate() {
     oldScroll = newScroll
     oldIndex = newIndex
 
+    if(Math.abs(newScroll - lineCenter) > props.height) {
+        setLines(dataLines, newScroll)
+    }
 }
 
 function openGroup(groupId: string) {
@@ -206,7 +230,10 @@ function clear() {
     rowLines.value = []
 }
 
-const changeHandler = () => computeLines()
+function changeHandler(){
+    computeLines()
+    setLines(dataLines, 0)
+}
 onMounted(() => {
     props.manager.onChange.addListener(changeHandler)
     props.manager.clearCustomGroups(true)
@@ -216,6 +243,33 @@ onUnmounted(() => {
     props.manager.onChange.removeListener(changeHandler)
 })
 
+watch(() => project.getTab().imageSize, (now,old) => {
+    let hook = 0
+    let acc = 0
+    for(const l of dataLines) {
+        if(acc >= oldScroll) {
+            hook = l.index
+            break
+        }
+        acc += l.size
+    }
+
+    const currentLineIds = new Set(rowLines.value.map(l => l.index))
+    dataLines.filter(l => !currentLineIds.has(l.index)).forEach(l => l.size = now)
+
+    let goalPosition = 0
+    acc = 0
+    for(const l of dataLines) {
+        if(l.index == hook) {
+            goalPosition = acc
+            break
+        }
+        acc += l.size
+    }
+    setLines(dataLines, goalPosition)
+
+})
+
 </script>
 
 <template>
@@ -223,8 +277,8 @@ onUnmounted(() => {
         <TableHeader :manager="props.manager" :properties="props.selectedProperties" :missing-width="missingWidth"
             :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
-        <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle" :buffer="400"
-            :emitUpdate="false" :page-mode="false" :prerender="0" class="p-0 m-0" @scroll="handleUpdate"
+        <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle" 
+            :emitUpdate="true" :page-mode="false" :prerender="400" class="p-0 m-0" @scroll="handleUpdate"
             @scroll-start="handleUpdate">
 
             <template v-slot="{ item, index, active }">

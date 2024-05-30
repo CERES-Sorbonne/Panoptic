@@ -27,13 +27,13 @@ defineExpose({
 </script>
 
 <template>
-    <div :style="{ height: props.minHeight + 'px', width: props.width + 'px' }" class="container">
+    <div :style="{ height: props.minHeight + 'px', width: props.width + 'px' }" class="containeraa">
         <DateInput :image="props.image" :property="props.property" :width="props.width" />
     </div>
 </template>
 
 <style scoped>
-.container {
+.containeraa {
     /* padding-top: 5px !important; */
     text-align: center;
 }
