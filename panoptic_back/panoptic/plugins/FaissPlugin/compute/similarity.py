@@ -59,7 +59,7 @@ class SimilarityFaissWithLabel:
         vector = image.reshape(1, -1)
         dist, ind = self.tree.search(vector, k)  # len(self.image_labels))
         indices = [x for x in ind[0]]
-        distances = [x for x in dist[0]]
+        distances = [x if x <= 1.0 else 0 for x in dist[0]]  # avoid some strange overflow behavior
         return [{'sha1': self.image_labels[i], 'dist': float('%.2f' % (distances[index]))} for index, i in
                 enumerate(indices)]
 
@@ -95,6 +95,7 @@ async def get_similar_images_from_text(input_text: str):
 
 
 def get_similar_images(vectors: list[np.ndarray]):
+    print('yayayayaayayayayayayay')
     if not SIMILARITY_TREE:
         raise ValueError("Cannot compute image similarity since KDTree was not computed yet")
     vector = np.mean(vectors, axis=0)
