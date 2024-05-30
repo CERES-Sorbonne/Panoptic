@@ -14,7 +14,7 @@ import { ModalId, PileRowLine, Property, PropertyType, RowLine } from '@/data/mo
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import { isTag, objValues } from '@/utils/utils';
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
@@ -61,15 +61,14 @@ const imageHeight = computed(() => {
 })
 
 const rowHeight = computed(() => {
-    const size = propMinRowHeight.value
     let max = 0
-    for (let k in size) {
-        if (size[k] > max) {
-            max = size[k]
+    for (let k in sizes) {
+        if (sizes[k] > max) {
+            max = sizes[k]
         }
     }
     if (props.showImage) {
-        return Math.max(max + 4, imageHeight.value)
+        return Math.max(max, imageHeight.value)
     }
     return max + 4
 })
@@ -168,13 +167,6 @@ function showModal() {
     panoptic.showModal(ModalId.IMAGE, props.item.iterator)
 }
 
-onMounted(() => {
-    props.item.actif = true
-})
-
-onUnmounted(() => {
-    props.item.actif = false
-})
 
 onMounted(emitResizeOnce)
 // watch(props, emitResizeOnce)
@@ -189,13 +181,12 @@ watch(() => props.properties, () => {
 
 
 <template>
-    <div class="container" :style="{ height: rowHeight + 'px' }">
-        <div class="left-border" :style="{ height: rowHeight + 'px' }"></div>
+    <div class="d-flex" :style="{ height: props.item.size + 'px' }">
+        <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
-        }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
+        width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
+    }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <Zoomable :image="image">
-                <span style="position: absolute; top: 10px; left: 10px;">{{ rowHeight }} : {{ imageHeight }}</span>
                 <CenteredImage :image="image" :width="tab.imageSize - 1" :height="rowHeight - 2" />
                 <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.imageSize + 'px' }"
                     style="position: absolute; top:0; left:0; right: 0px; bottom: 0px;"></div>
@@ -207,39 +198,43 @@ watch(() => props.properties, () => {
         </div>
 
         <!-- <div class=""> -->
-        <div v-for="property, index in props.properties" :class="classes"
-            :style="{ width: inputWidth[property.id] + 7 + 'px' }">
+        <div v-for="property, index in props.properties" class="container22"
+            :style="{ width: inputWidth[property.id] + 7 + 'px' }" style="height: 100%;">
             <!-- {{ rowHeight }} -->
+            <!-- <span class="position-absolute bg-warning" style="z-index: 999;">{{ Math.round(propMinRowHeight[property.id]) }}</span> -->
             <!-- <template v-if="image.properties[property.id] != undefined"> -->
-            <TextPropInput v-if="property.type == PropertyType.string" :min-height="propMinRowHeight[property.id]" ref="inputElems"
+            <TextPropInput v-if="property.type == PropertyType.string" :min-height="rowHeight" ref="inputElems"
+                @update:height="h => sizes[property.id] = h" :image="image" :property="property"
+                :width="inputWidth[property.id]" style="padding-left: 3px;"/>
+            <TextPropInput v-else-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
+                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
+                :url-mode="true" :width="inputWidth[property.id]" style="padding-left: 3px;"/>
+            <TextPropInput v-else-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
+                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
+                :url-mode="false" :width="inputWidth[property.id]" style="padding-left: 3px;" />
+            <div v-else-if="isTag(property.type)" style="padding-left: 2px;">
+                <TagPropInputDropdown :property="property" :image="image" :can-create="true" :can-customize="true"
+                    :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
+                    :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]" :teleport="true"
+                    @update:height="h => sizes[property.id] = h" />
+            </div>
+            <CheckboxPropInput v-else-if="property.type == PropertyType.checkbox"
+                :min-height="propMinRowHeight[property.id]" ref="inputElems"
                 @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <TextPropInput v-else-if="property.type == PropertyType.url" :min-height="propMinRowHeight[property.id]" :no-nl="true"
-                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :url-mode="true" :width="inputWidth[property.id]" />
-            <TextPropInput v-else-if="property.type == PropertyType.path" :min-height="propMinRowHeight[property.id]" :no-nl="true"
-                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :url-mode="false" :width="inputWidth[property.id]" />
-            <TagPropInputDropdown v-else-if="isTag(property.type)" :property="property" :image="image" :can-create="true"
-                :can-customize="true" :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
-                :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]" :teleport="true"
-                @update:height="h => sizes[property.id] = h" />
-            <CheckboxPropInput v-else-if="property.type == PropertyType.checkbox"
-                :min-height="propMinRowHeight[property.id]" ref="inputElems" @update:height="h => sizes[property.id] = h"
-                :image="image" :property="property" :width="inputWidth[property.id]" />
             <ColorPropInput v-else-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
 
-            <TextPropInput v-else-if="property.type == PropertyType.number" :min-height="propMinRowHeight[property.id]" ref="inputElems"
-                @update:height="h => sizes[property.id] = h" :image="image" :property="property"
+            <TextPropInput v-else-if="property.type == PropertyType.number" :min-height="props.item.size"
+                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
 
             <DatePropInput v-else-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <div v-else-if="property.type == PropertyType._ahash" :style="{ height: propMinRowHeight[property.id] + 'px' }"
-                class="ps-1 overflow-hidden">
+            <div v-else-if="property.type == PropertyType._ahash"
+                :style="{ height: propMinRowHeight[property.id] + 'px' }" class="ps-1 overflow-hidden">
                 {{ image.properties[property.id]?.value }}
             </div>
             <div v-else-if="property.type == PropertyType._folders"
@@ -286,11 +281,9 @@ watch(() => props.properties, () => {
     /* height: 100%; */
 }
 
-.container {
-    margin: 0;
-    padding: 0;
-    display: table;
-    table-layout: fixed;
+.container22 {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .header-cell {

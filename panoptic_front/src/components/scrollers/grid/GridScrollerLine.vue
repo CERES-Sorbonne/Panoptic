@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { Ref, nextTick, onMounted, ref, watch } from 'vue';
 import { PileRowLine, type GroupLine, type Property, type RowLine, type ScrollerLine } from '@/data/models'
 
 import GroupLineVue from './GroupLine.vue';
@@ -13,7 +13,7 @@ const props = defineProps<{
     missingWidth: number,
     properties: Property[],
     showImages: boolean,
-    selectedImages: SelectedImages
+    selectedImages: Ref<SelectedImages>
 }>()
 
 const emits = defineEmits({
@@ -43,6 +43,7 @@ watch(() => props.item.id, reload)
                 @toggle:group="e => emits('toggle:group', e)" />
         </div>
         <div v-if="item.type == 'image'">
+            <!-- <div class="border-top position-absolute border-warning" style="width: 100%;"></div> -->
             <RowLineVue :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
                 @toggle:image="e => emits('toggle:image', e)" :selected="props.selectedImages[item.data.id]" />

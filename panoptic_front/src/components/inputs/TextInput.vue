@@ -35,7 +35,7 @@ const isFocus = ref(false)
 const isHover = ref(false)
 const minHeight = computed(() => {
     // return '0px'
-    return (props.minHeight - 6) + 'px'
+    return (props.minHeight - 2) + 'px'
 })
 
 const urlMode = computed(() => props.urlMode && keyState.alt && isHover.value)
@@ -66,7 +66,7 @@ function input(value: string | number) {
 function updateHeight() {
     nextTick(() => {
         if (!elem.value) return
-        let newHeight = elem.value.$refs.element.clientHeight
+        let newHeight = elem.value.$refs.element.clientHeight + 3
         if (height != newHeight) {
             emit('update:height', newHeight)
         }
@@ -108,7 +108,7 @@ watch(() => props.modelValue, () => {
         width: props.width > 0 ? props.width + 'px' : '100%',
         minHeight: minHeight,
         cursor: urlMode ? 'pointer' : 'inherit',
-        color: urlMode ? 'blue' : ''
+        color: urlMode ? 'blue' : '',
     }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
         :class="((isFocus && !props.noShadow) || props.alwaysShadow) ? 'focus' : 'container'" @click="focus">
         <ContentEditable ref="elem" :tag="props.tag" @update:model-value="input" :model-value="String(props.modelValue)"
