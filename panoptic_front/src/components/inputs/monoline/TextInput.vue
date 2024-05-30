@@ -20,9 +20,9 @@ const props = defineProps<{
 const dropdownElem = ref(null)
 const isHover = ref(false)
 
-
+const widthGoal = ref(0)
 const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
-const minWidth = computed(() => Math.max(props.width + 1, 100))
+const minWidth = computed(() => Math.max(props.width + 1, widthGoal.value))
 const urlMode = computed(() => props.property.type == PropertyType.url && keyState.alt && isHover.value)
 
 function contentClick(e) {
@@ -37,10 +37,28 @@ function contentClick(e) {
     }
 }
 
+function computeSize() {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext("2d");
+    ctx.font = "11px Arial";
+    var length = ctx.measureText(propValue.value).width;
+    widthGoal.value = 0
+    if (length > 500) {
+        widthGoal.value = 200
+    }
+    if (length > 800) {
+        widthGoal.value = 300
+    }
+    if (length > 1000) {
+        widthGoal.value = 400
+    }
+    console.log(length)
+}
+
 </script>
 
 <template>
-    <Dropdown :offset="-24" :no-shadow="true" ref="dropdownElem" :teleport="true">
+    <Dropdown :offset="-24" :no-shadow="true" ref="dropdownElem" :teleport="true" @show="computeSize">
         <template v-slot:button>
             <div class="btn-class" @mouseenter="isHover = true" @mouseleave="isHover = false"
                 :style="{ width: props.width + 'px', height: props.height + 'px', lineHeight: props.height + 'px', color: (urlMode ? 'blue' : 'inherit') }">
@@ -49,8 +67,8 @@ function contentClick(e) {
             </div>
         </template>
         <template v-slot:popup>
-            <div class="w-100 " style="font-size: 12px; line-height: 22px;">
-                <TextPropInput :image="props.image" :property="props.property" :auto-focus="true" :min-height="28"
+            <div class="w-100" style="font-size: 12px; line-height: 22px;">
+                <TextPropInput :image="props.image" :property="props.property" :auto-focus="true" :min-height="24"
                     :width="minWidth" :always-shadow="true" :no-nl="props.noNl" @save="dropdownElem.hide()"
                     :blur-on-enter="true" />
             </div>
