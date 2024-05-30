@@ -40,7 +40,7 @@ const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
 const localQuery = ref('')
 
-const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages).map(Number))
+const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number))
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 

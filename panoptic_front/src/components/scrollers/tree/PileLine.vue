@@ -2,6 +2,7 @@
 import { ScrollerPileLine, Property, Sha1Scores } from '@/data/models';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
+import { Ref } from 'vue';
 
 
 const props = defineProps({
@@ -12,7 +13,7 @@ const props = defineProps({
     hoverBorder: String,
     index: Object,
     properties: Array<Property>,
-    selectedImages: Object as () => SelectedImages,
+    selectedImages: Object as () => Ref<SelectedImages>,
     sha1Scores: Object as () => Sha1Scores
 })
 

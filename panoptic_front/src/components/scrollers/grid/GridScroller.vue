@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue';
+import { ShallowReactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, triggerRef, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ImageIterator, ROOT_ID } from '@/core/GroupManager';
@@ -33,6 +33,7 @@ const rowLines = shallowRef([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
+const resizeEvent = shallowRef(null)
 
 const totalPropWidth = computed(() => {
     const options = project.getTab().propertyOptions
@@ -130,15 +131,25 @@ function computePileLine(it: ImageIterator) {
 function resizeHeight(item: ScrollerLine, h) {
     // console.log('resize')
     if (item.size == h) return
-    // if(h < 35) return
-    // console.log(item.data.id, item.size, h)
     item.size = h
-
+    
     if (item.type == 'image') {
         lineSizes[item.data.id] = item.size
     }
-    // scroller.value.updateVisibleItems(true)
+    triggerRef(resizeEvent)
 }
+
+
+watch(resizeEvent, () => {
+    console.log('resize Event')
+    for(const line of rowLines.value) {
+        if(line.actif) continue
+        if(line.type != 'image') continue
+        line.size = project.getTab().imageSize + 4
+    }
+    rowLines.value = [...rowLines.value]
+    nextTick(() => scroller.value.updateVisibleItems(true))
+})
 
 let oldScroll = 0
 let oldIndex = 0
