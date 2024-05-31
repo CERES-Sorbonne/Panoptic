@@ -270,13 +270,6 @@ function isEmpty(value: any) {
     return value === undefined || value === '' || (Array.isArray(value) && value.length === 0) || value === null
 }
 
-
-function computeFilter(filter: Filter, propertyValue: any) {
-    let opFnc = operatorMap[filter.operator]
-    let res = opFnc(propertyValue, filter.value)
-    return res
-}
-
 function applyFilter(filter: Filter, instances: Instance[], properties: PropertyIndex, tags: TagIndex) {
     const property = properties[filter.propertyId]
     const values = instances.map(i => i.properties[property.id])
@@ -355,52 +348,6 @@ function applyGroupFilter(group: FilterGroup, instances: Instance[], properties:
     }
 
     return { valid, reject }
-}
-
-function computeGroupFilter(image: Instance, filterGroup: FilterGroup, properties: PropertyIndex, tags: TagIndex) {
-
-    if (filterGroup.filters.length == 0) {
-        return true
-    }
-
-    let groupOp = filterGroup.groupOperator ? filterGroup.groupOperator : FilterOperator.and
-    let res = groupOp == FilterOperator.and ? true : false
-    let groupOperatorFnc = operatorMap[groupOp]
-
-    for (let filter of filterGroup.filters) {
-        if (filter.isGroup) {
-            res = groupOperatorFnc(computeGroupFilter(image, filter, properties, tags), res)
-        }
-        else {
-            let nfilter = { ...filter } as Filter
-            let propId = nfilter.propertyId
-            let propType = properties[propId].type
-
-            let propertyValue = image.properties[propId]
-
-            if (propType == PropertyType.date && nfilter.value) {
-                nfilter.value = new Date(nfilter.value)
-                propertyValue = new Date(propertyValue)
-            }
-
-            if (Array.isArray(nfilter.value) && nfilter.value.length > 0 && isTag(propType)) {
-                let filterValue = nfilter.value as number[]
-
-                const tagSet = filterValue.map((v: number) => getTagChildren(properties[propId].tags[v], tags))
-                nfilter.value = tagSet
-                if (!isEmpty(propertyValue)) {
-                    propertyValue = new Set(propertyValue)
-                }
-            }
-            if (propType == PropertyType.string && propertyValue) {
-                propertyValue = propertyValue.toLowerCase()
-                nfilter.value = nfilter.value.toLowerCase()
-            }
-            let subRes = computeFilter(nfilter, propertyValue)
-            res = groupOperatorFnc(res, subRes)
-        }
-    }
-    return res
 }
 
 export class FilterManager {
