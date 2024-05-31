@@ -154,30 +154,44 @@ const operatorMap: { [operator in FilterOperator]?: any } = {
         if (isEmpty(a)) return false;
         return a.includes(b)
     },
-    [FilterOperator.containsAll]: (a: Set<number>, b: number[][]) => {
+    [FilterOperator.containsAll]: (a: number[], b: Set<number>[]) => {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return false;
 
-        for (let tagList of b) {
-            if (!tagList.some(tId => a.has(tId))) return false
+        for (let tag of a) {
+            for (let tagSet of b) {
+                if (!tagSet.has(tag)) {
+                    return false
+                }
+            }
         }
         return true
-        // return b.filter(e => a.includes(e)).length == b.length
     },
-    [FilterOperator.containsAny]: (a: Set<number>, b: number[][]) => {
+    [FilterOperator.containsAny]: (a: number[], b: Set<number>[]) => {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return false;
         // return a.some(e => b.includes(e))
 
-        for (let tagList of b) {
-            if (tagList.some(tId => a.has(tId))) return true
+        for (let tag of a) {
+            for (let tagSet of b) {
+                if (tagSet.has(tag)) {
+                    return true
+                }
+            }
         }
         return false
     },
-    [FilterOperator.containsNot]: (a: Set<number>, b: number[][]) => {
+    [FilterOperator.containsNot]: (a: number[], b: Set<number>[]) => {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return true;
-        return !b.some(e => e.some(tagId => a.has(tagId)))
+        for (let tag of a) {
+            for (let tagSet of b) {
+                if (tagSet.has(tag)) {
+                    return false
+                }
+            }
+        }
+        return true
     },
     [FilterOperator.equal]: (a: any, b: any) => {
         if (isEmpty(b)) return true;
@@ -263,6 +277,86 @@ function computeFilter(filter: Filter, propertyValue: any) {
     return res
 }
 
+function applyFilter(filter: Filter, instances: Instance[], properties: PropertyIndex, tags: TagIndex) {
+    const property = properties[filter.propertyId]
+    const values = instances.map(i => i.properties[property.id])
+    const operatorFunc = operatorMap[filter.operator]
+    let filterValue = filter.value
+
+    if (isTag(property.type) && filterValue) {
+        const childrens = filterValue.map(v => new Set([...tags[v].allChildren, v]))
+        filterValue = new Set(childrens)
+    }
+    if (property.type == PropertyType.date) {
+        if (filterValue) {
+            filterValue = new Date(filterValue)
+        }
+        for (let [i, v] of values.entries()) {
+            if (!v) continue
+            values[i] = new Date(v)
+        }
+    }
+    if (property.type == PropertyType.string) {
+        if (filterValue) {
+            filterValue = filterValue.toLowerCase()
+        }
+        for (let [i, v] of values.entries()) {
+            if (!v) continue
+            values[i] = v.toLowerCase()
+        }
+    }
+    const valid = []
+    const reject = []
+    for (let i = 0; i < instances.length; i++) {
+        if (operatorFunc(values[i], filterValue)) {
+            valid.push(instances[i])
+        } else {
+            reject.push(instances[i])
+        }
+    }
+    return { valid, reject }
+}
+
+function applyGroupFilter(group: FilterGroup, instances: Instance[], properties: PropertyIndex, tags: TagIndex) {
+    if (!group.filters.length) {
+        return { valid: instances, reject: [] }
+    }
+    let valid = []
+    let reject = []
+
+    let test = [...instances]
+
+    for (let filter of group.filters) {
+        let res
+        if (filter.isGroup) {
+            res = applyGroupFilter(filter, test, properties, tags)
+        } else {
+            res = applyFilter(filter as Filter, test, properties, tags)
+        }
+        for(let v of res.valid) {
+            valid.push(v)
+        }
+        for(let r of res.reject) {
+            reject.push(r)
+        }
+
+        if (group.groupOperator == FilterOperator.and) {
+            test = valid
+            valid = []
+        } else {
+            test = reject
+            reject = []
+        }
+    }
+    if (group.groupOperator == FilterOperator.and) {
+        valid = test
+    } else {
+        reject = test
+    }
+
+    return { valid, reject }
+}
+
 function computeGroupFilter(image: Instance, filterGroup: FilterGroup, properties: PropertyIndex, tags: TagIndex) {
 
     if (filterGroup.filters.length == 0) {
@@ -284,7 +378,7 @@ function computeGroupFilter(image: Instance, filterGroup: FilterGroup, propertie
 
             let propertyValue = image.properties[propId]
 
-            if(propType == PropertyType.date && nfilter.value) {
+            if (propType == PropertyType.date && nfilter.value) {
                 nfilter.value = new Date(nfilter.value)
                 propertyValue = new Date(propertyValue)
             }
@@ -298,7 +392,7 @@ function computeGroupFilter(image: Instance, filterGroup: FilterGroup, propertie
                     propertyValue = new Set(propertyValue)
                 }
             }
-            if(propType == PropertyType.string && propertyValue) {
+            if (propType == PropertyType.string && propertyValue) {
                 propertyValue = propertyValue.toLowerCase()
                 nfilter.value = nfilter.value.toLowerCase()
             }
@@ -382,7 +476,9 @@ export class FilterManager {
             const folderSet = new Set(this.state.folders)
             filtered = filtered.filter(img => folderSet.has(img.folderId))
         }
-        this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
+        const res = applyGroupFilter(this.state.filter, filtered, data.properties, data.tags)
+        // this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
+        this.result.images = res.valid
         console.timeEnd('Filter')
 
         if (emit) this.onChange.emit(this.result)
@@ -516,7 +612,7 @@ export class FilterManager {
         this.registerFilter(this.state.filter)
     }
 
- 
+
     private registerFilter(filter: AFilter) {
         if (filter.id >= 0) {
             console.error('registerFilter should not receive a filter with valid id')
@@ -542,7 +638,7 @@ export class FilterManager {
     private nextIndex() {
         const ids = Object.keys(this.filterIndex).map(Number)
         let index = 0
-        if(ids.length) {
+        if (ids.length) {
             index = Math.max(...ids) + 1
         }
         if (index === this.lastFilterId) {
