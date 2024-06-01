@@ -87,12 +87,12 @@ function onHide() {
 function deleteFilter() {
     hide()
     props.manager.deleteFilter(filterId.value)
-    props.manager.update(true)
+    // props.manager.update(true)
 }
 
 function updateProperty(propId) {
     let filter = props.manager.addNewFilter(propId, props.parentId)
-    props.manager.update(true)
+    // props.manager.update(true)
     localFilterId.value = filter.id
     mode.value = State.MODE
 }
@@ -100,7 +100,7 @@ function updateProperty(propId) {
 function updateOperator(operator: FilterOperator) {
     localValue.value = null
     props.manager.updateFilter(filterId.value, { operator })
-    props.manager.update(true)
+    // props.manager.update(true)
     if (inputElem.value) {
         inputElem.value.focus()
     }
@@ -109,7 +109,7 @@ function updateOperator(operator: FilterOperator) {
 function updateValue() {
     console.log('update value', localValue.value)
     props.manager.updateFilter(filterId.value, { value: localValue.value })
-    props.manager.update(true)
+    // props.manager.update(true)
 }
 
 function updateIfChanged() {

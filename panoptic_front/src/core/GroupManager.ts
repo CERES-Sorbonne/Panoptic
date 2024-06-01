@@ -746,7 +746,6 @@ export class GroupManager {
             }
         }
 
-
         sortGroup(group, option)
 
     }

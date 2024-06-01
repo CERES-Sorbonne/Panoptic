@@ -4,15 +4,16 @@
  */
 
 import { InstanceIndex } from "@/data/models";
-import { FilterManager, FilterResult, FilterState } from "./FilterManager";
+import { CollectionState, FilterManager, FilterResult, FilterState } from "./FilterManager";
 import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
 import { objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
-import { Ref } from "vue";
+import { Ref, reactive } from "vue";
 
 export class CollectionManager {
     images: InstanceIndex
+    state: CollectionState
     filterManager: FilterManager
     sortManager: SortManager
     groupManager: GroupManager
@@ -21,11 +22,15 @@ export class CollectionManager {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
+        this.state = reactive({ isDirty: false } as CollectionState)
 
         this.filterManager.onChange.addListener(this.onFilter.bind(this))
         this.sortManager.onChange.addListener(this.onSort.bind(this))
         this.groupManager.onChange.addListener(this.onGroup.bind(this))
-        
+
+        this.filterManager.onDirty.addListener(() => this.state.isDirty = true)
+
+
         // if(images) this.update(images)
 
     }
@@ -34,7 +39,7 @@ export class CollectionManager {
         this.filterManager.load(filterState)
         this.sortManager.load(sortState)
         this.groupManager.load(groupState)
-        
+
         // if(this.images) this.update(this.images)
     }
 
@@ -49,11 +54,12 @@ export class CollectionManager {
         // throw new Error('update')
         // console.log('update')
         this.images = images ?? this.images
-        if(!this.images) return
-        
+        if (!this.images) return
+
         const filterRes = await this.filterManager.filter(objValues(this.images))
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)
+        this.state.isDirty = false
     }
 
     private onFilter(result: FilterResult) {

@@ -68,7 +68,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function init() {
         console.log('init')
         if (!tabManager) {
-            tabManager = new TabManager(data.tabs[data.selectedTabId])
+            tabManager = new TabManager((data.tabs[data.selectedTabId]))
         }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
@@ -170,6 +170,10 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function applyCommit(commit: DbCommit) {
         dataStore.applyCommit(commit)
+        tabManager.collection.state.isDirty = true
+        if(getTab().autoReload) {
+            tabManager.collection.update()
+        }
     }
 
     function verifyData() {
@@ -211,6 +215,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function updateTabs() {
+        Object.assign(data.tabs[data.selectedTabId], tabManager.state)
         await apiSetTabs(data.tabs)
     }
 

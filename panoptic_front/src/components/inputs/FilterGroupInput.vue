@@ -28,22 +28,22 @@ const subGroupStyle = computed(() => {
 
 function updateProperty(filterId: number, propertyId: number) {
     props.manager.updateFilter(filterId, { propertyId })
-    props.manager.update(true)
+    // props.manager.update(true)
 }
 
 function deleteFilter(filter: Filter | FilterGroup) {
     props.manager.deleteFilter(filter.id)
-    props.manager.update(true)
+    // props.manager.update(true)
 }
 
 function addFilterGroup(filterId: number) {
     props.manager.addNewFilterGroup(filterId)
-    props.manager.update(true)
+    // props.manager.update(true)
 }
 
 function updateOperator(filterId: number, operator: FilterOperator.and | FilterOperator.or) {
     props.manager.updateFilterGroup(filterId, operator)
-    props.manager.update(true)
+    // props.manager.update(true)
 }
 
 </script>
