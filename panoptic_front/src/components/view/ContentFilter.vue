@@ -14,6 +14,7 @@ import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import { useProjectStore } from '@/data/projectStore';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
+import ToggleReload from '../toggles/ToggleReload.vue';
 
 const project = useProjectStore()
 
@@ -116,6 +117,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
+        <ToggleReload class="me-1"/>
         <FilterForm :manager="props.tab.collection.filterManager" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
         <SortForm :manager="props.tab.collection.sortManager" />

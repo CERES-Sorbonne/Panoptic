@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { computed, shallowRef, triggerRef } from "vue";
+import { computed, ref, shallowRef, triggerRef } from "vue";
 import { DbCommit, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyIndex, Sha1ToInstances, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
 import { SERVER_PREFIX } from "./api";
@@ -12,7 +12,7 @@ const deletedName = 'Deleted'
 export const useDataStore = defineStore('dataStore', () => {
 
     const instances = shallowRef<InstanceIndex>({})
-    const properties = shallowRef<PropertyIndex>({})
+    const properties = ref<PropertyIndex>({})
     const tags = shallowRef<TagIndex>({})
 
     const sha1Index = shallowRef<Sha1ToInstances>({})
