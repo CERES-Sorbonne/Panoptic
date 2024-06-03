@@ -5,20 +5,20 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, ref, shallowReactive, shallowRef, watch } from "vue";
-import { Actions, Colors, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { computed, nextTick, reactive, ref, shallowRef, watch } from "vue";
+import { Actions, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
-import { buildFolderNodes, computeContainerRatio, computeTagCount, countImagePerFolder, setTagsChildren } from "./storeutils";
+import { buildFolderNodes, computeTagCount } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
-import { deepCopy, getTagChildren, getTagParents, sleep } from "@/utils/utils";
+import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 
 let tabManager: TabManager = undefined
 
 export const test = shallowRef({ count: 0 })
 
-export const softwareUiVersion = 1
+export const softwareUiVersion = 2
 
 export const useProjectStore = defineStore('projectStore', () => {
 
@@ -100,7 +100,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updateRoutine(routine)
         updatePropertyOptions()
 
-        // computeTagCount(imageList.value, properties)
+        computeTagCount()
 
         // TODO: put back
         // countImagePerFolder(data.folders, imageList.value)
