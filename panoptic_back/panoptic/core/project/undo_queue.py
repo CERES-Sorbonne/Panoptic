@@ -1,5 +1,5 @@
 from panoptic.core.project.project_db import ProjectDb
-from panoptic.models import DbCommit, CommitStat
+from panoptic.models import DbCommit, CommitStat, CommitHistory
 
 
 class UndoQueue:
@@ -12,6 +12,8 @@ class UndoQueue:
         self._to_redo.clear()
         inverse = await self._db.apply_commit(commit)
         self._to_undo.append(inverse)
+        undo, redo = self.stats()
+        commit.history = CommitHistory(undo=undo, redo=redo)
         return commit
 
     async def undo(self):
@@ -20,6 +22,8 @@ class UndoQueue:
         last = self._to_undo.pop()
         inverse = await self._db.apply_commit(last)
         self._to_redo.append(inverse)
+        undo, redo = self.stats()
+        last.history = CommitHistory(undo=undo, redo=redo)
         return last
 
     async def redo(self):
@@ -28,6 +32,8 @@ class UndoQueue:
         last = self._to_redo.pop()
         inverse = await self._db.apply_commit(last)
         self._to_undo.append(inverse)
+        undo, redo = self.stats()
+        last.history = CommitHistory(undo=undo, redo=redo)
         return last
 
     def stats(self):

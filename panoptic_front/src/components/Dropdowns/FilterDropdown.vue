@@ -104,6 +104,9 @@ function updateOperator(operator: FilterOperator) {
     if (inputElem.value) {
         inputElem.value.focus()
     }
+    if(!operatorHasInput(operator)) {
+        hide()
+    }
 }
 
 function updateValue() {

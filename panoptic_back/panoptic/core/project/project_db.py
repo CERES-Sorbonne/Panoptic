@@ -179,7 +179,6 @@ class ProjectDb:
             for tag in new_tags:
                 tag_index[tag.id] = tag
             for tag in updated_tags:
-                print(tag)
                 parents = list(tag.parents)
                 for parent_id in parents:
                     if parent_id == 0:
@@ -239,8 +238,6 @@ class ProjectDb:
         return await self._db.set_plugin_data(key, value)
 
     async def apply_commit(self, commit: DbCommit):
-        # print('commit:')
-        # print(commit)
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
 
@@ -321,7 +318,6 @@ class ProjectDb:
                 if v.property_id not in existing:
                     existing[v.property_id] = {}
                 existing[v.property_id][v.instance_id] = True
-            print(commit.instance_values)
             await self._db.import_instance_property_values(commit.instance_values)
 
             missing_ids = [v for v in commit.instance_values

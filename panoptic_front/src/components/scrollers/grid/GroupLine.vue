@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import PropertyValueVue from '@/components/properties/PropertyValue.vue';
+import { SelectedImages } from '@/core/GroupManager';
 import { GroupLine, PropertyValue, ScrollerLine } from '@/data/models';
 import { getGroupParents } from '@/utils/utils';
-import { computed, guardReactiveProps } from 'vue';
+import { Ref, computed, guardReactiveProps } from 'vue';
 
 
-const props = defineProps({
-    item: Object as () => GroupLine,
-    width: Number
-})
+
+const props = defineProps<{
+  item: GroupLine
+  width: number
+  selectedImages: Ref<SelectedImages>
+}>()
+
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
 
 const closed = computed(() => getGroupParents(props.item.data).some(g => g.view.closed) || props.item.data.view.closed)
@@ -22,6 +26,8 @@ function toggleClosed() {
         emits('close:group', props.item.data.id)
     }
 }
+
+const selected = computed(() => !props.item.data.images.some(i => !props.selectedImages.value[i.id]))
 
 const propertyValues = computed(() => {
     const res = []
@@ -42,7 +48,7 @@ const propertyValues = computed(() => {
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
-        <div class="me-2"><SelectCircle :model-value="props.item.data.view.selected" @update:model-value="emits('toggle:group', props.item.data.id)"/></div>
+        <div class="me-2"><SelectCircle :model-value="selected" @update:model-value="emits('toggle:group', props.item.data.id)"/></div>
         <template v-for="value, index in propertyValues">
             <PropertyValueVue class="" :value="value" />
             <div v-if="index < propertyValues.length - 1" class="separator">&</div>

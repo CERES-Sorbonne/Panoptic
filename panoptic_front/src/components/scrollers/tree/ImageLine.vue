@@ -21,7 +21,6 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
 const selected = computed(() => {
     const res = {}
     props.item.data.forEach(it => res[it.image.id] = props.selectedImages.value[it.image.id])
-    // console.log(res, props.selectedImages.value, props.item.data.map(d => d.image.id))
     return res
 })
 

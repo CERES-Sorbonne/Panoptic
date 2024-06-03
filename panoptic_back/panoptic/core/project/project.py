@@ -54,8 +54,9 @@ class Project:
         self.ui = ProjectUi(self.db.get_raw_db())
 
         self.db.on_import_instance.redirect(self.on.import_instance)
-        from panoptic.plugins import DefaultPlugin
-        paths = [DefaultPlugin.__file__, *self.plugin_paths]
+        # from panoptic.plugins import DefaultPlugin
+        # paths = [DefaultPlugin.__file__, *self.plugin_paths]
+        paths = self.plugin_paths
         for plugin_path in paths:
             task = LoadPluginTask(self, plugin_path)
             self.task_queue.add_task(task)

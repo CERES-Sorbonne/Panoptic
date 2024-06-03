@@ -40,8 +40,8 @@ function setMode(value) {
             </div>
             <div class="flex-grow-1"></div>
             <div class="selection-stamp" style="line-height: 18px; margin: 3px 5px 0 0"
-                v-if="Object.keys(groupManager.selectedImages).length > 0">
-                <SelectionStamp :selected-images-ids="Object.keys(groupManager.selectedImages).map(Number)"
+                v-if="Object.keys(groupManager.selectedImages.value).length > 0">
+                <SelectionStamp :selected-images-ids="Object.keys(groupManager.selectedImages.value).map(Number)"
                     @remove:selected="groupManager.clearSelection()" />
             </div>
 

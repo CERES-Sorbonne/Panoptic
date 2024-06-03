@@ -15,7 +15,7 @@ export class TabManager {
     constructor(state?: TabState) {
         this.isLoaded = false
         this.state = reactive({} as TabState)
-        this.collection = new CollectionManager()
+        this.collection = new CollectionManager(undefined, undefined, undefined, undefined, undefined, this.state)
         this.onLoad = new EventEmitter()
 
         if(state) this.load(state)

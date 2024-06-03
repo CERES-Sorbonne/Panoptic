@@ -311,6 +311,7 @@ class DbCommit:
     timestamp: datetime = field(default_factory=datetime.now)
 
     undo: bool | None = False
+    history: CommitHistory | None = None
 
 
 @dataclass

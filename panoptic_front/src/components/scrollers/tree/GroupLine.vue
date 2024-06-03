@@ -6,7 +6,7 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { Group, GroupManager, GroupTree, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
-import { GroupLine, GroupResult, Instance, InstancePropertyValue, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
+import { DbCommit, GroupLine, GroupResult, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
@@ -92,52 +92,49 @@ async function saveHirachy() {
 
     saving.value = true
     const children = group.value.children
-    const property = await project.addProperty('Clustering', PropertyType.multi_tags, PropertyMode.id)
+    const property: Property = {id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: PropertyMode.id}
     let id = 0
     const idFunc = () => { id -= 1; return id }
     const tagToImages: { [tagId: number]: Instance[] } = {}
-    const tags = childrenToTags(children, idFunc, buildTag(0, property.id, 'cluster'), tagToImages)
-    console.log(tagToImages)
-    const fakeIdToReal: { [id: number]: Tag } = { 0: { id: 0, value: '', parents: [], propertyId: property.id } }
-
-    tags.sort((a, b) => a.parents.length - b.parents.length)
-    for (let tag of tags) {
-        const oldLast = tag.parents[tag.parents.length - 1]
-        tag.parents = tag.parents.map(p => fakeIdToReal[p].id)
-        const lastParent = tag.parents[tag.parents.length - 1]
-        const color = oldLast != 0 ? fakeIdToReal[oldLast].color : undefined
-        const realTag = await project.addTag(tag.propertyId, tag.value, [lastParent], color)
-        fakeIdToReal[tag.id] = realTag
-    }
-    console.log('created tags')
+    const tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
 
     const instanceValues: InstancePropertyValue[] = []
     for (let tagId in tagToImages) {
         const images = tagToImages[tagId]
-        const realTag = fakeIdToReal[tagId]
         for (let img of images) {
-            instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [realTag.id] })
+            instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [Number(tagId)] })
         }
     }
 
-    await project.setPropertyValues(instanceValues, [])
+    // await project.setPropertyValues(instanceValues, [])
+
+    const commit: DbCommit = {
+        properties: [property],
+        tags: tags,
+        instanceValues: instanceValues
+    }
+
+    await project.sendCommit(commit)
 
     saving.value = false
 }
 
-function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Instance[] }) {
+function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Instance[] }, propertyId: number) {
     const res: Tag[] = []
-    const prefix = parentTag?.value ?? ''
-    const parents = [...parentTag.parents, parentTag.id]
+    const prefix = parentTag?.value ?? 'Cluster'
+    const parents = []
+    if(parentTag) {
+        parents.push(...parentTag.parents, parentTag.id)
+    }
 
     for (let i = 0; i < children.length; i++) {
         const child = children[i]
         const value = prefix + '.' + i
-        const tag = buildTag(idFunc(), parentTag.propertyId, value, parents)
+        const tag = buildTag(idFunc(), propertyId, value, parents)
         res.push(tag)
 
         if (child.children.length && child.subGroupType != GroupType.Sha1) {
-            const subRes = childrenToTags(child.children, idFunc, tag, tagToImages)
+            const subRes = childrenToTags(child.children, idFunc, tag, tagToImages, propertyId)
             res.push(...subRes)
         } else {
             tagToImages[tag.id] = child.images

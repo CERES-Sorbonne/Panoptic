@@ -140,8 +140,8 @@ export interface DeleteTagResult {
     updatedTags: Tag[]
 }
 
-export function buildTag(id: number, propertyId: number, value: string, parents?: number[]) {
-    return { id, propertyId, value, parents: parents ?? [] }
+export function buildTag(id: number, propertyId: number, value: string, parents?: number[], color: number = -1) {
+    return { id, propertyId, value, parents: parents ?? [], color: color }
 }
 
 //=============================
@@ -472,6 +472,9 @@ export interface DbCommit {
     tags?: Tag[]
     instanceValues?: InstancePropertyValue[]
     imageValues?: ImagePropertyValue[]
+
+    undo?: boolean
+    history?: CommitHistory
 }
 
 export interface CommitStat {
