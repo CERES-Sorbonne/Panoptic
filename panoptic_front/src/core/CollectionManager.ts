@@ -17,8 +17,9 @@ export class CollectionManager {
     filterManager: FilterManager
     sortManager: SortManager
     groupManager: GroupManager
+    options: { autoReload: boolean }
 
-    constructor(images?: InstanceIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
+    constructor(images?: InstanceIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>, options?: { autoReload: boolean }) {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
@@ -28,7 +29,8 @@ export class CollectionManager {
         this.sortManager.onChange.addListener(this.onSort.bind(this))
         this.groupManager.onChange.addListener(this.onGroup.bind(this))
 
-        this.filterManager.onDirty.addListener(() => this.state.isDirty = true)
+        this.filterManager.onDirty.addListener(() => this.setDirty())
+        this.options = options ?? { autoReload: false }
 
 
         // if(images) this.update(images)
@@ -48,6 +50,13 @@ export class CollectionManager {
         this.filterManager.verifyState(data.properties)
         this.sortManager.verifyState(data.properties)
         this.groupManager.verifyState(data.properties)
+    }
+
+    setDirty() {
+        this.state.isDirty = true
+        if(this.options.autoReload) {
+            this.update()
+        }
     }
 
     async update(images?: InstanceIndex) {

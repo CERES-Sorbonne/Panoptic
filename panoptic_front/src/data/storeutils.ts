@@ -42,6 +42,10 @@ export function computeTagCount() {
     const images = data.instanceList
     const properties = data.propertyList.filter(p => isTag(p.type))
 
+    for(let tag of Object.values(tags)) {
+        tag.count = 0
+    }
+
     for(let prop of properties) {
         const grouper = new GroupManager()
         grouper.setGroupOption(prop.id)

@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DeleteTagResult, DirInfo, ExecuteActionPayload, ImageIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update } from './models'
+import { DeleteTagResult, DirInfo, ExecuteActionPayload, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update, Instance } from './models'
 import { SelectionStatus } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -22,11 +22,6 @@ async function uploadFile(route: string, file) {
     return res
 }
 // axios.interceptors.response.use()
-
-export const apiGetImages = async (): Promise<ImageIndex> => {
-    const res = await axios.get(`/images`)
-    return keysToCamel(Object.values(res.data))
-}
 
 export async function apiGetDbState() {
     const res = await axios.get('/db_state')
@@ -222,7 +217,7 @@ export async function apiCommit(commit: DbCommit) {
     if(commit.instanceValues) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
     if(commit.imageValues) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
 
-    // console.log(fixed)
+    console.log(fixed)
     const res = await axios.post('/commit', fixed)
     return keysToCamel(res.data) as DbCommit
 }

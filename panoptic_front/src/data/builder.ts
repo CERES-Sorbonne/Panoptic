@@ -19,7 +19,9 @@ export function buildTabState(): TabState {
         visibleFolders: {},
         selectedFolders: {},
         propertyOptions: {},
-        sha1Mode: true
+        similarityDist: 70,
+        sha1Mode: true,
+        autoReload: true
     })
 }
 

@@ -37,7 +37,7 @@ const properties = computed(() => {
 
 const selectedCount = computed(() => {
     const tabManager = project.getTabManager()
-    return Object.keys(tabManager.collection.groupManager.selectedImages).length
+    return Object.keys(tabManager.collection.groupManager.selectedImages.value).length
 })
 
 const visibleCount = computed(() => {
@@ -102,7 +102,7 @@ async function buildRequest() {
         req.name = state.name
     }
     if (state.selection == 'selected') {
-        req.images = Object.keys(project.getTabManager().collection.groupManager.selectedImages).map(Number)
+        req.images = Object.keys(project.getTabManager().collection.groupManager.selectedImages.value).map(Number)
     }
     if (state.selection == 'filtered') {
         req.images = project.getTabManager().collection.filterManager.result.images.map(i => i.id)
@@ -134,17 +134,6 @@ async function buildRequest() {
                                     :placeholder="$t('modals.export.name_placeholder')" v-model="state.name" />
                             </td>
                         </tr>
-                        <!-- <tr class="option-row">
-                        <td class="option-label">{{ $t('modals.export.mode_label') }}</td>
-                        <td class="d-flex options">
-                            <div class="option flex-grow-1" :class="getClass(state.mode, 'image')"
-                                @click="set('mode', 'image')">{{ $t('modals.export.mode_image') }}</div>
-                            <div class="separator"></div>
-                            <div class="option flex-grow-1" :class="getClass(state.mode, 'instance')"
-                                @click="set('mode', 'instance')">{{ $t('modals.export.mode_instance') }}</div>
-                        </td>
-
-                    </tr> -->
                         <tr class="option-row">
                             <td class="option-label">{{ $t('modals.export.selection_label') }}</td>
                             <td class="d-flex options">

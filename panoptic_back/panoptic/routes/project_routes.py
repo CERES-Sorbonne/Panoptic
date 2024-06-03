@@ -137,7 +137,8 @@ async def reimport_folder_route(req: IdRequest):
 
 @project_router.post('/action_execute')
 async def execute_action_route(req: ExecuteActionPayload):
-    return await project.action.call(req.function, req.context)
+    res = await project.action.call(req.function, req.context)
+    return ORJSONResponse(res)
 
 
 @project_router.get('/actions')
@@ -186,28 +187,27 @@ async def set_default_vectors(vector_description: VectorDescription):
 
 @project_router.post('/undo')
 async def undo_route():
-    return await project.undo_queue.undo()
+    res = await project.undo_queue.undo()
+    return ORJSONResponse(res)
 
 
 @project_router.post('/redo')
 async def undo_route():
-    return await project.undo_queue.redo()
+    res = await project.undo_queue.redo()
+    return ORJSONResponse(res)
 
 
 @project_router.post('/commit')
 async def commit_route(commit: DbCommit):
-    print(commit)
     if commit.undo:
         await project.undo_queue.do(commit)
-        return commit
-    await project.db.apply_commit(commit)
-    return commit
+    else:
+        await project.db.apply_commit(commit)
+    return ORJSONResponse(commit)
 
 
 @project_router.get('/small/images/{file_path:path}')
 async def get_image(file_path: str):
-    print('lalaal')
-    print(file_path)
     path = os.path.join(project.base_path, 'mini', file_path)
     return FileResponse(path=path)
 

@@ -2,7 +2,7 @@
 import { ScrollerPileLine, Property, Sha1Scores } from '@/data/models';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
-import { Ref } from 'vue';
+import { Ref, computed } from 'vue';
 
 
 const props = defineProps({
@@ -19,6 +19,13 @@ const props = defineProps({
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
 
+
+const selected = computed(() => {
+    const res = {}
+    props.item.data.forEach(it => res[it.image.id] = props.selectedImages.value[it.image.id])
+    return res
+})
+
 </script>
 
 <template>
@@ -28,7 +35,7 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <ImageVue :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="props.selectedImages[imageIt.image.id]" :score="(props.sha1Scores ? props.sha1Scores[imageIt.image.sha1] : undefined)"
+            :properties="props.properties" :selected="selected[imageIt.image.id]" :score="(props.sha1Scores ? props.sha1Scores[imageIt.image.sha1] : undefined)"
             @update:selected="v => emits('update:selected-image', { id: imageIt.image.id, value: v })"
             v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
 

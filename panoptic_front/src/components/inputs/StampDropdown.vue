@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode } from '@/data/models';
+import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType } from '@/data/models';
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
@@ -46,7 +46,7 @@ async function apply() {
     for (let propId of Object.keys(stamp).map(Number)) {
         for (let img of props.images) {
             let stampValue = stamp[propId]
-            if (isTag(data.properties[propId].type) && img.properties[propId] && stampValue) {
+            if (data.properties[propId].type == PropertyType.multi_tags && img.properties[propId] && stampValue) {
                 stampValue = Array.from(new Set([...img.properties[propId], ...stampValue]))
             }
             if (data.properties[propId].mode == PropertyMode.id) {

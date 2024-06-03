@@ -14,7 +14,8 @@ from panoptic.models import PropertyType, Instance, Property
 def _copy_images(images: List[Instance], destination_folder: str) -> None:
     os.makedirs(destination_folder, exist_ok=True)
     for image in images:
-        url = image.url.replace("/images/", "", 1)
+        # url = image.url.replace("/images/", "", 1)
+        url = image.url
         try:
             shutil.copy(url, destination_folder)
         except BaseException:
@@ -24,7 +25,7 @@ def _copy_images(images: List[Instance], destination_folder: str) -> None:
 def get_name(p: Property):
     if p.id == -1:
         return p.name
-    return f'{p.name}[{p.type.value}]'
+    return f'{p.name}[{p.type}]'
 
 
 class Exporter:

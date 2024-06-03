@@ -6,8 +6,10 @@ import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { ModalId } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
+const data = useDataStore()
 const panoptic = usePanopticStore()
 
 const props = defineProps<{
@@ -23,7 +25,7 @@ const emits = defineEmits(['update:modelValue']);
 
 const elem = ref(null)
 const localValue = ref(props.modelValue)
-const defaultProperty = ref(project.propertyList[0])
+const defaultProperty = ref(data.propertyList[0])
 function focus() {
     // console.log('focus', elem.value)
     if (elem.value) {
@@ -33,8 +35,8 @@ function focus() {
 
 watch(() => props.modelValue, () => localValue.value = props.modelValue)
 watch(localValue, () => {
-    if(props.type == 'property' && localValue.value in project.data.properties) {
-        defaultProperty.value = project.data.properties[localValue.value]
+    if(props.type == 'property' && localValue.value in data.properties) {
+        defaultProperty.value = data.properties[localValue.value]
     }
 
     if (localValue.value != props.modelValue) {
@@ -48,10 +50,10 @@ watch(localValue, () => {
 
 onMounted(() => {
     if(props.type == 'property' && props.modelValue == undefined) {
-        localValue.value = project.propertyList[0]?.id
+        localValue.value = data.propertyList[0]?.id
     }
-    if(props.type == 'property' && localValue.value in project.data.properties) {
-        defaultProperty.value = project.data.properties[localValue.value]
+    if(props.type == 'property' && localValue.value in data.properties) {
+        defaultProperty.value = data.properties[localValue.value]
     }
 
 })
@@ -75,7 +77,7 @@ onMounted(() => {
                 <input type="checkbox" v-model="localValue" ref="elem" />
             </div>
             <div v-if="props.type == 'property'">
-                <div v-if="!project.propertyList.length" class="disabled rounded ps-1 pe-1" >Create Property First</div>
+                <div v-if="!data.propertyList.length" class="disabled rounded ps-1 pe-1" >Create Property First</div>
                 <PropertyDropdown v-else v-model="defaultProperty" @update:model-value="localValue = defaultProperty.id"/>
             </div>
         </div>

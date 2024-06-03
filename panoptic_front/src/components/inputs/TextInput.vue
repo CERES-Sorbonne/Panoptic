@@ -5,7 +5,7 @@ import { keyState } from '@/data/keyState';
 
 const props = withDefaults(defineProps<{
     tag: string
-    editable?: boolean | string
+    editable?: boolean
     modelValue: any
     noHtml?: boolean
     noNl?: boolean

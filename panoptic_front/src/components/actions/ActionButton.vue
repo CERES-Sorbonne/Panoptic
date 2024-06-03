@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, onMounted, watch, computed, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { ActionContext, ExecuteActionPayload, Image, ParamDescription } from '@/data/models';
+import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
 import { apiCallActions } from '@/data/api';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
 import ActionSelect from './ActionSelect.vue';
 import { useActionStore } from '@/data/actionStore';
 import { objValues } from '@/utils/utils';
+import { useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
+const data = useDataStore()
 const actions = useActionStore()
 
 const props = defineProps<{
     action: string
-    images?: Image[]
+    images?: Instance[]
     propertyIds?: number[]
 }>()
 const emits = defineEmits(['instances', 'groups'])
@@ -23,6 +25,7 @@ const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref(null)
 const setDefault = ref(false)
+const loading = ref(false)
 
 function loadAction() {
     localFunction.value = defaultFunction.value
@@ -33,7 +36,7 @@ function loadInput() {
     const funcId = localFunction.value
     if (!funcId) return
 
-    if(!actions.index[funcId]) return
+    if (!actions.index[funcId]) return
     const params = actions.index[funcId].params
 
     // const inputs = []
@@ -44,37 +47,44 @@ function loadInput() {
 }
 
 async function call() {
-    console.log(localFunction.value, defaultFunction.value)
-    const uiInputs = {}
-    for (let input of localInputs.value) {
-        if(input.type == 'property' && !input.defaultValue && project.propertyList.length) {
-            input.defaultValue = project.propertyList[0].id
+    if (loading.value) return
+    loading.value = true
+    try {
+        console.log(localFunction.value, defaultFunction.value)
+        const uiInputs = {}
+        for (let input of localInputs.value) {
+            if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
+                input.defaultValue = data.propertyList[0].id
+            }
+            uiInputs[input.name] = input.defaultValue
         }
-        uiInputs[input.name] = input.defaultValue
-    }
-    const imageIds = props.images.map(i => i.id)
-    const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
-    const req: ExecuteActionPayload = { function: localFunction.value, context: context }
-    const res = await project.call(req)
+        const imageIds = props.images.map(i => i.id)
+        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
+        const req: ExecuteActionPayload = { function: localFunction.value, context: context }
+        const res = await project.call(req)
 
-    if(res.groups) {
-        emits('groups', res.groups)
-    }
-    if(res.instances) {
-        emits('instances', res.instances)
-    }
-
-    if (setDefault.value) {
-        const funcId = localFunction.value
-        for (let i in localInputs.value) {
-            actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
+        if (res.groups) {
+            emits('groups', res.groups)
         }
-        await actions.updateDefaultParams()
+        if (res.instances) {
+            emits('instances', res.instances)
+        }
 
-        const update = {}
-        update[props.action] = localFunction.value
-        await actions.updateDefaultActions(update)
+        if (setDefault.value) {
+            const funcId = localFunction.value
+            for (let i in localInputs.value) {
+                actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
+            }
+            await actions.updateDefaultParams()
+
+            const update = {}
+            update[props.action] = localFunction.value
+            await actions.updateDefaultActions(update)
+        }
+    } catch(e) {
+
     }
+    loading.value = false
 }
 
 function setRef(elem, i) {
@@ -92,6 +102,9 @@ watch(project.actions, loadAction)
 
 <template>
     <div id="group-action-button" class="main d-flex flex-center" v-if="localFunction">
+        <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
         <div @click="call">{{ $t('action.' + props.action) }}</div>
         <div class="sep ms-1"></div>
         <Dropdown :teleport="true">

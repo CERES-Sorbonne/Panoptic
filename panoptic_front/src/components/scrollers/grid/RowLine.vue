@@ -10,7 +10,7 @@ import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Group } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
-import { ModalId, PileRowLine, Property, PropertyType, RowLine } from '@/data/models';
+import { ModalId, PileRowLine, Property, PropertyID, PropertyType, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import { isTag, objValues } from '@/utils/utils';
@@ -209,7 +209,7 @@ watch(() => props.properties, () => {
             <TextPropInput v-else-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :url-mode="true" :width="inputWidth[property.id]" style="padding-left: 3px;"/>
-            <TextPropInput v-else-if="property.type == PropertyType.path" :min-height="props.item.size" :no-nl="true"
+            <TextPropInput v-else-if="property.type == PropertyType.path && property.id != -7" :min-height="props.item.size" :no-nl="true"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :url-mode="false" :width="inputWidth[property.id]" style="padding-left: 3px;" />
             <div v-else-if="isTag(property.type)" style="padding-left: 2px;">
@@ -233,19 +233,18 @@ watch(() => props.properties, () => {
             <DatePropInput v-else-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <div v-else-if="property.type == PropertyType._ahash"
-                :style="{ height: propMinRowHeight[property.id] + 'px' }" class="ps-1 overflow-hidden">
-                {{ image.properties[property.id]?.value }}
-            </div>
             <div v-else-if="property.type == PropertyType._folders"
                 :style="{ height: propMinRowHeight[property.id] + 'px' }" class="ps-1 overflow-hidden">
-                <span v-if="image.properties[property.id]?.value != undefined">
-                    <TagBadge :tag="project.data.folders[image.properties[property.id]?.value].name" :color="-1" />
+                <span v-if="image.properties[property.id] != undefined">
+                    <TagBadge :tag="project.data.folders[image.properties[property.id]].name" :color="-1" />
                 </span>
             </div>
-            <div v-else :style="{ height: (propMinRowHeight[property.id]) + 'px' }" class="ps-1 overflow-hidden">
-                {{ image.properties[property.id]?.value }}
-            </div>
+            <!-- <div v-else :style="{ height: (propMinRowHeight[property.id]) + 'px' }" class="ps-1 overflow-hidden break-word">
+                {{ image.properties[property.id] }}
+            </div> -->
+            <TextPropInput v-else :min-height="props.item.size" :no-nl="true" :edit="false"
+                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
+                :url-mode="false" :width="inputWidth[property.id]" style="padding-left: 3px;" />
             <!-- </template> -->
             <!-- <template v-else>None</template> -->
         </div>
