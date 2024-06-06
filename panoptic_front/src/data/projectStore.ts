@@ -168,6 +168,8 @@ export const useProjectStore = defineStore('projectStore', () => {
             import: {} as ImportState
         })
         tabManager = undefined
+
+        dataStore.clear()
     }
 
     function applyCommit(commit: DbCommit) {

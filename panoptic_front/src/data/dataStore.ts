@@ -142,10 +142,18 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(instances)
     }
 
+    function clear() {
+        instances.value = {}
+        properties.value = {}
+        tags.value = {}
+        sha1Index.value = {}
+    }
+
     return {
         instances, properties, tags,
         sha1Index, instanceList, propertyList,
-        applyCommit
+        applyCommit,
+        clear
     }
 
 })
