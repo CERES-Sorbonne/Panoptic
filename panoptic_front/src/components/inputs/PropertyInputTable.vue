@@ -42,7 +42,7 @@ function toggleProperty(property: Property) {
                     </td>
                     <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
                         <PropInput v-if="property.id > 0" :property="data.properties[property.id]" :image="image"
-                            :width="-1" :min-height="20"/>
+                            :width="-1" :min-height="-1"/>
                     </td>
                     <td v-else class="border-left" colspan="2"  style="width: 100%;">
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{ image.properties[property.id] }}</p>

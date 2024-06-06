@@ -670,7 +670,7 @@ export class GroupManager {
         const subGroups: { [key: string]: Group } = {}
         const tagWithParents = {}
         // console.log(property.tags)
-        if (isTag(property.type)) {
+        if (isTag(property.type) && property.tags) {
             for (let tag of objValues(property.tags)) {
                 tagWithParents[tag.id] = new Set(tag.allParents)
                 tagWithParents[tag.id].add(tag.id)
