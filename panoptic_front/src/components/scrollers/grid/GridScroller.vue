@@ -37,7 +37,7 @@ const resizeEvent = shallowRef(null)
 
 const totalPropWidth = computed(() => {
     const options = project.getTab().propertyOptions
-    let propSum = props.selectedProperties.map(p => options[p.id].size).reduce((a, b) => a + b, 0)
+    let propSum = props.selectedProperties.map(p => options[p.id]?.size ?? 0).reduce((a, b) => a + b, 0)
     if (props.showImages) {
         propSum += project.getTab().imageSize
     }

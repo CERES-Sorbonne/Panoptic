@@ -179,6 +179,7 @@ export const useProjectStore = defineStore('projectStore', () => {
             commit.properties.forEach(p => {
                 getTab().visibleProperties[p.id] = true
             })
+            updatePropertyOptions()
         }
         tabManager.collection.setDirty()
     }
