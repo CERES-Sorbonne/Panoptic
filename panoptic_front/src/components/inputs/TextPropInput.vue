@@ -31,6 +31,11 @@ const emits = defineEmits({ 'update:height': Number, 'save': undefined })
 const localValue = ref('')
 const storeValue = computed(() => data.instances[props.image.id].properties[props.property.id])
 const elem = ref(null)
+const style = computed(() => {
+    if(props.minHeight) {
+        return {height: props.minHeight - 7 + 'px'}
+    }
+})
 function focus() {
     elem.value.focus()
 }
@@ -75,7 +80,7 @@ function log(e) {
 </script>
 
 <template>
-    <div class="bg-white" style="padding: 0px" :style="{height: props.minHeight - 7 + 'px'}">
+    <div class="bg-white" style="padding: 0px" :style="style">
         <TextInput class="bg-white" :editable="props.edit" tag="div" :no-html="true" v-model="localValue"
             :width="props.width" @update:height="h => emits('update:height', h)" ref="elem" :min-height="props.minHeight"
             :no-nl="props.noNl" :url-mode="props.urlMode" @blur="save" :only-number="property.type == PropertyType.number" :no-shadow="props.noShadow" :always-shadow="props.alwaysShadow" :blur-on-enter="props.blurOnEnter" />

@@ -172,10 +172,10 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function applyCommit(commit: DbCommit) {
         dataStore.applyCommit(commit)
-        if(commit.history) {
+        if (commit.history) {
             data.history = commit.history
         }
-        if(commit.properties && getTab().visibleProperties) {
+        if (commit.properties && getTab().visibleProperties) {
             commit.properties.forEach(p => {
                 getTab().visibleProperties[p.id] = true
             })
@@ -255,8 +255,8 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean) {
-        // console.log('send commit', commit)
-        if(undo) {
+        console.log('send commit', commit)
+        if (undo) {
             commit.undo = true
         }
         const res = await apiCommit(commit)
@@ -343,13 +343,21 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!Array.isArray(images)) {
             images = [images]
         }
-        const currentValues = images.map(i => ({ value: i.properties[propertyId]?.value ?? [], img: i }))
+        const currentValues = images.map(i => ({ value: i.properties[propertyId] ?? [], img: i }))
         if (dataStore.properties[propertyId].mode == PropertyMode.id) {
-            const values: InstancePropertyValue[] = currentValues.map(v => ({ propertyId: propertyId, instanceId: v.img.id, value: v.value }))
+            const values: InstancePropertyValue[] = currentValues.map(v => ({
+                propertyId: propertyId,
+                instanceId: v.img.id,
+                value: Array.from(new Set([...v.value, ...value]))
+            }))
             await sendCommit({ instanceValues: values })
         }
         else {
-            const values: ImagePropertyValue[] = currentValues.map(v => ({ propertyId: propertyId, sha1: v.img.sha1, value: v.value }))
+            const values: ImagePropertyValue[] = currentValues.map(v => ({
+                propertyId: propertyId,
+                sha1: v.img.sha1,
+                value: Array.from(new Set([...v.value, ...value]))
+            }))
             await sendCommit({ imageValues: values }, true)
         }
         computeTagCount()

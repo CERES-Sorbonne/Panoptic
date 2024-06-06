@@ -49,10 +49,9 @@ function paint(propRef: {propertyId: number, instanceId: number}) {
     if (viewMode.value != 0) return
     const property = data.properties[propRef.propertyId]
     const value = data.instances[propRef.instanceId].properties[property.id]
-
     let images = groupManager.result.root.images
-    if (Object.keys(groupManager.selectedImages).length) {
-        images = Object.keys(groupManager.selectedImages).map(id => data.instances[id])
+    if (Object.keys(groupManager.selectedImages.value).length) {
+        images = Object.keys(groupManager.selectedImages.value).map(id => data.instances[id])
     }
     if (property.type == PropertyType.multi_tags) {
         project.setTagPropertyValue(property.id, images, value)
