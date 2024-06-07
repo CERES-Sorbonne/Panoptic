@@ -81,7 +81,7 @@ async function call() {
             update[props.action] = localFunction.value
             await actions.updateDefaultActions(update)
         }
-    } catch(e) {
+    } catch (e) {
 
     }
     loading.value = false
@@ -119,7 +119,7 @@ watch(project.actions, loadAction)
                         <form @submit.prevent="call(); hide();" class="">
                             <div v-for="input, i in localInputs" class="mb-1">
                                 <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name"
-                                    :ref="r => setRef(r, i)" :desc="input.description" />
+                                    :desc="input.description" />
                             </div>
                             <div class="d-flex flex-center mt-3" style="height: 20px;">
                                 <div class="me-1"><input type="checkbox" v-model="setDefault"

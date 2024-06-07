@@ -33,8 +33,8 @@ async def ocr(instance: Instance, prop: Property):
 
 class MacOCR(Plugin):
     def __init__(self, project: Project, plugin_path: str):
-        super().__init__(name='TestPlugin1', project=project, plugin_path=plugin_path)
-        self.add_action_easy(self, self.ocr, ['execute'])
+        super().__init__(name='MacOCR', project=project, plugin_path=plugin_path)
+        self.add_action_easy(self.ocr, ['execute'])
 
     async def ocr(self, context: ActionContext):
         print(context.instance_ids)

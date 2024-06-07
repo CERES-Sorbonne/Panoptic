@@ -42,7 +42,8 @@ class Plugin:
     def add_action(self, function: AsyncCallable, description: FunctionDescription):
         self._project.action.add(function, description)
 
-    def add_action_easy(self, source: Plugin, function: AsyncCallable, hooks: list[str] = None):
+    def add_action_easy(self, function: AsyncCallable, hooks: list[str] = None):
+        source = self
         self._project.action.easy_add(source, function, hooks)
 
     def _get_param_description(self):
