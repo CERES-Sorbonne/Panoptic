@@ -2,7 +2,7 @@
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
-import { ImageIterator } from '@/core/GroupManager';
+import { GroupManager, ImageIterator } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
 import { PropertyMode } from '@/data/models';
 import { Ref, computed, inject, ref } from 'vue';
@@ -14,6 +14,7 @@ const props = defineProps<{
     width: number
     imageHeight: number
     visibleProperties: { [id: number]: boolean }
+    groupManager: GroupManager
 }>()
 
 const emits = defineEmits<{

@@ -21,11 +21,11 @@ def assign_attributes(target: BaseModel, source):
 
 
 class Plugin:
-    def __init__(self, name: str, project: Project, plugin_path: str):
+    def __init__(self, name: str, project: PluginProjectInterface, plugin_path: str):
         self.params: Any | None = None
         self.name: str = name
-        self._project = project
-        self.project = PluginProjectInterface(self._project)
+        self._project = project.get_project()
+        self.project = project
         self.registered_functions: List[FunctionDescription] = []
         self.path = plugin_path
         self.base_key = f'{self.name}.base'

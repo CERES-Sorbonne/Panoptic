@@ -19,6 +19,10 @@ class PluginProjectInterface:
         self.base_path = project.base_path
 
     # GETTERS
+
+    def get_project(self):
+        return self._project
+
     async def get_folders(self):
         return await self._project.db.get_folders()
 

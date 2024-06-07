@@ -49,6 +49,14 @@ const groupName = computed(() => {
 
 const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
 
+const instancesForExecute = computed(() => {
+    const selected = images.value.filter(i => props.manager.selectedImages.value[i.id])
+    if(selected.length) {
+        return selected
+    }
+    return images.value
+})
+
 async function addClusters(clusters: GroupResult[]) {
     const groups = clusters.map((group, index) => {
         const instances = group.ids.map(i => data.instances[i])
@@ -198,7 +206,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     @groups="addClusters" />
             </div>
             <div class="ms-2">
-                <ActionButton action="execute" :images="group.images" style="font-size: 10px;"
+                <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
                     @groups="addClusters" />
             </div>
 

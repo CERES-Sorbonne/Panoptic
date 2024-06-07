@@ -20,6 +20,7 @@ const emits = defineEmits<{
     paint: [e: { instanceId: number, propertyId: number }]
     hover
     hoverEnd
+    toggleFilter: [e: number]
 }>()
 
 function toggleProperty(property: Property) {
@@ -71,6 +72,15 @@ function toggleProperty(property: Property) {
                                 :class="(props.visibleProperties[property.id] ? 'text-primary' : '')" />
                         </wTT>
                     </td>
+
+                    <!-- <td
+                        class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
+                        @click="toggleProperty(property)">
+                        <wTT message="modals.image.toggle_property_tooltip">
+                            <i class="bi bi-funnel"
+                                :class="(props.visibleProperties[property.id] ? 'text-primary' : '')" />
+                        </wTT>
+                    </td> -->
                 </tr>
             </tbody>
         </table>
