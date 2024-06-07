@@ -150,8 +150,8 @@ watch(() => keyState.right, (state) => {
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
-                    <ImagePropertyCol :image="iterator" :width="600" :image-height="500"
-                        :visible-properties="visibleProperties" @paint="paint"  @hover="onHover" @hoverEnd="onHoverEnd"  />
+                    <ImagePropertyCol :image="iterator" :width="600" :image-height="500" :groupManager="groupManager"
+                        :visible-properties="visibleProperties" @paint="paint"  @hover="onHover" @hoverEnd="onHoverEnd"/>
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
                         <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
                             :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e"

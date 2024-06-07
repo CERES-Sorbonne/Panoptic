@@ -4,6 +4,8 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
+
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 from panoptic.core.task.task import Task
@@ -45,7 +47,8 @@ class LoadPluginTask(Task):
         if file_path.name != '__init__.py':
             file_path = path / '__init__.py'
         plugin_module = await self._async(import_module_from_path, name, file_path)
-        plugin = plugin_module.plugin_class(self.project, self.path)
+        project_interface = PluginProjectInterface(self.project)
+        plugin = plugin_module.plugin_class(project_interface, self.path)
         await plugin.start()
         self.project.plugins.append(plugin)
 

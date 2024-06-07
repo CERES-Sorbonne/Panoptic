@@ -59,7 +59,7 @@ function computeSize() {
 <template>
     <Dropdown :offset="-24" :no-shadow="true" ref="dropdownElem" :teleport="true" @show="computeSize">
         <template v-slot:button>
-            <div class="btn-class" @mouseenter="isHover = true" @mouseleave="isHover = false"
+            <div class="btn-class text-truncate" @mouseenter="isHover = true" @mouseleave="isHover = false"
                 :style="{ width: props.width + 'px', height: props.height + 'px', lineHeight: props.height + 'px', color: (urlMode ? 'blue' : 'inherit') }">
                 <span v-if="propValue != undefined" @click="contentClick">{{ propValue }}</span>
                 <span v-else class="text-secondary">None...</span>
