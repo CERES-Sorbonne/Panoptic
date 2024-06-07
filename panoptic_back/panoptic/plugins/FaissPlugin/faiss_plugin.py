@@ -34,8 +34,8 @@ class FaissPlugin(Plugin):
         reload_tree(self.project.base_path)
 
         self.project.on_instance_import(self.compute_image_vector)
-        self.add_action_easy(self, self.find_images, ['similar'])
-        self.add_action_easy(self, self.compute_clusters, ['group'])
+        self.add_action_easy(self.find_images, ['similar'])
+        self.add_action_easy(self.compute_clusters, ['group'])
 
     async def start(self):
         await super().start()

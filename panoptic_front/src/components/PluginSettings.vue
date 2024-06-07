@@ -3,7 +3,7 @@ import { FunctionDescription, ParamDescription, PluginDefaultParams, PluginDescr
 import { computed, onMounted, ref, watch } from 'vue';
 import ParamInput from './inputs/ParamInput.vue';
 import { useProjectStore } from '@/data/projectStore';
-import { objValues } from '@/utils/utils';
+import { deepCopy, objValues } from '@/utils/utils';
 
 const project = useProjectStore()
 
@@ -11,19 +11,20 @@ const props = defineProps<{
     plugin: PluginDescription
 }>()
 
-const localDefaults = ref<{[key: string]: ParamDescription}>({})
+const localDefaults = ref<{ [key: string]: ParamDescription }>({})
 
 const paramIndex = computed(() => {
-    const res: {[key: string]: ParamDescription} = {}
-    for(let param of props.plugin.baseParams.params) {
+    const res: { [key: string]: ParamDescription } = {}
+    for (let param of props.plugin.baseParams.params) {
+        param.defaultValue = param.defaultValue ?? undefined
         res[param.name] = param
     }
     return res
 })
 
 const defaultsChanged = computed(() => {
-    for(let k in paramIndex.value) {
-        if(localDefaults.value[k] && localDefaults.value[k].defaultValue !== paramIndex.value[k].defaultValue) {
+    for (let k in paramIndex.value) {
+        if (localDefaults.value[k] && localDefaults.value[k].defaultValue !== paramIndex.value[k].defaultValue) {
             return true
         }
     }
@@ -44,12 +45,12 @@ const actions = computed(() => {
 
 
 function updateLocalDefaults() {
-    localDefaults.value = JSON.parse(JSON.stringify(paramIndex.value))
+    localDefaults.value = deepCopy(paramIndex.value)
 }
 
 function applyLocalDefaults() {
     const toSend = {}
-    for(let param of objValues(localDefaults.value)) {
+    for (let param of objValues(localDefaults.value)) {
         toSend[param.id] = param.defaultValue
     }
     project.setPluginParams(props.plugin.name, toSend)
@@ -57,7 +58,6 @@ function applyLocalDefaults() {
 
 onMounted(updateLocalDefaults)
 watch(() => props.plugin, updateLocalDefaults)
-// watch(actions, () => console.log('lala'))
 
 </script>
 
@@ -65,15 +65,19 @@ watch(() => props.plugin, updateLocalDefaults)
     <!-- <div>
         {{ defaultsChanged }}
     </div> -->
-    <div v-if="props.plugin">
+    <div v-if="props.plugin && localDefaults">
         <h3 class="text-center">{{ props.plugin.name }}</h3>
         <div class="">{{ props.plugin.description }}</div>
         <div class="custom-hr mt-2 mb-2"></div>
         <h5>Base Settings</h5>
         <div class="function">
             <div v-for="param in props.plugin.baseParams.params" class="param">
-                <ParamInput :type="param.type" v-model="localDefaults[param.name].defaultValue" :label="param.name" />
-                <div class="text-secondary">{{ param.description }}</div>
+                <!-- {{ param }} -->
+                <template v-if="localDefaults[param.name]">
+                    <ParamInput :type="param.type" v-model="localDefaults[param.name].defaultValue"
+                        :label="param.name" />
+                    <div class="text-secondary">{{ param.description }}</div>
+                </template>
             </div>
         </div>
         <!-- <h5>Registered Actions</h5>
