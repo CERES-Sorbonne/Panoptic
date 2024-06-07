@@ -18,6 +18,8 @@ const props = defineProps<{
 
 const emits = defineEmits<{
     paint: [e: {instanceId: number, propertyId: number}]
+    hover
+    hoverEnd
 }>()
 
 const mode = ref(0)
@@ -75,7 +77,7 @@ function setMode(value) {
         <div class="custom-hr"></div>
         <div class="flex-grow-1 overflow-scroll">
             <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties"
-                @paint="e => emits('paint', e)" />
+                @paint="e => emits('paint', e)"  @hover="emits('hover')" @hoverEnd="emits('hoverEnd')" />
         </div>
     </div>
 </template>

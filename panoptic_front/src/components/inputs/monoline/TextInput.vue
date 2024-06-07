@@ -52,7 +52,6 @@ function computeSize() {
     if (length > 1000) {
         widthGoal.value = 400
     }
-    console.log(length)
 }
 
 </script>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import SelectionStamp from '@/components/selection/SelectionStamp.vue';
-import { GroupManager } from '@/core/GroupManager';
+import { GroupManager, SelectedImages } from '@/core/GroupManager';
 import Similarity from './Similarity.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import Instances from './Instances.vue';
 import { Instance } from '@/data/models';
+import { Ref } from 'vue';
 
 const props = defineProps<{
     image: Instance
@@ -12,7 +13,8 @@ const props = defineProps<{
     height: number
     mode: number
     groupManager: GroupManager
-    visibleProperties: {[id: number]: boolean}
+    visibleProperties: { [id: number]: boolean }
+    preview: SelectedImages
 }>()
 
 const emits = defineEmits(['update:mode'])
@@ -29,7 +31,7 @@ function setMode(value) {
                 <wTT message="modals.image.similar_images_tooltip">
                     <div class="view-mode ps-2 pe-2 btn-icon" :class="(props.mode == 0 ? 'selected' : '')"
                         @click="setMode(0)">{{
-                            $t('modals.image.similar_images') }}
+                        $t('modals.image.similar_images') }}
                     </div>
                 </wTT>
                 <wTT message="modals.image.unique_properties_tooltip" v-if="true">
@@ -48,7 +50,8 @@ function setMode(value) {
         </div>
     </div>
     <div class="p-1" v-if="props.mode == 0">
-        <Similarity :image="image" :height="props.height - 40" :width="props.width - 10" :similar-group="groupManager" :visible-properties="props.visibleProperties"/>
+        <Similarity :image="image" :height="props.height - 40" :width="props.width - 10" :similar-group="groupManager"
+            :visible-properties="props.visibleProperties" :preview="props.preview"/>
     </div>
     <div v-else class="p-2">
         <Instances :image="image" :height="props.height - 40" :width="props.width - 10" :group-manager="groupManager" />

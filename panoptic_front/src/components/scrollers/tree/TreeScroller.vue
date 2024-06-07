@@ -3,7 +3,7 @@ import { ref, nextTick, defineExpose, onMounted, watch, computed, Ref, shallowRe
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { GroupManager, Group, GroupType, GroupIterator, ImageIterator } from '@/core/GroupManager';
+import { GroupManager, Group, GroupType, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
@@ -11,17 +11,18 @@ import { usePanopticStore } from '@/data/panopticStore';
 
 const panoptic = usePanopticStore()
 
-const props = defineProps({
-    imageSize: Number,
-    height: Number,
-    width: Number,
+const props = defineProps<{
+    imageSize: number,
+    height: number,
+    width: number,
     groupManager: GroupManager,
-    properties: Array<Property>,
-    hideOptions: Boolean,
-    hideGroup: Boolean,
-    sha1Scores: Object as () => Sha1Scores,
-    hideIfModal: Boolean
-})
+    properties: Property[],
+    hideOptions?: boolean,
+    hideGroup?: boolean,
+    sha1Scores?: Sha1Scores,
+    hideIfModal?: boolean
+    preview?: SelectedImages
+}>()
 
 const emits = defineEmits(['recommend'])
 
@@ -334,6 +335,7 @@ watch(() => props.width, () => {
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                         :selected-images="props.groupManager.selectedImages" :sha1-scores="props.sha1Scores"
+                        :preview="props.preview"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
                 </div>
