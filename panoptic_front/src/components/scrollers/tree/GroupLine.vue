@@ -86,6 +86,12 @@ function closeChildren() {
     emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 
+function openChildren() {
+    subgroups.value.forEach((g: Group) => props.manager.openGroup(g.id))
+    // props.manager.onChange.emit()
+    emits('group:open', subgroups.value.map((g: Group) => g.id))
+}
+
 const saving = ref(false)
 async function saveHirachy() {
     if (saving.value) return
@@ -160,6 +166,12 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             <SelectCircle :small="true" :model-value="selected"
                 @update:model-value="emits('select', group.id)" />
         </div>
+        <div v-if="hasSubgroups && hasOpenChildren"
+            class="text-secondary align-self-center bi bi-dash-square-dotted me-1" @click="closeChildren">
+        </div>
+        <div v-if="hasSubgroups && !hasOpenChildren"
+            class="text-secondary align-self-center bi bi-plus-square-dotted me-1" @click="openChildren">
+        </div>
         <div v-if="properties.length" :style="'font-size: ' + (Math.max(17 - (1 * props.item.depth), 10)) + 'px;'"
             class="align-self-center me-2">
             <template v-for="propValue in propertyValues">
@@ -211,11 +223,6 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     </span>
                 </div>
             </div>
-        </div>
-
-        <div v-if="hasSubgroups && hoverGroup && hasOpenChildren"
-            class="ms-1 text-secondary align-self-center close-children" @click="closeChildren">
-            {{ $t('main.view.collapse') }}
         </div>
 
     </div>

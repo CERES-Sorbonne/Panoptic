@@ -241,13 +241,7 @@ function closeGroup(groupIds) {
 }
 
 function openGroup(groupId) {
-    let index = imageLines.value.findIndex(line => line.id == groupId)
-    if (index < 0) {
-        return
-    }
-
     computeLines()
-
 }
 
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
