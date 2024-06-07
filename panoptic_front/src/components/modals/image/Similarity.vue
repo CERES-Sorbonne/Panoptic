@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { GroupManager } from '@/core/GroupManager';
+import { GroupManager, SelectedImages } from '@/core/GroupManager';
 import { Instance, InstanceMatch, SearchResult } from '@/data/models';
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { Ref, computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import RangeInput from '@/components/inputs/RangeInput.vue';
@@ -19,6 +19,7 @@ const props = defineProps<{
     height: number
     similarGroup?: GroupManager
     visibleProperties: { [id: number]: boolean }
+    preview: SelectedImages
 }>()
 const similarGroup = props.similarGroup ?? new GroupManager()
 similarGroup.setSha1Mode(true)
@@ -55,7 +56,7 @@ async function setSimilar() {
             }
         }
     }
-    search.value = {matches}
+    search.value = { matches }
     updateSimilarGroup()
 }
 
@@ -73,9 +74,9 @@ function updateSimilarGroup() {
     const images = matches.map(m => data.instances[m.id])
     state.sha1Scores = {}
     matches.forEach(m => state.sha1Scores[data.instances[m.id].sha1] = m.score)
-    images.sort((a,b) => state.sha1Scores[b.sha1] - state.sha1Scores[a.sha1])
+    images.sort((a, b) => state.sha1Scores[b.sha1] - state.sha1Scores[a.sha1])
 
-    similarGroup.group(images)
+    similarGroup.group(images, undefined, true)
 
     if (scrollerElem.value) {
         scrollerElem.value.computeLines()
@@ -127,7 +128,7 @@ watch(useFilter, updateSimilarGroup)
 
             <TreeScroller class="" :image-size="70" :height="props.height - 25" :width="props.width"
                 :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
-                :sha1-scores="state.sha1Scores" ref="scrollerElem" />
+                :sha1-scores="state.sha1Scores" ref="scrollerElem" :preview="props.preview" />
         </div>
     </template>
 </template>

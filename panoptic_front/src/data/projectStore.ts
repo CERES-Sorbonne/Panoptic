@@ -258,7 +258,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean) {
-        console.log('send commit', commit)
+        // console.log('send commit', commit)
         if (undo) {
             commit.undo = true
         }

@@ -217,7 +217,7 @@ export async function apiCommit(commit: DbCommit) {
     if(commit.instanceValues) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
     if(commit.imageValues) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
 
-    console.log(fixed)
+    // console.log(fixed)
     const res = await axios.post('/commit', fixed)
     return keysToCamel(res.data) as DbCommit
 }

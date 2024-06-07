@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Instance, ModalId, Property, PropertyRef, PropertyType } from '@/data/models';
 import Modal from './Modal.vue';
-import { Ref, computed, nextTick, onMounted, provide, reactive, ref, vModelDynamic, watch } from 'vue';
+import { Ref, computed, nextTick, onMounted, provide, reactive, ref, shallowRef, vModelDynamic, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
 import CenteredImage from '../images/CenteredImage.vue';
 import ImagePropertyCol from './image/ImagePropertyCol.vue';
-import { GroupManager, ImageIterator } from '@/core/GroupManager';
+import { GroupManager, ImageIterator, SelectedImages } from '@/core/GroupManager';
 import MiddleCol from './image/MiddleCol.vue';
 import { usePanopticStore } from '@/data/panopticStore';
 import { keyState } from '@/data/keyState';
@@ -26,6 +26,7 @@ const viewMode = ref(0)
 const visibleProperties = reactive({})
 const navigationHistory: Ref<ImageIterator[]> = ref([])
 const iterator: Ref<ImageIterator> = ref(null)
+const preview = shallowRef<SelectedImages>({})
 
 const active = computed(() => panoptic.openModalId == ModalId.IMAGE)
 // const iterator = computed(() => panoptic.modalData as ImageIterator)
@@ -45,7 +46,20 @@ function onResize() {
     }
 }
 
-function paint(propRef: {propertyId: number, instanceId: number}) {
+function onHover() {
+    preview.value = {}
+    if(Object.keys(groupManager.selectedImages.value).length) {
+        Object.keys(groupManager.selectedImages.value).forEach(i => preview.value[i] = true)
+    } else {
+        groupManager.result.root.images.forEach(i => preview.value[i.id] = true)
+    }
+}
+
+function onHoverEnd() {
+    preview.value = {}
+}
+
+function paint(propRef: { propertyId: number, instanceId: number }) {
     if (viewMode.value != 0) return
     const property = data.properties[propRef.propertyId]
     const value = data.instances[propRef.instanceId].properties[property.id]
@@ -116,13 +130,13 @@ watch(showHistory, () => nextTick(onResize))
 watch(colElem, onResize)
 watch(modalData, onModalDataChange)
 watch(() => keyState.left, (state) => {
-    if(!active.value) return
+    if (!active.value) return
     if (state && !showHistory.value) {
         prevImage()
     }
 })
 watch(() => keyState.right, (state) => {
-    if(!active.value) return
+    if (!active.value) return
     if (state && !showHistory.value) {
         nextImage()
     }
@@ -137,10 +151,11 @@ watch(() => keyState.right, (state) => {
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
                     <ImagePropertyCol :image="iterator" :width="600" :image-height="500"
-                        :visible-properties="visibleProperties" @paint="paint" />
+                        :visible-properties="visibleProperties" @paint="paint"  @hover="onHover" @hoverEnd="onHoverEnd"  />
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
                         <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
-                            :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e" />
+                            :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e"
+                            :preview="preview"/>
                     </div>
                     <div class="history text-center" v-if="navigationHistory.length > 0" ref="historyElem">
                         <b>{{ $t('modals.image.history') }}</b>
