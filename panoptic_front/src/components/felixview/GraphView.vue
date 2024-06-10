@@ -30,6 +30,7 @@ function computeSeries(){
   }
   let it: GroupIterator = props.collection.groupManager.getGroupIterator()
   while (it) {
+    const dates = []
     const group: Group = it.group
     if (group.id === "root") {
       it = it.nextGroup()
