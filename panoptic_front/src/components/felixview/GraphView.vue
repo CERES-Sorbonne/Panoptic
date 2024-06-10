@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { CollectionManager } from '@/core/CollectionManager';
 import { Group, GroupIterator, GroupManager } from '@/core/GroupManager';
+import { useDataStore } from '@/data/dataStore';
 import { PropertyType } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import { defineProps, defineEmits, computed, ref } from 'vue'
 import LineChart from './LineChart.vue'
 
-const project = useProjectStore()
+const dataStore = useDataStore()
 const props = defineProps<{
   collection: CollectionManager
   height: number
@@ -14,7 +15,9 @@ const props = defineProps<{
 const emits = defineEmits([])
 const error = ref("")
 
-const series = computed(() => {
+const series = ref(computeSeries())
+
+function computeSeries(){
   const res:{[key: string | number]: {[key: string] : any}} = {}
 
   let properties = props.collection.groupManager.state.groupBy
@@ -49,9 +52,14 @@ const series = computed(() => {
       for(let child of group.children){
         const childValue = child.meta.propertyValues[0].value
         if(res[childValue] === undefined){
-          res[childValue] = {data: [], name: project.data.tags[childValue].value}
+          let value = childValue
+          // check if it's a tag or not
+          if(childValue in dataStore.tags){
+            value = dataStore.tags[childValue].value
+          }
+          res[childValue] = {data: [], name: value}
         }
-        res[child.meta.propertyValues[0].value].data.push({x: date, y: child.images.length, images: group.images.slice(0, 10).map(i => i.url)})
+        res[child.meta.propertyValues[0].value].data.push({x: date, y: child.images.length, images: child.images.slice(0, 10).map(i => i.url)})
       }
       // for(let missing of missingValues){
       //   res[missing].data.push([date, 0])
@@ -61,8 +69,10 @@ const series = computed(() => {
     it = it.nextGroup()
   }
   error.value = ""
+  console.log(res)
   return Object.values(res)
-})
+}
+props.collection.groupManager.onChange.addListener(() => series.value = computeSeries())
 </script>
 
 <template>
