@@ -85,8 +85,8 @@ const changeAreaToHisto = () => {
     else{
         newValue = {
             chart: {
-                type: "area",
                 ...chartOptions.value.chart,
+                type: "area",
             },
             
             xaxis: {
