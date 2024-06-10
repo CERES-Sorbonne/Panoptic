@@ -19,7 +19,11 @@ const chartOptions = {
     },
     chart: {
         stacked: false,
-        stackOnlyBar: false
+        stackOnlyBar: false,
+        zoom: {
+            type: "xy",
+            autoScaleYaxis: true
+        }
     },
     dataLabels: {
         enabled: false
@@ -28,7 +32,7 @@ const chartOptions = {
         curve: 'smooth'
     },
     tooltip: {
-        shared: true,
+        shared: false,
         custom: function ({ series, seriesIndex, dataPointIndex, w }) {
             const currentDataPoint = props.series[seriesIndex].data[dataPointIndex];
 
