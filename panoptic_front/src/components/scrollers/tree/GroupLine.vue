@@ -135,7 +135,7 @@ async function saveHirachy() {
 
 function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Instance[] }, propertyId: number) {
     const res: Tag[] = []
-    const prefix = parentTag?.value ?? 'Cluster'
+    const prefix = parentTag?.value ?? ('Clustering_' + children.length)
     const parents = []
     if(parentTag) {
         parents.push(...parentTag.parents, parentTag.id)
