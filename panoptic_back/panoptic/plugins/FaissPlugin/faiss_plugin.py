@@ -73,7 +73,6 @@ class FaissPlugin(Plugin):
         return ActionResult(groups=groups)
 
     async def find_images(self, context: ActionContext):
-        print('teeeeest lalalalalalalaalalalal')
         instances = await self.project.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
         ignore_sha1s = set(sha1s)
