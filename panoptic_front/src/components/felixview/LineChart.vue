@@ -11,6 +11,7 @@ const props = defineProps({
 const reRenderKey = ref(0)
 // Options du graphique
 const chartOptions = ref({
+    markers:{size: 7},
     xaxis: {
         type: 'datetime',
         // min: props.series[0].data[0][0],
@@ -18,20 +19,29 @@ const chartOptions = ref({
         // tickAmount: 1000,
     },
     chart: {
+        type: "area",
         stacked: false,
         stackOnlyBar: false,
         zoom: {
             type: "xy",
             autoScaleYaxis: true
+        },
+        animations: {
+            animateGradually: {
+                enabled: false,
+                delay: 150
+            },
         }
     },
     dataLabels: {
         enabled: false
     },
     stroke: {
-        curve: 'smooth'
+        curve: 'straight'
     },
     tooltip: {
+        // followCursor: true,
+        intersect: true,
         shared: false,
         custom: function ({ series, seriesIndex, dataPointIndex, w }) {
             const currentDataPoint = props.series[seriesIndex].data[dataPointIndex];
@@ -58,11 +68,46 @@ const toggleStacked = () => {
     chartOptions.value.chart.stacked = !chartOptions.value.chart.stacked;
     reRenderKey.value += 1
 };
+
+const changeAreaToHisto = () => {
+    let newValue;
+    if(chartOptions.value.chart.type === "area"){
+        newValue = {
+                chart: {
+                    ...chartOptions.value.chart,
+                    type: "bar"
+                },
+                xaxis: {
+                    // type: 'datetime',
+                }
+        }
+    }
+    else{
+        newValue = {
+            chart: {
+                type: "area",
+                ...chartOptions.value.chart,
+            },
+            
+            xaxis: {
+                type: 'datetime',
+            }
+        }
+    }
+    chartOptions.value = {
+        ...chartOptions.value,
+        ...newValue
+    }
+    reRenderKey.value += 1
+}
 </script>
 
 <template>
-    <button class="mt-2" @click="toggleStacked">Stacker</button>
-    <apexchart :key=reRenderKey :height="props.height" type="area" :options="chartOptions" :series="props.series"></apexchart>
+    <div style="display:flex">
+        <button class="mt-2" @click="changeAreaToHisto">{{ chartOptions.chart.type === "area" ? "Histogramme" : "Courbe"}}</button>
+        <button v-if="props.series.length > 1" class="mt-2" style="margin-left: 1em" @click="toggleStacked">Stacker</button>
+    </div>
+    <apexchart :key=reRenderKey :height="props.height" :type="chartOptions.chart.type" :options="chartOptions" :series="props.series"></apexchart>
 </template>
 
   
