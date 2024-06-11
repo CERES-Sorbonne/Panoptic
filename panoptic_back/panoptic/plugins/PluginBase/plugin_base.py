@@ -1,11 +1,7 @@
-from pathlib import Path
-
 from pydantic import BaseModel
-
-from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
-from panoptic.core.project.project import Project
-from panoptic.models import ActionContext, Property, PropertyId
 from panoptic.core.plugin.plugin import Plugin
+from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
+from panoptic.models import ActionContext, PropertyId
 
 
 class TestParams(BaseModel):
