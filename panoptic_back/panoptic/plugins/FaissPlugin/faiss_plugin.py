@@ -2,11 +2,11 @@ import os.path
 
 from pydantic import BaseModel
 
-from panoptic.core.project.project import Project
+from panoptic.core.plugin.plugin import Plugin
 from panoptic.models import Instance, ActionContext
 from panoptic.models.results import Group, ActionResult
-from panoptic.core.plugin.plugin import Plugin
 from panoptic.utils import group_by_sha1
+from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from .compute import reload_tree, get_similar_images, make_clusters
 from .compute_vector_task import ComputeVectorTask
 
@@ -28,7 +28,7 @@ class FaissPlugin(Plugin):
     Uses CLIP to generate vectors and FAISS for clustering / similarity functions
     """
 
-    def __init__(self, project: Project, plugin_path: str):
+    def __init__(self, project: PluginProjectInterface, plugin_path: str):
         super().__init__(name='Faiss', project=project, plugin_path=plugin_path)
         self.params = FaissPluginParams()
         reload_tree(self.project.base_path)

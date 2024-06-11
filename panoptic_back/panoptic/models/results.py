@@ -26,7 +26,14 @@ class ActionResult:
 
     commit: DbCommit = None
 
-    errors: list[str] = None
+    errors: list[ActionError] = None
+
+
+@dataclass
+class ActionError:
+    name: str
+    message: str = ""
+    trace: str = None
 
 
 @dataclass(slots=True)
