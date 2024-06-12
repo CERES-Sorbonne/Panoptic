@@ -89,6 +89,12 @@
             "cluster_score_tooltip": "Score de cohérence du cluster. Voir la documentation sur les clusters pour plus d'informations",
             "instances_tooltip": "Nombre d'instances de cette image",
             "collapse": "Réduire"
+        },
+        "graph-view": {
+            "histo": "Histogramme",
+            "curve": "Courbe",
+            "stack": "Empiler",
+            "over": "Superposer"
         }
     },
     "modals": {
