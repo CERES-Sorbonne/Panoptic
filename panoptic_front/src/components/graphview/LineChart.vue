@@ -22,10 +22,11 @@ Object.keys(props.chartData.series).forEach(seriesIndex => {
 // Options du graphique
 const chartOptions = ref({
     markers: { size: 7 },
-    legend:{
-    onItemClick: {
-          toggleDataSeries: false
-      },
+    legend: {
+        showForSingleSeries: true,
+        onItemClick: {
+            toggleDataSeries: false
+        },
     },
     xaxis: {
         type: 'datetime',
@@ -113,26 +114,27 @@ const changeAreaToHisto = () => {
 
 const onLegendClick = (chartContext, seriesIndex, config) => {
     // chartContext.toggleSeries(chartContext.w.globals.seriesNames[seriesIndex]);
-    console.log("toto")
+    const maxImages = 17;
     const series = props.chartData.series[seriesIndex];
-    const points = series.data;
-
+    let maxY = Math.max(...series.data.map(el => el.y))
     // Supprimez les images précédentes
     document.querySelectorAll('.apexcharts-custom-image').forEach(el => el.remove());
-    if(visibleImages[seriesIndex]){
+    if (visibleImages[seriesIndex]) {
         visibleImages[seriesIndex] = false
         return
     }
     // Ajoutez des images pour chaque point de données
-    points.forEach((point, pointIndex) => {
+    series.data.forEach((point, pointIndex) => {
         const imgSize = 40;
-        const images = point.images.slice(0, 20); // Limitez à 20 images
+        // le nombre d'images du datapoint est fait relativement au plus grand datapoint
+        const nbImages = Math.floor((point.y / maxY) * maxImages)
+        const images = point.images.slice(0, nbImages); // Limitez à 20 images
         const query = `circle[index="${seriesIndex}"][j="${pointIndex}"]`
         const circle = document.querySelector(query)
         const xPos = parseFloat(circle.getAttribute('cx'));
-        const yPos = parseFloat(circle.getAttribute('cy'));
-        const yOffset = ( images.length * 25 ) / 2
-        const chartHeight = chartContext.w.globals.svgHeight;
+        // const yPos = parseFloat(circle.getAttribute('cy'));
+        // const yOffset = ( images.length * 25 ) / 2
+        // const chartHeight = chartContext.w.globals.svgHeight;
         images.forEach((url, i) => {
             const img = document.createElement('img');
             img.src = url;
@@ -142,12 +144,11 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
             img.style.left = `${xPos + imgSize / 1.5}px`;
             // img.style.top = `${yPos - yOffset + (i * 32)}px`;
             img.style.bottom = `${65 + (i * imgSize)}px`;
-            console.log(img.style.bottom)
-            img.classList.add('apexcharts-custom-image');
-            img.style.zIndex = 1000; 
+            img.classList.add('apexcharts-custom-image', 'image-hover');
             chartContext.el.appendChild(img);
         });
     });
+    Object.keys(visibleImages).forEach(key => visibleImages[key] = false)
     visibleImages[seriesIndex] = true
 }
 
@@ -160,12 +161,22 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
         <button v-if="props.chartData.series.length > 1" class="mt-2" style="margin-left: 1em" @click="toggleStacked">{{
             stacked ? $t("main.graph-view.over") : $t("main.graph-view.stack") }}</button>
     </div>
-    <apexchart style="position:relative" :key=reRenderKey :height="props.height" :type="chartOptions.chart.type" :options="chartOptions"
-        :series="props.chartData.series" @legendClick="onLegendClick"></apexchart>
+    <apexchart style="position:relative" :key=reRenderKey :height="props.height" :type="chartOptions.chart.type"
+        :options="chartOptions" :series="props.chartData.series" @legendClick="onLegendClick"></apexchart>
 </template>
 
   
-<style scoped>
-/* Ajoutez vos styles CSS ici si nécessaire */
+<style>
+.apexcharts-custom-image {
+    /* pointer-events: none; */
+    z-index: 500;
+    transition: transform 0.15s ease, z-index 0s 0.3s;
+}
+
+.image-hover:hover {
+    transform: scale(3);
+    transition: transform 0s ease, z-index 0s 0s;
+    z-index: 1000;
+}
 </style>
   

@@ -55,6 +55,7 @@
             "search_tooltip": "Chercher des images ayant le texte cherché dans l'une de leurs propriétés.",
             "grid_tooltip": "Passer en vue grille d'images",
             "table_tooltip": "Passer en vue tableau",
+            "graph_tooltip": "Passer en vue graphique",
             "image_size_tooltip": "Taille des images",
             "all_images": "Images",
             "sha1_images": "Instances",

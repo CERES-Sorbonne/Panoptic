@@ -13,7 +13,7 @@ import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 import { getSimilarImagesFromText } from '@/utils/utils';
-import GraphView from '../felixview/GraphView.vue';
+import GraphView from '../graphview/GraphView.vue';
 
 const project = useProjectStore()
 const tabManager = project.getTabManager()
@@ -111,7 +111,7 @@ watch(() => props.height, async () => {
                     :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" :hide-if-modal="true" />
             </div>
         </template>
-        <template v-if="tabManager.state.display == 'felix-view'">
+        <template v-if="tabManager.state.display == 'graph'">
             <GraphView :collection="tabManager.collection" :height="scrollerHeight -15" />
         </template>
 

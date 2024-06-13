@@ -56,6 +56,7 @@
             "search_tooltip": "Search for images matching the text using the CLIP template",
             "grid_tooltip": "Switch to image grid view",
             "table_tooltip": "Switch to table view",
+            "graph_tooltip": "Switch to chart view",
             "image_size_tooltip": "Image size",
             "all_images": "Instances",
             "sha1_images": "Images",
@@ -90,6 +91,12 @@
             "cluster_score_tooltip": "Cluster consistency score. See cluster documentation for more information",
             "instances_tooltip": "Number of instances of this image",
             "collapse": "Collapse"
+        },
+        "graph-view": {
+            "histo": "Histogram",
+            "curve": "LineChart",
+            "stack": "Stack",
+            "over": "UnStack"
         }
     },
     "modals": {
