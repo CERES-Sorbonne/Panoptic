@@ -131,7 +131,7 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
         const images = point.images.slice(0, nbImages); // Limitez à 20 images
         const query = `circle[index="${seriesIndex}"][j="${pointIndex}"]`
         const circle = document.querySelector(query)
-        const xPos = parseFloat(circle.getAttribute('cx'));
+        const xStart = parseFloat(circle.getAttribute('cx'));
         // const yPos = parseFloat(circle.getAttribute('cy'));
         // const yOffset = ( images.length * 25 ) / 2
         // const chartHeight = chartContext.w.globals.svgHeight;
@@ -141,15 +141,32 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
             img.width = imgSize;
             img.height = imgSize;
             img.style.position = 'absolute';
-            img.style.left = `${xPos + imgSize / 1.5}px`;
+            let xPos = xStart + imgSize / 1.5
+            let yPos = 65 + (i * imgSize)
+            img.style.left = `${xPos}px`;
             // img.style.top = `${yPos - yOffset + (i * 32)}px`;
-            img.style.bottom = `${65 + (i * imgSize)}px`;
-            img.classList.add('apexcharts-custom-image', 'image-hover');
+            img.style.bottom = `${yPos}px`;
+            img.classList.add('apexcharts-custom-image');
+            img.addEventListener('mouseover', (e) => showZoomedImage(xPos, yPos, url));
+            img.addEventListener('mouseout', hideZoomedImage);
             chartContext.el.appendChild(img);
         });
     });
     Object.keys(visibleImages).forEach(key => visibleImages[key] = false)
     visibleImages[seriesIndex] = true
+}
+
+function showZoomedImage(x, y, url) {
+    const zoomedImg = document.getElementById('zoomed-image');
+    zoomedImg.style.left = `${x + 120 * 1.5}px` // Positionner à côté du pointeur de la souris
+    zoomedImg.src = url;
+    zoomedImg.style.bottom = `${y}px` // Positionner à côté du pointeur de la souris
+    zoomedImg.style.display = 'block';
+}
+
+function hideZoomedImage() {
+    const zoomedImg = document.getElementById('zoomed-image');
+    zoomedImg.style.display = 'none';
 }
 
 </script>
@@ -163,6 +180,9 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
     </div>
     <apexchart style="position:relative" :key=reRenderKey :height="props.height" :type="chartOptions.chart.type"
         :options="chartOptions" :series="props.chartData.series" @legendClick="onLegendClick"></apexchart>
+    <i class="info">{{ $t("main.graph-view.info") }}</i>
+    <img id="zoomed-image"
+        style="display:none; position:absolute; z-index:1000; width:120px; height:120px; pointer-events:none;" />
 </template>
 
   
@@ -173,10 +193,20 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
     transition: transform 0.15s ease, z-index 0s 0.3s;
 }
 
-.image-hover:hover {
+/* .image-hover:hover {
     transform: scale(3);
     transition: transform 0s ease, z-index 0s 0s;
     z-index: 1000;
+} */
+
+.apexcharts-legend-text:hover {
+    cursor: pointer;
+}
+
+.info {
+    text-align: center;
+    display: inherit;
+    font-size: 0.8em;
 }
 </style>
   

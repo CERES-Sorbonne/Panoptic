@@ -96,7 +96,8 @@
             "histo": "Histogram",
             "curve": "LineChart",
             "stack": "Stack",
-            "over": "UnStack"
+            "over": "UnStack",
+            "info": "Click on the legend to show images of all datapoints"
         }
     },
     "modals": {

@@ -95,7 +95,8 @@
             "histo": "Histogramme",
             "curve": "Courbe",
             "stack": "Empiler",
-            "over": "Superposer"
+            "over": "Superposer",
+            "info": "Cliquez sur la légende pour afficher les images de tous les points"
         }
     },
     "modals": {
