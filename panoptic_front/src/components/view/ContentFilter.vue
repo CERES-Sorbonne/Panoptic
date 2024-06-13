@@ -90,9 +90,9 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                     @click="props.tab.state.display = 'grid'">
                 </i>
             </wTT>
-            <wTT message="tmp">
-                <i id="toot" :class="'bi bi-bar-chart btn-icon' + (props.tab.state.display == 'felix-view' ? '' : ' text-secondary')"
-                    @click="props.tab.state.display = 'felix-view'">
+            <wTT message="main.menu.graph_tooltip">
+                <i id="toot" :class="'bi bi-bar-chart btn-icon' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
+                    @click="props.tab.state.display = 'graph'">
                 </i>
             </wTT>
         </div>

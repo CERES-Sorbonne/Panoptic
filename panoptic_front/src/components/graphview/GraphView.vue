@@ -72,7 +72,7 @@ function computeSeries(){
       }
       const date = propValue.value.getTime()
       dates.push(date)
-      res['date'].data.push({x: date, y:group.images.length, images: group.images.slice(0, 10).map(i => i.url)})
+      res['date'].data.push({x: date, y:group.images.length, images: group.images.slice(0, 20).map(i => i.url)})
     }
     else{
       const date = propValue.value.getTime()
@@ -89,7 +89,7 @@ function computeSeries(){
           }
           res[childValue] = {data: [], name: value}
         }
-        res[child.meta.propertyValues[0].value].data.push({x: date, y: child.images.length, images: child.images.slice(0, 10).map(i => i.url)})
+        res[child.meta.propertyValues[0].value].data.push({x: date, y: child.images.length, images: child.images.slice(0, 20).map(i => i.url)})
       }
       console.log(date, missingValues)
       for(let missing of missingValues){
