@@ -2,11 +2,13 @@
 
 import { tryOnBeforeMount } from '@vueuse/core';
 import { defineProps, nextTick, onMounted, ref } from 'vue'
+import { PropertyType } from '@/data/models';
 
 const props = defineProps({
     chartData: {
         series: Array,
-        data: Array
+        xValues: Array,
+        dataType: PropertyType
     }, // Spécifiez le type de la prop ici
     height: String
 });
@@ -29,8 +31,8 @@ const chartOptions = ref({
         },
     },
     xaxis: {
-        type: 'datetime',
-        categories: props.chartData.dates,
+        type: props.chartData.dataType === PropertyType.date ? 'datetime' : 'numeric',
+        categories: props.chartData.xValues,
         // min: props.series[0].data[0][0],
         // max: props.series[0].data[props.series[0].data.length - 1][0],
         // tickAmount: 1000,
@@ -168,7 +170,7 @@ function hideZoomedImage() {
     const zoomedImg = document.getElementById('zoomed-image');
     zoomedImg.style.display = 'none';
 }
-
+console.log("test")
 </script>
 
 <template>
