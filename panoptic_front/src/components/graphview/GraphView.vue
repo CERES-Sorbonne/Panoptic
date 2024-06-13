@@ -43,19 +43,30 @@ function computeSeries(){
   let allPropValues;
   let properties = props.collection.groupManager.state.groupBy
 
+  if(properties.length === 0){
+    error.value = "Choose at least one date or numeric value to group the images by"
+    return
+  }
+  const firstProp = dataStore.properties[properties[0]]
+  const firstPropType = firstProp.type
+
   if( properties.length > 2){
       error.value = "Only max two levels of grouping are supported"
       return
   }
   else if (properties.length === 1){
-    res['date'] = {name: 'date', data: []}
+    res[firstProp.name] = {name: firstProp.name, data: []}
   }
   else{
+    // pre-compute all prop values to fill empty groups with 0 
     allPropValues = Array.from(getAllPropValues())
-    console.log(allPropValues)
+  }
+  if( firstPropType !== PropertyType.number && firstPropType !== PropertyType.date){
+    error.value = "First level of grouping needs to be a date or a numeric property"
+    return
   }
   let it: GroupIterator = props.collection.groupManager.getGroupIterator()
-  const dates = []
+  const xValues = []
   while (it) {
     const group: Group = it.group
     if (group.id === "root") {
@@ -63,20 +74,12 @@ function computeSeries(){
       continue
     }
     let propValue = group.meta.propertyValues[0]
-
-    if ('date' in res){
-      // est ce le premier group est bien une date ? 
-      if(propValue.unit === undefined){
-        error.value = "First level of grouping needs to be a date property"
-        return
-      }
-      const date = propValue.value.getTime()
-      dates.push(date)
-      res['date'].data.push({x: date, y:group.images.length, images: group.images.slice(0, 20).map(i => i.url)})
+    const xValue = firstPropType === PropertyType.date ? propValue.value.getTime() : propValue.value
+    xValues.push(xValue)
+    if (firstProp.name in res){
+      res[firstProp.name].data.push({x: xValue, y:group.images.length, images: group.images.slice(0, 20).map(i => i.url)})
     }
     else{
-      const date = propValue.value.getTime()
-      dates.push(date)
       const childValues = group.children.map(el => el.meta.propertyValues[0].value)
       const missingValues = allPropValues.filter(el => !childValues.includes(el))
       for(let child of group.children){
@@ -89,9 +92,9 @@ function computeSeries(){
           }
           res[childValue] = {data: [], name: value}
         }
-        res[child.meta.propertyValues[0].value].data.push({x: date, y: child.images.length, images: child.images.slice(0, 20).map(i => i.url)})
+        res[child.meta.propertyValues[0].value].data.push({x: xValue, y: child.images.length, images: child.images.slice(0, 20).map(i => i.url)})
       }
-      console.log(date, missingValues)
+      // console.log(xValue, missingValues)
       for(let missing of missingValues){
         if(res[missing] === undefined){
           let value = missing
@@ -101,7 +104,7 @@ function computeSeries(){
           }
           res[missing] = {data: [], name: value}
         }
-        res[missing].data.push({x: date, y: 0, images:[]})
+        res[missing].data.push({x: xValue, y: 0, images:[]})
       }
       group.children.forEach(() => it = it.nextGroup())
     }
@@ -111,7 +114,8 @@ function computeSeries(){
   error.value = ""
   return {
     series: Object.values(res),
-    dates: dates
+    xValues: xValues,
+    dataType: firstPropType
   }
 }
 props.collection.groupManager.onChange.addListener(() => chartData.value = computeSeries())
