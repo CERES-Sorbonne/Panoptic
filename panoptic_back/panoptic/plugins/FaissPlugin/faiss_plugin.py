@@ -2,7 +2,7 @@ import os.path
 
 from pydantic import BaseModel
 
-from panoptic.core.plugin.plugin import Plugin
+from panoptic.core.plugin.plugin import APlugin
 from panoptic.models import Instance, ActionContext
 from panoptic.models.results import Group, ActionResult
 from panoptic.utils import group_by_sha1
@@ -22,7 +22,7 @@ class FaissPluginParams(BaseModel):
     test_bool: bool = False
 
 
-class FaissPlugin(Plugin):
+class FaissPlugin(APlugin):
     """
     Default Machine Learning plugin for Panoptic
     Uses CLIP to generate vectors and FAISS for clustering / similarity functions

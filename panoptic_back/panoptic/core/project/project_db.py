@@ -5,8 +5,8 @@ from typing import Any
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
-from panoptic.models import Property, PropertyType, InstancePropertyValue, Instance, Tag, \
-    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImagePropertyValue
+from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
+    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, get_all_parent, clean_and_separate_values
 
@@ -46,7 +46,7 @@ class ProjectDb:
     # =====================================================
 
     async def get_property_values(self, instances: list[Instance], property_ids: list[int] = None, no_computed=False) \
-            -> list[InstancePropertyValue]:
+            -> list[InstanceProperty]:
         instance_ids = [i.id for i in instances]
         sha1s = list({img.sha1 for img in instances})
         instance_values = await self._db.get_instance_property_values(property_ids=property_ids,
@@ -58,12 +58,12 @@ class ProjectDb:
         return [*instance_values, *converted_values, *computed_values]
 
     async def get_instance_property_values(self, property_ids: list[int] = None, instance_ids: list[int] = None) \
-            -> list[InstancePropertyValue]:
+            -> list[InstanceProperty]:
         res = await self._db.get_instance_property_values(property_ids, instance_ids)
         return res
 
     async def get_image_property_values(self, property_ids: list[int] = None, sha1s: list[str] = None) \
-            -> list[ImagePropertyValue]:
+            -> list[ImageProperty]:
         res = await self._db.get_image_property_values(property_ids, sha1s)
         return res
 
@@ -295,15 +295,15 @@ class ProjectDb:
             inverse.empty_tags.extend([t.id for t in db_tags if t.id not in current_ids])
             inverse.tags.extend(current)
 
-        def correct_property_id(value: InstancePropertyValue | ImagePropertyValue):
+        def correct_property_id(value: InstanceProperty | ImageProperty):
             if value.property_id in property_id_map:
                 value.property_id = property_id_map[value.property_id]
 
-        def correct_instance_id(value: InstancePropertyValue):
+        def correct_instance_id(value: InstanceProperty):
             if value.instance_id in instance_id_map:
                 value.instance_id = instance_id_map[value.instance_id]
 
-        def correct_tag_id(value: InstancePropertyValue | ImagePropertyValue):
+        def correct_tag_id(value: InstanceProperty | ImageProperty):
             if isinstance(value.value, list):
                 value.value = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in value.value]
 

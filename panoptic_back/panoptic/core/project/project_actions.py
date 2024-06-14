@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List
 
 from panoptic.models import ActionContext, FunctionDescription, ParamDescription, PropertyId
-from panoptic.core.plugin.plugin import Plugin
+from panoptic.core.plugin.plugin import APlugin
 from panoptic.utils import AsyncCallable, to_str_type
 
 
@@ -46,7 +46,7 @@ def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
             for t in types if types[t][0] in possible_inputs]
 
 
-def get_function_description(source: Plugin, function: AsyncCallable):
+def get_function_description(source: APlugin, function: AsyncCallable):
     name = function.__name__
     function_id = f'{source.name}.{name}'
     description = function.__doc__
@@ -73,7 +73,7 @@ class ProjectActions:
     def add(self, function: AsyncCallable, description: FunctionDescription):
         self.actions[description.id] = Action(function, description)
 
-    def easy_add(self, source: Plugin, function: AsyncCallable, hooks: list[str] = None):
+    def easy_add(self, source: APlugin, function: AsyncCallable, hooks: list[str] = None):
         description = get_function_description(source, function)
         if hooks:
             description.hooks = hooks

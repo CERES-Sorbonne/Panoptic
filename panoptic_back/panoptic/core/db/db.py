@@ -8,8 +8,8 @@ from pypika import Table, PostgreSQLQuery, Order, functions
 
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict
-from panoptic.models import Instance, Vector, VectorDescription, InstancePropertyValue, ImagePropertyValue, \
-    InstancePropertyValueKey, ImagePropertyValueKey, PropertyType, PropertyMode
+from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
+    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode
 from panoptic.models import Tag, Property, Folder
 
 Query = PostgreSQLQuery
@@ -132,7 +132,7 @@ class Db:
     # =====================================================
 
     async def get_instance_property_values(self, property_ids: List[int] = None, instance_ids: list[int] = None) \
-            -> list[InstancePropertyValue]:
+            -> list[InstanceProperty]:
         values = Table('instance_property_values')
         query = Query.from_(values).select('*')
 
@@ -143,11 +143,11 @@ class Db:
             query = query.where(values.instance_id.isin(instance_ids))
 
         cursor = await self.conn.execute_query(query.get_sql())
-        res = [InstancePropertyValue(**auto_dict(instance, cursor)) for instance in await cursor.fetchall()]
+        res = [InstanceProperty(**auto_dict(instance, cursor)) for instance in await cursor.fetchall()]
         return res
 
-    async def get_instance_property_values_from_keys(self, keys: list[InstancePropertyValueKey]) \
-            -> list[InstancePropertyValue]:
+    async def get_instance_property_values_from_keys(self, keys: list[InstancePropertyKey]) \
+            -> list[InstanceProperty]:
 
         chunk_size = 500
         res = []
@@ -159,11 +159,11 @@ class Db:
             full_query = query + conditions
             params = [p for k in chunk for p in (k.property_id, k.instance_id)]
             cursor = await self.conn.execute_query(full_query, tuple(params))
-            res.extend([InstancePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
+            res.extend([InstanceProperty(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
     async def get_image_property_values(self, property_ids: List[int] = None, sha1s: list[str] = None) \
-            -> list[ImagePropertyValue]:
+            -> list[ImageProperty]:
         values = Table('image_property_values')
         query = Query.from_(values).select('*')
 
@@ -174,11 +174,11 @@ class Db:
             query = query.where(values.sha1.isin(sha1s))
 
         cursor = await self.conn.execute_query(query.get_sql())
-        res = [ImagePropertyValue(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
+        res = [ImageProperty(**auto_dict(image, cursor)) for image in await cursor.fetchall()]
         return res
 
-    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyValueKey]) \
-            -> list[ImagePropertyValue]:
+    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]) \
+            -> list[ImageProperty]:
         chunk_size = 500
         res = []
         query = 'SELECT * FROM image_property_values WHERE '
@@ -189,25 +189,25 @@ class Db:
             full_query = query + conditions
             params = [p for k in chunk for p in (k.property_id, k.sha1)]
             cursor = await self.conn.execute_query(full_query, tuple(params))
-            res.extend([ImagePropertyValue(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
+            res.extend([ImageProperty(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
-    async def import_instance_property_values(self, values: list[InstancePropertyValue]):
+    async def import_instance_property_values(self, values: list[InstanceProperty]):
         query = "INSERT OR REPLACE INTO instance_property_values (property_id, instance_id, value) VALUES (?, ?, ?)"
         await self.conn.execute_query_many(query, [(v.property_id, v.instance_id, json.dumps(v.value)) for v in values])
         return values
 
-    async def import_image_property_values(self, values: list[ImagePropertyValue]):
+    async def import_image_property_values(self, values: list[ImageProperty]):
         query = "INSERT OR REPLACE INTO image_property_values (property_id, sha1, value) VALUES (?, ?, ?)"
         await self.conn.execute_query_many(query, [(v.property_id, v.sha1, json.dumps(v.value)) for v in values])
         return values
 
-    async def delete_instance_property_values(self, values: list[InstancePropertyValueKey]):
+    async def delete_instance_property_values(self, values: list[InstancePropertyKey]):
         query = "DELETE FROM instance_property_values WHERE property_id = ? AND instance_id = ?"
         await self.conn.execute_query_many(query, [(v.property_id, v.instance_id) for v in values])
         return True
 
-    async def delete_image_property_values(self, values: list[ImagePropertyValueKey]):
+    async def delete_image_property_values(self, values: list[ImagePropertyKey]):
         query = "DELETE FROM image_property_values WHERE property_id = ? AND sha1 = ?"
         await self.conn.execute_query_many(query, [(v.property_id, v.sha1) for v in values])
         return True

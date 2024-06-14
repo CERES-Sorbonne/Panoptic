@@ -2,9 +2,9 @@ import asyncio
 
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext, PropertyType, PropertyMode, DbCommit, \
-    Instance, ImagePropertyValue, Property
+    Instance, ImageProperty, Property
 from panoptic.models.results import ActionResult
-from panoptic.core.plugin.plugin import Plugin
+from panoptic.core.plugin.plugin import APlugin
 
 
 async def run_command(command):
@@ -28,10 +28,10 @@ async def run_command(command):
 async def ocr(instance: Instance, prop: Property):
     command = f'shortcuts run ocr-img -i "{instance.url}"'
     text, err = await run_command(command)
-    return ImagePropertyValue(property_id=prop.id, sha1=instance.sha1, value=text)
+    return ImageProperty(property_id=prop.id, sha1=instance.sha1, value=text)
 
 
-class MacOCR(Plugin):
+class MacOCR(APlugin):
     def __init__(self, project: Project, plugin_path: str):
         super().__init__(name='MacOCR', project=project, plugin_path=plugin_path)
         self.add_action_easy(self.ocr, ['execute'])
