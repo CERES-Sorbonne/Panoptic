@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from panoptic.models import InstancePropertyValue, Tag, DbCommit
+from panoptic.models import InstanceProperty, Tag, DbCommit
 
 
-@dataclass(slots=True)
+@dataclass
 class Group:
     ids: list[int] = None
     sha1s: list[str] = None
@@ -56,5 +56,5 @@ class ActionError:
 @dataclass
 class DeleteTagResult:
     tag_id: int
-    updated_values: list[InstancePropertyValue]
+    updated_values: list[InstanceProperty]
     updated_tags: list[Tag]

@@ -7,7 +7,7 @@ from panoptic.core.task.task import Task
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
-from panoptic.models import ImagePropertyValueKey, InstancePropertyValue, PropertyType, PropertyMode, Property, \
+from panoptic.models import ImagePropertyKey, InstanceProperty, PropertyType, PropertyMode, Property, \
     DbCommit, Vector, Instance
 
 
@@ -38,13 +38,13 @@ class PluginProjectInterface:
     async def get_instance_property_values(self, property_ids: list[int] = None, instance_ids: list[int] = None):
         return await self._project.db.get_raw_db().get_instance_property_values(property_ids, instance_ids)
 
-    async def get_instance_property_values_from_keys(self, keys: list[InstancePropertyValue]):
+    async def get_instance_property_values_from_keys(self, keys: list[InstanceProperty]):
         return await self._project.db.get_raw_db().get_instance_property_values_from_keys(keys)
 
     async def get_image_property_values(self, property_ids: list[int] = None, sha1s: list[str] = None):
         return await self._project.db.get_raw_db().get_image_property_values(property_ids, sha1s)
 
-    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyValueKey]):
+    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]):
         return await self._project.db.get_raw_db().get_image_property_values_from_keys(keys)
 
     async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):

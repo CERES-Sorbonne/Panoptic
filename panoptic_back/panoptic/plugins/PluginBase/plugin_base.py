@@ -1,7 +1,8 @@
 from pydantic import BaseModel
-from panoptic.core.plugin.plugin import Plugin
+from panoptic.core.plugin.plugin import APlugin
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.models import ActionContext, PropertyId
+from panoptic.models.results import ActionResult
 
 
 class TestParams(BaseModel):
@@ -11,7 +12,7 @@ class TestParams(BaseModel):
     base_prop: PropertyId = 1
 
 
-class PluginBase(Plugin):
+class PluginBase(APlugin):
     def __init__(self, project: PluginProjectInterface, plugin_path: str):
         super().__init__(name='TestPlugin1', project=project, plugin_path=plugin_path)
         self.params = TestParams()
@@ -22,4 +23,5 @@ class PluginBase(Plugin):
         print(self.params)
         print(context)
         print(number, text, floating, prop)
+        return ActionResult()
 

@@ -8,7 +8,7 @@ from typing import List, Any, Callable, Awaitable, Dict
 from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
-from panoptic.models import ParamDescription, Instance, ImagePropertyValue, InstancePropertyValue, Property, \
+from panoptic.models import ParamDescription, Instance, ImageProperty, InstanceProperty, Property, \
     PropertyType, PropertyId, Tag
 from panoptic.models.computed_properties import ComputedId
 
@@ -137,14 +137,14 @@ def group_by_sha1(instances: List[Instance]):
     return res
 
 
-def convert_to_instance_values(values: list[ImagePropertyValue], instances: list[Instance]) \
-        -> list[InstancePropertyValue]:
+def convert_to_instance_values(values: list[ImageProperty], instances: list[Instance]) \
+        -> list[InstanceProperty]:
     sha1_to_instances = {i.sha1: [] for i in instances}
     [sha1_to_instances[i.sha1].append(i) for i in instances]
 
-    def converter2(value: ImagePropertyValue):
+    def converter2(value: ImageProperty):
         targets = sha1_to_instances[value.sha1]
-        return [InstancePropertyValue(instance_id=i.id, property_id=value.property_id, value=value.value) for i in
+        return [InstanceProperty(instance_id=i.id, property_id=value.property_id, value=value.value) for i in
                 targets]
 
     pre_res = [converter2(v) for v in values]
@@ -166,13 +166,13 @@ def clean_value(prop: Property, v: Any):
 
 
 def get_computed_values(instance: Instance):
-    res = [InstancePropertyValue(instance_id=instance.id, property_id=-1, value=instance.id),
-           InstancePropertyValue(instance_id=instance.id, property_id=-2, value=instance.sha1),
-           InstancePropertyValue(instance_id=instance.id, property_id=-3, value=instance.ahash),
-           InstancePropertyValue(instance_id=instance.id, property_id=-4, value=instance.folder_id),
-           InstancePropertyValue(instance_id=instance.id, property_id=-5, value=instance.width),
-           InstancePropertyValue(instance_id=instance.id, property_id=-6, value=instance.height),
-           InstancePropertyValue(instance_id=instance.id, property_id=-7, value=instance.url)]
+    res = [InstanceProperty(instance_id=instance.id, property_id=-1, value=instance.id),
+           InstanceProperty(instance_id=instance.id, property_id=-2, value=instance.sha1),
+           InstanceProperty(instance_id=instance.id, property_id=-3, value=instance.ahash),
+           InstanceProperty(instance_id=instance.id, property_id=-4, value=instance.folder_id),
+           InstanceProperty(instance_id=instance.id, property_id=-5, value=instance.width),
+           InstanceProperty(instance_id=instance.id, property_id=-6, value=instance.height),
+           InstanceProperty(instance_id=instance.id, property_id=-7, value=instance.url)]
     return res
 
 

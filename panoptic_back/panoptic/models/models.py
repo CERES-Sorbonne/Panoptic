@@ -58,24 +58,24 @@ class PropertyUpdate(BaseModel):
 
 
 @dataclass
-class InstancePropertyValueKey:
+class InstancePropertyKey:
     property_id: int
     instance_id: int
 
 
 @dataclass
-class ImagePropertyValueKey:
+class ImagePropertyKey:
     property_id: int
     sha1: str
 
 
 @dataclass
-class InstancePropertyValue(InstancePropertyValueKey):
+class InstanceProperty(InstancePropertyKey):
     value: Any | None = None
 
 
 @dataclass
-class ImagePropertyValue(ImagePropertyValueKey):
+class ImageProperty(ImagePropertyKey):
     value: Any | None = None
 
 
@@ -112,7 +112,7 @@ class Instance:
     width: int
     ahash: str = ''
 
-    properties: dict[int, InstancePropertyValue] = field(default_factory=dict)
+    properties: dict[int, InstanceProperty] = field(default_factory=dict)
 
 
 # @dataclass
@@ -298,15 +298,15 @@ class DbCommit:
     empty_instances: list[int] = field(default_factory=list)
     empty_properties: list[int] = field(default_factory=list)
     empty_tags: list[int] = field(default_factory=list)
-    empty_instance_values: list[InstancePropertyValueKey] = field(default_factory=list)
-    empty_image_values: list[ImagePropertyValueKey] = field(default_factory=list)
+    empty_instance_values: list[InstancePropertyKey] = field(default_factory=list)
+    empty_image_values: list[ImagePropertyKey] = field(default_factory=list)
 
     folders: list[Folder] = field(default_factory=list)
     instances: list[Instance] = field(default_factory=list)
     properties: list[Property] = field(default_factory=list)
     tags: list[Tag] = field(default_factory=list)
-    instance_values: list[InstancePropertyValue] = field(default_factory=list)
-    image_values: list[ImagePropertyValue] = field(default_factory=list)
+    instance_values: list[InstanceProperty] = field(default_factory=list)
+    image_values: list[ImageProperty] = field(default_factory=list)
 
     timestamp: datetime = field(default_factory=datetime.now)
 

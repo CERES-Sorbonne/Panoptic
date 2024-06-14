@@ -18,7 +18,7 @@ from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import StatusUpdate
-from panoptic.core.plugin.plugin import Plugin
+from panoptic.core.plugin.plugin import APlugin
 
 nb_workers = 4
 
@@ -44,7 +44,7 @@ class Project:
         self.undo_queue: UndoQueue | None = None
 
         self.plugin_loaded = False
-        self.plugins: List[Plugin] = []
+        self.plugins: List[APlugin] = []
         self.plugin_paths = plugins
 
     async def start(self):

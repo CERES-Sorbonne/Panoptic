@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from typing import List, Any
 from typing import TYPE_CHECKING
 
@@ -20,7 +21,7 @@ def assign_attributes(target: BaseModel, source):
     return target
 
 
-class Plugin:
+class APlugin(ABC):
     def __init__(self, name: str, project: PluginProjectInterface, plugin_path: str):
         self.params: Any | None = None
         self.name: str = name

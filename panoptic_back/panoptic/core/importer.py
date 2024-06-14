@@ -11,8 +11,8 @@ from panoptic.utils import Trie
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstancePropertyValue, \
-    ImagePropertyValue, DbCommit
+from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstanceProperty, \
+    ImageProperty, DbCommit
 
 
 @dataclass
@@ -219,8 +219,8 @@ class Importer:
 
     async def import_data(self, data: ImportData):
 
-        instance_values: list[InstancePropertyValue] = []
-        image_values: list[ImagePropertyValue] = []
+        instance_values: list[InstanceProperty] = []
+        image_values: list[ImageProperty] = []
 
         properties = await self.project.db.get_properties()
         property_index = {p.id: p for p in [*data.properties, *properties]}
@@ -231,11 +231,11 @@ class Importer:
         for import_values in data.values:
             for id_, value in zip(import_values.instance_ids, import_values.values):
                 if property_index[import_values.property_id].mode == PropertyMode.id:
-                    instance_values.append(InstancePropertyValue(property_id=import_values.property_id, instance_id=id_,
-                                                                 value=value))
+                    instance_values.append(InstanceProperty(property_id=import_values.property_id, instance_id=id_,
+                                                            value=value))
                 else:
-                    image_values.append(ImagePropertyValue(property_id=import_values.property_id,
-                                                           sha1=instance_index[id_].sha1, value=value))
+                    image_values.append(ImageProperty(property_id=import_values.property_id,
+                                                      sha1=instance_index[id_].sha1, value=value))
 
         commit = DbCommit()
         commit.instances = data.instances
