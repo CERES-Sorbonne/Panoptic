@@ -217,7 +217,6 @@ class Db:
         query = Query.from_(values).select('instance_id', functions.Count('*'))
         query = query.where(values.instance_id.isin(instance_ids))
         query = query.groupby(values.instance_id)
-        print(query.get_sql())
         cursor = await self.conn.execute_query(query.get_sql())
         rows = await cursor.fetchall()
         res = {r[0]: r[1] for r in rows}

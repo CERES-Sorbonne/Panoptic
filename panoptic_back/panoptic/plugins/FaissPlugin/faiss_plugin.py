@@ -62,7 +62,7 @@ class FaissPlugin(APlugin):
         if not sha1s:
             return None
 
-        vectors = await self.project.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
+        vectors = await self.project.get_vectors(source=self.name, vector_type='clip', sha1s=sha1s)
         clusters, distances = make_clusters(vectors, method="kmeans", nb_clusters=nb_clusters)
 
         groups = [Group(ids=[i.id for sha1 in cluster for i in sha1_to_instance[sha1]], score=distance) for
@@ -76,7 +76,7 @@ class FaissPlugin(APlugin):
         instances = await self.project.get_instances(context.instance_ids)
         sha1s = [i.sha1 for i in instances]
         ignore_sha1s = set(sha1s)
-        vectors = await self.project.get_vectors(source=self.name, type_='clip', sha1s=sha1s)
+        vectors = await self.project.get_vectors(source=self.name, vector_type='clip', sha1s=sha1s)
         vector_datas = [x.data for x in vectors]
         res = get_similar_images(vector_datas)
         index = {r['sha1']: r['dist'] for r in res if r['sha1'] not in ignore_sha1s}

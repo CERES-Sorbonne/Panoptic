@@ -169,10 +169,13 @@ class Importer:
             if fusion == 'new':
                 to_test = [vv for v in row_to_ids for vv in v]
                 empty = await self.project.db.test_empty(to_test)
+                used_id = set({})
                 for i in range(len(row_to_ids)):
-                    valid = [i for i in row_to_ids[i] if i in empty]
+                    valid = [i for i in row_to_ids[i] if i in empty and i not in used_id]
                     if valid:
-                        row_to_ids[i] = valid
+                        free = valid[0]
+                        used_id.add(free)
+                        row_to_ids[i] = [free]
                     elif row_to_ids[i]:
                         instance_clone = replace(instance_index[row_to_ids[i][0]])
                         instance_clone.id = gen_instance_id()

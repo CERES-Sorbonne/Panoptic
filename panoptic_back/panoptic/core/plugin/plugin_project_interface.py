@@ -47,8 +47,8 @@ class PluginProjectInterface:
     async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]):
         return await self._project.db.get_raw_db().get_image_property_values_from_keys(keys)
 
-    async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):
-        return await self._project.db.get_vectors(source, type_, sha1s)
+    async def get_vectors(self, source: str, vector_type: str, sha1s: list[str] = None):
+        return await self._project.db.get_vectors(source, vector_type, sha1s)
 
     async def get_default_vectors(self, sha1s: list[str] = None):
         return await self._project.db.get_default_vectors(sha1s)
