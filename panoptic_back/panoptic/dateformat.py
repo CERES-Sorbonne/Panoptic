@@ -2,30 +2,24 @@ import pendulum
 pendulum.set_locale('fr')
 
 def parse_date(date: str):
+    formats = [
+        'DD/MM/YYYY HH:mm',
+        'DD/MM/YYYY HH:mm:ss',
+        'DD/MM/YYYY',
+        'YYYY',
+        'MM/YYYY'
+    ]
+
+    for fmt in formats:
+        try:
+            parsed = pendulum.from_format(date, fmt)
+            return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
+        except Exception:
+            pass
     try:
-        parsed = pendulum.from_format(date, 'DD/MM/YYYY HH:mm')
+        parsed = pendulum.from_timestamp(int(date))
         return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
-    except Exception as e:
-        pass
-    try:
-        parsed = pendulum.from_format(date, 'DD/MM/YYYY HH:mm:ss')
-        return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
-    except Exception as e:
-        pass
-    try:
-        parsed = pendulum.from_format(date, 'DD/MM/YYYY')
-        return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
-    except Exception as e:
-        pass
-    try:
-        parsed = pendulum.from_format(date, 'YYYY')
-        return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
-    except Exception as e:
-        pass
-    try:
-        parsed = pendulum.from_format(date, 'MM/YYYY')
-        return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
-    except Exception as e:
+    except Exception:
         pass
     # parsed = dateparser.parse(date,
     #                           date_formats=['%d/%m/%Y', '%d/%m/%Y %H:%M', '%d/%m/%Y %H:%M:%S'],
