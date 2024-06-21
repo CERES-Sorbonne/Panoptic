@@ -7,7 +7,8 @@ def parse_date(date: str):
         'DD/MM/YYYY HH:mm:ss',
         'DD/MM/YYYY',
         'YYYY',
-        'MM/YYYY'
+        'MM/YYYY',
+        "DD/MM/YY-HH:mm"
     ]
 
     for fmt in formats:
