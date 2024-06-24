@@ -150,8 +150,10 @@ watch(() => filter.value, () => updateLocal())
         <template #popup>
             <div class="container-size bg-white" ref="popupElem">
                 <template v-if="mode != State.CLOSED">
+                    <div style="max-height: 400px; overflow-y: scroll;">
                     <PropertySelection v-if="mode == State.TYPE" @select="updateProperty"
                         :ignore-ids="[PropertyID.folders]" />
+                    </div>
                     <div v-if="mode == State.MODE">
                         <div class="d-flex mode-header">
                             <div class="me-3">{{ filterProperty.name }}</div>
