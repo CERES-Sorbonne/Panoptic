@@ -19,7 +19,7 @@ import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import VueApexCharts from "vue3-apexcharts";
 
-const i18n = createI18n({
+export const i18n = createI18n({
     legacy: false,
     locale: 'fr', // set locale
     fallbackLocale: 'en', // set fallback locale
