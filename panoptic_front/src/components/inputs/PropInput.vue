@@ -22,9 +22,9 @@ const emits = defineEmits(["update:height"])
 <template>
     <TextPropInput v-if="property.type == PropertyType.string" :min-height="minHeight" ref="inputElems"
         @update:height="h => emits('update:height', h)" :image="props.image" :property="property" :width="props.width" />
-    <TextPropInput v-if="property.type == PropertyType.url" :min-height="minHeight" ref="inputElems"
+    <TextPropInput v-if="property.type == PropertyType.url" :min-height="minHeight" ref="inputElems" :url-mode="true"
         @update:height="h => emits('update:height', h)" :image="props.image" :property="property" :width="props.width" />
-    <TextPropInput v-if="property.type == PropertyType.path" :min-height="minHeight" ref="inputElems"
+    <TextPropInput v-if="property.type == PropertyType.path" :min-height="minHeight" ref="inputElems" 
         @update:height="h => emits('update:height', h)" :image="props.image" :property="property" :width="props.width" />
     <TagPropInputDropdown v-if="isTag(property.type)" :property="property" :image="props.image" :width="props.width"
         :can-create="true" :can-customize="true" :can-delete="true" :can-link="true" :input-id="[0]" :auto-focus="true"
