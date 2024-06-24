@@ -72,7 +72,8 @@
                 "order_desc": "Tri par ordre décroissant",
                 "order_asc": "Tri par ordre croissant"
             },
-            "import_status_title": "Import"
+            "import_status_title": "Import",
+            "issue": "Signaler un probleme"
         },
         "recommand": {
             "title": "Propositions d'images",
@@ -252,4 +253,5 @@
             "tags": "tag(s) modifié(s)"
         }
     }
+
 }
