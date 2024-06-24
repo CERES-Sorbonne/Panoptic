@@ -52,9 +52,14 @@ export const apiImportFolder = async () => {
     return res.data
 }
 
+export async function apiDeleteFolder(folderId: number) {
+    let res = await axios.delete('/folder', { params: { folder_id: folderId } })
+    return res.data
+}
+
 export async function apiGetTabs() {
     let res = await apiGetUIData('tabs')
-    if(!res) {
+    if (!res) {
         return {} as TabIndex
     }
     return res as TabIndex
@@ -163,7 +168,7 @@ export async function apiGetPluginsInfo() {
 }
 
 export async function apiSetPluginParams(plugin: string, params: any) {
-    let res = await axios.post('/plugin_params', {plugin, params})
+    let res = await axios.post('/plugin_params', { plugin, params })
     return res.data as PluginDescription[]
 }
 
@@ -175,7 +180,7 @@ export async function apiGetActions() {
 export async function apiCallActions(req: ExecuteActionPayload) {
     let res = await axios.post('/action_execute', req)
     const ares: ActionResult = res.data
-    if(ares.commit) ares.commit = keysToCamel(ares.commit)
+    if (ares.commit) ares.commit = keysToCamel(ares.commit)
     return ares
 }
 
@@ -195,7 +200,7 @@ export async function apiGetUIData(key: string) {
 }
 
 export async function apiSetUIData(key: string, data: any) {
-    let res = await axios.post('/ui_data', {key, data})
+    let res = await axios.post('/ui_data', { key, data })
     return res.data as any
 }
 
@@ -211,11 +216,11 @@ export async function apiRedo() {
 
 export async function apiCommit(commit: DbCommit) {
     const fixed: any = keysToSnake(deepCopy(commit))
-    if(commit.instances) fixed.instances = commit.instances.map(i => keysToSnake(i))
-    if(commit.properties) fixed.properties = commit.properties.map(p => keysToSnake(p))
-    if(commit.tags) fixed.tags = commit.tags.map(t => keysToSnake(t))
-    if(commit.instanceValues) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
-    if(commit.imageValues) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
+    if (commit.instances) fixed.instances = commit.instances.map(i => keysToSnake(i))
+    if (commit.properties) fixed.properties = commit.properties.map(p => keysToSnake(p))
+    if (commit.tags) fixed.tags = commit.tags.map(t => keysToSnake(t))
+    if (commit.instanceValues) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
+    if (commit.imageValues) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
 
     // console.log(fixed)
     const res = await axios.post('/commit', fixed)

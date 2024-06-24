@@ -103,6 +103,9 @@ class Project:
                  for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
 
+    async def delete_folder(self, folder_id: int):
+        await self.db.delete_folder(folder_id)
+
     async def _compute_folder_structure(self, root_path, all_files: List[str]):
         offset = len(root_path)
         root, root_name = os.path.split(root_path)
