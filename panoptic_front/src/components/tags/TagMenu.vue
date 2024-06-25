@@ -130,7 +130,7 @@ watch(filteredTagList, () => {
                 @keydown.down="moveSelected(1)" @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""/>
         </div>
 
-        <div class="pb-0" style="max-height: 300px; overflow-y: scroll;">
+        <div class="pb-0" style="max-height: 300px; overflow-y: auto;">
             <div v-for="tag, index in filteredTagList" :class="optionClass(index)" style="cursor: pointer;"
                 @mouseover="selectedIndex = index" @mouseleave="endSelection(index)">
                 <div class="ms-2 d-flex">

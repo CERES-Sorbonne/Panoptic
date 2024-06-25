@@ -1,4 +1,4 @@
-software_db_version = 2
+software_db_version = 3
 
 DB_VERSION = 'db_version'
 
@@ -50,24 +50,14 @@ def create_instances_table():
         url TEXT NOT NULL,
         height INTEGER NOT NULL,
         width INTEGER NOT NULL,
-        ahash TEXT NOT NULL
+        ahash TEXT NOT NULL,
+        
+        FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE
     );
+    
     CREATE INDEX idx_image_filepath ON instances (folder_id, name, extension);
     CREATE INDEX idx_image_sha1 ON instances (sha1);
-    """
-    return query
-
-
-def create_property_values_table():
-    query = """
-    CREATE TABLE property_values (
-        property_id INTEGER NOT NULL,
-        instance_id INTEGER NOT NULL,
-        sha1 TEXT INTEGER NOT NULL,
-        value JSON,
-        PRIMARY KEY (property_id, instance_id, sha1),
-        FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
-    );
+    
     """
     return query
 
@@ -80,7 +70,8 @@ def create_instance_property_values_table():
         value JSON,
         
         PRIMARY KEY (property_id, instance_id),
-        FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE
+        FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE,
+        FOREIGN KEY (instance_id) REFERENCES instances (id) ON DELETE CASCADE
     );
     """
     return query

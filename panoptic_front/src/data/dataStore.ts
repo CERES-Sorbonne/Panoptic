@@ -89,6 +89,7 @@ export const useDataStore = defineStore('dataStore', () => {
     function importImageValues(instanceValues: ImagePropertyValue[]) {
         for (let v of instanceValues) {
             if (v.value == undefined) continue
+            if(sha1Index.value[v.sha1] == undefined) continue
             for (let img of sha1Index.value[v.sha1]) {
                 instances.value[img.id].properties[v.propertyId] = v.value
             }

@@ -197,6 +197,9 @@ class ProjectDb:
     async def get_folder(self, folder_id: int):
         return await self._db.get_folder(folder_id)
 
+    async def delete_folder(self, folder_id: int):
+        return await self._db.delete_folder(folder_id)
+
     # =========== Vectors ===========
     async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):
         return await self._db.get_vectors(source, type_, sha1s)

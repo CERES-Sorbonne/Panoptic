@@ -73,6 +73,7 @@ async function updateInfo() {
 
 async function setOpenFolder(folder: DirInfo) {
     let res = await apiGetFilesystemLs(folder.path)
+    res.directories.sort((a, b) => a.name.localeCompare(b.name))
     // console.log(res.directories)
     openFolders.length = 0
     openFolders.push(res.directories.filter(d => !d.name.startsWith('.')))
@@ -85,6 +86,7 @@ async function setOpenFolder(folder: DirInfo) {
 
 async function openSubFolder(folder: DirInfo, folderIndex: number) {
     const res = await apiGetFilesystemLs(folder.path)
+    res.directories.sort((a, b) => a.name.localeCompare(b.name))
     if (folderIndex < openFolders.length - 1) {
         openFolders.splice(folderIndex + 1)
     }
