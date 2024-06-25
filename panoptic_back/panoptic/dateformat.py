@@ -1,3 +1,5 @@
+import logging
+
 import pendulum
 pendulum.set_locale('fr')
 
@@ -25,9 +27,12 @@ def parse_date(date: str):
     # parsed = dateparser.parse(date,
     #                           date_formats=['%d/%m/%Y', '%d/%m/%Y %H:%M', '%d/%m/%Y %H:%M:%S'],
     #                           settings={'PREFER_DAY_OF_MONTH': 'first', 'PREFER_MONTH_OF_YEAR': 'first'})
-    parsed = pendulum.parse(date)
-    return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
-
+    try:
+        parsed = pendulum.parse(date)
+        return parsed.strftime('%Y-%m-%dT%H:%M:%SZ')
+    except Exception:
+        logging.getLogger().warning(f'Could not parse date: {date}')
+        return ""
 
 
 
