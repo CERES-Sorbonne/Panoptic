@@ -7,30 +7,12 @@ import FilterForm from '../forms/FilterForm.vue';
 import GroupForm from '../forms/GroupForm.vue';
 import SortForm from '../forms/SortForm.vue';
 import RangeInput from '../inputs/RangeInput.vue'
-import Toggle from '@vueform/toggle'
 import wTT from '../tooltips/withToolTip.vue'
-import { computed, onMounted, ref, shallowRef, triggerRef, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
-import { useProjectStore } from '@/data/projectStore';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
-
-const project = useProjectStore()
-
-// const test2 = computed(() => test.value.count)
-// function addit() {
-//     test.value.count += 1
-//     triggerRef(test)
-//     // triggerRef(images)
-// }
-
-// const img = computed(() => images.value[1])
-// const prop = computed(() => img.value.properties[8]?.value)
-
-// watch(test, () => console.log('test changed'))
-// watch(images, () => console.log('images changed'))
-// watch(img, () => console.log('immmgggggg'))
 
 const props = defineProps({
     tab: TabManager,
@@ -109,17 +91,15 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                 <span class="ms-1">Mode Image unique</span>
             </wTT>
         </div>
-        <!-- <div class="ms-4">
-            <span class="bi bi-x bb" @click="project.undo"></span>
-        </div>
-        <div class="ms-4">
-            <span class="bi bi-circle bb" @click="project.redo"></span>
-        </div> -->
         <div class="ms-4">
             <HistoryDropdown />
         </div>
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />
+        <div class="flex-grow-1"></div>
+        <wTT message="main.menu.issue" class="bb ">
+            <a href="https://github.com/CERES-Sorbonne/Panoptic/issues/new/choose" target="_blank" class="bi bi-cone-striped" style="color: grey"></a>
+        </wTT>
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
         <ToggleReload class="me-1"/>

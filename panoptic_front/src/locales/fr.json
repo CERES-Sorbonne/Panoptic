@@ -16,7 +16,9 @@
         "nav": {
             "folders": {
                 "title": "Dossiers",
-                "add": "Ajouter un dossier d'images"
+                "add": "Ajouter un dossier d'images",
+                "del": "Retirer",
+                "del_alert": "Retirer le dossier supprimera toutes les instances associés aux images contenu dans le dossier."
             },
             "tasks": {
                 "title": "Tache de fond",
@@ -72,7 +74,8 @@
                 "order_desc": "Tri par ordre décroissant",
                 "order_asc": "Tri par ordre croissant"
             },
-            "import_status_title": "Import"
+            "import_status_title": "Import",
+            "issue": "Signaler un probleme"
         },
         "recommand": {
             "title": "Propositions d'images",
@@ -252,4 +255,5 @@
             "tags": "tag(s) modifié(s)"
         }
     }
+
 }

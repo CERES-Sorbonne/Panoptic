@@ -10,7 +10,6 @@ import { Ref, nextTick, reactive, ref, shallowRef, toRefs, triggerRef } from "vu
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, deepCopy, isTag, objValues } from "@/utils/utils";
-import { useProjectStore } from "@/data/projectStore";
 import { useDataStore } from "@/data/dataStore";
 
 
@@ -192,6 +191,9 @@ const valueParser: { [type in PropertyType]?: any } = {
 }
 
 function closestDate(date: Date, stepSize: number, unit: DateUnit) {
+    if(!stepSize) {
+        stepSize = 1
+    }
     if (!unit) {
         unit = DateUnit.Day
     }

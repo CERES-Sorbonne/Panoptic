@@ -62,7 +62,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                             <wTT message="main.nav.folders.add"><i class="bi bi-plus"></i></wTT>
                         </div>
                     </div>
-                    <div class="overflow-scroll">
+                    <div style="max-height: 300px; overflow: auto;">
                         <FolderList2 v-if="project.getTab()" :folders="project.folderRoots"
                             :filter-manager="tabManager.collection.filterManager"
                             :visible-folders="tabManager.state.visibleFolders" />

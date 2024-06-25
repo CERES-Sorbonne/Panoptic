@@ -39,10 +39,12 @@ async def get_db_state_route():
     # computed_values = project.db.get_computed_values(instances)
     # instance_values.extend(computed_values)
 
-    state = DbCommit(instances=instances, properties=properties, tags=tags, image_values=img_values, instance_values=instance_values)
+    state = DbCommit(instances=instances, properties=properties, tags=tags, image_values=img_values,
+                     instance_values=instance_values)
     print(time() - now)
     return ORJSONResponse(state)
     # return state
+
 
 @project_router.get("/property")
 async def get_properties_route() -> list[Property]:
@@ -133,6 +135,11 @@ async def reimport_folder_route(req: IdRequest):
     if not folder:
         raise Exception(f'Folder id does not exist [{req.id}]')
     await project.import_folder(folder.path)
+
+
+@project_router.delete('/folder')
+async def delete_folder(folder_id: int):
+    await project.delete_folder(folder_id)
 
 
 @project_router.post('/action_execute')

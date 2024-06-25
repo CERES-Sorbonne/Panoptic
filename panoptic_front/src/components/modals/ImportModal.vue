@@ -5,7 +5,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import Modal from './Modal.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { ModalId } from '@/data/models';
 
 const panoptic = usePanopticStore()
@@ -18,7 +18,7 @@ const properties = ref(null)
 const take = ref({})
 const loading = ref(false)
 const fusion = ref('new')
-const relative = ref(false)
+const relative = ref(true)
 
 async function importFile() {
     // console.log(importOptions.value)
@@ -51,10 +51,11 @@ function clear() {
     properties.value = null
     inputElem.value.value = null
     take.value = {}
-    relative.value = false
+    relative.value = true
     fusion.value = 'new'
     loading.value = false
 }
+
 </script>
 
 

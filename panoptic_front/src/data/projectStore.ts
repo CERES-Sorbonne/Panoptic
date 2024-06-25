@@ -8,7 +8,7 @@ import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, shallowRef, watch } from "vue";
 import { Actions, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus } from "./api";
+import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus, apiDeleteFolder } from "./api";
 import { buildFolderNodes, computeTagCount } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { deepCopy, sleep } from "@/utils/utils";
@@ -490,6 +490,12 @@ export const useProjectStore = defineStore('projectStore', () => {
         return res
     }
 
+    async function deleteFolder(folderId: number) {
+        await apiDeleteFolder(folderId)
+        clear()
+        await init()
+    }
+
     return {
         // variables
         data, status,
@@ -498,7 +504,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         folderRoots,
 
         // functions
-        init, clear, rerender, addFolder, reImportFolder,
+        init, clear, rerender, addFolder, reImportFolder, deleteFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTab, removeTab, updateTabs, selectTab, getTab, getTabManager,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
