@@ -1,10 +1,10 @@
-import { Image } from "@/data/models";
+import { Instance } from "@/data/models";
 import { reactive } from "vue";
 
 export const zoomModal = reactive({
     open: false,
-    image: undefined as Image,
-    show: (img: Image) => { 
+    image: undefined as Instance,
+    show: (img: Instance) => { 
         zoomModal.image = img
         zoomModal.open = true
     },

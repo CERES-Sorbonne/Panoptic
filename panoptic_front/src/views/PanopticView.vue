@@ -38,7 +38,9 @@ onMounted(async () => {
     window.addEventListener('keydown', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = true;
         if (ev.key == 'Alt') {
-            if(isMac) keyState.ctrl = true
+            if(isMac) {
+                keyState.ctrl = true
+            }
             keyState.alt = true;
         }
         if (ev.key == 'Shift') keyState.shift = true;
