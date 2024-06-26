@@ -22,6 +22,8 @@ const hasHeight = ref(false)
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
 const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
+let isMac = navigator.userAgent.indexOf('Mac OS X') !== -1
+
 onMounted(async () => {
     if(!panoptic.isProjectLoaded) {
         // console.log('redirect')
@@ -35,7 +37,10 @@ onMounted(async () => {
 
     window.addEventListener('keydown', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = true;
-        if (ev.key == 'Alt') keyState.alt = true;
+        if (ev.key == 'Alt') {
+            if(isMac) keyState.ctrl = true
+            keyState.alt = true;
+        }
         if (ev.key == 'Shift') keyState.shift = true;
         if (ev.key == 'ArrowLeft') keyState.left = true;
         if (ev.key == 'ArrowRight') {keyState.right = true; console.log('keeeyy')}
@@ -45,7 +50,12 @@ onMounted(async () => {
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;
-        if (ev.key == 'Alt') keyState.alt = false;
+        if (ev.key == 'Alt'){
+            if(isMac) {
+                keyState.ctrl = false
+            }
+            keyState.alt = false;
+        }
         if (ev.key == 'Shift') keyState.shift = false;
         if (ev.key == 'ArrowLeft') keyState.left = false;
         if (ev.key == 'ArrowRight') keyState.right = false;
@@ -54,6 +64,9 @@ onMounted(async () => {
         keyState.ctrl = ev.ctrlKey
         keyState.alt = ev.altKey
         keyState.shift = ev.shiftKey
+        if(isMac) {
+            keyState.ctrl = keyState.ctrl || keyState.alt
+        }
     })
 })
 
