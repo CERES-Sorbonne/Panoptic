@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { keyState } from '@/data/keyState';
-import { Image } from '@/data/models';
 import { ref, watch } from 'vue';
 import { zoomModal } from './modals/zoomModal';
+import { Instance } from '@/data/models';
 
 const props = defineProps<{
-    image: Image
+    image: Instance
 }>()
 
 const hover = ref(false)
