@@ -76,7 +76,7 @@ function updateOperator(filterId: number, operator: FilterOperator.and | FilterO
                         </Dropdown>
 
                     </template>
-                    <span v-else class="text-secondary">{{ (filter as FilterGroup).groupOperator }}</span>
+                    <span v-else class="text-secondary">{{ $t('modals.filters.' + filter.groupOperator) }}</span>
                 </td>
                 <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
                     <PropertyDropdown :model-value="data.properties[(children as Filter).propertyId]"
