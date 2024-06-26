@@ -38,7 +38,7 @@ const minHeight = computed(() => {
     return (props.minHeight - 2) + 'px'
 })
 
-const urlMode = computed(() => props.urlMode && keyState.alt && isHover.value)
+const urlMode = computed(() => props.urlMode && keyState.ctrl && isHover.value)
 
 function focus() {
     elem.value.focus()
@@ -75,7 +75,7 @@ function updateHeight() {
 }
 
 function contentClick() {
-    if (props.urlMode && keyState.alt && props.modelValue) {
+    if (props.urlMode && keyState.ctrl && props.modelValue) {
         let url = props.modelValue as string
         if (!url.startsWith('http')) {
             url = 'http://' + url

@@ -23,10 +23,11 @@ const isHover = ref(false)
 const widthGoal = ref(0)
 const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
 const minWidth = computed(() => Math.max(props.width + 1, widthGoal.value))
-const urlMode = computed(() => props.property.type == PropertyType.url && keyState.alt && isHover.value)
+const urlMode = computed(() => props.property.type == PropertyType.url && keyState.ctrl && isHover.value)
 
 function contentClick(e) {
-    if (urlMode.value && keyState.alt && propValue.value) {
+    if (urlMode.value && keyState.ctrl && propValue.value) {
+        e.preventDefault()
         let url = propValue.value as string
         if (!url.startsWith('http')) {
             url = 'http://' + url
