@@ -1,0 +1,1 @@
+import{_ as e,o as s,a as t,b as o}from"./index-9e4e5c88.js";const c={},n={class:"bg-warning p-1 d-flex"},a=o("div",{class:"bg-info m-0 p-0 bi bi-x-lg",style:{"font-size":"10px"}},null,-1),_=[a];function i(r,l){return s(),t("div",n,_)}const f=e(c,[["render",i]]);export{f as default};
