@@ -151,9 +151,6 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function clear() {
         Object.assign(data, {
-            images: {} as InstanceIndex,
-            sha1Index: {} as Sha1ToInstances,
-            properties: {} as PropertyIndex,
             tabs: {} as TabIndex,
             selectedTabId: undefined as number,
             folders: {} as FolderIndex,

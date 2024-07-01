@@ -46,17 +46,19 @@ export function computeTagCount() {
         tag.count = 0
     }
 
+    console.time('tag-count')
+
     for(let prop of properties) {
-        const grouper = new GroupManager()
-        grouper.setGroupOption(prop.id)
-        grouper.group(images)
-        const root = grouper.result.root
-        for(let group of root.children) {
-            let value = group.meta.propertyValues[0].value
-            if(value == undefined) continue
-            tags[value].count = group.images.length
+        for(let img of images) {
+            if(img.properties[prop.id]) {
+                for(let value of img.properties[prop.id]) {
+                    tags[value].count += 1
+                }
+            }
         }
     }
+
+    console.timeEnd('tag-count')
 }
 
 export function countImagePerFolder(folders: FolderIndex, images: Instance[]) {

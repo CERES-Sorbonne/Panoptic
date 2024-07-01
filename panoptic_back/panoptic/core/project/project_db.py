@@ -71,6 +71,7 @@ class ProjectDb:
     def get_computed_values(instances: list[Instance]):
         computed_values = [v for i in instances for v in get_computed_values(i)]
         return computed_values
+
     # =====================================================
     # =================== Instances =======================
     # =====================================================
@@ -120,7 +121,6 @@ class ProjectDb:
         for prop_id in property_ids:
             res.extend(await self._db.get_tags(prop_id))
         return res
-
 
     async def _delete_tags(self, ids: list[int]):
         to_delete = set(ids)
