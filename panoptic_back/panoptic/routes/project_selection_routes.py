@@ -139,7 +139,7 @@ def list_disk():
 
 def list_index():
     mounted = []
-
+    
     partitions = psutil.disk_partitions()
     partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
     for partition in partitions:
@@ -149,6 +149,17 @@ def list_index():
             'images': len(images_in_folder(partition.mountpoint))
         })
 
+    if os.getenv('IS_DOCKER', False):
+        mounted.append({
+            'path': '/data',
+            'name': '/data',
+            'images': 0
+        })
+        mounted.append({
+            'path': '/',
+            'name': '/',
+            'images': 0
+        })
     files = [{
         'path': pathlib.Path.home(),
         'name': 'Home',
