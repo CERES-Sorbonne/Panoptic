@@ -6,10 +6,10 @@
  */
 
 import { DateUnit, DateUnitFactor, Instance, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
-import { Ref, nextTick, reactive, ref, shallowRef, toRefs, triggerRef } from "vue";
+import { Ref, reactive, shallowRef, toRefs, triggerRef } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
-import { EventEmitter, deepCopy, isTag, objValues } from "@/utils/utils";
+import { EventEmitter, isTag, objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 
 

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { FilterManager } from '@/core/FilterManager';
 import { Folder } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
 import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed, ref } from 'vue';
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue';
+import { useDataStore } from '@/data/dataStore';
 
-const project = useProjectStore()
-
+const data = useDataStore()
 const props = defineProps({
     folders: Array<Folder>,
     visibleFolders: Object as () => { [folderId: number]: boolean },
@@ -63,7 +62,7 @@ function toggleFolderVisible(folderId: number) {
 function toggleFolderSelect(folderId: number) {
     let selected = new Set(props.filterManager.state.folders)
     const isSelected = selected.has(folderId)
-    const isParentSelected = project.data.folders[folderId].parent != undefined && selected.has(project.data.folders[folderId].parent)
+    const isParentSelected = data.folders[folderId].parent != undefined && selected.has(data.folders[folderId].parent)
     if (isSelected && !isParentSelected) {
         selected.delete(folderId)
         getFolderChildren(folderId).forEach(c => selected.delete(c.id))
@@ -72,7 +71,7 @@ function toggleFolderSelect(folderId: number) {
         unselectParent(folderId, selected)
         selected.add(folderId)
         getFolderChildren(folderId).forEach(c => selected.add(c.id))
-        getFolderAndParents(project.data.folders[folderId]).forEach(c => selected.delete(c.id))
+        getFolderAndParents(data.folders[folderId]).forEach(c => selected.delete(c.id))
     }
 
     props.filterManager.setFolders(Array.from(selected))
@@ -81,7 +80,7 @@ function toggleFolderSelect(folderId: number) {
 }
 
 function unselectParent(folderId: number, selected: Set<number>) {
-    const parents = getFolderAndParents(project.data.folders[folderId])
+    const parents = getFolderAndParents(data.folders[folderId])
     let highestParent = undefined
     for (let p of parents) {
         if (selected.has(p.id)) {
@@ -107,7 +106,7 @@ function unselectParent(folderId: number, selected: Set<number>) {
                 :class="'bi bi-chevron-' + (isVisible[folder.id] ? 'down' : 'right') + ' ms-2 btn-icon'"
                 style="font-size: 9px;"></i>
             <span :class="hoverId === folder.id ? 'visible-option' : 'invisible-option'">
-                <FolderOptionDropdown :folder="folder" style="display: inline-block;"/>
+                <FolderOptionDropdown :folder="folder" style="display: inline-block;" />
             </span>
             <template v-if="folder.children && folder.children.length > 0 && isVisible[folder.id]">
                 <FolderList2 :folders="folder.children" :root="false" :visible-folders="props.visibleFolders"
@@ -212,5 +211,4 @@ function unselectParent(folderId: number, selected: Set<number>) {
     top: 2px;
     color: white;
 }
-
 </style>

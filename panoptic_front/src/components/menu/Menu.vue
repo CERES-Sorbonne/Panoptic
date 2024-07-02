@@ -33,7 +33,7 @@ function promptFolder() {
 
 function addFolder(path) {
     if (!path) return
-    project.addFolder(path)
+    data.addFolder(path)
 }
 
 watch(() => project.status.import.to_import, () => showImport.value = true)
@@ -63,7 +63,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                         </div>
                     </div>
                     <div style="max-height: 300px; overflow: auto;">
-                        <FolderList2 v-if="project.getTab()" :folders="project.folderRoots"
+                        <FolderList2 v-if="project.getTab()" :folders="data.folderRoots"
                             :filter-manager="tabManager.collection.filterManager"
                             :visible-folders="tabManager.state.visibleFolders" />
                     </div>

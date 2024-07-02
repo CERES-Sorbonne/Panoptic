@@ -2,11 +2,9 @@
 <script setup lang="ts">
 import { Instance, Property } from '@/data/models';
 import { computed } from 'vue';
-import { useProjectStore } from '@/data/projectStore'
 import StandaloneDateInput from './StandaloneDateInput.vue';
 import { useDataStore } from '@/data/dataStore';
 
-const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps<{
@@ -27,7 +25,7 @@ const localValue = computed(() => {
 function save(date: Date) {
     const toSave = new Date(date).toISOString()
     console.log(date)
-    project.setPropertyValue(props.property.id, props.image, toSave)
+    data.setPropertyValue(props.property.id, props.image, toSave)
 }
 
 </script>

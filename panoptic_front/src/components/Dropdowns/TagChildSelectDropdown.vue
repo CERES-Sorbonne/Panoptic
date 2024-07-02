@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { useProjectStore } from '@/data/projectStore'
 import { Tag } from '@/data/models';
 import TagInput from '../tags/TagInput.vue';
 import { useDataStore } from '@/data/dataStore';
 
-const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps({
@@ -32,12 +30,12 @@ const excluded = computed(() => {
 })
 
 function addChild(tag: Tag) {
-    project.addTagParent(tag.id, props.tagId)
+    data.addTagParent(tag.id, props.tagId)
 }
 
 function deleteChild(tagId: number) {
     const childTag = data.properties[props.propertyId].tags[tagId]
-    project.deleteTagParent(childTag.id, props.tagId)
+    data.deleteTagParent(childTag.id, props.tagId)
 }
 
 function updateLocal() {

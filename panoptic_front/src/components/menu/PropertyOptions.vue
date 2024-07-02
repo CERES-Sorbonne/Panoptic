@@ -7,8 +7,10 @@ import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import TagMenu from '../tags/TagMenu.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
+import { useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
+const data = useDataStore()
 const tabManager = project.getTabManager()
 
 const props = defineProps({
@@ -84,14 +86,14 @@ function setGroup() {
 
 function deleteProperty() {
     if (confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
-        project.deleteProperty(props.property.id)
+        data.deleteProperty(props.property.id)
 }
 
 async function renameProperty() {
     if (localName.value == '') {
         return
     }
-    await project.updateProperty(props.property.id, localName.value)
+    await data.updateProperty(props.property.id, localName.value)
     toggleOptionsMenu()
 }
 

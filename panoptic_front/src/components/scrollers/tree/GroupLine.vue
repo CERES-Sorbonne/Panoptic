@@ -7,11 +7,9 @@ import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { Group, GroupManager, GroupTree, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
 import { DbCommit, GroupLine, GroupResult, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
-import { useProjectStore } from '@/data/projectStore'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 
-const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps({
@@ -120,7 +118,7 @@ async function saveHirachy() {
         }
     }
 
-    // await project.setPropertyValues(instanceValues, [])
+    // await data.setPropertyValues(instanceValues, [])
 
     const commit: DbCommit = {
         properties: [property],
@@ -128,7 +126,7 @@ async function saveHirachy() {
         instanceValues: instanceValues
     }
 
-    await project.sendCommit(commit)
+    await data.sendCommit(commit)
 
     saving.value = false
 }

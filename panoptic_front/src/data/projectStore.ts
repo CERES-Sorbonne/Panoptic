@@ -33,10 +33,8 @@ export const useProjectStore = defineStore('projectStore', () => {
     const data = reactive({
         tabs: {} as TabIndex,
         selectedTabId: undefined as number,
-        folders: {} as FolderIndex,
         plugins: [] as PluginDescription[],
         vectors: {} as ProjectVectorDescription,
-        history: {} as CommitHistory,
         counter: 0
     })
 
@@ -54,14 +52,6 @@ export const useProjectStore = defineStore('projectStore', () => {
     const backendStatus = ref<StatusUpdate>(null)
 
     // =======================
-    // =======Computed=======
-    // =======================
-
-    const folderRoots = computed(() => {
-        return Object.values(data.folders).filter(f => f.parent == null) as Folder[]
-    })
-
-    // =======================
     // =======Functions=======
     // =======================
 
@@ -74,10 +64,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
-        let folders = await apiGetFolders()
-        console.time('Request')
-        let dbState = await apiGetDbState()
-        console.timeEnd('Request')
+        // let folders = await apiGetFolders()
+        // console.time('Request')
+        // let dbState = await apiGetDbState()
+        // console.timeEnd('Request')
 
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
@@ -86,10 +76,10 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         backendStatus.value = (await apiGetUpdate()).status
 
-        data.folders = buildFolderNodes(folders)
-        console.time('commit')
-        applyCommit(dbState)
-        console.timeEnd('commit')
+        // data.folders = buildFolderNodes(folders)
+        // console.time('commit')
+        // applyCommit(dbState)
+        // console.timeEnd('commit')
 
 
         data.plugins = plugins
@@ -100,7 +90,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updateRoutine(routine)
         updatePropertyOptions()
 
-        computeTagCount()
+        // computeTagCount()
 
         // TODO: put back
         // countImagePerFolder(data.folders, imageList.value)
@@ -108,10 +98,11 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
         }
+        await dataStore.init()
 
         await loadTabs(tabs)
         verifyData()
-        await getHistory()
+
         status.loaded = true
     }
 
@@ -131,7 +122,7 @@ export const useProjectStore = defineStore('projectStore', () => {
                 }
                 if (update.commits) {
                     for (let commit of update.commits) {
-                        await applyCommit(commit)
+                        await dataStore.applyCommit(commit)
                     }
                     tabManager.collection.update()
                 }
@@ -153,7 +144,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         Object.assign(data, {
             tabs: {} as TabIndex,
             selectedTabId: undefined as number,
-            folders: {} as FolderIndex,
         })
 
         Object.assign(status, {
@@ -169,19 +159,15 @@ export const useProjectStore = defineStore('projectStore', () => {
         dataStore.clear()
     }
 
-    function applyCommit(commit: DbCommit) {
-        dataStore.applyCommit(commit)
-        if (commit.history) {
-            data.history = commit.history
-        }
-        if (commit.properties && getTab().visibleProperties) {
-            commit.properties.forEach(p => {
-                getTab().visibleProperties[p.id] = true
-            })
-            updatePropertyOptions()
-        }
-        tabManager.collection.setDirty()
-    }
+    // function applyCommit(commit: DbCommit) {
+    //     if (commit.properties && getTab().visibleProperties) {
+    //         commit.properties.forEach(p => {
+    //             getTab().visibleProperties[p.id] = true
+    //         })
+    //         updatePropertyOptions()
+    //     }
+    //     tabManager.collection.setDirty()
+    // }
 
     function verifyData() {
         tabManager.verifyState()
@@ -254,164 +240,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePropertyOptions()
     }
 
-    async function sendCommit(commit: DbCommit, undo?: boolean) {
-        // console.log('send commit', commit)
-        if (undo) {
-            commit.undo = true
-        }
-        const res = await apiCommit(commit)
-        applyCommit(res)
-        return res
-    }
-
-    async function addTag(propertyId: number, tagValue: string, parentIds: number[] = undefined, color = -1): Promise<Tag> {
-        const tag: Tag = { id: -1, propertyId: propertyId, value: tagValue, parents: parentIds ?? [], color: color }
-        const res = await sendCommit({ tags: [tag] })
-        return res.tags[0]
-    }
-
-    async function addTagParent(tagId: number, parentId: number) {
-        const tag: Tag = Object.assign({}, dataStore.tags[tagId])
-        tag.parents.push(parentId)
-        const res = await sendCommit({ tags: [tag] })
-    }
-
-    async function deleteTagParent(tagId: number, parentId: number) {
-        const tag: Tag = Object.assign({}, dataStore.tags[tagId])
-        tag.parents = tag.parents.filter(p => p != parentId)
-        await sendCommit({ tags: [tag] })
-    }
-
-    async function deleteTag(tagId: number, dontAsk?: boolean) {
-        if (!dontAsk) {
-            let ok = confirm('Delete tag: ' + tagId)
-            if (!ok) return
-        }
-        sendCommit({ emptyTags: [tagId] })
-        // await tabManager.collection.update()
-
-    }
-
-    async function addProperty(name: string, type: PropertyType, mode: PropertyMode) {
-        const prop: Property = { id: -1, name: name, type: type, mode: mode }
-        const res = await sendCommit({ properties: [prop] })
-        return res.properties[0]
-    }
-
-    async function setPropertyValue(propertyId: number, images: Instance[] | Instance, value: any, dontEmit?: boolean) {
-        if (!Array.isArray(images)) {
-            images = [images]
-        }
-        const prop = dataStore.properties[propertyId]
-        // if(prop.type == PropertyType.date) {
-        //     if(value) {
-        //         value = (value as Date).toISOString()
-        //     }
-        // }
-        const mode = dataStore.properties[propertyId].mode
-        const instanceValues: InstancePropertyValue[] = []
-        const imageValues: ImagePropertyValue[] = []
-        if (mode == PropertyMode.id) {
-            const values = images.map(i => ({ propertyId: propertyId, instanceId: i.id, value: value } as InstancePropertyValue))
-            instanceValues.push(...values)
-        }
-        if (mode == PropertyMode.sha1) {
-            const values = images.map(i => ({ propertyId: propertyId, sha1: i.sha1, value: value } as ImagePropertyValue))
-            imageValues.push(...values)
-        }
-        await sendCommit({ instanceValues: instanceValues, imageValues: imageValues }, true)
-
-        if (dataStore.properties[propertyId].tags != undefined) {
-            computeTagCount()
-        }
-    }
-
-    async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[], dontEmit?: boolean) {
-        await sendCommit({ instanceValues: instanceValues, imageValues: imageValues }, true)
-
-        const propIds = new Set<number>()
-        instanceValues.forEach(v => propIds.add(v.propertyId))
-        imageValues.forEach(v => propIds.add(v.propertyId))
-
-        const tagProps = Array.from(propIds).filter(p => dataStore.properties[p].type)
-        if (tagProps.length) {
-            computeTagCount()
-        }
-    }
-
-    async function setTagPropertyValue(propertyId: number, images: Instance[] | Instance, value: any, dontEmit?: boolean) {
-        if (!Array.isArray(images)) {
-            images = [images]
-        }
-        const currentValues = images.map(i => ({ value: i.properties[propertyId] ?? [], img: i }))
-        if (dataStore.properties[propertyId].mode == PropertyMode.id) {
-            const values: InstancePropertyValue[] = currentValues.map(v => ({
-                propertyId: propertyId,
-                instanceId: v.img.id,
-                value: Array.from(new Set([...v.value, ...value]))
-            }))
-            await sendCommit({ instanceValues: values })
-        }
-        else {
-            const values: ImagePropertyValue[] = currentValues.map(v => ({
-                propertyId: propertyId,
-                sha1: v.img.sha1,
-                value: Array.from(new Set([...v.value, ...value]))
-            }))
-            await sendCommit({ imageValues: values }, true)
-        }
-        computeTagCount()
-    }
-
-    async function updateTag(tagId: number, value?: any, color?: number) {
-        const tag = Object.assign({}, dataStore.tags[tagId])
-        if (value) {
-            tag.value = value
-        }
-        if (color) {
-            tag.color = color
-        }
-        await sendCommit({ tags: [tag] })
-    }
-
-    async function addFolder(folder: string) {
-        await apiAddFolder(folder)
-        init()
-    }
-
-    async function updateProperty(propertyId: number, name?: string) {
-        const prop = deepCopy(dataStore.properties[propertyId])
-        prop.name = name
-        sendCommit({ properties: [prop] })
-        updatePropertyOptions()
-    }
-
-    async function deleteProperty(propertyId: number) {
-        await sendCommit({ emptyProperties: [propertyId] })
-        delete dataStore.properties[propertyId]
-
-        Object.values(data.tabs).forEach((t: TabState) => {
-            Object.keys(t.visibleProperties).map(Number).forEach(k => {
-                if (dataStore.properties[k] == undefined) {
-                    delete t.visibleProperties[k]
-                }
-            })
-        })
-        verifyData()
-        // tabManager.collection.update()
-        // rerender()
-    }
-
-    function rerender() {
-        status.renderNb += 1
-    }
-
-    async function uploadPropFile(file: any) {
-        const res = await apiUploadPropFile(file)
-        init()
-        return res
-    }
-
     function updatePropertyOptions() {
         for (let tabId in data.tabs) {
             const tab = data.tabs[tabId]
@@ -424,13 +252,25 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
     }
 
+
+
+    function rerender() {
+        status.renderNb += 1
+    }
+
+    async function uploadPropFile(file: any) {
+        const res = await apiUploadPropFile(file)
+        init()
+        return res
+    }
+
+   
+
     function getTabManager() {
         return tabManager
     }
 
-    function reImportFolder(folderId: number) {
-        apiReImportFolder(folderId)
-    }
+
 
     function clearImport() {
         status.import.to_import = undefined
@@ -454,31 +294,13 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.vectors = await apiSetDefaultVector(vector)
     }
 
-    async function undo() {
-        if (!data.history.undo.length) return
-        const commit = await apiUndo()
-        applyCommit(commit)
-        status.onUndo++
-        getTabManager().collection.update()
-    }
 
-    async function redo() {
-        if (!data.history.redo.length) return
-        const commit = await apiRedo()
-        applyCommit(commit)
-        status.onUndo++
-        getTabManager().collection.update()
-    }
-
-    async function getHistory() {
-        const res = await apiGetHistory()
-        data.history = res
-    }
 
     async function call(req: ExecuteActionPayload) {
         const res = await apiCallActions(req)
         if (res.commit) {
-            applyCommit(res.commit)
+            dataStore.applyCommit(res.commit)
+            // applyCommit(res.commit)
             //console.log(res.commit)
             if (res.commit.properties) {
                 res.commit.properties.forEach(p => getTab().visibleProperties[p.id] = true)
@@ -487,28 +309,19 @@ export const useProjectStore = defineStore('projectStore', () => {
         return res
     }
 
-    async function deleteFolder(folderId: number) {
-        await apiDeleteFolder(folderId)
-        clear()
-        await init()
-    }
-
     return {
         // variables
         data, status,
         images,
-        // computed
-        folderRoots,
 
         // functions
-        init, clear, rerender, addFolder, reImportFolder, deleteFolder,
-        addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
+        init, clear, rerender,
         addTab, removeTab, updateTabs, selectTab, getTab, getTabManager,
-        addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
+        
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginParams,
-        undo, redo, call,
-        actions, sendCommit,
+        call,
+        actions,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
         backendStatus, reload,

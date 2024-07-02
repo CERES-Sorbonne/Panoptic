@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { Folder } from '@/data/models';
 import Dropdown from './Dropdown.vue';
-import { useProjectStore } from '@/data/projectStore';
 import { i18n } from '@/main';
+import { useDataStore } from '@/data/dataStore';
 
-const project = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps<{
     folder: Folder
 }>()
 
 function reImport() {
-    project.reImportFolder(props.folder.id)
+    data.reImportFolder(props.folder.id)
 }
 
 function deleteFolder() {
     const ok = confirm(i18n.global.t("main.nav.folders.del_alert"))
     if(ok) {
-        project.deleteFolder(props.folder.id)
+        data.deleteFolder(props.folder.id)
     }
 }
 

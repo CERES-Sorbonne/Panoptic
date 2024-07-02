@@ -60,7 +60,7 @@ async function saveProperty() {
         return
     }
 
-    await project.addProperty(newProperty.name, newProperty.type, newProperty.mode)
+    await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
 
     hide()
 }

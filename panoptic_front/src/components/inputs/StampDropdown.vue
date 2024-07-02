@@ -3,7 +3,6 @@ import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, Prop
 import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { isTag } from '@/utils/utils';
 import { useDataStore } from '@/data/dataStore';
 import { useProjectStore } from '@/data/projectStore';
 
@@ -19,7 +18,6 @@ const props = defineProps<{
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
 const dropdownElem = ref(null)
-const popupElem = ref(null)
 
 function close() {
     clear()
@@ -58,7 +56,7 @@ async function apply() {
             }
         }
     }
-    await project.setPropertyValues(instanceValues, imageValues)
+    await data.setPropertyValues(instanceValues, imageValues)
 
     project.getTabManager().collection.groupManager.clearSelection()
     // store.getTabManager().collection.update()

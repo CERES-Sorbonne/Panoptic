@@ -7,7 +7,6 @@ import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
-import { Exception } from 'sass';
 import { useDataStore } from '@/data/dataStore';
 interface Sha1Pile {
     sha1: string
@@ -68,7 +67,7 @@ async function acceptRecommend(image: Instance) {
             }
         }
     })
-    await project.setPropertyValues(instanceValues, imageValues)
+    await data.setPropertyValues(instanceValues, imageValues)
 
     removeImage(image.sha1)
 }

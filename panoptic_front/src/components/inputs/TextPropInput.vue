@@ -2,10 +2,8 @@
 import { Instance, Property, PropertyType } from '@/data/models';
 import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue';
 import TextInput from './TextInput.vue';
-import { useProjectStore } from '@/data/projectStore'
 import { useDataStore } from '@/data/dataStore';
 
-const project = useProjectStore()
 const data = useDataStore()
 
 const props = withDefaults(defineProps<{
@@ -50,7 +48,7 @@ function save() {
     if (storeValue.value === localValue.value) return
 
     // console.log(propRef.value.value, localValue.value)
-    project.setPropertyValue(props.property.id, props.image, localValue.value)
+    data.setPropertyValue(props.property.id, props.image, localValue.value)
 
 }
 
