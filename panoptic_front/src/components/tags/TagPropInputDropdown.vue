@@ -9,11 +9,9 @@ import TagInputDropdown from './TagInputDropdown.vue';
 import { computed, nextTick, onMounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual } from '@/utils/utils';
 import { Instance, Property } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
 
 const data = useDataStore()
-const project = useProjectStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -49,7 +47,7 @@ function save() {
     // console.log(localValue.value, propValue.value)
     if (arrayEqual(localValue.value, (propValue.value ?? []))) return
 
-    project.setPropertyValue(props.property.id, props.image, localValue.value)
+    data.setPropertyValue(props.property.id, props.image, localValue.value)
 }
 
 async function onResize() {

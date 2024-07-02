@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import { useProjectStore } from '@/data/projectStore'
 import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
-const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps({
@@ -34,18 +32,18 @@ async function updateFromStore() {
 }
 
 function setColor(color: number) {
-    project.updateTag(props.tagId, undefined, Number(color))
+    data.updateTag(props.tagId, undefined, Number(color))
     dropdown.value.hide()
 }
 
 function setName(name: string) {
     if(name == tag.value.value) return
     console.log('set')
-    project.updateTag(props.tagId, name)
+    data.updateTag(props.tagId, name)
 }
 
 function deleteTag() {
-    project.deleteTag(props.tagId)
+    data.deleteTag(props.tagId)
     emits('delete', props.tagId)
     dropdown.value.hide()
     

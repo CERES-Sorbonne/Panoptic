@@ -13,6 +13,7 @@ export function buildFolderNodes(folders: Array<Folder>) {
     folders.forEach(f => {
         f.children = []
         res[f.id] = f
+        f.count = 0
     })
 
     let parentMap = {} as { [key: number]: Array<Folder> }

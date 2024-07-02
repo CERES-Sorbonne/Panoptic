@@ -10,8 +10,10 @@ import { ModalId } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import Tutorial from '@/tutorials/Tutorial.vue';
+import { useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
+const data = useDataStore()
 const panoptic = usePanopticStore()
 
 const mainViewRef = ref(null)
@@ -47,8 +49,8 @@ onMounted(async () => {
         if (ev.key == 'ArrowLeft') keyState.left = true;
         if (ev.key == 'ArrowRight') {keyState.right = true; console.log('keeeyy')}
 
-        if(ev.key == 'Z' && keyState.ctrl) project.redo()
-        if(ev.key == 'z' && keyState.ctrl) project.undo()
+        if(ev.key == 'Z' && keyState.ctrl) data.redo()
+        if(ev.key == 'z' && keyState.ctrl) data.undo()
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;

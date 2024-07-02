@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { Instance, ModalId, Property, PropertyRef, PropertyType } from '@/data/models';
-import Modal from './Modal.vue';
-import { Ref, computed, nextTick, onMounted, provide, reactive, ref, shallowRef, vModelDynamic, watch } from 'vue';
-import { useProjectStore } from '@/data/projectStore';
+import { Instance, ModalId, PropertyType } from '@/data/models';
+import { Ref, computed, nextTick, provide, reactive, ref, shallowRef, watch } from 'vue';
 import CenteredImage from '../images/CenteredImage.vue';
 import ImagePropertyCol from './image/ImagePropertyCol.vue';
 import { GroupManager, ImageIterator, SelectedImages } from '@/core/GroupManager';
@@ -13,7 +11,6 @@ import Modal2 from './Modal2.vue';
 import { useDataStore } from '@/data/dataStore';
 
 const panoptic = usePanopticStore()
-const project = useProjectStore()
 const data = useDataStore()
 
 const groupManager = new GroupManager()
@@ -68,9 +65,9 @@ function paint(propRef: { propertyId: number, instanceId: number }) {
         images = Object.keys(groupManager.selectedImages.value).map(id => data.instances[id])
     }
     if (property.type == PropertyType.multi_tags) {
-        project.setTagPropertyValue(property.id, images, value)
+        data.setTagPropertyValue(property.id, images, value)
     } else {
-        project.setPropertyValue(property.id, images, value)
+        data.setPropertyValue(property.id, images, value)
     }
     visibleProperties[property.id] = true
 }

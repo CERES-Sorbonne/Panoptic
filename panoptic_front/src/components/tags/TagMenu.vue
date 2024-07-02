@@ -10,10 +10,11 @@ import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
-import { Property, Tag, PropertyType } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
+import { objValues } from '@/utils/utils';
 
-const project = useProjectStore()
+const data = useDataStore()
 
 const props = defineProps({
     property: Object as () => Property,
@@ -43,7 +44,11 @@ const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredT
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
-const tags = computed(() => props.property.tags ?? {})
+const tags = computed(() => {
+    const res: TagIndex = {}
+    objValues(data.tags).filter(t => t.propertyId == props.property.id).forEach(t => res[t.id] = t)
+    return res
+})
 const filteredTagList = computed(() => {
     let filtered = Object.values(tags.value).filter((tag: Tag) => tag.value.toLowerCase().includes(tagFilter.value.toLowerCase()));
 
@@ -98,7 +103,7 @@ const selectOption = async function () {
     if (selectedIndex.value == undefined) return
 
     if (isCreateSelected.value) {
-        const newTag = await project.addTag(props.property.id, tagFilter.value);
+        const newTag = await data.addTag(props.property.id, tagFilter.value);
         emits('create', newTag)
     }
     else if (selectedIndex.value < filteredTagList.value.length) {
@@ -126,8 +131,9 @@ watch(filteredTagList, () => {
 <template>
     <div class="m-0 p-0">
         <div class="w-100 mb-1">
-            <input type="text" class="w-100" v-model="tagFilter" ref="searchElem" style="font-size: 13px; min-width: 100px;"
-                @keydown.down="moveSelected(1)" @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""/>
+            <input type="text" class="w-100" v-model="tagFilter" ref="searchElem"
+                style="font-size: 13px; min-width: 100px;" @keydown.down="moveSelected(1)"
+                @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture="" />
         </div>
 
         <div class="pb-0" style="max-height: 300px; overflow-y: auto;">
@@ -137,7 +143,8 @@ watch(filteredTagList, () => {
                     <div class="flex-grow-1" style="overflow: hidden;" @click="selectOption">
                         <TagBadge :tag="tag.value" :color="tag.color" />
                     </div>
-                    <div v-if="props.canLink" :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
+                    <div v-if="props.canLink"
+                        :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
                         <TagChildSelectDropdown :property-id="tag.propertyId" :tag-id="tag.id" @hide="focus" />
                     </div>
                     <div v-if="props.canCustomize || props.canDelete"
