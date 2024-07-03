@@ -395,9 +395,43 @@ export class FilterManager {
 
     async filter(images: Instance[], emit?: boolean) {
         console.time('Filter')
-        const data = useDataStore()
         this.lastImages = images
-        let filtered = images
+        const res = this.filterInstances(images)
+        // this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
+        this.result.images = res.valid
+        console.timeEnd('Filter')
+
+        if (emit) this.onChange.emit(this.result)
+
+        return this.result
+    }
+
+    async update(emit?: boolean) {
+        if (!this.lastImages) return
+        await this.filter(this.lastImages)
+        if (emit) this.onChange.emit(this.result)
+    }
+
+    async updateSelection(instanceIds: Set<number>) {
+        console.time('UpdateFilter')
+        const data = useDataStore()
+        const instances = Array.from(instanceIds).map(i => data.instances[i])
+        const valid = []
+        for(let instance of this.result.images) {
+            if(instanceIds.has(instance.id)) continue
+            valid.push(instance.id)
+        }
+        const updated = this.filterInstances(instances)
+        for(let instance of updated.valid) {
+            valid.push(instance.id)
+        }
+        this.result.images = valid.map(id => data.instances[id])
+        console.timeEnd('UpdateFilter')
+    }
+
+    private filterInstances(instances: Instance[]) {
+        const data = useDataStore()
+        let filtered = instances
 
         if (this.state.query) {
             const query = this.state.query.toLocaleLowerCase()
@@ -430,19 +464,7 @@ export class FilterManager {
             filtered = filtered.filter(img => folderSet.has(img.folderId))
         }
         const res = applyGroupFilter(this.state.filter, filtered, data.properties, data.tags)
-        // this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
-        this.result.images = res.valid
-        console.timeEnd('Filter')
-
-        if (emit) this.onChange.emit(this.result)
-
-        return this.result
-    }
-
-    async update(emit?: boolean) {
-        if (!this.lastImages) return
-        await this.filter(this.lastImages)
-        if (emit) this.onChange.emit(this.result)
+        return res
     }
 
     setFolders(folderIds: number[]) {

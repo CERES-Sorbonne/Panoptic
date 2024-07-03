@@ -119,11 +119,6 @@ export function getTagParents(tag: Tag, tags) {
     recursive(tag)
     return res
 }
-
-export function getTabManager() {
-    return inject('tabManager') as TabManager
-}
-
 // export async function getSimilarImagesFromText(context: ActionContext) {
 //     return await apiGetSimilarImagesFromText(context)
 // }

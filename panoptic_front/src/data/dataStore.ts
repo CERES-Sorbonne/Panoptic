@@ -118,6 +118,7 @@ export const useDataStore = defineStore('dataStore', () => {
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag, tags.value)
         }
+        triggerRef(tags)
     }
 
     function importInstanceValues(instanceValues: InstancePropertyValue[]) {
@@ -129,6 +130,7 @@ export const useDataStore = defineStore('dataStore', () => {
             instances.value[v.instanceId].properties[v.propertyId] = v.value
             dirtyInstances.add(v.instanceId)
         }
+        triggerRef(instances)
     }
 
     function importImageValues(instanceValues: ImagePropertyValue[]) {
@@ -143,6 +145,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 dirtyInstances.add(img.id)
             }
         }
+        triggerRef(instances)
     }
 
     function applyCommit(commit: DbCommit, emit?: boolean) {
@@ -156,8 +159,10 @@ export const useDataStore = defineStore('dataStore', () => {
                         updateTagCount(instances.value[i.id].properties[v.propertyId], [])
                     }
                     delete instances.value[i.id].properties[v.propertyId]
+                    dirtyInstances.add(i.id)
                 })
             })
+            triggerRef(instances)
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
@@ -165,13 +170,16 @@ export const useDataStore = defineStore('dataStore', () => {
                     updateTagCount(instances.value[v.instanceId].properties[v.propertyId], [])
                 }
                 delete instances.value[v.instanceId].properties[v.propertyId]
+                dirtyInstances.add(v.instanceId)
             })
+            triggerRef(instances)
         }
         if (commit.emptyTags) {
             commit.emptyTags.forEach(i => {
                 tags.value[i].id = deletedID
                 tags.value[i].value = deletedName
             })
+            triggerRef(tags)
         }
         if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
@@ -206,9 +214,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.history) {
             history.value = commit.history
         }
-        if(emit) {
-            emitOnChange()
-        }
+        emitOnChange()
     }
 
     function clear() {
@@ -410,6 +416,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     return {
         init,
+        onChange,
         folders, instances, properties, tags, history,
         folderRoots, sha1Index, instanceList, propertyList,
         addFolder, reImportFolder, deleteFolder,

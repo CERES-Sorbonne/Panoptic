@@ -7,14 +7,14 @@ import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
-import { getTabManager, goNext } from '@/utils/utils';
+import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
 import { useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
 const data = useDataStore()
 const panoptic = usePanopticStore()
-const tabManager = getTabManager()
+const tabManager = project.getTabManager()
 
 const emits = defineEmits(['export'])
 
