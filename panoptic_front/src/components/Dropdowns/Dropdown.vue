@@ -2,7 +2,7 @@
 import { nextTick, onUnmounted, ref } from 'vue';
 import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
-import { Exception } from 'sass';
+import { useProjectStore } from '@/data/projectStore';
 
 const props = defineProps({
     offset: { default: 0, type: Number },
@@ -13,6 +13,7 @@ const props = defineProps({
 const emits = defineEmits(['show', 'hide'])
 defineExpose({ hide, show, focus })
 
+const project = useProjectStore()
 const popperElem = ref(null)
 const popupElem = ref(null)
 const buttonElem = ref(null)
@@ -23,7 +24,6 @@ const boudaryElem = ref(document.getElementsByTagName('body')[0])
 const visible = ref(false)
 
 async function hide() {
-    // throw new Error('lala')
     popperElem.value.hide()
 }
 
@@ -47,19 +47,20 @@ async function onShow() {
 }
 
 function onHide() {
-    visible.value = false
-    emits('hide')
+    if (project.status.loaded) {
+        visible.value = false
+        emits('hide')
+    }
     document.removeEventListener('click', clickHandler, true)
 }
 
 function clickHandler(e: Event) {
     if (popupElem.value.contains(e.target) || buttonElem.value.contains(e.target)) {
-        console.log('inside')
     }
     else {
-        console.log('outside')
         hide()
     }
+
 }
 
 onUnmounted(() => {
@@ -71,8 +72,9 @@ onUnmounted(() => {
 <template>
     <div class="p-0 m-0" ref="globalElem">
         <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
-        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" no-auto-focus :boundary="boudaryElem"
-            :auto-hide="false" :prevent-overflow="true" :container="props.teleport ? '#popup' : globalElem">
+        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" no-auto-focus
+            :boundary="boudaryElem" :auto-hide="false" :prevent-overflow="true"
+            :container="props.teleport ? '#popup' : globalElem">
             <!-- <template #reference> -->
             <div class="m-0 p-0" ref="buttonElem">
                 <slot name="button"></slot>

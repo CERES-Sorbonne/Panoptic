@@ -19,7 +19,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const properties = ref<PropertyIndex>({})
     const tags = shallowRef<TagIndex>({})
 
-    const history = ref<CommitHistory>({undo: [], redo: []})
+    const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
 
     const onUndo = ref(0)
@@ -38,14 +38,13 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======Functions=======
     // =======================
     async function init() {
-        clear()
         let dbFolders = await apiGetFolders()
         folders.value = buildFolderNodes(dbFolders)
         console.time('Request')
         let dbState = await apiGetDbState()
         console.timeEnd('Request')
 
-        
+
         console.time('commit')
         applyCommit(dbState)
         console.timeEnd('commit')
@@ -54,6 +53,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function emitOnChange() {
+        console.log(dirtyInstances)
         onChange.emit(dirtyInstances)
         dirtyInstances.clear()
     }
@@ -218,10 +218,17 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function clear() {
+        folders.value = {}
         instances.value = {}
         properties.value = {}
         tags.value = {}
         sha1Index.value = {}
+
+        onChange.clear()
+        dirtyInstances.clear()
+
+        history.value = { undo: [], redo: [] }
+        onUndo.value = 0
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean) {
@@ -404,12 +411,12 @@ export const useDataStore = defineStore('dataStore', () => {
         updatedInstances = updatedInstances ?? []
         deletedInstances = deletedInstances ?? []
 
-        for(let instance of updatedInstances) {
-            if(instances.value[instance.id] != undefined) continue
+        for (let instance of updatedInstances) {
+            if (instances.value[instance.id] != undefined) continue
             folders.value[instance.folderId].count += 1
         }
-        for(let id of deletedInstances) {
-            if(instances.value[id] == undefined) continue
+        for (let id of deletedInstances) {
+            if (instances.value[id] == undefined) continue
             folders.value[id].count -= 1
         }
     }
