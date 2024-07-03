@@ -5,11 +5,11 @@
  */
 
 import { useDataStore } from "@/data/dataStore"
-import { FolderIndex, Instance, Property, PropertyIndex } from "@/data/models"
+import { FolderIndex, Instance, InstanceIndex, Property, PropertyIndex } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { EventEmitter } from "@/utils/utils"
-import { reactive, toRefs } from "vue"
+import { reactive, toRefs, unref } from "vue"
 
 export enum SortDirection {
     Ascending = 1,
@@ -116,32 +116,85 @@ function getSortablePropertyValue(image: Instance, property: Property, folders: 
             value = undefined
         }
     }
-    if(type == PropertyType._folders) {
+    if (type == PropertyType._folders) {
         value = sortParser[type](value, folders)
     } else {
         value = sortParser[type](value)
     }
-    
+
     return value
 }
 
 function sortSortable(sortable: SortableImage[], orders: number[]) {
-    sortable.sort((a, b) => {
-        for (let i = 0; i < a.values.length; i++) {
-            if (a.values[i] == b.values[i]) continue
-            if (a.values[i] < b.values[i]) return -1 * orders[i]
-            return 1 * orders[i]
+    sortable.sort((a, b) => compareSortable(a, b, orders))
+    return sortable
+}
+
+function compareSortable(a: SortableImage, b: SortableImage, orders: number[]) {
+    for (let i = 0; i < a.values.length; i++) {
+        if (a.values[i] == b.values[i]) continue
+        if (a.values[i] < b.values[i]) return -1 * orders[i]
+        return 1 * orders[i]
+    }
+    return a.imageId - b.imageId
+}
+
+function insertSort(old: Instance[], updatedIds: Set<number>, removed: Set<number>, properties: Property[], orders: number[], instances: InstanceIndex) {
+    const res: number[] = []
+    const updated = Array.from(updatedIds).map(i => instances[i])
+    const updatedSorted = sortSortable(getSortableImages(updated, properties), orders)
+
+    let oldIndex = 0
+    let nowIndex = 0
+    while (nowIndex < updatedSorted.length) {
+        const insertIndex = quadraticFindIndex(old, updatedSorted[nowIndex], oldIndex, properties, orders)
+        for (let i = oldIndex; i < insertIndex; i++) {
+            const id = old[i].id
+            if (!updatedIds.has(id) && !removed.has(id)) {
+                res.push(id)
+            }
+            oldIndex += 1
         }
-        return a.imageId - b.imageId
-    })
+        res.push(updatedSorted[nowIndex].imageId)
+        nowIndex += 1
+    }
+    return res
+}
+
+// Finds the first index where elem < target[index]
+function quadraticFindIndex(target: Instance[], elem: SortableImage, startIndex: number, properties: Property[], orders: number[]) {
+    if (startIndex >= target.length) return startIndex
+    let maxIndex = target.length
+    let dist = maxIndex - startIndex
+    while (dist > 10) {
+        const center = Math.floor(startIndex + dist / 2)
+        // console.log(startIndex, center, maxIndex)
+        const sortableTarget = getSortableImages([target[center]], properties)[0]
+        const cmp = compareSortable(elem, sortableTarget, orders)
+        if (cmp == 0) return center
+        if (cmp < 0) {
+            maxIndex = center
+        }
+        else {
+            startIndex = center
+        }
+        dist = maxIndex - startIndex
+    }
+    for (let i = startIndex; i < maxIndex; i++) {
+        const sortableTarget = getSortableImages([target[i]], properties)[0]
+        if (compareSortable(elem, sortableTarget, orders) < 0) {
+            return i
+        }
+    }
+    return target.length
 }
 
 function getSortableImages(images: Instance[], properties: Property[]): SortableImage[] {
     const res = []
-    const project = useProjectStore()
+    const data = useDataStore()
     for (const image of images) {
         const sortable: SortableImage = { imageId: image.id, values: [] }
-        properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p, project.data.folders)))
+        properties.forEach(p => sortable.values.push(getSortablePropertyValue(image, p, data.folders)))
         res.push(sortable)
     }
     return res
@@ -178,10 +231,10 @@ export class SortManager {
     sort(images: Instance[], emit?: boolean): SortResult {
         console.time('Sort')
         const data = useDataStore()
-        
+
         const properties = this.state.sortBy.map(id => data.properties[id])
         const sortable = getSortableImages(images, properties)
-        
+
         const orders = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
         sortSortable(sortable, orders)
 
@@ -194,6 +247,24 @@ export class SortManager {
         console.timeEnd('Sort')
 
         if (emit) this.onChange.emit(this.result)
+        return this.result
+    }
+
+    updateSelection(updated: Set<number>, removed: Set<number>) {
+        console.time('SortUpdate')
+        const data = useDataStore()
+        const properties = this.state.sortBy.map(id => data.properties[id])
+        const orders = this.state.sortBy.map(id => this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
+        const res = insertSort(this.result.images, updated, removed, properties, orders, data.instances)
+        this.result.images = []
+        this.result.order = {}
+        for (let i = 0; i < res.length; i++) {
+            this.result.images.push(data.instances[res[i]])
+            this.result.order[res[i]] = i
+        }
+        console.timeEnd('SortUpdate')
+        this.onChange.emit(this.result)
+
         return this.result
     }
 

@@ -54,7 +54,7 @@ tabManager.collection.groupManager.onChange.addListener(() => {
     }
 })
 
-function setRecoImages(groupId: string) {
+function setRecoImages(groupId: number) {
     recoGroup.value = tabManager.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())
 }

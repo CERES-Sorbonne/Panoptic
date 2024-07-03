@@ -9,8 +9,8 @@ const props = defineProps<{
     imageSize: number
     inputIndex: number
     item: ScrollerPileLine
-    parentIds: string[]
-    hoverBorder: string
+    parentIds: number[]
+    hoverBorder: number
     index: any
     properties: Property[]
     selectedImages: Ref<SelectedImages>

@@ -2,13 +2,10 @@
 import { Colors, DateUnit, PropertyType, PropertyValue, Tag } from '@/data/models';
 import { computed } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import { UNDEFINED_KEY } from '@/core/GroupManager';
-import { useProjectStore } from '@/data/projectStore';
 import { pad } from '@/utils/utils'
 import { useDataStore } from '@/data/dataStore';
 
 const data = useDataStore()
-const project = useProjectStore()
 
 const props = defineProps({
     value: Object as () => PropertyValue
@@ -91,7 +88,7 @@ function mapTag(id: number | string): Tag[] {
         <div v-if="property.type == PropertyType.color" :style="{ backgroundColor: color }" class="color-holder">
         </div>
         <div v-else-if="property.type == PropertyType._folders">
-            <TagBadge :tag="project.data.folders[props.value.value].name" :color="-1" />
+            <TagBadge :tag="data.folders[props.value.value].name" :color="-1" />
         </div>
         <span v-else-if="property.type == PropertyType.date && props.value.value">
             {{ date }}
@@ -100,7 +97,7 @@ function mapTag(id: number | string): Tag[] {
         </span>
         <span v-else-if="property.type == PropertyType.date"> undefined </span>
         <span v-else-if="!isTag">
-            <span v-if="props.value.value != UNDEFINED_KEY">{{ props.value.value }}</span>
+            <span v-if="props.value.value != undefined">{{ props.value.value }}</span>
             <span v-else class="text-secondary">indéfini</span>
         </span>
         <span v-else>

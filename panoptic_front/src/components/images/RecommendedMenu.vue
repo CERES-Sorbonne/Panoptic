@@ -5,7 +5,7 @@ import { ImagePropertyValue, Instance, InstanceMatch, InstancePropertyValue, Pro
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
-import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
+import { Group } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 
@@ -52,7 +52,7 @@ async function acceptRecommend(image: Instance) {
     const instanceValues: InstancePropertyValue[] = []
 
     propertyValues.forEach(v => {
-        if (v.value != UNDEFINED_KEY) {
+        if (v.value != undefined) {
             const prop = data.properties[v.propertyId]
             let value = v.value
             if (prop.type == PropertyType.multi_tags) {

@@ -3,7 +3,7 @@
 import { ShallowReactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, triggerRef, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
-import { Group, GroupManager, GroupType, ImageIterator, ROOT_ID } from '@/core/GroupManager';
+import { Group, GroupManager, GroupType, ImageIterator } from '@/core/GroupManager';
 import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
@@ -69,7 +69,7 @@ function computeLines() {
     // lines.push({ id: '__filler__', type: 'fillter', size: 0, index: lines.length })
     while (current) {
         const group = current.group
-        if (lastGroupId != group.id && group.id != ROOT_ID) {
+        if (lastGroupId != group.id && group.id != 0) {
             lines.push(computeGroupLine(group))
             lastGroupId = group.id
         }
@@ -135,7 +135,7 @@ function computeGroupLine(group: Group) {
     return res
 }
 
-function computeImageLine(it: ImageIterator, groupId: string, imageIndex) {
+function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
     const image = it.image
     const res: RowLine = {
         id: groupId + '-img:' + String(image.id),
@@ -204,24 +204,24 @@ function handleUpdate() {
     }
 }
 
-function openGroup(groupId: string) {
+function openGroup(groupId: number) {
     props.manager.openGroup(groupId, true)
     // computeLines()
 }
 
-function closeGroup(groupId: string) {
+function closeGroup(groupId: number) {
     props.manager.closeGroup(groupId, true)
     // computeLines()
 }
 
-function selectImage(groupId: string, imageIndex: number) {
+function selectImage(groupId: number, imageIndex: number) {
     console.log(groupId, imageIndex)
     const iterator = props.manager.getImageIterator(groupId, imageIndex)
     props.manager.toggleImageIterator(iterator, keyState.shift)
     // props..toggleImageIterator(iterator, keyState.shift)
 }
 
-function selectGroup(groupId: string) {
+function selectGroup(groupId: number) {
     const iterator = props.manager.getGroupIterator(groupId)
     props.manager.toggleGroupIterator(iterator, keyState.shift)
 }

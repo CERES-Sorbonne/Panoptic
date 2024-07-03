@@ -265,9 +265,9 @@ export const Colors = [
 ]
 
 export interface ScrollerLine {
-    id: string
+    id: string | number
     type: string
-    groupId?: string
+    groupId?: number
     data: any
     index?: number
     depth?: number
@@ -300,7 +300,7 @@ export interface ScrollerPileLine extends ScrollerLine {
 export interface Recommendation {
     images: string[]
     values: PropertyValue[]
-    groupId: string
+    groupId: number
 }
 
 export interface DirInfo {
