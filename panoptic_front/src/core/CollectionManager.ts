@@ -53,13 +53,15 @@ export class CollectionManager {
         this.groupManager.verifyState(data.properties)
     }
 
-    setDirty(instanceIds?: Set<number>) {
+    async setDirty(instanceIds?: Set<number>) {
         this.state.isDirty = true
         if (this.options.autoReload) {
             if (instanceIds) {
-                this.filterManager.updateSelection(instanceIds)
-                this.sortManager.update()
-                this.groupManager.update(true)
+                const filterUpdate = await this.filterManager.updateSelection(instanceIds)
+                this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
+                this.groupManager.lastOrder = this.sortManager.result.order
+                this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
+
             } else {
                 this.update()
             }

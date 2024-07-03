@@ -5,7 +5,7 @@ import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
-import { Group, GroupManager, GroupTree, GroupType, UNDEFINED_KEY, buildGroup } from '@/core/GroupManager'
+import { Group, GroupManager, GroupTree, GroupType, buildGroup } from '@/core/GroupManager'
 import { DbCommit, GroupLine, GroupResult, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
@@ -15,8 +15,8 @@ const data = useDataStore()
 const props = defineProps({
     item: Object as () => GroupLine,
     manager: GroupManager,
-    parentIds: Array<string>,
-    hoverBorder: String,
+    parentIds: Array<number>,
+    hoverBorder: Number,
     data: Object as () => GroupTree,
     hideOptions: Boolean
 })
@@ -24,6 +24,8 @@ const props = defineProps({
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
 
 const hoverGroup = ref(false)
+
+let idCounter = -100
 
 const group = computed(() => props.item.data)
 const images = computed(() => group.value.images)
@@ -45,7 +47,7 @@ const groupName = computed(() => {
     return 'tmp name'
 })
 
-const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != UNDEFINED_KEY))
+const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != undefined))
 
 const instancesForExecute = computed(() => {
     const selected = images.value.filter(i => props.manager.selectedImages.value[i.id])
@@ -58,7 +60,8 @@ const instancesForExecute = computed(() => {
 async function addClusters(clusters: GroupResult[]) {
     const groups = clusters.map((group, index) => {
         const instances = group.ids.map(i => data.instances[i])
-        const res = buildGroup('cluster:' + String(index) + ':' + props.item.id, instances, GroupType.Cluster)
+        const res = buildGroup(idCounter, instances, GroupType.Cluster)
+        idCounter -= 1
         res.meta.score = Math.round(group.score)
         res.name = group.name
         return res

@@ -29,7 +29,7 @@ const emits = defineEmits(['recommend'])
 const groupIdx = {}
 const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
 
-const hoverGroupBorder = ref('')
+const hoverGroupBorder = ref(-1)
 
 const scroller = ref(null)
 const MARGIN_STEP = 20
@@ -249,7 +249,7 @@ function updateImageSelection(data: { id: number, value: boolean }, item: ImageL
     props.groupManager.toggleImageIterator(iterator, keyState.shift)
 }
 
-function toggleGroupSelect(groupId: string) {
+function toggleGroupSelect(groupId: number) {
     const iterator = props.groupManager.getGroupIterator(groupId)
     props.groupManager.toggleGroupIterator(iterator, keyState.shift)
 }
@@ -312,7 +312,7 @@ watch(() => props.width, () => {
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
                         :manager="props.groupManager" :hide-options="props.hideOptions"
                         :data="props.groupManager.result" @scroll="scrollTo" @hover="updateHoverBorder"
-                        @unhover="hoverGroupBorder = ''" @group:close="closeGroup" @group:open="openGroup"
+                        @unhover="hoverGroupBorder = -1" @group:close="closeGroup" @group:open="openGroup"
                         @select="toggleGroupSelect" @recommend="(groupId) => emits('recommend', groupId)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
@@ -322,7 +322,7 @@ watch(() => props.width, () => {
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
                         :selected-images="props.groupManager.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
+                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
@@ -331,7 +331,7 @@ watch(() => props.width, () => {
                         :selected-images="props.groupManager.selectedImages" :sha1-scores="props.sha1Scores"
                         :preview="props.preview"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = ''" @update="computeLines()" />
+                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'filler'">
                     <div :style="{ height: item.size + 'px' }" class=""></div>

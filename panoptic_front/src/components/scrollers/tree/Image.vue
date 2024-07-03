@@ -18,7 +18,7 @@ const props = defineProps({
     score: Number,
     size: { type: Number, default: 100 },
     index: Number,
-    groupId: String,
+    groupId: Number,
     hideProperties: Boolean,
     constraintWidth: Boolean,
     noBorder: Boolean,
