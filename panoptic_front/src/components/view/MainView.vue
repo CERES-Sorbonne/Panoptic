@@ -12,18 +12,16 @@ import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
-import { getSimilarImagesFromText } from '@/utils/utils';
 import GraphView from '../graphview/GraphView.vue';
-
+import { getTabManager } from '@/utils/utils';
 const project = useProjectStore()
-const tabManager = project.getTabManager()
+const tabManager = getTabManager()
 
 const props = defineProps({
     tabId: Number,
     height: Number
 })
 
-let firstCompute = false
 const recoGroup = ref({} as Group)
 
 const filterElem = ref(null)
@@ -31,7 +29,6 @@ const boxElem = ref(null)
 const imageList = ref(null)
 
 // images searched by test
-const searchedImages = ref([])
 
 const scrollerHeight = ref(0)
 const scrollerWidth = ref(0)
@@ -76,9 +73,7 @@ onMounted(() => {
         })
     })
 })
-watch(tabManager.state, (state) => {
-    project.updateTabs()
-}, { deep: true })
+
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)

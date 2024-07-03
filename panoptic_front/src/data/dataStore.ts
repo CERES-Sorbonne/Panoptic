@@ -4,12 +4,15 @@ import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Insta
 import { objValues } from "./builder";
 import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiReImportFolder, apiRedo, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
-import { deepCopy, getComputedValues, getTagChildren, getTagParents, isTag } from "@/utils/utils";
+import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isTag } from "@/utils/utils";
 
 const deletedID = -999999999
 const deletedName = 'Deleted'
 
 export const useDataStore = defineStore('dataStore', () => {
+
+    const onChange = new EventEmitter()
+    const dirtyInstances = new Set()
 
     const folders = ref<FolderIndex>({})
     const instances = shallowRef<InstanceIndex>({})
@@ -50,6 +53,11 @@ export const useDataStore = defineStore('dataStore', () => {
         await getHistory()
     }
 
+    function emitOnChange() {
+        onChange.emit(dirtyInstances)
+        dirtyInstances.clear()
+    }
+
 
     function importInstances(toImport: Instance[]) {
         for (let img of toImport) {
@@ -72,6 +80,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 img.properties[-i - 1] = values[i]
             }
             instances.value[img.id] = img
+            dirtyInstances.add(img.id)
         }
     }
 
@@ -118,6 +127,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 updateTagCount(instances.value[v.instanceId].properties[v.propertyId], v.value)
             }
             instances.value[v.instanceId].properties[v.propertyId] = v.value
+            dirtyInstances.add(v.instanceId)
         }
     }
 
@@ -130,11 +140,12 @@ export const useDataStore = defineStore('dataStore', () => {
                     updateTagCount(instances.value[img.id].properties[v.propertyId], v.value)
                 }
                 instances.value[img.id].properties[v.propertyId] = v.value
+                dirtyInstances.add(img.id)
             }
         }
     }
 
-    function applyCommit(commit: DbCommit) {
+    function applyCommit(commit: DbCommit, emit?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
 
 
@@ -169,7 +180,11 @@ export const useDataStore = defineStore('dataStore', () => {
             })
         }
         if (commit.emptyInstances) {
-            // TODO: ??
+            commit.emptyInstances.forEach(i => {
+                instances.value[i].id = deletedID
+                dirtyInstances.add(i)
+            })
+
         }
 
         if (commit.instances?.length) {
@@ -187,10 +202,12 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.imageValues?.length) {
             importImageValues(commit.imageValues)
         }
-        triggerRef(instances)
 
         if (commit.history) {
             history.value = commit.history
+        }
+        if(emit) {
+            emitOnChange()
         }
     }
 

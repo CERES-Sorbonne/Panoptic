@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import router from '@/router';
-import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
+import { ref, computed, onMounted, nextTick, onUnmounted, provide } from 'vue';
 import Menu from '../components/menu/Menu.vue';
 
 import { keyState } from '@/data/keyState';
@@ -11,6 +11,8 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import { useDataStore } from '@/data/dataStore';
+import { TabManager } from '@/core/TabManager';
+import TabContainer from './TabContainer.vue';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -27,7 +29,7 @@ const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i =>
 let isMac = navigator.userAgent.indexOf('Mac OS X') !== -1
 
 onMounted(async () => {
-    if(!panoptic.isProjectLoaded) {
+    if (!panoptic.isProjectLoaded) {
         // console.log('redirect')
         router.push('/')
     }
@@ -40,22 +42,22 @@ onMounted(async () => {
     window.addEventListener('keydown', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = true;
         if (ev.key == 'Alt') {
-            if(isMac) {
+            if (isMac) {
                 keyState.ctrl = true
             }
             keyState.alt = true;
         }
         if (ev.key == 'Shift') keyState.shift = true;
         if (ev.key == 'ArrowLeft') keyState.left = true;
-        if (ev.key == 'ArrowRight') {keyState.right = true; console.log('keeeyy')}
+        if (ev.key == 'ArrowRight') { keyState.right = true; console.log('keeeyy') }
 
-        if(ev.key == 'Z' && keyState.ctrl) data.redo()
-        if(ev.key == 'z' && keyState.ctrl) data.undo()
+        if (ev.key == 'Z' && keyState.ctrl) data.redo()
+        if (ev.key == 'z' && keyState.ctrl) data.undo()
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;
-        if (ev.key == 'Alt'){
-            if(isMac) {
+        if (ev.key == 'Alt') {
+            if (isMac) {
                 keyState.ctrl = false
             }
             keyState.alt = false;
@@ -68,7 +70,7 @@ onMounted(async () => {
         keyState.ctrl = ev.ctrlKey
         keyState.alt = ev.altKey
         keyState.shift = ev.shiftKey
-        if(isMac) {
+        if (isMac) {
             keyState.ctrl = keyState.ctrl || keyState.alt
         }
     })
@@ -95,6 +97,8 @@ function reRender() {
 function redirectHome() {
     router.push('/')
 }
+
+
 </script>
 
 <template>
@@ -102,22 +106,25 @@ function redirectHome() {
     <div id="panoptic" :key="project.status.renderNb">
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-            <div v-if="project.status.loaded">
-                <Menu @export="showModal()" />
-            </div>
-            <div class="w-100" v-if="project.status.loaded">
-                <div class="ms-3" ref="navElem">
-                    <TabNav :re-render="reRender" />
+            <TabContainer v-if="project.status.loaded" :tab-id="project.data.selectedTabId">
+                <div>
+                    <Menu @export="showModal()" />
                 </div>
-                <div class="custom-hr" v-if="hasHeight"/>
+                <div class="w-100">
+                    <div class="ms-3" ref="navElem">
+                        <TabNav :re-render="reRender" />
+                    </div>
+                    <div class="custom-hr" v-if="hasHeight" />
 
-                <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" v-if="project.status.loaded"
-                    ref="mainViewRef" />
-            </div>
+                    <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" />
+                </div>
+
+            </TabContainer>
             <div v-else-if="!panoptic.isProjectLoaded" class="loading">
                 <div class="text-center">
                     <div>{{ $t('main.status.no_project') }}</div>
-                    <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;"></div>
+                    <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;">
+                    </div>
                 </div>
             </div>
             <div v-else class="loading">
