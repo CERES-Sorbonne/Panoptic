@@ -158,6 +158,12 @@ function insertSort(old: Instance[], updatedIds: Set<number>, removed: Set<numbe
         res.push(updatedSorted[nowIndex].imageId)
         nowIndex += 1
     }
+    for (let i = oldIndex; i < old.length; i++) {
+        const id = old[i].id
+        if (!updatedIds.has(id) && !removed.has(id)) {
+            res.push(id)
+        }
+    }
     return res
 }
 
@@ -268,6 +274,7 @@ export class SortManager {
     }
 
     update(emit?: boolean) {
+        console.log('update sort', this.result.images.length)
         this.sort(this.result.images)
         if (emit) this.onChange.emit(this.result)
     }

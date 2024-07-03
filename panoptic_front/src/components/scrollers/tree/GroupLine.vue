@@ -24,9 +24,6 @@ const props = defineProps({
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
 
 const hoverGroup = ref(false)
-
-let idCounter = -100
-
 const group = computed(() => props.item.data)
 const images = computed(() => group.value.images)
 const piles = computed(() => undefined /*props.item.data.imagePiles*/)
@@ -60,8 +57,7 @@ const instancesForExecute = computed(() => {
 async function addClusters(clusters: GroupResult[]) {
     const groups = clusters.map((group, index) => {
         const instances = group.ids.map(i => data.instances[i])
-        const res = buildGroup(idCounter, instances, GroupType.Cluster)
-        idCounter -= 1
+        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
         res.meta.score = Math.round(group.score)
         res.name = group.name
         return res
