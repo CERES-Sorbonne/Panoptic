@@ -109,6 +109,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function updateRoutine(i: number) {
         while (routine == i) {
             const update = await apiGetUpdate()
+            if (routine != i) return
             // console.log(update)
             if (update) {
                 if (update.status) {
@@ -144,6 +145,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         Object.assign(data, {
             tabs: {} as TabIndex,
             selectedTabId: undefined as number,
+            plugins: [] as PluginDescription[],
+            vectors: {} as ProjectVectorDescription,
+            counter: 0
         })
 
         Object.assign(status, {
@@ -154,7 +158,10 @@ export const useProjectStore = defineStore('projectStore', () => {
             onUndo: 0,
             import: {} as ImportState
         })
+        actions.value = {}
+        backendStatus.value = null
         tabManager = undefined
+        routine = 0
         dataStore.clear()
 
     }
@@ -254,7 +261,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         return res
     }
 
-   
+
 
     function getTabManager() {
         return tabManager
@@ -307,7 +314,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         // functions
         init, clear, rerender,
         addTab, removeTab, updateTabs, selectTab, getTab, getTabManager,
-        
+
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginParams,
         call,

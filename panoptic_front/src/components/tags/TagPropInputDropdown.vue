@@ -10,6 +10,7 @@ import { computed, nextTick, onMounted, ref, toRefs, watch } from 'vue';
 import { arrayEqual } from '@/utils/utils';
 import { Instance, Property } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
+import { Exception } from 'sass';
 
 const data = useDataStore()
 
@@ -33,7 +34,7 @@ const localValue = ref([])
 
 const refProps = toRefs(props)
 // const propValue = computed(() => computedPropValue(props.property, props.image))
-const propValue = computed(() => data.instances[props.image.id].properties[props.property.id])
+const propValue = computed(() => data.instances[props.image.id]?.properties[props.property.id])
 
 function updateLocal() {
     localValue.value.length = 0
