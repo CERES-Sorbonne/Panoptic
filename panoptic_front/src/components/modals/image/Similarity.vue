@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GroupManager, SelectedImages } from '@/core/GroupManager';
 import { Instance, InstanceMatch, SearchResult } from '@/data/models';
-import { Ref, computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import RangeInput from '@/components/inputs/RangeInput.vue';
@@ -12,7 +12,7 @@ import { useDataStore } from '@/data/dataStore';
 const project = useProjectStore()
 const actions = useActionStore()
 const data = useDataStore()
-import { getTabManager } from '@/utils/utils';
+
 
 const props = defineProps<{
     image: Instance
@@ -28,7 +28,7 @@ similarGroup.setSha1Mode(true)
 const useFilter = ref(true)
 const scrollerElem = ref(null)
 const search = ref<SearchResult>(null)
-const minSimilarityDist = computed(() => getTabManager().state.similarityDist ?? 80)
+const minSimilarityDist = computed(() => project.getTabManager().state.similarityDist ?? 80)
 const state = reactive({
     sha1Scores: {}
 })
@@ -67,7 +67,7 @@ function updateSimilarGroup() {
     let matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
 
     if (useFilter.value) {
-        const tab = getTabManager()
+        const tab = project.getTabManager()
         const valid = new Set(tab.collection.filterManager.result.images.map(i => i.id))
         matches = matches.filter(m => valid.has(m.id))
     }
@@ -87,7 +87,7 @@ function updateSimilarGroup() {
 }
 
 function setSimilarDist(value: number) {
-    getTabManager().state.similarityDist = value
+    project.getTabManager().state.similarityDist = value
     similarGroup.clearSelection()
 }
 

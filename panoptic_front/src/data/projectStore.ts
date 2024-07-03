@@ -155,19 +155,9 @@ export const useProjectStore = defineStore('projectStore', () => {
             import: {} as ImportState
         })
         tabManager = undefined
-
         dataStore.clear()
-    }
 
-    // function applyCommit(commit: DbCommit) {
-    //     if (commit.properties && getTab().visibleProperties) {
-    //         commit.properties.forEach(p => {
-    //             getTab().visibleProperties[p.id] = true
-    //         })
-    //         updatePropertyOptions()
-    //     }
-    //     tabManager.collection.setDirty()
-    // }
+    }
 
     function verifyData() {
         tabManager.verifyState()

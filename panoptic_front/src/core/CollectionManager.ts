@@ -32,7 +32,8 @@ export class CollectionManager {
         this.filterManager.onDirty.addListener(() => this.setDirty())
         this.options = options ?? { autoReload: false }
 
-
+        const data = useDataStore()
+        data.onChange.addListener((dirtyInstances) => this.updateInstances(dirtyInstances))
         // if(images) this.update(images)
 
     }
@@ -52,10 +53,17 @@ export class CollectionManager {
         this.groupManager.verifyState(data.properties)
     }
 
-    setDirty() {
+    setDirty(instanceIds?: Set<number>) {
         this.state.isDirty = true
-        if(this.options.autoReload) {
-            this.update()
+        if (this.options.autoReload) {
+            if (instanceIds) {
+                this.filterManager.updateSelection(instanceIds)
+                this.sortManager.update()
+                this.groupManager.update(true)
+            } else {
+                this.update()
+            }
+
         }
     }
 
@@ -82,5 +90,9 @@ export class CollectionManager {
 
     private onGroup() {
 
+    }
+
+    updateInstances(instanceIds: Set<number>) {
+        this.setDirty(instanceIds)
     }
 }

@@ -8,11 +8,10 @@ import TagMenu from '../tags/TagMenu.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
 import { useDataStore } from '@/data/dataStore';
-import { getTabManager } from '@/utils/utils';
 
 const project = useProjectStore()
 const data = useDataStore()
-const tabManager = getTabManager()
+const tabManager = project.getTabManager()
 
 const props = defineProps({
     property: Object as () => Property

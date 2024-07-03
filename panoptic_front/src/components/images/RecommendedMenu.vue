@@ -8,7 +8,7 @@ import wTT from '../tooltips/withToolTip.vue'
 import { Group, UNDEFINED_KEY } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
-import { getTabManager } from '@/utils/utils';
+
 
 interface Sha1Pile {
     sha1: string
@@ -148,7 +148,7 @@ async function getReco() {
 
     matches.sort((a, b) => b.score - a.score)
     if (useFilter.value) {
-        const tab = getTabManager()
+        const tab = project.getTabManager()
         const valid = new Set(tab.collection.groupManager.result.root.images.map(i => i.id))
         matches = matches.filter(m => valid.has(m.id))
     }

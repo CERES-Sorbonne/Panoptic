@@ -11,8 +11,6 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import { useDataStore } from '@/data/dataStore';
-import { TabManager } from '@/core/TabManager';
-import TabContainer from './TabContainer.vue';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -106,7 +104,7 @@ function redirectHome() {
     <div id="panoptic" :key="project.status.renderNb">
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-            <TabContainer v-if="project.status.loaded" :tab-id="project.data.selectedTabId">
+            <template v-if="project.status.loaded">
                 <div>
                     <Menu @export="showModal()" />
                 </div>
@@ -119,7 +117,7 @@ function redirectHome() {
                     <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" />
                 </div>
 
-            </TabContainer>
+            </template>
             <div v-else-if="!panoptic.isProjectLoaded" class="loading">
                 <div class="text-center">
                     <div>{{ $t('main.status.no_project') }}</div>
