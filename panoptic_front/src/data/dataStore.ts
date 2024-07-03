@@ -13,6 +13,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     const onChange = new EventEmitter()
     const dirtyInstances = new Set()
+    let tmpIdCounter = -100
 
     const folders = ref<FolderIndex>({})
     const instances = shallowRef<InstanceIndex>({})
@@ -50,6 +51,11 @@ export const useDataStore = defineStore('dataStore', () => {
         console.timeEnd('commit')
 
         await getHistory()
+    }
+
+    function getTmpId() {
+        tmpIdCounter -= 1
+        return tmpIdCounter
     }
 
     function emitOnChange() {
@@ -422,7 +428,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     return {
-        init,
+        init, getTmpId,
         onChange,
         folders, instances, properties, tags, history,
         folderRoots, sha1Index, instanceList, propertyList,

@@ -735,7 +735,6 @@ export class GroupManager {
             this.groupLeafsBySha1()
         }
 
-
         if (emit) this.onChange.emit(this.result)
     }
 
@@ -765,7 +764,9 @@ export class GroupManager {
         if (!parent) return
 
         this.customGroups[targetGroupId] = groups
+        console.log(parent, groups)
         this.setChildGroup(parent, groups)
+        
 
         // if (parent.subGroupType == GroupType.Cluster) {
         //     groups.forEach(g => {
@@ -846,6 +847,7 @@ export class GroupManager {
     }
 
     private setChildGroup(parent: Group, groups: Group[]) {
+        // console.log(parent, groups)
         this.removeChildren(parent)
         for (let group of groups) {
             group.parentIdx = parent.children.length
