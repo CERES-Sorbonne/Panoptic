@@ -263,7 +263,6 @@ export class SortManager {
             this.result.order[res[i]] = i
         }
         console.timeEnd('SortUpdate')
-        this.onChange.emit(this.result)
 
         return this.result
     }
