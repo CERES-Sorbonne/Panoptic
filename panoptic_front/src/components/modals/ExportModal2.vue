@@ -9,6 +9,7 @@ import { ModalId, PropertyID } from '@/data/models';
 import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { useDataStore } from '@/data/dataStore';
+import { getTabManager } from '@/utils/utils';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -36,12 +37,12 @@ const properties = computed(() => {
 })
 
 const selectedCount = computed(() => {
-    const tabManager = project.getTabManager()
+    const tabManager = getTabManager()
     return Object.keys(tabManager.collection.groupManager.selectedImages.value).length
 })
 
 const visibleCount = computed(() => {
-    const tabManager = project.getTabManager()
+    const tabManager = getTabManager()
     if (state.mode == 'instance') { return tabManager.getVisibleProperties().length }
     return tabManager.getVisibleSha1Properties().length
 })
@@ -89,7 +90,7 @@ function clear() {
 
 function show() {
     clear()
-    const properties = project.getTabManager().getVisibleProperties()
+    const properties = getTabManager().getVisibleProperties()
     properties.forEach(p => state.properties[p.id] = true)
     state.properties[-1] = true
 }
@@ -102,10 +103,10 @@ async function buildRequest() {
         req.name = state.name
     }
     if (state.selection == 'selected') {
-        req.images = Object.keys(project.getTabManager().collection.groupManager.selectedImages.value).map(Number)
+        req.images = Object.keys(getTabManager().collection.groupManager.selectedImages.value).map(Number)
     }
     if (state.selection == 'filtered') {
-        req.images = project.getTabManager().collection.filterManager.result.images.map(i => i.id)
+        req.images = getTabManager().collection.filterManager.result.images.map(i => i.id)
     }
     isLoading.value = true
     await sleep(100)

@@ -12,6 +12,7 @@ import { useDataStore } from '@/data/dataStore';
 const project = useProjectStore()
 const actions = useActionStore()
 const data = useDataStore()
+import { getTabManager } from '@/utils/utils';
 
 const props = defineProps<{
     image: Instance
@@ -27,7 +28,7 @@ similarGroup.setSha1Mode(true)
 const useFilter = ref(true)
 const scrollerElem = ref(null)
 const search = ref<SearchResult>(null)
-const minSimilarityDist = computed(() => project.getTabManager().state.similarityDist ?? 80)
+const minSimilarityDist = computed(() => getTabManager().state.similarityDist ?? 80)
 const state = reactive({
     sha1Scores: {}
 })
@@ -66,7 +67,7 @@ function updateSimilarGroup() {
     let matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
 
     if (useFilter.value) {
-        const tab = project.getTabManager()
+        const tab = getTabManager()
         const valid = new Set(tab.collection.filterManager.result.images.map(i => i.id))
         matches = matches.filter(m => valid.has(m.id))
     }
@@ -86,7 +87,7 @@ function updateSimilarGroup() {
 }
 
 function setSimilarDist(value: number) {
-    project.getTabManager().state.similarityDist = value
+    getTabManager().state.similarityDist = value
     similarGroup.clearSelection()
 }
 

@@ -1,7 +1,9 @@
 import { Group } from "@/core/GroupManager"
+import { TabManager } from "@/core/TabManager"
+import { useDataStore } from "@/data/dataStore"
 import { PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
-import { Ref, computed } from "vue"
+import { Ref, computed, inject } from "vue"
 
 
 export function hasProperty(image: Instance, propertyId: number) {
@@ -14,21 +16,21 @@ export function isTag(type: PropertyType) {
 }
 
 export function getFolderAndParents(folder: Folder) {
-    const project = useProjectStore()
+    const data = useDataStore()
     const res = []
     let current = folder
     while (current) {
         res.push(current.id)
-        current = project.data.folders[current.parent]
+        current = data.folders[current.parent]
     }
     return res
 }
 
 export function getFolderChildren(folderId: number) {
-    const project = useProjectStore()
+    const data = useDataStore()
     let res: Folder[] = []
     const recursive = (fId: number) => {
-        const children = project.data.folders[fId].children
+        const children = data.folders[fId].children
         res.push(...children)
         children.forEach(c => recursive(c.id))
     }
@@ -116,6 +118,10 @@ export function getTagParents(tag: Tag, tags) {
     }
     recursive(tag)
     return res
+}
+
+export function getTabManager() {
+    return inject('tabManager') as TabManager
 }
 
 // export async function getSimilarImagesFromText(context: ActionContext) {

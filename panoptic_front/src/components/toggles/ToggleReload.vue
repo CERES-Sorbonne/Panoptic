@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/data/projectStore';
 import { defineProps, defineEmits, ref, computed } from 'vue'
+import { getTabManager } from '@/utils/utils';
 
 const project = useProjectStore()
 
@@ -11,7 +12,7 @@ const mode = computed(() => {
     if(project.getTab().autoReload) {
         return 2
     }
-    if(project.getTabManager().collection.state.isDirty) {
+    if(getTabManager().collection.state.isDirty) {
         return 0
     }
     return 1
@@ -19,7 +20,7 @@ const mode = computed(() => {
 
 function toggleMode() {
     if(mode.value == 0) {
-        project.getTabManager().collection.update()
+        getTabManager().collection.update()
     }
     else if(mode.value == 1) {
         project.getTab().autoReload = true

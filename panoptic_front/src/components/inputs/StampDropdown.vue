@@ -5,6 +5,7 @@ import { nextTick, reactive, ref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 import { useProjectStore } from '@/data/projectStore';
+import { getTabManager } from '@/utils/utils';
 
 const data = useDataStore()
 const project = useProjectStore()
@@ -58,7 +59,7 @@ async function apply() {
     }
     await data.setPropertyValues(instanceValues, imageValues)
 
-    project.getTabManager().collection.groupManager.clearSelection()
+    getTabManager().collection.groupManager.clearSelection()
     // store.getTabManager().collection.update()
     close()
 }
