@@ -390,7 +390,9 @@ export class GroupManager {
         if (order) {
             console.time('group order update')
             for (let group of objValues(this.result.index)) {
-                sortGroupImages(group, order)
+                if (group.type != GroupType.Cluster) {
+                    sortGroupImages(group, order)
+                }
             }
             console.timeEnd('group order update')
         }
@@ -674,7 +676,9 @@ export class GroupManager {
 
         for (let img of group.images) {
             if (!groups[img.sha1]) {
-                groups[img.sha1] = buildGroup('sha1:' + img.sha1 + ':' + group.id, [img], GroupType.Sha1)
+                const key = [...group.key, img.sha1]
+                const groupId = this.result.valueIndex.get(key)
+                groups[img.sha1] = buildGroup(groupId, [img], GroupType.Sha1)
                 groups[img.sha1].meta.propertyValues.push({ propertyId: -1, value: img.sha1 })
                 order.push(img.sha1)
 
@@ -709,9 +713,10 @@ export class GroupManager {
         }
         for (let groupId of groups) {
             const group = this.result.index[groupId]
+            if (group.type == GroupType.Cluster) continue
             group.images = group.images.filter(i => !removed.has(i.id) && !updated.has(i.id))
         }
-        this.addUpdatedToGroups(Array.from(updated).map(id => data.instances[id]))
+        this.addUpdatedToGroups(Array.from(updated).map(id => data.instances[id]), this.lastOrder)
         this.onChange.emit(this.result)
     }
 
@@ -853,7 +858,7 @@ export class GroupManager {
             }
         }
         parent.subGroupType = parent.children.length ? groups[0].type : undefined
-        this.removeImageToGroups(parent)
+        // this.removeImageToGroups(parent)
         if (parent.subGroupType == GroupType.Sha1) {
             this.saveImagesToGroup(parent)
         }

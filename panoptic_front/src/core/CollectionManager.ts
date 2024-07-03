@@ -57,11 +57,12 @@ export class CollectionManager {
         this.state.isDirty = true
         if (this.options.autoReload) {
             if (instanceIds) {
+                // this.update()
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 this.groupManager.lastOrder = this.sortManager.result.order
                 this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
-
+                this.state.isDirty = false
             } else {
                 this.update()
             }
