@@ -38,6 +38,7 @@ export interface Group {
     images: Instance[]
     type: GroupType
     subGroupType?: GroupType
+    dirty?: boolean
 
     parent?: Group
     // Needed for O(1) next neighbor
@@ -340,6 +341,16 @@ class GroupValueIndex {
         }
         return idx.get(null)
     }
+    delete(valueKey: any[]) {
+        let idx = this.index
+        for (let value of valueKey) {
+            if (!idx.has(value)) {
+                return
+            }
+            idx = idx.get(value)
+        }
+        idx.delete(null)
+    }
 }
 
 export class GroupManager {
@@ -380,7 +391,6 @@ export class GroupManager {
         this.invalidateIterators()
 
         if (this.state.groupBy.length > 0) {
-            // this.computePropertySubGroup(this.result.root, this.state.groupBy, data.properties, data.tags)
             for (let instance of images) {
                 this.addInstanceToGroups(instance, data.properties, data.tags)
             }
@@ -388,47 +398,22 @@ export class GroupManager {
             this.result.root.images.push(...images)
         }
         if (order) {
-            console.time('group order update')
+            // console.time('group order update')
             for (let group of objValues(this.result.index)) {
                 if (group.type != GroupType.Cluster) {
                     sortGroupImages(group, order)
                 }
             }
-            console.timeEnd('group order update')
+            // console.timeEnd('group order update')
         }
 
-        console.time('group register')
+        // console.time('group register')
         this.result.imageToGroups = {}
         for (let group of Object.values(this.result.index)) {
             if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) continue
             this.saveImagesToGroup(group)
         }
-        console.timeEnd('group register')
-        // let insert = true
-        // let toInsert = new Set(Object.keys(lastCustom))
-
-        // while (insert) {
-        //     insert = false
-        //     for (let target of Array.from(toInsert)) {
-        //         if (this.result.index[target]) {
-        //             this.addCustomGroups(target, lastCustom[target])
-        //             toInsert.delete(target)
-        //             insert = true
-        //         }
-        //     }
-        // }
-        // // console.time('after')
-        // // console.log(this.state.sha1Mode)
-        // if (this.state.sha1Mode) {
-        //     this.groupLeafsBySha1()
-        // }
-        // // console.timeEnd('after')
-        // Object.keys(this.result.index).map(id => {
-        //     const group = this.result.index[id]
-        //     if (lastIndex[id]) {
-        //         group.view = lastIndex[id].view
-        //     }
-        // })
+        // console.timeEnd('group register')
 
         // console.time('group order')
         setOrder(this.result.root)
@@ -436,8 +421,6 @@ export class GroupManager {
 
         console.timeEnd('Group Update')
         this.onChange.emit(this.result)
-
-        console.log(this.result.root)
         return this.result
     }
 
@@ -504,22 +487,25 @@ export class GroupManager {
             for (let key of previousKeys) {
                 const groupId = this.result.valueIndex.get(key)
                 if (!this.result.index[groupId]) {
-                    const group = buildGroup(String(groupId), [], GroupType.Property)
+                    const group = buildGroup(groupId, [], GroupType.Property)
                     let propValues = [{ propertyId: property.id, value: key[key.length - 1], valueEnd: intervalEnd, unit: option.stepUnit } as PropertyValue]
                     group.meta.propertyValues = propValues
                     this.regsiterGroup(group)
 
                     if (key.length == 1) {
                         this.addChildGroup(this.result.root, group)
+                        this.result.root.dirty = true
                     } else {
                         const parentId = this.result.valueIndex.get(key.slice(0, -1))
                         const parent = this.result.index[parentId]
                         // console.log(parentId, key)
                         this.addChildGroup(parent, group)
+                        parent.dirty = true
                     }
                 }
                 const group = this.result.index[groupId]
                 group.images.push(instance)
+                group.dirty = true
             }
         }
     }
@@ -661,9 +647,12 @@ export class GroupManager {
     }
 
     private removeChildren(group: Group) {
-        this.removeImageToGroups(group)
         group.children.forEach(c => {
             delete this.result.index[c.id]
+            if (c.key.length) {
+                this.result.valueIndex.delete(c.key)
+            }
+            this.removeImageToGroups(c)
         })
         group.children.length = 0
         group.subGroupType = undefined
@@ -679,6 +668,7 @@ export class GroupManager {
                 const key = [...group.key, img.sha1]
                 const groupId = this.result.valueIndex.get(key)
                 groups[img.sha1] = buildGroup(groupId, [img], GroupType.Sha1)
+                groups[img.sha1].key = key
                 groups[img.sha1].meta.propertyValues.push({ propertyId: -1, value: img.sha1 })
                 order.push(img.sha1)
 
@@ -701,7 +691,7 @@ export class GroupManager {
     updateSelection(updated: Set<number>, removed: Set<number>) {
         const data = useDataStore()
         this.invalidateIterators()
-        console.log('update groups', updated)
+        this.removeSha1Groups()
         let groups = new Set<number>()
         for (let instanceId of removed) {
             if (!this.result.imageToGroups[instanceId]) continue
@@ -714,9 +704,38 @@ export class GroupManager {
         for (let groupId of groups) {
             const group = this.result.index[groupId]
             if (group.type == GroupType.Cluster) continue
+            group.dirty = true
             group.images = group.images.filter(i => !removed.has(i.id) && !updated.has(i.id))
         }
         this.addUpdatedToGroups(Array.from(updated).map(id => data.instances[id]), this.lastOrder)
+
+        for (let group of objValues(this.result.index)) {
+            if (group.images.length == 0) {
+                delete this.result.index[group.id]
+            }
+            const oldLen = group.children.length
+            group.children = group.children.filter(g => g.images.length > 0)
+            if(group.children.length < oldLen) {
+                group.dirty = true
+            }
+        }
+
+        if (this.state.sha1Mode) {
+            this.groupLeafsBySha1()
+        }
+
+        for (let group of objValues(this.result.index)) {
+            if(!group.dirty) continue
+            if (group.subGroupType == GroupType.Property) {
+                const option = this.state.options[group.children[0].meta.propertyValues[0].propertyId]
+                sortGroup(group, option)
+            }
+            if(group.type == GroupType.Property) {
+                sortGroupImages(group, this.lastOrder)
+            }
+            group.dirty = false
+        }
+        setOrder(this.result.root)
         this.onChange.emit(this.result)
     }
 
@@ -764,9 +783,8 @@ export class GroupManager {
         if (!parent) return
 
         this.customGroups[targetGroupId] = groups
-        console.log(parent, groups)
         this.setChildGroup(parent, groups)
-        
+
 
         // if (parent.subGroupType == GroupType.Cluster) {
         //     groups.forEach(g => {
@@ -803,7 +821,6 @@ export class GroupManager {
         else {
             this.removeSha1Groups()
         }
-
         if (emit) this.onChange.emit()
     }
 
@@ -847,7 +864,6 @@ export class GroupManager {
     }
 
     private setChildGroup(parent: Group, groups: Group[]) {
-        // console.log(parent, groups)
         this.removeChildren(parent)
         for (let group of groups) {
             group.parentIdx = parent.children.length
@@ -888,11 +904,9 @@ export class GroupManager {
 
     private computePropertySubGroup(group: Group, groupBy: number[], properties: PropertyIndex, tags: TagIndex) {
         // console.time('sub group')
-        // console.log('groupBy', groupBy)
         const property = properties[groupBy[0]]
         const option = this.state.options[property.id]
         const tagWithParents = {}
-        // console.log(property.tags)
         if (isTag(property.type) && property.tags) {
             for (let tag of objValues(property.tags)) {
                 tagWithParents[tag.id] = new Set(tag.allParents)

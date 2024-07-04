@@ -59,7 +59,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function emitOnChange() {
-        console.log(dirtyInstances)
+        // console.log(dirtyInstances)
         onChange.emit(dirtyInstances)
         dirtyInstances.clear()
     }
