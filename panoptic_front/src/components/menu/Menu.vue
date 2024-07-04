@@ -9,7 +9,7 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -164,7 +164,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                     }}</b></wTT>
                     <div class="mt-2" v-if="project.status.loaded">
                         <template v-for="property in data.properties">
-                            <div class="property-item" v-if="property.id < 0">
+                            <div class="property-item" v-if="property.id < 0 && property.id != deletedID">
                                 <wTT pos="bottom"
                                     :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">
                                     <PropertyOptions :property="property" />

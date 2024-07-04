@@ -4,6 +4,7 @@ import { useProjectStore } from "@/data/projectStore"
 import { reactive, toRefs } from "vue"
 import { EventEmitter } from "@/utils/utils"
 import { useDataStore } from "@/data/dataStore"
+import { defaultPropertyOption } from "@/data/builder"
 
 export class TabManager {
     isLoaded: boolean
@@ -34,7 +35,14 @@ export class TabManager {
     }
 
     verifyState() {
+        const data = useDataStore()
         this.collection.verifyState()
+        if (this.state.propertyOptions == undefined) {
+            this.state.propertyOptions = {}
+        }
+        for (let propId in data.properties) {
+            this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
+        }
     }
     
     saveState() {

@@ -3,7 +3,7 @@ import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { GroupManager, ImageIterator } from '@/core/GroupManager';
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
 import { PropertyMode } from '@/data/models';
 import { Ref, computed, inject, ref } from 'vue';
 
@@ -41,7 +41,7 @@ const properties = computed(() => {
     if (mode.value == 2) {
         res.push(...data.propertyList.filter(p => p.computed))
     }
-    return res
+    return res.filter(p => p.id != deletedID)
 })
 
 function setMode(value) {
