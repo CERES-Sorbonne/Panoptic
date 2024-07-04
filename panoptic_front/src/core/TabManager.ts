@@ -26,6 +26,7 @@ export class TabManager {
         Object.assign(this.state, toRefs(state))
         if(!state) return
         this.collection.load(state.filterState, state.sortState, state.groupState)
+        this.verifyState()
         this.isLoaded = true
         await this.collection.update(data.instances)
 

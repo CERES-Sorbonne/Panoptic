@@ -10,7 +10,7 @@ import { Ref, reactive, shallowRef, toRefs, triggerRef } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
-import { useDataStore } from "@/data/dataStore";
+import { deletedID, useDataStore } from "@/data/dataStore";
 
 
 
@@ -631,8 +631,8 @@ export class GroupManager {
     }
 
     verifyState(properties: PropertyIndex) {
-        this.state.groupBy = this.state.groupBy.filter(id => properties[id])
-        Object.keys(this.state.options).filter(id => !properties[id]).forEach(id => delete this.state.options[id])
+        this.state.groupBy = this.state.groupBy.filter(id => properties[id] && properties[id].id != deletedID)
+        Object.keys(this.state.options).filter(id => !properties[id] || properties[id].id != deletedID).forEach(id => delete this.state.options[id])
     }
 
     registerIterator(it: GroupIterator) {

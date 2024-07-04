@@ -6,7 +6,7 @@
  */
 
 import { propertyDefault } from "@/data/builder";
-import { useDataStore } from "@/data/dataStore";
+import { deletedID, useDataStore } from "@/data/dataStore";
 import { Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
@@ -581,7 +581,7 @@ export class FilterManager {
                 }
                 else {
                     const filter = f as Filter
-                    if (properties[filter.propertyId] == undefined) {
+                    if (properties[filter.propertyId] == undefined || properties[filter.propertyId].id == deletedID) {
                         toRem.add(filter.id)
                     }
                 }
