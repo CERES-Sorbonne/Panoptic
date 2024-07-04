@@ -213,11 +213,11 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>
             </div>
-            <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.close-clusters">
                 <div class="sbb cluster-close" @click="clear">x clusters</div>
-            </div>
+            </wTT>
 
-            <div v-if="group.subGroupType == GroupType.Cluster" class="ms-2">
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.save-clusters">
                 <div class="sbb cluster-close" @click="saveHirachy">
                     <span style="position: relative; top: 1px">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
@@ -227,7 +227,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                         </div>
                     </span>
                 </div>
-            </div>
+            </wTT>
         </div>
 
     </div>

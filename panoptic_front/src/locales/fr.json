@@ -256,6 +256,10 @@
             "tags": "tag(s) modifié(s)",
             "undo": "Annuler",
             "redo": "Refaire" 
+        },
+        "action" : {
+            "execute": "Execute une fonction plugin sur les instances",
+            "group": "Execute une fonction de clustering sur les instances"
         }
     },
     "btn": {
@@ -263,7 +267,9 @@
             "auto": "Actualisation Automatique\nCliquez pour désactiver la mise à jour automatique",
             "valid": "Données à jour\nCliquez pour activer la mise à jour automatique",
             "dirty": "Actualisation nécessaire\nCliquez pour actualiser"
-        }
+        },
+        "close-clusters": "Retire les clusters",
+        "save-clusters": "Sauvegarde les clusters dans une propriétés tag"
     }
 
 }

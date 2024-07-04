@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch, computed, nextTick } from 'vue';
+import { defineProps, defineEmits, ref, onMounted, watch, computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
-import { apiCallActions } from '@/data/api';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
 import ActionSelect from './ActionSelect.vue';
 import { useActionStore } from '@/data/actionStore';
-import { objValues } from '@/utils/utils';
 import { useDataStore } from '@/data/dataStore';
+import wTT from '@/components/tooltips/withToolTip.vue'
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -105,7 +104,9 @@ watch(project.actions, loadAction)
         <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <div @click="call">{{ $t('action.' + props.action) }}</div>
+        <wTT :message="'dropdown.action.' + props.action">
+            <div @click="call">{{ $t('action.' + props.action) }}</div>
+        </wTT>
         <div class="sep ms-1"></div>
         <Dropdown :teleport="true">
             <template #button>
