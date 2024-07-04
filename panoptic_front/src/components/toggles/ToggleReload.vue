@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useProjectStore } from '@/data/projectStore';
-import { defineProps, defineEmits, ref, computed } from 'vue'
+import { defineEmits, computed } from 'vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 
 const project = useProjectStore()
