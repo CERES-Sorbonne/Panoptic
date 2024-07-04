@@ -293,6 +293,9 @@ class ProjectDb:
             await self._verify_tags(commit.tags)
             db_tags = await self._db.import_tags(commit.tags)
             tag_id_map = {old: new.id for old, new in zip(ids, db_tags)}
+            for tag in commit.tags:
+                tag.parents = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in tag.parents]
+            db_tags = await self._db.import_tags(commit.tags)
 
             current_ids = {tt.id for tt in current}
             inverse.empty_tags.extend([t.id for t in db_tags if t.id not in current_ids])

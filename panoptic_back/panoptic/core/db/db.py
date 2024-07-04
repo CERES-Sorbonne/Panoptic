@@ -228,11 +228,11 @@ class Db:
     # =====================================================
 
     async def import_tags(self, tags: list[Tag]):
-        fake_ids = [i for i in tags if i.id < 0]
+        fake_ids = [t for t in tags if t.id < 0]
         if fake_ids:
             real_ids = await self.get_new_tag_ids(len(fake_ids))
-            for prop, id_ in zip(fake_ids, real_ids):
-                prop.id = id_
+            for tag, id_ in zip(fake_ids, real_ids):
+                tag.id = id_
 
         query = "INSERT OR REPLACE INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
         await self.conn.execute_query_many(query, [(t.id, t.property_id, t.value, json.dumps(t.parents),
