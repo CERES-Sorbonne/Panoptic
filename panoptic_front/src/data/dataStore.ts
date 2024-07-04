@@ -453,7 +453,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addFolder, reImportFolder, deleteFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
-        applyCommit, sendCommit, undo, redo,
+        applyCommit, sendCommit, undo, redo, onUndo,
         clear
     }
 
