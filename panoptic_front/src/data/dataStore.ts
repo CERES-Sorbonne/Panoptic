@@ -92,11 +92,17 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function importProperties(toImport: Property[]) {
+        const someNew = toImport.some(p => properties.value[p.id] == undefined)
         for (let property of toImport) {
             if (property.id in properties.value) {
                 property.tags = properties.value[property.id].tags
             }
             properties.value[property.id] = property
+        }
+        if(someNew) {
+            const project = useProjectStore()
+            const tab = project.getTabManager()
+            tab.verifyState()
         }
     }
 

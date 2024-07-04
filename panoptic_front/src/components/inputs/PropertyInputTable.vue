@@ -7,7 +7,6 @@ import PropInput from './PropInput.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
 
-const project = useProjectStore()
 const data = useDataStore()
 
 const props = defineProps<{
@@ -51,7 +50,7 @@ function toggleProperty(property: Property) {
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{
                     image.properties[property.id] }}</p>
                         <span v-else>
-                            <TagBadge :tag="project.data.folders[image.properties[property.id]].name" :color="-1" />
+                            <TagBadge :tag="data.folders[image.properties[property.id]].name" :color="-1" />
                         </span>
                     </td>
 

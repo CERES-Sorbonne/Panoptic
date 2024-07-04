@@ -60,7 +60,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         console.log('init')
         if (!tabManager) {
-            tabManager = new TabManager((data.tabs[data.selectedTabId]))
+            tabManager = new TabManager()
         }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
@@ -102,6 +102,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         await loadTabs(tabs)
         verifyData()
+
 
         status.loaded = true
     }
@@ -321,7 +322,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         actions,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
-        backendStatus, reload,
+        backendStatus, reload, updatePropertyOptions,
         showTutorial
     }
 
