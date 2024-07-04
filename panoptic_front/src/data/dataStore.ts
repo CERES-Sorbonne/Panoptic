@@ -5,8 +5,9 @@ import { objValues } from "./builder";
 import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiReImportFolder, apiRedo, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isTag } from "@/utils/utils";
+import { useProjectStore } from "./projectStore";
 
-const deletedID = -999999999
+export const deletedID = -999999999
 const deletedName = 'Deleted'
 
 export const useDataStore = defineStore('dataStore', () => {
@@ -359,7 +360,10 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function deleteProperty(propertyId: number) {
         await sendCommit({ emptyProperties: [propertyId] })
-        delete properties.value[propertyId]
+        const project = useProjectStore()
+        project.getTabManager().verifyState()
+        project.getTabManager().collection.update()
+        // delete properties.value[propertyId]
 
         // TODO: verify
         // Object.values(data.tabs).forEach((t: TabState) => {

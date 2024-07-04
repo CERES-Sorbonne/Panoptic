@@ -4,7 +4,7 @@
  * The result is a sorted array of images and an order index (Image -> order)
  */
 
-import { useDataStore } from "@/data/dataStore"
+import { deletedID, useDataStore } from "@/data/dataStore"
 import { FolderIndex, Instance, InstanceIndex, Property, PropertyIndex } from "@/data/models"
 import { PropertyType } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
@@ -298,7 +298,7 @@ export class SortManager {
     }
 
     verifyState(properties: PropertyIndex) {
-        this.state.sortBy = this.state.sortBy.filter(id => properties[id])
-        Object.keys(this.state.options).filter(id => !properties[id]).forEach(id => delete this.state.options[id])
+        this.state.sortBy = this.state.sortBy.filter(id => properties[id] && properties[id].id != deletedID)
+        Object.keys(this.state.options).filter(id => !properties[id] || properties[id].id == deletedID).forEach(id => delete this.state.options[id])
     }
 }
