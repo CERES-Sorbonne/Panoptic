@@ -28,7 +28,7 @@ const props = defineProps({
 const realMessage = computed(() => {
     if (!props.message) return
 
-    if (['main', 'modals'].indexOf(props.message.split('.')[0]) > -1) {
+    if (['main', 'modals', 'dropdown'].indexOf(props.message.split('.')[0]) > -1) {
         return t(props.message)
     }
     else {

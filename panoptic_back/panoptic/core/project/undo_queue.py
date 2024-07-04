@@ -40,7 +40,7 @@ class UndoQueue:
         def to_stats(c: DbCommit):
             tag_count = len(c.tags) + len(c.empty_tags)
             value_count = len(c.empty_instance_values) + len(c.instance_values)
-            value_count += len(c.empty_image_values) + len(c.empty_image_values)
+            value_count += len(c.empty_image_values) + len(c.image_values)
             return CommitStat(timestamp=c.timestamp, tags=tag_count, values=value_count)
 
         undo = [to_stats(c) for c in self._to_undo]

@@ -250,9 +250,12 @@
     "tmp": "Tooltip to be written",
     "dropdown": {
         "history": {
+            "info": "Historique des modifications",
             "button": "Historique",
             "values": "valeur(s) modifiée(s)",
-            "tags": "tag(s) modifié(s)"
+            "tags": "tag(s) modifié(s)",
+            "undo": "Annuler",
+            "redo": "Refaire" 
         }
     }
 
