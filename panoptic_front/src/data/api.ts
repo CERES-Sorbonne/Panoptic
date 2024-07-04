@@ -234,7 +234,7 @@ export async function apiGetHistory() {
 
 export async function apiGetUpdate() {
     const res = await axios.get('/update')
-    return res.data as Update
+    return keysToCamel(res.data) as Update
 }
 
 

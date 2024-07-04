@@ -152,7 +152,9 @@ class Importer:
             paths = self._df[file_key]
             trie = Trie()
             for inst in instances:
-                trie.insert(inst.url[::-1], inst.id)
+                url = inst.url.replace('\\', '/')
+                url = url[::-1]
+                trie.insert(url, inst.id)
             for path in paths:
                 if relative:
                     ids = trie.search_by_prefix(path[::-1])

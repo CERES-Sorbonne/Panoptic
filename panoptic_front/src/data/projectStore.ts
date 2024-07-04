@@ -123,7 +123,7 @@ export const useProjectStore = defineStore('projectStore', () => {
                 }
                 if (update.commits) {
                     for (let commit of update.commits) {
-                        await dataStore.applyCommit(commit)
+                        dataStore.applyCommit(commit)
                     }
                     tabManager.collection.update()
                 }

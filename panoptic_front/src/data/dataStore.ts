@@ -339,7 +339,14 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function addFolder(folder: string) {
         await apiAddFolder(folder)
-        init()
+        const updated = await apiGetFolders()
+        const updatedNodes = buildFolderNodes(updated)
+        for(let f of objValues(updatedNodes)) {
+            if(f.id in folders.value) {
+                f.count = folders.value[f.id].count
+            }
+        }
+        folders.value = updatedNodes
     }
 
     async function updateProperty(propertyId: number, name?: string) {
@@ -416,14 +423,25 @@ export const useDataStore = defineStore('dataStore', () => {
     function updateFolderCount(updatedInstances: Instance[], deletedInstances: number[]) {
         updatedInstances = updatedInstances ?? []
         deletedInstances = deletedInstances ?? []
-
         for (let instance of updatedInstances) {
             if (instances.value[instance.id] != undefined) continue
-            folders.value[instance.folderId].count += 1
+            let folder = folders.value[instance.folderId]
+            folder.count += 1
+            folder = folders.value[folder.parent]
+            while(folder) {
+                folder.count += 1
+                folder = folders.value[folder.parent]
+            }
         }
         for (let id of deletedInstances) {
             if (instances.value[id] == undefined) continue
-            folders.value[id].count -= 1
+            let folder = folders.value[id]
+            folder.count -= 1
+            folder = folders.value[folder.parent]
+            while(folder) {
+                folder.count -= 1
+                folder = folders.value[folder.parent]
+            }
         }
     }
 
