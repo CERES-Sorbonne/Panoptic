@@ -363,19 +363,6 @@ export const useDataStore = defineStore('dataStore', () => {
         const project = useProjectStore()
         project.getTabManager().verifyState()
         project.getTabManager().collection.update()
-        // delete properties.value[propertyId]
-
-        // TODO: verify
-        // Object.values(data.tabs).forEach((t: TabState) => {
-        //     Object.keys(t.visibleProperties).map(Number).forEach(k => {
-        //         if (properties.value[k] == undefined) {
-        //             delete t.visibleProperties[k]
-        //         }
-        //     })
-        // })
-        // verifyData()
-        // tabManager.collection.update()
-        // rerender()
     }
 
     function updateTagCount(oldTags: number[], newTags: number[]) {

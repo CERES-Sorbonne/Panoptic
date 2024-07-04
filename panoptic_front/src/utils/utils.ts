@@ -110,6 +110,7 @@ export function getTagChildren(tag: Tag, tags: TagIndex) {
 export function getTagParents(tag: Tag, tags) {
     const res = []
     const recursive = (t: Tag) => {
+        if(!t) return
         for (let pId of t.parents) {
             if (pId == 0) continue
             res.push(pId)
