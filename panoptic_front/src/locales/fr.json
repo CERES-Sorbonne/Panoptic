@@ -257,6 +257,13 @@
             "undo": "Annuler",
             "redo": "Refaire" 
         }
+    },
+    "btn": {
+        "reload": {
+            "auto": "Actualisation Automatique\nCliquez pour désactiver la mise à jour automatique",
+            "valid": "Données à jour\nCliquez pour activer la mise à jour automatique",
+            "dirty": "Actualisation nécessaire\nCliquez pour actualiser"
+        }
     }
 
 }
