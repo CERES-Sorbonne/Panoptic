@@ -131,7 +131,7 @@ class Importer:
                 else:
                     col_to_prop[i] = Property(id=-i, name=name, type=type_, mode=PropertyMode.id)
 
-        if not any(p.type == PropertyMode.id for p in col_to_prop.values()):
+        if not any(p.mode == PropertyMode.id for p in col_to_prop.values()):
             fusion = 'first'
 
         # merge with db properties if possible
