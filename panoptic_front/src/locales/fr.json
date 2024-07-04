@@ -268,7 +268,7 @@
             "valid": "Données à jour\nCliquez pour activer la mise à jour automatique",
             "dirty": "Actualisation nécessaire\nCliquez pour actualiser"
         },
-        "close-clusters": "Retire les clusters",
+        "close-clusters": "Retirer les clusters",
         "save-clusters": "Sauvegarde les clusters dans une propriétés tag"
     }
 
