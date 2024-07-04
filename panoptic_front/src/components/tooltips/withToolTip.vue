@@ -27,13 +27,15 @@ const props = defineProps({
 
 const realMessage = computed(() => {
     if (!props.message) return
-
-    if (['main', 'modals', 'dropdown'].indexOf(props.message.split('.')[0]) > -1) {
-        return t(props.message)
+    let res = ''
+    if (['main', 'modals', 'dropdown', 'btn'].indexOf(props.message.split('.')[0]) > -1) {
+        res = t(props.message)
     }
     else {
-        return props.message
+        res = props.message
     }
+    const resList = res.split('\n')
+    return resList
 })
 </script>
 
@@ -50,7 +52,7 @@ const realMessage = computed(() => {
         </div>
         <template #popper>
             <div style="max-width: 300px;">
-                {{ realMessage }}
+                <span v-for="line in realMessage">{{ line }}<br /></span>
             </div>
         </template>
     </Tooltip>
