@@ -24,7 +24,7 @@ function getAllPropValues(){
     const group = it.group
     console.log(group.id)
     // on est root
-    if(group.id === 0){
+    if(group.id === 0 || (group.meta.propertyValues && group.meta.propertyValues[0].value == undefined)){
       it = it.nextGroup()
       continue
     }
@@ -69,7 +69,7 @@ function computeSeries(){
   const xValues = []
   while (it) {
     const group: Group = it.group
-    if (group.id === 0) {
+    if (group.id === 0 || (group.meta.propertyValues && group.meta.propertyValues[0].value == undefined)) {
       it = it.nextGroup()
       continue
     }

@@ -206,7 +206,7 @@ class Importer:
                 if value is None:
                     continue
 
-                if tag_map is not None:
+                if tag_map:
                     value = parse_list(value)
                     if not value:
                         continue
