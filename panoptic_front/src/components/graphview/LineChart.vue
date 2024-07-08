@@ -1,6 +1,5 @@
 <script setup>
 
-import { tryOnBeforeMount } from '@vueuse/core';
 import { defineProps, nextTick, onMounted, ref } from 'vue'
 import { PropertyType } from '@/data/models';
 
