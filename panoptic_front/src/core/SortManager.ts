@@ -116,11 +116,7 @@ function getSortablePropertyValue(image: Instance, property: Property, folders: 
             value = undefined
         }
     }
-    if (type == PropertyType._folders) {
-        value = sortParser[type](value, folders)
-    } else {
-        value = sortParser[type](value)
-    }
+    value = sortParser[type](value, folders)
 
     return value
 }

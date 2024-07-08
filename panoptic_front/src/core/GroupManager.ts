@@ -5,7 +5,7 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { DateUnit, DateUnitFactor, Instance, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
+import { DateUnit, DateUnitFactor, FolderIndex, Instance, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
 import { Ref, reactive, shallowRef, toRefs, triggerRef } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
@@ -250,7 +250,7 @@ function sortGroup(group: Group, option: GroupOption) {
     const data = useDataStore()
     if (group.children.length == 0) return
     if (option.type == GroupSortType.Property) {
-        sortGroupByProperty(group, option.direction, data.properties)
+        sortGroupByProperty(group, option.direction, data.properties, data.folders)
     } else {
         sortGroupBySize(group, option.direction)
     }
@@ -259,7 +259,7 @@ function sortGroup(group: Group, option: GroupOption) {
     }
 }
 
-function sortGroupByProperty(group: Group, direction: number, properties: PropertyIndex) {
+function sortGroupByProperty(group: Group, direction: number, properties: PropertyIndex, folders: FolderIndex) {
     let sortable = {}
 
     for (let child of group.children) {
@@ -273,7 +273,7 @@ function sortGroupByProperty(group: Group, direction: number, properties: Proper
                 // console.log(prop, prop.tags[value], value)
                 value = prop.tags[value].value
             }
-            value = sortParser[type](value)
+            value = sortParser[type](value, folders)
             values.push(value)
         }
         sortable[child.id] = values
