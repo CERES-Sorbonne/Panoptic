@@ -448,7 +448,7 @@ export class GroupManager {
             if (property.type == PropertyType.date) {
                 const res = closestDate(value, option.stepSize, option.stepUnit)
                 if (res) {
-                    value = res.first
+                    value = res.first.toISOString()
                     intervalEnd = res.last
                 }
             }
@@ -467,7 +467,6 @@ export class GroupManager {
                     }
                 }
                 values = Array.from(withParents)
-
             }
             // b += performance.now() - now
             if (previousKeys.length == 0) {
@@ -488,7 +487,11 @@ export class GroupManager {
                 const groupId = this.result.valueIndex.get(key)
                 if (!this.result.index[groupId]) {
                     const group = buildGroup(groupId, [], GroupType.Property)
-                    let propValues = [{ propertyId: property.id, value: key[key.length - 1], valueEnd: intervalEnd, unit: option.stepUnit } as PropertyValue]
+                    let realValue = key[key.length - 1]
+                    if(property.type == PropertyType.date) {
+                        realValue = new Date(realValue)
+                    }
+                    let propValues = [{ propertyId: property.id, value: realValue, valueEnd: intervalEnd, unit: option.stepUnit } as PropertyValue]
                     group.meta.propertyValues = propValues
                     this.regsiterGroup(group)
 
@@ -938,7 +941,6 @@ export class GroupManager {
                 }
             }
             a += performance.now() - now
-
             now = performance.now()
             // treat all values as possible array to avoid writing different code for multi_tags
             // TODO: Optimisation -> iterate of groups at end not need to create tag parents for each values
@@ -958,16 +960,19 @@ export class GroupManager {
             // for all properties != multi_tags -> values.length == 1
             now = performance.now()
             for (let v of values) {
-                const key = [...group.key, v]
+                let keyValue = v
+                if(v && property.type == PropertyType.date) {
+                    keyValue = keyValue.toISOString()
+                }
+                const key = [...group.key, keyValue]
                 const groupId = this.result.valueIndex.get(key)
                 if (!this.result.index[groupId]) {
                     let propValues = [{ propertyId: property.id, value: v, valueEnd: intervalEnd, unit: option.stepUnit } as PropertyValue]
-                    const key = [...group.key, v]
                     // let id = group.id == ROOT_ID ? 'prop' : group.id
                     // id += propValuesToId(propValues, properties)
                     const newGroup = buildGroup(groupId, [], GroupType.Property)
                     newGroup.meta.propertyValues = propValues
-                    newGroup.key = [...group.key, v]
+                    newGroup.key = key
                     this.regsiterGroup(newGroup)
                     subGroups.push(newGroup)
                 }
