@@ -95,7 +95,6 @@ async def get_similar_images_from_text(input_text: str):
 
 
 def get_similar_images(vectors: list[np.ndarray]):
-    print('yayayayaayayayayayayay')
     if not SIMILARITY_TREE:
         raise ValueError("Cannot compute image similarity since KDTree was not computed yet")
     vector = np.mean(vectors, axis=0)
