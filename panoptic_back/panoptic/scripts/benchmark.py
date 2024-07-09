@@ -1,3 +1,4 @@
+import io
 import time
 import hashlib
 from PIL import Image
@@ -33,23 +34,31 @@ def measure_time(image_path):
     for _ in range(1):
         # Measure time to open the image
         start_time = time.time()
-        image = Image.open(image_path)
-        image = image.convert('RGB')
+        img = Image.open(image_path)
+        w,h = img.size
+        # img.thumbnail(size=(1024, 1024))
+        # img = img.convert('RGB')
+
+        img.draft('RGB', size=(1024, 1024))
+        b = img.tobytes()
+        large_bytes = io.BytesIO()
+        img.save(large_bytes, format='jpeg', quality=30)
+        large_bytes = large_bytes.getvalue()
         times_open.append((time.time() - start_time) * 1000)  # Convert to milliseconds
 
         # Measure time for SHA1
         start_time = time.time()
-        compute_sha1(image)
+        compute_sha1(img)
         times_sha1.append((time.time() - start_time) * 1000)  # Convert to milliseconds
 
         # Measure time for thumbnail creation
         start_time = time.time()
-        thumbnail = create_thumbnail(image)
+        thumbnail = create_thumbnail(img)
         times_thumbnail.append((time.time() - start_time) * 1000)  # Convert to milliseconds
 
         # Measure time for average hash
         start_time = time.time()
-        compute_average_hash(image)
+        compute_average_hash(img)
         times_avg_hash.append((time.time() - start_time) * 1000)  # Convert to milliseconds
 
     avg_time_open = np.mean(times_open)
@@ -61,13 +70,13 @@ def measure_time(image_path):
 
 
 def process_image(image):
-    image_path = os.path.join('/Users/david/Downloads/benchmark2', image)
+    image_path = os.path.join('/Users/david/Downloads/saveit/flamboyau_cairn_x147_y70/20220806_20221025_cairnflamboyau_lcfaite_xnview', image)
     avg_times = measure_time(image_path)
     return (image, *avg_times)
 
 
 # Define the list of images
-images = ['1.jpg']
+images = ['I__00019.jpg']
 
 if __name__ == "__main__":
     # Use multiprocessing to process images in parallel

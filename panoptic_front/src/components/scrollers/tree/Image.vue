@@ -65,7 +65,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
                 @mouseleave="hover = false">
                 <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
-                <img :src="props.size < 1500 ? image.url : image.fullUrl" :style="imageStyle" />
+                <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" />
 
                 <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
