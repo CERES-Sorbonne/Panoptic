@@ -55,9 +55,10 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 <template>
     <div class="d-flex flex-row p-2">
         <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
-            <div class="d-flex flex-row search-input me-5"  :class="localQuery ? 'border-primary' : ''">
+            <div class="d-flex flex-row search-input me-5" :class="localQuery ? 'border-primary' : ''">
                 <div class="bi bi-search float-start bi-sm"></div>
-                <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery" @change="setQuery"/>
+                <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery"
+                    @change="setQuery" />
                 <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
             </div>
         </wTT>
@@ -68,12 +69,14 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                     @click="props.tab.state.display = 'tree'"></i>
             </wTT>
             <wTT message="main.menu.table_tooltip">
-                <i id="toot" :class="'bi bi-table btn-icon me-2' + (props.tab.state.display == 'grid' ? '' : ' text-secondary')"
+                <i id="toot"
+                    :class="'bi bi-table btn-icon me-2' + (props.tab.state.display == 'grid' ? '' : ' text-secondary')"
                     @click="props.tab.state.display = 'grid'">
                 </i>
             </wTT>
             <wTT message="main.menu.graph_tooltip">
-                <i id="toot" :class="'bi bi-bar-chart btn-icon' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
+                <i id="toot"
+                    :class="'bi bi-bar-chart btn-icon' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
                     @click="props.tab.state.display = 'graph'">
                 </i>
             </wTT>
@@ -85,24 +88,28 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div>
             <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
         </div>
+        <div>{{ props.tab.state.imageSize }}</div>
         <div class="ms-5" style="font-size: 13px;">
             <wTT message="main.menu.image_mode_tooltip">
-                <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode" @change="updateSha1Mode"/>
+                <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode"
+                    @change="updateSha1Mode" />
                 <span class="ms-1">Mode Image unique</span>
             </wTT>
         </div>
         <div class="ms-4">
             <HistoryDropdown />
         </div>
-        <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5" :selected-images-ids="selectedImageIds"
+        <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5"
+            :selected-images-ids="selectedImageIds"
             @remove:selected="props.tab.collection.groupManager.clearSelection()" />
         <div class="flex-grow-1"></div>
         <wTT message="main.menu.issue" class="bb ">
-            <a href="https://github.com/CERES-Sorbonne/Panoptic/issues/new/choose" target="_blank" class="bi bi-cone-striped" style="color: grey"></a>
+            <a href="https://github.com/CERES-Sorbonne/Panoptic/issues/new/choose" target="_blank"
+                class="bi bi-cone-striped" style="color: grey"></a>
         </wTT>
     </div>
     <div class="d-flex flex-wrap content-container ps-2">
-        <ToggleReload class="me-1"/>
+        <ToggleReload class="me-1" />
         <FilterForm :manager="props.tab.collection.filterManager" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
         <SortForm :manager="props.tab.collection.sortManager" />
