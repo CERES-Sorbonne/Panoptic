@@ -236,5 +236,3 @@ export async function apiGetUpdate() {
     const res = await axios.get('/update')
     return keysToCamel(res.data) as Update
 }
-
-

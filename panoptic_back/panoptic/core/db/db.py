@@ -1,6 +1,7 @@
 # Connexion à la DB SQLite
 from __future__ import annotations
 
+import io
 import json
 from typing import List
 
@@ -284,6 +285,38 @@ class Db:
         await self.conn.execute_query(query, (tag_id,))
         return tag_id
 
+    # =====================================================
+    # ==================== Images =========================
+    # =====================================================
+
+    async def import_image(self, sha1: str, small: bytes, large: bytes):
+        query = "INSERT OR REPLACE INTO images (sha1, small, large) VALUES (?, ?, ?)"
+        await self.conn.execute_query(query, (sha1, small, large))
+        return sha1, small, large
+
+    async def get_small_image(self, sha1: str):
+        query = "SELECT small FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return row
+        return row[0]
+
+    async def get_large_image(self, sha1: str):
+        query = "SELECT large FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return row
+        return row[0]
+
+    async def has_image(self, sha1: str):
+        query = "SELECT sha1 FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return False
+        return True
     # =====================================================
     # ================= Instances =========================
     # =====================================================
