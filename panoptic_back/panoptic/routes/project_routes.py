@@ -223,7 +223,13 @@ async def get_image(file_path: str):
 @project_router.get('/image/small/{sha1:path}')
 async def get_image_small(sha1: str):
     image = await project.db.get_small_image(sha1)
-    return Response(image, media_type="image/png")
+    return Response(image, media_type="image/jpeg")
+
+
+@project_router.get('/image/large/{sha1:path}')
+async def get_image_large(sha1: str):
+    image = await project.db.get_large_image(sha1)
+    return Response(image, media_type="image/jpeg")
 
 
 class EndpointFilter(logging.Filter):

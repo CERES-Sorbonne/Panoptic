@@ -30,7 +30,6 @@ class ImportInstanceTask(Task):
         self.name = 'Import Image'
 
     async def run(self):
-        old = time.time()
         name = self.file.split(os.sep)[-1]
         extension = name.split('.')[-1]
         folder_id = self.folder_id
@@ -60,32 +59,28 @@ class ImportInstanceTask(Task):
 
     @staticmethod
     def _import_image(file_path, project_path: str):
-        original_image = Image.open(file_path)
-        width, height = original_image.size
-        large_image = original_image
-        if width > LARGE_SIZE or height > LARGE_SIZE:
-            large_image = large_image.copy()
-            large_image.thumbnail(size=(LARGE_SIZE, LARGE_SIZE))
-        large_image = large_image.convert('RGB')
+        large_image = Image.open(file_path)
+        width, height = large_image.size
 
-        small_image = large_image
-        if width > SMALL_SIZE or height > SMALL_SIZE:
-            small_image = small_image.copy()
-            small_image.thumbnail(size=(SMALL_SIZE, SMALL_SIZE))
+        # large_image.draft('RGB', size=(LARGE_SIZE, LARGE_SIZE))
+        if width > LARGE_SIZE or height > LARGE_SIZE:
+            large_image.thumbnail(size=(LARGE_SIZE, LARGE_SIZE))
+            large_image = large_image.convert('RGB')
 
         large_bytes = io.BytesIO()
         large_image.save(large_bytes, format='jpeg', quality=30)
-        large_bytes = large_image.tobytes()
+        large_bytes = large_bytes.getvalue()
+        sha1_hash = hashlib.sha1(large_bytes).hexdigest()
+        ahash = average_hash(large_image)
+
+        small_image = large_image
+        if width > SMALL_SIZE or height > SMALL_SIZE:
+            small_image.thumbnail(size=(SMALL_SIZE, SMALL_SIZE))
 
         small_bytes = io.BytesIO()
         small_image.save(small_bytes, format='jpeg', quality=30)
         small_bytes = small_bytes.getvalue()
-        # print('small_save', time.time() - old)
 
-        sha1_hash = hashlib.sha1(large_bytes).hexdigest()
-        ahash = average_hash(large_image)
-
-        del original_image
         del large_image
         del small_image
         # gc.collect()

@@ -35,7 +35,7 @@ class SimilarityTreeWithLabel:
 class SimilarityFaissWithLabel:
     def __init__(self, images: list[Vector]):
         vectors, sha1_list = zip(*[(i.data, i.sha1) for i in images])
-        print(sha1_list)
+        # print(sha1_list)
         vectors = np.asarray(vectors)
         faiss.normalize_L2(vectors)
         self.image_labels = sha1_list

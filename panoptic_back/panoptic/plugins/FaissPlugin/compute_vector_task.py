@@ -1,3 +1,4 @@
+import io
 import logging
 
 from PIL import Image
@@ -21,21 +22,22 @@ class ComputeVectorTask(Task):
         self.name = 'Clip Vectors'
 
     async def run(self):
-        instance_id = self.instance.id
-        instance = (await self.project.get_instances(ids=[instance_id]))[0]
+        # instance_id = self.instance.id
+        instance = self.instance
         exist = await self.project.vector_exist(self.source, self.type, instance.sha1)
         if exist:
             return
 
-        folders = await self.project.get_folders()
-        folder = next(f for f in folders if f.id == instance.folder_id)
-        file_path = f"{folder.path}/{instance.name}"
-        vector_data = await self._async(self.compute_image, file_path, self.project.base_path)
+        # folders = await self.project.get_folders()
+        # folder = next(f for f in folders if f.id == instance.folder_id)
+        # file_path = f"{folder.path}/{instance.name}"
+        image_data = await self.project._project.db.get_large_image(instance.sha1)
+        vector_data = await self._async(self.compute_image,image_data, self.project.base_path)
         vector = Vector(self.source, self.type, instance.sha1, vector_data)
         res = await self.project.add_vector(vector)
         del vector
         # gc.collect()
-        logging.info('computed image: ', instance_id, '  :  ', res.sha1)
+        logging.info('computed image: ', instance.id, '  :  ', res.sha1)
         return res
 
     async def run_if_last(self):
@@ -43,8 +45,8 @@ class ComputeVectorTask(Task):
         logging.info('computed faiss index')
 
     @staticmethod
-    def compute_image(image_path: str, project_path: str):
-        image = Image.open(image_path)
+    def compute_image(image_data: bytes, project_path: str):
+        image = Image.open(io.BytesIO(image_data))
         image = image.convert('RGB')
         vector = compute.to_vector(image, project_path)
 
