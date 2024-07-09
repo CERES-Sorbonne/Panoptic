@@ -62,14 +62,15 @@ class ImportInstanceTask(Task):
     def _import_image(file_path, project_path: str):
         original_image = Image.open(file_path)
         width, height = original_image.size
-        original_image = original_image.convert('RGB')
         large_image = original_image
         if width > LARGE_SIZE or height > LARGE_SIZE:
-            large_image = original_image.copy()
+            large_image = large_image.copy()
             large_image.thumbnail(size=(LARGE_SIZE, LARGE_SIZE))
+        large_image = large_image.convert('RGB')
+
         small_image = large_image
         if width > SMALL_SIZE or height > SMALL_SIZE:
-            small_image = large_image.copy()
+            small_image = small_image.copy()
             small_image.thumbnail(size=(SMALL_SIZE, SMALL_SIZE))
 
         large_bytes = io.BytesIO()
@@ -81,8 +82,8 @@ class ImportInstanceTask(Task):
         small_bytes = small_bytes.getvalue()
         # print('small_save', time.time() - old)
 
-        sha1_hash = hashlib.sha1(large_image.tobytes()).hexdigest()
-        ahash = average_hash(large_bytes)
+        sha1_hash = hashlib.sha1(large_bytes).hexdigest()
+        ahash = average_hash(large_image)
 
         del original_image
         del large_image
