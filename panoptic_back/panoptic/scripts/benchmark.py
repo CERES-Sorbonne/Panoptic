@@ -34,6 +34,7 @@ def measure_time(image_path):
         # Measure time to open the image
         start_time = time.time()
         image = Image.open(image_path)
+        image = image.convert('RGB')
         times_open.append((time.time() - start_time) * 1000)  # Convert to milliseconds
 
         # Measure time for SHA1
@@ -48,7 +49,7 @@ def measure_time(image_path):
 
         # Measure time for average hash
         start_time = time.time()
-        compute_average_hash(thumbnail)
+        compute_average_hash(image)
         times_avg_hash.append((time.time() - start_time) * 1000)  # Convert to milliseconds
 
     avg_time_open = np.mean(times_open)
@@ -60,13 +61,13 @@ def measure_time(image_path):
 
 
 def process_image(image):
-    image_path = os.path.join('/Users/david/Downloads/benchmark', image)
+    image_path = os.path.join('/Users/david/Downloads/benchmark2', image)
     avg_times = measure_time(image_path)
     return (image, *avg_times)
 
 
 # Define the list of images
-images = ['low.jpg', 'mid.jpg', 'mid.webp', 'high.jpg']
+images = ['1.jpg']
 
 if __name__ == "__main__":
     # Use multiprocessing to process images in parallel
