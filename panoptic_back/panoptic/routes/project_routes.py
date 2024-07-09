@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, UploadFile
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from starlette.responses import FileResponse, StreamingResponse
+from starlette.responses import FileResponse, StreamingResponse, Response
 
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
@@ -223,7 +223,7 @@ async def get_image(file_path: str):
 @project_router.get('/image/small/{sha1:path}')
 async def get_image_small(sha1: str):
     image = await project.db.get_small_image(sha1)
-    return StreamingResponse(io.BytesIO(image), media_type="image/png")
+    return Response(image, media_type="image/png")
 
 
 class EndpointFilter(logging.Filter):

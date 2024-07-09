@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 from panoptic.core.task.task import Task
 
-SMALL_SIZE = 256
+SMALL_SIZE = 128
 LARGE_SIZE = 1024
 
 
@@ -92,11 +92,11 @@ class ImportInstanceTask(Task):
         ahash = average_hash(large_image)
         # print('ahash', time.time() - old)
         large_bytes = io.BytesIO()
-        large_image.save(large_bytes, format='png', optimize=True, quality=30)
+        large_image.save(large_bytes, format='jpeg', optimize=True, quality=30)
         large_bytes = large_bytes.getvalue()
         # print('large_save', time.time() - old)
         small_bytes = io.BytesIO()
-        small_image.save(small_bytes, format='png', optimize=True, quality=30)
+        small_image.save(small_bytes, format='jpeg', optimize=True, quality=30)
         small_bytes = small_bytes.getvalue()
         # print('small_save', time.time() - old)
 
