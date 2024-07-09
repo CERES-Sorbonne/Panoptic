@@ -73,6 +73,22 @@ class ProjectDb:
         return computed_values
 
     # =====================================================
+    # ==================== Images =========================
+    # =====================================================
+
+    async def import_image(self, sha1: str, small: bytes, large: bytes):
+        return await self._db.import_image(sha1, small, large)
+
+    async def get_small_image(self, sha1: str):
+        return await self._db.get_small_image(sha1)
+
+    async def get_large_image(self, sha1: str):
+        return await self._db.get_large_image(sha1)
+
+    async def has_image(self, sha1: str):
+        return await self._db.has_image(sha1)
+
+    # =====================================================
     # =================== Instances =======================
     # =====================================================
 

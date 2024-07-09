@@ -186,17 +186,28 @@ def create_plugin_data():
 #     'action_params': create_actions_table()
 # }
 
+def create_images_table():
+    query = """
+    CREATE TABLE images (
+        sha1 TEXT PRIMARY KEY,
+        small BLOB,
+        medium BLOB,
+        large BLOB
+    );
+    """
+    return query
+
+
 tables = {
     'panoptic': create_panoptic_table(),
     'folders': create_folders_table(),
+    'images': create_images_table(),
     'instances': create_instances_table(),
     'properties': create_properties_table(),
     'image_property_values': create_image_property_values_table(),
     'instance_property_values': create_instance_property_values_table(),
     'tags': create_tags_table(),
     'vectors': create_vectors_table(),
-    # 'action_params': create_actions_table(),
-    # 'tabs': create_tabs_table(),
     'ui_data': create_ui_data(),
     'plugin_data': create_plugin_data(),
 }

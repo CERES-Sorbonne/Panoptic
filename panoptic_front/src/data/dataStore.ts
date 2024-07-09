@@ -70,7 +70,7 @@ export const useDataStore = defineStore('dataStore', () => {
         for (let img of toImport) {
             const values = getComputedValues(img)
             img.fullUrl = SERVER_PREFIX + '/images/' + img.url
-            img.url = SERVER_PREFIX + '/small/images/' + img.sha1 + '.jpeg'
+            img.url = SERVER_PREFIX + '/image/small/' + img.sha1
             img.containerRatio = computeContainerRatio(img)
 
             if (instances.value[img.id]) {

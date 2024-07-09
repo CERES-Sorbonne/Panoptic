@@ -1,4 +1,5 @@
 import asyncio
+import io
 import logging
 import os
 from sys import platform
@@ -8,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, UploadFile
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, StreamingResponse
 
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
@@ -217,6 +218,12 @@ async def commit_route(commit: DbCommit):
 async def get_image(file_path: str):
     path = os.path.join(project.base_path, 'mini', file_path)
     return FileResponse(path=path)
+
+
+@project_router.get('/image/small/{sha1:path}')
+async def get_image_small(sha1: str):
+    image = await project.db.get_small_image(sha1)
+    return StreamingResponse(io.BytesIO(image), media_type="image/png")
 
 
 class EndpointFilter(logging.Filter):
