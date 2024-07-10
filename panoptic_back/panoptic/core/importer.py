@@ -206,7 +206,7 @@ class Importer:
                 if value is None:
                     continue
 
-                if tag_map:
+                if tag_map is not None:
                     value = parse_list(value)
                     if not value:
                         continue
@@ -220,7 +220,7 @@ class Importer:
                             data.tags.append(tag_map[tag_name])
                     value = [tag_map[tag_name].id for tag_name in value]
                 ids.extend(i for i in row_to_ids[row_i])
-                values.extend(v for v in [value] * len(row_to_ids[row_i]))
+                values.extend(v for v in [value for i in range(len(row_to_ids[row_i]))])
             to_import.append(ImportValues(property_id=prop.id, instance_ids=ids, values=values))
         data.values = to_import
         self._data = data

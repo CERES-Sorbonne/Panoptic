@@ -67,7 +67,7 @@ async def import_parse_route(req: ImportPayload):
 
 @project_router.post('/export')
 async def export_properties_route(req: ExportPropertiesPayload):
-    await project.export_data(req.name, req.images, req.properties, req.export_images)
+    await project.export_data(req.name, req.images, req.properties, req.export_images, req.key)
     return True
 
 

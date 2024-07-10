@@ -198,7 +198,11 @@
             "properties_all": "Toutes",
             "properties_visible": "Visible",
             "properties_none": "Aucune",
-            "export_images": "Inclure les images"
+            "export_images": "Inclure les images",
+            "key_label": "Identifiant",
+            "id": "ID",
+            "local_path": "Chemin relatif",
+            "global_path": "Chemin absolu"
         },
         "settings": {
             "title": "Parametres Projet"
