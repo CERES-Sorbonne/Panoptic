@@ -20,7 +20,7 @@ from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import StatusUpdate
 from panoptic.core.plugin.plugin import APlugin
 
-nb_workers = 4
+nb_workers = 8
 
 
 def get_executor():
@@ -38,7 +38,7 @@ class Project:
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents()
         self.action = ProjectActions()
-        self.task_queue = TaskQueue(self.executor, num_workers=4)
+        self.task_queue = TaskQueue(self.executor, num_workers=nb_workers*2)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
         self.undo_queue: UndoQueue | None = None
@@ -80,10 +80,10 @@ class Project:
         await self.db.close()
 
     async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
-                          copy_images: bool = False):
+                          copy_images: bool = False, key: str = 'id'):
         export_path = await self.exporter.export_data(name=name, path=self.base_path, instance_ids=ids,
                                                       properties=properties,
-                                                      copy_images=copy_images)
+                                                      copy_images=copy_images, key=key)
         # export_path = "lala"
         show_in_file_manager(export_path)
         return export_path

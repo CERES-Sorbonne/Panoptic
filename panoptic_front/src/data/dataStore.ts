@@ -99,7 +99,7 @@ export const useDataStore = defineStore('dataStore', () => {
             }
             properties.value[property.id] = property
         }
-        if(someNew) {
+        if (someNew) {
             const project = useProjectStore()
             const tab = project.getTabManager()
             tab.verifyState()
@@ -348,8 +348,8 @@ export const useDataStore = defineStore('dataStore', () => {
         await apiAddFolder(folder)
         const updated = await apiGetFolders()
         const updatedNodes = buildFolderNodes(updated)
-        for(let f of objValues(updatedNodes)) {
-            if(f.id in folders.value) {
+        for (let f of objValues(updatedNodes)) {
+            if (f.id in folders.value) {
                 f.count = folders.value[f.id].count
             }
         }
@@ -372,9 +372,16 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function updateTagCount(oldTags: number[], newTags: number[]) {
+        console.log(oldTags, newTags)
         if (oldTags == undefined) {
             oldTags = []
         }
+        if (newTags == undefined) {
+            newTags = []
+        }
+        if(!Array.isArray(oldTags)) oldTags = [oldTags]
+        if(!Array.isArray(newTags)) newTags = [newTags]
+        
         const old = new Set(oldTags)
         const now = new Set(newTags)
 
@@ -425,7 +432,7 @@ export const useDataStore = defineStore('dataStore', () => {
             let folder = folders.value[instance.folderId]
             folder.count += 1
             folder = folders.value[folder.parent]
-            while(folder) {
+            while (folder) {
                 folder.count += 1
                 folder = folders.value[folder.parent]
             }
@@ -435,7 +442,7 @@ export const useDataStore = defineStore('dataStore', () => {
             let folder = folders.value[id]
             folder.count -= 1
             folder = folders.value[folder.parent]
-            while(folder) {
+            while (folder) {
                 folder.count -= 1
                 folder = folders.value[folder.parent]
             }

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
 from panoptic.models import ParamDescription, Instance, ImageProperty, InstanceProperty, Property, \
-    PropertyType, PropertyId, Tag
+    PropertyType, PropertyId, Tag, Folder
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -274,3 +274,16 @@ def clean_and_separate_values(values, index: dict[int, Property]):
         else:
             valid.append(v)
     return valid, empty
+
+
+def get_local_paths(index: dict[int, Folder], folders: list[Folder]):
+    paths = {}
+    for folder in folders:
+        path = folder.name
+        parent_id = folder.parent
+        while parent_id is not None:
+            parent = index[parent_id]
+            path = parent.name + '/' + path
+            parent_id = parent.parent
+        paths[folder.id] = path
+    return paths

@@ -16,6 +16,7 @@ const state = reactive({
     name: undefined,
     mode: 'instance',
     selection: 'all',
+    key: 'id',
     properties: {},
     exportImages: false
 })
@@ -26,7 +27,7 @@ const isLoading = ref(false)
 const all = computed(() => properties.value.every(p => state.properties[p.id]))
 const properties = computed(() => {
     const tmp = Object.values(data.properties)
-    tmp.sort((a,b) => a.id - b.id)
+    tmp.sort((a, b) => a.id - b.id)
     const res = []
     const computed = tmp.filter(p => p.id < 0)
     const personal = tmp.filter(p => p.id > 0)
@@ -65,9 +66,9 @@ function set(target, value) {
 }
 
 function toggleAll() {
-    if(all.value) {
+    if (all.value) {
         properties.value.forEach(p => {
-            if(p.id == PropertyID.id) return
+            // if(p.id == PropertyID.id) return
             delete state.properties[p.id]
         })
     }
@@ -81,6 +82,7 @@ function clear() {
         name: undefined,
         mode: 'instance',
         selection: 'all',
+        key: 'id',
         properties: {},
         exportImages: false
     })
@@ -90,13 +92,13 @@ function show() {
     clear()
     const properties = project.getTabManager().getVisibleProperties()
     properties.forEach(p => state.properties[p.id] = true)
-    state.properties[-1] = true
+    // state.properties[-1] = true
 }
 
 async function buildRequest() {
-    const req = { exportImages: state.exportImages, properties: undefined, images: undefined, name: undefined }
+    const req = { exportImages: state.exportImages, properties: undefined, images: undefined, name: undefined, key: 'id' }
     req.properties = Object.keys(state.properties).map(Number).filter(k => state.properties[k])
-    req.properties.sort((a,b) => properties.value.findIndex(p => p.id == a) - properties.value.findIndex(p => p.id == b))
+    req.properties.sort((a, b) => properties.value.findIndex(p => p.id == a) - properties.value.findIndex(p => p.id == b))
     if (state.name && state.name != '') {
         req.name = state.name
     }
@@ -106,10 +108,11 @@ async function buildRequest() {
     if (state.selection == 'filtered') {
         req.images = project.getTabManager().collection.filterManager.result.images.map(i => i.id)
     }
+    req.key = state.key
     isLoading.value = true
     await sleep(100)
     console.log(req)
-    await apiExportProperties(req.name, req.images, req.properties, req.exportImages)
+    await apiExportProperties(req.name, req.images, req.key, req.properties, req.exportImages)
     isLoading.value = false
     modalElem.value.hide()
 }
@@ -142,13 +145,35 @@ async function buildRequest() {
                                 <template v-if="selectedCount > 0">
                                     <div class="separator"></div>
                                     <div class="option flex-grow-1" :class="getClass(state.selection, 'selected')"
-                                        @click="set('selection', 'selected')">{{ $t('modals.export.selection_selected') }}
+                                        @click="set('selection', 'selected')">{{ $t('modals.export.selection_selected')
+                                        }}
                                         ({{
                                             selectedCount }})</div>
                                 </template>
                                 <div class="separator"></div>
                                 <div class="option flex-grow-1" :class="getClass(state.selection, 'filtered')"
-                                    @click="set('selection', 'filtered')">{{ $t('modals.export.selection_filtered') }}</div>
+                                    @click="set('selection', 'filtered')">{{
+                                        $t('modals.export.selection_filtered') }}</div>
+                            </td>
+
+                        </tr>
+                        <tr class="option-row">
+                            <td class="option-label">{{ $t('modals.export.key_label') }}</td>
+                            <td class="d-flex options">
+                                <div class="option flex-grow-1" :class="getClass(state.key, 'id')"
+                                    @click="set('key', 'id')">
+                                    {{ $t('modals.export.id') }}
+                                </div>
+                                <div class="separator"></div>
+                                <div class="option flex-grow-1" :class="getClass(state.key, 'local_path')"
+                                    @click="set('key', 'local_path')">
+                                    {{ $t('modals.export.local_path') }}
+                                </div>
+                                <div class="separator"></div>
+                                <div class="option flex-grow-1" :class="getClass(state.key, 'global_path')"
+                                    @click="set('key', 'global_path')">
+                                    {{ $t('modals.export.global_path') }}
+                                </div>
                             </td>
 
                         </tr>
@@ -157,11 +182,13 @@ async function buildRequest() {
                             <div>
                                 <table>
                                     <tr>
-                                        <td class="text-center"><input type="checkbox" :checked="all" @input="toggleAll"/></td>
+                                        <td class="text-center"><input type="checkbox" :checked="all"
+                                                @input="toggleAll" /></td>
                                         <td>All</td>
                                     </tr>
                                     <tr v-for="p in properties" class="property-table">
-                                        <td class="text-center"><input type="checkbox" v-model="state.properties[p.id]" :disabled="p.id == -1" /> </td>
+                                        <td class="text-center"><input type="checkbox"
+                                                v-model="state.properties[p.id]" /> </td>
                                         <td>
                                             <PropertyIcon :type="p.type" class="me-1" />{{ p.name }}
                                         </td>
@@ -199,6 +226,7 @@ async function buildRequest() {
 
 .option {
     padding: 0 10px;
+    cursor: pointer;
 }
 
 .main-table {

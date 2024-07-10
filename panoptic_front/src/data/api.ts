@@ -92,8 +92,8 @@ export async function apiConfirmImport(options) {
     return res.data
 }
 
-export const apiExportProperties = async (name?: string, images?: number[], properties?: number[], exportImages = false) => {
-    let res = await axios.post('/export', { name, images, properties, exportImages })
+export const apiExportProperties = async (name?: string, images?: number[], key?: string, properties?: number[], exportImages = false) => {
+    let res = await axios.post('/export', { name, images, properties, exportImages, key })
 }
 
 export async function apiGetFilesystemInfo() {
