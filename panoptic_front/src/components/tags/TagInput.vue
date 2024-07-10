@@ -34,7 +34,7 @@ const tags = computed(() => safeValue.value.map(id => props.property.tags[id]))
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
 function onSelect(tag: Tag) {
-    if(props.property.type == PropertyType.tag) {
+    if (props.property.type == PropertyType.tag) {
         emits('update:modelValue', [tag.id])
     } else {
         emits('update:modelValue', [...safeValue.value, tag.id])
@@ -67,11 +67,11 @@ function focus() {
 <template>
     <div>
         <div class="overflow-hidden mb-1 text-wrap">
-            <TagBadge @delete="removeTag(tag)" :show-delete="true" :tag="tag.value" :color="tag.color"
-                            v-for="tag in tags" class="me-1"/>
+            <TagBadge @delete="removeTag(tag)" :show-delete="true" :id="tag.id" v-for="tag in tags" class="me-1" />
         </div>
         <TagMenu :property="props.property" :excluded="allExcluded" :can-create="props.canCreate"
-            :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete" :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem"/>
+            :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete"
+            :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem" />
 
     </div>
 </template>

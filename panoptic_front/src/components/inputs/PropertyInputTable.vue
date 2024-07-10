@@ -50,7 +50,7 @@ function toggleProperty(property: Property) {
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{
                     image.properties[property.id] }}</p>
                         <span v-else>
-                            <TagBadge :tag="data.folders[image.properties[property.id]].name" :color="-1" />
+                            <TagBadge :name="data.folders[image.properties[property.id]].name" :color="-1" />
                         </span>
                     </td>
 

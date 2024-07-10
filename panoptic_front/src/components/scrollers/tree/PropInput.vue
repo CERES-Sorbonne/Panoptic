@@ -68,7 +68,7 @@ const width = computed(() => props.size ?? 100)
     <div v-else class="d-felx flex-row overflow-hidden text-nowrap" style="line-height: 26px;" >
         <PropertyIcon :type="property.type" style="margin-right: 3px;"/>
         <span v-if="property.type == PropertyType._folders">
-            <TagBadge :tag="data.folders[data.instances[props.image.id].properties[props.property.id]].name" :color="-1" />
+            <TagBadge :name="data.folders[data.instances[props.image.id].properties[props.property.id]].name" :color="-1" />
         </span>
         <span v-else>{{ data.instances[props.image.id].properties[props.property.id] }}</span>
     </div>

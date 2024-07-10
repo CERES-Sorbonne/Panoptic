@@ -141,7 +141,7 @@ watch(filteredTagList, () => {
                 @mouseover="selectedIndex = index" @mouseleave="endSelection(index)">
                 <div class="ms-2 d-flex">
                     <div class="flex-grow-1" style="overflow: hidden;" @click="selectOption">
-                        <TagBadge :tag="tag.value" :color="tag.color" />
+                        <TagBadge :id="tag.id" />
                     </div>
                     <div v-if="props.canLink"
                         :style="{ color: (selectedIndex == index) ? 'var(--text-color)' : 'white' }">
@@ -163,7 +163,7 @@ watch(filteredTagList, () => {
                 style="cursor: pointer;" @mouseover="selectedIndex = filteredTagList.length"
                 @click.prevent.stop="selectOption">
                 <span class="text-muted ms-1">Create </span>
-                <TagBadge :tag="tagFilter" :color="-1" />
+                <TagBadge :name="tagFilter" :color="-1" />
             </div>
         </div>
     </div>

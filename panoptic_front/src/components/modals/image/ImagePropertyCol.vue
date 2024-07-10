@@ -73,7 +73,7 @@ function setMode(value) {
             <div class="option flex-grow-1" :class="mode == 1 ? 'selected' : ''" @click="setMode(1)">Propriétés d'instance
             </div>
             <div class="sep"></div>
-            <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonées</div>
+            <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonnées</div>
         </div>
         <div class="custom-hr"></div>
         <div class="flex-grow-1 overflow-scroll">

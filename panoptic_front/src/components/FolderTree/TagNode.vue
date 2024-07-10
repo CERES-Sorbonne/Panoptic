@@ -67,7 +67,7 @@ function delTag() {
 
 <template>
     <div class="node" @mouseenter="hover = true" @mouseleave="hover = false">
-        <TagBadge :tag="props.node.value" :color="props.node.color" />
+        <TagBadge :id="props.node.id" />
         <!-- <span v-if="hasChildren" class="bi bi-chevron-right" @click="expandTag"></span> -->
         <span v-if="hover" class="bi bi-plus-square-fill ms-1 btn-icon" @click="addTag"></span>
         <span v-if="hover" class="bi bi-dash-square-fill ms-1 btn-icon" @click="delTag"></span>

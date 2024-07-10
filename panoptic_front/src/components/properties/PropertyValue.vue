@@ -88,7 +88,7 @@ function mapTag(id: number | string): Tag[] {
         <div v-if="property.type == PropertyType.color" :style="{ backgroundColor: color }" class="color-holder">
         </div>
         <div v-else-if="property.type == PropertyType._folders">
-            <TagBadge :tag="data.folders[props.value.value].name" :color="-1" />
+            <TagBadge :name="data.folders[props.value.value].name" :color="-1" />
         </div>
         <span v-else-if="property.type == PropertyType.date && props.value.value">
             {{ date }}
@@ -102,7 +102,7 @@ function mapTag(id: number | string): Tag[] {
         </span>
         <span v-else>
             <span v-for="tag in mapTag(props.value.value)">
-                <TagBadge :tag="tag.value" :color="tag.color" />
+                <TagBadge :id="tag.id"/>
             </span>
         </span>
     </div>
