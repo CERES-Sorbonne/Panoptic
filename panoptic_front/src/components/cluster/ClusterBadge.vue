@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import TagBadge from '../tagtree/TagBadge.vue';
 
 const props = defineProps({
     value: {required: true, type: Number}
@@ -15,7 +14,25 @@ const color = computed(() => {
 </script>
 
 <template>
-
-    <TagBadge :tag="String(props.value)" :color="color" />
-
-</template>
+    <div class="badge tag-badge" :style="'background: ' + color">
+      <span class="m-0 p-0">
+        {{ props.value }}
+      </span>
+    </div>
+  </template>
+    
+    
+  <style scoped>
+  .tag-badge {
+    position: relative;
+    top: -1px;
+    margin: 0;
+    padding: 3px 3px;
+    border-radius: 5px !important;
+    /* background: rgb(169, 169, 255); */
+  }
+  
+  .tag-x:hover {
+    cursor: pointer;
+  }
+  </style>

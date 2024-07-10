@@ -1,30 +1,47 @@
 <script setup lang="ts">
-import { Colors } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
+import { Colors, ModalId } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
 import { computed } from 'vue';
 
+const data = useDataStore()
 
-const props = defineProps({
-  tag: String,
-  showDelete: { type: Boolean, default: false },
-  color: Number
-})
+const props = defineProps<{
+  showDelete?: boolean,
+  id?: number,
+  name?: string,
+  color?: number
+}>()
 
+const tag = computed(() => data.tags[props.id])
 
 const color = computed(() => {
-  if(props.color != undefined && props.color >= 0 && props.color < 12) {
-    return Colors[props.color].color
-  }
-  return 'gray'
+  if(props.color >= 0 && props.color <= 12) return Colors[props.color].color
+  if(!tag.value) return 'grey'
+  if(tag.value.color < 0 || tag.value.color > 12) return 'grey'
+  return Colors[tag.value.color].color
 })
+
+const name = computed(() => {
+  if(props.name) return props.name
+  if(!tag.value) return 'undefined'
+  return tag.value.value
+})
+
+function click() {
+  if(!tag.value) return
+  const panoptic = usePanopticStore()
+  panoptic.showModal(ModalId.TAG, {propId: tag.value.propertyId, tagId: tag.value.id})
+}
 
 </script>
 
 
 <template>
-  <div class="badge tag-badge" :style="'background: ' + color">
+  <div class="badge tag-badge" :style="'background: ' + color" @dblclick="click">
     <span class="m-0 p-0">
       <span v-if="showDelete" @click.prevent.stop="$emit('delete')" class="bi bi-x tag-x"></span>
-      {{ tag }}
+      {{ name }}
     </span>
   </div>
 </template>
@@ -42,10 +59,5 @@ const color = computed(() => {
 
 .tag-x:hover {
   cursor: pointer;
-}
-
-.number {
-  transform: translate(-40%, -40%);
-  font-size: 0.5rem;
 }
 </style>

@@ -49,7 +49,7 @@ function test() {
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'" ref="heightElem">
                 <span v-for="tag in tags">
-                    <TagBadge :tag="tag.value" :color="tag.color" class="me-1" />
+                    <TagBadge :id="tag.id" class="me-1" />
                 </span>
                 <span v-if="tags.length == 0" class="text-secondary">None</span>
             </div>

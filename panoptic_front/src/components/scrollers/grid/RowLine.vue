@@ -236,7 +236,7 @@ watch(() => props.properties, () => {
             <div v-else-if="property.type == PropertyType._folders"
                 :style="{ height: propMinRowHeight[property.id] + 'px' }" class="ps-1 overflow-hidden">
                 <span v-if="image.properties[property.id] != undefined">
-                    <TagBadge :tag="data.folders[image.properties[property.id]].name" :color="-1" />
+                    <TagBadge :name="data.folders[image.properties[property.id]].name" :color="-1" />
                 </span>
             </div>
             <!-- <div v-else :style="{ height: (propMinRowHeight[property.id]) + 'px' }" class="ps-1 overflow-hidden break-word">
