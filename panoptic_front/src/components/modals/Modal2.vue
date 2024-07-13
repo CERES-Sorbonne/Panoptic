@@ -10,7 +10,8 @@ const props = defineProps<{
     id: ModalId
     maxWidth?: number
     maxHeight?: number
-    noTitle?: boolean
+    noTitle?: boolean,
+    titleStyle?: number
 }>()
 
 const emits = defineEmits(['resize', 'show', 'hide'])
@@ -28,6 +29,11 @@ const active = ref(false)
 const modalWidth = computed(() => totalWidth.value - 56)
 const modalHeight = computed(() => totalHeight.value - 56)
 
+const titleStyle = computed(() => {
+    if(!props.titleStyle) return 'title'
+    if(props.titleStyle == 1) return 'title1'
+})
+
 const data = computed(() => panoptic.modalData)
 const modalStyle = computed(() => {
     return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
@@ -38,7 +44,7 @@ const bodyStyle = computed(() => {
 })
 
 function hide() {
-    if(active.value) {
+    if (active.value) {
         console.log('hide')
         active.value = false
         emits('hide')
@@ -80,10 +86,11 @@ watch(() => panoptic.openModalId, () => {
 </script>
 
 <template>
-    <div v-if="active" class="p-modal" tabindex="-1" ref="modalElem" @click="panoptic.hideModal" @keydown.esc="panoptic.hideModal">
+    <div v-if="active" class="p-modal" tabindex="-1" ref="modalElem" @click="panoptic.hideModal"
+        @keydown.esc="panoptic.hideModal">
         <div class="modal-container" :style="modalStyle" @click.stop>
             <div class="modal-content d-flex flex-column h-100" v-if="active">
-                <div class="title" v-if="!props.noTitle">
+                <div :class="titleStyle" v-if="!props.noTitle">
                     <div class="d-flex">
                         <div class="flex-grow-1">
                             <slot name="title"></slot>
@@ -122,9 +129,18 @@ watch(() => panoptic.openModalId, () => {
     padding: 4px 4px;
 }
 
+.title1 {
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgb(238, 238, 255);
+    /* padding: 4px 4px; */
+}
+
 .close {
     /* border-left: 1px solid var(--border-color); */
     padding: 0 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
