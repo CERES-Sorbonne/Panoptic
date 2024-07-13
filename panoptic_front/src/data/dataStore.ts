@@ -34,6 +34,7 @@ export const useDataStore = defineStore('dataStore', () => {
     })
     const instanceList = computed(() => objValues(instances.value))
     const propertyList = computed(() => objValues(properties.value))
+    const tagList = computed(() => objValues(tags.value))
 
 
     // =======================
@@ -372,7 +373,6 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function updateTagCount(oldTags: number[], newTags: number[]) {
-        console.log(oldTags, newTags)
         if (oldTags == undefined) {
             oldTags = []
         }
@@ -389,7 +389,9 @@ export const useDataStore = defineStore('dataStore', () => {
         const removed = oldTags.filter(t => !now.has(t))
 
         added.forEach(t => tags.value[t].count += 1)
+        added.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count += 1))
         removed.forEach(t => tags.value[t].count -= 1)
+        removed.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count -= 1))
 
         triggerRef(tags)
     }
@@ -453,7 +455,7 @@ export const useDataStore = defineStore('dataStore', () => {
         init, getTmpId,
         onChange,
         folders, instances, properties, tags, history,
-        folderRoots, sha1Index, instanceList, propertyList,
+        folderRoots, sha1Index, instanceList, propertyList, tagList,
         addFolder, reImportFolder, deleteFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag,

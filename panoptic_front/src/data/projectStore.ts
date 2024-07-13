@@ -6,13 +6,14 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, shallowRef, watch } from "vue";
-import { Actions, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { Actions, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, ModalId, PluginDescription, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus, apiDeleteFolder } from "./api";
 import { buildFolderNodes, computeTagCount } from "./storeutils";
 import { TabManager } from "@/core/TabManager";
 import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
+import { usePanopticStore } from "./panopticStore";
 
 let tabManager: TabManager = undefined
 
@@ -105,6 +106,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
 
         status.loaded = true
+        usePanopticStore().showModal(ModalId.TAG, {})
     }
 
     async function updateRoutine(i: number) {

@@ -148,6 +148,13 @@ body {
   cursor: pointer;
 }
 
+.bnr {
+  padding: 1px 3px;
+  position: relative;
+  top: 0px;
+  cursor: pointer;
+}
+
 .sb,
 .sbc,
 .sbb {
@@ -173,6 +180,7 @@ body {
   top: -1px;
 }
 
+.bnr:hover,
 .bbc:hover,
 .bb:hover,
 .bbb:hover,
