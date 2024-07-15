@@ -15,6 +15,7 @@ const data = useDataStore()
 // const emits = defineEmits([])
 const propId = ref(-1)
 const tagId = ref(-1)
+const dragging = ref(false)
 
 const property = computed(() => {
     if (propId.value == -1 || !data.properties[propId.value]) {
@@ -60,6 +61,22 @@ const siblingsTags = computed(() => {
     return res
 })
 
+const childrenTags = computed(() => {
+    const res = []
+    if (tag.value) {
+        tag.value.children.forEach(t => res.push(data.tags[t]))
+    }
+    return res
+})
+
+const parentTags = computed(() => {
+    const res = []
+    if (tag.value) {
+        tag.value.parents.forEach(t => res.push(data.tags[t]))
+    }
+    return res
+})
+
 function show() {
     const init = panoptic.modalData
     if (init.propId != undefined) {
@@ -77,6 +94,12 @@ function hide() {
     propId.value = -1
     tagId.value = -1
 }
+
+function addChild(t) {
+    if (t && tag.value) {
+        data.addTagParent(t.id, tag.value.id)
+    }
+}
 </script>
 
 <template>
@@ -93,12 +116,16 @@ function hide() {
         </template>
         <template #content="">
             <div class="h-100 bg-white d-flex" v-if="property">
-                <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" @select="e => tagId = e" @unselect="tagId = -1"/>
-                <TagColumn :tags="tag?.children.map(t => data.tags[t]) ?? []" title="Tag enfants"
-                    @select="e => tagId = e" />
-                <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e" />
-                <TagColumn :tags="tag?.parents.map(t => data.tags[t]) ?? []" title="Tag parents"
-                    @select="e => tagId = e" />
+                <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
+                    @select="e => tagId = e" @unselect="tagId = -1" @dragstart="dragging = true"
+                    @dragend="dragging = false" />
+                <template v-if="tag">
+                    <TagColumn :tags="childrenTags" title="Tag enfants" :draggable="dragging" @select="e => tagId = e"
+                        @added="addChild" />
+                    <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e"
+                        :draggable="dragging" />
+                    <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e" />
+                </template>
 
             </div>
         </template>

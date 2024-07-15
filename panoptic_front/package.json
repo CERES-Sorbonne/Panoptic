@@ -26,7 +26,8 @@
     "vue-use-popperjs": "^2.3.8",
     "vue-virtual-scroller": "^2.0.0-beta.8",
     "vue3-apexcharts": "^1.5.3",
-    "vue3-tour": "^0.3.4"
+    "vue3-tour": "^0.3.4",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.4",
