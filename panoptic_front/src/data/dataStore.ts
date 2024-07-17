@@ -34,7 +34,7 @@ export const useDataStore = defineStore('dataStore', () => {
     })
     const instanceList = computed(() => objValues(instances.value))
     const propertyList = computed(() => objValues(properties.value))
-    const tagList = computed(() => objValues(tags.value))
+    const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
 
 
     // =======================
@@ -246,7 +246,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean) {
-        // console.log('send commit', commit)
+        console.log('send commit', commit)
         if (undo) {
             commit.undo = true
         }

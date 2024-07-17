@@ -18,7 +18,7 @@ const localName = ref('')
 const localColor = ref(null)
 
 const nameInput = ref(null)
-
+const visible = ref(false)
 const tag = computed(() => data.properties[props.propertyId].tags[props.tagId])
 
 
@@ -49,7 +49,14 @@ function deleteTag() {
     
 }
 
+function onShow() {
+    visible.value = true
+    updateFromStore()
+}
+
 function onHide() {
+    if(!visible.value) return
+    visible.value = false
     setName(localName.value)
     emits('hide')
 }
@@ -61,7 +68,7 @@ watch(() => props.tagId, updateFromStore)
 </script>
 
 <template>
-    <Dropdown ref="dropdown" @hide="onHide" @show="updateFromStore">
+    <Dropdown ref="dropdown" @show="onShow" @hide="onHide">
         <template v-slot:button>
             <span class="pe-1"><i class="bi bi-three-dots sm-btn"  style="position: relative; top: 1.5px;"/></span>
         </template>

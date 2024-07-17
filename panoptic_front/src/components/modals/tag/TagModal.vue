@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ModalId, PropertyType } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { ModalId, PropertyType, Tag } from '@/data/models';
+import { deletedID, useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -16,6 +16,10 @@ const data = useDataStore()
 const propId = ref(-1)
 const tagId = ref(-1)
 const dragging = ref(false)
+
+const childDisabled = ref(false)
+const parentDisbled = ref(false)
+
 
 const property = computed(() => {
     if (propId.value == -1 || !data.properties[propId.value]) {
@@ -40,9 +44,9 @@ const propertyCounts = computed(() => {
 })
 
 const tag = computed(() => {
-    if (tagId.value == -1 || !data.tags[tagId.value]) return
+    if (tagId.value == -1 || !data.tags[tagId.value]) return undefined
     const tag = data.tags[tagId.value]
-    if (property.value.id != tag.propertyId) return
+    if (property.value.id != tag.propertyId) return undefined
     return tag
 })
 
@@ -100,6 +104,56 @@ function addChild(t) {
         data.addTagParent(t.id, tag.value.id)
     }
 }
+
+function addParent(t) {
+    if (t && tag.value) {
+        data.addTagParent(tag.value.id, t.id)
+    }
+}
+
+async function deleteTag(t: Tag) {
+    if(tag.value && tag.value.id == t.id) {
+        tagId.value = -1
+    }
+    await data.deleteTag(t.id)
+
+}
+
+function removeTagParent(t: Tag) {
+    data.deleteTagParent(tag.value.id, t.id)
+}
+
+function removeTagChild(t: Tag) {
+    data.deleteTagParent(t.id, tag.value.id)
+}
+
+
+function onDrag(t: Tag) {
+    dragging.value = true
+    if (!tag.value) return
+    if (t.id == tag.value.id || tag.value.allChildren.includes(t.id) || tag.value.allParents.includes(t.id)) {
+        parentDisbled.value = true
+        childDisabled.value = true
+    }
+}
+
+async function createTag(name, parent) {
+    const parents = parent == undefined ? undefined : [parent]
+    data.addTag(property.value.id, name, parents)
+}
+
+async function createTagParent(name) {
+    const currentTag = tag.value
+    const newTag = await data.addTag(property.value.id, name, undefined)
+    data.addTagParent(currentTag.id, newTag.id)
+
+}
+
+function onDragEnd() {
+    dragging.value = false
+    parentDisbled.value = false
+    childDisabled.value = false
+}
 </script>
 
 <template>
@@ -117,14 +171,17 @@ function addChild(t) {
         <template #content="">
             <div class="h-100 bg-white d-flex" v-if="property">
                 <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
-                    @select="e => tagId = e" @unselect="tagId = -1" @dragstart="dragging = true"
-                    @dragend="dragging = false" />
+                    @select="e => tagId = e" @unselect="tagId = -1" @dragstart="onDrag" @dragend="onDragEnd"
+                    @create="createTag" @removed="deleteTag" />
                 <template v-if="tag">
                     <TagColumn :tags="childrenTags" title="Tag enfants" :draggable="dragging" @select="e => tagId = e"
-                        @added="addChild" />
-                    <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e"
-                        :draggable="dragging" />
-                    <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e" />
+                        @added="addChild" :disabled="childDisabled" @create="name => createTag(name, tag.id)"
+                        @removed="removeTagChild" />
+                    <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e" :draggable="dragging"
+                        :disabled="dragging" :no-create="true" />
+                    <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
+                        :disabled="parentDisbled" @create="createTagParent" @added="addParent"
+                        @removed="removeTagParent" />
                 </template>
 
             </div>
