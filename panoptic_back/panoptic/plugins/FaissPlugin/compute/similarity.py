@@ -43,7 +43,7 @@ class SimilarityFaissWithLabel:
         nb_vectors = vectors.shape[0]
         vector_size = vectors.shape[1]
         # reduce vector size only if we have more than 100k images otherwise it's not worth it since we lose accuracy
-        if nb_vectors < 100000:
+        if nb_vectors < 1000000:
             index = faiss.IndexFlatIP(vector_size)
         else:
             cells = min(round(math.sqrt(nb_vectors)), int(nb_vectors / 39))

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TagOptionsDropdown from '@/components/dropdowns/TagOptionsDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Tag } from '@/data/models';
 import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
@@ -10,6 +11,8 @@ const props = defineProps<{
     main?: boolean,
     selected?: Tag,
     draggable?: boolean
+    disabled?: boolean
+    noCreate?: boolean
 }>()
 const emits = defineEmits(['select', 'unselect', 'create', 'dragstart', 'dragend', 'added', 'removed'])
 
@@ -24,9 +27,22 @@ const sortDireciton = ref([1, 1, 1])
 const sortMode = ref(0) // 0 alpha, 1 count, 2 color
 
 const filteredTags = computed(() => {
-    if (!filterValue.value) return props.tags
-    const value = filterValue.value.toLocaleLowerCase()
-    return props.tags.filter(t => t.value.toLocaleLowerCase().includes(value))
+    let tags = []
+    if (!filterValue.value) {
+        tags = props.tags
+    } else {
+        const value = filterValue.value.toLocaleLowerCase()
+        tags = props.tags.filter(t => t.value.toLocaleLowerCase().includes(value))
+    }
+
+    const res = []
+    const marked = new Set()
+    for (let t of tags) {
+        if (marked.has(t.id)) continue
+        res.push(t)
+        marked.add(t.id)
+    }
+    return res
 })
 
 const filterMatch = computed(() => {
@@ -77,12 +93,27 @@ function openSearch() {
 
 function selectTag() {
     if (selectedTag.value == -1 && !filterMatch.value) {
-        emits('create', { name: filterValue.value, parent })
+        createTag(filterValue.value)
         return
     }
     if (selectedTag.value > 0) {
         emits('select', filteredTags.value[selectedTag.value].id)
     }
+}
+
+function createTag(name) {
+    emits('create', name)
+    inputClose()
+}
+
+function onDrag(e) {
+    const index = e.oldIndex
+    const tag = filteredTags.value[index]
+    emits('dragstart', tag)
+}
+
+function deleteTag(t) {
+    emits('removed', t)
 }
 
 watch(openInput, () => {
@@ -134,21 +165,31 @@ onMounted(() => tagList.value = [...filteredTags.value])
             </div>
             <div v-else class="text-secondary"> Select any tag...</div>
         </div>
-        <div v-if="!filterMatch && filterValue" class="d-flex ps-2" :class="selectedTag == -1 ? 'bg-selected' : ''">
+        <div v-if="!filterMatch && filterValue && !props.noCreate" class="d-flex ps-2"
+            :class="selectedTag == -1 ? 'bg-selected' : ''" style="cursor: pointer;" @click="">
             <div class="me-1">Create Tag</div>
             <div>
                 <TagBadge :name="filterValue" :color="-1" />
             </div>
         </div>
-        <draggableComponent v-model="tagList" :group="{ name: 'tags', pull: props.main?'clone':false, put: !props.main }" item-key="id" :sort="false" style="min-height: 200px; overflow: auto;"
-        @start="emits('dragstart')" @end="emits('dragend')" @add="e => emits('added', tagList[e.newIndex])">
+        <draggableComponent v-model="tagList"
+            :group="{ name: 'tags', pull: props.main ? 'clone' : false, put: !props.main }" item-key="id" :sort="false"
+            style="height: 100%; overflow: auto;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
+            @add="e => emits('added', tagList[e.newIndex])">
             <template #item="{ element }" #>
-                <div class="d-flex ps-2" :class="selectedTag == element.id ? 'bg-selected' : ''" style="cursor: pointer;"
-                    @click="emits('select', element.id)" @mouseenter="selectedTag = element.id" @mouseleave="selectedTag = -1">
+                <div class="d-flex ps-2" :class="selectedTag == element.id ? 'bg-selected' : ''"
+                    style="cursor: pointer;" @click="emits('select', element.id)" @mouseenter="selectedTag = element.id"
+                    @mouseleave="selectedTag = -1">
+
                     <div>
                         <TagBadge :id="element.id" />
                     </div>
                     <div class="flex-grow-1"></div>
+                    <div v-if="selectedTag == element.id" class="d-flex">
+                        <div v-if="!props.noCreate"><i class="bi bi-x sb" @click.stop="deleteTag(element)"></i></div>
+                        <TagOptionsDropdown :property-id="element.propertyId" :tag-id="element.id"
+                            :can-customize="true" />
+                    </div>
                     <div class="me-2 text-secondary" style="font-size: 13px;">{{ element.count }}</div>
                 </div>
             </template>
@@ -168,6 +209,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
                 <div class="me-2 text-secondary" style="font-size: 13px;">{{ tag.count }}</div>
             </div>
         </div> -->
+        <div v-if="props.disabled" class="disable-overlay"></div>
     </div>
 </template>
 
@@ -177,6 +219,16 @@ onMounted(() => tagList.value = [...filteredTags.value])
     border-right: 1px solid var(--border-color);
     width: 250px;
     /* font-size: 13px; */
+    position: relative;
+}
+
+.disable-overlay {
+    background-color: rgba(128, 128, 128, 0.145);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 .search {
