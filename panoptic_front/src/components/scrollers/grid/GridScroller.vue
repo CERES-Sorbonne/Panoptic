@@ -56,7 +56,7 @@ const scrollerStyle = computed(() => ({
     // overflowX: 'hidden'
 }))
 
-const hideFromModal = computed(() => props.hideIfModal && panoptic.openModalId == ModalId.IMAGE)
+const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
 let dataLines = []
 let lineCenter = 0
