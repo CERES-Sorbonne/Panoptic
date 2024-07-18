@@ -25,8 +25,8 @@ const color = computed(() => {
     
   <style scoped>
   .tag-badge {
-    /* position: relative; */
-    /* top: -1px; */
+    position: relative;
+    top: -1px;
     margin: 0;
     padding: 3px 3px;
     border-radius: 5px !important;
