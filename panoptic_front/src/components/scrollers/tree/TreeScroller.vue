@@ -155,8 +155,8 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
             continue
         }
         if (newLine.length == 0) {
-            // newLine.push(img)
-            throw new Error('Images seems to be to big for the line')
+            newLine.push(imgIt)
+            // throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
         newLine = [imgIt]
