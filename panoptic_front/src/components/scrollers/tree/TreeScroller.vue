@@ -68,7 +68,7 @@ const simiImageLineSize = computed(() => {
     return props.imageSize + 40
 })
 
-const hideFromModal = computed(() => props.hideIfModal && panoptic.openModalId == ModalId.IMAGE)
+const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
 
 defineExpose({
