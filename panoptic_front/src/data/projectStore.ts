@@ -106,7 +106,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
 
         status.loaded = true
-        usePanopticStore().showModal(ModalId.TAG, {})
+        // usePanopticStore().showModal(ModalId.TAG, {})
     }
 
     async function updateRoutine(i: number) {

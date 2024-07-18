@@ -88,7 +88,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div>
             <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
         </div>
-        <div>{{ props.tab.state.imageSize }}</div>
+        <!-- <div>{{ props.tab.state.imageSize }}</div> -->
         <div class="ms-5" style="font-size: 13px;">
             <wTT message="main.menu.image_mode_tooltip">
                 <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode"
