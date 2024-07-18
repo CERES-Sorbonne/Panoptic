@@ -16,22 +16,22 @@ const props = defineProps<{
 const tag = computed(() => data.tags[props.id])
 
 const color = computed(() => {
-  if(props.color >= 0 && props.color <= 12) return Colors[props.color].color
-  if(!tag.value) return 'grey'
-  if(tag.value.color < 0 || tag.value.color > 12) return 'grey'
+  if (props.color >= 0 && props.color <= 12) return Colors[props.color].color
+  if (!tag.value) return 'grey'
+  if (tag.value.color < 0 || tag.value.color > 12) return 'grey'
   return Colors[tag.value.color].color
 })
 
 const name = computed(() => {
-  if(props.name) return props.name
-  if(!tag.value) return 'undefined'
+  if (props.name) return props.name
+  if (!tag.value) return 'undefined'
   return tag.value.value
 })
 
 function click() {
-  if(!tag.value) return
+  if (!tag.value) return
   const panoptic = usePanopticStore()
-  panoptic.showModal(ModalId.TAG, {propId: tag.value.propertyId, tagId: tag.value.id})
+  panoptic.showModal(ModalId.TAG, { propId: tag.value.propertyId, tagId: tag.value.id })
 }
 
 </script>
@@ -45,8 +45,8 @@ function click() {
     </span>
   </div>
 </template>
-  
-  
+
+
 <style scoped>
 .tag-badge {
   position: relative;

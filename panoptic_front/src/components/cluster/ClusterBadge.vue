@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Colors } from '@/data/models';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -14,7 +15,7 @@ const color = computed(() => {
 </script>
 
 <template>
-    <div class="badge tag-badge" :style="'background: ' + color">
+    <div class="badge tag-badge" :style="'background: ' + Colors[color].color">
       <span class="m-0 p-0">
         {{ props.value }}
       </span>
@@ -24,8 +25,8 @@ const color = computed(() => {
     
   <style scoped>
   .tag-badge {
-    position: relative;
-    top: -1px;
+    /* position: relative; */
+    /* top: -1px; */
     margin: 0;
     padding: 3px 3px;
     border-radius: 5px !important;
