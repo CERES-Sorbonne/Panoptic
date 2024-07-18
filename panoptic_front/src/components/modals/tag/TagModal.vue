@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ModalId, PropertyType, Tag } from '@/data/models';
+import { computed, ref, shallowRef } from 'vue'
+import { Instance, ModalId, PropertyType, Tag } from '@/data/models';
 import { deletedID, useDataStore } from '@/data/dataStore';
-import { isTag } from '@/utils/utils';
+import { computeTagToInstance, isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import Modal2 from '../Modal2.vue';
 import TagColumn from './TagColumn.vue';
+import ImagePreview from '@/components/preview/ImagePreview.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -20,6 +21,7 @@ const dragging = ref(false)
 const childDisabled = ref(false)
 const parentDisbled = ref(false)
 
+const tagToInstance = shallowRef<{ [tId: number]: Instance[] }>({})
 
 const property = computed(() => {
     if (propId.value == -1 || !data.properties[propId.value]) {
@@ -92,6 +94,8 @@ function show() {
     if (propId.value == -1 && properties.value.length) {
         propId.value = properties.value[0].id
     }
+
+    updateTagToInstance()
 }
 
 function hide() {
@@ -112,7 +116,7 @@ function addParent(t) {
 }
 
 async function deleteTag(t: Tag) {
-    if(tag.value && tag.value.id == t.id) {
+    if (tag.value && tag.value.id == t.id) {
         tagId.value = -1
     }
     await data.deleteTag(t.id)
@@ -154,6 +158,11 @@ function onDragEnd() {
     parentDisbled.value = false
     childDisabled.value = false
 }
+
+function updateTagToInstance() {
+    tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList)
+}
+
 </script>
 
 <template>
@@ -171,19 +180,21 @@ function onDragEnd() {
         <template #content="">
             <div class="h-100 bg-white d-flex" v-if="property">
                 <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
-                    @select="e => tagId = e" @unselect="tagId = -1" @dragstart="onDrag" @dragend="onDragEnd"
-                    @create="createTag" @removed="deleteTag" />
+                    class="flex-shrink-0 flex-grow-0" @select="e => tagId = e" @unselect="tagId = -1"
+                    @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
                 <template v-if="tag">
                     <TagColumn :tags="childrenTags" title="Tag enfants" :draggable="dragging" @select="e => tagId = e"
-                        @added="addChild" :disabled="childDisabled" @create="name => createTag(name, tag.id)"
-                        @removed="removeTagChild" />
+                        class="flex-shrink-0 flex-grow-0" @added="addChild" :disabled="childDisabled"
+                        @create="name => createTag(name, tag.id)" @removed="removeTagChild" />
                     <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e" :draggable="dragging"
-                        :disabled="dragging" :no-create="true" />
+                        class="flex-shrink-0 flex-grow-0" :disabled="dragging" :no-create="true" />
                     <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
-                        :disabled="parentDisbled" @create="createTagParent" @added="addParent"
-                        @removed="removeTagParent" />
+                        class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
+                        @added="addParent" @removed="removeTagParent" />
+                    <div class="w-100 h-100 pt-1">
+                        <ImagePreview :instances="tagToInstance[tag.id]" />
+                    </div>
                 </template>
-
             </div>
         </template>
     </Modal2>

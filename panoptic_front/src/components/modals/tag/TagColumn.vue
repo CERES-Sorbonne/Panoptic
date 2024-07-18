@@ -35,12 +35,20 @@ const filteredTags = computed(() => {
         tags = props.tags.filter(t => t.value.toLocaleLowerCase().includes(value))
     }
 
-    const res = []
+    const res: Tag[] = []
     const marked = new Set()
     for (let t of tags) {
         if (marked.has(t.id)) continue
         res.push(t)
         marked.add(t.id)
+    }
+    const mode = sortMode.value
+    const direction = sortDireciton.value[mode]
+    if(mode == 0) {
+        res.sort((a, b) => a.value.localeCompare(b.value) * direction)
+    }
+    else if(mode == 1) {
+        res.sort((a,b) => (a.count - b.count)*direction)
     }
     return res
 })
@@ -116,6 +124,12 @@ function deleteTag(t) {
     emits('removed', t)
 }
 
+function tagClass(t: Tag) {
+    if(t.id == props.selected?.id) return 'bg-blue'
+    if(t.id == selectedTag.value) return 'bg-selected'
+    return ''
+}
+
 watch(openInput, () => {
     if (openInput.value) {
         inputElem.value.focus()
@@ -177,7 +191,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
             style="height: 100%; overflow: auto;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
             @add="e => emits('added', tagList[e.newIndex])">
             <template #item="{ element }" #>
-                <div class="d-flex ps-2" :class="selectedTag == element.id ? 'bg-selected' : ''"
+                <div class="d-flex ps-2" :class="tagClass(element)"
                     style="cursor: pointer;" @click="emits('select', element.id)" @mouseenter="selectedTag = element.id"
                     @mouseleave="selectedTag = -1">
 
@@ -282,5 +296,9 @@ onMounted(() => tagList.value = [...filteredTags.value])
 
 .selected-tag {
     border-bottom: 1px solid var(--border-color);
+}
+
+.bg-blue {
+    background-color: rgba(89, 89, 247, 0.309); 
 }
 </style>

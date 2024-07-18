@@ -231,3 +231,23 @@ export function getComputedValues(instance: Instance) {
     const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
     return res;
 }
+
+
+export function computeTagToInstance(instances: Instance[], properties: Property[], tags: Tag[]) {
+    const res: {[tId: number]: Instance[]} = {}
+
+    for(let tag of tags) {
+        res[tag.id] = []
+    }
+
+    for(let instance of instances) {
+        for(let property of properties) {
+            const value = instance.properties[property.id]
+            if(!value) continue
+            for(let tId of value) {
+                res[tId].push(instance)
+            }
+        }
+    }
+    return res
+}
