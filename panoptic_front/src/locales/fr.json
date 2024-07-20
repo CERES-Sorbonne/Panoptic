@@ -35,7 +35,8 @@
                 "expand_property_tooltip": "Afficher les tags",
                 "collapse_property_tooltip": "Masquer les tags",
                 "add_property": "Nouvelle propriété",
-                "delete_property": "Supprimer"
+                "delete_property": "Supprimer",
+                "open_tags": "Ouvrir modal des tags"
             },
             "computed": {
                 "title": "Propriétés Panoptic",
