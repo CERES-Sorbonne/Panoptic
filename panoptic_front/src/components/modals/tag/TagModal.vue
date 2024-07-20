@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { Instance, ModalId, PropertyType, Tag } from '@/data/models';
 import { deletedID, useDataStore } from '@/data/dataStore';
 import { computeTagToInstance, isTag } from '@/utils/utils';
@@ -8,6 +8,7 @@ import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import Modal2 from '../Modal2.vue';
 import TagColumn from './TagColumn.vue';
 import ImagePreview from '@/components/preview/ImagePreview.vue';
+import TagBadge from '@/components/tagtree/TagBadge.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -160,8 +161,15 @@ function onDragEnd() {
 }
 
 function updateTagToInstance() {
-    tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList)
+    tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
 }
+
+watch(tags, () => {
+    data.tagList.forEach(t => {
+        if (tagToInstance.value[t.id]) return
+        tagToInstance.value[t.id] = []
+    })
+})
 
 </script>
 
@@ -191,7 +199,18 @@ function updateTagToInstance() {
                     <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
                         class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
                         @added="addParent" @removed="removeTagParent" />
-                    <div class="w-100 h-100 pt-1">
+                    <div v-if="tagToInstance[tag.id].length" class="w-100 h-100 pt-1 d-flex flex-column">
+                        <div style="height: 33px;" class="tag-preview flex-shrink-0 ps-2">
+                            <div class="d-flex">
+                                <div><TagBadge :id="tag.id" style="font-size: 15px; position: relative; top:2px" /></div>
+                                <div class="ms-2 me-2 text-secondary" style="position: relative; top:2px" >{{ tag.count }}</div>
+                                <div class="flex-grow-1"></div>
+                                <div class="bb me-1"><i class="bi bi-x" @click="tagId = -1" style="font-size: 15px; position: relative; top:2px" /></div>
+                            </div>
+                            
+
+                        </div>
+                        <div class="flex-shrink-0" style="height: 2px;"></div>
                         <ImagePreview :instances="tagToInstance[tag.id]" />
                     </div>
                 </template>
@@ -208,5 +227,9 @@ function updateTagToInstance() {
 
 .selected-property {
     background-color: white;
+}
+
+.tag-preview {
+    border-bottom: 1px solid var(--border-color);
 }
 </style>

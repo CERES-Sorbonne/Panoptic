@@ -233,7 +233,7 @@ export function getComputedValues(instance: Instance) {
 }
 
 
-export function computeTagToInstance(instances: Instance[], properties: Property[], tags: Tag[]) {
+export function computeTagToInstance(instances: Instance[], properties: Property[], tags: Tag[], tagIndex: TagIndex) {
     const res: {[tId: number]: Instance[]} = {}
 
     for(let tag of tags) {
@@ -244,9 +244,14 @@ export function computeTagToInstance(instances: Instance[], properties: Property
         for(let property of properties) {
             const value = instance.properties[property.id]
             if(!value) continue
+            const allTags = new Set<number>()
             for(let tId of value) {
-                res[tId].push(instance)
+                tagIndex[tId].allParents.forEach(p => allTags.add(p))
+                allTags.add(tId)
             }
+            Array.from(allTags).forEach(tId => {
+                res[tId].push(instance)
+            })
         }
     }
     return res

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Property, PropertyMode, PropertyType } from '@/data/models';
+import { ModalId, Property, PropertyMode, PropertyType } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
@@ -8,7 +8,10 @@ import TagMenu from '../tags/TagMenu.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
 import { useDataStore } from '@/data/dataStore';
+import { isTag } from '@/utils/utils';
+import { usePanopticStore } from '@/data/panopticStore';
 
+const panoptic = usePanopticStore()
 const project = useProjectStore()
 const data = useDataStore()
 const tabManager = project.getTabManager()
@@ -130,7 +133,12 @@ watch(() => props.property, () => {
                     </span>
                 </div>
             </div>
-
+            <div v-if="isTag(props.property.type)" style="width: 20px; margin-top: 2px; cursor: pointer;" class="text-center" @click="panoptic.showModal(ModalId.TAG, {propId: props.property.id})">
+                <wTT :click="false"
+                    message="main.nav.properties.open_tags">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                </wTT>
+            </div>
             <div style="width: 20px; margin-top: 2px;" class="text-center">
                 <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
                     message="main.nav.properties.linked_property_tooltip">

@@ -35,7 +35,7 @@ watch(() => props.instances, update)
 
 <template>
     <div style="height: 100%; width: 100%;" ref="box">
-        <TreeScroller :group-manager="groupManager" :image-size="100" :height="height" :width="width"
+        <TreeScroller :group-manager="groupManager" :image-size="100" :height="height" :width="width -20"
             :properties="props.properties ?? []" ref="scroller" :hide-group="true"/>
     </div>
 </template>

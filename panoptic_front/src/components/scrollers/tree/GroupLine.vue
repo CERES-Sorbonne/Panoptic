@@ -135,7 +135,8 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
     const prefix = parentTag?.value ?? ('Clustering_' + children.length)
     const parents = []
     if(parentTag) {
-        parents.push(...parentTag.parents, parentTag.id)
+        // parents.push(...parentTag.parents, parentTag.id)
+        parents.push(parentTag.id)
     }
 
     for (let i = 0; i < children.length; i++) {
