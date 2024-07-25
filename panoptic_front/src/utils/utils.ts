@@ -256,3 +256,5 @@ export function computeTagToInstance(instances: Instance[], properties: Property
     }
     return res
 }
+
+export const sum = arr => arr.reduce((a, num) => a + num, 0);
