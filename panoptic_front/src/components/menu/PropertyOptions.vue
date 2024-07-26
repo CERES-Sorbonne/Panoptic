@@ -88,7 +88,7 @@ function setGroup() {
 }
 
 function deleteProperty() {
-    if (confirm('Supprimer la propriété: ' + props.property.name + ' ?'))
+    if (confirm('Supprimer la propriété: ' + props.property.name + ' ?   ' + props.property.id))
         data.deleteProperty(props.property.id)
 }
 

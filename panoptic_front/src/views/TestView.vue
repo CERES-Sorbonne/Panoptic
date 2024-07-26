@@ -259,7 +259,7 @@ interface Line {
 
 const project = useProjectStore()
 const data = useDataStore()
-const tagList = computed(() => data.tagList.filter(t => t.propertyId == 15))
+const tagList = computed(() => data.tagList.filter(t => t.propertyId == 23))
 
 const tagDepth = ref<{ [tagId: number]: number }>({})
 const tagPosition = ref<{ [tagId: number]: number }>({})
@@ -298,7 +298,6 @@ function computeTagDepth(tags: Tag[]) {
     }
     maxDepth.value = depth - 1
     tagDepth.value = depths
-    console.log(depths)
 }
 
 function computeLines() {
@@ -328,8 +327,9 @@ function computeLines() {
 async function reorderLines() {
     console.log('reorder')
     let columns = [...tagColumns.value]
-    // tagColumns.value = []
-    // await nextTick()
+    tagColumns.value = []
+    await nextTick()
+    tagColumns.value = columns
     for (let n = 0; n < 5; n++) {
         columns = [...tagColumns.value]
         const newColums: Tag[][] = []
@@ -359,14 +359,12 @@ async function reorderLines() {
                 }
                 goals[tag.id] = middle
             }
-        }
 
-        for (const col of columns) {
             const sorted = [...col].sort((t1, t2) => goals[t1.id] - goals[t2.id])
             let freeSpace = maxTagCount - sorted.length - 1
             let index = 0
             for (const tag of sorted) {
-                while (!(Math.round(goals[tag.id]) == index) && freeSpace > 0) {
+                while ((Math.round(goals[tag.id]) > index) && freeSpace > 0) {
                     freeSpace -= 1
                     index += 1
                 }
@@ -377,12 +375,12 @@ async function reorderLines() {
             const resCol: Tag[] = []
             let resIndex = 0
             for (const tag of sorted) {
-                // console.log(tag.id, finalGoal[tag.id], resIndex)
                 while (finalGoal[tag.id] > resIndex) {
                     resCol.push(undefined)
                     resIndex += 1
                 }
                 resCol.push(tag)
+                indexes[tag.id] = resCol.length - 1
                 resIndex += 1
             }
             newColums.push(resCol)
@@ -409,12 +407,12 @@ watch(() => project.status.loaded, computeGraph)
 
 <template>
     <div style="position: relative; top:200px; left: 200px;">
-        <svg width="500" height="500" style="position: absolute; top:0; z-index: 0;">
+        <svg width="5000" height="5000" style="position: absolute; top:0; z-index: 0;">
             <line v-for="l in lines" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" stroke="grey" />
         </svg>
         <div class="d-flex" style="z-index: 1; position: absolute;">
             <div v-for="tags in tagColumns" class="me-5">
-                <div v-for="tag in tags" style="height: 25px;">
+                <div v-for="tag, i in tags" style="height: 25px;">
                     <span v-if="tag" :ref="e => tagElems[tag.id] = e">
                         <TagBadge :id="tag.id" @click="loggit(tag.id)" />
                         <!-- <div class="p-2" @click="log">{{ tag.id }} {{ tag.value }}</div> -->
