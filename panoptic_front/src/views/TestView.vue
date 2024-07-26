@@ -289,7 +289,7 @@ function computeTagDepth(tags: Tag[]) {
     let depth = 0
     const depths = tagDepth.value
     while (tags.length) {
-        const valid = tags.filter(t => !t.children.some(c => depths[c] == undefined))
+        const valid = tags.filter(t => !t.parents.some(c => depths[c] == undefined))
         for (let tag of valid) {
             depths[tag.id] = depth
         }
@@ -307,7 +307,7 @@ function computeLines() {
     for (const col of columns) {
         for (const tag of col) {
             if (!tag) continue
-            for (const pId of tag.parents) {
+            for (const pId of tag.children) {
                 // console.log(tagElems[tag.id])
                 const t1 = tagElems[tag.id].getBoundingClientRect()
                 const t2 = tagElems[pId].getBoundingClientRect()
