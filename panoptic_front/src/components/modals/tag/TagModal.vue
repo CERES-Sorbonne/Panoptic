@@ -9,6 +9,7 @@ import Modal2 from '../Modal2.vue';
 import TagColumn from './TagColumn.vue';
 import ImagePreview from '@/components/preview/ImagePreview.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
+import TagTree from './TagTree.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -18,6 +19,7 @@ const data = useDataStore()
 const propId = ref(-1)
 const tagId = ref(-1)
 const dragging = ref(false)
+const view = ref('graph')
 
 const childDisabled = ref(false)
 const parentDisbled = ref(false)
@@ -181,6 +183,11 @@ watch(tags, () => {
         <template #title>
             <div class="d-flex">
                 <PropertyIcon class="property-option" :type="PropertyType.multi_tags" />
+                <div class="property-option bnr" :class="view == 'list' ? 'selected-property' : ''"
+                    @click="view = 'list'"><i class="bi bi-list" /></div>
+                <div class="property-option bnr" :class="view == 'graph' ? 'selected-property' : ''"
+                    @click="view = 'graph'"><i class="bi bi-diagram-3" /></div>
+                <div class="property-option" style="width: 31px;"></div>
                 <div v-for="prop in properties" class="property-option bnr" @click="propId = prop.id"
                     :class="property?.id == prop.id ? 'selected-property' : ''">
                     <span>{{ prop.name }}</span>
@@ -189,35 +196,47 @@ watch(tags, () => {
             </div>
         </template>
         <template #content="">
-            <div class="h-100 bg-white d-flex" v-if="property">
-                <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
-                    class="flex-shrink-0 flex-grow-0" @select="e => tagId = e" @unselect="tagId = -1"
-                    @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
-                <template v-if="tag">
-                    <TagColumn :tags="childrenTags" title="Tag enfants" :draggable="dragging" @select="e => tagId = e"
-                        class="flex-shrink-0 flex-grow-0" @added="addChild" :disabled="childDisabled"
-                        @create="name => createTag(name, tag.id)" @removed="removeTagChild" />
-                    <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e" :draggable="dragging"
-                        class="flex-shrink-0 flex-grow-0" :disabled="dragging" :no-create="true" />
-                    <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
-                        class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
-                        @added="addParent" @removed="removeTagParent" />
-                    <div v-if="tagToInstance[tag.id].length" class="w-100 h-100 pt-1 d-flex flex-column">
-                        <div style="height: 33px;" class="tag-preview flex-shrink-0 ps-2">
-                            <div class="d-flex">
-                                <div><TagBadge :id="tag.id" style="font-size: 15px; position: relative; top:2px" /></div>
-                                <div class="ms-2 me-2 text-secondary" style="position: relative; top:2px" >{{ tag.count }}</div>
-                                <div class="flex-grow-1"></div>
-                                <div class="bb me-1"><i class="bi bi-x" @click="tagId = -1" style="font-size: 15px; position: relative; top:2px" /></div>
-                            </div>
-                            
+            <template v-if="property">
+                <div v-if="view == 'list'" class="h-100 bg-white d-flex">
+                    <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
+                        class="flex-shrink-0 flex-grow-0" @select="e => tagId = e" @unselect="tagId = -1"
+                        @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
+                    <template v-if="tag">
+                        <TagColumn :tags="childrenTags" title="Tag enfants" :draggable="dragging"
+                            @select="e => tagId = e" class="flex-shrink-0 flex-grow-0" @added="addChild"
+                            :disabled="childDisabled" @create="name => createTag(name, tag.id)"
+                            @removed="removeTagChild" />
+                        <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e"
+                            :draggable="dragging" class="flex-shrink-0 flex-grow-0" :disabled="dragging"
+                            :no-create="true" />
+                        <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
+                            class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
+                            @added="addParent" @removed="removeTagParent" />
+                        <div v-if="tagToInstance[tag.id].length" class="w-100 h-100 pt-1 d-flex flex-column">
+                            <div style="height: 33px;" class="tag-preview flex-shrink-0 ps-2">
+                                <div class="d-flex">
+                                    <div>
+                                        <TagBadge :id="tag.id" style="font-size: 15px; position: relative; top:2px" />
+                                    </div>
+                                    <div class="ms-2 me-2 text-secondary" style="position: relative; top:2px">{{
+                                        tag.count }}</div>
+                                    <div class="flex-grow-1"></div>
+                                    <div class="bb me-1"><i class="bi bi-x" @click="tagId = -1"
+                                            style="font-size: 15px; position: relative; top:2px" /></div>
+                                </div>
 
+
+                            </div>
+                            <div class="flex-shrink-0" style="height: 2px;"></div>
+                            <ImagePreview :instances="tagToInstance[tag.id]" />
                         </div>
-                        <div class="flex-shrink-0" style="height: 2px;"></div>
-                        <ImagePreview :instances="tagToInstance[tag.id]" />
-                    </div>
-                </template>
-            </div>
+                    </template>
+                </div>
+                <div v-if="view == 'graph'">
+                    <TagTree :property="property" />
+                </div>
+            </template>
+
         </template>
     </Modal2>
 </template>
