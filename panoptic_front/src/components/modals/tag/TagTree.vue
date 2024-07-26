@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import TagBadge from "@/components/tagtree/TagBadge.vue";
 import { useDataStore } from "@/data/dataStore";
-import { Tag } from "@/data/models";
+import { Property, Tag } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
-import { deepCopy, sum } from "@/utils/utils";
-import * as d3 from "d3";
+import { sum } from "@/utils/utils";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 
 
@@ -21,14 +20,19 @@ interface Line {
 const project = useProjectStore()
 const data = useDataStore()
 
+const props = defineProps<{
+    property: Property
+}>()
+
 const tagDepth = ref<{ [tagId: number]: number }>({})
-const tagPosition = ref<{ [tagId: number]: number }>({})
 const maxDepth = ref(0)
 const lines = ref<Line[]>([])
 const tagFilter = ref(false)
+const mainElem = ref(null)
+let offset = {x:0, y:0}
 
 const tagList = computed(() => {
-    let res = data.tagList.filter(t => t.propertyId == 15)
+    let res = data.tagList.filter(t => t.propertyId == props.property.id)
     if(tagFilter.value && Object.keys(selectedTags.value).length) {
         const valid = new Set<number>()
         const selected = res.filter(t => selectedTags.value[t.id])
@@ -39,6 +43,8 @@ const tagList = computed(() => {
     }
     return res
 })
+
+const selectedTagList = computed(() => Object.keys(selectedTags.value).map(Number))
 
 let tagElems = {}
 const tagColumns = ref<Tag[][]>([])
@@ -52,6 +58,9 @@ function computeTagColumns() {
 }
 
 async function computeGraph() {
+    const rect = mainElem.value.getBoundingClientRect()
+    offset.x = rect.x
+    offset.y = rect.y
     const tags = tagList.value
     computeTagDepth(tags)
     computeTagColumns()
@@ -78,7 +87,6 @@ function computeTagDepth(tags: Tag[]) {
 }
 
 function computeLines() {
-    const offset = 200
     const columns = tagColumns.value
     const res: Line[] = []
     for (const col of columns) {
@@ -91,10 +99,10 @@ function computeLines() {
                 const t1 = tagElems[tag.id].getBoundingClientRect()
                 const t2 = tagElems[pId].getBoundingClientRect()
                 const line: Line = {
-                    x1: t1.right - offset,
-                    y1: t1.y + 11 - offset,
-                    x2: t2.x - offset,
-                    y2: t2.y + 11 - offset,
+                    x1: t1.right -offset.x,
+                    y1: t1.y + 11 -offset.y,
+                    x2: t2.x -offset.x,
+                    y2: t2.y + 11 -offset.y,
                     child: data.tags[pId],
                     parent: tag,
                     hover: false
@@ -254,7 +262,7 @@ function onClickTag(tag: Tag) {
 
     // console.log('la', tag, tagElems[tag.id])
     const rect = tagElems[tag.id].getBoundingClientRect()
-    drawSource.value = [((rect.x + rect.right) / 2) - 200, rect.y + 11 - 200]
+    drawSource.value = [((rect.x + rect.right) / 2) - offset.x , rect.y + 11 -offset.y]
     drawTarget.value = drawSource.value
 }
 
@@ -275,7 +283,7 @@ function onSelectTag(tag: Tag) {
 }
 
 function followMouse(e) {
-    drawTarget.value = [e.clientX - 200, e.clientY - 200]
+    drawTarget.value = [e.clientX -offset.x, e.clientY -offset.y]
 }
 
 async function endDraw() {
@@ -289,7 +297,7 @@ async function endDraw() {
 
     await nextTick()
 
-    if (source != target) {
+    if (source != target && target > -1) {
         await data.addTagParent(target, source)
         lines.value = []
         tagColumns.value = []
@@ -304,16 +312,36 @@ function toggleFilter() {
     reDraw()
 }
 
+function clearSelected() {
+    const list = selectedTagList.value
+    for(let t of list) {
+        delete selectedTags.value[t]
+    }
+    if(tagFilter.value) {
+        reDraw()
+    }
+}
+
+onMounted(computeGraph)
 watch(() => project.status.loaded, computeGraph)
 
 </script>
 
 <template>
-    <button @click="reorderLines">Reorder</button>
+    <!-- <button @click="reorderLines">Reorder</button>
     <button @click="computeLines">compute lines</button>
-    <button @click="toggleFilter">Filter</button>
-    <div>
-        <div style="position: absolute; top:200px; left: 200px; user-select: none;">
+    <button @click="toggleFilter">Filter</button> -->
+    <div class="d-flex m-2">
+        <div @click="toggleFilter" class="bbb me-1">
+            <i v-if="!tagFilter" class="bi bi-funnel"></i>
+            <i v-else class="bi bi-funnel-fill text-primary"></i>
+        </div>
+        <div class="bbb" v-if="selectedTagList.length" @click="clearSelected">
+            <i class="bi bi-x" /> {{ selectedTagList.length }} selected
+        </div>
+    </div>
+    <div class="m-2">
+        <div style="position: absolute; user-select: none;" ref="mainElem">
             <svg width="5000" height="5000" style="position: absolute; top:0; z-index: 2;">
                 <template v-for="l, i in lines">
                     <line v-if="!selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="line"/>
