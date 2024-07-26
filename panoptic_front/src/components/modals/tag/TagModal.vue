@@ -136,6 +136,7 @@ function removeTagChild(t: Tag) {
 function onDrag(t: Tag) {
     dragging.value = true
     if (!tag.value) return
+    console.log(t.id, tag.value.id, tag.value.allChildren, tag.value.allParents)
     if (t.id == tag.value.id || tag.value.allChildren.includes(t.id) || tag.value.allParents.includes(t.id)) {
         parentDisbled.value = true
         childDisabled.value = true
@@ -163,6 +164,8 @@ function onDragEnd() {
 function updateTagToInstance() {
     tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
 }
+
+
 
 watch(tags, () => {
     data.tagList.forEach(t => {

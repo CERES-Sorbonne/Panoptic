@@ -13,16 +13,32 @@ interface Line {
     y1: number
     x2: number
     y2: number
+    child: Tag
+    parent: Tag
+    hover: boolean
 }
 
 const project = useProjectStore()
 const data = useDataStore()
-const tagList = computed(() => data.tagList.filter(t => t.propertyId == 23))
 
 const tagDepth = ref<{ [tagId: number]: number }>({})
 const tagPosition = ref<{ [tagId: number]: number }>({})
 const maxDepth = ref(0)
 const lines = ref<Line[]>([])
+const tagFilter = ref(false)
+
+const tagList = computed(() => {
+    let res = data.tagList.filter(t => t.propertyId == 15)
+    if(tagFilter.value && Object.keys(selectedTags.value).length) {
+        const valid = new Set<number>()
+        const selected = res.filter(t => selectedTags.value[t.id])
+        selected.forEach(t => valid.add(t.id))
+        selected.forEach(t => t.allChildren.forEach(c => valid.add(c)))
+        selected.forEach(t => t.allParents.forEach(c => valid.add(c)))
+        res = data.tagList.filter(t => valid.has(t.id))
+    }
+    return res
+})
 
 let tagElems = {}
 const tagColumns = ref<Tag[][]>([])
@@ -41,6 +57,8 @@ async function computeGraph() {
     computeTagColumns()
     await nextTick()
     computeLines()
+    await nextTick()
+    await reorderLines()
 }
 
 function computeTagDepth(tags: Tag[]) {
@@ -73,7 +91,10 @@ function computeLines() {
                     x1: t1.right - offset,
                     y1: t1.y + 11 - offset,
                     x2: t2.x - offset,
-                    y2: t2.y + 11 - offset
+                    y2: t2.y + 11 - offset,
+                    child: data.tags[pId],
+                    parent: tag,
+                    hover: false
                 }
                 res.push(line)
             }
@@ -95,9 +116,11 @@ async function reorderLines() {
         const indexes: { [tagId: number]: number } = {}
         const goals: { [tagId: number]: number } = {}
         const finalGoal: { [tagId: number]: number } = {}
+        // remove empty filles
         for (let i = 0; i < columns.length; i++) {
             columns[i] = columns[i].filter(t => t)
         }
+        // map the position inside the columns for each tag
         for (const col of columns) {
             for (let i = 0; i < col.length; i++) {
                 const tag = col[i]
@@ -105,6 +128,7 @@ async function reorderLines() {
             }
         }
 
+        // find the ideal position in the column
         for (const col of columns) {
             for (let i = 0; i < col.length; i++) {
                 const tag = col[i]
@@ -119,6 +143,9 @@ async function reorderLines() {
             }
 
             const sorted = [...col].sort((t1, t2) => goals[t1.id] - goals[t2.id])
+
+            // convert the goal position to a real index position inside the column array
+            // the max length of a column is the length of the longest column
             let freeSpace = maxTagCount - sorted.length - 1
             let index = 0
             for (const tag of sorted) {
@@ -130,6 +157,7 @@ async function reorderLines() {
                 index += 1
             }
             sorted.sort((a, b) => finalGoal[a.id] - finalGoal[b.id])
+            // fill column data with "undefined" values as fillers for empty indexes
             const resCol: Tag[] = []
             let resIndex = 0
             for (const tag of sorted) {
@@ -150,13 +178,117 @@ async function reorderLines() {
     computeLines()
 }
 
-function loggit(id) {
-    console.log('click')
-    console.log(tagElems[id].getBoundingClientRect().right)
+function onLineHover(index: number) {
+    const line = lines.value[index]
+    line.hover = true
 }
 
-function log() {
-    console.log('lalala')
+function onLineEndHover(index: number) {
+    const line = lines.value[index]
+    line.hover = false
+}
+
+async function deleteLine(index: number) {
+    const line = lines.value[index]
+    await data.deleteTagParent(line.child.id, line.parent.id)
+    await reDraw()
+}
+
+async function reDraw() {
+    lines.value = []
+    tagColumns.value = []
+    tagDepth.value = {}
+    await nextTick()
+    await computeGraph()
+}
+
+const isDrawing = ref(false)
+const hoveredTag = ref(-1)
+const sourceTag = ref(-1)
+const drawSource = ref([0, 0])
+const drawTarget = ref([0, 0])
+const selectedTags = ref<{ [tagId: number]: boolean }>({})
+
+const tagClass = computed(() => {
+    let res = {}
+    for (let tag of tagList.value) {
+        res[tag.id] = []
+        if (hoveredTag.value == tag.id) {
+            res[tag.id].push('hover-tag')
+        } else if (selectedTags.value[tag.id]) {
+            res[tag.id].push('selected-tag')
+        } else {
+            res[tag.id].push('tag')
+        }
+    }
+    return res
+})
+
+const selectedLines = computed(() => {
+    const res = []
+    const selected = selectedTags.value
+    for(const line of lines.value) {
+        if(selected[line.child.id] || selected[line.parent.id]) {
+            res.push(true)
+        } else {
+            res.push(false)
+        }
+    }
+    return res
+})
+
+function onClickTag(tag: Tag) {
+    document.addEventListener('mouseup', endDraw)
+    document.addEventListener('mousemove', followMouse)
+    sourceTag.value = tag.id
+    isDrawing.value = true
+
+    // console.log('la', tag, tagElems[tag.id])
+    const rect = tagElems[tag.id].getBoundingClientRect()
+    drawSource.value = [((rect.x + rect.right) / 2) - 200, rect.y + 11 - 200]
+    drawTarget.value = drawSource.value
+}
+
+function onSelectTag(tag: Tag) {
+    console.log('mouseup')
+    const selected = selectedTags.value
+    if(isDrawing.value && sourceTag.value != tag.id) return
+    if (selected[tag.id]) {
+        delete selected[tag.id]
+    } else {
+        selected[tag.id] = true
+    }
+    selectedTags.value = selected
+}
+
+function followMouse(e) {
+    drawTarget.value = [e.clientX - 200, e.clientY - 200]
+}
+
+async function endDraw() {
+    const source = sourceTag.value
+    const target = hoveredTag.value
+
+    sourceTag.value = -1
+    isDrawing.value = false
+    document.removeEventListener('mouseup', endDraw)
+    document.removeEventListener('mousemove', followMouse)
+
+    await nextTick()
+
+    if (source != target) {
+        await data.addTagParent(target, source)
+        lines.value = []
+        tagColumns.value = []
+        tagDepth.value = {}
+        await nextTick()
+        await computeGraph()
+    }
+}
+
+function toggleFilter() {
+    tagFilter.value = !tagFilter.value
+    reDraw()
 }
 
 watch(() => project.status.loaded, computeGraph)
@@ -164,27 +296,41 @@ watch(() => project.status.loaded, computeGraph)
 </script>
 
 <template>
-    <div style="position: relative; top:200px; left: 200px;">
-        <svg width="5000" height="5000" style="position: absolute; top:0; z-index: 0;">
-            <line v-for="l in lines" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" stroke="grey" />
-        </svg>
-        <div class="d-flex" style="z-index: 1; position: absolute;">
-            <div v-for="tags in tagColumns" class="me-5">
-                <div v-for="tag, i in tags" style="height: 25px;">
-                    <span v-if="tag" :ref="e => tagElems[tag.id] = e">
-                        <TagBadge :id="tag.id" @click="loggit(tag.id)" />
-                        <!-- <div class="p-2" @click="log">{{ tag.id }} {{ tag.value }}</div> -->
-                    </span>
-                    <span v-else></span>
+    <button @click="reorderLines">Reorder</button>
+    <button @click="computeLines">compute lines</button>
+    <button @click="toggleFilter">Filter</button>
+    <div>
+        <div style="position: absolute; top:200px; left: 200px; user-select: none;">
+            <svg width="5000" height="5000" style="position: absolute; top:0; z-index: 2;">
+                <template v-for="l, i in lines">
+                    <line v-if="!selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="line"/>
+                </template>
+                <template v-for="l, i in lines">
+                    <line v-if="selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="selected-line"/>
+                </template>
+                <template v-for="l in lines">
+                    <line v-if="l.hover" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="hover-line" />
+                </template>
+                <line v-for="l, i in lines" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+                    style="stroke: white; stroke-width: 4; opacity: 0; cursor: pointer;" @mouseenter="onLineHover(i)"
+                    @mouseleave="onLineEndHover(i)" @click="deleteLine(i)" />
+
+                <line v-if="isDrawing" :x1="drawSource[0]" :y1="drawSource[1]" :x2="drawTarget[0]" :y2="drawTarget[1]"
+                    stroke="green" stroke-width="2" />
+            </svg>
+            <div class="d-flex" style="z-index: 1;">
+                <div v-for="tags in tagColumns" class="me-5">
+                    <div v-for="tag, i in tags" style="height: 25px;">
+                        <span v-if="tag" :ref="e => tagElems[tag.id] = e">
+                            <TagBadge :id="tag.id" style="z-index: 10;" @mousedown="onClickTag(tag)"
+                                @mouseup="onSelectTag(tag)" @mouseenter="hoveredTag = tag.id"
+                                @mouseleave="hoveredTag = -1" :class="tagClass[tag.id]" />
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <button @click="reorderLines">Reorder</button>
-    <button @click="computeLines">compute lines</button>
-
-
-
     <!-- <div v-html="htmlData"></div> -->
 
 </template>
@@ -201,5 +347,30 @@ text {
 
 .link {
     fill: none;
+}
+
+.line {
+    stroke: grey
+}
+
+.selected-line {
+    stroke: rgb(31, 221, 31);
+}
+
+.hover-line {
+    stroke: red;
+    stroke-width: 2px;
+}
+
+.tag {
+    box-shadow: none;
+}
+
+.selected-tag {
+    box-shadow: 0px 0px 5px 2px green;
+}
+
+.hover-tag {
+    box-shadow: 0px 0px 10px 0px gray;
 }
 </style>
