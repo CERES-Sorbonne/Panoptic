@@ -180,7 +180,10 @@
             "erase_tooltip": "Effacer le champ pour toute la sélection",
             "cancel_tooltip": "Annuler les changements"
         },
-        "tags": {},
+        "tags": {
+            "filter_tree": "Afficher seulement les tags selectionnés",
+            "unselect_tree": "Annuler la selection"
+        },
         "export": {
             "title": "Exporter les données",
             "images": "Uniquement les images de l'onglet",

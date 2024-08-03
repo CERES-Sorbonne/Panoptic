@@ -4,7 +4,9 @@ import { useDataStore } from "@/data/dataStore";
 import { Property, Tag } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 import { sum } from "@/utils/utils";
+import { reduce } from "d3";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import wTT from '@/components/tooltips/withToolTip.vue'
 
 
 interface Line {
@@ -29,11 +31,11 @@ const maxDepth = ref(0)
 const lines = ref<Line[]>([])
 const tagFilter = ref(false)
 const mainElem = ref(null)
-let offset = {x:0, y:0}
+let offset = { x: 0, y: 0 }
 
 const tagList = computed(() => {
     let res = data.tagList.filter(t => t.propertyId == props.property.id)
-    if(tagFilter.value && Object.keys(selectedTags.value).length) {
+    if (tagFilter.value && Object.keys(selectedTags.value).length) {
         const valid = new Set<number>()
         const selected = res.filter(t => selectedTags.value[t.id])
         selected.forEach(t => valid.add(t.id))
@@ -94,15 +96,15 @@ function computeLines() {
             if (!tag) continue
             for (const pId of tag.children) {
                 // console.log(tagElems[tag.id])
-                if(!tagElems[tag.id] || !tagElems[pId]) continue
+                if (!tagElems[tag.id] || !tagElems[pId]) continue
 
                 const t1 = tagElems[tag.id].getBoundingClientRect()
                 const t2 = tagElems[pId].getBoundingClientRect()
                 const line: Line = {
-                    x1: t1.right -offset.x,
-                    y1: t1.y + 11 -offset.y,
-                    x2: t2.x -offset.x,
-                    y2: t2.y + 11 -offset.y,
+                    x1: t1.right - offset.x,
+                    y1: t1.y + 11 - offset.y,
+                    x2: t2.x - offset.x,
+                    y2: t2.y + 11 - offset.y,
                     child: data.tags[pId],
                     parent: tag,
                     hover: false
@@ -244,8 +246,8 @@ const selectedLines = computed(() => {
     list.forEach(t => data.tags[t].allChildren.forEach(c => valid.add(c)))
     list.forEach(t => data.tags[t].allParents.forEach(p => valid.add(p)))
     console.log(valid)
-    for(const line of lines.value) {
-        if(valid.has(line.child.id) && valid.has(line.parent.id)) {
+    for (const line of lines.value) {
+        if (valid.has(line.child.id) && valid.has(line.parent.id)) {
             res.push(true)
         } else {
             res.push(false)
@@ -262,14 +264,14 @@ function onClickTag(tag: Tag) {
 
     // console.log('la', tag, tagElems[tag.id])
     const rect = tagElems[tag.id].getBoundingClientRect()
-    drawSource.value = [((rect.x + rect.right) / 2) - offset.x , rect.y + 11 -offset.y]
+    drawSource.value = [((rect.x + rect.right) / 2) - offset.x, rect.y + 11 - offset.y]
     drawTarget.value = drawSource.value
 }
 
 function onSelectTag(tag: Tag) {
     console.log('mouseup')
     const selected = selectedTags.value
-    if(isDrawing.value && sourceTag.value != tag.id) return
+    if (isDrawing.value && sourceTag.value != tag.id) return
     if (selected[tag.id]) {
         delete selected[tag.id]
     } else {
@@ -277,13 +279,13 @@ function onSelectTag(tag: Tag) {
     }
     selectedTags.value = selected
 
-    if(tagFilter.value) {
+    if (tagFilter.value) {
         reDraw()
     }
 }
 
 function followMouse(e) {
-    drawTarget.value = [e.clientX -offset.x, e.clientY -offset.y]
+    drawTarget.value = [e.clientX - offset.x, e.clientY - offset.y]
 }
 
 async function endDraw() {
@@ -314,16 +316,17 @@ function toggleFilter() {
 
 function clearSelected() {
     const list = selectedTagList.value
-    for(let t of list) {
+    for (let t of list) {
         delete selectedTags.value[t]
     }
-    if(tagFilter.value) {
+    if (tagFilter.value) {
         reDraw()
     }
 }
 
 onMounted(computeGraph)
 watch(() => project.status.loaded, computeGraph)
+watch(() => props.property, reDraw)
 
 </script>
 
@@ -331,23 +334,27 @@ watch(() => project.status.loaded, computeGraph)
     <!-- <button @click="reorderLines">Reorder</button>
     <button @click="computeLines">compute lines</button>
     <button @click="toggleFilter">Filter</button> -->
-    <div class="d-flex m-2">
-        <div @click="toggleFilter" class="bbb me-1">
-            <i v-if="!tagFilter" class="bi bi-funnel"></i>
-            <i v-else class="bi bi-funnel-fill text-primary"></i>
+    <div class="d-flex m-2" style="height: 28px;">
+        <div @click="toggleFilter" class="bbb me-1" v-if="selectedTagList.length">
+            <wTT message="modals.tags.filter_tree">
+                <i v-if="!tagFilter" class="bi bi-funnel"></i>
+                <i v-else class="bi bi-funnel-fill text-primary"></i>
+            </wTT>
         </div>
         <div class="bbb" v-if="selectedTagList.length" @click="clearSelected">
-            <i class="bi bi-x" /> {{ selectedTagList.length }} selected
+            <wTT message="modals.tags.unselect_tree">
+                <i class="bi bi-x" /> {{ selectedTagList.length }} selected
+            </wTT>
         </div>
     </div>
     <div class="m-2">
         <div style="position: absolute; user-select: none;" ref="mainElem">
             <svg width="5000" height="5000" style="position: absolute; top:0; z-index: 2;">
                 <template v-for="l, i in lines">
-                    <line v-if="!selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="line"/>
+                    <line v-if="!selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="line" />
                 </template>
                 <template v-for="l, i in lines">
-                    <line v-if="selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="selected-line"/>
+                    <line v-if="selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="selected-line" />
                 </template>
                 <template v-for="l in lines">
                     <line v-if="l.hover" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="hover-line" />
