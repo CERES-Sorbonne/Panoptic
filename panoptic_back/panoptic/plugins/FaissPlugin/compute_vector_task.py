@@ -1,6 +1,7 @@
 import io
 import logging
 
+import aiofiles
 from PIL import Image
 
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
@@ -31,8 +32,13 @@ class ComputeVectorTask(Task):
         # folders = await self.project.get_folders()
         # folder = next(f for f in folders if f.id == instance.folder_id)
         # file_path = f"{folder.path}/{instance.name}"
-        image_data = await self.project._project.db.get_large_image(instance.sha1)
-        vector_data = await self._async(self.compute_image,image_data, self.project.base_path)
+        image_data = await self.project.get_project().db.get_large_image(instance.sha1)
+        if not image_data:
+            file = self.project.get_project().sha1_to_files[instance.sha1][0]
+            async with aiofiles.open(file, mode='rb') as file:
+                image_data = await file.read()
+
+        vector_data = await self._async(self.compute_image, image_data, self.project.base_path)
         vector = Vector(self.source, self.type, instance.sha1, vector_data)
         res = await self.project.add_vector(vector)
         del vector
