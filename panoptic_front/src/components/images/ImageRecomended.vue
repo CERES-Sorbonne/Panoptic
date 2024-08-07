@@ -5,6 +5,7 @@ import wTT from '../tooltips/withToolTip.vue'
 import { Group } from '@/core/GroupManager';
 import { usePanopticStore } from '@/data/panopticStore';
 import Zoomable from '../Zoomable.vue';
+import CenteredImage from './CenteredImage.vue';
 const panoptic = usePanopticStore()
 const props = defineProps({
     pile: Object as () => Group,
@@ -24,7 +25,8 @@ const image = computed(() => props.pile.images[0])
         <Zoomable :image="image">
             <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, { image })">
                 <!-- <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div> -->
-                <img :src="image.url" :style="imageStyle" />
+                <!-- <img :src="image.url" :style="imageStyle" /> -->
+                 <CenteredImage :image="image" :width="props.size-2" :height="props.size-1" />
             </div>
         </Zoomable>
         <div class="d-flex flex-row">

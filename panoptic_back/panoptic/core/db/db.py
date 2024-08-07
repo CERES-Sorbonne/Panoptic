@@ -289,10 +289,10 @@ class Db:
     # ==================== Images =========================
     # =====================================================
 
-    async def import_image(self, sha1: str, small: bytes, large: bytes):
-        query = "INSERT OR REPLACE INTO images (sha1, small, large) VALUES (?, ?, ?)"
-        await self.conn.execute_query(query, (sha1, small, large))
-        return sha1, small, large
+    async def import_image(self, sha1: str, small: bytes, medium: bytes, large: bytes):
+        query = "INSERT OR REPLACE INTO images (sha1, small, medium, large) VALUES (?, ?, ?, ?)"
+        await self.conn.execute_query(query, (sha1, small, medium, large))
+        return sha1, small, medium, large
 
     async def get_small_image(self, sha1: str):
         query = "SELECT small FROM images WHERE sha1=?"
@@ -302,8 +302,24 @@ class Db:
             return row
         return row[0]
 
+    async def get_medium_image(self, sha1: str):
+        query = "SELECT medium FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return row
+        return row[0]
+
     async def get_large_image(self, sha1: str):
         query = "SELECT large FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return row
+        return row[0]
+
+    async def get_raw_image(self, sha1: str):
+        query = "SELECT raw FROM images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
         row = await cursor.fetchone()
         if not row:
@@ -349,6 +365,14 @@ class Db:
         cursor = await self.conn.execute_query(query.get_sql())
         instance = [Instance(*instance) for instance in await cursor.fetchall()]
         return instance
+
+    async def get_instance_sha1_and_url(self):
+        query = "SELECT sha1, url FROM instances"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        if rows:
+            return rows
+        return []
 
     async def has_file(self, folder_id, name, extension):
         table = Table('instances')
@@ -501,3 +525,19 @@ class Db:
         query = "INSERT OR REPLACE INTO ui_data (key, value) VALUES (?, ?)"
         await self.conn.execute_query(query, (key, json.dumps(data)))
         return data
+
+    async def get_project_param(self, key: str):
+        query = f'SELECT value FROM project WHERE key="{key}";'
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return json.loads(row[0])
+        return None
+
+    async def set_project_param(self, key: str, value: str):
+        query = f"""
+                        INSERT OR REPLACE INTO project (key, value)
+                        VALUES (?,?);
+                """
+        cursor = await self.conn.execute_query(query, (key, json.dumps(value)))
+        return cursor

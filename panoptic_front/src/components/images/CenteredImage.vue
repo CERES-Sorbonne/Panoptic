@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Image } from '@/data/models';
+import { Instance } from '@/data/models';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
-    image: Image
+    image: Instance
     width: number,
     height: number,
     noClick?: boolean,
@@ -33,22 +33,24 @@ const imageSize = computed(() => {
 
 const imageUrl = computed(() => {
     let img = props.image
-    let minArea = 150 ** 2
-    if (props.width * props.height > minArea) {
-        return img.fullUrl
-    }
-    return img.url
+    const size = Math.max(props.width, props.height)
+
+    if(size < 150) return img.urlSmall
+    if(size < 300) return img.urlMedium
+    if(size < 1024) return img.urlLarge
+    return img.urlRaw
 })
 
 const loadedImageUrl = computed(() => {
     let img = loadedImage.value
     if (!img) return
 
-    let minArea = 150 ** 2
-    if (props.width * props.height > minArea) {
-        return img.fullUrl
-    }
-    return img.url
+    const size = Math.max(props.width, props.height)
+
+    if(size < 150) return img.urlSmall
+    if(size < 300) return img.urlMedium
+    if(size < 1024) return img.urlLarge
+    return img.urlRaw
 })
 
 function onLoad() {

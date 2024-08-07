@@ -14,6 +14,7 @@ from starlette.responses import FileResponse, StreamingResponse, Response
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update
+from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 
 project_router = APIRouter()
 
@@ -220,16 +221,40 @@ async def get_image(file_path: str):
     return FileResponse(path=path)
 
 
-@project_router.get('/image/small/{sha1:path}')
-async def get_image_small(sha1: str):
-    image = await project.db.get_small_image(sha1)
-    return Response(image, media_type="image/jpeg")
+@project_router.get('/image/raw/{sha1:path}')
+async def get_image_raw_route(sha1: str):
+    order = raw_order
+    for getter in order:
+        res = await getter(project, sha1)
+        if res:
+            return res
 
 
 @project_router.get('/image/large/{sha1:path}')
-async def get_image_large(sha1: str):
-    image = await project.db.get_large_image(sha1)
-    return Response(image, media_type="image/jpeg")
+async def get_image_large_route(sha1: str):
+    order = large_order
+    for getter in order:
+        res = await getter(project, sha1)
+        if res:
+            return res
+
+
+@project_router.get('/image/medium/{sha1:path}')
+async def get_image_medium_route(sha1: str):
+    order = medium_order
+    for getter in order:
+        res = await getter(project, sha1)
+        if res:
+            return res
+
+
+@project_router.get('/image/small/{sha1:path}')
+async def get_image_small_route(sha1: str):
+    order = small_order
+    for getter in order:
+        res = await getter(project, sha1)
+        if res:
+            return res
 
 
 class EndpointFilter(logging.Filter):

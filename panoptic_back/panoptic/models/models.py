@@ -9,6 +9,8 @@ from typing import TypeAlias, Any, Union, Dict, List
 import numpy
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
+
+
 # from pydantic.dataclasses import dataclass
 
 
@@ -329,6 +331,18 @@ class CommitHistory:
 
 class PropertyId(int):
     pass
+
+
+class ProjectSettings(BaseModel):
+    image_small_size: int = 128
+    image_medium_size: int = 256
+    image_large_size: int = 1024
+
+    save_image_small: bool = True
+    save_image_medium: bool = True
+    save_image_large: bool = True
+
+    save_file_raw: bool = False
 
 
 ImportOptions = dict[int, ColumnOption]

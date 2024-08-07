@@ -76,11 +76,14 @@ class ProjectDb:
     # ==================== Images =========================
     # =====================================================
 
-    async def import_image(self, sha1: str, small: bytes, large: bytes):
-        return await self._db.import_image(sha1, small, large)
+    async def import_image(self, sha1: str, small: bytes, medium: bytes, large: bytes):
+        return await self._db.import_image(sha1, small, medium, large)
 
     async def get_small_image(self, sha1: str):
         return await self._db.get_small_image(sha1)
+
+    async def get_medium_image(self, sha1: str):
+        return await self._db.get_medium_image(sha1)
 
     async def get_large_image(self, sha1: str):
         return await self._db.get_large_image(sha1)
