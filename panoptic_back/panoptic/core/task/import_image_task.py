@@ -9,15 +9,12 @@ from typing import TYPE_CHECKING
 from PIL import Image
 from imagehash import average_hash
 
-from panoptic.models import DbCommit, Instance
+from panoptic.models import DbCommit, Instance, ProjectSettings
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
 from panoptic.core.task.task import Task
-
-SMALL_SIZE = 128
-LARGE_SIZE = 1024
 
 
 class ImportInstanceTask(Task):
@@ -41,14 +38,15 @@ class ImportInstanceTask(Task):
             self.db.on_import_instance.emit(db_image)
             return db_image
 
-        sha1, width, height, ahash, large, small = await self._async(self._import_image, self.file,
-                                                                     raw_db.get_project_path())
+        sha1, width, height, ahash, large, medium, small = await self._async(self._import_image, self.file,
+                                                                             self.project.settings)
         if not await self.db.has_image(sha1):
-            await self.db.import_image(sha1, small, large)
+            await self.db.import_image(sha1, small, medium, large)
         instance = Instance(-1, folder_id, name, extension, sha1, self.file, height, width, str(ahash))
 
         commit = DbCommit(instances=[instance])
         await self.project.db.apply_commit(commit)
+        self.project.sha1_to_files[sha1].append(self.file)
         self.project.ui.commits.append(commit)
         self.db.on_import_instance.emit(commit.instances[0])
         return commit.instances[0]
@@ -58,31 +56,42 @@ class ImportInstanceTask(Task):
         # self.project.ui.update_counter.image += 1
 
     @staticmethod
-    def _import_image(file_path, project_path: str):
-        large_image = Image.open(file_path)
-        width, height = large_image.size
+    def _import_image(file_path, settings: ProjectSettings):
+        image = Image.open(file_path)
+        width, height = image.size
 
-        # large_image.draft('RGB', size=(LARGE_SIZE, LARGE_SIZE))
-        if width > LARGE_SIZE or height > LARGE_SIZE:
-            large_image.thumbnail(size=(LARGE_SIZE, LARGE_SIZE))
-            large_image = large_image.convert('RGB')
+        medium_bytes = bytes()
+        small_bytes = bytes()
 
-        large_bytes = io.BytesIO()
-        large_image.save(large_bytes, format='jpeg', quality=30)
-        large_bytes = large_bytes.getvalue()
+        large_size = settings.image_large_size
+        if width > large_size or height > large_size:
+            image.thumbnail(size=(large_size, large_size))
+        image = image.convert('RGB')
+
+        large_io = io.BytesIO()
+        image.save(large_io, format='jpeg', quality=30)
+        large_bytes = large_io.getvalue()
+
         sha1_hash = hashlib.sha1(large_bytes).hexdigest()
-        ahash = average_hash(large_image)
+        ahash = average_hash(image)
 
-        small_image = large_image
-        if width > SMALL_SIZE or height > SMALL_SIZE:
-            small_image.thumbnail(size=(SMALL_SIZE, SMALL_SIZE))
+        medium_size = settings.image_medium_size
+        if settings.save_image_medium and (width > medium_size or height > medium_size):
+            image.thumbnail(size=(medium_size, medium_size))
+            medium_io = io.BytesIO()
+            image.save(medium_io, format='jpeg', quality=30)
+            medium_bytes = medium_io.getvalue()
 
-        small_bytes = io.BytesIO()
-        small_image.save(small_bytes, format='jpeg', quality=30)
-        small_bytes = small_bytes.getvalue()
+        small_size = settings.image_small_size
+        if settings.save_image_small and (width > small_size or height > small_size):
+            image.thumbnail(size=(small_size, small_size))
+            small_io = io.BytesIO()
+            image.save(small_io, format='jpeg', quality=30)
+            small_bytes = small_io.getvalue()
 
-        del large_image
-        del small_image
-        # gc.collect()
+        if not settings.save_image_large:
+            large_bytes = bytes()
 
-        return sha1_hash, width, height, ahash, large_bytes, small_bytes
+        del image
+
+        return sha1_hash, width, height, ahash, large_bytes, medium_bytes, small_bytes

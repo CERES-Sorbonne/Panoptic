@@ -42,14 +42,7 @@ class SimilarityFaissWithLabel:
         # create the faiss index based on this post: https://anttihavanko.medium.com/building-image-search-with-openai-clip-5a1deaa7a6e2
         nb_vectors = vectors.shape[0]
         vector_size = vectors.shape[1]
-        # reduce vector size only if we have more than 100k images otherwise it's not worth it since we lose accuracy
-        if nb_vectors < 1000000:
-            index = faiss.IndexFlatIP(vector_size)
-        else:
-            cells = min(round(math.sqrt(nb_vectors)), int(nb_vectors / 39))
-            index = index_factory(vector_size, f"IVF{cells},PQ16np")
-            index.train(vectors)
-            index.nprobe = 10
+        index = faiss.IndexFlatIP(vector_size)
         self.tree = index
         self.tree.add(np.asarray(vectors))
 

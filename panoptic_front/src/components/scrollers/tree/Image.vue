@@ -8,6 +8,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 import Zoomable from '@/components/Zoomable.vue';
 import { useDataStore } from '@/data/dataStore';
 import PropInput from './PropInput.vue';
+import CenteredImage from '@/components/images/CenteredImage.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -65,7 +66,10 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
                 @mouseleave="hover = false">
                 <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
-                <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" />
+                <!-- <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" /> -->
+                <CenteredImage :image="props.image.image" :width="Math.max(imageSizes.width, props.size)-2" :height="props.size"
+                style="position: absolute; top:0"
+                />
 
                 <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"

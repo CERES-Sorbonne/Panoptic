@@ -1,5 +1,6 @@
 import atexit
 import os
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Any
@@ -9,7 +10,7 @@ from showinfm import show_in_file_manager
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer import Importer
-from panoptic.core.project.project_actions import ProjectActions
+from panoptic.core.project.project_actions import ProjectActions, get_param_description
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
@@ -17,8 +18,9 @@ from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.core.task.import_image_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate
+from panoptic.models import StatusUpdate, ProjectSettings
 from panoptic.core.plugin.plugin import APlugin
+from panoptic.utils import get_model_params_description
 
 nb_workers = 8
 
@@ -42,28 +44,38 @@ class Project:
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
         self.undo_queue: UndoQueue | None = None
+        self.sha1_to_files: dict[str, list[str]] = defaultdict(list)
+
+        self.settings = ProjectSettings()
 
         self.plugin_loaded = False
         self.plugins: List[APlugin] = []
         self.plugin_paths = plugins
 
     async def start(self):
-        conn = DbConnection(self.base_path)
-        await conn.start()
-        self.db = ProjectDb(conn)
-        self.ui = ProjectUi(self.db.get_raw_db())
+        try:
+            conn = DbConnection(self.base_path)
+            await conn.start()
+            self.db = ProjectDb(conn)
+            self.ui = ProjectUi(self.db.get_raw_db())
 
-        self.db.on_import_instance.redirect(self.on.import_instance)
-        # from panoptic.plugins import DefaultPlugin
-        # paths = [DefaultPlugin.__file__, *self.plugin_paths]
-        paths = self.plugin_paths
-        for plugin_path in paths:
-            task = LoadPluginTask(self, plugin_path)
-            self.task_queue.add_task(task)
+            self.db.on_import_instance.redirect(self.on.import_instance)
+            await self._load_settings()
+            await self._load_sha1_to_files()
+            # from panoptic.plugins import DefaultPlugin
+            # paths = [DefaultPlugin.__file__, *self.plugin_paths]
+            paths = self.plugin_paths
+            for plugin_path in paths:
+                task = LoadPluginTask(self, plugin_path)
+                self.task_queue.add_task(task)
 
-        self.undo_queue = UndoQueue(self.db)
+            self.undo_queue = UndoQueue(self.db)
 
-        self.is_loaded = True
+            self.is_loaded = True
+            return True
+        except Exception as e:
+            print(e)
+            return False
 
     async def redirect_on_import(self, x):
         self.on.import_instance.emit(x)
@@ -136,4 +148,33 @@ class Project:
         plugin = plugin[0]
         await plugin.update_params(params)
         return plugin
+
+    async def _load_settings(self):
+        description = get_model_params_description(self.settings)
+        db = self.db.get_raw_db()
+        for setting in description:
+            name = setting.name
+            param_value = await db.get_project_param(name)
+            if param_value:
+                setattr(self.settings, name, param_value)
+
+    async def _load_sha1_to_files(self):
+        rows = await self.db.get_raw_db().get_instance_sha1_and_url()
+        for row in rows:
+            self.sha1_to_files[row[0]].append(row[1])
+
+    async def update_settings(self, settings: ProjectSettings):
+        description = get_model_params_description(self.settings)
+        db = self.db.get_raw_db()
+        changed = []
+        for setting in description:
+            name = setting.name
+            old_value = await db.get_project_param(name)
+            new_value = getattr(settings, name)
+            if old_value != new_value:
+                changed.append((name, old_value, new_value))
+        # use this loop to trigger changes
+        for update in changed:
+            name, old_value, new_value = update
+
 

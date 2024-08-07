@@ -1,4 +1,4 @@
-software_db_version = 3
+software_db_version = 4
 
 DB_VERSION = 'db_version'
 
@@ -173,6 +173,16 @@ def create_plugin_data():
     return query
 
 
+def create_project_params():
+    query = """
+    CREATE TABLE project (
+        key TEXT PRIMARY KEY,
+        value JSON
+    );
+    """
+    return query
+
+
 # tables2 = {
 #     'folders': create_folders_table(),
 #     'tabs': create_tabs_table(),
@@ -210,4 +220,5 @@ tables = {
     'vectors': create_vectors_table(),
     'ui_data': create_ui_data(),
     'plugin_data': create_plugin_data(),
+    'project': create_project_params()
 }

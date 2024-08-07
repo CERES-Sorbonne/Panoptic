@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import { computed } from 'vue'
 import { useProjectStore } from '@/data/projectStore'
 import { Instance, ModalId } from '@/data/models';
@@ -72,4 +72,4 @@ img {
     right: 0;
     margin: auto;
 }
-</style>
+</style> -->

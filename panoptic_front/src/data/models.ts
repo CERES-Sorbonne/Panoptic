@@ -9,8 +9,8 @@ export interface Instance {
     ahash: string
     width: number
     height: number
-    url: string
-    fullUrl: string
+    // url: string
+    // fullUrl: string
     folderId: number
     extension: string
     properties: {
@@ -18,6 +18,11 @@ export interface Instance {
     }
     dist?: number
     containerRatio?: number
+
+    urlSmall: string
+    urlMedium: string
+    urlLarge: string
+    urlRaw: string
 }
 
 export interface InstanceIndex {
