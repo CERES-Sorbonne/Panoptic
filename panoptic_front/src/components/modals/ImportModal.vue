@@ -2,14 +2,14 @@
 
 import { apiConfirmImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
-import { useProjectStore } from '@/data/projectStore';
 import Modal from './Modal.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { ModalId } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
 
 const panoptic = usePanopticStore()
-const project = useProjectStore()
+const data = useDataStore()
 
 // const properties = computed(() => panoptic.modalData as PropertyDescription[])
 const inputElem = ref(null)
@@ -17,7 +17,7 @@ const filename = ref(null)
 const properties = ref(null)
 const take = ref({})
 const loading = ref(false)
-const fusion = ref('new')
+const fusion = ref('first')
 const relative = ref(true)
 
 async function importFile() {
@@ -30,10 +30,11 @@ async function importFile() {
         exclude: exclude,
         relative: relative.value
     }
-    await apiConfirmImport(params)
+    const res = await apiConfirmImport(params)
+    data.applyCommit(res)
     clear()
     panoptic.hideModal()
-    project.reload()
+    // project.reload()
 }
 
 async function uploadFile(e) {
@@ -52,7 +53,7 @@ function clear() {
     inputElem.value.value = null
     take.value = {}
     relative.value = true
-    fusion.value = 'new'
+    fusion.value = 'first'
     loading.value = false
 }
 

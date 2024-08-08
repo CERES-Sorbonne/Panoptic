@@ -226,7 +226,7 @@ class Importer:
         self._data = data
 
     async def confirm_import(self):
-        await self.project.importer.import_data(self._data)
+        return await self.project.importer.import_data(self._data)
 
     async def import_data(self, data: ImportData):
 
@@ -255,4 +255,4 @@ class Importer:
         commit.instance_values = instance_values
         commit.image_values = image_values
         await self.project.db.apply_commit(commit)
-        print("import finished")
+        return commit
