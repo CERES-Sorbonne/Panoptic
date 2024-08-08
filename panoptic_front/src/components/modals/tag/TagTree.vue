@@ -260,7 +260,7 @@ const selectedLines = computed(() => {
 
 const svgHeight = computed(() => {
     const max = Math.max(...tagColumns.value.map(c => c.length))
-    return max * 25
+    return Math.max(0, max * 25)
 })
 
 const svgWidth = ref(100)
@@ -268,7 +268,7 @@ const svgWidth = ref(100)
 function updateSvgWidth() {
     const elem = colElem.value
     const width = elem.getBoundingClientRect().width
-    svgWidth.value = width
+    svgWidth.value = Math.max(0, width)
 }
 
 function onClickTag(tag: Tag) {
