@@ -1,4 +1,4 @@
-software_db_version = 4
+software_db_version = 3
 
 DB_VERSION = 'db_version'
 
