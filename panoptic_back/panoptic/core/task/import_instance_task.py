@@ -24,7 +24,7 @@ class ImportInstanceTask(Task):
         self.db = project.db
         self.file = file
         self.folder_id = folder_id
-        self.name = 'Import Image'
+        self.name = 'Import Instance'
 
     async def run(self):
         name = self.file.split(os.sep)[-1]

@@ -9,6 +9,7 @@ from panoptic.core.project.project import Project
 async def get_image_small(project: Project, sha1: str):
     image = await project.db.get_small_image(sha1)
     if image:
+        print('small')
         return Response(image, media_type="image/jpeg")
     return None
 
@@ -16,6 +17,7 @@ async def get_image_small(project: Project, sha1: str):
 async def get_image_medium(project: Project, sha1: str):
     image = await project.db.get_medium_image(sha1)
     if image:
+        print('medium')
         return Response(image, media_type="image/jpeg")
     return None
 
@@ -23,6 +25,7 @@ async def get_image_medium(project: Project, sha1: str):
 async def get_image_large(project: Project, sha1: str):
     image = await project.db.get_large_image(sha1)
     if image:
+        print('large')
         return Response(image, media_type="image/jpeg")
     return None
 
@@ -35,6 +38,7 @@ async def get_image_raw(project: Project, sha1: str):
         if not file_path.startswith('/'):
             file_path = '/' + file_path
     if await aiofiles.os.path.exists(file_path):
+        print('raw')
         return FileResponse(path=file_path)
     return None
 

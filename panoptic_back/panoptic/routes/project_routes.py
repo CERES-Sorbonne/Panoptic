@@ -216,10 +216,10 @@ async def commit_route(commit: DbCommit):
     return ORJSONResponse(commit)
 
 
-@project_router.get('/small/images/{file_path:path}')
-async def get_image(file_path: str):
-    path = os.path.join(project.base_path, 'mini', file_path)
-    return FileResponse(path=path)
+# @project_router.get('/small/images/{file_path:path}')
+# async def get_image(file_path: str):
+#     path = os.path.join(project.base_path, 'mini', file_path)
+#     return FileResponse(path=path)
 
 
 @project_router.get('/image/raw/{sha1:path}')
@@ -274,7 +274,7 @@ class EndpointFilter(logging.Filter):
         update = record.getMessage().find("/update") > -1
         state = record.getMessage().find("/import_status") > -1
         small_img = record.getMessage().find("/small/images/") > -1
-        img = record.getMessage().find("/images/") > -1
+        img = record.getMessage().find("/image/") > -1
         return not (state or small_img or img or update)
 
 

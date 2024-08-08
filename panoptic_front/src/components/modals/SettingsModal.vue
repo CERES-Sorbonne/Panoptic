@@ -2,11 +2,9 @@
 import { ModalId } from '@/data/models';
 import Modal from './Modal.vue';
 import TabMenu from '../TabMenu.vue';
-import { onMounted, ref } from 'vue';
-import { apiGetPluginsInfo } from '@/data/api';
+import { ref } from 'vue';
 import PluginSettings from '../PluginSettings.vue';
 import { useProjectStore } from '@/data/projectStore';
-import ActionSettings from '../ActionSettings.vue';
 import GeneralSettings from '../settings/GeneralSettings.vue';
 
 const project = useProjectStore()
@@ -21,6 +19,9 @@ const selectedPlugin = ref('')
 async function updatePluginInfo() {
     await project.updatePluginInfos()
     selectedPlugin.value = project.data.plugins[0].name
+    // delete browser Cache to update image routes
+    // if not the browser will continue loading raw pictures after adding miniatures for example
+    caches.keys().then((keyList) => Promise.all(keyList.map((key) => caches.delete(key))))
 }
 
 </script>
