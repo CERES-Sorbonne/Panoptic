@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 import { Instance, ModalId, PropertyType, Tag } from '@/data/models';
-import { deletedID, useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/dataStore';
 import { computeTagToInstance, isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -19,7 +19,7 @@ const data = useDataStore()
 const propId = ref(-1)
 const tagId = ref(-1)
 const dragging = ref(false)
-const view = ref('graph')
+const view = ref('list')
 
 const childDisabled = ref(false)
 const parentDisbled = ref(false)
