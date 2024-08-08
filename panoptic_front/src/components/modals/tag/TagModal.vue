@@ -10,6 +10,7 @@ import TagColumn from './TagColumn.vue';
 import ImagePreview from '@/components/preview/ImagePreview.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import TagTree from './TagTree.vue';
+import wTT from '@/components/tooltips/withToolTip.vue'
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -183,10 +184,10 @@ watch(tags, () => {
         <template #title>
             <div class="d-flex">
                 <PropertyIcon class="property-option" :type="PropertyType.multi_tags" />
-                <div class="property-option bnr" :class="view == 'list' ? 'selected-property' : ''"
-                    @click="view = 'list'"><i class="bi bi-list" /></div>
-                <div class="property-option bnr" :class="view == 'graph' ? 'selected-property' : ''"
-                    @click="view = 'graph'"><i class="bi bi-diagram-3" /></div>
+                <wTT message="modals.tags.list_view"><div class="property-option bnr" :class="view == 'list' ? 'selected-property' : ''"
+                    @click="view = 'list'"><i class="bi bi-list" /></div></wTT>
+                <wTT message="modals.tags.tree_view"><div class="property-option bnr" :class="view == 'graph' ? 'selected-property' : ''"
+                    @click="view = 'graph'"><i class="bi bi-diagram-3" /></div></wTT>
                 <div class="property-option" style="width: 31px;"></div>
                 <div v-for="prop in properties" class="property-option bnr" @click="propId = prop.id"
                     :class="property?.id == prop.id ? 'selected-property' : ''">
@@ -207,7 +208,7 @@ watch(tags, () => {
                             :disabled="childDisabled" @create="name => createTag(name, tag.id)"
                             @removed="removeTagChild" />
                         <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e"
-                            :draggable="dragging" class="flex-shrink-0 flex-grow-0" :disabled="dragging"
+                            :draggable="false" class="flex-shrink-0 flex-grow-0" :disabled="dragging"
                             :no-create="true" />
                         <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
                             class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"

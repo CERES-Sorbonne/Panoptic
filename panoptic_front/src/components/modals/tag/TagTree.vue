@@ -348,7 +348,7 @@ watch(() => props.property, reDraw)
 <template>
     <div class="h-100">
         <div class="d-flex mt-2 ms-2" style="height: 28px;">
-            <div v-if="!selectedTagList.length"><div class="text-secondary">Click on Tag to select</div></div>
+            <div v-if="!selectedTagList.length"><div class="text-secondary">{{  $t('modals.tags.click_to_select') }}</div></div>
             <div @click="toggleFilter" class="bbb me-1" v-if="selectedTagList.length">
                 <wTT message="modals.tags.filter_tree">
                     <i v-if="!tagFilter" class="bi bi-funnel"></i>
