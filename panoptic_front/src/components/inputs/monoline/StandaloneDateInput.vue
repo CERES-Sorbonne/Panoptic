@@ -1,10 +1,8 @@
 
 <script setup lang="ts">
-import { Image, Property } from '@/data/models';
-import { DeprecationTypes, computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import VueDatePicker from '@vuepic/vue-datepicker'
-import { useProjectStore } from '@/data/projectStore'
-import { getImageProperty, pad } from '@/utils/utils';
+import { pad } from '@/utils/utils';
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 
 
@@ -16,10 +14,10 @@ const props = defineProps<{
 const emits = defineEmits(['update:modelValue', 'blur'])
 
 let _no_reset_flag = false
+let _mark_delete = false
 
 const dateElem = ref(null)
-const focusElem = ref(null)
-const internal = ref(null)
+const internal = ref(undefined)
 const dropdownElem = ref(null)
 
 
@@ -42,6 +40,7 @@ function save() {
     _no_reset_flag = true
     dateElem.value.selectDate()
     dropdownElem.value.hide()
+    emits('update:modelValue', internal.value)
 }
 
 function cancel() {
@@ -51,8 +50,10 @@ function cancel() {
 
 function clear() {
     _no_reset_flag = true
-    dateElem.value.clearValue()
+    _mark_delete = true
+    // dateElem.value.clearValue()
     dropdownElem.value.hide()
+    emits('update:modelValue', undefined)
     // globalStore.setPropertyValue(props.property.id, props.image, undefined)
 }
 
@@ -68,9 +69,6 @@ function onHide() {
     }
 }
 
-function onEsc() {
-    console.log('la')
-}
 
 function updateLocalValue() {
     if(String(props.modelValue) == String(internal.value)) return
@@ -84,7 +82,8 @@ function updateLocalValue() {
 }
 
 function updateInternal(value: Date) {
-    if(!value) {
+    if(!value || _mark_delete) {
+        _mark_delete = false
         internal.value = undefined
         return
     }
@@ -101,9 +100,6 @@ onMounted(() => {
     updateLocalValue()
 })
 
-function log(e) {
-    console.log(e, typeof(e))
-}
 
 </script>
 
@@ -118,7 +114,7 @@ function log(e) {
 
         </template>
         <template #popup>
-            <VueDatePicker :model-value="props.modelValue" @update:model-value="e => emits('update:modelValue', e)"
+            <VueDatePicker :model-value="props.modelValue"
                 input-class-name="custom-date-picker" :hide-input-icon="true" utc="preserve" format="yyyy/MM/dd HH:mm"
                 @internal-model-change="e => updateInternal(e)"
                 calendar-cell-class-name="custom-date-picker" :inline="true" ref="dateElem">

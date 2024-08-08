@@ -23,8 +23,10 @@ const localValue = computed(() => {
 
 
 function save(date: Date) {
-    const toSave = new Date(date).toISOString()
-    console.log(date)
+    let toSave = undefined
+    if(date) {
+        toSave = new Date(date).toISOString()
+    }
     data.setPropertyValue(props.property.id, props.image, toSave)
 }
 
