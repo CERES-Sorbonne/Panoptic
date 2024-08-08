@@ -66,6 +66,8 @@ async function computeGraph() {
     computeTagDepth(tags)
     computeTagColumns()
     await nextTick()
+    updateSvgWidth()
+    await nextTick()
     computeLines()
     await nextTick()
     await reorderLines()
@@ -220,6 +222,7 @@ const sourceTag = ref(-1)
 const drawSource = ref([0, 0])
 const drawTarget = ref([0, 0])
 const selectedTags = ref<{ [tagId: number]: boolean }>({})
+const colElem = ref(null)
 
 const tagClass = computed(() => {
     let res = {}
@@ -254,6 +257,19 @@ const selectedLines = computed(() => {
     }
     return res
 })
+
+const svgHeight = computed(() => {
+    const max = Math.max(...tagColumns.value.map(c => c.length))
+    return max * 25
+})
+
+const svgWidth = ref(100)
+
+function updateSvgWidth() {
+    const elem = colElem.value
+    const width = elem.getBoundingClientRect().width
+    svgWidth.value = width
+}
 
 function onClickTag(tag: Tag) {
     document.addEventListener('mouseup', endDraw)
@@ -330,49 +346,50 @@ watch(() => props.property, reDraw)
 </script>
 
 <template>
-    <!-- <button @click="reorderLines">Reorder</button>
-    <button @click="computeLines">compute lines</button>
-    <button @click="toggleFilter">Filter</button> -->
-    <div class="d-flex m-2" style="height: 28px;">
-        <div @click="toggleFilter" class="bbb me-1" v-if="selectedTagList.length">
-            <wTT message="modals.tags.filter_tree">
-                <i v-if="!tagFilter" class="bi bi-funnel"></i>
-                <i v-else class="bi bi-funnel-fill text-primary"></i>
-            </wTT>
+    <div class="h-100">
+        <div class="d-flex mt-2 ms-2" style="height: 28px;">
+            <div v-if="!selectedTagList.length"><div class="text-secondary">Click on Tag to select</div></div>
+            <div @click="toggleFilter" class="bbb me-1" v-if="selectedTagList.length">
+                <wTT message="modals.tags.filter_tree">
+                    <i v-if="!tagFilter" class="bi bi-funnel"></i>
+                    <i v-else class="bi bi-funnel-fill text-primary"></i>
+                </wTT>
+            </div>
+            <div class="bbb" v-if="selectedTagList.length" @click="clearSelected">
+                <wTT message="modals.tags.unselect_tree">
+                    <i class="bi bi-x" /> {{ selectedTagList.length }} selected
+                </wTT>
+            </div>
         </div>
-        <div class="bbb" v-if="selectedTagList.length" @click="clearSelected">
-            <wTT message="modals.tags.unselect_tree">
-                <i class="bi bi-x" /> {{ selectedTagList.length }} selected
-            </wTT>
-        </div>
-    </div>
-    <div class="m-2">
-        <div style="position: absolute; user-select: none;" ref="mainElem">
-            <svg width="5000" height="5000" style="position: absolute; top:0; z-index: 2;">
-                <template v-for="l, i in lines">
-                    <line v-if="!selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="line" />
-                </template>
-                <template v-for="l, i in lines">
-                    <line v-if="selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="selected-line" />
-                </template>
-                <template v-for="l in lines">
-                    <line v-if="l.hover" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="hover-line" />
-                </template>
-                <line v-for="l, i in lines" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
-                    style="stroke: white; stroke-width: 4; opacity: 0; cursor: pointer;" @mouseenter="onLineHover(i)"
-                    @mouseleave="onLineEndHover(i)" @click="deleteLine(i)" />
+        <div class="m-2 main-container">
+            <div style="position: absolute; user-select: none;" ref="mainElem">
+                <svg :width="svgWidth" :height="svgHeight" style="position: absolute; top:0; z-index: 2;">
+                    <template v-for="l, i in lines">
+                        <line v-if="!selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="line" />
+                    </template>
+                    <template v-for="l, i in lines">
+                        <line v-if="selectedLines[i]" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+                            class="selected-line" />
+                    </template>
+                    <template v-for="l in lines">
+                        <line v-if="l.hover" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2" class="hover-line" />
+                    </template>
+                    <line v-for="l, i in lines" :x1="l.x1" :y1="l.y1" :x2="l.x2" :y2="l.y2"
+                        style="stroke: white; stroke-width: 4; opacity: 0; cursor: pointer;"
+                        @mouseenter="onLineHover(i)" @mouseleave="onLineEndHover(i)" @click="deleteLine(i)" />
 
-                <line v-if="isDrawing" :x1="drawSource[0]" :y1="drawSource[1]" :x2="drawTarget[0]" :y2="drawTarget[1]"
-                    stroke="green" stroke-width="2" />
-            </svg>
-            <div class="d-flex" style="z-index: 1;">
-                <div v-for="tags in tagColumns" class="me-5">
-                    <div v-for="tag, i in tags" style="height: 25px;">
-                        <span v-if="tag" :ref="e => tagElems[tag.id] = e">
-                            <TagBadge :id="tag.id" style="z-index: 10;" @mousedown="onClickTag(tag)"
-                                @mouseup="onSelectTag(tag)" @mouseenter="hoveredTag = tag.id"
-                                @mouseleave="hoveredTag = -1" :class="tagClass[tag.id]" />
-                        </span>
+                    <line v-if="isDrawing" :x1="drawSource[0]" :y1="drawSource[1]" :x2="drawTarget[0]"
+                        :y2="drawTarget[1]" stroke="green" stroke-width="2" />
+                </svg>
+                <div class="d-flex m-2" style="z-index: 1;" ref="colElem">
+                    <div v-for="tags in tagColumns" class="me-5">
+                        <div v-for="tag, i in tags" style="height: 25px;">
+                            <span v-if="tag" :ref="e => tagElems[tag.id] = e">
+                                <TagBadge :id="tag.id" style="z-index: 10;" @mousedown="onClickTag(tag)"
+                                    @mouseup="onSelectTag(tag)" @mouseenter="hoveredTag = tag.id"
+                                    @mouseleave="hoveredTag = -1" :class="tagClass[tag.id]" />
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -419,5 +436,13 @@ text {
 
 .hover-tag {
     box-shadow: 0px 0px 10px 0px gray;
+}
+
+.main-container {
+    position: relative;
+    border: solid 1px var(--border-color);
+    height: calc(100% - 50px);
+    /* width: calc(100% -0px); */
+    overflow: auto;
 }
 </style>
