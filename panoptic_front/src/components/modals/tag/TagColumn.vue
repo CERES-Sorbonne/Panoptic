@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import TagOptionsDropdown from '@/components/dropdowns/TagOptionsDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
+import { useDataStore } from '@/data/dataStore';
 import { Tag } from '@/data/models';
+import { sum } from '@/utils/utils';
 import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
 import draggableComponent from 'vuedraggable';
+
+const data = useDataStore()
 
 const props = defineProps<{
     tags: Tag[],
@@ -204,7 +208,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
                         <TagOptionsDropdown :property-id="element.propertyId" :tag-id="element.id"
                             :can-customize="true" />
                     </div>
-                    <div class="me-2 text-secondary" style="font-size: 13px;">{{ element.count }}</div>
+                    <div class="me-2 text-secondary" style="font-size: 13px;">{{ element.count + sum(element.allChildren.map(c => data.tags[c].count)) }}</div>
                 </div>
             </template>
         </draggableComponent>
