@@ -41,8 +41,15 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======Functions=======
     // =======================
     async function init() {
+        console.log('iniiit data')
         let dbFolders = await apiGetFolders()
-        folders.value = buildFolderNodes(dbFolders)
+        const folderIndex = buildFolderNodes(dbFolders)
+        // for(let folder of objValues(folderIndex)) {
+        //     if(folders.value[folder.id]) {
+        //         folder.count = folders.value[folder.id].count
+        //     }
+        // }
+        folders.value = folderIndex
         console.time('Request')
         let dbState = await apiGetDbState()
         console.timeEnd('Request')
@@ -114,7 +121,11 @@ export const useDataStore = defineStore('dataStore', () => {
     function importTags(toImport: Tag[]) {
         const updated = new Set<number>()
         for (let tag of toImport) {
-            tag.count = 0
+            if(tags.value[tag.id]) {
+                tag.count = tags.value[tag.id].count
+            } else {
+                tag.count = 0
+            }
             tag.parents = tag.parents.filter(p => p != 0)
             tags.value[tag.id] = tag
             if (!(tag.propertyId in properties.value)) {
@@ -343,7 +354,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (value) {
             tag.value = value
         }
-        if (color) {
+        if (color != undefined) {
             tag.color = color
         }
         await sendCommit({ tags: [tag] })

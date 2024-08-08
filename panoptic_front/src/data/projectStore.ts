@@ -14,6 +14,7 @@ import { TabManager } from "@/core/TabManager";
 import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
+import { interpolateCubehelixDefault } from "d3";
 
 let tabManager: TabManager = undefined
 
@@ -182,7 +183,8 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function reload() {
-        nextTick(() => init())
+        await nextTick()
+        init()
     }
 
     function getTab() {
