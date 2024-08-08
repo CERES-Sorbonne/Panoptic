@@ -5,12 +5,12 @@ import { useDataStore } from '@/data/dataStore';
 import { computeTagToInstance, isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
-import Modal2 from '../Modal2.vue';
-import TagColumn from './TagColumn.vue';
 import ImagePreview from '@/components/preview/ImagePreview.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import TagTree from './TagTree.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
+import TagColumn from '@/components/tags/TagColumn.vue';
+import TagTree from '@/components/tags/TagTree.vue';
+import Modal2 from './Modal2.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()

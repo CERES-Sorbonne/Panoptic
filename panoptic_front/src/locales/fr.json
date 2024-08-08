@@ -186,6 +186,7 @@
             "tree_view": "Vue en arbre",
             "list_view": "Vue en liste",
             "click_to_select": "Cliquez pour selectioner des tags",
+            "click_any": "Cliquez pour selectioner",
             "col_title_all": "Tous les tags",
             "col_title_children": "Tags enfants",
             "col_title_siblings": "Tags frères",

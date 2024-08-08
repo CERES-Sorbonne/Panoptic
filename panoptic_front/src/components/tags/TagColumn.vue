@@ -181,7 +181,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
                 <div class="me-2 ms-2 text-secondary" style="position: relative; top:-1px">{{ props.selected.count }}</div>
                 <div><i class="bi bi-x bb" @click="emits('unselect')"></i></div>
             </div>
-            <div v-else class="text-secondary"> Select any tag...</div>
+            <div v-else class="text-secondary">{{  $t('modals.tags.click_any') }}</div>
         </div>
         <div v-if="!filterMatch && filterValue && !props.noCreate" class="d-flex ps-2"
             :class="selectedTag == -1 ? 'bg-selected' : ''" style="cursor: pointer;" @click="">
