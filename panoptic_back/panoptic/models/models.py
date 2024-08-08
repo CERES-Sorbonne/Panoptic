@@ -339,7 +339,7 @@ class ProjectSettings(BaseModel):
     image_large_size: int = 1024
 
     save_image_small: bool = True
-    save_image_medium: bool = False
+    save_image_medium: bool = True
     save_image_large: bool = False
 
     save_file_raw: bool = False

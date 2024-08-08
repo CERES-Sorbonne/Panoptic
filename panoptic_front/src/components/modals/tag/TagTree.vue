@@ -4,7 +4,6 @@ import { useDataStore } from "@/data/dataStore";
 import { Property, Tag } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 import { sum } from "@/utils/utils";
-import { reduce } from "d3";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import wTT from '@/components/tooltips/withToolTip.vue'
 
