@@ -20,9 +20,6 @@ function select(propId) {
     dropdownElem.value.hide()
     emits('update:modelValue', data.properties[propId])
 }
-
-onMounted(() => console.log(props.modelValue))
-
 </script>
 
 <template>
