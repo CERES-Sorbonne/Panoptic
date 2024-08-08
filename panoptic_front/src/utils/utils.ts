@@ -228,7 +228,7 @@ export function deepCopy<T>(source: T): T {
 }
 
 export function getComputedValues(instance: Instance) {
-    const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
+    const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.urlRaw]
     return res;
 }
 
@@ -242,8 +242,11 @@ export function computeTagToInstance(instances: Instance[], properties: Property
 
     for(let instance of instances) {
         for(let property of properties) {
-            const value = instance.properties[property.id]
-            if(!value) continue
+            let value = instance.properties[property.id]
+            if(value === undefined) continue
+            if(!Array.isArray(value)) {
+                value = [value]
+            }
             const allTags = new Set<number>()
             for(let tId of value) {
                 tagIndex[tId].allParents.forEach(p => allTags.add(p))
