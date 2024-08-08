@@ -123,6 +123,7 @@ export const useDataStore = defineStore('dataStore', () => {
         for (let tag of toImport) {
             if(tags.value[tag.id]) {
                 tag.count = tags.value[tag.id].count
+                instanceList.value.forEach(i => dirtyInstances.add(i.id))
             } else {
                 tag.count = 0
             }
