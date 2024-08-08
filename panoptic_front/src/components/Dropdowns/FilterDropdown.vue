@@ -110,7 +110,6 @@ function updateOperator(operator: FilterOperator) {
 }
 
 function updateValue() {
-    console.log('update value', localValue.value)
     props.manager.updateFilter(filterId.value, { value: localValue.value })
     // props.manager.update(true)
 }
