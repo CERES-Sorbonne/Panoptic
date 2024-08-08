@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FunctionDescription, ParamDescription, PluginDefaultParams, PluginDescription } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
-import ParamInput from './inputs/ParamInput.vue';
+import ParamInput from '@/components/inputs/ParamInput.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { deepCopy, objValues } from '@/utils/utils';
 
