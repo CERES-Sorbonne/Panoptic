@@ -1,3 +1,4 @@
+import asyncio
 import atexit
 import os
 from collections import defaultdict
@@ -62,8 +63,8 @@ class Project:
 
             self.db.on_import_instance.redirect(self.on.import_instance)
 
-            await self._load_sha1_to_files()
-            await self._load_settings()
+            # avoid blocking response for UI on longer loads
+            asyncio.create_task(self._parallel_load())
 
             # from panoptic.plugins import DefaultPlugin
             # paths = [DefaultPlugin.__file__, *self.plugin_paths]
@@ -79,6 +80,10 @@ class Project:
         except Exception as e:
             print(e)
             return False
+
+    async def _parallel_load(self):
+        await self._load_sha1_to_files()
+        await self._load_settings()
 
     async def redirect_on_import(self, x):
         self.on.import_instance.emit(x)

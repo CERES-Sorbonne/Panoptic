@@ -3,7 +3,7 @@ import { ModalId } from '@/data/models';
 import Modal from './Modal.vue';
 import TabMenu from '../TabMenu.vue';
 import { ref } from 'vue';
-import PluginSettings from '../PluginSettings.vue';
+import PluginSettings from '../settings/PluginSettings.vue';
 import { useProjectStore } from '@/data/projectStore';
 import GeneralSettings from '../settings/GeneralSettings.vue';
 

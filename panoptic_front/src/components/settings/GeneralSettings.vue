@@ -1,16 +1,7 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue';
-import TabMenu from '../TabMenu.vue';
 import ActionSettings from '../ActionSettings.vue';
-import { useProjectStore } from '@/data/projectStore';
 import VectorSettings from './VectorSettings.vue';
-import ProjectSettings from '../ProjectSettings.vue';
-
-const project = useProjectStore()
-// const props = defineProps<{}>();
-
-const categories = ref(['actions', 'vectors'])
-const selectedCategory = ref(categories.value[0])
+import ProjectSettings from './ProjectSettings.vue';
 
 </script>
 
