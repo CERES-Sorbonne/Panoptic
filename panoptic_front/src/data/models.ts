@@ -9,7 +9,7 @@ export interface Instance {
     ahash: string
     width: number
     height: number
-    // url: string
+    url: string
     // fullUrl: string
     folderId: number
     extension: string

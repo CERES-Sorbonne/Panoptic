@@ -228,7 +228,7 @@ export function deepCopy<T>(source: T): T {
 }
 
 export function getComputedValues(instance: Instance) {
-    const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.urlRaw]
+    const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
     return res;
 }
 
