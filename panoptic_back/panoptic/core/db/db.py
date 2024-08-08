@@ -333,6 +333,19 @@ class Db:
         if not row:
             return False
         return True
+
+    async def delete_large_images(self):
+        query = "UPDATE images SET large = NULL"
+        await self.conn.execute_query(query)
+
+    async def delete_medium_images(self):
+        query = "UPDATE images SET medium = NULL"
+        await self.conn.execute_query(query)
+
+    async def delete_small_images(self):
+        query = "UPDATE images SET small = NULL"
+        await self.conn.execute_query(query)
+
     # =====================================================
     # ================= Instances =========================
     # =====================================================
@@ -531,7 +544,7 @@ class Db:
         cursor = await self.conn.execute_query(query)
         row = await cursor.fetchone()
         if row:
-            return json.loads(row[0])
+            return row[0]
         return None
 
     async def set_project_param(self, key: str, value: str):

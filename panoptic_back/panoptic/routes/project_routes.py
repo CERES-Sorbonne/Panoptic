@@ -13,7 +13,8 @@ from starlette.responses import FileResponse, StreamingResponse, Response
 
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
-    ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update
+    ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update, \
+    ProjectSettings
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 
 project_router = APIRouter()
@@ -255,6 +256,17 @@ async def get_image_small_route(sha1: str):
         res = await getter(project, sha1)
         if res:
             return res
+
+
+@project_router.get('/settings')
+async def get_settings_route():
+    return project.settings
+
+
+@project_router.post('/settings')
+async def post_settings_route(settings: ProjectSettings):
+    await project.update_settings(settings)
+    return project.settings
 
 
 class EndpointFilter(logging.Filter):

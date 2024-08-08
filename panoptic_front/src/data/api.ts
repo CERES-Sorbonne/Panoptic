@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DeleteTagResult, DirInfo, ExecuteActionPayload, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update, Instance } from './models'
+import { DeleteTagResult, DirInfo, ExecuteActionPayload, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update, Instance, ProjectSettings } from './models'
 import { SelectionStatus } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -235,4 +235,14 @@ export async function apiGetHistory() {
 export async function apiGetUpdate() {
     const res = await axios.get('/update')
     return keysToCamel(res.data) as Update
+}
+
+export async function apiGetSettings() {
+    const res = await axios.get('/settings')
+    return keysToCamel(res.data) as ProjectSettings
+}
+
+export async function apiSetSettings(settings: ProjectSettings) {
+    const res = await axios.post('/settings', keysToSnake(settings))
+    return keysToCamel(res.data)
 }

@@ -15,7 +15,7 @@ from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.project.undo_queue import UndoQueue
-from panoptic.core.task.import_image_task import ImportInstanceTask
+from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import StatusUpdate, ProjectSettings
@@ -173,8 +173,31 @@ class Project:
             new_value = getattr(settings, name)
             if old_value != new_value:
                 changed.append((name, old_value, new_value))
-        # use this loop to trigger changes
+        # update database options
         for update in changed:
             name, old_value, new_value = update
+            await db.set_project_param(name, new_value)
+
+        re_import_images = False
+        if settings.save_image_large != self.settings.save_image_large:
+            if not settings.save_image_large:
+                await db.delete_large_images()
+            else:
+                re_import_images = True
+
+        if settings.save_image_medium != self.settings.save_image_medium:
+            if not settings.save_image_medium:
+                await db.delete_medium_images()
+            else:
+                re_import_images = True
+
+        if settings.save_image_small != self.settings.save_image_small:
+            if not settings.save_image_small:
+                await db.delete_small_images()
+            else:
+                re_import_images = True
+
+        self.settings = settings
+
 
 
