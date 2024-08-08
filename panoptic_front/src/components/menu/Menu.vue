@@ -25,7 +25,7 @@ const handleInput = async (e: any) => {
     panoptic.showModal(ModalId.IMPORT)
 }
 
-const tasks = computed(() => project.backendStatus.tasks.filter(t => !(t.name == 'Load Plugin' && t.done)))
+const tasks = computed(() => project.backendStatus.tasks.filter(t => !(t.done)))
 
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
@@ -87,7 +87,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
 
 
 
-                <div class="p-2"
+                <!-- <div class="p-2"
                     v-if="project.status.import.to_import != undefined && project.status.import.to_import > 0 && showImport">
                     <div class="custom-hr" />
                     <div v-if="project.status.import.done" class="float-end"><i class="bi bi-x base-hover"
@@ -115,7 +115,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                             :style="`width: ${project.status.import.computed / project.status.import.to_import * 100}%`">
                         </div>
                     </div>
-                </div>
+                </div> -->
                 <div class="custom-hr" />
                 <div class="p-2 mt-0">
                     <div class="d-flex">

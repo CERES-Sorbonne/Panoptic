@@ -61,8 +61,10 @@ class Project:
             self.ui = ProjectUi(self.db.get_raw_db())
 
             self.db.on_import_instance.redirect(self.on.import_instance)
-            await self._load_settings()
+
             await self._load_sha1_to_files()
+            await self._load_settings()
+
             # from panoptic.plugins import DefaultPlugin
             # paths = [DefaultPlugin.__file__, *self.plugin_paths]
             paths = self.plugin_paths
@@ -156,8 +158,9 @@ class Project:
         for setting in description:
             name = setting.name
             param_value = await db.get_project_param(name)
-            if param_value:
+            if param_value is not None:
                 setattr(self.settings, name, param_value)
+        await self.update_settings(self.settings.copy())
 
     async def _load_sha1_to_files(self):
         rows = await self.db.get_raw_db().get_instance_sha1_and_url()
@@ -171,6 +174,7 @@ class Project:
         for setting in description:
             name = setting.name
             old_value = await db.get_project_param(name)
+            setattr(self.settings, name, old_value)
             new_value = getattr(settings, name)
             if old_value != new_value:
                 changed.append((name, old_value, new_value))
