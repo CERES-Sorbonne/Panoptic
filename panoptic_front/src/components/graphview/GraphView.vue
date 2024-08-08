@@ -74,7 +74,7 @@ function computeSeries() {
             continue
         }
         let propValue = group.meta.propertyValues[0]
-        const xValue = firstPropType === PropertyType.date ? propValue.value.getTime() : propValue.value
+        const xValue = firstPropType === PropertyType.date ? new Date(propValue.value).getTime() : propValue.value
         xValues.push(xValue)
         if (firstProp.name in res) {
             res[firstProp.name].data.push({ x: xValue, y: group.images.length, images: group.images.slice(0, 20).map(i => i.urlSmall) })
