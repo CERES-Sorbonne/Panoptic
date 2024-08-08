@@ -343,6 +343,8 @@ class ProjectDb:
                 if v.property_id not in existing:
                     existing[v.property_id] = {}
                 existing[v.property_id][v.instance_id] = True
+            # print([v.property_id for v in commit.instance_values if v.property_id < 0])
+            print([(v.instance_id, v.property_id) for v in commit.instance_values])
             await self._db.import_instance_property_values(commit.instance_values)
 
             missing_ids = [v for v in commit.instance_values

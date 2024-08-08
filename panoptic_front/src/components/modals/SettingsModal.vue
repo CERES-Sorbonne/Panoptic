@@ -42,7 +42,6 @@ async function updatePluginInfo() {
                     <div class="p-3" style="max-width: 700px; margin: auto;">
                         <PluginSettings :plugin="project.data.plugins.find(info => info.name == selectedPlugin)" />
                     </div>
-
                 </div>
             </div>
 
