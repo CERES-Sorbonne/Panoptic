@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 import { Instance, ModalId, PropertyType, Tag } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
 import { computeTagToInstance, isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -37,7 +37,7 @@ const property = computed(() => {
     }
     return prop
 })
-const properties = computed(() => data.propertyList.filter(p => isTag(p.type)))
+const properties = computed(() => data.propertyList.filter(p => isTag(p.type) && p.id != deletedID))
 const tags = computed(() => data.tagList.filter(t => t.propertyId == property.value?.id))
 
 const propertyCounts = computed(() => {
