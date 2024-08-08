@@ -4,6 +4,7 @@ import TabMenu from '../TabMenu.vue';
 import ActionSettings from '../ActionSettings.vue';
 import { useProjectStore } from '@/data/projectStore';
 import VectorSettings from './VectorSettings.vue';
+import ProjectSettings from '../ProjectSettings.vue';
 
 const project = useProjectStore()
 // const props = defineProps<{}>();
@@ -15,6 +16,9 @@ const selectedCategory = ref(categories.value[0])
 
 <template>
   <div class="row">
+    <div class="col category">
+      <ProjectSettings />
+    </div>
     <div class="col category">
       <ActionSettings />
     </div>

@@ -500,3 +500,15 @@ export interface Update {
     actions?: FunctionDescription[]
     status?: StatusUpdate
 }
+
+export interface ProjectSettings {
+    imageSmallSize: number
+    imageMediumSize: number
+    imageLargeSize: number
+
+    saveImageSmall: boolean
+    saveImageMedium: boolean
+    saveImageLarge: boolean
+
+    saveFileRaw: boolean
+}

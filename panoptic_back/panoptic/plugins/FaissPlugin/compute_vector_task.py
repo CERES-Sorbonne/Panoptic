@@ -29,12 +29,9 @@ class ComputeVectorTask(Task):
         if exist:
             return
 
-        # folders = await self.project.get_folders()
-        # folder = next(f for f in folders if f.id == instance.folder_id)
-        # file_path = f"{folder.path}/{instance.name}"
         image_data = await self.project.get_project().db.get_large_image(instance.sha1)
         if not image_data:
-            file = self.project.get_project().sha1_to_files[instance.sha1][0]
+            file = instance.url
             async with aiofiles.open(file, mode='rb') as file:
                 image_data = await file.read()
 
@@ -43,7 +40,7 @@ class ComputeVectorTask(Task):
         res = await self.project.add_vector(vector)
         del vector
         # gc.collect()
-        logging.info('computed image: ', instance.id, '  :  ', res.sha1)
+        # logging.info('computed image: ', instance.id, '  :  ', res.sha1)
         return res
 
     async def run_if_last(self):
