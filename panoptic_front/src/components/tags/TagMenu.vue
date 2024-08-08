@@ -12,7 +12,7 @@ import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
-import { objValues } from '@/utils/utils';
+import { objValues, sum } from '@/utils/utils';
 
 const data = useDataStore()
 
@@ -154,7 +154,7 @@ watch(filteredTagList, () => {
                             :can-customize="props.canCustomize" @delete="id => emits('delete', id)" @hide="focus" />
                     </div>
                     <div class="text-secondary" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
-                        {{ tag.count }}
+                        {{ tag.count + sum(tag.allChildren.map(c => data.tags[c].count)) }}
                     </div>
 
                 </div>

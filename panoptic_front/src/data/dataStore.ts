@@ -142,7 +142,7 @@ export const useDataStore = defineStore('dataStore', () => {
         for (let propId of updated) {
             setTagsChildren(properties.value[propId].tags)
         }
-        for (let tag of toImport) {
+        for (let tag of objValues(tags.value)) {
             tag.allChildren = getTagChildren(tag, tags.value)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag, tags.value)
@@ -405,9 +405,9 @@ export const useDataStore = defineStore('dataStore', () => {
         const removed = oldTags.filter(t => !now.has(t))
 
         added.forEach(t => tags.value[t].count += 1)
-        added.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count += 1))
+        // added.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count += 1))
         removed.forEach(t => tags.value[t].count -= 1)
-        removed.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count -= 1))
+        // removed.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count -= 1))
 
         triggerRef(tags)
     }
