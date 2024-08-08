@@ -146,7 +146,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
     <div class="box d-flex flex-column">
         <div class="search d-flex">
             <div class="flex-grow-1"></div>
-            <div class="text-nowrap">{{ props.title }}</div>
+            <div v-if="!openInput" class="text-nowrap">{{ $t('modals.tags.col_title_' +props.title) }}</div>
             <div class="flex-grow-1">
             </div>
             <div class="search-box d-flex me-1">
@@ -208,21 +208,6 @@ onMounted(() => tagList.value = [...filteredTags.value])
                 </div>
             </template>
         </draggableComponent>
-
-
-
-
-        <!-- <div style="overflow: auto;">
-            <div v-for="tag, index in filteredTags" class="d-flex ps-2"
-                :class="selectedTag == index ? 'bg-selected' : ''" style="cursor: pointer;"
-                @click="emits('select', tag.id)" @mouseenter="selectedTag = index" @mouseleave="selectedTag = -1">
-                <div>
-                    <TagBadge :id="tag.id" />
-                </div>
-                <div class="flex-grow-1"></div>
-                <div class="me-2 text-secondary" style="font-size: 13px;">{{ tag.count }}</div>
-            </div>
-        </div> -->
         <div v-if="props.disabled" class="disable-overlay"></div>
     </div>
 </template>
@@ -231,7 +216,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
 .box {
     padding: 6px 0px;
     border-right: 1px solid var(--border-color);
-    width: 250px;
+    width: 200px;
     /* font-size: 13px; */
     position: relative;
 }
@@ -276,7 +261,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
 }
 
 .open-input {
-    width: 70px;
+    width: 125px;
 }
 
 .selected-sort {

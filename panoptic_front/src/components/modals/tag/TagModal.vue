@@ -199,18 +199,18 @@ watch(tags, () => {
         <template #content="{width, height}">
             <template v-if="property">
                 <div v-if="view == 'list'" class="h-100 bg-white d-flex">
-                    <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
+                    <TagColumn :tags="tags" title="all" :main="true" :selected="tag" :draggable="true"
                         class="flex-shrink-0 flex-grow-0" @select="e => tagId = e" @unselect="tagId = -1"
                         @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
                     <template v-if="tag">
-                        <TagColumn :tags="childrenTags" title="Tag enfants" :draggable="dragging"
+                        <TagColumn :tags="childrenTags" title="children" :draggable="dragging"
                             @select="e => tagId = e" class="flex-shrink-0 flex-grow-0" @added="addChild"
                             :disabled="childDisabled" @create="name => createTag(name, tag.id)"
                             @removed="removeTagChild" />
-                        <TagColumn :tags="siblingsTags" title="Tag siblings" @select="e => tagId = e"
+                        <TagColumn :tags="siblingsTags" title="siblings" @select="e => tagId = e"
                             :draggable="false" class="flex-shrink-0 flex-grow-0" :disabled="dragging"
                             :no-create="true" />
-                        <TagColumn :tags="parentTags" title="Tag parents" :draggable="dragging" @select="e => tagId = e"
+                        <TagColumn :tags="parentTags" title="parents" :draggable="dragging" @select="e => tagId = e"
                             class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
                             @added="addParent" @removed="removeTagParent" />
                         <div v-if="tagToInstance[tag.id].length" class="w-100 h-100 pt-1 d-flex flex-column">

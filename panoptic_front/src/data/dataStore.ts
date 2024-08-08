@@ -41,7 +41,7 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======Functions=======
     // =======================
     async function init() {
-        console.log('iniiit data')
+        // console.log('iniiit data')
         let dbFolders = await apiGetFolders()
         const folderIndex = buildFolderNodes(dbFolders)
         // for(let folder of objValues(folderIndex)) {
@@ -290,7 +290,8 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function deleteTag(tagId: number, dontAsk?: boolean) {
         if (!dontAsk) {
-            let ok = confirm('Delete tag: ' + tagId)
+            const tag = tags.value[tagId]
+            let ok = confirm('Delete tag: ' + tag.value + ' (ID: ' + tagId + ') ?')
             if (!ok) return
         }
         sendCommit({ emptyTags: [tagId] })
