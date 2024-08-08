@@ -12,7 +12,7 @@ import { keyState } from './data/keyState';
 import ExportModal2 from './components/modals/ExportModal2.vue';
 import SettingsModal from './components/modals/SettingsModal.vue';
 import ImportModal from './components/modals/ImportModal.vue';
-import TagModal from './components/modals/tag/TagModal.vue';
+import TagModal from './components/modals/TagModal.vue';
 
 const panoptic = usePanopticStore()
 
