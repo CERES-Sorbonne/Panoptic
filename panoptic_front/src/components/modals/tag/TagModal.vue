@@ -195,7 +195,7 @@ watch(tags, () => {
                 </div>
             </div>
         </template>
-        <template #content="">
+        <template #content="{width, height}">
             <template v-if="property">
                 <div v-if="view == 'list'" class="h-100 bg-white d-flex">
                     <TagColumn :tags="tags" title="Tout les tags" :main="true" :selected="tag" :draggable="true"
@@ -232,7 +232,7 @@ watch(tags, () => {
                         </div>
                     </template>
                 </div>
-                <div v-if="view == 'graph'">
+                <div v-if="view == 'graph'" :style="{height: (height-40)+'px', position:'relative'}" style="overflow: hidden;">
                     <TagTree :property="property" />
                 </div>
             </template>

@@ -99,7 +99,7 @@ watch(() => panoptic.openModalId, () => {
                     </div>
                 </div>
                 <div class="body flex-grow-1" :style="bodyStyle">
-                    <slot name="content" :data="data"></slot>
+                    <slot name="content" :data="data" :width="modalWidth" :height="modalHeight"></slot>
                 </div>
             </div>
         </div>
