@@ -10,16 +10,17 @@ from showinfm import show_in_file_manager
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer import Importer
-from panoptic.core.project.project_actions import ProjectActions, get_param_description
+from panoptic.core.plugin.plugin import APlugin
+from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.project.undo_queue import UndoQueue
+from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import StatusUpdate, ProjectSettings
-from panoptic.core.plugin.plugin import APlugin
 from panoptic.utils import get_model_params_description
 
 nb_workers = 8
@@ -198,6 +199,11 @@ class Project:
                 re_import_images = True
 
         self.settings = settings
+
+        if re_import_images:
+            sha1s = list(self.sha1_to_files.keys())
+            [self.task_queue.add_task(ImportImageTask(self, sha1)) for sha1 in sha1s]
+
 
 
 
