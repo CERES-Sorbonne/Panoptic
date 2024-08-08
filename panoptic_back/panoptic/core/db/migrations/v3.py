@@ -1,6 +1,10 @@
 v3_sql = """
 PRAGMA foreign_keys = OFF;
-ALTER TABLE instances RENAME TO instances_old;
+
+CREATE TABLE instances_old AS
+SELECT * FROM instances;
+
+DROP TABLE instances;
 
 CREATE TABLE instances (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
