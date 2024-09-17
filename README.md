@@ -18,7 +18,7 @@ Since it requires deep learning libraries, it is recommended to use it with a co
 Python 3.9 or higher is required, and a custom environnment (venv, pyenv, conda etc.) is recommended.
 Open a terminal and type:
 
-- `pip install panoptic`
+- `pip3 install panoptic`
 - `panoptic`
 
 ## Mac installation
@@ -26,7 +26,7 @@ Open a terminal and type:
 Just like the windows installation but you will need to also install the xcode tools first. 
 For this, just use this command in a terminal: `xcode-select –-install`, it should trigger the installation of the command line tools.
 Then run:
-- `pip install panoptic`
+- `pip3 install panoptic`
 - `panoptic`
 
 ## Docker installation
