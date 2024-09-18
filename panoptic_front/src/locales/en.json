@@ -160,6 +160,7 @@
                 "geq": "≥",
                 "startsWith": "begins with",
                 "like": "contains",
+                "notLike": "doesn't containt",
                 "containsAny": "contains",
                 "containsNot": "does not contain",
                 "containsAll": "contains all",

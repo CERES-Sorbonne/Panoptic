@@ -27,6 +27,7 @@ export function operatorHasInput(operator: FilterOperator) {
         case FilterOperator.leq:
         case FilterOperator.lower:
         case FilterOperator.like:
+        case FilterOperator.notLike:
         case FilterOperator.startsWith:
             return true
         default:
@@ -49,16 +50,16 @@ export function availableOperators(propertyType: PropertyType): Array<FilterOper
         case PropertyType.number:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.leq, FilterOperator.lower, FilterOperator.greater, FilterOperator.geq]
         case PropertyType.path:
-            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like]
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like, FilterOperator.notLike]
         case PropertyType.string:
-            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like]
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.startsWith, FilterOperator.like, FilterOperator.notLike]
         case PropertyType.tag:
             return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.containsAny, FilterOperator.containsNot]
         case PropertyType.url:
-            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.startsWith]
+            return [FilterOperator.isSet, FilterOperator.notSet, FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.notLike, FilterOperator.startsWith]
         case PropertyType._ahash:
         case PropertyType._sha1:
-            return [FilterOperator.equal, FilterOperator.equalNot]
+            return [FilterOperator.equal, FilterOperator.equalNot, FilterOperator.like, FilterOperator.notLike]
         case PropertyType._width:
         case PropertyType._height:
             return [FilterOperator.equal, FilterOperator.lower, FilterOperator.leq, FilterOperator.greater, FilterOperator.geq]
@@ -113,6 +114,7 @@ export enum FilterOperator {
     equal = "equal",
     equalNot = "equalNot",
     like = "like",
+    notLike = 'notLike',
     lower = "lower",
     leq = "leq",
     greater = "greater",
@@ -223,6 +225,11 @@ const operatorMap: { [operator in FilterOperator]?: any } = {
         if (isEmpty(b)) return true;
         if (isEmpty(a)) return false;
         return a.match(b)
+    },
+    [FilterOperator.notLike]: (a: string, b: string) => {
+        if (isEmpty(b)) return true;
+        if (isEmpty(a)) return false;
+        return !a.match(b)
     }
 
 }

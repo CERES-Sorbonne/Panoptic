@@ -163,6 +163,7 @@
                 "geq": "≥",
                 "startsWith": "débute par",
                 "like": "contient",
+                "notLike": "ne contiens pas",
                 "containsAny": "contient",
                 "containsNot": "ne contient pas",
                 "containsAll": "contient tous",
