@@ -165,7 +165,7 @@ watch(() => filter.value, () => updateLocal())
                         <div class="me-2" v-if="operatorHasInput(filter.operator)" style="width: 100%;">
                             <TagInput
                                 v-if="filterProperty.type == PropertyType.multi_tags || filterProperty.type == PropertyType.tag"
-                                v-model="localValue" :auto-focus="true"
+                                v-model="localValue" :auto-focus="true" :force-multi="true"
                                 :property="data.properties[filter.propertyId]" ref="inputElem" @hide="hide"
                                 @update:model-value="updateValue" />
                             <ColorPropInputNoDropdown v-else-if="filterProperty.type == PropertyType.color"
