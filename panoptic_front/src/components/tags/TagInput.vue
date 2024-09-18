@@ -12,16 +12,17 @@ import { Property, Tag, PropertyType } from '@/data/models';
 
 
 
-const props = defineProps({
-    property: Object as () => Property,
-    modelValue: Array<number>,
-    excluded: Array<number>,
-    canCreate: Boolean,
-    canCustomize: Boolean,
-    canLink: Boolean,
-    canDelete: Boolean,
-    autoFocus: Boolean
-})
+const props = defineProps<{
+    property: Property,
+    modelValue?: number[],
+    excluded?: number[],
+    canCreate?: boolean,
+    canCustomize?: boolean,
+    canLink?: boolean,
+    canDelete?: boolean,
+    autoFocus?: boolean,
+    forceMulti?: boolean
+}>()
 const emits = defineEmits(['update:modelValue', 'select', 'remove'])
 defineExpose({
     focus
@@ -34,7 +35,7 @@ const tags = computed(() => safeValue.value.map(id => props.property.tags[id]))
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
 function onSelect(tag: Tag) {
-    if (props.property.type == PropertyType.tag) {
+    if (props.property.type == PropertyType.tag && !props.forceMulti) {
         emits('update:modelValue', [tag.id])
     } else {
         emits('update:modelValue', [...safeValue.value, tag.id])
