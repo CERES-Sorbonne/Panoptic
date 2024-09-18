@@ -76,7 +76,7 @@ function setMode(value) {
             <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonnées</div>
         </div>
         <div class="custom-hr"></div>
-        <div class="flex-grow-1 overflow-scroll">
+        <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
             <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties"
                 @paint="e => emits('paint', e)"  @hover="emits('hover')" @hoverEnd="emits('hoverEnd')" />
         </div>
