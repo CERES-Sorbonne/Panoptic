@@ -184,6 +184,7 @@
         "tags": {
             "filter_tree": "Afficher seulement les tags selectionnés",
             "unselect_tree": "Annuler la selection",
+            "merge_tree": "Fusionner Tags",
             "tree_view": "Vue en arbre",
             "list_view": "Vue en liste",
             "click_to_select": "Cliquez pour selectioner des tags",

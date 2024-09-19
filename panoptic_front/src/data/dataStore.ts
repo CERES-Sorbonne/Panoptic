@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
 import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
-import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiReImportFolder, apiRedo, apiUndo } from "./api";
+import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiReImportFolder, apiRedo, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isTag } from "@/utils/utils";
 import { useProjectStore } from "./projectStore";
@@ -119,8 +119,11 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function importTags(toImport: Tag[]) {
+        console.log(toImport)
         const updated = new Set<number>()
         for (let tag of toImport) {
+            if(tag.id == deletedID) continue
+            
             if(tags.value[tag.id]) {
                 tag.count = tags.value[tag.id].count
                 instanceList.value.forEach(i => dirtyInstances.add(i.id))
@@ -149,6 +152,11 @@ export const useDataStore = defineStore('dataStore', () => {
             tag.allParents = getTagParents(tag, tags.value)
         }
         triggerRef(tags)
+    }
+
+    async function mergeTags(tagIds: number[]) {
+        const commit = await apiMergeTags(tagIds)
+        applyCommit(commit)
     }
 
     function importInstanceValues(instanceValues: InstancePropertyValue[]) {
@@ -262,7 +270,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean) {
-        console.log('send commit', commit)
+        // console.log('send commit', commit)
         if (undo) {
             commit.undo = true
         }
@@ -475,7 +483,7 @@ export const useDataStore = defineStore('dataStore', () => {
         folderRoots, sha1Index, instanceList, propertyList, tagList,
         addFolder, reImportFolder, deleteFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
-        addTag, deleteTagParent, updateTag, addTagParent, deleteTag,
+        addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags,
         applyCommit, sendCommit, undo, redo, onUndo,
         clear
     }

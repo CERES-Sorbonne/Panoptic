@@ -5,6 +5,7 @@ from typing import Any
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.project.project_events import ImportInstanceEvent
+from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty
 from panoptic.models.computed_properties import computed_properties
@@ -15,7 +16,7 @@ class ProjectDb:
     def __init__(self, conn: DbConnection):
         self._db = Db(conn)
         self._fake_id_counter = -100
-
+        self.undo_queue = UndoQueue(self)
         self.on_import_instance = ImportInstanceEvent()
 
     async def close(self):
@@ -140,6 +141,79 @@ class ProjectDb:
         for prop_id in property_ids:
             res.extend(await self._db.get_tags(prop_id))
         return res
+
+    async def merge_tags(self, tag_ids: list[int]):
+        tags = await self._db.get_tags_by_ids(tag_ids)
+        main_tag = [t for t in tags if t.id == tag_ids[0]][0]
+        prop_id = main_tag.property_id
+        if not len(tag_ids) >= 2:
+            raise ValueError('Tag merge failed. Select at least 2 tags')
+        if not all([t.property_id == prop_id for t in tags]):
+            raise ValueError('Tag merge failed. All tags must come from the same property')
+
+        commit = DbCommit()
+        tag_set = set(tag_ids)
+        removed_set = set(tag_ids[1:])
+
+        all_tags = await self.get_tags(prop_id)
+        main_tag.parents = list(set([p for t in tags for p in t.parents if p not in removed_set and p != main_tag.id]))
+        tags_to_update = [t for t in all_tags if any([p in removed_set for p in t.parents]) and t.id not in removed_set and t.id != main_tag.id]
+        for tag in tags_to_update:
+            corrected_parents = []
+            has_main_tag = False
+            for parent_id in tag.parents:
+                if parent_id not in removed_set and parent_id != main_tag.id:
+                    corrected_parents.append(parent_id)
+                elif not has_main_tag and parent_id == main_tag.id:
+                    corrected_parents.append(main_tag.id)
+                    has_main_tag = True
+                elif not has_main_tag and parent_id in removed_set:
+                    corrected_parents.append(main_tag.id)
+                    has_main_tag = True
+            tag.parents = corrected_parents
+        commit.tags.append(main_tag)
+        commit.tags.extend(tags_to_update)
+
+        prop = (await self.get_properties(ids=[prop_id]))[0]
+        value_pairs: list[tuple[int | str, Any]]
+        if prop.mode == PropertyMode.id:
+            values = await self._db.get_instance_property_values(property_ids=[prop_id])
+            value_pairs = [(v.instance_id, v.value) for v in values]
+        else:
+            values = await self._db.get_image_property_values(property_ids=[prop_id])
+            value_pairs = [(v.sha1, v.value) for v in values]
+
+        to_update = []
+        for pair in value_pairs:
+            key, value = pair
+            if not any([t in tag_set for t in value]):
+                continue
+            corrected_value = []
+            has_main_tag = False
+            for tag in value:
+                if tag not in removed_set and tag != main_tag.id:
+                    corrected_value.append(tag)
+                elif not has_main_tag and tag == main_tag.id:
+                    corrected_value.append(main_tag.id)
+                    has_main_tag = True
+                elif not has_main_tag and tag in removed_set:
+                    corrected_value.append(main_tag.id)
+                    has_main_tag = True
+            pair = (key, corrected_value)
+            to_update.append(pair)
+
+        if prop.mode == PropertyMode.id:
+            commit.instance_values.extend(
+                [InstanceProperty(property_id=prop_id, instance_id=k, value=v) for k, v in to_update]
+            )
+        else:
+            commit.image_values.extend(
+                [ImageProperty(property_id=prop_id, sha1=k, value=v) for k, v in to_update]
+            )
+
+        commit.empty_tags.extend(tag_ids[1:])
+        await self.undo_queue.do(commit)
+        return commit
 
     async def _delete_tags(self, ids: list[int]):
         to_delete = set(ids)

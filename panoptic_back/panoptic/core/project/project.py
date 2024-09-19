@@ -45,7 +45,6 @@ class Project:
         self.task_queue = TaskQueue(self.executor, num_workers=nb_workers*2)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
-        self.undo_queue: UndoQueue | None = None
         self.sha1_to_files: dict[str, list[str]] = defaultdict(list)
 
         self.settings = ProjectSettings()
@@ -72,8 +71,6 @@ class Project:
             for plugin_path in paths:
                 task = LoadPluginTask(self, plugin_path)
                 self.task_queue.add_task(task)
-
-            self.undo_queue = UndoQueue(self.db)
 
             self.is_loaded = True
             return True
@@ -104,7 +101,6 @@ class Project:
         export_path = await self.exporter.export_data(name=name, path=self.base_path, instance_ids=ids,
                                                       properties=properties,
                                                       copy_images=copy_images, key=key)
-        # export_path = "lala"
         show_in_file_manager(export_path)
         return export_path
 

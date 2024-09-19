@@ -75,13 +75,13 @@ class PluginProjectInterface:
         return await self._project.db.apply_commit(commit)
 
     async def do(self, commit: DbCommit):
-        return await self._project.undo_queue.do(commit)
+        return await self._project.db.undo_queue.do(commit)
 
     async def undo(self):
-        return await self._project.undo_queue.undo()
+        return await self._project.db.undo_queue.undo()
 
     async def redo(self):
-        return await self._project.undo_queue.redo()
+        return await self._project.db.undo_queue.redo()
 
     async def add_vector(self, vector: Vector):
         return await self._project.db.add_vector(vector)

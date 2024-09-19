@@ -115,3 +115,7 @@ class UIDataPayload(CamelModel):
 class PluginParamsPayload(CamelModel):
     plugin: str
     params: Any
+
+
+class TagMergePayload(CamelModel):
+    tag_ids: list[int]

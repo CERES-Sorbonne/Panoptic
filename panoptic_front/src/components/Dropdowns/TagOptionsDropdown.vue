@@ -23,6 +23,7 @@ const tag = computed(() => data.properties[props.propertyId].tags[props.tagId])
 
 
 async function updateFromStore() {
+    if(!tag.value) return
     localName.value = tag.value.value
     localColor.value = tag.value.color
     await nextTick()

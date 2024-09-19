@@ -14,7 +14,7 @@ from starlette.responses import FileResponse, StreamingResponse, Response
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update, \
-    ProjectSettings
+    ProjectSettings, TagMergePayload
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 
 project_router = APIRouter()
@@ -84,7 +84,7 @@ async def get_image(file_path: str):
 
 @project_router.get("/history")
 async def get_history_route():
-    undo, redo = project.undo_queue.stats()
+    undo, redo = project.db.undo_queue.stats()
     return CommitHistory(undo=undo, redo=redo)
 
 
@@ -92,6 +92,11 @@ async def get_history_route():
 async def get_tags_route(prop: Optional[int] = None):
     tags = await project.db.get_tags(prop)
     return ORJSONResponse(tags)
+
+
+@project_router.post("/tags/merge")
+async def post_tags_merge_route(req: TagMergePayload):
+    return await project.db.merge_tags(req.tag_ids)
 
 
 @project_router.get("/folders")
@@ -198,29 +203,23 @@ async def set_default_vectors(vector_description: VectorDescription):
 
 @project_router.post('/undo')
 async def undo_route():
-    res = await project.undo_queue.undo()
+    res = await project.db.undo_queue.undo()
     return ORJSONResponse(res)
 
 
 @project_router.post('/redo')
 async def undo_route():
-    res = await project.undo_queue.redo()
+    res = await project.db.undo_queue.redo()
     return ORJSONResponse(res)
 
 
 @project_router.post('/commit')
 async def commit_route(commit: DbCommit):
     if commit.undo:
-        await project.undo_queue.do(commit)
+        await project.db.undo_queue.do(commit)
     else:
         await project.db.apply_commit(commit)
     return ORJSONResponse(commit)
-
-
-# @project_router.get('/small/images/{file_path:path}')
-# async def get_image(file_path: str):
-#     path = os.path.join(project.base_path, 'mini', file_path)
-#     return FileResponse(path=path)
 
 
 @project_router.get('/image/raw/{sha1:path}')

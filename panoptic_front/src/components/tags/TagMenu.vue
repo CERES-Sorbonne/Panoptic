@@ -11,7 +11,7 @@ import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
 import { objValues, sum } from '@/utils/utils';
 
 const data = useDataStore()
@@ -46,7 +46,7 @@ const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.v
 
 const tags = computed(() => {
     const res: TagIndex = {}
-    objValues(data.tags).filter(t => t.propertyId == props.property.id).forEach(t => res[t.id] = t)
+    objValues(data.tags).filter(t => t.propertyId == props.property.id && t.id != deletedID).forEach(t => res[t.id] = t)
     return res
 })
 const filteredTagList = computed(() => {
