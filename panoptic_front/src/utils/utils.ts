@@ -1,6 +1,6 @@
 import { Group } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
-import { useDataStore } from "@/data/dataStore"
+import { deletedID, useDataStore } from "@/data/dataStore"
 import { PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, inject } from "vue"
@@ -99,7 +99,7 @@ export function getTagChildren(tag: Tag, tags: TagIndex) {
     const recursive = (t: Tag) => {
         res.push(t.id)
         if (t.children) {
-            t.children.forEach(cId => recursive(tags[cId]))
+            t.children.filter(c => c != deletedID).forEach(cId => recursive(tags[cId]))
         }
 
     }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TagBadge from "@/components/tagtree/TagBadge.vue";
-import { useDataStore } from "@/data/dataStore";
+import { deletedID, useDataStore } from "@/data/dataStore";
 import { Property, Tag } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 import { sum } from "@/utils/utils";
@@ -33,7 +33,7 @@ const mainElem = ref(null)
 let offset = { x: 0, y: 0 }
 
 const tagList = computed(() => {
-    let res = data.tagList.filter(t => t.propertyId == props.property.id)
+    let res = data.tagList.filter(t => t.propertyId == props.property.id && t.id != deletedID)
     if (tagFilter.value && Object.keys(selectedTags.value).length) {
         const valid = new Set<number>()
         const selected = res.filter(t => selectedTags.value[t.id])
@@ -339,9 +339,19 @@ function clearSelected() {
     }
 }
 
+async function mergeSelected() {
+    const list = selectedTagList.value
+    await data.mergeTags(list)
+    for (let t of list.slice(1)) {
+        delete selectedTags.value[t]
+    }
+    reDraw()
+}
+
 onMounted(computeGraph)
 watch(() => project.status.loaded, computeGraph)
 watch(() => props.property, reDraw)
+watch(() => data.onUndo, reDraw)
 
 </script>
 
@@ -358,6 +368,11 @@ watch(() => props.property, reDraw)
             <div class="bbb" v-if="selectedTagList.length" @click="clearSelected">
                 <wTT message="modals.tags.unselect_tree">
                     <i class="bi bi-x" /> {{ selectedTagList.length }} selected
+                </wTT>
+            </div>
+            <div class="bbb ms-1" v-if="selectedTagList.length > 1" @click="mergeSelected">
+                <wTT message="modals.tags.merge_tree">
+                    Fusion
                 </wTT>
             </div>
         </div>

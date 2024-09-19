@@ -33,6 +33,11 @@ export const apiGetTags = async () => {
     return keysToCamel(res.data) as Tag[]
 }
 
+export async function apiMergeTags(tagIds: number[]) {
+    const res = await axios.post('/tags/merge', {tag_ids: tagIds})
+    return keysToCamel(res.data) as DbCommit
+}
+
 export const apiGetProperties = async () => {
     const res = await axios.get('/property')
     return keysToCamel(res.data)
