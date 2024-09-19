@@ -222,6 +222,7 @@ const sourceTag = ref(-1)
 const drawSource = ref([0, 0])
 const drawTarget = ref([0, 0])
 const selectedTags = ref<{ [tagId: number]: boolean }>({})
+const selectedOrder = ref([])
 const colElem = ref(null)
 
 const tagClass = computed(() => {
@@ -284,13 +285,16 @@ function onClickTag(tag: Tag) {
 }
 
 function onSelectTag(tag: Tag) {
-    console.log('mouseup')
     const selected = selectedTags.value
     if (isDrawing.value && sourceTag.value != tag.id) return
     if (selected[tag.id]) {
         delete selected[tag.id]
+        let order = selectedOrder.value
+        order.splice(order.indexOf(tag.id), 1)
+        selectedOrder.value = order
     } else {
         selected[tag.id] = true
+        selectedOrder.value.push(tag.id)
     }
     selectedTags.value = selected
 
@@ -334,18 +338,19 @@ function clearSelected() {
     for (let t of list) {
         delete selectedTags.value[t]
     }
+    selectedOrder.value = []
     if (tagFilter.value) {
         reDraw()
     }
 }
 
 async function mergeSelected() {
-    const list = selectedTagList.value
+    const list = selectedOrder.value
     await data.mergeTags(list)
-    for (let t of list.slice(1)) {
-        delete selectedTags.value[t]
-    }
+    const first = list[0]
+    clearSelected()
     reDraw()
+    onSelectTag(data.tags[first])
 }
 
 onMounted(computeGraph)
@@ -372,7 +377,7 @@ watch(() => data.onUndo, reDraw)
             </div>
             <div class="bbb ms-1" v-if="selectedTagList.length > 1" @click="mergeSelected">
                 <wTT message="modals.tags.merge_tree">
-                    Fusion
+                    <span>Fusion</span> <span class="ms-1"><TagBadge :id="selectedOrder[0]" /></span>
                 </wTT>
             </div>
         </div>
