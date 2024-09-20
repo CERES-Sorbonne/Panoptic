@@ -10,13 +10,12 @@ from showinfm import show_in_file_manager
 
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
-from panoptic.core.importer import Importer
+from panoptic.core.importer.importer import Importer
 from panoptic.core.plugin.plugin import APlugin
 from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
-from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
