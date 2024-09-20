@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from panoptic.core.project.project import Project
+from panoptic.models import PropertyType
 
 
 async def test_import_images(empty_project: Project, image_dir: str):
@@ -55,6 +56,10 @@ async def test_import_data(instance_project: Project, import_csv: str):
 
     assert len(instances) == 10
 
+    properties = await db.get_properties()
+
+    assert len(properties) == 8
+
     instance_values = await db.get_instance_property_values(instance_ids=[i.id for i in instances])
     image_values = await db.get_image_property_values(sha1s=list({i.sha1 for i in instances}))
 
@@ -62,7 +67,65 @@ async def test_import_data(instance_project: Project, import_csv: str):
     assert len(instance_values) == 75
 
     instance_values_index = defaultdict(list)
+    for val in instance_values:
+        instance_values_index[val.property_id].append(val)
 
+    property_index = {p.type: p for p in properties}
+
+    instance_1 = instance_index['number_1.png']
+    instance_8 = instance_index['number_8.png']
+
+    tag_property = property_index[PropertyType.tag]
+    tag_values = instance_values_index[tag_property.id]
+    assert all([type(v.value) == list for v in tag_values])
+    assert all([len(v.value) == 1 for v in tag_values])
+
+    multi_tag_property = property_index[PropertyType.multi_tags]
+    multi_tag_values = instance_values_index[multi_tag_property.id]
+    assert all([type(v.value) == list for v in multi_tag_values])
+    assert all([len(v.value) == 2 for v in multi_tag_values])
+
+    string_property = property_index[PropertyType.string]
+    string_values = instance_values_index[string_property.id]
+    assert all([type(v.value) == str for v in string_values])
+    value_index = {v.instance_id: v for v in string_values}
+    assert value_index[instance_1.id].value == 'one'
+    assert value_index[instance_8.id].value == 'eight'
+
+    number_property = property_index[PropertyType.number]
+    number_values = instance_values_index[number_property.id]
+    assert all([type(v.value) == float or type(v.value) == int for v in number_values])
+    value_index = {v.instance_id: v for v in number_values}
+    assert value_index[instance_1.id].value == 1
+    assert value_index[instance_8.id].value == 8
+
+    date_property = property_index[PropertyType.date]
+    date_values = instance_values_index[date_property.id]
+    assert all([type(v.value) == str for v in date_values])
+    value_index = {v.instance_id: v for v in date_values}
+    assert value_index[instance_1.id].value == "2024-09-01T00:00:00Z"
+    assert value_index[instance_8.id].value == "2024-09-08T00:00:00Z"
+
+    color_property = property_index[PropertyType.color]
+    color_values = instance_values_index[color_property.id]
+    assert all([type(v.value) == int for v in color_values])
+    value_index = {v.instance_id: v for v in color_values}
+    assert value_index[instance_1.id].value == 0
+    assert value_index[instance_8.id].value == 7
+
+    url_property = property_index[PropertyType.url]
+    url_values = instance_values_index[url_property.id]
+    assert all([type(v.value) == str for v in url_values])
+    value_index = {v.instance_id: v for v in url_values}
+    assert value_index[instance_1.id].value == '1'
+    assert value_index[instance_8.id].value == '8'
+
+    checkbox_property = property_index[PropertyType.checkbox]
+    checkbox_values = instance_values_index[checkbox_property.id]
+    assert all([type(v.value) == bool for v in checkbox_values])
+    value_index = {v.instance_id: v for v in checkbox_values}
+    assert value_index[instance_1.id].value is True
+    assert instance_8.id not in value_index
 
     tags = await db.get_tags()
     assert len(tags) == 22

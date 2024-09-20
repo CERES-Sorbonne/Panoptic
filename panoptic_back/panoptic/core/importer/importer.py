@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from fastapi import UploadFile
 
+from panoptic.core.importer.parsing import parser
 from panoptic.utils import Trie
 
 if TYPE_CHECKING:
@@ -54,11 +55,11 @@ def clean_type(type_: PropertyType):
     return type_
 
 
-def parse_list(value: str):
-    if value is None or value == '' or pd.isnull(value):
-        return None
-    return value.split(',')
-
+# def parse_list(value: str):
+#     if value is None or value == '' or pd.isnull(value):
+#         return None
+#     return value.split(',')
+#
 
 def parse_header(index: int, name: str):
     name, remain = name.split('[')
@@ -208,11 +209,11 @@ class Importer:
                     tag_map = {t.value: t for t in db_tags}
 
             for row_i, value in enumerate(csv_values):
+                value = parser[prop.type](value)
                 if value is None:
                     continue
 
                 if tag_map is not None:
-                    value = parse_list(value)
                     if not value:
                         continue
                     # remove trailing spaces
