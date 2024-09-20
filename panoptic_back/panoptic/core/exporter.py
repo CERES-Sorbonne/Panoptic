@@ -32,7 +32,7 @@ correct_type = {
     PropertyType.path: PropertyType.string,
     PropertyType.folder: PropertyType.string,
     PropertyType.multi_tags: PropertyType.multi_tags,
-    PropertyType.url: PropertyType.string,
+    PropertyType.url: PropertyType.url,
     PropertyType.sha1: PropertyType.string,
     PropertyType.ahash: PropertyType.string,
     PropertyType.id: PropertyType.number,

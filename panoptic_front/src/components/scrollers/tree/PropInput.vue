@@ -11,6 +11,7 @@ import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { useProjectStore } from '@/data/projectStore';
+import ColorPropInput2 from '@/components/inputs/ColorPropInput2.vue';
 
 const data = useDataStore()
 const project = useProjectStore()
@@ -37,7 +38,7 @@ const width = computed(() => props.size ?? 100)
     </div>
     <div v-else-if="property.type == PropertyType.color" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <ColorPropInput class="mt-1 ms-0" :rounded="true" :image="image" :property="data.properties[property.id]"
+        <ColorPropInput2 class="mt-1 ms-0" :rounded="true" :image="image" :property="data.properties[property.id]"
             :width="width - 22" :min-height="20" />
     </div>
     <div v-else-if="property.type == PropertyType.string" class="d-flex flex-row">

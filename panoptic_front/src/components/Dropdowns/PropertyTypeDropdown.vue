@@ -25,7 +25,7 @@ const filtered = computed(() => types.filter(t => t != PropertyType.image_link &
         </button>
         <ul class="dropdown-menu">
             <li v-for="type_ in filtered" @click="emits('update:modelValue', type_);goNext()">
-                <span class="dropdown-item">
+                <span class="dropdown-item" style="cursor: pointer;">
                     <wTT :message="'modals.properties.' + type_ + '_tooltip'" >
                         <PropertyIcon :type="type_"/>
                         {{ $t('modals.properties.' + type_) }}

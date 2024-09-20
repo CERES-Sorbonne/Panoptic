@@ -56,7 +56,7 @@ async def get_properties_route() -> list[Property]:
 
 @project_router.post('/import/upload')
 async def upload_file_route(file: UploadFile):
-    key, props = await project.importer.upload_csv(file)
+    key, props = await project.importer.upload_csv(file.file)
     return {"key": key, "properties": props}
     # return await project.importer.analyse_file()
 
