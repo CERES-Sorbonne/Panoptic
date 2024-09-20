@@ -119,11 +119,10 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function importTags(toImport: Tag[]) {
-        console.log(toImport)
         const updated = new Set<number>()
         for (let tag of toImport) {
             if(tag.id == deletedID) continue
-            
+
             if(tags.value[tag.id]) {
                 tag.count = tags.value[tag.id].count
                 instanceList.value.forEach(i => dirtyInstances.add(i.id))

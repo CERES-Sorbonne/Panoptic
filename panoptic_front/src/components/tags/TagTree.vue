@@ -96,7 +96,6 @@ function computeLines() {
         for (const tag of col) {
             if (!tag) continue
             for (const pId of tag.children) {
-                // console.log(tagElems[tag.id])
                 if (!tagElems[tag.id] || !tagElems[pId]) continue
 
                 const t1 = tagElems[tag.id].getBoundingClientRect()
@@ -118,7 +117,6 @@ function computeLines() {
 }
 
 async function reorderLines() {
-    console.log('reorder')
     let columns = [...tagColumns.value]
     tagColumns.value = []
     await nextTick()
@@ -248,7 +246,6 @@ const selectedLines = computed(() => {
     list.forEach(t => valid.add(t))
     list.forEach(t => data.tags[t].allChildren.forEach(c => valid.add(c)))
     list.forEach(t => data.tags[t].allParents.forEach(p => valid.add(p)))
-    console.log(valid)
     for (const line of lines.value) {
         if (valid.has(line.child.id) && valid.has(line.parent.id)) {
             res.push(true)
@@ -278,7 +275,6 @@ function onClickTag(tag: Tag) {
     sourceTag.value = tag.id
     isDrawing.value = true
 
-    // console.log('la', tag, tagElems[tag.id])
     const rect = tagElems[tag.id].getBoundingClientRect()
     drawSource.value = [((rect.x + rect.right) / 2) - offset.x, rect.y + 11 - offset.y]
     drawTarget.value = drawSource.value

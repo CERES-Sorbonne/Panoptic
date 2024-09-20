@@ -95,6 +95,7 @@ class Project:
         self.is_loaded = False
         self.base_path = ''
         await self.db.close()
+        await self.task_queue.close()
 
     async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
                           copy_images: bool = False, key: str = 'id'):
