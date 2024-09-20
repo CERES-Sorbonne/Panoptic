@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import TextInput from '@/components/inputs/monoline/TextInput.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
@@ -10,11 +9,9 @@ import { Property, PropertyType, Instance } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { useProjectStore } from '@/data/projectStore';
 import ColorPropInput2 from '@/components/inputs/ColorPropInput2.vue';
 
 const data = useDataStore()
-const project = useProjectStore()
 
 const props = defineProps<{
     image: Instance,

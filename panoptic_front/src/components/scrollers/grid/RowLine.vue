@@ -2,7 +2,7 @@
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
-import ColorPropInput from '@/components/inputs/ColorPropInput.vue';
+import ColorPropInput2 from '@/components/inputs/ColorPropInput2.vue';
 import DatePropInput from '@/components/inputs/DatePropInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import TextPropInput from '@/components/inputs/TextPropInput.vue';
@@ -222,9 +222,9 @@ watch(() => props.properties, () => {
                 :min-height="propMinRowHeight[property.id]" ref="inputElems"
                 @update:height="h => sizes[property.id] = h" :image="image" :property="property"
                 :width="inputWidth[property.id]" />
-            <ColorPropInput v-else-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
+            <ColorPropInput2 v-else-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :width="inputWidth[property.id]" />
+                :width="inputWidth[property.id]" style="margin-top: 3px !important; margin-left: 3px !important;"/>
 
             <TextPropInput v-else-if="property.type == PropertyType.number" :min-height="props.item.size"
                 ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
