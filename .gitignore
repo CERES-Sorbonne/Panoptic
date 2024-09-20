@@ -29,7 +29,6 @@ coverage
 
 */__pycache__/
 
-test
 /panoptic_back/test.json
 /panoptic_back/*.db
 

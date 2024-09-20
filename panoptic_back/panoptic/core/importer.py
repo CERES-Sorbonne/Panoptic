@@ -91,8 +91,8 @@ class Importer:
         self._df: pd.DataFrame | None = None
         self._data: ImportData | None = None
 
-    async def upload_csv(self, file: UploadFile):
-        file_data = pd.read_csv(file.file, delimiter=';', encoding='utf-8', keep_default_na=False)
+    async def upload_csv(self, file: str):
+        file_data = pd.read_csv(file, delimiter=';', encoding='utf-8', keep_default_na=False, dtype=str)
         self._df = file_data
 
         columns = list(self._df.columns)
@@ -116,6 +116,11 @@ class Importer:
     async def parse_file(self, exclude: list[int] = None, properties: dict[int, Property] = None,
                          relative: bool = False, fusion: str = 'new'):
         data = ImportData()
+
+        if exclude is None:
+            exclude = []
+        if properties is None:
+            properties = {}
 
         columns = list(self._df.columns)
         file_key = columns[0]
