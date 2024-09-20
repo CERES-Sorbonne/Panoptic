@@ -30,7 +30,7 @@ coverage
 */__pycache__/
 
 /panoptic_back/test.json
-/panoptic_back/*.db
+# /panoptic_back/*.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -198,9 +198,4 @@ cython_debug/
 mini/
 
 *.pkl
-*.db
-panoptic_back/pca_violences.pkl
-panoptic_back/pca.pkl
-panoptic_back/tree.pkl
 
-*.db
