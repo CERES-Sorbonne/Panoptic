@@ -19,6 +19,7 @@ class TaskQueue:
         self._num_workers = num_workers
         self._workers: List[asyncio.Task] = []
         self._working: Dict[int, bool] = {}
+        self.onFinish = asyncio.Event()
 
         self._task_states: Dict[str, TaskState] = {}
 
@@ -72,6 +73,7 @@ class TaskQueue:
                 task.set_executor(self._executor)
                 try:
                     state.computing += 1
+                    self.onFinish.clear()
                     await task.run()
                     state.computing -= 1
                 except Exception as e:
@@ -81,6 +83,7 @@ class TaskQueue:
                     logger.error(e)
                 if state.remain == 0 and state.computing == 0:
                     state.done = True
+                    self.onFinish.set()
                     await task.run_if_last()
 
             except Exception as e:
