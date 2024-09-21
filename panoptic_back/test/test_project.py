@@ -777,3 +777,28 @@ async def test_update_tag_parent_ignore_cycles(data_project: Project):
     # should not have added parent to avoid cycle
     db_tag2 = next(t for t in await db.get_tags(prop_id) if t.id == tag2.id)
     assert len(db_tag2.parents) == 0
+
+
+async def test_update_tag_parent_ignore_cycles_2(data_project: Project):
+    db = data_project.db
+    prop_id = TAG_ID
+    tags = await db.get_tags(prop_id)
+    tag1 = next(t for t in tags if t.value == "1")
+    tag2 = next(t for t in tags if t.value == "2")
+    tag1.parents = [tag2.id]
+    tag2.parents = [tag1.id]
+
+    commit = DbCommit(tags=[tag1])
+    await db.apply_commit(commit)
+
+    db_tag1 = next(t for t in await db.get_tags(prop_id) if t.id == tag1.id)
+    assert len(db_tag1.parents) == 1
+    assert db_tag1.parents[0] == tag2.id
+
+    commit = DbCommit(tags=[tag2])
+    await db.apply_commit(commit)
+
+    # should not have added parent to avoid cycle
+    db_tag2 = next(t for t in await db.get_tags(prop_id) if t.id == tag2.id)
+    assert len(db_tag2.parents) == 0
+
