@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pathlib import Path
 
 from panoptic.core.project.project import Project
 from panoptic.models import PropertyType
@@ -129,3 +130,20 @@ async def test_import_data(instance_project: Project, import_csv: str):
 
     tags = await db.get_tags()
     assert len(tags) == 22
+
+
+async def test_import_export_equal(instance_project: Project, import_csv: str, tmp_path: Path):
+    await instance_project.importer.upload_csv(import_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.confirm_import()
+
+    res_dir = await instance_project.exporter.export_data(str(tmp_path), "tmp", None, [1, 2, 3, 4, 5, 6, 7, 8],
+                                                          False, key='local_path')
+    res_csv = Path(res_dir) / "data.csv"
+
+    with open(import_csv) as f:
+        import_data = f.read()
+    with open(res_csv) as f:
+        export_data = f.read()
+
+    assert import_data == export_data
