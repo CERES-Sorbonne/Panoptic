@@ -2,7 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, Property, PropertyMode
+from panoptic.models import PropertyType, Property, PropertyMode, InstanceProperty, DbCommit
 
 TAG_ID = 1
 MULTI_TAGS_ID = 2
@@ -12,6 +12,79 @@ DATE_ID = 5
 COLOR_ID = 6
 URL_ID = 7
 CHECKBOX_ID = 8
+
+
+async def test_create_project(tmp_path: str):
+    project = Project(tmp_path, [])
+    await project.start()
+
+    instances = await project.db.get_instances()
+    assert len(instances) == 0
+
+    await project.close()
+
+
+async def test_load_instance_project(instance_project: Project):
+    db = instance_project.db
+    folders = await db.get_folders()
+    assert len(folders) == 4
+
+    instances = await db.get_instances()
+    assert len(instances) == 10
+
+    folder_index = {f.name: f for f in folders}
+    index = defaultdict(int)
+    for instance in instances:
+        index[instance.folder_id] += 1
+
+    assert index[folder_index["images"].id] == 1
+    assert index[folder_index["2-3"].id] == 2
+    assert index[folder_index["4-6"].id] == 3
+    assert index[folder_index["7-10"].id] == 4
+
+
+async def test_load_data_project(data_project: Project):
+    db = data_project.db
+    instances = await db.get_instances()
+    instance_index = {i.name: i for i in instances}
+
+    assert len(instances) == 10
+
+    properties = await db.get_properties()
+
+    assert len(properties) == 8
+
+    instance_values = await db.get_instance_property_values(instance_ids=[i.id for i in instances])
+    image_values = await db.get_image_property_values(sha1s=list({i.sha1 for i in instances}))
+
+    assert len(image_values) == 25
+    assert len(instance_values) == 50
+
+    instance1 = instance_index['number_1.png']
+    values1 = await db.get_property_values(instances=[instance1])
+    values1_index = {v.property_id: v.value for v in values1}
+
+    assert len(values1_index[TAG_ID]) == 1
+    assert len(values1_index[MULTI_TAGS_ID]) == 2
+    assert values1_index[STRING_ID] == 'one'
+    assert values1_index[NUMBER_ID] == 1
+    assert values1_index[DATE_ID] == "2024-09-01T00:00:00Z"
+    assert values1_index[COLOR_ID] == 0
+    assert values1_index[URL_ID] == "1"
+    assert values1_index[CHECKBOX_ID] is True
+
+    instance10 = instance_index['number_10.png']
+    values10 = await db.get_property_values(instances=[instance10])
+    values10_index = {v.property_id: v.value for v in values10}
+
+    assert len(values10_index[TAG_ID]) == 1
+    assert len(values10_index[MULTI_TAGS_ID]) == 2
+    assert values10_index[STRING_ID] == 'ten'
+    assert values10_index[NUMBER_ID] == 10
+    assert values10_index[DATE_ID] == "2024-09-10T00:00:00Z"
+    assert values10_index[COLOR_ID] == 9
+    assert values10_index[URL_ID] == "10"
+    assert CHECKBOX_ID not in values10_index
 
 
 async def test_import_images(empty_project: Project, image_dir: str):
@@ -36,26 +109,7 @@ async def test_import_images(empty_project: Project, image_dir: str):
     assert index[folder_index["7-10"].id] == 4
 
 
-async def test_load_project(instance_project: Project):
-    db = instance_project.db
-    folders = await db.get_folders()
-    assert len(folders) == 4
-
-    instances = await db.get_instances()
-    assert len(instances) == 10
-
-    folder_index = {f.name: f for f in folders}
-    index = defaultdict(int)
-    for instance in instances:
-        index[instance.folder_id] += 1
-
-    assert index[folder_index["images"].id] == 1
-    assert index[folder_index["2-3"].id] == 2
-    assert index[folder_index["4-6"].id] == 3
-    assert index[folder_index["7-10"].id] == 4
-
-
-async def test_import_data(instance_project: Project, import_csv: str):
+async def test_import_data_mode_instance(instance_project: Project, import_csv: str):
     await instance_project.importer.upload_csv(import_csv)
     await instance_project.importer.parse_file(relative=True, fusion='new')
     await instance_project.importer.confirm_import()
@@ -316,47 +370,291 @@ async def test_import_export_equal_mode_image(instance_project: Project, import_
     assert import_data == export_data
 
 
-async def test_load_data_project(data_project: Project):
+async def test_update_tag_value(data_project: Project):
+    prop_id = TAG_ID
     db = data_project.db
-    instances = await db.get_instances()
-    instance_index = {i.name: i for i in instances}
+    instance_index = {i.name: i for i in await db.get_instances()}
 
-    assert len(instances) == 10
+    tags = await db.get_tags(prop_id)
+    tag_index = {t.value: t for t in tags}
 
-    properties = await db.get_properties()
+    instance3 = instance_index['number_3.png']
+    tag4 = tag_index["4"]
 
-    assert len(properties) == 8
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=[tag4.id])
 
-    instance_values = await db.get_instance_property_values(instance_ids=[i.id for i in instances])
-    image_values = await db.get_image_property_values(sha1s=list({i.sha1 for i in instances}))
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
 
-    assert len(image_values) == 25
-    assert len(instance_values) == 50
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
 
-    instance1 = instance_index['number_1.png']
-    values1 = await db.get_property_values(instances=[instance1])
-    values1_index = {v.property_id: v.value for v in values1}
-
-    assert len(values1_index[TAG_ID]) == 1
-    assert len(values1_index[MULTI_TAGS_ID]) == 2
-    assert values1_index[STRING_ID] == 'one'
-    assert values1_index[NUMBER_ID] == 1
-    assert values1_index[DATE_ID] == "2024-09-01T00:00:00Z"
-    assert values1_index[COLOR_ID] == 0
-    assert values1_index[URL_ID] == "1"
-    assert values1_index[CHECKBOX_ID] is True
-
-    instance10 = instance_index['number_10.png']
-    values10 = await db.get_property_values(instances=[instance10])
-    values10_index = {v.property_id: v.value for v in values10}
-
-    assert len(values10_index[TAG_ID]) == 1
-    assert len(values10_index[MULTI_TAGS_ID]) == 2
-    assert values10_index[STRING_ID] == 'ten'
-    assert values10_index[NUMBER_ID] == 10
-    assert values10_index[DATE_ID] == "2024-09-10T00:00:00Z"
-    assert values10_index[COLOR_ID] == 9
-    assert values10_index[URL_ID] == "10"
-    assert CHECKBOX_ID not in values10_index
+    assert db_value.value[0] == tag4.id
+    assert len(db_value.value) == 1
 
 
+async def test_update_multi_tags_value(data_project: Project):
+    prop_id = MULTI_TAGS_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    tags = await db.get_tags(prop_id)
+    tag_index = {t.value: t for t in tags}
+
+    instance3 = instance_index['number_3.png']
+    tag4 = tag_index["4"]
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=[tag4.id])
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
+
+    assert db_value.value[0] == tag4.id
+    assert len(db_value.value) == 1
+
+
+async def test_update_string_value(data_project: Project):
+    prop_id = STRING_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value="four")
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
+
+    assert db_value.value == "four"
+
+
+async def test_update_number_value(data_project: Project):
+    prop_id = NUMBER_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=5)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
+
+    assert db_value.value == 5
+
+
+async def test_update_date_value(data_project: Project):
+    prop_id = DATE_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value="1999-10-01T00:00:00Z")
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
+
+    assert db_value.value == "1999-10-01T00:00:00Z"
+
+
+async def test_update_color_value(data_project: Project):
+    prop_id = COLOR_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=9)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
+
+    assert db_value.value == 9
+
+
+async def test_update_url_value(data_project: Project):
+    prop_id = URL_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value="https://example.com/updated")
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))[0]
+
+    assert db_value.value == "https://example.com/updated"
+
+
+async def test_update_checkbox_value_true(data_project: Project):
+    prop_id = CHECKBOX_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance4 = instance_index['number_4.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance4.id, value=True)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_value = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance4.id]))[0]
+
+    assert db_value.value is True
+
+
+async def test_update_checkbox_value_false(data_project: Project):
+    prop_id = CHECKBOX_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=False)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_tag_value_empty(data_project: Project):
+    prop_id = TAG_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_multi_tags_value_empty(data_project: Project):
+    prop_id = MULTI_TAGS_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_string_value_empty(data_project: Project):
+    prop_id = STRING_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_number_value_empty(data_project: Project):
+    prop_id = NUMBER_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_date_value_empty(data_project: Project):
+    prop_id = DATE_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_color_value_empty(data_project: Project):
+    prop_id = COLOR_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_url_value_empty(data_project: Project):
+    prop_id = URL_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
+
+
+async def test_update_checkbox_value_empty(data_project: Project):
+    prop_id = CHECKBOX_ID
+    db = data_project.db
+    instance_index = {i.name: i for i in await db.get_instances()}
+
+    instance3 = instance_index['number_3.png']
+
+    new_value = InstanceProperty(property_id=prop_id, instance_id=instance3.id, value=None)
+
+    commit = DbCommit(instance_values=[new_value])
+    await db.apply_commit(commit)
+
+    db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
+    assert len(db_values) == 0
