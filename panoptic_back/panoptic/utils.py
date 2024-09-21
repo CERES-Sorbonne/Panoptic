@@ -155,6 +155,8 @@ def clean_value(prop: Property, v: Any):
     if prop.type == PropertyType.date and v:
         return parse_date(v)
 
+    if v is False:
+        return None
     # avoid setting to None
     if v == 0 or v == '0':
         return 0
