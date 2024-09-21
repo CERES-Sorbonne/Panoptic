@@ -221,7 +221,7 @@ class Importer:
                     for tag_name in value:
                         tag_name = tag_name.strip()
                         if tag_name not in tag_map:
-                            tag_map[tag_name] = Tag(id=gen_tag_id(), property_id=prop.id, value=tag_name, parents=[0],
+                            tag_map[tag_name] = Tag(id=gen_tag_id(), property_id=prop.id, value=tag_name, parents=[],
                                                     color=randint(0, 11))
                             data.tags.append(tag_map[tag_name])
                     value = [tag_map[tag_name].id for tag_name in value]
