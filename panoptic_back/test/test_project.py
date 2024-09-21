@@ -658,3 +658,122 @@ async def test_update_checkbox_value_empty(data_project: Project):
 
     db_values = (await db.get_instance_property_values(property_ids=[prop_id], instance_ids=[instance3.id]))
     assert len(db_values) == 0
+
+
+async def test_create_property(data_project: Project):
+    db = data_project.db
+    new_prop = db.create_property(name="test_prop", type_=PropertyType.string, mode=PropertyMode.sha1)
+
+    commit = DbCommit(properties=[new_prop])
+    await db.apply_commit(commit)
+
+    db_prop = next(x for x in await db.get_properties() if x.name == "test_prop")
+    assert db_prop is not None
+    assert db_prop.type == PropertyType.string
+    assert db_prop.mode == PropertyMode.sha1
+    assert db_prop.id > 0
+
+
+async def test_update_property(data_project: Project):
+    db = data_project.db
+    prop = (await db.get_properties(ids=[STRING_ID]))[0]
+    prop.name = "new_name"
+    commit = DbCommit(properties=[prop])
+    await db.apply_commit(commit)
+
+    db_prop = (await db.get_properties(ids=[STRING_ID]))[0]
+    assert db_prop.name == "new_name"
+
+
+async def test_delete_properties(data_project: Project):
+    db = data_project.db
+    props = await db.get_properties()
+    assert len(props) > 0
+
+    db_values = await db.get_image_property_values()
+    assert len(db_values) > 0
+
+    db_values = await db.get_instance_property_values()
+    assert len(db_values) > 0
+
+    commit = DbCommit(empty_properties=[p.id for p in props])
+    await db.apply_commit(commit)
+
+    db_props = await db.get_properties()
+    assert len(db_props) == 0
+
+    db_values = await db.get_image_property_values()
+    assert len(db_values) == 0
+
+    db_values = await db.get_instance_property_values()
+    assert len(db_values) == 0
+
+
+async def test_create_tag(data_project: Project):
+    db = data_project.db
+    prop_id = TAG_ID
+
+    new_tag = db.create_tag(property_id=prop_id, value="new_tag", color=9)
+
+    commit = DbCommit(tags=[new_tag])
+    await db.apply_commit(commit)
+
+    db_tag = next(t for t in await db.get_tags(prop_id) if t.value == "new_tag")
+    assert db_tag is not None
+    assert db_tag.id > 0
+    assert db_tag.value == "new_tag"
+    assert db_tag.color == 9
+    assert db_tag.property_id == prop_id
+
+
+async def test_update_tag(data_project: Project):
+    db = data_project.db
+    prop_id = TAG_ID
+
+    tag = next(t for t in await db.get_tags(prop_id) if t.value == "1")
+    tag.value = "test_value"
+    tag.color = 10
+
+    commit = DbCommit(tags=[tag])
+    await db.apply_commit(commit)
+
+    db_tag = next(t for t in await db.get_tags(prop_id) if t.id == tag.id)
+    assert db_tag.value == "test_value"
+    assert db_tag.color == 10
+
+
+async def test_update_tag_parent(data_project: Project):
+    db = data_project.db
+    prop_id = TAG_ID
+    tags = await db.get_tags(prop_id)
+    tag1 = next(t for t in tags if t.value == "1")
+    tag2 = next(t for t in tags if t.value == "2")
+    tag1.parents = [tag2.id]
+
+    commit = DbCommit(tags=[tag1])
+    await db.apply_commit(commit)
+
+    db_tag = next(t for t in await db.get_tags(prop_id) if t.id == tag1.id)
+    assert len(db_tag.parents) == 1
+    assert db_tag.parents[0] == tag2.id
+
+
+async def test_update_tag_parent_ignore_cycles(data_project: Project):
+    db = data_project.db
+    prop_id = TAG_ID
+    tags = await db.get_tags(prop_id)
+    tag1 = next(t for t in tags if t.value == "1")
+    tag2 = next(t for t in tags if t.value == "2")
+    tag1.parents = [tag2.id]
+    tag2.parents = [tag1.id]
+
+    commit = DbCommit(tags=[tag1, tag2])
+    await db.apply_commit(commit)
+
+    db_tag1 = next(t for t in await db.get_tags(prop_id) if t.id == tag1.id)
+    assert len(db_tag1.parents) == 1
+    assert db_tag1.parents[0] == tag2.id
+
+    # should not have added parent to avoid cycle
+    db_tag2 = next(t for t in await db.get_tags(prop_id) if t.id == tag2.id)
+    assert len(db_tag2.parents) == 0

@@ -1,15 +1,15 @@
-from collections import defaultdict
 from random import randint
 from typing import Any
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
+from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty
 from panoptic.models.computed_properties import computed_properties
-from panoptic.utils import convert_to_instance_values, get_computed_values, get_all_parent, clean_and_separate_values
+from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values
 
 
 class ProjectDb:
@@ -256,30 +256,6 @@ class ProjectDb:
 
         return updated_tags, updated_instance_values, updated_image_values, empty_instance_values, empty_image_values
 
-    async def _verify_tags(self, tags: list[Tag]):
-        for tag in tags:
-            if tag.parents is None:
-                tag.parents = []
-            if tag.color < 0 or tag.color is None:
-                tag.color = randint(0, 11)
-        tag_groups: dict[int, list[Tag]] = defaultdict(list)
-        [tag_groups[t.property_id].append(t) for t in tags]
-        for propId in tag_groups:
-            tags = tag_groups[propId]
-            tag_index: dict[int, Tag] = {t.id: t for t in await self.get_tags(propId)}
-            updated_tags = [t for t in tags if t.id in tag_index]
-            new_tags = [t for t in tags if t.id not in tag_index]
-            for tag in new_tags:
-                tag_index[tag.id] = tag
-            for tag in updated_tags:
-                parents = list(tag.parents)
-                for parent_id in parents:
-                    if parent_id == 0:
-                        continue
-                    all_parents = get_all_parent(tag_index[parent_id], tag_index)
-                    if tag.id in all_parents:
-                        tag.parents.remove(parent_id)
-
     # =========== Folders ===========
     async def add_folder(self, path: str, name: str, parent: int = None):
         return await self._db.add_folder(path, name, parent)
@@ -383,8 +359,13 @@ class ProjectDb:
             for tag in commit.tags:
                 if tag.property_id in property_id_map:
                     tag.property_id = property_id_map[tag.property_id]
-            await self._verify_tags(commit.tags)
+
+            tag_index = {t.id: t for t in await self.get_tags()}
+            safe_update_tag_parents(tag_index, commit.tags)
+            verify_tag_color(commit.tags)
+
             db_tags = await self._db.import_tags(commit.tags)
+
             tag_id_map = {old: new.id for old, new in zip(ids, db_tags)}
             for tag in commit.tags:
                 tag.parents = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in tag.parents]
