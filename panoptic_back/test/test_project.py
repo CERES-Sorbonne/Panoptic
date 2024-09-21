@@ -4,6 +4,15 @@ from pathlib import Path
 from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, Property, PropertyMode
 
+TAG_ID = 1
+MULTI_TAGS_ID = 2
+STRING_ID = 3
+NUMBER_ID = 4
+DATE_ID = 5
+COLOR_ID = 6
+URL_ID = 7
+CHECKBOX_ID = 8
+
 
 async def test_import_images(empty_project: Project, image_dir: str):
     await empty_project.import_folder(image_dir)
@@ -132,7 +141,7 @@ async def test_import_data(instance_project: Project, import_csv: str):
     assert len(tags) == 22
 
 
-async def test_import_data_prop_mode_image(instance_project: Project, import_csv):
+async def test_import_data_mode_image(instance_project: Project, import_csv):
     prop_definitions = {
         1: Property(id=-1, name="tag", type=PropertyType.tag, mode=PropertyMode.sha1),
         2: Property(id=-2, name="multi_tags", type=PropertyType.multi_tags, mode=PropertyMode.sha1),
@@ -229,6 +238,40 @@ async def test_import_data_prop_mode_image(instance_project: Project, import_csv
     assert instance_8.id not in value_index
 
 
+async def test_import_data_mode_mix(instance_project: Project, import_csv):
+    prop_definitions = {
+        TAG_ID: Property(id=-TAG_ID, name="tag", type=PropertyType.tag, mode=PropertyMode.sha1),
+        MULTI_TAGS_ID: Property(id=-MULTI_TAGS_ID, name="multi_tags", type=PropertyType.multi_tags,
+                                mode=PropertyMode.sha1),
+        STRING_ID: Property(id=-STRING_ID, name="string", type=PropertyType.string, mode=PropertyMode.sha1),
+        NUMBER_ID: Property(id=-NUMBER_ID, name="number", type=PropertyType.number, mode=PropertyMode.sha1),
+        DATE_ID: Property(id=-DATE_ID, name="date", type=PropertyType.date, mode=PropertyMode.sha1),
+        COLOR_ID: Property(id=-COLOR_ID, name="color", type=PropertyType.color, mode=PropertyMode.id),
+        URL_ID: Property(id=-URL_ID, name="url", type=PropertyType.url, mode=PropertyMode.id),
+        CHECKBOX_ID: Property(id=-CHECKBOX_ID, name="checkbox", type=PropertyType.checkbox, mode=PropertyMode.id)
+    }
+
+    await instance_project.importer.upload_csv(import_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new', properties=prop_definitions)
+    await instance_project.importer.confirm_import()
+
+    db = instance_project.db
+    instances = await db.get_instances()
+    instance_index = {i.name: i for i in instances}
+
+    assert len(instances) == 10
+
+    properties = await db.get_properties()
+
+    assert len(properties) == 8
+
+    instance_values = await db.get_instance_property_values(instance_ids=[i.id for i in instances])
+    image_values = await db.get_image_property_values(sha1s=list({i.sha1 for i in instances}))
+
+    assert len(image_values) == 50
+    assert len(instance_values) == 25
+
+
 async def test_import_export_equal(instance_project: Project, import_csv: str, tmp_path: Path):
     await instance_project.importer.upload_csv(import_csv)
     await instance_project.importer.parse_file(relative=True, fusion='new')
@@ -246,7 +289,7 @@ async def test_import_export_equal(instance_project: Project, import_csv: str, t
     assert import_data == export_data
 
 
-async def test_import_export_equal2(instance_project: Project, import_csv: str, tmp_path: Path):
+async def test_import_export_equal_mode_image(instance_project: Project, import_csv: str, tmp_path: Path):
     prop_definitions = {
         1: Property(id=-1, name="tag", type=PropertyType.tag, mode=PropertyMode.sha1),
         2: Property(id=-2, name="multi_tags", type=PropertyType.multi_tags, mode=PropertyMode.sha1),
@@ -271,5 +314,49 @@ async def test_import_export_equal2(instance_project: Project, import_csv: str, 
         export_data = f.read()
 
     assert import_data == export_data
+
+
+async def test_load_data_project(data_project: Project):
+    db = data_project.db
+    instances = await db.get_instances()
+    instance_index = {i.name: i for i in instances}
+
+    assert len(instances) == 10
+
+    properties = await db.get_properties()
+
+    assert len(properties) == 8
+
+    instance_values = await db.get_instance_property_values(instance_ids=[i.id for i in instances])
+    image_values = await db.get_image_property_values(sha1s=list({i.sha1 for i in instances}))
+
+    assert len(image_values) == 25
+    assert len(instance_values) == 50
+
+    instance1 = instance_index['number_1.png']
+    values1 = await db.get_property_values(instances=[instance1])
+    values1_index = {v.property_id: v.value for v in values1}
+
+    assert len(values1_index[TAG_ID]) == 1
+    assert len(values1_index[MULTI_TAGS_ID]) == 2
+    assert values1_index[STRING_ID] == 'one'
+    assert values1_index[NUMBER_ID] == 1
+    assert values1_index[DATE_ID] == "2024-09-01T00:00:00Z"
+    assert values1_index[COLOR_ID] == 0
+    assert values1_index[URL_ID] == "1"
+    assert values1_index[CHECKBOX_ID] is True
+
+    instance10 = instance_index['number_10.png']
+    values10 = await db.get_property_values(instances=[instance10])
+    values10_index = {v.property_id: v.value for v in values10}
+
+    assert len(values10_index[TAG_ID]) == 1
+    assert len(values10_index[MULTI_TAGS_ID]) == 2
+    assert values10_index[STRING_ID] == 'ten'
+    assert values10_index[NUMBER_ID] == 10
+    assert values10_index[DATE_ID] == "2024-09-10T00:00:00Z"
+    assert values10_index[COLOR_ID] == 9
+    assert values10_index[URL_ID] == "10"
+    assert CHECKBOX_ID not in values10_index
 
 
