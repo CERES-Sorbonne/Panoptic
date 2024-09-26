@@ -46,7 +46,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
             <div>
                 <div class="m-0" style="padding: 4px 0px 4px 8px">
                     <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
-                        <div class="flex-grow-1 text-capitalize" @click="">{{ panoptic.data.status.selectedProject?.name }}
+                        <div class="flex-grow-1 text-capitalize overflow-hidden" @click="">{{ panoptic.data.status.selectedProject?.name }}
                         </div>
                         <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i class="bi bi-gear"></i>
                         </div>
