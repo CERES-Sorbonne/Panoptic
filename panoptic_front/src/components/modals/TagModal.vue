@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
-import { Instance, ModalId, PropertyType, Tag } from '@/data/models';
+import { computed, nextTick, ref, shallowRef, watch } from 'vue'
+import { Colors, Instance, ModalId, PropertyType, Tag } from '@/data/models';
 import { deletedID, useDataStore } from '@/data/dataStore';
-import { computeTagToInstance, isTag } from '@/utils/utils';
+import { computeTagToInstance, deepCopy, isTag, sum } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import ImagePreview from '@/components/preview/ImagePreview.vue';
@@ -24,6 +24,10 @@ const view = ref('list')
 
 const childDisabled = ref(false)
 const parentDisbled = ref(false)
+
+const editTagName = ref(false)
+const editTagInput = ref('')
+const editTagNameInputElem = ref(null)
 
 const tagToInstance = shallowRef<{ [tId: number]: Instance[] }>({})
 
@@ -168,8 +172,22 @@ function updateTagToInstance() {
     tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
 }
 
+async function startEditName() {
+    editTagInput.value = data.tags[tagId.value].value
+    editTagName.value = true
+    await nextTick()
+    editTagNameInputElem.value.focus()
+}
 
-
+async function saveTagName() {
+    let tag = deepCopy(data.tags[tagId.value])
+    tag.value = editTagInput.value
+    let commit = { tags: [tag] }
+    await data.sendCommit(commit)
+    if (editTagNameInputElem.value) {
+        editTagNameInputElem.value.blur()
+    }
+}
 watch(tags, () => {
     data.tagList.forEach(t => {
         if (tagToInstance.value[t.id]) return
@@ -184,10 +202,14 @@ watch(tags, () => {
         <template #title>
             <div class="d-flex">
                 <PropertyIcon class="property-option" :type="PropertyType.multi_tags" />
-                <wTT message="modals.tags.list_view"><div class="property-option bnr" :class="view == 'list' ? 'selected-property' : ''"
-                    @click="view = 'list'"><i class="bi bi-list" /></div></wTT>
-                <wTT message="modals.tags.tree_view"><div class="property-option bnr" :class="view == 'graph' ? 'selected-property' : ''"
-                    @click="view = 'graph'"><i class="bi bi-diagram-3" /></div></wTT>
+                <wTT message="modals.tags.list_view">
+                    <div class="property-option bnr" :class="view == 'list' ? 'selected-property' : ''"
+                        @click="view = 'list'"><i class="bi bi-list" /></div>
+                </wTT>
+                <wTT message="modals.tags.tree_view">
+                    <div class="property-option bnr" :class="view == 'graph' ? 'selected-property' : ''"
+                        @click="view = 'graph'"><i class="bi bi-diagram-3" /></div>
+                </wTT>
                 <div class="property-option" style="width: 31px;"></div>
                 <div v-for="prop in properties" class="property-option bnr" @click="propId = prop.id"
                     :class="property?.id == prop.id ? 'selected-property' : ''">
@@ -196,34 +218,54 @@ watch(tags, () => {
                 </div>
             </div>
         </template>
-        <template #content="{width, height}">
+        <template #content="{ width, height }">
             <template v-if="property">
                 <div v-if="view == 'list'" class="h-100 bg-white d-flex">
                     <TagColumn :tags="tags" title="all" :main="true" :selected="tag" :draggable="true"
                         class="flex-shrink-0 flex-grow-0" @select="e => tagId = e" @unselect="tagId = -1"
                         @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
                     <template v-if="tag">
-                        <TagColumn :tags="childrenTags" title="children" :draggable="dragging"
-                            @select="e => tagId = e" class="flex-shrink-0 flex-grow-0" @added="addChild"
-                            :disabled="childDisabled" @create="name => createTag(name, tag.id)"
-                            @removed="removeTagChild" />
-                        <TagColumn :tags="siblingsTags" title="siblings" @select="e => tagId = e"
-                            :draggable="false" class="flex-shrink-0 flex-grow-0" :disabled="dragging"
-                            :no-create="true" />
                         <TagColumn :tags="parentTags" title="parents" :draggable="dragging" @select="e => tagId = e"
                             class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
                             @added="addParent" @removed="removeTagParent" />
+                        <TagColumn :tags="siblingsTags" title="siblings" @select="e => tagId = e" :draggable="false"
+                            class="flex-shrink-0 flex-grow-0" :disabled="dragging" :no-create="true" />
+                        <TagColumn :tags="childrenTags" title="children" :draggable="dragging" @select="e => tagId = e"
+                            class="flex-shrink-0 flex-grow-0" @added="addChild" :disabled="childDisabled"
+                            @create="name => createTag(name, tag.id)" @removed="removeTagChild" />
                         <div v-if="tagToInstance[tag.id].length" class="w-100 h-100 pt-1 d-flex flex-column">
                             <div style="height: 33px;" class="tag-preview flex-shrink-0 ps-2">
-                                <div class="d-flex">
-                                    <div>
-                                        <TagBadge :id="tag.id" style="font-size: 15px; position: relative; top:2px" />
+                                <div class="d-flex" style="padding-top: 2px;" v-if="!editTagName">
+                                    <div v-if="!editTagName" @click="startEditName">
+                                        {{ tag.value }}
                                     </div>
-                                    <div class="ms-2 me-2 text-secondary" style="position: relative; top:2px">{{
-                                        tag.count }}</div>
+                                    <div v-else="editTagName">
+                                        <input v-model="editTagInput" type="text" class="search-box"
+                                            style="width: 100%;" @blur="editTagName = false"
+                                            @keypress.enter="saveTagName" ref="editTagNameInputElem" />
+                                    </div>
+                                    <div class="ms-1" style="padding-top: 2px;">
+                                        <div :style="{ backgroundColor: Colors[tag.color].color }"
+                                            style="height: 20px;width: 20px; border-radius: 5px;"></div>
+                                    </div>
+                                    <div class="ms-2 me-2 text-secondary">
+                                        {{ tag.count + sum(tag.allChildren.map(c => data.tags[c].count)) }}
+                                    </div>
                                     <div class="flex-grow-1"></div>
-                                    <div class="bb me-1"><i class="bi bi-x" @click="tagId = -1"
-                                            style="font-size: 15px; position: relative; top:2px" /></div>
+                                    <div class="bb me-1">
+                                        <i class="bi bi-trash" @click="data.deleteTag(tag.id); tagId = -1" />
+                                    </div>
+                                    <div class="bb me-1">
+                                        <i class="bi bi-x" @click="tagId = -1" />
+                                    </div>
+
+                                </div>
+                                <div v-else-if="editTagName" class="d-flex" style="height: 25px;">
+                                    <div class="me-1"><input v-model="editTagInput" type="text" class="search-box"
+                                            style="width: 100%;" @blur="editTagName = false"
+                                            @keypress.enter="saveTagName" ref="editTagNameInputElem" /></div>
+                                    <div style="padding-top: 2px;"><i class="bi bi-x bb" /></div>
+                                    <div style="padding-top: 2px;" @mousedown="saveTagName"><i class="bi bi-check bb"></i></div>
                                 </div>
 
 
@@ -233,7 +275,8 @@ watch(tags, () => {
                         </div>
                     </template>
                 </div>
-                <div v-if="view == 'graph'" :style="{height: (height-40)+'px', position:'relative'}" style="overflow: hidden;">
+                <div v-if="view == 'graph'" :style="{ height: (height - 40) + 'px', position: 'relative' }"
+                    style="overflow: hidden;">
                     <TagTree :property="property" />
                 </div>
             </template>
@@ -254,5 +297,12 @@ watch(tags, () => {
 
 .tag-preview {
     border-bottom: 1px solid var(--border-color);
+}
+
+.search-box {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    overflow: hidden;
+    padding: 1px 4px;
 }
 </style>

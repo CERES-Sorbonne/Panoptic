@@ -3,8 +3,8 @@ import TagOptionsDropdown from '@/components/dropdowns/TagOptionsDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
 import { Tag } from '@/data/models';
-import { sum } from '@/utils/utils';
-import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
+import { deepCopy, sum } from '@/utils/utils';
+import { defineProps, defineEmits, ref, watch, computed, onMounted, nextTick } from 'vue'
 import draggableComponent from 'vuedraggable';
 
 const data = useDataStore()
@@ -23,6 +23,10 @@ const emits = defineEmits(['select', 'unselect', 'create', 'dragstart', 'dragend
 const openInput = ref(false)
 const inputElem = ref(null)
 const filterValue = ref('')
+
+const editTagName = ref(false)
+const editTagInput = ref('')
+const editTagNameInputElem = ref(null)
 
 const selectedTag = ref(-1)
 const tagList = ref<Tag[]>([])
@@ -134,6 +138,24 @@ function tagClass(t: Tag) {
     return ''
 }
 
+async function startEditName() {
+    editTagInput.value = props.selected.value
+    editTagName.value = true
+    await nextTick()
+    editTagNameInputElem.value.focus()
+}
+
+async function saveTagName() {
+    let tag = deepCopy(props.selected)
+    tag.value = editTagInput.value
+    let commit = {tags: [tag]}
+    await data.sendCommit(commit)
+    if(editTagNameInputElem.value) {
+        editTagNameInputElem.value.blur()
+    }
+}
+
+
 watch(openInput, () => {
     if (openInput.value) {
         inputElem.value.focus()
@@ -174,12 +196,19 @@ onMounted(() => tagList.value = [...filteredTags.value])
         </div>
 
         <div v-if="props.main" class="text-center p-2 selected-tag">
-            <div v-if="props.selected" class="d-flex">
-                <div class="flex-grow-1 text-center">
-                    <TagBadge :id="props.selected.id" style="font-size: 17px;" />
+            <div v-if="props.selected && !editTagName" class="d-flex" style="height: 25px;">
+                <div class="flex-grow-1 text-center overflow-hidden">
+                    <TagBadge :id="props.selected.id" style="font-size: 17px;" @click="startEditName" />
                 </div>
-                <div class="me-2 ms-2 text-secondary" style="position: relative; top:-1px">{{ props.selected.count }}</div>
+                <div class="me-2 ms-2 text-secondary" style="position: relative; top:-1px">
+                    {{ props.selected.count + sum(props.selected.allChildren.map(c => data.tags[c].count)) }}
+                </div>
                 <div><i class="bi bi-x bb" @click="emits('unselect')"></i></div>
+            </div>
+            <div v-else-if="props.selected && editTagName" class="d-flex" style="height: 25px;">
+                <div class="me-1"><input v-model="editTagInput" type="text" class="search-box" style="width: 100%;" @blur="editTagName = false" @keypress.enter="saveTagName" ref="editTagNameInputElem"/></div>
+                <div><i class="bi bi-x bb" /></div>
+                <div @mousedown="saveTagName"><i class="bi bi-check bb"></i></div>
             </div>
             <div v-else class="text-secondary">{{  $t('modals.tags.click_any') }}</div>
         </div>
@@ -192,17 +221,17 @@ onMounted(() => tagList.value = [...filteredTags.value])
         </div>
         <draggableComponent v-model="tagList"
             :group="{ name: 'tags', pull: props.main ? 'clone' : false, put: !props.main }" item-key="id" :sort="false"
-            style="height: 100%; overflow: auto;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
+            style="height: 100%; overflow: hidden;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
             @add="e => emits('added', tagList[e.newIndex])">
             <template #item="{ element }" #>
                 <div class="d-flex ps-2" :class="tagClass(element)"
                     style="cursor: pointer;" @click="emits('select', element.id)" @mouseenter="selectedTag = element.id"
                     @mouseleave="selectedTag = -1">
 
-                    <div>
+                    <div class="overflow-hidden">
                         <TagBadge :id="element.id" />
                     </div>
-                    <div class="flex-grow-1"></div>
+                    <div class="flex-grow-1" style="margin-left: 2px;"></div>
                     <div v-if="selectedTag == element.id" class="d-flex">
                         <div v-if="!props.noCreate"><i class="bi bi-x sb" @click.stop="deleteTag(element)"></i></div>
                         <TagOptionsDropdown :property-id="element.propertyId" :tag-id="element.id"
