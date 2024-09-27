@@ -52,11 +52,11 @@ const filteredTags = computed(() => {
     }
     const mode = sortMode.value
     const direction = sortDireciton.value[mode]
-    if(mode == 0) {
+    if (mode == 0) {
         res.sort((a, b) => a.value.localeCompare(b.value) * direction)
     }
-    else if(mode == 1) {
-        res.sort((a,b) => (a.count - b.count)*direction)
+    else if (mode == 1) {
+        res.sort((a, b) => (a.count - b.count) * direction)
     }
     return res
 })
@@ -133,8 +133,8 @@ function deleteTag(t) {
 }
 
 function tagClass(t: Tag) {
-    if(t.id == props.selected?.id) return 'bg-blue'
-    if(t.id == selectedTag.value) return 'bg-selected'
+    if (t.id == props.selected?.id) return 'bg-blue'
+    if (t.id == selectedTag.value) return 'bg-selected'
     return ''
 }
 
@@ -148,9 +148,9 @@ async function startEditName() {
 async function saveTagName() {
     let tag = deepCopy(props.selected)
     tag.value = editTagInput.value
-    let commit = {tags: [tag]}
+    let commit = { tags: [tag] }
     await data.sendCommit(commit)
-    if(editTagNameInputElem.value) {
+    if (editTagNameInputElem.value) {
         editTagNameInputElem.value.blur()
     }
 }
@@ -172,7 +172,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
     <div class="box d-flex flex-column">
         <div class="search d-flex">
             <div class="flex-grow-1"></div>
-            <div v-if="!openInput" class="text-nowrap">{{ $t('modals.tags.col_title_' +props.title) }}</div>
+            <div v-if="!openInput" class="text-nowrap">{{ $t('modals.tags.col_title_' + props.title) }}</div>
             <div class="flex-grow-1">
             </div>
             <div class="search-box d-flex me-1">
@@ -206,11 +206,12 @@ onMounted(() => tagList.value = [...filteredTags.value])
                 <div><i class="bi bi-x bb" @click="emits('unselect')"></i></div>
             </div>
             <div v-else-if="props.selected && editTagName" class="d-flex" style="height: 25px;">
-                <div class="me-1"><input v-model="editTagInput" type="text" class="search-box" style="width: 100%;" @blur="editTagName = false" @keypress.enter="saveTagName" ref="editTagNameInputElem"/></div>
+                <div class="me-1"><input v-model="editTagInput" type="text" class="search-box" style="width: 100%;"
+                        @blur="editTagName = false" @keypress.enter="saveTagName" ref="editTagNameInputElem" /></div>
                 <div><i class="bi bi-x bb" /></div>
                 <div @mousedown="saveTagName"><i class="bi bi-check bb"></i></div>
             </div>
-            <div v-else class="text-secondary">{{  $t('modals.tags.click_any') }}</div>
+            <div v-else class="text-secondary">{{ $t('modals.tags.click_any') }}</div>
         </div>
         <div v-if="!filterMatch && filterValue && !props.noCreate" class="d-flex ps-2"
             :class="selectedTag == -1 ? 'bg-selected' : ''" style="cursor: pointer;" @click="">
@@ -221,11 +222,11 @@ onMounted(() => tagList.value = [...filteredTags.value])
         </div>
         <draggableComponent v-model="tagList"
             :group="{ name: 'tags', pull: props.main ? 'clone' : false, put: !props.main }" item-key="id" :sort="false"
-            style="height: 100%; overflow: hidden;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
+            style="height: 100%; overflow: auto;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
             @add="e => emits('added', tagList[e.newIndex])">
             <template #item="{ element }" #>
-                <div class="d-flex ps-2" :class="tagClass(element)"
-                    style="cursor: pointer;" @click="emits('select', element.id)" @mouseenter="selectedTag = element.id"
+                <div class="d-flex ps-2" :class="tagClass(element)" style="cursor: pointer;"
+                    @click="emits('select', element.id)" @mouseenter="selectedTag = element.id"
                     @mouseleave="selectedTag = -1">
 
                     <div class="overflow-hidden">
@@ -237,7 +238,8 @@ onMounted(() => tagList.value = [...filteredTags.value])
                         <TagOptionsDropdown :property-id="element.propertyId" :tag-id="element.id"
                             :can-customize="true" />
                     </div>
-                    <div class="me-2 text-secondary" style="font-size: 13px;">{{ element.count + sum(element.allChildren.map(c => data.tags[c].count)) }}</div>
+                    <div class="me-2 text-secondary" style="font-size: 13px;">{{ element.count +
+                        sum(element.allChildren.map(c => data.tags[c].count)) }}</div>
                 </div>
             </template>
         </draggableComponent>
@@ -317,6 +319,6 @@ onMounted(() => tagList.value = [...filteredTags.value])
 }
 
 .bg-blue {
-    background-color: rgba(89, 89, 247, 0.309); 
+    background-color: rgba(89, 89, 247, 0.309);
 }
 </style>
