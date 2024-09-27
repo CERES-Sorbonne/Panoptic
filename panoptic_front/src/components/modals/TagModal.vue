@@ -11,6 +11,7 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import TagColumn from '@/components/tags/TagColumn.vue';
 import TagTree from '@/components/tags/TagTree.vue';
 import Modal2 from './Modal2.vue';
+import ColorDropdown from '../dropdowns/ColorDropdown.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -188,6 +189,13 @@ async function saveTagName() {
         editTagNameInputElem.value.blur()
     }
 }
+
+async function updateTagColor(color: number) {
+    let tag = deepCopy(data.tags[tagId.value])
+    tag.color = color
+    let commit = {tags: [tag]}
+    await data.sendCommit(commit)
+}
 watch(tags, () => {
     data.tagList.forEach(t => {
         if (tagToInstance.value[t.id]) return
@@ -245,8 +253,7 @@ watch(tags, () => {
                                             @keypress.enter="saveTagName" ref="editTagNameInputElem" />
                                     </div>
                                     <div class="ms-1" style="padding-top: 2px;">
-                                        <div :style="{ backgroundColor: Colors[tag.color].color }"
-                                            style="height: 20px;width: 20px; border-radius: 5px;"></div>
+                                        <ColorDropdown :model-value="tag.color" @update:model-value="updateTagColor" />
                                     </div>
                                     <div class="ms-2 me-2 text-secondary">
                                         {{ tag.count + sum(tag.allChildren.map(c => data.tags[c].count)) }}
