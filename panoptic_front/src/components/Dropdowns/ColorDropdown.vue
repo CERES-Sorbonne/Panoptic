@@ -33,6 +33,6 @@ const emits = defineEmits(['update:modelValue'])
 
 <style scoped>
 .main-box {
-    width: 200px;
+    width: 100px;
 }
 </style>
