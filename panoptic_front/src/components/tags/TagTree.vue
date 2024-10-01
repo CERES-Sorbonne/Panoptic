@@ -23,7 +23,10 @@ const data = useDataStore()
 
 const props = defineProps<{
     property: Property
+    selectedTags: Tag[]
 }>()
+
+const emits = defineEmits(['select', 'unselect'])
 
 const tagDepth = ref<{ [tagId: number]: number }>({})
 const maxDepth = ref(0)
@@ -32,11 +35,29 @@ const tagFilter = ref(false)
 const mainElem = ref(null)
 let offset = { x: 0, y: 0 }
 
+let tagElems = {}
+const tagColumns = ref<Tag[][]>([])
+
+const isDrawing = ref(false)
+const hoveredTag = ref(-1)
+const sourceTag = ref(-1)
+const drawSource = ref([0, 0])
+const drawTarget = ref([0, 0])
+const colElem = ref(null)
+const scrollElem = ref(null)
+
+
+const selectedIndex = computed(() => {
+    const res: {[id: number]: boolean} = {}
+    props.selectedTags.forEach(t => res[t.id] = true)
+    return res
+})
+
 const tagList = computed(() => {
     let res = data.tagList.filter(t => t.propertyId == props.property.id && t.id != deletedID)
-    if (tagFilter.value && Object.keys(selectedTags.value).length) {
+    if (tagFilter.value && props.selectedTags.length) {
         const valid = new Set<number>()
-        const selected = res.filter(t => selectedTags.value[t.id])
+        const selected = res.filter(t => selectedIndex.value[t.id])
         selected.forEach(t => valid.add(t.id))
         selected.forEach(t => t.allChildren.forEach(c => valid.add(c)))
         selected.forEach(t => t.allParents.forEach(c => valid.add(c)))
@@ -44,11 +65,6 @@ const tagList = computed(() => {
     }
     return res
 })
-
-const selectedTagList = computed(() => Object.keys(selectedTags.value).map(Number))
-
-let tagElems = {}
-const tagColumns = ref<Tag[][]>([])
 
 function computeTagColumns() {
     const res: Tag[][] = []
@@ -214,22 +230,13 @@ async function reDraw() {
     await computeGraph()
 }
 
-const isDrawing = ref(false)
-const hoveredTag = ref(-1)
-const sourceTag = ref(-1)
-const drawSource = ref([0, 0])
-const drawTarget = ref([0, 0])
-const selectedTags = ref<{ [tagId: number]: boolean }>({})
-const selectedOrder = ref([])
-const colElem = ref(null)
-
 const tagClass = computed(() => {
     let res = {}
     for (let tag of tagList.value) {
         res[tag.id] = []
         if (hoveredTag.value == tag.id) {
             res[tag.id].push('hover-tag')
-        } else if (selectedTags.value[tag.id]) {
+        } else if (selectedIndex.value[tag.id]) {
             res[tag.id].push('selected-tag')
         } else {
             res[tag.id].push('tag')
@@ -240,9 +247,8 @@ const tagClass = computed(() => {
 
 const selectedLines = computed(() => {
     const res = []
-    const selected = selectedTags.value
     const valid = new Set<number>()
-    const list = Object.keys(selected).map(Number)
+    const list = props.selectedTags.map(t => t.id)
     list.forEach(t => valid.add(t))
     list.forEach(t => data.tags[t].allChildren.forEach(c => valid.add(c)))
     list.forEach(t => data.tags[t].allParents.forEach(p => valid.add(p)))
@@ -275,32 +281,31 @@ function onClickTag(tag: Tag) {
     sourceTag.value = tag.id
     isDrawing.value = true
 
+    const xScroll = scrollElem.value.scrollLeft
+    const yScroll = scrollElem.value.scrollTop
+
     const rect = tagElems[tag.id].getBoundingClientRect()
-    drawSource.value = [((rect.x + rect.right) / 2) - offset.x, rect.y + 11 - offset.y]
+    drawSource.value = [((rect.x + rect.right) / 2) - offset.x + xScroll, rect.y + 11 - offset.y + yScroll]
     drawTarget.value = drawSource.value
 }
 
 function onSelectTag(tag: Tag) {
-    const selected = selectedTags.value
+    const selected = selectedIndex.value
     if (isDrawing.value && sourceTag.value != tag.id) return
     if (selected[tag.id]) {
-        delete selected[tag.id]
-        let order = selectedOrder.value
-        order.splice(order.indexOf(tag.id), 1)
-        selectedOrder.value = order
+        emits('select', props.selectedTags.filter(t => t.id != t.id))
     } else {
-        selected[tag.id] = true
-        selectedOrder.value.push(tag.id)
+        emits('select', [...props.selectedTags, tag])
     }
-    selectedTags.value = selected
-
     if (tagFilter.value) {
         reDraw()
     }
 }
 
 function followMouse(e) {
-    drawTarget.value = [e.clientX - offset.x, e.clientY - offset.y]
+    const xScroll = scrollElem.value.scrollLeft
+    const yScroll = scrollElem.value.scrollTop
+    drawTarget.value = [e.clientX - offset.x + xScroll, e.clientY - offset.y + yScroll]
 }
 
 async function endDraw() {
@@ -330,18 +335,15 @@ function toggleFilter() {
 }
 
 function clearSelected() {
-    const list = selectedTagList.value
-    for (let t of list) {
-        delete selectedTags.value[t]
-    }
-    selectedOrder.value = []
+    emits('unselect')
+
     if (tagFilter.value) {
         reDraw()
     }
 }
 
 async function mergeSelected() {
-    const list = selectedOrder.value
+    const list = props.selectedTags.map(t => t.id)
     await data.mergeTags(list)
     const first = list[0]
     clearSelected()
@@ -358,26 +360,26 @@ watch(() => data.onUndo, reDraw)
 
 <template>
     <div class="h-100">
-        <div class="d-flex mt-2 ms-2" style="height: 28px;">
-            <div v-if="!selectedTagList.length"><div class="text-secondary">{{  $t('modals.tags.click_to_select') }}</div></div>
-            <div @click="toggleFilter" class="bbb me-1" v-if="selectedTagList.length">
+        <div class="d-flex ms-2" style="padding: 6px 0px 2px 0px; height: 36px; border-right: 1px solid var(--border-color);">
+            <div v-if="!props.selectedTags.length"><div class="text-secondary">{{  $t('modals.tags.click_to_select') }}</div></div>
+            <div @click="toggleFilter" class="bbb me-1" v-if="props.selectedTags.length">
                 <wTT message="modals.tags.filter_tree">
                     <i v-if="!tagFilter" class="bi bi-funnel"></i>
                     <i v-else class="bi bi-funnel-fill text-primary"></i>
                 </wTT>
             </div>
-            <div class="bbb" v-if="selectedTagList.length" @click="clearSelected">
+            <div class="bbb" v-if="props.selectedTags.length" @click="clearSelected">
                 <wTT message="modals.tags.unselect_tree">
-                    <i class="bi bi-x" /> {{ selectedTagList.length }} selected
+                    <i class="bi bi-x" /> {{ props.selectedTags.length }} selected
                 </wTT>
             </div>
-            <div class="bbb ms-1" v-if="selectedTagList.length > 1" @click="mergeSelected">
+            <div class="bbb ms-1" v-if="props.selectedTags.length > 1" @click="mergeSelected">
                 <wTT message="modals.tags.merge_tree">
-                    <span>Fusion</span> <span class="ms-1"><TagBadge :id="selectedOrder[0]" /></span>
+                    <span>Fusion</span> <span class="ms-1"><TagBadge :id="props.selectedTags[0].id" /></span>
                 </wTT>
             </div>
         </div>
-        <div class="m-2 main-container">
+        <div class="ms-2 main-container" ref="scrollElem">
             <div style="position: absolute; user-select: none;" ref="mainElem">
                 <svg :width="svgWidth" :height="svgHeight" style="position: absolute; top:0; z-index: 2;">
                     <template v-for="l, i in lines">

@@ -1,34 +1,28 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef, watch } from 'vue'
-import { Colors, Instance, ModalId, PropertyType, Tag } from '@/data/models';
+import { computed, ref, shallowRef, watch } from 'vue'
+import { buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
 import { deletedID, useDataStore } from '@/data/dataStore';
-import { computeTagToInstance, deepCopy, isTag, sum } from '@/utils/utils';
+import { computeTagToInstance, deepCopy, isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
-import ImagePreview from '@/components/preview/ImagePreview.vue';
-import TagBadge from '@/components/tagtree/TagBadge.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TagColumn from '@/components/tags/TagColumn.vue';
 import TagTree from '@/components/tags/TagTree.vue';
 import Modal2 from './Modal2.vue';
-import ColorDropdown from '../dropdowns/ColorDropdown.vue';
+import TagImagesPreview from '../images/TagImagesPreview.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
 
-// const props = defineProps<{}>()
-// const emits = defineEmits([])
 const propId = ref(-1)
-const tagId = ref(-1)
+// const tagId = ref(-1)
+const selectedTagIds = ref<number[]>([])
+
 const dragging = ref(false)
 const view = ref('list')
 
 const childDisabled = ref(false)
 const parentDisbled = ref(false)
-
-const editTagName = ref(false)
-const editTagInput = ref('')
-const editTagNameInputElem = ref(null)
 
 const tagToInstance = shallowRef<{ [tId: number]: Instance[] }>({})
 
@@ -45,6 +39,9 @@ const property = computed(() => {
 const properties = computed(() => data.propertyList.filter(p => isTag(p.type) && p.id != deletedID))
 const tags = computed(() => data.tagList.filter(t => t.propertyId == property.value?.id))
 
+
+const selectedTags = computed(() => selectedTagIds.value.map(tId => data.tags[tId]))
+
 const propertyCounts = computed(() => {
     const res = {}
     for (let prop of properties.value) {
@@ -54,42 +51,30 @@ const propertyCounts = computed(() => {
     return res
 })
 
-const tag = computed(() => {
-    if (tagId.value == -1 || !data.tags[tagId.value]) return undefined
-    const tag = data.tags[tagId.value]
-    if (property.value.id != tag.propertyId) return undefined
-    return tag
-})
+// const tag = computed(() => {
+//     if (tagId.value == -1 || !data.tags[tagId.value]) return undefined
+//     const tag = data.tags[tagId.value]
+//     if (property.value.id != tag.propertyId) return undefined
+//     return tag
+// })
 
 const siblingsTags = computed(() => {
-    const res = []
-    if (!tag.value) return res
-
-    for (let parentId of tag.value.parents) {
-        const parent = data.tags[parentId]
-        for (let sibling of parent.children) {
-            if (sibling != tag.value.id) {
-                res.push(data.tags[sibling])
-            }
-        }
-    }
+    const siblingSet = new Set<number>()
+    parentTags.value.forEach(t => t.children.forEach(c => siblingSet.add(c)))
+    const res = Array.from(siblingSet).filter(tId => !selectedTags.value.find(t => t.id == tId)).map(tId => data.tags[tId])
     return res
 })
 
 const childrenTags = computed(() => {
-    const res = []
-    if (tag.value) {
-        tag.value.children.forEach(t => res.push(data.tags[t]))
-    }
-    return res
+    const childSet = new Set<number>()
+    selectedTags.value.forEach(t => t.children.forEach(p => childSet.add(p)))
+    return Array.from(childSet).map(p => data.tags[p])
 })
 
 const parentTags = computed(() => {
-    const res = []
-    if (tag.value) {
-        tag.value.parents.forEach(t => res.push(data.tags[t]))
-    }
-    return res
+    const parentSet = new Set<number>()
+    selectedTags.value.forEach(t => t.parents.forEach(p => parentSet.add(p)))
+    return Array.from(parentSet).map(p => data.tags[p])
 })
 
 function show() {
@@ -98,7 +83,7 @@ function show() {
         propId.value = init.propId
     }
     if (init.tagId != undefined) {
-        tagId.value = init.tagId
+        selectedTagIds.value = [init.tagId]
     }
     if (propId.value == -1 && properties.value.length) {
         propId.value = properties.value[0].id
@@ -107,45 +92,81 @@ function show() {
     updateTagToInstance()
 }
 
+function selectTags(selected: Tag[]) {
+    selectedTagIds.value = selected.map(t => t.id)
+}
+
+function unselectTag(tagId: number) {
+    selectedTagIds.value = selectedTagIds.value.filter(id => id != tagId)
+}
+
+function unselectTags() {
+    selectedTagIds.value = []
+}
+
 function hide() {
     propId.value = -1
-    tagId.value = -1
+    selectedTagIds.value = []
 }
 
-function addChild(t) {
-    if (t && tag.value) {
-        data.addTagParent(t.id, tag.value.id)
-    }
+async function addChild(tag: Tag) {
+    const parentSet = new Set<number>(tag.parents)
+    selectedTags.value.forEach(t => parentSet.add(t.id))
+    const update = deepCopy(tag)
+    update.parents = Array.from(parentSet)
+    const commit = { tags: [update] }
+    await data.sendCommit(commit)
 }
 
-function addParent(t) {
-    if (t && tag.value) {
-        data.addTagParent(tag.value.id, t.id)
-    }
+async function addParent(tag: Tag) {
+    const toUpdate = selectedTags.value.filter(t => !t.parents.find(p => p == tag.id)).map(deepCopy)
+    toUpdate.forEach(t => t.parents.push(tag.id))
+    const commit = { tags: toUpdate }
+    await data.sendCommit(commit)
+
 }
 
 async function deleteTag(t: Tag) {
-    if (tag.value && tag.value.id == t.id) {
-        tagId.value = -1
+    const index = selectedTags.value.findIndex(tag => tag.id == t.id)
+    if (index >= 0) {
+        selectedTags.value.splice(index, 1)
     }
     await data.deleteTag(t.id)
 
 }
 
-function removeTagParent(t: Tag) {
-    data.deleteTagParent(tag.value.id, t.id)
+async function removeTagParent(tag: Tag) {
+    const toUpdate = selectedTags.value.filter(t => t.parents.find(p => p == tag.id)).map(deepCopy)
+    toUpdate.forEach(t => { t.parents = t.parents.filter(p => p != tag.id) })
+    const commit = { tags: toUpdate }
+    await data.sendCommit(commit)
 }
 
-function removeTagChild(t: Tag) {
-    data.deleteTagParent(t.id, tag.value.id)
+async function removeTagChild(tag: Tag) {
+    const parentSet = new Set<number>()
+    selectedTags.value.forEach(t => parentSet.add(t.id))
+    const update = deepCopy(tag)
+    update.parents = tag.parents.filter(p => !parentSet.has(p))
+    const commit = { tags: [update] }
+    await data.sendCommit(commit)
 }
 
 
-function onDrag(t: Tag) {
+function onDrag(tag: Tag) {
     dragging.value = true
-    if (!tag.value) return
-    console.log(t.id, tag.value.id, tag.value.allChildren, tag.value.allParents)
-    if (t.id == tag.value.id || tag.value.allChildren.includes(t.id) || tag.value.allParents.includes(t.id)) {
+    if (!selectedTags.value.length) return
+
+    const parentSet = new Set<number>()
+    const childSet = new Set<number>()
+    const selectedSet = new Set<number>()
+
+    selectedTags.value.forEach(t => {
+        selectedSet.add(t.id)
+        t.allChildren.forEach(c => childSet.add(c))
+        t.allParents.forEach(p => parentSet.add(p))
+    })
+
+    if (selectedSet.has(tag.id) || childSet.has(tag.id) || parentSet.has(tag.id)) {
         parentDisbled.value = true
         childDisabled.value = true
     }
@@ -156,11 +177,18 @@ async function createTag(name, parent) {
     data.addTag(property.value.id, name, parents)
 }
 
-async function createTagParent(name) {
-    const currentTag = tag.value
-    const newTag = await data.addTag(property.value.id, name, undefined)
-    data.addTagParent(currentTag.id, newTag.id)
+async function createTagParent(name: string) {
+    const newTag = buildTag(-1, propId.value, name)
+    const update = selectedTags.value.map(deepCopy)
+    update.forEach(t => { t.parents.push(newTag.id) })
+    const commit = { tags: [newTag, ...update] }
+    await data.sendCommit(commit)
+}
 
+async function createTagChildren(name: string) {
+    const newTag = buildTag(-1, propId.value, name, selectedTagIds.value)
+    const commit = { tags: [newTag] }
+    await data.sendCommit(commit)
 }
 
 function onDragEnd() {
@@ -173,29 +201,7 @@ function updateTagToInstance() {
     tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
 }
 
-async function startEditName() {
-    editTagInput.value = data.tags[tagId.value].value
-    editTagName.value = true
-    await nextTick()
-    editTagNameInputElem.value.focus()
-}
 
-async function saveTagName() {
-    let tag = deepCopy(data.tags[tagId.value])
-    tag.value = editTagInput.value
-    let commit = { tags: [tag] }
-    await data.sendCommit(commit)
-    if (editTagNameInputElem.value) {
-        editTagNameInputElem.value.blur()
-    }
-}
-
-async function updateTagColor(color: number) {
-    let tag = deepCopy(data.tags[tagId.value])
-    tag.color = color
-    let commit = {tags: [tag]}
-    await data.sendCommit(commit)
-}
 watch(tags, () => {
     data.tagList.forEach(t => {
         if (tagToInstance.value[t.id]) return
@@ -228,63 +234,30 @@ watch(tags, () => {
         </template>
         <template #content="{ width, height }">
             <template v-if="property">
-                <div v-if="view == 'list'" class="h-100 bg-white d-flex">
-                    <TagColumn :tags="tags" title="all" :main="true" :selected="tag" :draggable="true"
-                        class="flex-shrink-0 flex-grow-0" @select="e => tagId = e" @unselect="tagId = -1"
-                        @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
-                    <template v-if="tag">
-                        <TagColumn :tags="parentTags" title="parents" :draggable="dragging" @select="e => tagId = e"
-                            class="flex-shrink-0 flex-grow-0" :disabled="parentDisbled" @create="createTagParent"
-                            @added="addParent" @removed="removeTagParent" />
-                        <TagColumn :tags="siblingsTags" title="siblings" @select="e => tagId = e" :draggable="false"
-                            class="flex-shrink-0 flex-grow-0" :disabled="dragging" :no-create="true" />
-                        <TagColumn :tags="childrenTags" title="children" :draggable="dragging" @select="e => tagId = e"
-                            class="flex-shrink-0 flex-grow-0" @added="addChild" :disabled="childDisabled"
-                            @create="name => createTag(name, tag.id)" @removed="removeTagChild" />
-                        <div v-if="tagToInstance[tag.id].length" class="w-100 h-100 pt-1 d-flex flex-column">
-                            <div style="height: 33px;" class="tag-preview flex-shrink-0 ps-2">
-                                <div class="d-flex" style="padding-top: 2px;" v-if="!editTagName">
-                                    <div v-if="!editTagName" @click="startEditName">
-                                        {{ tag.value }}
-                                    </div>
-                                    <div v-else="editTagName">
-                                        <input v-model="editTagInput" type="text" class="search-box"
-                                            style="width: 100%;" @blur="editTagName = false"
-                                            @keypress.enter="saveTagName" ref="editTagNameInputElem" />
-                                    </div>
-                                    <div class="ms-1" style="padding-top: 2px;">
-                                        <ColorDropdown :model-value="tag.color" @update:model-value="updateTagColor" />
-                                    </div>
-                                    <div class="ms-2 me-2 text-secondary">
-                                        {{ tag.count + sum(tag.allChildren.map(c => data.tags[c].count)) }}
-                                    </div>
-                                    <div class="flex-grow-1"></div>
-                                    <div class="bb me-1">
-                                        <i class="bi bi-trash" @click="data.deleteTag(tag.id); tagId = -1" />
-                                    </div>
-                                    <div class="bb me-1">
-                                        <i class="bi bi-x" @click="tagId = -1" />
-                                    </div>
-
-                                </div>
-                                <div v-else-if="editTagName" class="d-flex" style="height: 25px;">
-                                    <div class="me-1"><input v-model="editTagInput" type="text" class="search-box"
-                                            style="width: 100%;" @blur="editTagName = false"
-                                            @keypress.enter="saveTagName" ref="editTagNameInputElem" /></div>
-                                    <div style="padding-top: 2px;"><i class="bi bi-x bb" /></div>
-                                    <div style="padding-top: 2px;" @mousedown="saveTagName"><i class="bi bi-check bb"></i></div>
-                                </div>
-
-
-                            </div>
-                            <div class="flex-shrink-0" style="height: 2px;"></div>
-                            <ImagePreview :instances="tagToInstance[tag.id]" />
-                        </div>
-                    </template>
-                </div>
-                <div v-if="view == 'graph'" :style="{ height: (height - 40) + 'px', position: 'relative' }"
-                    style="overflow: hidden;">
-                    <TagTree :property="property" />
+                <div class="d-flex h-100">
+                    <div v-if="view == 'list'" class="h-100 bg-white d-flex">
+                        <TagColumn :tags="tags" title="all" :main="true" :draggable="true" :selected-tags="selectedTags"
+                            class="flex-shrink-0 flex-grow-0" @select="selectTags" @unselect="unselectTags"
+                            @dragstart="onDrag" @dragend="onDragEnd" @create="createTag" @removed="deleteTag" />
+                        <template v-if="selectedTags.length">
+                            <TagColumn :tags="parentTags" title="parents" :draggable="dragging" @select="selectTags"
+                                :selected-tags="selectedTags" class="flex-shrink-0 flex-grow-0"
+                                :disabled="parentDisbled" @create="createTagParent" @added="addParent"
+                                @removed="removeTagParent" />
+                            <TagColumn :tags="siblingsTags" title="siblings" @select="selectTags" :draggable="false"
+                                :selected-tags="selectedTags" class="flex-shrink-0 flex-grow-0" :disabled="dragging"
+                                :no-create="true" />
+                            <TagColumn :tags="childrenTags" title="children" :draggable="dragging" @select="selectTags"
+                                :selected-tags="selectedTags" class="flex-shrink-0 flex-grow-0" @added="addChild"
+                                :disabled="childDisabled" @create="createTagChildren" @removed="removeTagChild" />
+                        </template>
+                    </div>
+                    <div v-if="view == 'graph'" :style="{ height: (height - 40) + 'px', width: '800px',position: 'relative' }"
+                        style="overflow: hidden;" class="flex-shrink-0">
+                        <TagTree :property="property" :selected-tags="selectedTags" @select="selectTags" @unselect="unselectTags"/>
+                    </div>
+                    <TagImagesPreview v-if="selectedTags.length" :tags="selectedTags" :tag-to-instance="tagToInstance"
+                        @unselect="unselectTag" />
                 </div>
             </template>
 
@@ -300,16 +273,5 @@ watch(tags, () => {
 
 .selected-property {
     background-color: white;
-}
-
-.tag-preview {
-    border-bottom: 1px solid var(--border-color);
-}
-
-.search-box {
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    overflow: hidden;
-    padding: 1px 4px;
 }
 </style>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import TagOptionsDropdown from '@/components/dropdowns/TagOptionsDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
+import { keyState } from '@/data/keyState';
 import { Tag } from '@/data/models';
-import { deepCopy, sum } from '@/utils/utils';
-import { defineProps, defineEmits, ref, watch, computed, onMounted, nextTick } from 'vue'
+import { sum } from '@/utils/utils';
+import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
 import draggableComponent from 'vuedraggable';
 
 const data = useDataStore()
@@ -14,6 +15,7 @@ const props = defineProps<{
     title: string,
     main?: boolean,
     selected?: Tag,
+    selectedTags?: Tag[],
     draggable?: boolean
     disabled?: boolean
     noCreate?: boolean
@@ -33,6 +35,8 @@ const tagList = ref<Tag[]>([])
 
 const sortDireciton = ref([1, 1, 1])
 const sortMode = ref(0) // 0 alpha, 1 count, 2 color
+
+const lastSelectedTag = ref<Tag>(null)
 
 const filteredTags = computed(() => {
     let tags = []
@@ -58,7 +62,7 @@ const filteredTags = computed(() => {
     else if (mode == 1) {
         res.sort((a, b) => (a.count - b.count) * direction)
     }
-    return res
+    return res.filter(t => t.id != deletedID)
 })
 
 const filterMatch = computed(() => {
@@ -89,36 +93,50 @@ function inputBlur() {
     }
 }
 
-function onUp() {
-    if (selectedTag.value == -1) return
-    const index = filteredTags.value.findIndex(t => selectedTag.value)
-    if (index == 0 || index == -1) return -1
-    selectedTag.value = filteredTags.value[index - 1].id
-}
-
-function onDown() {
-    const tags = filteredTags.value
-    const index = tags.findIndex(t => selectedTag.value)
-    if (index == tags.length - 1) return
-    selectedTag.value = tags[index + 1].id
-}
-
 function openSearch() {
     openInput.value = true
 }
 
-function selectTag() {
-    if (selectedTag.value == -1 && !filterMatch.value) {
-        createTag(filterValue.value)
-        return
+function selectTag(tag: Tag) {
+    const index = props.selectedTags.findIndex(t => t.id == tag.id)
+    if(index >= 0) {
+        const selected = props.selectedTags
+        selected.splice(index, 1)
+        emits('select', selected)
     }
-    if (selectedTag.value > 0) {
-        emits('select', filteredTags.value[selectedTag.value].id)
+    else if(keyState.shift && props.main) {
+        multiSelect(tag)
+    } else if(keyState.ctrl || (keyState.shift && !props.main)) {
+        emits('select', [...props.selectedTags, tag])
+    } else {
+        emits('select', [tag])
     }
 }
 
-function createTag(name) {
-    emits('create', name)
+function multiSelect(tag: Tag) {
+    const lastTag = props.selectedTags.length ? props.selectedTags[props.selectedTags.length-1] : undefined
+    const tags = filteredTags.value
+
+    const lastIndex = lastTag ? tags.findIndex(t => t.id == lastTag.id) : undefined
+    const index = tags.findIndex(t => t.id == tag.id)
+
+    let toAdd: Tag[] = []
+    if(lastIndex >= 0) {
+        if(lastIndex < index) {
+            toAdd = tags.slice(lastIndex+1, index+1)
+        } else {
+            toAdd = tags.slice(index, lastIndex)
+        }
+    } else {
+        toAdd = [tag]
+    }
+    const selectedSet = new Set(props.selectedTags.map(t => t.id))
+    toAdd = toAdd.filter(t => !selectedSet.has(t.id))
+    emits('select', [...props.selectedTags, ...toAdd])
+}
+
+function createTag() {
+    emits('create', filterValue.value)
     inputClose()
 }
 
@@ -133,28 +151,11 @@ function deleteTag(t) {
 }
 
 function tagClass(t: Tag) {
-    if (t.id == props.selected?.id) return 'bg-blue'
+    if (!props.selectedTags) return ''
+    if (props.selectedTags.find(tag => tag.id == t.id)) return 'bg-blue'
     if (t.id == selectedTag.value) return 'bg-selected'
     return ''
 }
-
-async function startEditName() {
-    editTagInput.value = props.selected.value
-    editTagName.value = true
-    await nextTick()
-    editTagNameInputElem.value.focus()
-}
-
-async function saveTagName() {
-    let tag = deepCopy(props.selected)
-    tag.value = editTagInput.value
-    let commit = { tags: [tag] }
-    await data.sendCommit(commit)
-    if (editTagNameInputElem.value) {
-        editTagNameInputElem.value.blur()
-    }
-}
-
 
 watch(openInput, () => {
     if (openInput.value) {
@@ -177,8 +178,8 @@ onMounted(() => tagList.value = [...filteredTags.value])
             </div>
             <div class="search-box d-flex me-1">
                 <input ref="inputElem" type="text" class="search-input" style="cursor: pointer;" v-model="filterValue"
-                    @keydown.esc.stop="inputClose" @blur="inputBlur" @keydown.down="onDown" @keydown.up="onUp"
-                    @keydown.enter="selectTag" :class="openInput ? 'open-input' : 'closed-input'" />
+                    @keydown.esc.stop="inputClose" @blur="inputBlur" @keydown.enter="createTag"
+                    :class="openInput ? 'open-input' : 'closed-input'" />
                 <div v-if="filterValue != ''" @click="inputClose" style="cursor: pointer;"><span
                         class="me-1 bi bi-x"></span></div>
                 <div v-else class="me-1 bi bi-search" @click="openSearch" style="cursor: pointer;"></div>
@@ -196,20 +197,9 @@ onMounted(() => tagList.value = [...filteredTags.value])
         </div>
 
         <div v-if="props.main" class="text-center p-2 selected-tag">
-            <div v-if="props.selected && !editTagName" class="d-flex" style="height: 25px;">
-                <div class="flex-grow-1 text-center overflow-hidden">
-                    <TagBadge :id="props.selected.id" style="font-size: 17px;" @click="startEditName" />
-                </div>
-                <div class="me-2 ms-2 text-secondary" style="position: relative; top:-1px">
-                    {{ props.selected.count + sum(props.selected.allChildren.map(c => data.tags[c].count)) }}
-                </div>
+            <div v-if="props.selectedTags.length" class="d-flex" style="height: 24px;">
+                <div class="flex-grow-1">{{ props.selectedTags.length }} Selected</div>
                 <div><i class="bi bi-x bb" @click="emits('unselect')"></i></div>
-            </div>
-            <div v-else-if="props.selected && editTagName" class="d-flex" style="height: 25px;">
-                <div class="me-1"><input v-model="editTagInput" type="text" class="search-box" style="width: 100%;"
-                        @blur="editTagName = false" @keypress.enter="saveTagName" ref="editTagNameInputElem" /></div>
-                <div><i class="bi bi-x bb" /></div>
-                <div @mousedown="saveTagName"><i class="bi bi-check bb"></i></div>
             </div>
             <div v-else class="text-secondary">{{ $t('modals.tags.click_any') }}</div>
         </div>
@@ -225,9 +215,8 @@ onMounted(() => tagList.value = [...filteredTags.value])
             style="height: 100%; overflow: auto;" @start="onDrag" @end="emits('dragend')" :disabled="props.disabled"
             @add="e => emits('added', tagList[e.newIndex])">
             <template #item="{ element }" #>
-                <div class="d-flex ps-2" :class="tagClass(element)" style="cursor: pointer;"
-                    @click="emits('select', element.id)" @mouseenter="selectedTag = element.id"
-                    @mouseleave="selectedTag = -1">
+                <div class="d-flex ps-2" :class="tagClass(element)" style="cursor: pointer;" @click="e => selectTag(element)"
+                    @mouseenter="selectedTag = element.id" @mouseleave="selectedTag = -1">
 
                     <div class="overflow-hidden">
                         <TagBadge :id="element.id" />
@@ -254,6 +243,7 @@ onMounted(() => tagList.value = [...filteredTags.value])
     width: 200px;
     /* font-size: 13px; */
     position: relative;
+    user-select: none;
 }
 
 .disable-overlay {
