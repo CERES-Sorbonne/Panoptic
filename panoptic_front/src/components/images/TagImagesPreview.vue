@@ -25,7 +25,7 @@ const instances = computed(() => {
 </script>
 
 <template>
-    <div class="h-100 w-100 pt-1 d-flex flex-column overflow-hidden">
+    <div class="h-100 w-100 d-flex flex-column overflow-hidden">
         <EditableTag v-for="tag in props.tags" :tag="tag" @unselect="e => emits('unselect', e)" />
         <div class="flex-shrink-0" style="height: 2px;"></div>
         <ImagePreview :instances="instances" />

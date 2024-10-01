@@ -43,13 +43,13 @@ async function updateTagColor(color: number) {
 </script>
 
 <template>
-    <div style="height: 33px; width: 100%;" class="tag-preview flex-shrink-0 ps-2">
-        <div class="d-flex" style="padding-top: 2px;" v-if="!editTagName">
+    <div style="height: 37px; width: 100%;" class="tag-preview flex-shrink-0 ps-2 pt-1">
+        <div class="d-flex" v-if="!editTagName">
             <div v-if="!editTagName" class="text-nowrap overflow-hidden" @click="startEditName">
                 {{ tag.value }}
             </div>
             <div v-else="editTagName">
-                <input v-model="editTagInput" type="text" class="search-box" style="width: 100%;"
+                <input v-model="editTagInput" type="text" class="search-box" style="width: 100%; height: 20px;"
                     @blur="editTagName = false" @keypress.enter="saveTagName" ref="editTagNameInputElem" />
             </div>
             <div class="ms-1" style="padding-top: 2px;">
