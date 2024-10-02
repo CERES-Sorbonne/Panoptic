@@ -12,15 +12,19 @@ const props = defineProps<{
     tagToInstance: { [tId: number]: Instance[] }
 }>()
 
-const emits = defineEmits(['unselect'])
+const emits = defineEmits(['unselect', 'merge'])
 
 const instances = computed(() => {
     const instanceSet = new Set<number>()
-    for(let tag of props.tags) {
+    for (let tag of props.tags) {
         props.tagToInstance[tag.id].forEach(i => instanceSet.add(i.id))
     }
     return Array.from(instanceSet).map(i => data.instances[i])
 })
+
+function mergeSelected() {
+    emits('merge')
+}
 
 </script>
 
@@ -29,8 +33,15 @@ const instances = computed(() => {
         <div class="flex-shrink-0" style="max-height: 222px; overflow: scroll;">
             <EditableTag v-for="tag in props.tags" :tag="tag" @unselect="e => emits('unselect', e)" />
         </div>
-        
-        <div class="flex-shrink-0" style="height: 2px;"></div>
+        <div v-if="props.tags.length > 1" style="height: 37px; border-bottom: 1px solid var(--border-color);" class="flex-shrink-0 text-center bb"
+        @click="mergeSelected">
+            <!-- <div style="margin-top: 6px;">
+                <span class="bbb">Fusion</span>
+            </div> -->
+            <div style="margin-top: 4px;">Merge Tags</div>
+        </div>
+
+        <div class="flex-shrink-0" style="height: 4px;"></div>
         <ImagePreview :instances="instances" />
     </div>
 </template>

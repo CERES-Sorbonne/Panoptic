@@ -219,10 +219,11 @@ function onLineEndHover(index: number) {
 async function deleteLine(index: number) {
     const line = lines.value[index]
     await data.deleteTagParent(line.child.id, line.parent.id)
-    await reDraw()
+    // await reDraw()
 }
 
 async function reDraw() {
+    console.log('redraw')
     lines.value = []
     tagColumns.value = []
     tagDepth.value = {}
@@ -293,7 +294,7 @@ function onSelectTag(tag: Tag) {
     const selected = selectedIndex.value
     if (isDrawing.value && sourceTag.value != tag.id) return
     if (selected[tag.id]) {
-        emits('select', props.selectedTags.filter(t => t.id != t.id))
+        emits('select', props.selectedTags.filter(t => t.id != tag.id))
     } else {
         emits('select', [...props.selectedTags, tag])
     }
@@ -325,7 +326,7 @@ async function endDraw() {
         tagColumns.value = []
         tagDepth.value = {}
         await nextTick()
-        await computeGraph()
+        await reDraw()
     }
 }
 
@@ -342,19 +343,11 @@ function clearSelected() {
     }
 }
 
-async function mergeSelected() {
-    const list = props.selectedTags.map(t => t.id)
-    await data.mergeTags(list)
-    const first = list[0]
-    clearSelected()
-    reDraw()
-    onSelectTag(data.tags[first])
-}
-
 onMounted(computeGraph)
 watch(() => project.status.loaded, computeGraph)
-watch(() => props.property, reDraw)
-watch(() => data.onUndo, reDraw)
+// watch(() => props.property, reDraw)
+// watch(() => data.onUndo, reDraw)
+watch(tagList, reDraw)
 
 </script>
 
@@ -373,11 +366,11 @@ watch(() => data.onUndo, reDraw)
                     <i class="bi bi-x" /> {{ props.selectedTags.length }} selected
                 </wTT>
             </div>
-            <div class="bbb ms-1" v-if="props.selectedTags.length > 1" @click="mergeSelected">
+            <!-- <div class="bbb ms-1" v-if="props.selectedTags.length > 1" @click="mergeSelected">
                 <wTT message="modals.tags.merge_tree">
                     <span>Fusion</span> <span class="ms-1"><TagBadge :id="props.selectedTags[0].id" /></span>
                 </wTT>
-            </div>
+            </div> -->
         </div>
         <div class="ms-2 main-container" ref="scrollElem">
             <div style="position: absolute; user-select: none;" ref="mainElem">
