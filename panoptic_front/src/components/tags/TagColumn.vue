@@ -49,7 +49,6 @@ const filteredTags = computed(() => {
 
     const res: Tag[] = []
     const marked = new Set()
-    console.log(tags)
     for (let t of tags) {
         if (marked.has(t.id)) continue
         res.push(t)
