@@ -256,6 +256,7 @@ async function reDraw() {
 }
 
 const tagClass = computed(() => {
+    const selectedSet = new Set<number>(props.selectedTags.map(t => t.id))
     let res = {}
     for (let tag of tagList.value) {
         res[tag.id] = []
@@ -265,6 +266,9 @@ const tagClass = computed(() => {
             res[tag.id].push('selected-tag')
         } else {
             res[tag.id].push('tag')
+            if(props.selectedTags.length && !tag.allChildren.find(c => selectedSet.has(c))) {
+                res[tag.id].push('no-hover-tag')
+            }
         }
     }
     return res
@@ -389,6 +393,15 @@ watch(tagList, reDraw)
                     <i class="bi bi-x" /> {{ props.selectedTags.length }} selected
                 </wTT>
             </div>
+            <div class="ms-2">
+                <TagBadge name="parent" :color="-1" />
+            </div>
+            <div>
+                <div style="margin-top: 12px; width: 70px; border-top: 1px solid grey"></div>
+            </div>
+            <div>
+                <TagBadge name="child" :color="-1" />
+            </div>
         </div>
         <div class="ms-2 main-container" ref="scrollElem">
             <div style="position: absolute; user-select: none;" ref="mainElem">
@@ -457,6 +470,10 @@ text {
 
 .tag {
     box-shadow: none;
+}
+
+.no-hover-tag {
+    opacity: 0.4;
 }
 
 .selected-tag {
