@@ -13,6 +13,10 @@ const props = defineProps<{
 }>()
 const emits = defineEmits(['update:modelValue', 'blur'])
 
+defineExpose({
+    forceFocus
+})
+
 let _no_reset_flag = false
 let _mark_delete = false
 
@@ -88,6 +92,11 @@ function updateInternal(value: Date) {
         return
     }
     internal.value = new Date(value.getTime() - value.getTimezoneOffset()*60*1000).toISOString()
+}
+
+function forceFocus() {
+    console.log('force focus')
+    dropdownElem.value.show()
 }
 
 watch(props, ()=> {
