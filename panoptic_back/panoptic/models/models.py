@@ -187,8 +187,10 @@ class Tab(BaseModel):
     data: dict | None = None
 
 
-class PathRequest(BaseModel):
-    path: str
+class AddPluginPayload(CamelModel):
+    path: str | None = None
+    git_url: str | None = None
+    plugin_name: str | None = None
 
 
 class UpdateCounter(CamelModel):
