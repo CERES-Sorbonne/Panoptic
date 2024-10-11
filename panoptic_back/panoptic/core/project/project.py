@@ -20,7 +20,7 @@ from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate, ProjectSettings
+from panoptic.models import StatusUpdate, ProjectSettings, PluginKey
 from panoptic.utils import get_model_params_description
 
 nb_workers = 8
@@ -33,7 +33,7 @@ def get_executor():
 
 
 class Project:
-    def __init__(self, folder_path: str, plugins: List[str]):
+    def __init__(self, folder_path: str, plugins: List[PluginKey]):
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
@@ -50,7 +50,7 @@ class Project:
 
         self.plugin_loaded = False
         self.plugins: List[APlugin] = []
-        self.plugin_paths = plugins
+        self.plugin_keys = plugins
 
     async def start(self):
         try:
@@ -66,9 +66,8 @@ class Project:
 
             # from panoptic.plugins import DefaultPlugin
             # paths = [DefaultPlugin.__file__, *self.plugin_paths]
-            paths = self.plugin_paths
-            for plugin_path in paths:
-                task = LoadPluginTask(self, plugin_path)
+            for key in self.plugin_keys:
+                task = LoadPluginTask(self, key)
                 self.task_queue.add_task(task)
 
             self.is_loaded = True
