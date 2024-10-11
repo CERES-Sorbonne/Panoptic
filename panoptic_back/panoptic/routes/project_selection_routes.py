@@ -7,8 +7,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from panoptic.core.panoptic import Panoptic
+from panoptic.core.plugin import add_plugin_from_git
 from panoptic.models import AddPluginPayload
-from panoptic.plugins import add_plugin_from_git
 
 selection_router = APIRouter()
 

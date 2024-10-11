@@ -10,6 +10,11 @@ export interface Project {
     name: string
 }
 
+export interface PluginKey {
+    name: string
+    path: string
+}
+
 export interface SelectionStatus {
     isLoaded: boolean
     selectedProject: Project
@@ -21,7 +26,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     const data = reactive({
         status: {} as SelectionStatus,
-        plugins: [],
+        plugins: [] as PluginKey[],
         init: false
     })
 

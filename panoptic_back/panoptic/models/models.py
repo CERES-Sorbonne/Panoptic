@@ -13,6 +13,27 @@ from pydantic import BaseModel
 
 # from pydantic.dataclasses import dataclass
 
+class ProjectId(BaseModel):
+    name: str | None = None
+    path: str | None = None
+
+
+class PluginKey(BaseModel):
+    name: str
+    path: str
+
+
+class PanopticData(BaseModel):
+    projects: list[ProjectId]
+    last_opened: ProjectId | None = None
+    plugins: List[PluginKey] = []
+
+
+class PanopticDataOld(BaseModel):
+    projects: list[ProjectId]
+    last_opened: ProjectId | None = None
+    plugins: List[str] = []
+
 
 class PropertyType(Enum):
     string = "string"
