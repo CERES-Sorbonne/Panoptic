@@ -789,11 +789,11 @@ export class GroupManager {
         this.setChildGroup(parent, groups)
 
 
-        // if (parent.subGroupType == GroupType.Cluster) {
-        //     groups.forEach(g => {
-        //         this.groupBySha1(g)
-        //     })
-        // }
+        if (parent.subGroupType == GroupType.Cluster && this.state.sha1Mode) {
+            groups.forEach(g => {
+                this.groupBySha1(g)
+            })
+        }
         setOrder(this.result.root)
         if (emit) this.onChange.emit(this.result)
     }

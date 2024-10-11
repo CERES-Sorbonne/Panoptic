@@ -119,6 +119,8 @@ function computeLines() {
         it = it.nextGroup()
     }
     imageLines.value = lines
+    // avoid edge cases where function still runs but scroller already disapeared
+    if (!scroller.value) return
     scroller.value.updateVisibleItems(true)
     // console.log(imageLines.value.length)
     // console.timeEnd('compute lines')
@@ -329,9 +331,9 @@ watch(() => props.width, () => {
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                         :selected-images="props.groupManager.selectedImages" :sha1-scores="props.sha1Scores"
-                        :preview="props.preview"
-                        @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" @update="computeLines()" />
+                        :preview="props.preview" @update:selected-image="e => updateImageSelection(e, item)"
+                        @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
+                        @update="computeLines()" />
                 </div>
                 <div v-else-if="item.type == 'filler'">
                     <div :style="{ height: item.size + 'px' }" class=""></div>
