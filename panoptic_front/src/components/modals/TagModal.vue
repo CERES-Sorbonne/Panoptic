@@ -62,19 +62,19 @@ const siblingsTags = computed(() => {
     const siblingSet = new Set<number>()
     parentTags.value.forEach(t => t.children.forEach(c => siblingSet.add(c)))
     const res = Array.from(siblingSet).filter(tId => !selectedTags.value.find(t => t.id == tId)).map(tId => data.tags[tId])
-    return res
+    return res.filter(t => t && t.id != deletedID)
 })
 
 const childrenTags = computed(() => {
     const childSet = new Set<number>()
     selectedTags.value.forEach(t => t.children.forEach(p => childSet.add(p)))
-    return Array.from(childSet).map(p => data.tags[p])
+    return Array.from(childSet).map(p => data.tags[p]).filter(t => t && t.id != deletedID)
 })
 
 const parentTags = computed(() => {
     const parentSet = new Set<number>()
     selectedTags.value.forEach(t => t.parents.forEach(p => parentSet.add(p)))
-    return Array.from(parentSet).map(p => data.tags[p])
+    return Array.from(parentSet).map(p => data.tags[p]).filter(t => t && t.id != deletedID)
 })
 
 function show() {
@@ -201,6 +201,12 @@ function updateTagToInstance() {
     tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
 }
 
+async function mergeTags() {
+    const list = selectedTagIds.value
+    selectedTagIds.value = [list[0]]
+    await data.mergeTags(list)
+}
+
 
 watch(tags, () => {
     data.tagList.forEach(t => {
@@ -256,8 +262,8 @@ watch(tags, () => {
                         style="overflow: hidden;" class="flex-shrink-0">
                         <TagTree :property="property" :selected-tags="selectedTags" @select="selectTags" @unselect="unselectTags"/>
                     </div>
-                    <TagImagesPreview v-if="selectedTags.length" :tags="selectedTags" :tag-to-instance="tagToInstance"
-                        @unselect="unselectTag" />
+                    <TagImagesPreview v-if="selectedTagIds.length" :tags="selectedTags" :tag-to-instance="tagToInstance"
+                        @unselect="unselectTag" @merge="mergeTags"/>
                 </div>
             </template>
 

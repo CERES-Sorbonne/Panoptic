@@ -48,7 +48,7 @@ const scrollElem = ref(null)
 
 
 const selectedIndex = computed(() => {
-    const res: {[id: number]: boolean} = {}
+    const res: { [id: number]: boolean } = {}
     props.selectedTags.forEach(t => res[t.id] = true)
     return res
 })
@@ -70,6 +70,13 @@ function computeTagColumns() {
     const res: Tag[][] = []
     for (let i = 0; i <= maxDepth.value; i++) {
         res[i] = tagList.value.filter(t => tagDepth.value[t.id] == i)
+    }
+    for (let i = 0; i < res.length - 1; i++) {
+        const order: { [tId: number]: number } = {}
+        for (let j = 0; j < res[i].length; j++) {
+            order[res[i][j].id] = j
+        }
+        res[i + 1].sort((t1, t2) => order[t1.id] - order[t2.id])
     }
     tagColumns.value = res
 }
@@ -144,34 +151,51 @@ async function reorderLines() {
         const indexes: { [tagId: number]: number } = {}
         const goals: { [tagId: number]: number } = {}
         const finalGoal: { [tagId: number]: number } = {}
-        // remove empty filles
-        for (let i = 0; i < columns.length; i++) {
-            columns[i] = columns[i].filter(t => t)
-        }
         // map the position inside the columns for each tag
         for (const col of columns) {
             for (let i = 0; i < col.length; i++) {
                 const tag = col[i]
+                if(!tag) continue
                 indexes[tag.id] = i
             }
         }
+        // remove empty fillers
+        for (let i = 0; i < columns.length; i++) {
+            columns[i] = columns[i].filter(t => t)
+        }
 
         // find the ideal position in the column
-        for (const col of columns) {
-            for (let i = 0; i < col.length; i++) {
-                const tag = col[i]
-                let middle = i
-                if (!tag.children.length && tag.parents.length) {
-                    middle = sum(tag.parents.map(p => indexes[p])) / tag.parents.length
+        for (let colI = 0; colI < columns.length; colI++) {
+            const col = columns[colI]
+            // OLD LAYOUT ALGORITHM 
+            // PROBLEM: The lines of the graph cross too much
+            // for (let i = 0; i < col.length; i++) {
+            //     const tag = col[i]
+            //     let middle = i
+            //     if (!tag.children.length && tag.parents.length) {
+            //         middle = sum(tag.parents.map(p => indexes[p])) / tag.parents.length
+            //     }
+            //     else if (tag.children.length) {
+            //         middle = sum(tag.children.map(p => indexes[p])) / tag.children.length
+            //     }
+            //     goals[tag.id] = middle
+            // }
+            // const sorted = [...col].sort((t1, t2) => goals[t1.id] - goals[t2.id])
+            if (colI < columns.length - 1) {
+                const nextCol = columns[colI + 1]
+                let childIndex = 0
+                for (let tag of col) {
+                    const children: Tag[] = []
+                    for (childIndex; childIndex < nextCol.length; childIndex++) {
+                        if (!nextCol[childIndex].parents.find(p => p == tag.id)) break
+                        children.push(nextCol[childIndex])
+                    }
+                    goals[tag.id] = sum(children.map(c => indexes[c.id])) / children.length
                 }
-                else if (tag.children.length) {
-                    middle = sum(tag.children.map(p => indexes[p])) / tag.children.length
-                }
-                goals[tag.id] = middle
             }
 
-            const sorted = [...col].sort((t1, t2) => goals[t1.id] - goals[t2.id])
 
+            const sorted = [...col]
             // convert the goal position to a real index position inside the column array
             // the max length of a column is the length of the longest column
             let freeSpace = maxTagCount - sorted.length - 1
@@ -219,10 +243,11 @@ function onLineEndHover(index: number) {
 async function deleteLine(index: number) {
     const line = lines.value[index]
     await data.deleteTagParent(line.child.id, line.parent.id)
-    await reDraw()
+    // await reDraw()
 }
 
 async function reDraw() {
+    console.log('redraw')
     lines.value = []
     tagColumns.value = []
     tagDepth.value = {}
@@ -293,7 +318,7 @@ function onSelectTag(tag: Tag) {
     const selected = selectedIndex.value
     if (isDrawing.value && sourceTag.value != tag.id) return
     if (selected[tag.id]) {
-        emits('select', props.selectedTags.filter(t => t.id != t.id))
+        emits('select', props.selectedTags.filter(t => t.id != tag.id))
     } else {
         emits('select', [...props.selectedTags, tag])
     }
@@ -317,21 +342,19 @@ async function endDraw() {
     document.removeEventListener('mouseup', endDraw)
     document.removeEventListener('mousemove', followMouse)
 
-    await nextTick()
-
     if (source != target && target > -1) {
         await data.addTagParent(target, source)
         lines.value = []
         tagColumns.value = []
         tagDepth.value = {}
         await nextTick()
-        await computeGraph()
+        await nextTick()
+        reDraw()
     }
 }
 
 function toggleFilter() {
     tagFilter.value = !tagFilter.value
-    reDraw()
 }
 
 function clearSelected() {
@@ -342,26 +365,19 @@ function clearSelected() {
     }
 }
 
-async function mergeSelected() {
-    const list = props.selectedTags.map(t => t.id)
-    await data.mergeTags(list)
-    const first = list[0]
-    clearSelected()
-    reDraw()
-    onSelectTag(data.tags[first])
-}
-
 onMounted(computeGraph)
 watch(() => project.status.loaded, computeGraph)
-watch(() => props.property, reDraw)
-watch(() => data.onUndo, reDraw)
+watch(tagList, reDraw)
 
 </script>
 
 <template>
     <div class="h-100">
-        <div class="d-flex ms-2" style="padding: 6px 0px 2px 0px; height: 36px; border-right: 1px solid var(--border-color);">
-            <div v-if="!props.selectedTags.length"><div class="text-secondary">{{  $t('modals.tags.click_to_select') }}</div></div>
+        <div class="d-flex ms-2"
+            style="padding: 6px 0px 2px 0px; height: 36px; border-right: 1px solid var(--border-color);">
+            <div v-if="!props.selectedTags.length">
+                <div class="text-secondary">{{ $t('modals.tags.click_to_select') }}</div>
+            </div>
             <div @click="toggleFilter" class="bbb me-1" v-if="props.selectedTags.length">
                 <wTT message="modals.tags.filter_tree">
                     <i v-if="!tagFilter" class="bi bi-funnel"></i>
@@ -371,11 +387,6 @@ watch(() => data.onUndo, reDraw)
             <div class="bbb" v-if="props.selectedTags.length" @click="clearSelected">
                 <wTT message="modals.tags.unselect_tree">
                     <i class="bi bi-x" /> {{ props.selectedTags.length }} selected
-                </wTT>
-            </div>
-            <div class="bbb ms-1" v-if="props.selectedTags.length > 1" @click="mergeSelected">
-                <wTT message="modals.tags.merge_tree">
-                    <span>Fusion</span> <span class="ms-1"><TagBadge :id="props.selectedTags[0].id" /></span>
                 </wTT>
             </div>
         </div>
