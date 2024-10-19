@@ -97,9 +97,8 @@ class Panoptic:
         self.save_data()
 
     def del_plugin_path(self, path: str):
-        if path in self.data.plugins:
-            self.data.plugins = [p for p in self.data.plugins if p.path != path]
-            self.save_data()
+        self.data.plugins = [p for p in self.data.plugins if p.path != path]
+        self.save_data()
 
     def get_plugin_paths(self):
         return self.data.plugins
