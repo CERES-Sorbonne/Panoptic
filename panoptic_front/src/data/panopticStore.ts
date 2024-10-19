@@ -3,7 +3,7 @@ import { computed, nextTick, reactive, ref } from "vue"
 import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { ModalId } from "./models"
+import { ModalId, PluginAddPayload } from "./models"
 
 export interface Project {
     path: string
@@ -104,13 +104,14 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modalData.value = null
     }
 
-    async function addPlugin(path) {
-        if (!path) return
-        await apiAddPlugin(path)
+    async function addPlugin(plugin: PluginAddPayload) {
+        if (!plugin) return
+        await apiAddPlugin(plugin)
         data.plugins = await apiGetPlugins()
     }
 
     async function delPlugin(path) {
+        console.log(path)
         await apiDelPlugin(path)
         data.plugins = await apiGetPlugins()
     }

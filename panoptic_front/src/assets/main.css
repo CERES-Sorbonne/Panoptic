@@ -144,7 +144,7 @@ body {
   border-radius: 3px;
   padding: 1px 3px;
   position: relative;
-  top: 0px;
+  top: 0px !important;
   cursor: pointer;
 }
 
