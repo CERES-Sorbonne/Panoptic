@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
 from abc import ABC
+from pathlib import Path
 from typing import List, Any
 from typing import TYPE_CHECKING
 
@@ -30,6 +33,9 @@ class APlugin(ABC):
         self.registered_functions: List[FunctionDescription] = []
         self.path = plugin_path
         self.base_key = f'{self.name}.base'
+        self.slug = "_".join(self.name.split(' ')).lower()
+        self.data_path = Path(self.project.base_path) / 'plugin_data' / self.slug
+        self.data_path.mkdir(parents=True, exist_ok=True)
 
     async def start(self):
         db_defaults = await self._project.db.get_plugin_data(self.base_key)

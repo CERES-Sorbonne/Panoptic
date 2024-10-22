@@ -3,8 +3,8 @@
  */
 
 import axios from 'axios'
-import { DeleteTagResult, DirInfo, ExecuteActionPayload, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update, Instance, ProjectSettings } from './models'
-import { SelectionStatus } from './panopticStore'
+import { DeleteTagResult, DirInfo, ExecuteActionPayload, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update, Instance, ProjectSettings, PluginAddPayload } from './models'
+import { PluginKey, SelectionStatus } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -154,11 +154,11 @@ export async function apiReImportFolder(folderId: number) {
 
 export async function apiGetPlugins() {
     let res = await axios.get('/plugins')
-    return res.data as string[]
+    return res.data as PluginKey[]
 }
 
-export async function apiAddPlugin(path: string) {
-    let res = await axios.post('/plugins', { path })
+export async function apiAddPlugin(payload: PluginAddPayload) {
+    let res = await axios.post('/plugins', payload)
     return res.data as string[]
 }
 

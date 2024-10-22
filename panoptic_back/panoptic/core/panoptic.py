@@ -1,29 +1,19 @@
 import json
 import os
-from asyncio import sleep
 from pathlib import Path
 from typing import List
 
 from pydantic import BaseModel
 
+from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
+from panoptic.models import PluginKey, PanopticData, ProjectId
 from panoptic.utils import get_datadir
-
-
-class ProjectId(BaseModel):
-    name: str | None = None
-    path: str | None = None
-
-
-class PanopticData(BaseModel):
-    projects: list[ProjectId]
-    last_opened: ProjectId | None = None
-    plugins: List[str] = []
-
 
 class Panoptic:
     def __init__(self):
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
+        verify_panoptic_data()
         self.data = self.load_data()
         self.project_id = None
         self.project: Project | None = None
@@ -32,7 +22,7 @@ class Panoptic:
             from panoptic.plugins import FaissPlugin
             module_path = os.path.abspath(FaissPlugin.__file__)
             module_path = module_path.replace('__init__.py', '')
-            self.data.plugins.append(module_path)
+            self.data.plugins.append(PluginKey(name="FaissPlugin", path=module_path))
 
     def load_data(self):
         try:
@@ -97,18 +87,18 @@ class Panoptic:
                 set_project(self.project)
 
     def add_plugin_path(self, path: str):
-        if path in self.data.plugins:
+        path = Path(path)
+        if any(path == p.path for p in self.data.plugins):
             return
         init_path = Path(path) / '__init__.py'
         if not init_path.exists():
             raise Exception(f'No __init__.py file found at {path}')
-        self.data.plugins.append(path)
+        self.data.plugins.append(PluginKey(name=path.name, path=str(path)))
         self.save_data()
 
     def del_plugin_path(self, path: str):
-        if path in self.data.plugins:
-            self.data.plugins.remove(path)
-            self.save_data()
+        self.data.plugins = [p for p in self.data.plugins if p.path != path]
+        self.save_data()
 
     def get_plugin_paths(self):
         return self.data.plugins

@@ -7,12 +7,15 @@ import { usePanopticStore } from '@/data/panopticStore';
 import router from '@/router';
 import { computed, onMounted, ref } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
+import PluginForm from '@/components/forms/PluginForm.vue';
 
 const panoptic = usePanopticStore()
 
 const menuMode = ref(0) // 0 options 1 create
+const showPluginForm = ref(false)
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
 const showTutorial = computed(() => !hasProjects.value && panoptic.data.init)
+
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
 function correctHyphen(path) {
@@ -34,10 +37,6 @@ function delPlugin(path: string) {
     panoptic.delPlugin(path)
 }
 
-function promptPlugin() {
-    panoptic.showModal(ModalId.FOLDERSELECTION, { mode: 'create', callback: panoptic.addPlugin })
-}
-
 onMounted(() => {
     if (panoptic.isProjectLoaded) {
         router.push('/view')
@@ -47,8 +46,9 @@ onMounted(() => {
 </script>
 
 <template>
-    <Tutorial v-if="showTutorial"/>
-    <div class="window d-flex">
+    <Tutorial v-if="showTutorial" />
+
+    <div class="window2 d-flex ">
         <div v-if="hasProjects" class="project-menu">
             <div v-for="project in panoptic.data.status.projects" class="d-flex">
                 <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.path)">
@@ -61,8 +61,9 @@ onMounted(() => {
                         <template #button><i class="bi bi-three-dots-vertical"></i></template>
                         <template #popup="{ hide }">
                             <div class="text-start">
-                                <div @click="panoptic.deleteProject(project.path); hide();" class="m-1 base-hover p-1"><i
-                                        class="bi bi-trash me-1"></i>delete</div>
+                                <div @click="panoptic.deleteProject(project.path); hide();" class="m-1 base-hover p-1">
+                                    <i class="bi bi-trash me-1"></i>delete
+                                </div>
                                 <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
                             </div>
                         </template>
@@ -71,24 +72,34 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div v-if="panoptic.data.init" class="main-menu flex-grow-1">
-            <div class="icon">👀</div>
-            <h1 class="m-0 p-0">Panoptic</h1>
-            <h6 class="dimmed-2">Version 0.3</h6>
-
-            <div id="main-menu" class="create-menu mt-5 pt-5">
-                <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject"/>
-                <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject"/>
-
-                <div class="plugin-preview mt-5">
+        <div v-if="panoptic.data.init" class="flex-grow-1">
+            <div class="d-flex flex-column main-menu justify-content-center">
+                <div>
+                    <div class="icon">👀</div>
+                    <h1 class="m-0 p-0">Panoptic</h1>
+                    <h6 class="dimmed-2">Version 0.3</h6>
+                </div>
+                <div id="main-menu" class="create-menu mt-5 pt-5">
+                    <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
+                    <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
+                </div>
+                <div class="mt-5 plugin-preview ">
                     <h5 class="text-center">
                         Plugins
-                        <span class="sb bi bi-plus" style="position: relative; top:1px" @click="promptPlugin"></span>
+                        <span class="sb bi bi-plus" style="position: relative; top:1px"
+                            @click="showPluginForm = true"></span>
                     </h5>
-
-                    <div v-for="path in panoptic.data.plugins" class="ps-1"><span @click="delPlugin(path)"
-                            class="bi bi-x base-hover"></span> {{ path }}</div>
                 </div>
+                <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
+                    <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" />
+                    <div v-else>
+                        <div v-for="plugin in panoptic.data.plugins" class="ps-1">
+                            <span @click="delPlugin(plugin.path)" class="bi bi-x base-hover"></span>
+                            <span>{{ plugin.name }}</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
         <div v-else class="text-center mt-5 w-100">
@@ -106,7 +117,7 @@ onMounted(() => {
     white-space: nowrap;
 }
 
-.window {
+.window2 {
     width: 100vw;
     height: 100vh;
 }
@@ -135,7 +146,7 @@ onMounted(() => {
 
 .main-menu {
     height: 100%;
-    background-color: white;
+    /* background-color: white; */
     text-align: center;
     padding: 15px;
 }
@@ -162,8 +173,11 @@ onMounted(() => {
 .plugin-preview {
     /* position: absolute; */
     text-align: left;
-    font-size: 13px;
-    color: rgb(87, 87, 87)
+    font-size: 15px;
+    color: rgb(87, 87, 87);
+    /* height: 100%; */
+    width: 500px;
+    margin: auto;
 }
 
 .add-btn {

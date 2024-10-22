@@ -93,6 +93,7 @@ function computeLines() {
 }
 
 function setLines(lines: ScrollerLine[], center: number) {
+    // console.log('center', center)
     const start = Math.max(center - props.height * 2, 0)
     const end = Math.max(center + props.height * 3, props.height * 3)
     // console.log('set lines', start, center, end)
@@ -175,6 +176,7 @@ function resizeHeight(item: ScrollerLine, h) {
 let oldScroll = 0
 let oldIndex = 0
 function handleUpdate() {
+    // console.log("handle update")
     let newScroll = scroller.value.getScroll().start
     let sizes = scroller.value.sizes
     let length = rowLines.value.length
@@ -215,7 +217,7 @@ function closeGroup(groupId: number) {
 }
 
 function selectImage(groupId: number, imageIndex: number) {
-    console.log(groupId, imageIndex)
+    // console.log(groupId, imageIndex)
     const iterator = props.manager.getImageIterator(groupId, imageIndex)
     props.manager.toggleImageIterator(iterator, keyState.shift)
     // props..toggleImageIterator(iterator, keyState.shift)
@@ -232,7 +234,6 @@ function clear() {
 
 function changeHandler(){
     computeLines()
-    setLines(dataLines, 0)
 }
 onMounted(() => {
     props.manager.onChange.addListener(changeHandler)
@@ -241,6 +242,12 @@ onMounted(() => {
 
 onUnmounted(() => {
     props.manager.onChange.removeListener(changeHandler)
+})
+
+watch(() => project.getTab().id, () => {
+    nextTick(() => {
+        setLines(dataLines, 0)
+    })
 })
 
 watch(() => project.getTab().imageSize, (now,old) => {
