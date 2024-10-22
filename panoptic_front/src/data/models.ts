@@ -385,6 +385,12 @@ export interface PluginDefaultParams {
     functions: { [func: string]: { [param: string]: any } }
 }
 
+export interface PluginAddPayload {
+    path?: string
+    gitUrl?: string
+    pluginName: string
+}
+
 // ============= Actions ==============
 
 export class FunctionDescription {

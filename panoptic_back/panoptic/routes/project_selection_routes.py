@@ -7,7 +7,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from panoptic.core.panoptic import Panoptic
-from panoptic.models import PathRequest
+from panoptic.core.plugin import add_plugin_from_git
+from panoptic.models import AddPluginPayload
 
 selection_router = APIRouter()
 
@@ -34,7 +35,7 @@ async def get_status_route():
 
 
 @selection_router.post("/load")
-async def load_project_route(path: PathRequest):
+async def load_project_route(path: AddPluginPayload):
     await panoptic.load_project(path.path)
     return await get_status_route()
 
@@ -46,7 +47,7 @@ async def close_project():
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: PathRequest):
+async def delete_project_route(req: AddPluginPayload):
     panoptic.remove_project(req.path)
     return await get_status_route()
 
@@ -58,7 +59,7 @@ async def create_project_route(req: ProjectRequest):
 
 
 @selection_router.post("/import_project")
-async def import_project_route(req: PathRequest):
+async def import_project_route(req: AddPluginPayload):
     await panoptic.import_project(req.path)
     return await get_status_route()
 
@@ -84,8 +85,12 @@ async def get_plugins_route():
 
 
 @selection_router.post('/plugins')
-async def add_plugins_route(path: PathRequest):
-    return panoptic.add_plugin_path(path.path)
+async def add_plugins_route(payload: AddPluginPayload):
+    # TODO: add github parameter
+    path = payload.path
+    if payload.git_url:
+        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
+    return panoptic.add_plugin_path(path)
 
 
 @selection_router.delete('/plugins')
