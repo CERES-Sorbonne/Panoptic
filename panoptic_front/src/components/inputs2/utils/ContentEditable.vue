@@ -23,11 +23,12 @@ defineExpose({
     focus
 })
 
+const isFocus = ref(false)
 const element = ref<HTMLElement>(null)
 
 function focus() {
     setEndOfContenteditable(element.value)
-    // element.value.focus()
+    isFocus.value = true
 }
 function setEndOfContenteditable(contentEditableElement) {
     var range, selection;
@@ -81,6 +82,7 @@ function update(event: any) {
 function blur(event: any) {
     emits('blur')
     update(event)
+    isFocus.value = false
 }
 
 function onPaste(event: ClipboardEvent) {
@@ -142,6 +144,12 @@ function onKeypress(event: any) {
     }
 }
 
+function verifyFocus() {
+    if(!isFocus.value) {
+        isFocus.value = true
+    }
+}
+
 onMounted(() => {
     updateContent(props.modelValue ?? '')
 })
@@ -161,7 +169,7 @@ watch(() => props.noHtml, (newval, oldval) => {
 <template>
     <div class="h-100 w-100" @click="focus">
         <div :contenteditable="contenteditable" @input="update" @blur="blur" @paste="onPaste" @keypress="onKeypress"
-            @click.stop ref="element" @focus="emits('focus')">
+            @click.stop ref="element" @focus="emits('focus'); verifyFocus()">
         </div>
     </div>
 </template>

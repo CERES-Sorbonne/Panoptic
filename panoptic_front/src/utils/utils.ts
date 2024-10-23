@@ -110,7 +110,7 @@ export function getTagChildren(tag: Tag, tags: TagIndex) {
 export function getTagParents(tag: Tag, tags) {
     const res = []
     const recursive = (t: Tag) => {
-        if(!t) return
+        if (!t) return
         for (let pId of t.parents) {
             if (pId == 0) continue
             res.push(pId)
@@ -228,27 +228,27 @@ export function deepCopy<T>(source: T): T {
 }
 
 export function getComputedValues(instance: Instance) {
-    const res = [ instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
+    const res = [instance.id, instance.sha1, instance.ahash, instance.folderId, instance.width, instance.height, instance.url]
     return res;
 }
 
 
 export function computeTagToInstance(instances: Instance[], properties: Property[], tags: Tag[], tagIndex: TagIndex) {
-    const res: {[tId: number]: Instance[]} = {}
+    const res: { [tId: number]: Instance[] } = {}
 
-    for(let tag of tags) {
+    for (let tag of tags) {
         res[tag.id] = []
     }
 
-    for(let instance of instances) {
-        for(let property of properties) {
+    for (let instance of instances) {
+        for (let property of properties) {
             let value = instance.properties[property.id]
-            if(value === undefined) continue
-            if(!Array.isArray(value)) {
+            if (value === undefined) continue
+            if (!Array.isArray(value)) {
                 value = [value]
             }
             const allTags = new Set<number>()
-            for(let tId of value) {
+            for (let tId of value) {
                 tagIndex[tId].allParents.forEach(p => allTags.add(p))
                 allTags.add(tId)
             }
@@ -261,3 +261,26 @@ export function computeTagToInstance(instances: Instance[], properties: Property
 }
 
 export const sum = arr => arr.reduce((a, num) => a + num, 0);
+
+export function numberToString(number: number, minLength: number) {
+    let str = String(number)
+    let prefix = ''
+    if (str[0] == '-') {
+        prefix = '-'
+        str = str.substring(1)
+    }
+    let missing = minLength - str.length
+    if (missing) {
+        for (let i = 0; i < missing; i++) {
+            str = "0" + str
+        }
+    }
+    return prefix + str
+}
+
+export function adjustForTimezone(date: Date): Date {
+    var timeOffsetInMS: number = date.getTimezoneOffset() * 60000;
+    console.log(timeOffsetInMS)
+    date.setTime(date.getTime() - timeOffsetInMS);
+    return date
+}

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { Colors, Image, Property } from '@/data/models';
-import { getImageProperty } from '@/utils/utils';
+import { Colors } from '@/data/models';
 import { computed } from 'vue';
-import { useProjectStore } from '@/data/projectStore'
 import 'vue-color-kit/dist/vue-color-kit.css'
 const props = defineProps({
     modelValue: Number,
