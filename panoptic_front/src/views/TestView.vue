@@ -2,6 +2,7 @@
 import ColorPropInputNoDropdown from '@/components/inputs/ColorPropInputNoDropdown.vue';
 import ContentEditable from '@/components/inputs2/utils/ContentEditable.vue';
 import DateInput from '@/components/property_inputs/DateInput.vue';
+import DatePreview from '@/components/property_preview/DatePreview.vue';
 import { ref } from 'vue';
 
 
@@ -13,13 +14,16 @@ function simulateClick() {
     elem2.value.forceFocus()
 }
 
-const date = ref(undefined)
+const date = ref("2024-04-04T23:26:00Z")
 
 </script>
 
 <template>
     <div>
         <DateInput v-model="date"/>
+        <br />
+        <DatePreview :date="date" />
+        <DatePreview :date="undefined" />
         <div>{{ text }}</div>
         <div style="width: 300px; height: 200px; background-color: bisque;" class="overflow-auto">
             <ContentEditable v-model="text" class="h-100 w-100 test"/>

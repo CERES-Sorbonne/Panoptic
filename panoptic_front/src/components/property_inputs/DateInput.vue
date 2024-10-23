@@ -5,14 +5,14 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 const props = defineProps<{
     modelValue?: string
 }>()
-const emits = defineEmits([])
+const emits = defineEmits(['update:modelValue'])
 
 const fields = ref({})
 const fieldModels = ref({})
 const fieldElems = ref({})
 const format = ref('YMDhms')
 const isoOrder = ref('YMDhms')
-const resolution = ref(3)
+const resolution = ref(5)
 
 // define how many input slots for the date
 // Right now hardcorded to 4 for positive years, and 1 additional for the minus for negative dates
@@ -27,10 +27,13 @@ const yearsInputs = computed(() => {
 })
 
 // build date object from fields
-const localDate = computed(() => {
+const localDate = computed<{
+    date?: Date
+    closest?: Date
+}>(() => {
     let f = fields.value
     if (Object.values(f).some(v => v == 'x')) {
-        return undefined
+        return {}
     }
 
     const date = new Date()
@@ -55,22 +58,45 @@ const localDate = computed(() => {
     date.setUTCMinutes(minute)
     date.setUTCSeconds(second)
 
-    if (date.getUTCDate() != day || date.getUTCMonth() != month) return undefined
+    if (date.getUTCDate() != day || date.getUTCMonth() != month) {
+        return { closest: date }
+    }
 
-    return date
+    return { date: date }
 })
 
 const viewFormat = computed(() => {
-    const valid = isoOrder.value.substring(0, resolution.value+1)
+    const valid = isoOrder.value.substring(0, resolution.value + 1)
     return Array.from(format.value).filter(c => valid.includes(c))
 })
 
+function dateToString(date: Date) {
+    let res = ''
+    let form = viewFormat.value
+    for (let i = 0; i < form.length; i++) {
+        let f = form[i]
+        if (f == 'Y') res += numberToString(date.getUTCFullYear(), 4)
+        if (f == 'M') res += numberToString(date.getUTCMonth() + 1, 2)
+        if (f == 'D') res += numberToString(date.getUTCDate(), 2)
+        if (f == 'h') res += numberToString(date.getUTCHours(), 2)
+        if (f == 'm') res += numberToString(date.getUTCMinutes(), 2)
+        if (f == 's') res += numberToString(date.getUTCSeconds(), 2)
+
+        let nf = form[i + 1]
+        if ('YMD'.includes(nf)) res += '/'
+        if ('YMD'.includes(f) && 'hms'.includes(nf)) res += ' '
+        else if (nf && 'hms'.includes(nf)) res += ':'
+        else if (f == 'h' && nf == undefined) res += 'h'
+    }
+    return res
+}
+
 // load date value into slots
 // if date is not valid use x placeholders for every slot
-function loadValue() {
+function loadValue(toLoad: Date | string) {
     fields.value = {}
     let f = {}
-    let date = new Date(props.modelValue)
+    let date = new Date(toLoad)
     let r = resolution.value
     if (isNaN(+date)) {
         f['Y0'] = 'x'
@@ -161,12 +187,12 @@ function clickYear(index: number) {
 }
 
 // Update a year slot
-function updateYear(event, index: number) {
+function updateYear(event, index: number, emit = true) {
     let data = event.data
     let key = 'Y' + index
     let f = fields.value
     if (data == null) data = '0'
-    if(data.length > 1) {
+    if (data.length > 1) {
         paste(key, data)
         return
     }
@@ -213,15 +239,17 @@ function updateYear(event, index: number) {
         fieldModels.value[key] = data
         focusNextInput(key)
     }
+
+    if (emit) emits('update:modelValue', localDate.value.date?.toISOString())
 }
 
-function updateMonth(event, index: number) {
+function updateMonth(event, index: number, emit = true) {
     let data = event.data
     let key = 'M' + index
     let f = fields.value
     // on delete key press set to 0
     if (data == null) data = '0'
-    if(data.length > 1) {
+    if (data.length > 1) {
         paste(key, data)
         return
     }
@@ -239,15 +267,16 @@ function updateMonth(event, index: number) {
     fields.value = f
     updateModels()
     focusNextInput(key)
+    if (emit) emits('update:modelValue', localDate.value.date?.toISOString())
 }
 
-function updateDay(event, index: number) {
+function updateDay(event, index: number, emit = true) {
     let data = event.data
     let key = 'D' + index
     let f = fields.value
     // on delete key press set to 0
     if (data == null) data = '0'
-    if(data.length > 1) {
+    if (data.length > 1) {
         paste(key, data)
         return
     }
@@ -265,15 +294,17 @@ function updateDay(event, index: number) {
     fields.value = f
     updateModels()
     focusNextInput(key)
+
+    if (emit) emits('update:modelValue', localDate.value.date?.toISOString())
 }
 
-function updateHours(event, index: number) {
+function updateHours(event, index: number, emit = true) {
     let data = event.data
     let key = 'h' + index
     let f = fields.value
     // on delete key press set to 0
     if (data == null) data = '0'
-    if(data.length > 1) {
+    if (data.length > 1) {
         paste(key, data)
         return
     }
@@ -291,14 +322,16 @@ function updateHours(event, index: number) {
     fields.value = f
     updateModels()
     focusNextInput(key)
+
+    if (emit) emits('update:modelValue', localDate.value.date?.toISOString())
 }
-function updateMinutes(event, index: number) {
+function updateMinutes(event, index: number, emit = true) {
     let data = event.data
     let key = 'm' + index
     let f = fields.value
     // on delete key press set to 0
     if (data == null) data = '0'
-    if(data.length > 1) {
+    if (data.length > 1) {
         paste(key, data)
         return
     }
@@ -312,14 +345,16 @@ function updateMinutes(event, index: number) {
     fields.value = f
     updateModels()
     focusNextInput(key)
+
+    if (emit) emits('update:modelValue', localDate.value.date?.toISOString())
 }
-function updateSeconds(event, index: number) {
+function updateSeconds(event, index: number, emit = true) {
     let data = event.data
     let key = 's' + index
     let f = fields.value
     // on delete key press set to 0
     if (data == null) data = '0'
-    if(data.length > 1) {
+    if (data.length > 1) {
         paste(key, data)
         return
     }
@@ -333,6 +368,8 @@ function updateSeconds(event, index: number) {
     fields.value = f
     updateModels()
     focusNextInput(key)
+
+    if (emit) emits('update:modelValue', localDate.value.date?.toISOString())
 }
 
 function onChangeFocus(key: string) {
@@ -347,7 +384,7 @@ function onChangeFocus(key: string) {
 // focus the next field to edit
 function focusNextInput(current: string) {
     let next = getNextFieldKey(current)
-    if(next == undefined) return
+    if (next == undefined) return
     fieldElems.value[next].focus()
 }
 
@@ -372,28 +409,44 @@ function getNextFieldKey(current: string) {
 function paste(key: string, data: string) {
     let i = 0
     let digits = Array.from(data).filter(c => c == '-' || !isNaN(Number(c))).filter(c => c != ' ')
-    while(key && digits[i] != undefined) {
+    while (key && digits[i] != undefined) {
         let k = key[0]
         let ki = Number(key[1])
-        if(k == 'Y') updateYear({data: digits[i]}, ki)
-        if(k == 'M') updateMonth({data: digits[i]}, ki)
-        if(k == 'D') updateDay({data: digits[i]}, ki)
+        if (k == 'Y') updateYear({ data: digits[i] }, ki, false)
+        if (k == 'M') updateMonth({ data: digits[i] }, ki, false)
+        if (k == 'D') updateDay({ data: digits[i] }, ki, false)
 
-        if(k == 'h') updateHours({data: digits[i]}, ki)
-        if(k == 'm') updateMinutes({data: digits[i]}, ki)
-        if(k == 's') updateSeconds({data: digits[i]}, ki)
-        
+        if (k == 'h') updateHours({ data: digits[i] }, ki, false)
+        if (k == 'm') updateMinutes({ data: digits[i] }, ki, false)
+        if (k == 's') updateSeconds({ data: digits[i] }, ki, false)
+
         i += 1
         key = getNextFieldKey(key)
     }
+    emits('update:modelValue', localDate.value.date?.toISOString())
 }
 
-onMounted(loadValue)
+function correctDate() {
+    loadValue(localDate.value.closest)
+}
+
+function setDate(date) {
+    loadValue(date)
+    emits('update:modelValue', localDate.value.date?.toISOString())
+}
+
+function getNow() {
+    var d = new Date()
+    d.setTime(d.getTime() - d.getTimezoneOffset() * 60000)
+    return d
+}
+
+onMounted(() => loadValue(props.modelValue))
 </script>
 
 <template>
-    <div>
-        <div class="d-flex m-4" style="line-height: 20px;">
+    <div class="m-5">
+        <div class="d-flex" style="line-height: 20px;">
             <template v-for="data, formatIndex in viewFormat">
                 <div v-if="data == 'Y'">
                     <input v-for="input, index in yearsInputs" class="digit" type=text
@@ -457,10 +510,24 @@ onMounted(loadValue)
                 <div v-if="'YMD'.includes(viewFormat[formatIndex]) && 'hms'.includes(viewFormat[formatIndex + 1])"
                     class="me-2"></div>
                 <div v-else-if="'hms'.includes(viewFormat[formatIndex + 1])">:</div>
-                <!-- <div v-else-if="data == 'h'" style="padding-top: 1.5px;">h</div> -->
             </template>
         </div>
-        <div @click="resolution += 1">{{ String(localDate?.toUTCString()) }}</div>
+        <div class="d-flex">
+            <div><i class="bi bi-x bb" @click="setDate(undefined)" /></div>
+            <div><i class="bi bi-calendar3 bb" @click="setDate(getNow())"></i></div>
+            <!-- <div> <i class="bi bi-arrow-counterclockwise bb" @click="loadValue(props.modelValue)" /></div> -->
+            <div class="ms-2">
+                <div v-if="!localDate.closest && !localDate.date" class="text-warning">None...</div>
+                <div v-if="localDate.closest && !localDate.date">
+                    <span class="text-warning" style="cursor: pointer; font-size: 14px;" @click="correctDate">
+                        {{ dateToString(localDate.closest) }} ?
+                    </span>
+                </div>
+                <div v-if="localDate.date"><span class="text-success">
+                        Valid
+                    </span></div>
+            </div>
+        </div>
     </div>
 </template>
 
