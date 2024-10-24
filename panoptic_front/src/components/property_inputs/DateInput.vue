@@ -428,6 +428,7 @@ function paste(key: string, data: string) {
 
 function correctDate() {
     loadValue(localDate.value.closest)
+    emits('update:modelValue', localDate.value.date?.toISOString())
 }
 
 function setDate(date) {
@@ -445,7 +446,7 @@ onMounted(() => loadValue(props.modelValue))
 </script>
 
 <template>
-    <div class="m-5">
+    <div class="">
         <div class="d-flex" style="line-height: 20px;">
             <template v-for="data, formatIndex in viewFormat">
                 <div v-if="data == 'Y'">

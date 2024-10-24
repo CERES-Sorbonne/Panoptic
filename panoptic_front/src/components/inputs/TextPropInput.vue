@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Instance, Property, PropertyType } from '@/data/models';
 import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue';
-import TextInput from './TextInput.vue';
+// import TextInput from './TextInput.vue';
 import { useDataStore } from '@/data/dataStore';
+import TextInput from '../property_inputs/TextInput.vue';
 
 const data = useDataStore()
 
@@ -68,13 +69,6 @@ defineExpose({
     // inputElem
     focus
 })
-
-// watch(localValue, save)
-
-function log(e) {
-    console.log(e)
-}
-
 </script>
 
 <template>

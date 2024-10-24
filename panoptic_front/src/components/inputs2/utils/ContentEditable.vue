@@ -167,9 +167,9 @@ watch(() => props.noHtml, (newval, oldval) => {
 </script>
 
 <template>
-    <div class="h-100 w-100" @click="focus">
+    <div class="h-100 w-100">
         <div :contenteditable="contenteditable" @input="update" @blur="blur" @paste="onPaste" @keypress="onKeypress"
-            @click.stop ref="element" @focus="emits('focus'); verifyFocus()">
+             ref="element" @focus="emits('focus'); verifyFocus()">
         </div>
     </div>
 </template>
