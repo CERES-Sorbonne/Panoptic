@@ -543,13 +543,12 @@ onMounted(() => {
             <div><i class="bi bi-calendar3 bb" @click="setDate(getNow())"></i></div>
             <!-- <div> <i class="bi bi-arrow-counterclockwise bb" @click="loadValue(props.modelValue)" /></div> -->
             <div class="ms-2">
-                <div v-if="!localDate.closest && !localDate.date" class="text-warning">None...</div>
-                <div v-if="localDate.closest && !localDate.date">
-                    <span class="text-warning" style="cursor: pointer; font-size: 14px;" @click="correctDate">
-                        {{ dateToString(localDate.closest) }} ?
-                    </span>
+                <div v-if="!localDate.closest && !localDate.date" style="width: 50px;" class="text-warning">None...
                 </div>
-                <div v-if="localDate.date">
+                <div v-if="localDate.closest && !localDate.date" class="text-warning" style="width: 50px;">
+                    Invalid
+                </div>
+                <div v-if="localDate.date" style="width: 50px;">
                     <span class="text-success">
                         Valid
                     </span>
@@ -558,6 +557,11 @@ onMounted(() => {
             <div class="flex-grow-1"></div>
             <div v-if="props.extended"><span class="bb" @click="emits('cancel')">Cancel</span></div>
             <div v-if="props.extended"><span class="bb" @click="emits('submit')">Submit</span></div>
+        </div>
+        <div v-if="localDate.closest && !localDate.date">
+            <span class="text-warning" style="cursor: pointer; font-size: 14px;" @click="correctDate">
+                correct: {{ dateToString(localDate.closest) }} ?
+            </span>
         </div>
     </div>
 </template>

@@ -32,7 +32,7 @@ const isFocus = ref(false)
 const isHover = ref(false)
 const minHeight = computed(() => {
     // return '0px'
-    return (props.minHeight - 2) + 'px'
+    return (props.minHeight - 6) + 'px'
 })
 
 const localValue = computed(() => props.modelValue ?? '')
@@ -61,7 +61,7 @@ function input(value: string) {
 function updateHeight() {
     nextTick(() => {
         if (!elem.value) return
-        let newHeight = elem.value.$refs.element.clientHeight + 3
+        let newHeight = elem.value.$refs.element.clientHeight
         if (height != newHeight) {
             emits('update:height', newHeight)
         }
@@ -116,7 +116,7 @@ watch(() => props.modelValue, () => {
     }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
         :class="((isFocus && !props.noShadow) || props.alwaysShadow) ? 'focus' : 'container'" @click="focus">
         <ContentEditable ref="elem" @update:model-value="input" :model-value="localValue"
-            :no-nl="props.urlMode" :contenteditable="props.editable"
+            :no-nl="props.urlMode" :contenteditable="props.editable && !urlMode"
             :style="{ width: (props.width - 5) + 'px' }" class="contenteditable" @keydown.escape="e => e.target.blur()"
             @focus="isFocus = true; emits('focus')" @blur="isFocus = false; emits('blur');" @click.stop="contentClick"
             @keydown.enter="onEnter" @keydown.esc.stop="onCancel" />
