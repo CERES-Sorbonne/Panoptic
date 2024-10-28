@@ -41,10 +41,10 @@ def get_datadir() -> pathlib.Path:
 
 def get_base_path():
     if getattr(sys, 'frozen', False):
-        # Le programme est exécuté en mode fichier unique
+        # if using pyinstaller file
         return sys._MEIPASS
     else:
-        # Le programme est exécuté en mode script
+        # if using script
         return os.path.dirname(__file__)
 
 
