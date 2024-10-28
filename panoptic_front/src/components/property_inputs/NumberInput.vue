@@ -4,20 +4,43 @@ import { onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     modelValue?: number | string
+    width?: number
 }>()
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'focus', 'blur'])
+const isFocus = ref(false)
 const localValue = ref(undefined)
+const inputElem = ref(null)
 
 function loadValue() {
     localValue.value = !isNaN(Number(props.modelValue)) ? props.modelValue : undefined
 }
 
 function emit() {
-    if (localValue.value == undefined || localValue.value == '') {
+    if (localValue.value === undefined || localValue.value === '') {
         emits('update:modelValue', undefined)
         return
     }
     emits('update:modelValue', localValue.value)
+}
+
+function onFocus() {
+    isFocus.value = true
+    emits('focus')
+}
+
+function onBlur() {
+    isFocus.value = false
+    emit()
+    emits('blur')
+}
+
+function cancel() {
+    loadValue()
+    forceBlur()
+}
+
+function forceBlur() {
+    inputElem.value.blur()
 }
 
 onMounted(loadValue)
@@ -27,7 +50,8 @@ watch(() => props.modelValue, loadValue)
 
 <template>
     <div>
-        <input class="" type="number" v-model="localValue" @input="emit()">
+        <input style="line-height: 16px;" :class="isFocus? 'dropdown-input' : ''" type="number" v-model="localValue" :style="{width: props.width ? (props.width-2) + 'px' : '100%'}" @focus="onFocus" @blur="onBlur"
+            @keydown.esc="cancel" @keydown.enter="forceBlur" ref="inputElem">
     </div>
 </template>
 
@@ -43,9 +67,10 @@ input[type=number]::-webkit-outer-spin-button {
 /* for mozilla */
 input[type=number] {
     border: none;
-    text-align: center;
+    text-align: left;
     -moz-appearance: textfield;
     width: 100%;
+    border-radius: 5px;
 }
 
 .nb-border {

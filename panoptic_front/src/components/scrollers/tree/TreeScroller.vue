@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, defineExpose, onMounted, watch, computed, Ref, shallowRef } from 'vue';
+import { ref, nextTick, defineExpose, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -70,6 +70,7 @@ const simiImageLineSize = computed(() => {
 
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
+provide('hideImg', hideFromModal)
 
 defineExpose({
     scrollTo,
@@ -308,7 +309,7 @@ watch(() => props.width, () => {
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
         :buffer="400" :min-item-size="0" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
         <template v-slot="{ item, index, active }">
-            <template v-if="active && !hideFromModal">
+            <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"

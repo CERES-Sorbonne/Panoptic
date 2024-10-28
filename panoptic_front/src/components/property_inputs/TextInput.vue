@@ -12,17 +12,20 @@ const props = withDefaults(defineProps<{
     noShadow?: boolean
     alwaysShadow?: boolean
     blurOnEnter?: boolean
+    autoFocus?: boolean
 }>(), {
     editable: true,
     minHeight: 30,
     blurOnEnter: true
 })
 
-const emit = defineEmits({
+const emits = defineEmits({
     'update:modelValue': Object,
     'update:height': String,
     'blur': undefined,
-    'focus': undefined
+    'focus': undefined,
+    'submit': undefined,
+    'cancel': undefined
 })
 const elem = ref(null)
 const isFocus = ref(false)
@@ -37,7 +40,7 @@ const urlMode = computed(() => props.urlMode && keyState.ctrl && isHover.value)
 
 function focus() {
     elem.value.focus()
-    emit('focus')
+    emits('focus')
 }
 
 defineExpose({
@@ -51,7 +54,7 @@ let height = 0
 
 function input(value: string) {
     if (value == '') value = undefined
-    emit('update:modelValue', value)
+    emits('update:modelValue', value)
     updateHeight()
 }
 
@@ -60,7 +63,7 @@ function updateHeight() {
         if (!elem.value) return
         let newHeight = elem.value.$refs.element.clientHeight + 3
         if (height != newHeight) {
-            emit('update:height', newHeight)
+            emits('update:height', newHeight)
         }
         height = newHeight
     })
@@ -81,11 +84,20 @@ function onEnter(e) {
         e.target.blur()
         e.preventDefault()
         e.stopPropagation()
+        emits('submit')
     }
 }
 
-onMounted(() => {
+function onCancel() {
+    emits('cancel')
+}
+
+onMounted(async () => {
     updateHeight()
+    if(props.autoFocus) {
+        await nextTick()
+        focus()
+    }
 })
 watch(() => props.width, () => {
     updateHeight()
@@ -104,10 +116,10 @@ watch(() => props.modelValue, () => {
     }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
         :class="((isFocus && !props.noShadow) || props.alwaysShadow) ? 'focus' : 'container'" @click="focus">
         <ContentEditable ref="elem" @update:model-value="input" :model-value="localValue"
-            :no-nl="props.urlMode" :contenteditable="props.editable && !(urlMode)"
+            :no-nl="props.urlMode" :contenteditable="props.editable"
             :style="{ width: (props.width - 5) + 'px' }" class="contenteditable" @keydown.escape="e => e.target.blur()"
-            @focus="isFocus = true; emit('focus')" @blur="isFocus = false; emit('blur');" @click.stop="contentClick"
-            @keydown.enter="onEnter" />
+            @focus="isFocus = true; emits('focus')" @blur="isFocus = false; emits('blur');" @click.stop="contentClick"
+            @keydown.enter="onEnter" @keydown.esc.stop="onCancel" />
     </div>
 </template>
 
