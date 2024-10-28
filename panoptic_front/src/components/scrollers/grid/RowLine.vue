@@ -198,62 +198,13 @@ watch(() => props.properties, () => {
             </Zoomable>
         </div>
 
-        <!-- <div class=""> -->
         <div v-for="property, index in props.properties" class="container22 overflow-hidden"
-            :style="{ width: inputWidth[property.id] + 7 + 'px' }" style="height: 100%; padding: 0px 3px; font-size: 14px;"
-            @click="focusInput(index)">
+            :style="{ width: inputWidth[property.id] + 7 + 'px' }"
+            style="height: 100%; padding: 0px 3px; font-size: 14px;" @click="focusInput(index)">
             <GridPropInput :instance="image" :property="property" :min-height="propMinRowHeight[property.id]"
-                :width="inputWidth[property.id]" @update:height="h => sizes[property.id] = h" ref="inputElems" @click.stop="" />
-            <!-- {{ rowHeight }} -->
-            <!-- <span class="position-absolute bg-warning" style="z-index: 999;">{{ Math.round(propMinRowHeight[property.id]) }}</span> -->
-            <!-- <template v-if="image.properties[property.id] != undefined"> -->
-            <!-- <TextPropInput v-if="property.type == PropertyType.string" :min-height="rowHeight" ref="inputElems"
-                @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :width="inputWidth[property.id]" style="padding-left: 3px;" />
-            <TextPropInput v-else-if="property.type == PropertyType.url" :min-height="props.item.size" :no-nl="true"
-                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :url-mode="true" :width="inputWidth[property.id]" style="padding-left: 3px;" />
-            <TextPropInput v-else-if="property.type == PropertyType.path && property.id != -7"
-                :min-height="props.item.size" :no-nl="true" ref="inputElems"
-                @update:height="h => sizes[property.id] = h" :image="image" :property="property" :url-mode="false"
-                :width="inputWidth[property.id]" style="padding-left: 3px;" />
-            <div v-else-if="isTag(property.type)" style="padding-left: 2px;">
-                <TagPropInputDropdown :property="property" :image="image" :can-create="true" :can-customize="true"
-                    :can-link="true" :can-delete="true" :auto-focus="true" :no-wrap="false"
-                    :min-height="propMinRowHeight[property.id]" :width="inputWidth[property.id]" :teleport="true"
-                    @update:height="h => sizes[property.id] = h" />
-            </div>
-            <CheckboxPropInput v-else-if="property.type == PropertyType.checkbox"
-                :min-height="propMinRowHeight[property.id]" ref="inputElems"
-                @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :width="inputWidth[property.id]" />
-            <ColorPropInput2 v-else-if="property.type == PropertyType.color" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :width="inputWidth[property.id]" style="margin-top: 3px !important; margin-left: 3px !important;" />
-
-            <TextPropInput v-else-if="property.type == PropertyType.number" :min-height="props.item.size"
-                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :width="inputWidth[property.id]" />
-
-            <DatePropInput v-else-if="property.type == PropertyType.date" :min-height="propMinRowHeight[property.id]"
-                ref="inputElems" @update:height="h => sizes[property.id] = h" :image="image" :property="property"
-                :width="inputWidth[property.id]" />
-            <div v-else-if="property.type == PropertyType._folders"
-                :style="{ height: propMinRowHeight[property.id] + 'px' }" class="ps-1 overflow-hidden">
-                <span v-if="image.properties[property.id] != undefined">
-                    <TagBadge :name="data.folders[image.properties[property.id]].name" :color="-1" />
-                </span>
-            </div> -->
-            <!-- <div v-else :style="{ height: (propMinRowHeight[property.id]) + 'px' }" class="ps-1 overflow-hidden break-word">
-                {{ image.properties[property.id] }}
-            </div> -->
-            <!-- <TextPropInput v-else :min-height="props.item.size" :no-nl="true" :edit="false" ref="inputElems"
-                @update:height="h => sizes[property.id] = h" :image="image" :property="property" :url-mode="false"
-                :width="inputWidth[property.id]" style="padding-left: 3px;" /> -->
-            <!-- </template> -->
-            <!-- <template v-else>None</template> -->
+                :width="inputWidth[property.id]" @update:height="h => sizes[property.id] = h" ref="inputElems"
+                @click.stop="" />
         </div>
-        <!-- </div> -->
     </div>
 </template>
 

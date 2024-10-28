@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
 import { Instance, Property } from '@/data/models';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 const data = useDataStore()
 
@@ -14,9 +14,13 @@ const emits = defineEmits([])
 
 const propValue = computed(() => data.instances[props.instance.id].properties[props.propertyId])
 const localValue = ref(undefined)
+const valid = ref(true)
 
 async function set(value: any) {
-    if(value === propValue.value) return
+    // very important to avoid settings values of old input to new input params
+    // creates the crazy UI bug where everythings gets set around
+    if (!valid.value) return
+    if (value === propValue.value) return
     localValue.value = value
     await data.setPropertyValue(props.propertyId, props.instance, value)
     loadValue()
@@ -28,11 +32,17 @@ function loadValue() {
 
 onMounted(loadValue)
 watch(propValue, loadValue)
+watch(props, async () => {
+    valid.value = false
+    await nextTick()
+    valid.value = true
+})
 </script>
 
 <template>
-  <slot :set="set" :value="localValue"></slot>
+    <template v-if="valid">
+        <slot :set="set" :value="localValue"></slot>
+    </template>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>
