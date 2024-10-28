@@ -57,7 +57,7 @@ watch(() => props.modelValue, loadValue)
 
 <template>
     <div>
-        <input style="line-height: 16px;" :class="isFocus ? 'dropdown-input' : ''" type="number" v-model="localValue"
+        <input style="line-height: inherit" :class="isFocus ? 'dropdown-input' : ''" type="number" v-model="localValue"
             :style="{ width: props.width ? (props.width - 2) + 'px' : '100%' }" @focus="onFocus" @blur="onBlur"
             @keydown.esc="cancel" @keydown.enter="forceBlur" ref="inputElem">
     </div>

@@ -6,6 +6,7 @@ import DBInput from '@/components/property_inputs/DBInput.vue';
 import NumberInput from '@/components/property_inputs/NumberInput.vue';
 import TextInput from '@/components/property_inputs/TextInput.vue';
 import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
+import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
 import { Instance, Property, PropertyType } from '@/data/models';
@@ -61,13 +62,13 @@ function focus() {
                         @update:model-value="set" @update:height="emitHeight" ref="inputElem" />
 
                     <CellColorInput v-else-if="type == PropertyType.color" :model-value="value" @update:model-value="set" @update:height="emitHeight"
-                        :min-height="props.minHeight+2" :width="props.width" ref="inputElem" />
+                        :min-height="props.minHeight+2" :width="props.width" ref="inputElem" :teleport="true" />
 
                     <RowDateInput v-else-if="type == PropertyType.date" :model-value="value" @update:model-value="set"
                         @update:height="emitHeight" ref="inputElem" />
 
-                    <NumberInput v-else-if="type == PropertyType.number" :model-value="value" @update:model-value="set"
-                        @update:height="emitHeight" ref="inputElem" />
+                    <RowNumberInput v-else-if="type == PropertyType.number" :model-value="value" @update:model-value="set"
+                        @update:height="emitHeight" ref="inputElem" :height="30" />
 
 
                     <div v-else-if="property.type == PropertyType._folders" :style="{ height: props.minHeight + 'px' }"

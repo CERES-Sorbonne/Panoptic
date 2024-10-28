@@ -13,6 +13,7 @@ import RowTextInput from '@/components/property_row_input/RowTextInput.vue';
 import CheckboxInput from '@/components/property_inputs/CheckboxInput.vue';
 import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
 import RowUrlInput from '@/components/property_row_input/RowUrlInput.vue';
+import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
 
 const data = useDataStore()
 
@@ -41,11 +42,11 @@ const width = computed(() => (props.width ?? 100) - 22)
                     :teleport="true" :width="width" />
 
                 <CellColorInput v-else-if="props.property.type == PropertyType.color" :model-value="value"
-                    @update:model-value="set" :width="width" :rounded="true" :min-height="20"
+                    @update:model-value="set" :width="width" :rounded="true" :min-height="20" :teleport="true"
                     style="position: relative; top:5px;" />
 
-                <NumberInput v-else-if="props.property.type == PropertyType.number" :model-value="value"
-                    @update:model-value="set" :width="width" />
+                <RowNumberInput v-else-if="props.property.type == PropertyType.number" :model-value="value"
+                    @update:model-value="set" :width="width" :height="26"/>
 
                 <RowTextInput v-else-if="props.property.type == PropertyType.string" :model-value="value"
                     @update:model-value="set" :width="width" />
