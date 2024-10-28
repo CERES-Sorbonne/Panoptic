@@ -46,7 +46,7 @@ const width = computed(() => (props.width ?? 100) - 22)
                     style="position: relative; top:5px;" />
 
                 <RowNumberInput v-else-if="props.property.type == PropertyType.number" :model-value="value"
-                    @update:model-value="set" :width="width" :height="26"/>
+                    @update:model-value="set" :width="width" :height="26" :input-offset="3"/>
 
                 <RowTextInput v-else-if="props.property.type == PropertyType.string" :model-value="value"
                     @update:model-value="set" :width="width" />
@@ -57,7 +57,7 @@ const width = computed(() => (props.width ?? 100) - 22)
                 <CheckboxInput v-else-if="props.property.type == PropertyType.checkbox" :model-value="value"
                     @update:model-value="set" :label="props.property.name" :width="width" />
 
-                <RowDateInput v-else-if="props.property.type == PropertyType.date" :model-value="value"
+                <RowDateInput v-else-if="props.property.type == PropertyType.date" :model-value="value" :teleport="true"
                     @update:model-value="set" :width="width" />
 
                 <div v-else class="d-flex flex-row overflow-hidden text-nowrap">

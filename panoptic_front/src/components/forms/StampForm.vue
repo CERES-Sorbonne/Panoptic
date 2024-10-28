@@ -18,6 +18,8 @@ import CellColorInput from '../property_cell_input/CellColorInput.vue';
 import RowDateInput from '../property_row_input/RowDateInput.vue';
 import NumberInput from '../property_inputs/NumberInput.vue';
 import RowNumberInput from '../property_row_input/RowNumberInput.vue';
+import CellTextInput from '../property_cell_input/CellTextInput.vue';
+import CellUrlInput from '../property_cell_input/CellUrlInput.vue';
 
 const data = useDataStore()
 
@@ -60,28 +62,28 @@ const propertyColor = computed(() => {
                         {{ property.name }}
                     </td>
                     <template v-if="!props.erase.has(property.id)">
-                        <td class="w-100" style="height: 20px; font-size: 14px">
+                        <td class="w-100">
                             <CellTagInput v-if="isTag(property.type)" :property="property"
                                 v-model="props.values[property.id]" :teleport="true" :auto-focus="true"
                                 ref="inputElem" />
 
-                            <TextInput v-else-if="property.type == PropertyType.string"
+                            <CellTextInput v-else-if="property.type == PropertyType.string"
                                 v-model="props.values[property.id]" ref="inputElem" />
 
-                            <TextInput v-else-if="property.type == PropertyType.url" v-model="props.values[property.id]"
-                                :url-mode="true" ref="inputElem" />
+                            <CellUrlInput v-else-if="property.type == PropertyType.url"
+                                v-model="props.values[property.id]" :url-mode="true" ref="inputElem" />
 
                             <CheckboxInput v-else-if="property.type == PropertyType.checkbox"
                                 v-model="props.values[property.id]" />
 
                             <CellColorInput v-else-if="property.type == PropertyType.color"
-                                v-model="props.values[property.id]" ref="inputElem" />
+                                v-model="props.values[property.id]" ref="inputElem" :min-height="22" />
 
                             <RowDateInput v-else-if="property.type == PropertyType.date"
                                 v-model="props.values[property.id]" />
 
                             <RowNumberInput v-else-if="property.type == PropertyType.number"
-                                v-model="props.values[property.id]" :height="26" />
+                                v-model="props.values[property.id]" :height="30"/>
                         </td>
                         <td v-if="props.values[property.id] == undefined">
                             <wTT message="modals.tagging.erase_tooltip">

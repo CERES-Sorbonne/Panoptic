@@ -7,6 +7,7 @@ const props = defineProps<{
     modelValue?: number
     width?: number
     height?: number
+    inputOffset?: number
 }>()
 const emits = defineEmits(['update:modelValue'])
 
@@ -15,7 +16,7 @@ defineExpose({focus})
 const inputElem = ref(null)
 const localValue = ref(undefined)
 
-const inputOffset = ref(3)
+const inputOffset = ref(props.inputOffset ?? 0)
 const inputLineHeight = computed(() => props.height - 8)
 
 function loadValue() {
@@ -48,7 +49,7 @@ watch(props, loadValue)
 <template>
     <div>
         <NumberPreview v-if="localValue === undefined" :number="props.modelValue" @click="edit"
-            style="font-size: inherit;" />
+            style="font-size: inherit; cursor: pointer;" />
         <div v-else :style="{lineHeight: inputLineHeight + 'px', top: inputOffset + 'px', position: 'relative'}">
             <NumberInput  :model-value="props.modelValue" @update:model-value="emitValue" :width="props.width"
                 @blur="loadValue" ref="inputElem" class="reduced" />

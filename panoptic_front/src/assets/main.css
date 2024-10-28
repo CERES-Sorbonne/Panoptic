@@ -552,8 +552,7 @@ input[type=number]::-webkit-inner-spin-button {
 }
 
 .dropdown-input {
-  border: 2px solid var(--border-color);
-  box-shadow: 0px 0px 2px 2px rgba(0, 0, 0, 0.35) !important;
-  -webkit-box-shadow: 0px 0px 3px 2px rgba(0, 0, 0, 0.185) !important;
-  -moz-box-shadow: 0px 0px 2px 2px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0px 0px 3px 1px var(--border-color);
+  -webkit-box-shadow: 0px 0px 3px 1px var(--border-color);
+  -moz-box-shadow: 0px 0px 3px 1px var(--border-color);
 }

@@ -92,9 +92,19 @@ function onCancel() {
     emits('cancel')
 }
 
+function onBlur() {
+    isFocus.value = false
+    emits('blur')
+}
+
+function onFocus() {
+    isFocus.value = true
+    emits('focus')
+}
+
 onMounted(async () => {
     updateHeight()
-    if(props.autoFocus) {
+    if (props.autoFocus) {
         await nextTick()
         focus()
     }
@@ -115,11 +125,10 @@ watch(() => props.modelValue, () => {
         color: urlMode ? 'blue' : '',
     }" class="container m-0 p-0" @mouseenter="isHover = true" @mouseleave="isHover = false"
         :class="((isFocus && !props.noShadow) || props.alwaysShadow) ? 'focus' : 'container'" @click="focus">
-        <ContentEditable ref="elem" @update:model-value="input" :model-value="localValue"
-            :no-nl="props.urlMode" :contenteditable="props.editable && !urlMode"
-            :style="{ width: (props.width - 5) + 'px' }" class="contenteditable" @keydown.escape="e => e.target.blur()"
-            @focus="isFocus = true; emits('focus')" @blur="isFocus = false; emits('blur');" @click.stop="contentClick"
-            @keydown.enter="onEnter" @keydown.esc.stop="onCancel" />
+        <ContentEditable ref="elem" @update:model-value="input" :model-value="localValue" :no-nl="props.urlMode"
+            :contenteditable="props.editable && !urlMode" :style="{ width: (props.width - 5) + 'px' }"
+            class="contenteditable" @keydown.escape="e => e.target.blur()" @focus="onFocus" @keydown.esc.stop="onCancel"
+            @blur="onBlur" @click.stop="contentClick" @keydown.enter="onEnter" />
     </div>
 </template>
 
