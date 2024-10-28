@@ -88,7 +88,7 @@ const propMinRowHeight = computed(() => {
         }
         if (props.showImage) {
             // max = Math.max(max, tab.value.data.imageSize)
-            max = Math.max(max, imageSize.value.h)
+            max = Math.max(max, imageSize.value.h+4)
         }
         max = Math.max(max, props.showImage ? 26 : 24)
         res[prop.id] = max

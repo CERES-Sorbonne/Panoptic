@@ -10,8 +10,10 @@ const props = withDefaults(defineProps<{
     minHeight?: number
     rounded?: boolean
     teleport?: boolean
+    offset?: number
 }>(), {
     minHeight: 30,
+    offset: 0
 })
 const emits = defineEmits(['update:height', 'update:modelValue'])
 
@@ -67,11 +69,11 @@ defineExpose({
 </script>
 
 <template>
-    <Dropdown :teleport="props.teleport" :offset="0" @show="onShow">
+    <Dropdown :teleport="props.teleport" :offset="0" @show="onShow" ref="dropdown">
         <template #button>
             <div v-if="props.modelValue !== undefined" :style="{ height: props.minHeight + 'px' }" style="cursor: pointer;" ref="previewElem">
                 <div :class="props.rounded ? 'rounded' : ''" style="margin: auto;"
-                    :style="{ width: width, backgroundColor: color, height: 'calc(100% - 3px)' }">
+                    :style="{ width: width, backgroundColor: color, height: 'calc(100% - 3px)', position: 'relative', top: props.offset + 'px' }">
                 </div>
             </div>
             <div v-else style="cursor: pointer;">None...</div>
