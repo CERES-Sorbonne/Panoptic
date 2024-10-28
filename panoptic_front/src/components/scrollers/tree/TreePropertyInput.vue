@@ -42,8 +42,7 @@ const width = computed(() => (props.width ?? 100) - 22)
                     :teleport="true" :width="width" />
 
                 <CellColorInput v-else-if="props.property.type == PropertyType.color" :model-value="value"
-                    @update:model-value="set" :width="width" :rounded="true" :min-height="20" :teleport="true"
-                    style="position: relative; top:5px;" />
+                    @update:model-value="set" :width="width" :rounded="true" :min-height="20" :teleport="true" :offset="4" />
 
                 <RowNumberInput v-else-if="props.property.type == PropertyType.number" :model-value="value"
                     @update:model-value="set" :width="width" :height="26" :input-offset="3"/>

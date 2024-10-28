@@ -64,7 +64,7 @@ function focus() {
                         @update:model-value="set" @update:height="emitHeight" ref="inputElem" />
 
                     <CellColorInput v-else-if="type == PropertyType.color" :model-value="value" @update:model-value="set" @update:height="emitHeight"
-                        :min-height="props.minHeight+2" :width="props.width" ref="inputElem" :teleport="true" />
+                        :min-height="props.minHeight -2" :width="props.width" ref="inputElem" :teleport="true" />
 
                     <RowDateInput v-else-if="type == PropertyType.date" :model-value="value" @update:model-value="set" :teleport="true"
                         @update:height="emitHeight" ref="inputElem" />
