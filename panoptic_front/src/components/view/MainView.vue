@@ -23,6 +23,7 @@ const props = defineProps({
 
 const recoGroup = ref({} as Group)
 
+const valid = ref(true)
 const filterElem = ref(null)
 const boxElem = ref(null)
 const imageList = ref(null)
@@ -81,6 +82,12 @@ watch(tabManager.state, (state) => {
     project.updateTabs()
 }, { deep: true })
 
+watch(() => props.tabId, async () => {
+    valid.value = false
+    await nextTick()
+    valid.value = true
+})
+
 </script>
 
 <template>
@@ -93,7 +100,7 @@ watch(tabManager.state, (state) => {
                 @close="closeReco" @scroll="imageList.scrollTo" @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
-    <div v-if="scrollerWidth > 0 && scrollerHeight > 0" style="margin-left: 10px;">
+    <div v-if="scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tabManager.state.display == 'tree'">
             <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"

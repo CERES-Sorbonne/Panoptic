@@ -120,7 +120,9 @@ function setLines(lines: ScrollerLine[], center: number) {
     ]
     rowLines.value = lineSelection
     lineCenter = center
-    scroller.value.scrollToPosition(center)
+    if(scroller.value) {
+        scroller.value.scrollToPosition(center)
+    }
 }
 
 function computeGroupLine(group: Group) {
