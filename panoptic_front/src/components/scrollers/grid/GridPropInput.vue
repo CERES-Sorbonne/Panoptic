@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import CellColorInput from '@/components/property_cell_input/CellColorInput.vue';
 import CellTagInput from '@/components/property_cell_input/CellTagInput.vue';
+import CellTextInput from '@/components/property_cell_input/CellTextInput.vue';
+import CellUrlInput from '@/components/property_cell_input/CellUrlInput.vue';
 import CheckboxInput from '@/components/property_inputs/CheckboxInput.vue';
 import DBInput from '@/components/property_inputs/DBInput.vue';
 import NumberInput from '@/components/property_inputs/NumberInput.vue';
@@ -50,11 +52,11 @@ function focus() {
                         @update:model-value="set" @update:height="emitHeight" :min-height="props.minHeight"
                         :teleport="true" :width="props.width" :auto-focus="true" ref="inputElem" />
 
-                    <TextInput v-else-if="type == PropertyType.string" :model-value="value" @update:model-value="set"
+                    <CellTextInput v-else-if="type == PropertyType.string" :model-value="value" @update:model-value="set"
                         @update:height="emitHeight" :min-height="props.minHeight" :width="props.width"
                         ref="inputElem" />
 
-                    <TextInput v-else-if="type == PropertyType.url" :model-value="value" @update:model-value="set"
+                    <CellUrlInput v-else-if="type == PropertyType.url" :model-value="value" @update:model-value="set"
                         @update:height="emitHeight" :min-height="props.minHeight" :url-mode="true" :width="props.width"
                         ref="inputElem" />
 
@@ -64,7 +66,7 @@ function focus() {
                     <CellColorInput v-else-if="type == PropertyType.color" :model-value="value" @update:model-value="set" @update:height="emitHeight"
                         :min-height="props.minHeight+2" :width="props.width" ref="inputElem" :teleport="true" />
 
-                    <RowDateInput v-else-if="type == PropertyType.date" :model-value="value" @update:model-value="set"
+                    <RowDateInput v-else-if="type == PropertyType.date" :model-value="value" @update:model-value="set" :teleport="true"
                         @update:height="emitHeight" ref="inputElem" />
 
                     <RowNumberInput v-else-if="type == PropertyType.number" :model-value="value" @update:model-value="set"

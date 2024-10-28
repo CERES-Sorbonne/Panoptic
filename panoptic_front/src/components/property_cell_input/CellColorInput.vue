@@ -69,19 +69,15 @@ defineExpose({
 <template>
     <Dropdown :teleport="props.teleport" :offset="0" @show="onShow">
         <template #button>
-            <div :style="{ height: props.minHeight + 'px' }" style="cursor: pointer;" ref="previewElem">
+            <div v-if="props.modelValue !== undefined" :style="{ height: props.minHeight + 'px' }" style="cursor: pointer;" ref="previewElem">
                 <div :class="props.rounded ? 'rounded' : ''" style="margin: auto;"
                     :style="{ width: width, backgroundColor: color, height: 'calc(100% - 3px)' }">
                 </div>
             </div>
+            <div v-else style="cursor: pointer;">None...</div>
         </template>
         <template #popup="{ hide }">
             <div :style="{ width: (previewWidth + 8) + 'px' }" class="p-1">
-                <!-- <div :style="{ height: props.minHeight + 'px' }" style="cursor: pointer;">
-                    <div :class="props.rounded ? 'rounded' : ''"
-                        :style="{ width: width, backgroundColor: color, height: 'calc(100% - 3px)' }">
-                    </div>
-                </div> -->
                 <div v-for="c, index in Colors" class="d-flex flex-row color-option" @click="set(index); hide();">
                     <div :style="{ backgroundColor: c.color }" class="color"></div>
                     <div class="color-name"> {{ c.name }}</div>

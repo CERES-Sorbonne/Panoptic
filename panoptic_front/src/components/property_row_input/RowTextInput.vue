@@ -59,8 +59,8 @@ watch(() => props.modelValue, loadValue)
 <template>
     <Dropdown :offset="-20" :no-shadow="true" :teleport="true" @show="computeSize" @hide="submit">
         <template #button>
-            <div ref="previewElem" style="padding-left: 2px;" :style="{width: props.width+'px'}">
-                <TextPreview :text="props.modelValue" class="row-preview" style="cursor: pointer;" />
+            <div ref="previewElem" :style="{width: props.width+'px'}">
+                <TextPreview :text="props.modelValue" style="cursor: pointer;" />
             </div>
         </template>
         <template #popup="{hide}">
@@ -72,7 +72,4 @@ watch(() => props.modelValue, loadValue)
 </template>
 
 <style scoped>
-.row-preview {
-    font-size: 12px;
-}
 </style>
