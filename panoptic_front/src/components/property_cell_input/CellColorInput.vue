@@ -9,6 +9,7 @@ const props = withDefaults(defineProps<{
     width?: number
     minHeight?: number
     rounded?: boolean
+    teleport?: boolean
 }>(), {
     minHeight: 30,
 })
@@ -66,7 +67,7 @@ defineExpose({
 </script>
 
 <template>
-    <Dropdown :teleport="true" :offset="0" @show="onShow">
+    <Dropdown :teleport="props.teleport" :offset="0" @show="onShow">
         <template #button>
             <div :style="{ height: props.minHeight + 'px' }" style="cursor: pointer;" ref="previewElem">
                 <div :class="props.rounded ? 'rounded' : ''" style="margin: auto;"

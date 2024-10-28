@@ -11,6 +11,13 @@ import TagInputDropdown from '../tags/TagInputDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils';
 import { useDataStore } from '@/data/dataStore';
+import CellTagInput from '../property_cell_input/CellTagInput.vue';
+import TextInput from '../property_inputs/TextInput.vue';
+import CheckboxInput from '../property_inputs/CheckboxInput.vue';
+import CellColorInput from '../property_cell_input/CellColorInput.vue';
+import RowDateInput from '../property_row_input/RowDateInput.vue';
+import NumberInput from '../property_inputs/NumberInput.vue';
+import RowNumberInput from '../property_row_input/RowNumberInput.vue';
 
 const data = useDataStore()
 
@@ -46,30 +53,35 @@ const propertyColor = computed(() => {
     <table class="table table-sm">
         <b>{{ $t('modals.tagging.title') }}</b>
         <tbody style="border-top: 1px solid var(--border-color)">
-            <tr v-for="property in properties" style="min-height: 20px;">
+            <tr v-for="property in properties" style="min-height: 26px;">
                 <template v-if="property.id >= 0">
                     <td style="line-height: 20px;" :class="propertyColor[property.id]" class="text-nowrap">
                         <PropertyIcon :type="property.type" />
                         {{ property.name }}
                     </td>
                     <template v-if="!props.erase.has(property.id)">
-                        <td class="w-100">
-                            <TagInputDropdown v-if="isTag(property.type)" v-model="props.values[property.id]"
-                                :property="property" :can-create="true" :auto-focus="true"
-                                style="min-height: 20px; line-height: 20px;" @hide="emits('blur')" />
-                            <StandaloneColorPropInput v-else-if="property.type == PropertyType.color"
-                                v-model="props.values[property.id]" style="height: 20px; line-height: 20px;"
-                                @blur="emits('blur')" />
-                            <StandaloneTextInput
-                                v-else-if="[PropertyType.string, PropertyType.number, PropertyType.url].some(t => t == property.type)"
-                                :no-html="true" v-model="props.values[property.id]" :width="-1" :min-height="20"
-                                :no-nl="property.type == PropertyType.number" :url-mode="property.type == PropertyType.url"
-                                :only-number="property.type == PropertyType.number" @blur="emits('blur')" />
-                            <StandaloneDateInput v-else-if="property.type == PropertyType.date"
+                        <td class="w-100" style="height: 20px; font-size: 14px">
+                            <CellTagInput v-if="isTag(property.type)" :property="property"
+                                v-model="props.values[property.id]" :teleport="true" :auto-focus="true"
+                                ref="inputElem" />
+
+                            <TextInput v-else-if="property.type == PropertyType.string"
+                                v-model="props.values[property.id]" ref="inputElem" />
+
+                            <TextInput v-else-if="property.type == PropertyType.url" v-model="props.values[property.id]"
+                                :url-mode="true" ref="inputElem" />
+
+                            <CheckboxInput v-else-if="property.type == PropertyType.checkbox"
                                 v-model="props.values[property.id]" />
-                            <!-- <PropertyInput2 v-else :type="filterProperty.type" v-model="filter.value" /> -->
-                            <StandalonePropertyInput v-else :type="property.type" v-model="props.values[property.id]"
-                                style="height: 14px; line-height: 25px; margin-top: 4px; margin-left: 1px;" />
+
+                            <CellColorInput v-else-if="property.type == PropertyType.color"
+                                v-model="props.values[property.id]" ref="inputElem" />
+
+                            <RowDateInput v-else-if="property.type == PropertyType.date"
+                                v-model="props.values[property.id]" />
+
+                            <RowNumberInput v-else-if="property.type == PropertyType.number"
+                                v-model="props.values[property.id]" :height="26" />
                         </td>
                         <td v-if="props.values[property.id] == undefined">
                             <wTT message="modals.tagging.erase_tooltip">
@@ -97,4 +109,3 @@ const propertyColor = computed(() => {
         </tbody>
     </table>
 </template>
-
