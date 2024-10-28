@@ -411,7 +411,6 @@ export const useDataStore = defineStore('dataStore', () => {
 
         const added = newTags.filter(t => !old.has(t))
         const removed = oldTags.filter(t => !now.has(t))
-
         added.forEach(t => tags.value[t].count += 1)
         // added.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count += 1))
         removed.forEach(t => tags.value[t].count -= 1)

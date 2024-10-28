@@ -5,7 +5,7 @@ import ContentEditable from '../inputs2/utils/ContentEditable.vue';
 
 const props = withDefaults(defineProps<{
     editable?: boolean
-    modelValue?: string
+    modelValue?: string | number
     width?: number
     minHeight?: number
     urlMode?: boolean
@@ -52,7 +52,7 @@ defineExpose({
 
 let height = 0
 
-function input(value: string) {
+function input(value) {
     if (value == '') value = undefined
     emits('update:modelValue', value)
     updateHeight()
