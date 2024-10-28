@@ -13,6 +13,9 @@ const props = defineProps<{
 
 const emits = defineEmits(['update:modelValue'])
 
+defineExpose({focus})
+
+const dropdownElem = ref(null)
 const previewElem = ref(null)
 const localValue = ref<string>(undefined)
 
@@ -29,6 +32,11 @@ function cancel() {
     loadValue()
 }
 
+function focus() {
+    if(!dropdownElem.value) return
+    dropdownElem.value.show()
+}
+
 onMounted(loadValue)
 watch(() => props.modelValue, loadValue)
 
@@ -36,7 +44,7 @@ watch(() => props.modelValue, loadValue)
 </script>
 
 <template>
-    <Dropdown :offset="-20" :no-shadow="false" :teleport="true" @esc="cancel" @enter="submit">
+    <Dropdown :offset="-20" :no-shadow="false" :teleport="true" @esc="cancel" @enter="submit" ref="dropdownElem">
         <template v-slot:button>
             <div ref="previewElem" style="padding-left: 0px;">
                 <DatePreview :date="props.modelValue" class="row-preview" style="cursor: pointer;" />
@@ -53,6 +61,6 @@ watch(() => props.modelValue, loadValue)
 
 <style scoped>
 .row-preview {
-    font-size: 12px;
+    font-size: inherit;
 }
 </style>

@@ -7,40 +7,61 @@
 
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import TagInput from '@/components/property_inputs/TagInput.vue';
-import { computed, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Property } from '@/data/models';
 
-const props = defineProps({
-    property: Object as () => Property,
-    modelValue: Array<number>,
-    excluded: Array<number>,
-    canCreate: Boolean,
-    canCustomize: Boolean,
-    canLink: Boolean,
-    canDelete: Boolean,
-    autoFocus: Boolean,
-    noWrap: Boolean,
-    teleport: Boolean
-})
-const emits = defineEmits(['update:modelValue', 'hide'])
+const props = defineProps<{
+    property: Property
+    modelValue?: number[]
+    excluded?: number[]
+    canCreate?: boolean
+    canCustomize?: boolean
+    canLink?: boolean
+    canDelete?: boolean
+    autoFocus?: boolean
+    noWrap?: boolean
+    teleport?: boolean
+    minHeight?: number
+    width?: number
+}>()
+const emits = defineEmits(['update:modelValue', 'hide', 'update:height'])
 defineExpose({
-    getHeight
+    getHeight,
+    focus
 })
 const heightElem = ref(null)
 const inputElem = ref(null)
-
+const dropdownElem = ref(null)
 const safeValue = computed(() => props.modelValue ?? [])
 const tags = computed(() => safeValue.value.map(tId => props.property.tags[tId]))
 
 function getHeight() {
-    if(heightElem.value == undefined) return 0
+    if (heightElem.value == undefined) return 0
     return heightElem.value.clientHeight
 }
+
+async function updateValue(value) {
+    emits('update:modelValue', value)
+    updateHeight()
+}
+
+async function updateHeight() {
+    await nextTick()
+    emits('update:height', getHeight())
+}
+
+function focus() {
+    if(!dropdownElem.value) return
+    dropdownElem.value.show()
+}
+
+watch(() => props.width, updateHeight)
+onMounted(updateHeight)
 </script>
 
 <template>
-    <Dropdown :auto-focus="false" @hide="emits('hide')" :teleport="props.teleport">
+    <Dropdown :auto-focus="false" @hide="emits('hide')" :teleport="props.teleport" ref="dropdownElem">
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'" ref="heightElem">
                 <span v-for="tag in tags">
@@ -54,8 +75,8 @@ function getHeight() {
             <div class="p-1" style="max-width: 250px;">
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
-                    :can-delete="props.canDelete" :auto-focus="props.autoFocus"
-                    @update:model-value="v => emits('update:modelValue', v)" ref="inputElem"/>
+                    :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="updateValue"
+                    ref="inputElem" />
             </div>
         </template>
     </Dropdown>

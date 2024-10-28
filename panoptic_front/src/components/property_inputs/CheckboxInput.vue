@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue';
+
 
 
 const props = defineProps<{
@@ -7,6 +9,15 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits(['update:modelValue'])
+defineExpose({ focus })
+
+const inputElem = ref(null)
+
+function focus() {
+    if (!inputElem.value) return
+    inputElem.value.focus()
+}
+
 function emitValue(v) {
     console.log(v.target.checked)
     if (!v.target.checked) {
@@ -19,8 +30,10 @@ function emitValue(v) {
 
 <template>
     <div class="d-flex">
-        <div><input class="offset-input" type="checkbox" :checked="props.modelValue" @input="emitValue"></div>
-        <div><span v-if="props.label" class="ms-1 bb" @click="emits('update:modelValue', !props.modelValue)">{{ label }}</span></div>
+        <div><input class="offset-input" type="checkbox" :checked="props.modelValue" @input="emitValue" ref="inputElem">
+        </div>
+        <div><span v-if="props.label" class="ms-1 bb" @click="emits('update:modelValue', !props.modelValue)">{{ label
+                }}</span></div>
     </div>
 </template>
 

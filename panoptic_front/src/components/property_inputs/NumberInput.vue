@@ -7,6 +7,8 @@ const props = defineProps<{
     width?: number
 }>()
 const emits = defineEmits(['update:modelValue', 'focus', 'blur'])
+defineExpose({ focus })
+
 const isFocus = ref(false)
 const localValue = ref(undefined)
 const inputElem = ref(null)
@@ -43,6 +45,11 @@ function forceBlur() {
     inputElem.value.blur()
 }
 
+function focus() {
+    if (!inputElem.value) return
+    inputElem.value.focus()
+}
+
 onMounted(loadValue)
 watch(() => props.modelValue, loadValue)
 
@@ -50,7 +57,8 @@ watch(() => props.modelValue, loadValue)
 
 <template>
     <div>
-        <input style="line-height: 16px;" :class="isFocus? 'dropdown-input' : ''" type="number" v-model="localValue" :style="{width: props.width ? (props.width-2) + 'px' : '100%'}" @focus="onFocus" @blur="onBlur"
+        <input style="line-height: 16px;" :class="isFocus ? 'dropdown-input' : ''" type="number" v-model="localValue"
+            :style="{ width: props.width ? (props.width - 2) + 'px' : '100%' }" @focus="onFocus" @blur="onBlur"
             @keydown.esc="cancel" @keydown.enter="forceBlur" ref="inputElem">
     </div>
 </template>
