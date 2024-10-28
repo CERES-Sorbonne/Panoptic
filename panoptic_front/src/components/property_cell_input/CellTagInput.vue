@@ -5,10 +5,10 @@
  * Uses the TagInput inside the dropdown popup
  */
 
-import Dropdown from '../dropdowns/Dropdown.vue';
-import TagInput from './TagInput.vue';
+import Dropdown from '@/components/dropdowns/Dropdown.vue';
+import TagInput from '@/components/property_inputs/TagInput.vue';
 import { computed, ref } from 'vue';
-import TagBadge from '../tagtree/TagBadge.vue';
+import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Property } from '@/data/models';
 
 const props = defineProps({
@@ -37,11 +37,6 @@ function getHeight() {
     if(heightElem.value == undefined) return 0
     return heightElem.value.clientHeight
 }
-
-function test() {
-    inputElem.value.focus()
-}
-
 </script>
 
 <template>

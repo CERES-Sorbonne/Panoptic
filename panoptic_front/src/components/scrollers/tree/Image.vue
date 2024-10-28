@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import wTT from '../../tooltips/withToolTip.vue'
 import { ImageIterator } from '@/core/GroupManager';
@@ -9,6 +9,7 @@ import Zoomable from '@/components/Zoomable.vue';
 import { useDataStore } from '@/data/dataStore';
 import PropInput from './PropInput.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
+import TreePropertyInput from './TreePropertyInput.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -56,12 +57,14 @@ const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; heigh
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
 const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
 
+const hideImg = inject('hideImg')
+
 </script>
 
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
         <!-- {{ props.image.containerRatio }} -->
-        <Zoomable :image="props.image.image">
+        <Zoomable v-if="!hideImg" :image="props.image.image">
             <div :style="imageContainerStyle" class="img-container"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
                 @mouseleave="hover = false">
@@ -84,7 +87,7 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
         <div class="prop-container" v-if="props.properties.length && !props.hideProperties">
             <div v-for="property, index in props.properties">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
-                <PropInput :property="property" :image="instance" :size="width" />
+                <TreePropertyInput :property="property" :instance="instance" :width="width" />
             </div>
         </div>
         <div v-if="props.selectedPreview" class="w-100 h-100"

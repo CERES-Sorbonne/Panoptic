@@ -3,9 +3,11 @@ import { adjustForTimezone, numberToString } from '@/utils/utils';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 const props = defineProps<{
-    modelValue?: string
+    modelValue?: string,
+    extended?: boolean
+    autoFocus?: boolean
 }>()
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'cancel', 'submit'])
 
 const fields = ref({})
 const fieldModels = ref({})
@@ -13,6 +15,7 @@ const fieldElems = ref({})
 const format = ref('YMDhms')
 const isoOrder = ref('YMDhms')
 const resolution = ref(5)
+const divElem = ref(null)
 
 // define how many input slots for the date
 // Right now hardcorded to 4 for positive years, and 1 additional for the minus for negative dates
@@ -442,74 +445,96 @@ function getNow() {
     return d
 }
 
-onMounted(() => loadValue(props.modelValue))
+async function autoFocus() {
+    await nextTick()
+    let inputs = divElem.value.getElementsByTagName('input')
+    inputs[0].focus()
+}
+
+onMounted(() => {
+    loadValue(props.modelValue)
+    if (props.autoFocus) autoFocus()
+})
 </script>
 
 <template>
     <div class="">
-        <div class="d-flex" style="line-height: 20px;">
+        <div class="d-flex flex-nowrap" style="line-height: 20px;" ref="divElem">
             <template v-for="data, formatIndex in viewFormat">
                 <div v-if="data == 'Y'">
-                    <input v-for="input, index in yearsInputs" class="digit" type=text
-                        @input="e => updateYear(e, index)" v-model="fieldModels[input]"
-                        :ref="e => fieldElems[input] = e" @click="clickYear(index)"
-                        @keydown.delete.prevent.stop="updateYear({}, index)" @blur="onChangeFocus(input)" />
+                    <div class="d-flex">
+                        <input v-for="input, index in yearsInputs" class="digit" type=text
+                            @input="e => updateYear(e, index)" v-model="fieldModels[input]"
+                            :ref="e => fieldElems[input] = e" @click="clickYear(index)"
+                            @keydown.delete.prevent.stop="updateYear({}, index)" @blur="onChangeFocus(input)" />
+                    </div>
                     <div class="text-center text-secondary" style="font-size: 10px;">Y</div>
                 </div>
 
                 <div v-if="data == 'M'">
-                    <input class="digit" type=text @input="e => updateMonth(e, 0)" v-model="fieldModels['M0']"
-                        @blur="onChangeFocus('M0')" @keydown.delete.prevent.stop="updateMonth({}, 0)"
-                        :ref="e => fieldElems['M0'] = e" />
-                    <input class="digit" type=text @input="e => updateMonth(e, 1)" v-model="fieldModels['M1']"
-                        @blur="onChangeFocus('M1')" @keydown.delete.prevent.stop="updateMonth({}, 1)"
-                        :ref="e => fieldElems['M1'] = e" />
+                    <div class="d-flex">
+                        <input class="digit" type=text @input="e => updateMonth(e, 0)" v-model="fieldModels['M0']"
+                            @blur="onChangeFocus('M0')" @keydown.delete.prevent.stop="updateMonth({}, 0)"
+                            :ref="e => fieldElems['M0'] = e" />
+                        <input class="digit" type=text @input="e => updateMonth(e, 1)" v-model="fieldModels['M1']"
+                            @blur="onChangeFocus('M1')" @keydown.delete.prevent.stop="updateMonth({}, 1)"
+                            :ref="e => fieldElems['M1'] = e" />
+                    </div>
                     <div class="text-center text-secondary" style="font-size: 10px;">M</div>
                 </div>
 
                 <div v-if="data == 'D'">
-                    <input class="digit" type=text @input="e => updateDay(e, 0)" v-model="fieldModels['D0']"
-                        @blur="onChangeFocus('D0')" :ref="e => fieldElems['D0'] = e"
-                        @keydown.delete.prevent.stop="updateDay({}, 0)" />
-                    <input class="digit" type=text @input="e => updateDay(e, 1)" v-model="fieldModels['D1']"
-                        @blur="onChangeFocus('D1')" :ref="e => fieldElems['D1'] = e"
-                        @keydown.delete.prevent.stop="updateDay({}, 1)" />
+                    <div class="d-flex">
+                        <input class="digit" type=text @input="e => updateDay(e, 0)" v-model="fieldModels['D0']"
+                            @blur="onChangeFocus('D0')" :ref="e => fieldElems['D0'] = e"
+                            @keydown.delete.prevent.stop="updateDay({}, 0)" />
+                        <input class="digit" type=text @input="e => updateDay(e, 1)" v-model="fieldModels['D1']"
+                            @blur="onChangeFocus('D1')" :ref="e => fieldElems['D1'] = e"
+                            @keydown.delete.prevent.stop="updateDay({}, 1)" />
+                    </div>
                     <div class="text-center text-secondary" style="font-size: 10px;">D</div>
                 </div>
 
                 <div v-if="data == 'h'">
-                    <input class="digit" type=text @input="e => updateHours(e, 0)" v-model="fieldModels['h0']"
-                        @blur="onChangeFocus('h0')" @keydown.delete.prevent.stop="updateHours({}, 0)"
-                        :ref="e => fieldElems['h0'] = e" />
-                    <input class="digit" type=text @input="e => updateHours(e, 1)" v-model="fieldModels['h1']"
-                        @blur="onChangeFocus('h1')" :ref="e => fieldElems['h1'] = e"
-                        @keydown.delete.prevent.stop="updateHours({}, 1)" />
+                    <div class="d-flex">
+                        <input class="digit" type=text @input="e => updateHours(e, 0)" v-model="fieldModels['h0']"
+                            @blur="onChangeFocus('h0')" @keydown.delete.prevent.stop="updateHours({}, 0)"
+                            :ref="e => fieldElems['h0'] = e" />
+                        <input class="digit" type=text @input="e => updateHours(e, 1)" v-model="fieldModels['h1']"
+                            @blur="onChangeFocus('h1')" :ref="e => fieldElems['h1'] = e"
+                            @keydown.delete.prevent.stop="updateHours({}, 1)" />
+                    </div>
                     <div class="text-center text-secondary" style="font-size: 10px;">h</div>
                 </div>
 
                 <div v-if="data == 'm'">
-                    <input class="digit" type=text @input="e => updateMinutes(e, 0)" v-model="fieldModels['m0']"
-                        @blur="onChangeFocus('m0')" @keydown.delete.prevent.stop="updateMinutes({}, 0)"
-                        :ref="e => fieldElems['m0'] = e" />
-                    <input class="digit" type=text @input="e => updateMinutes(e, 1)" v-model="fieldModels['m1']"
-                        @blur="onChangeFocus('m1')" @keydown.delete.prevent.stop="updateMinutes({}, 1)"
-                        :ref="e => fieldElems['m1'] = e" />
+                    <div class="d-flex">
+                        <input class="digit" type=text @input="e => updateMinutes(e, 0)" v-model="fieldModels['m0']"
+                            @blur="onChangeFocus('m0')" @keydown.delete.prevent.stop="updateMinutes({}, 0)"
+                            :ref="e => fieldElems['m0'] = e" />
+                        <input class="digit" type=text @input="e => updateMinutes(e, 1)" v-model="fieldModels['m1']"
+                            @blur="onChangeFocus('m1')" @keydown.delete.prevent.stop="updateMinutes({}, 1)"
+                            :ref="e => fieldElems['m1'] = e" />
+                    </div>
                     <div class="text-center text-secondary" style="font-size: 10px;">m</div>
                 </div>
 
                 <div v-if="data == 's'">
-                    <input class="digit" type=text @input="e => updateSeconds(e, 0)" v-model="fieldModels['s0']"
-                        @blur="onChangeFocus('s0')" @keydown.delete.prevent.stop="updateSeconds({}, 0)"
-                        :ref="e => fieldElems['s0'] = e" />
-                    <input class="digit" type=text @input="e => updateSeconds(e, 1)" v-model="fieldModels['s1']"
-                        @blur="onChangeFocus('s1')" @keydown.delete.prevent.stop="updateSeconds({}, 1)"
-                        :ref="e => fieldElems['s1'] = e" />
+                    <div class="d-flex">
+                        <input class="digit" type=text @input="e => updateSeconds(e, 0)" v-model="fieldModels['s0']"
+                            @blur="onChangeFocus('s0')" @keydown.delete.prevent.stop="updateSeconds({}, 0)"
+                            :ref="e => fieldElems['s0'] = e" />
+                        <input class="digit" type=text @input="e => updateSeconds(e, 1)" v-model="fieldModels['s1']"
+                            @blur="onChangeFocus('s1')" @keydown.delete.prevent.stop="updateSeconds({}, 1)"
+                            :ref="e => fieldElems['s1'] = e" />
+                    </div>
                     <div class="text-center text-secondary" style="font-size: 10px;">s</div>
                 </div>
 
                 <div v-if="'YMD'.includes(viewFormat[formatIndex + 1])" class="slash">/</div>
                 <div v-if="'YMD'.includes(viewFormat[formatIndex]) && 'hms'.includes(viewFormat[formatIndex + 1])"
-                    class="me-2"></div>
+                    class="me-2">
+                </div>
                 <div v-else-if="'hms'.includes(viewFormat[formatIndex + 1])">:</div>
             </template>
         </div>
@@ -524,10 +549,15 @@ onMounted(() => loadValue(props.modelValue))
                         {{ dateToString(localDate.closest) }} ?
                     </span>
                 </div>
-                <div v-if="localDate.date"><span class="text-success">
+                <div v-if="localDate.date">
+                    <span class="text-success">
                         Valid
-                    </span></div>
+                    </span>
+                </div>
             </div>
+            <div class="flex-grow-1"></div>
+            <div v-if="props.extended"><span class="bb" @click="emits('cancel')">Cancel</span></div>
+            <div v-if="props.extended"><span class="bb" @click="emits('submit')">Submit</span></div>
         </div>
     </div>
 </template>
@@ -553,7 +583,7 @@ input[type=text]:focus {
 
 .slash {
     font-size: 18px;
-    margin: 0px 2px;
+    margin: 0px 1px;
     position: relative;
     top: 1.5px;
 }
@@ -568,10 +598,11 @@ input[type=text]::-webkit-outer-spin-button {
 
 /* for mozilla */
 input[type=text] {
+    font-size: 14px;
     border: none;
     border-radius: 5px;
     text-align: center;
-    width: 13px;
+    width: 11.5px;
     -moz-appearance: textfield;
     caret-color: transparent;
 }

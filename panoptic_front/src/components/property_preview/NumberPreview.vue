@@ -1,22 +1,22 @@
 <script setup lang="ts">
 
 const props = defineProps<{
-    number?: number
+  number?: number
 }>()
 
 </script>
 
 <template>
-  <div v-if="props.number != undefined" class="hidden">{{ props.number }}</div>
-  <div v-else>None...</div>
+  <div>
+    <div v-if="props.number != undefined" class="ellipsis">{{ props.number }}</div>
+    <div v-else>None...</div>
+  </div>
 </template>
 
 <style scoped>
-
-.hidden {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 </style>

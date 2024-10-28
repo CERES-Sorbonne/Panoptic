@@ -23,7 +23,7 @@ function contentClick() {
 </script>
 
 <template>
-  <div v-if="props.url" class="hidden" :style="{
+  <div v-if="props.url" class="ellipsis" :style="{
     cursor: urlMode ? 'pointer' : 'inherit',
     color: urlMode ? 'blue' : '',
   }" @mouseenter="isHover = true" @mouseleave="isHover = false" @click="contentClick">
@@ -33,7 +33,7 @@ function contentClick() {
 </template>
 
 <style scoped>
-.hidden {
+.ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

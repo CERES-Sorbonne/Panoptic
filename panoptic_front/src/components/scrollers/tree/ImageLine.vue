@@ -14,7 +14,7 @@ const props = defineProps<{
     index: GroupIndex,
     properties: Property[],
     selectedImages: Ref<SelectedImages>,
-    preview?: Ref<SelectedImages>
+    preview?: Ref<SelectedImages>,
 }>()
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])

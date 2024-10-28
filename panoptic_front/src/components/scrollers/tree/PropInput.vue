@@ -10,6 +10,7 @@ import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import ColorPropInput2 from '@/components/inputs/ColorPropInput2.vue';
+import NumberInput from '@/components/property_inputs/NumberInput.vue';
 
 const data = useDataStore()
 
@@ -44,8 +45,9 @@ const width = computed(() => props.size ?? 100)
     </div>
     <div v-else-if="property.type == PropertyType.number" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />
-        <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22" :height="26"
-            :no-nl="true" />
+        <!-- <TextInput :property="data.properties[property.id]" :image="image" :width="width - 22" :height="26"
+            :no-nl="true" /> -->
+        
     </div>
     <div v-else-if="property.type == PropertyType.url" class="d-flex flex-row">
         <PropertyIcon :type="property.type" style="line-height: 25px; margin-right:2px;" />

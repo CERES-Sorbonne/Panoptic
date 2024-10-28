@@ -1,29 +1,36 @@
 <script setup lang="ts">
-import ColorPropInputNoDropdown from '@/components/inputs/ColorPropInputNoDropdown.vue';
-import ContentEditable from '@/components/inputs2/utils/ContentEditable.vue';
-import ColorInput from '@/components/property_inputs/ColorInput.vue';
+
+import CellColorInput from '@/components/property_cell_input/CellColorInput.vue';
+import CheckboxInput from '@/components/property_inputs/CheckboxInput.vue';
 import DateInput from '@/components/property_inputs/DateInput.vue';
+import DBInput from '@/components/property_inputs/DBInput.vue';
 import NumberInput from '@/components/property_inputs/NumberInput.vue';
+import TagInput from '@/components/property_inputs/TagInput.vue';
 import TextInput from '@/components/property_inputs/TextInput.vue';
-import ColorPreview from '@/components/property_preview/ColorPreview.vue';
 import DatePreview from '@/components/property_preview/DatePreview.vue';
 import NumberPreview from '@/components/property_preview/NumberPreview.vue';
 import TextPreview from '@/components/property_preview/TextPreview.vue';
 import UrlPreview from '@/components/property_preview/UrlPreview.vue';
+import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
+import RowTextInput from '@/components/property_row_input/RowTextInput.vue';
+import TagInputDropdown from '@/components/tags/TagInputDropdown.vue';
+import { useDataStore } from '@/data/dataStore';
 import { keyState } from '@/data/keyState';
-import { onMounted, ref } from 'vue';
+import { PropertyType } from '@/data/models';
+import { computed, onMounted, ref } from 'vue';
 
+const data = useDataStore()
 
 const text = ref('Lorem Ipsum is simply dummy text \n \nof the printing and typesetting industry.')
 const url = ref('google.com')
 const number = ref(12.3)
 const color = ref(0)
-const elem2 = ref(null)
-function simulateClick() {
-    elem2.value.forceFocus()
-}
-
+const checkbox = ref(true)
 const date = ref("2024-04-04T23:26:00Z")
+const tags = ref([])
+
+const instance = computed(() => data.instances[1])
+const property = computed(() => data.properties[3])
 
 onMounted(() => {
     let isMac = true
@@ -67,7 +74,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="d-flex flex-wrap p-2">
+    <div v-if="data.propertyList.length" class="d-flex flex-wrap p-2">
         <div class="item border rounded">
             <h5 class="text-secondary">Date</h5>
             <span class="text-secondary">Preview</span>
@@ -90,6 +97,15 @@ onMounted(() => {
             <div>
                 <TextInput v-model="text" />
             </div>
+        </div>
+
+        <div class="item border rounded">
+            <h5 class="text-secondary">BDInput Row Text</h5>
+            <DBInput :instance="instance" :property-id="property.id">
+                <template #default="{set, value}">
+                    <RowTextInput :model-value="value" @update:model-value="set" :width="200"/>
+                </template>
+            </DBInput>
         </div>
 
         <div class="item border rounded">
@@ -116,7 +132,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <div class="item border rounded">
+        <!-- <div class="item border rounded">
             <h5 class="text-secondary">Color</h5>
             <span class="text-secondary">Preview</span>
             <div class="mb-1">
@@ -126,25 +142,40 @@ onMounted(() => {
             <div>
                 <ColorInput v-model="color"/>
             </div>
-        </div>
-
-        <!-- <br />
-
-        <DatePreview :date="undefined" />
-        <div>{{ text }}</div>
-        <div style="width: 300px; height: 200px; background-color: bisque;" class="overflow-auto">
-            <ContentEditable v-model="text" class="h-100 w-100 test" />
-        </div>
-        <br />
-        {{ number }}
-        <div style="width: 300px; height: 200px; background-color: bisque;" class="overflow-auto">
-            <ContentEditable v-model="number" :only-number="true" class="h-100 w-100" />
-        </div>
-        <br />
-        {{ color }}
-        <div style="width: 300px; height: 200px; background-color: bisque;" class="overflow-auto">
-            <ColorPropInputNoDropdown v-model="color" />
         </div> -->
+
+        <div class="item border rounded">
+            <h5 class="text-secondary">CellColorInput</h5>
+            <div>
+                <CellColorInput v-model="color" :rounded="true" />
+            </div>
+        </div>
+
+        <div class="item border rounded">
+            <h5 class="text-secondary">RowDateInput</h5>
+            <div>
+                <RowDateInput v-model="date" />
+            </div>
+        </div>
+
+        <div class="item border rounded">
+            <h5 class="text-secondary">Checkbox</h5>
+            <span class="text-secondary">Preview</span>
+            <div class="mb-1">
+                 {{Boolean(checkbox)}}
+            </div>
+            <span class="text-secondary">Input</span>
+            <div>
+                <CheckboxInput v-model="checkbox" label="Checkbox"/>
+            </div>
+        </div>
+
+        <div class="item border rounded">
+            <h5 class="text-secondary">Tags</h5>
+            <div>
+                <TagInputDropdown :property="data.propertyList.find(p => p.type == PropertyType.multi_tags)" v-model="tags" :can-create="true" :no-wrap="true"/>
+            </div>
+        </div>
 
     </div>
 </template>

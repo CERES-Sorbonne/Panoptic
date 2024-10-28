@@ -7,13 +7,13 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div v-if="props.text" class="hidden">{{ props.text }}</div>
+  <div v-if="props.text" class="ellipsis">{{ props.text }}</div>
   <div v-else>None...</div>
 </template>
 
 <style scoped>
 
-.hidden {
+.ellipsis {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
