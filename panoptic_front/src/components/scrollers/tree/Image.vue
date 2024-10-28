@@ -7,7 +7,6 @@ import { ModalId, Property } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import Zoomable from '@/components/Zoomable.vue';
 import { useDataStore } from '@/data/dataStore';
-import PropInput from './PropInput.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import TreePropertyInput from './TreePropertyInput.vue';
 
