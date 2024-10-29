@@ -1,33 +1,24 @@
 <!-- ./src/components/CustomSlider.vue -->
-<script setup>
+<script setup lang="ts">
 
-import { ref, watchEffect } from "vue";
+import { ref, watch, watchEffect } from "vue";
 
-// define component props for the slider component
-const { min, max, step, modelValue } = defineProps({
-  min: {
-    type: Number,
-    default: 0,
-  },
-  max: {
-    type: Number,
-    default: 100,
-  },
-  step: {
-    type: Number,
-    default: 1,
-  },
-  modelValue: {
-    type: Number,
-    default: 50,
-  },
-});
+const props = withDefaults(defineProps < {
+  min?: number
+    max?: number
+    step?: number
+    modelValue: number
+} > (), {
+  min: 0,
+  max: 100,
+  step: 1
+})
 
 // define emits for the slider component
 const emit = defineEmits(["update:modelValue"]);
 
 // define refs for the slider component
-const sliderValue = ref(modelValue);
+const sliderValue = ref(props.modelValue);
 const slider = ref(null);
 
 // function to get the progress of the slider
@@ -69,10 +60,12 @@ let isWebkit = false
 if (navigator.userAgent.indexOf('AppleWebKit') != -1) {
   isWebkit = true
 }
+
+watch(() => props.modelValue, () => sliderValue.value = props.modelValue)
 </script>
 <template>
   <div class="custom-slider">
-    <input ref="slider" :value="sliderValue" @input="({ target }) => (sliderValue = parseFloat(target.value))"
+    <input ref="slider" :value="sliderValue" @input="({ target }) => (sliderValue = parseFloat((target as any).value))"
       type="range" :min="min" :max="max" :step="step" class="slider" :style="isWebkit ? 'top:-5px' : ''"
       @change="update" />
   </div>
