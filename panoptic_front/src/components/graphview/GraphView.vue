@@ -22,7 +22,6 @@ function getAllPropValues() {
     let it: GroupIterator = props.collection.groupManager.getGroupIterator()
     while (it) {
         const group = it.group
-        console.log(group.id)
         // on est root
         if (group.id === 0 || (group.meta.propertyValues && group.meta.propertyValues[0].value == undefined)) {
             it = it.nextGroup()
@@ -60,6 +59,10 @@ function computeSeries() {
     else {
         // pre-compute all prop values to fill empty groups with 0 
         allPropValues = Array.from(getAllPropValues())
+        if(allPropValues.length > 20){
+            error.value = "Too many curves to draw, select a subgrouping with less than 20 possible values"
+            return
+        }
     }
     if (firstPropType !== PropertyType.number && firstPropType !== PropertyType.date) {
         error.value = "First level of grouping needs to be a date or a numeric property"
@@ -74,6 +77,7 @@ function computeSeries() {
             continue
         }
         let propValue = group.meta.propertyValues[0]
+        // convert date to a Date object if prop is a date
         const xValue = firstPropType === PropertyType.date ? new Date(propValue.value).getTime() : propValue.value
         xValues.push(xValue)
         if (firstProp.name in res) {
