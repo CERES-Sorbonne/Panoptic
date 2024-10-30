@@ -50,6 +50,8 @@ dependencies = [
     "starlette",
     "uvicorn",
     "pendulum",
+    "imagehash",
+    "pillow"
 ]
 
 [project.urls]

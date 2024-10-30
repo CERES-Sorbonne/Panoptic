@@ -14,6 +14,13 @@ from panoptic.utils import get_base_path
 
 
 def start():
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        await panoptic.close()
+
+
     panoptic = Panoptic()
     panoptic.load_data()
 
@@ -22,7 +29,7 @@ def start():
     PORT = os.getenv("PANOPTIC_PORT", 8000)
 
     # FastAPI setup
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -53,10 +60,6 @@ def start():
     # async def shutdown_event():
     #     await panoptic.close()
 
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
-        yield
-        await panoptic.close()
 
     uvicorn.run(app, host=HOST, port=PORT)
 
