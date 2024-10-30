@@ -8,7 +8,7 @@ from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 # from pydantic.dataclasses import dataclass
@@ -196,6 +196,8 @@ class Parameters(BaseModel):
 
 
 class Folder(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
     id: int | None = None
     path: str
     name: str
@@ -269,9 +271,9 @@ class ParamDescription(CamelModel):
 class FunctionDescription(CamelModel):
     id: str
     name: str
-    label: str = None
-    description: str = None
-    params: List[ParamDescription] = []
+    label: str | None = None
+    description: str | None = None
+    params: List[ParamDescription] | None = []
     hooks: list[str] = []
 
 

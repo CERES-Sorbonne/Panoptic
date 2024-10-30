@@ -8,7 +8,7 @@ from typing import List
 from pypika import Table, PostgreSQLQuery, Order, functions
 
 from panoptic.core.db.db_connection import DbConnection, db_lock
-from panoptic.core.db.utils import auto_dict
+from panoptic.core.db.utils import auto_dict, decode_if_json
 from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
     InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode
 from panoptic.models import Tag, Property, Folder
@@ -544,7 +544,7 @@ class Db:
         cursor = await self.conn.execute_query(query)
         row = await cursor.fetchone()
         if row:
-            return row[0]
+            return decode_if_json(row[0])
         return None
 
     async def set_project_param(self, key: str, value: str):

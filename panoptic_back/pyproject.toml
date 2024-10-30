@@ -36,9 +36,8 @@ classifiers = [
 dependencies = [
     "aiofiles",
     "aiosqlite",
-    "faiss-cpu",
-    "fastapi==0.99.1",
-    "fastapi-camelcase==1.0.5",
+    "fastapi",
+    "fastapi-camelcase",
     "numpy",
     "orjson",
     "pandas",
