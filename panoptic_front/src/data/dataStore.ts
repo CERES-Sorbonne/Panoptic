@@ -150,7 +150,7 @@ export const useDataStore = defineStore('dataStore', () => {
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag, tags.value)
         }
-        triggerRef(tags)
+        
     }
 
     async function mergeTags(tagIds: number[]) {
@@ -167,22 +167,26 @@ export const useDataStore = defineStore('dataStore', () => {
             instances.value[v.instanceId].properties[v.propertyId] = v.value
             dirtyInstances.add(v.instanceId)
         }
-        triggerRef(instances)
+
     }
 
     function importImageValues(instanceValues: ImagePropertyValue[]) {
+        let c = 0
         for (let v of instanceValues) {
             if (v.value == undefined) continue
             if (sha1Index.value[v.sha1] == undefined) continue
             for (let img of sha1Index.value[v.sha1]) {
                 if (isTag(properties.value[v.propertyId].type)) {
+                    let d = performance.now()
                     updateTagCount(instances.value[img.id].properties[v.propertyId], v.value)
+                    c += performance.now() - d
                 }
                 instances.value[img.id].properties[v.propertyId] = v.value
                 dirtyInstances.add(img.id)
             }
         }
-        triggerRef(instances)
+
+        console.log('update tag count', c)
     }
 
     function applyCommit(commit: DbCommit, emit?: boolean) {
@@ -199,7 +203,7 @@ export const useDataStore = defineStore('dataStore', () => {
                     dirtyInstances.add(i.id)
                 })
             })
-            triggerRef(instances)
+    
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
@@ -209,14 +213,14 @@ export const useDataStore = defineStore('dataStore', () => {
                 delete instances.value[v.instanceId].properties[v.propertyId]
                 dirtyInstances.add(v.instanceId)
             })
-            triggerRef(instances)
+    
         }
         if (commit.emptyTags) {
             commit.emptyTags.forEach(i => {
                 tags.value[i].id = deletedID
                 tags.value[i].value = deletedName
             })
-            triggerRef(tags)
+            
         }
         if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
@@ -231,7 +235,6 @@ export const useDataStore = defineStore('dataStore', () => {
             })
 
         }
-
         if (commit.instances?.length) {
             importInstances(commit.instances)
         }
@@ -247,10 +250,12 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.imageValues?.length) {
             importImageValues(commit.imageValues)
         }
-
         if (commit.history) {
             history.value = commit.history
         }
+        
+        triggerRef(instances)
+        triggerRef(tags)
         emitOnChange()
     }
 
@@ -415,8 +420,6 @@ export const useDataStore = defineStore('dataStore', () => {
         // added.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count += 1))
         removed.forEach(t => tags.value[t].count -= 1)
         // removed.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count -= 1))
-
-        triggerRef(tags)
     }
 
     async function undo() {

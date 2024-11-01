@@ -5,7 +5,7 @@ import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { GroupManager, ImageIterator } from '@/core/GroupManager';
 import { deletedID, useDataStore } from '@/data/dataStore';
 import { PropertyMode } from '@/data/models';
-import { Ref, computed, inject, ref } from 'vue';
+import { Ref, computed, inject, reactive, ref } from 'vue';
 
 const data = useDataStore()
 
@@ -18,7 +18,7 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
-    paint: [e: {instanceId: number, propertyId: number}]
+    paint: [e: { instanceId: number, propertyId: number }]
     hover
     hoverEnd
 }>()
@@ -28,6 +28,9 @@ const img = new Image()
 const nextImage: () => void = inject('nextImage')
 const prevImage: () => void = inject('prevImage')
 const showHistory: Ref<boolean> = inject('showHistory')
+
+const closed = reactive({})
+
 
 
 const properties = computed(() => {
@@ -44,11 +47,21 @@ const properties = computed(() => {
     return res.filter(p => p.id != deletedID)
 })
 
+const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed && p.id != deletedID))
+const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed && p.id != deletedID))
+const metaProperties = computed(() => data.propertyList.filter(p => p.id < 0 && p.id != deletedID))
+
 function setMode(value) {
     mode.value = value
 }
 
-
+function toggleClosed(index: number) {
+    if (closed[index]) {
+        delete closed[index]
+        return
+    }
+    closed[index] = true
+}
 
 
 </script>
@@ -66,21 +79,39 @@ function setMode(value) {
             </Zoomable>
         </div>
         <div class="custom-hr"></div>
-        <div class="d-flex text-center">
-            <div class="option flex-grow-1" :class="mode == 0 ? 'selected' : ''" @click="setMode(0)">Propriétés d'image
+        <div style="overflow-y: auto;">
+            <div class="option" @click="toggleClosed(0)">
+                <span>
+                    <i v-if="closed[0]" class="bi bi-caret-right-fill" />
+                    <i v-else class="bi bi-caret-down-fill"></i>
+                </span>
+                Propriétés d'image
             </div>
-            <div class="sep"></div>
-            <div class="option flex-grow-1" :class="mode == 1 ? 'selected' : ''" @click="setMode(1)">Propriétés d'instance
+            <PropertyInputTable v-if="!closed[0]" :image="props.image.image" :properties="imageProperties"
+                :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
+                @hoverEnd="emits('hoverEnd')" />
+            <div class="option" @click="toggleClosed(1)">
+                <span>
+                    <i v-if="closed[1]" class="bi bi-caret-right-fill" />
+                    <i v-else class="bi bi-caret-down-fill"></i>
+                </span>
+                Propriétés d'instance
             </div>
-            <div class="sep"></div>
-            <div class="option flex-grow-1" :class="mode == 2 ? 'selected' : ''" @click="setMode(2)">Metadonnées</div>
-        </div>
-        <div class="custom-hr"></div>
-        <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
-            <PropertyInputTable :image="props.image.image" :properties="properties" :visible-properties="visibleProperties"
-                @paint="e => emits('paint', e)"  @hover="emits('hover')" @hoverEnd="emits('hoverEnd')" />
+            <PropertyInputTable v-if="!closed[1]" :image="props.image.image" :properties="instanceProperties"
+                :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
+                @hoverEnd="emits('hoverEnd')" />
+            <div class="option" @click="toggleClosed(2)">
+                <span>
+                    <i v-if="closed[2]" class="bi bi-caret-right-fill" />
+                    <i v-else class="bi bi-caret-down-fill"></i>
+                </span>
+                Metadonnées</div>
+            <PropertyInputTable v-if="!closed[2]" :image="props.image.image" :properties="metaProperties"
+                :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
+                @hoverEnd="emits('hoverEnd')" />
         </div>
     </div>
+
 </template>
 
 <style scoped>
@@ -113,10 +144,10 @@ function setMode(value) {
 }
 
 .option {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 26px;
     background-color: var(--tab-grey);
-    /* border-bottom: 1px solid var(--border-color); */
+    border-bottom: 1px solid var(--border-color);
     cursor: pointer;
 }
 
@@ -129,4 +160,5 @@ function setMode(value) {
     padding: 5px 6px;
     border-bottom: 1px solid var(--border-color);
     background-color: var(--grey);
-}</style>
+}
+</style>
