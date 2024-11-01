@@ -70,7 +70,7 @@ function focus() {
                         @update:height="emitHeight" ref="inputElem" />
 
                     <RowNumberInput v-else-if="type == PropertyType.number" :model-value="value" @update:model-value="set"
-                        @update:height="emitHeight" ref="inputElem" :height="30" />
+                        @update:height="emitHeight" ref="inputElem" :height="27" />
 
 
                     <div v-else-if="property.type == PropertyType._folders" :style="{ height: props.minHeight + 'px' }"
