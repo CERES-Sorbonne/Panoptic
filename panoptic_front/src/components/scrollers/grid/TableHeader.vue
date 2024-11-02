@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, unref } from 'vue';
-import { useResizeObserver } from '@vueuse/core'
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import Resizable from '@/components/Resizable.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import PropertyValue from '@/components/properties/PropertyValue.vue';
 import { Property } from '@/data/models';
 import { Group, GroupManager } from '@/core/GroupManager';
 import { getGroupParents } from '@/utils/utils';
-import PropertyOptions from '@/components/menu/PropertyOptions.vue';
 import { useProjectStore } from '@/data/projectStore';
 
 const project = useProjectStore()
@@ -20,14 +18,9 @@ const props = defineProps({
     currentGroup: Object as () => Group
 })
 
-const hearderHeight = ref(30)
 const tab = computed(() => project.getTab())
 const instanceNb = ref(0)
-const elems = reactive({})
 
-const totalPropertyWidth = computed(() => {
-    return props.properties.map(p => tab.value.propertyOptions[p.id].size).reduce((a, b) => a + b, 0) + tab.value.imageSize
-})
 
 const isMissingWidth = computed(() => props.missingWidth > 0)
 
