@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<{
     placement?: string
     skidding?: number
 }>(), {
-    placement: 'auto',
+    placement: 'bottom',
     autoFocus: true,
     offset: 0,
     skidding: 0

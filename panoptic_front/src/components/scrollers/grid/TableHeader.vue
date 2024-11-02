@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, unref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, unref } from 'vue';
 import { useResizeObserver } from '@vueuse/core'
 import Resizable from '@/components/Resizable.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -22,7 +22,7 @@ const props = defineProps({
 
 const hearderHeight = ref(30)
 const tab = computed(() => project.getTab())
-
+const instanceNb = ref(0)
 const elems = reactive({})
 
 const totalPropertyWidth = computed(() => {
@@ -46,14 +46,20 @@ const propertyValues = computed(() => {
     return res
 })
 
+function onUpdate() {
+    instanceNb.value = props.manager.result.root.images.length
+}
+
+onMounted(() => props.manager.onChange.addListener(onUpdate))
+onUnmounted(() => props.manager.onChange.removeListener(onUpdate))
+
 </script>
 
 
 <template>
     <div class="m-0 p-0">
         <div class="header-row d-flex flex-row ps-1">
-            <span v-if="props.manager.hasResult()" class=" me-1">Images: {{ props.manager.result.root.images.length
-            }}</span>
+            <span v-if="props.manager.hasResult()" class=" me-1">Images: {{ instanceNb }}</span>
             <span v-if="props.currentGroup.id != undefined"> ({{ props.currentGroup.images.length }})</span>
             <div class="ms-3 me-1"></div>
             <template v-if="props.currentGroup.id">
