@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import GlobalFilterInputDropdown from '../inputs/GlobalFilterInputDropdown.vue';
-import FilterDropdown from '../dropdowns/FilterDropdown.vue';
+import GlobalFilterInputDropdown from '../dropdowns/MainFilterDropdown.vue';
 import { FilterManager } from '@/core/FilterManager';
+import AddFilterBtn from '../filter/AddFilterBtn.vue';
 
 const props = defineProps({
     manager: FilterManager
@@ -14,9 +14,9 @@ const props = defineProps({
         <div class="pt-1 pb-1">{{ $t("main.menu.filters") }}: </div>
         <GlobalFilterInputDropdown :manager="props.manager"/>
       
-        <FilterDropdown :manager="props.manager" class="p-1">
+        <AddFilterBtn :manager="props.manager" :group="props.manager.state.filter" class="p-1">
             <span class="base-hover plus-btn text-secondary "><i class="bi bi-plus"></i></span>
-        </FilterDropdown>
+        </AddFilterBtn>
     </div>
 </template>
 

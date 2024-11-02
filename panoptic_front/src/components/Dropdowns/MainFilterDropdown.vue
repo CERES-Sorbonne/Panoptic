@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { watch, computed, ref } from 'vue';
-import FilterGroupInput from './FilterGroupInput.vue';
-import { useProjectStore } from '@/data/projectStore'
+import { watch, computed, ref, onMounted, nextTick } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { PropertyID } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import FilterGroupVue from '../filter/FilterGroup.vue';
+import { Dropdowns } from '@/data/dropdowns';
 const data = useDataStore()
 
 const props = defineProps({
@@ -44,10 +43,15 @@ watch(() => props.manager.state.filter.filters, () => {
     }
 })
 
+onMounted(async() => {
+    await nextTick()
+    Dropdowns.filter = dropdownElem.value
+})
+
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem">
+    <Dropdown ref="dropdownElem" placement="top-start">
         <template #button>
             <div>
                 <div v-if="selectedFilterSet.length || props.manager.state.query" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
@@ -66,7 +70,7 @@ watch(() => props.manager.state.filter.filters, () => {
         </template>
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
-                <div class="m-1 p-0" v-if="Object.keys(data.properties).length > 0">
+                <div class="m-1 p-1" v-if="Object.keys(data.properties).length > 0">
                     <FilterGroupVue :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>
