@@ -3,6 +3,8 @@ import { FilterGroup, FilterManager } from '@/core/FilterManager';
 import { defineProps, defineEmits } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
+import { PropertyID } from '@/data/models';
+import { Dropdowns } from '@/data/dropdowns';
 
 const props = defineProps<{
     group: FilterGroup
@@ -12,6 +14,7 @@ const emits = defineEmits([])
 
 function addFilter(propId: number) {
     props.manager.addNewFilter(propId, props.group.id)
+    Dropdowns.filter.show()
 }
 
 </script>
@@ -23,7 +26,7 @@ function addFilter(propId: number) {
         </template>
         <template #popup="{ hide }">
             <div style="max-height: 500px; overflow: auto;">
-                <PropertySelection @select="pId => { addFilter(pId); hide(); }" />
+                <PropertySelection @select="pId => { addFilter(pId); hide(); }" :ignore-ids="[PropertyID.folders]"/>
             </div>
         </template>
     </Dropdown>

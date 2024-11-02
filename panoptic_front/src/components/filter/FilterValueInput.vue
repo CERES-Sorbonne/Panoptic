@@ -46,7 +46,7 @@ function set(value) {
         <RowDateInput v-else-if="props.property.type == PropertyType.date" :model-value="props.modelValue"
             :teleport="false" @update:model-value="set" :width="props.width" class="sb" />
 
-        <RowTextInput v-else-if="props.property.type == PropertyType.string" :model-value="props.modelValue"
+        <RowTextInput v-else :model-value="props.modelValue"
             @update:model-value="set" :width="props.width" :offset="-22" class="sb" />
     </div>
 </template>

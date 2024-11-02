@@ -57,8 +57,8 @@ watch(() => props.modelValue, loadValue)
 
 <template>
     <div>
-        <input style="line-height: inherit" :class="isFocus ? 'dropdown-input' : ''" type="number" v-model="localValue"
-            :style="{ width: props.width ? (props.width - 2) + 'px' : '100%' }" @focus="onFocus" @blur="onBlur"
+        <input style="line-height: inherit; background-color: inherit" :class="isFocus ? 'dropdown-input' : ''" type="number" v-model="localValue"
+            :style="{ width: props.width ? (props.width) + 'px' : '100%' }" @focus="onFocus" @blur="onBlur"
             @keydown.esc="cancel" @keydown.enter="forceBlur" ref="inputElem">
     </div>
 </template>
@@ -79,6 +79,10 @@ input[type=number] {
     -moz-appearance: textfield;
     width: 100%;
     border-radius: 5px;
+}
+
+input[type=number]:focus {
+    background-color: white !important;
 }
 
 .nb-border {
