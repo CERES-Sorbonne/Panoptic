@@ -18,11 +18,11 @@ class Panoptic:
         self.project_id = None
         self.project: Project | None = None
 
-        if not self.data.plugins:
-            from panoptic.plugins import FaissPlugin
-            module_path = os.path.abspath(FaissPlugin.__file__)
-            module_path = module_path.replace('__init__.py', '')
-            self.data.plugins.append(PluginKey(name="FaissPlugin", path=module_path))
+        # if not self.data.plugins:
+        #     from panoptic.plugins import FaissPlugin
+        #     module_path = os.path.abspath(FaissPlugin.__file__)
+        #     module_path = module_path.replace('__init__.py', '')
+        #     self.data.plugins.append(PluginKey(name="FaissPlugin", path=module_path))
 
     def load_data(self):
         try:

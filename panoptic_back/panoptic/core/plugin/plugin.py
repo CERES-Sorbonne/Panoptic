@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
-from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription
+from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription, PropertyType, \
+    PropertyMode
 from panoptic.utils import get_model_params_description, AsyncCallable
 
 if TYPE_CHECKING:
@@ -76,3 +77,17 @@ class APlugin(ABC):
         res = PluginDescription(name=name, description=description, path=path, base_params=base_params,
                                 registered_functions=self.registered_functions)
         return res
+
+    async def get_or_create_property(self, property_name, property_type: PropertyType, property_mode: PropertyMode):
+        properties = await self.project.get_properties()
+        new_prop = None
+        for prop in properties:
+            if prop.name == property_name and prop.type == property_type and prop.mode == property_mode:
+                new_prop = prop
+                break
+        if not new_prop:
+            if property_type is not None and property_mode is not None:
+                new_prop = self.project.create_property(property_name, property_type, property_mode)
+            else:
+                raise ValueError("No existing property found with this name and no property_type and mode provided to create one")
+        return new_prop
