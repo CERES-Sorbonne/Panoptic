@@ -5,12 +5,15 @@ import TextInput from '@/components/property_inputs/TextInput.vue';
 import UrlPreview from '../property_preview/UrlPreview.vue';
 import { keyState } from '@/data/keyState';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     modelValue?: string
     width?: number
     height?: number
-    noNl?: boolean
-}>()
+    teleport?: boolean
+    offset?: number
+}>(), {
+    offset: -24
+})
 
 const emits = defineEmits(['update:modelValue'])
 
@@ -53,7 +56,7 @@ function cancel() {
 }
 
 function clickUrl(e) {
-    if(keyState.ctrl) {
+    if (keyState.ctrl) {
         e.preventDefault()
         e.stopPropagation()
     }
@@ -65,22 +68,26 @@ watch(() => props.modelValue, loadValue)
 </script>
 
 <template>
-    <Dropdown :offset="-20" :no-shadow="true" :teleport="true" @show="computeSize" @hide="submit">
+    <Dropdown :offset="props.offset" :no-shadow="true" :teleport="props.teleport" @show="computeSize" @hide="submit"
+        placement="bottom-start">
         <template #button>
-            <div ref="previewElem" style="padding-left: 2px;" :style="{width: props.width+'px'}">
-                <UrlPreview :url="props.modelValue" class="row-preview" style="cursor: pointer;" @click="clickUrl"/>
+            <div ref="previewElem" style="padding-left: 2px;" :style="{ width: props.width + 'px' }">
+                <UrlPreview :url="props.modelValue" class="row-preview" style="cursor: pointer; font-size: 14px;"
+                    @click="clickUrl" />
             </div>
         </template>
-        <template #popup="{hide}">
-            <div class="" style="font-size: 12px; line-height: 22px;" :style="{ width: widthGoal + 'px' }">
-                <TextInput v-model="localValue" :auto-focus="true" @cancel="cancel(); hide();" @submit="hide()" :url-mode="true" @blur="hide"/>
+        <template #popup="{ hide }">
+            <div class="bg-white" style="font-size: 14px; position: relative; top:0.5px; left:0px"
+                :style="{ width: widthGoal + 'px' }">
+                <TextInput v-model="localValue" :auto-focus="true" :min-height="26" @cancel="cancel(); hide();"
+                    @submit="hide()" @blur="hide" :url-mode="true" />
             </div>
         </template>
     </Dropdown>
 </template>
 
 <style scoped>
-.row-preview {
+/* .row-preview {
     font-size: 12px;
-}
+} */
 </style>

@@ -8,7 +8,9 @@ const props = defineProps({
     offset: { default: 0, type: Number },
     noShadow: Boolean,
     autoFocus: { default: true, type: Boolean },
-    teleport: Boolean
+    teleport: Boolean,
+    placement: String,
+    skidding: Number
 })
 const emits = defineEmits(['show', 'hide', 'esc', 'enter'])
 defineExpose({ hide, show, focus })
@@ -80,8 +82,8 @@ onUnmounted(() => {
 <template>
     <div class="p-0 m-0" ref="globalElem">
         <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
-        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" no-auto-focus
-            :boundary="boudaryElem" :auto-hide="false" :prevent-overflow="true"
+        <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" :skidding="props.skidding" no-auto-focus
+            :boundary="boudaryElem" :auto-hide="false" :prevent-overflow="true" :placement="props.placement"
             :container="props.teleport ? '#popup' : globalElem">
             <!-- <template #reference> -->
             <div class="m-0 p-0" ref="buttonElem">

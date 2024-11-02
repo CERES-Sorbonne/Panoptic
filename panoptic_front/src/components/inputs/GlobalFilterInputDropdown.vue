@@ -7,6 +7,7 @@ import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { PropertyID } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
+import FilterGroupVue from '../filter/FilterGroup.vue';
 const data = useDataStore()
 
 const props = defineProps({
@@ -66,7 +67,7 @@ watch(() => props.manager.state.filter.filters, () => {
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
                 <div class="m-1 p-0" v-if="Object.keys(data.properties).length > 0">
-                    <FilterGroupInput :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
+                    <FilterGroupVue :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>
         </template>
