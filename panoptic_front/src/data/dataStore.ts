@@ -171,26 +171,21 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function importImageValues(instanceValues: ImagePropertyValue[]) {
-        let c = 0
         for (let v of instanceValues) {
             if (v.value == undefined) continue
             if (sha1Index.value[v.sha1] == undefined) continue
             for (let img of sha1Index.value[v.sha1]) {
                 if (isTag(properties.value[v.propertyId].type)) {
-                    let d = performance.now()
                     updateTagCount(instances.value[img.id].properties[v.propertyId], v.value)
-                    c += performance.now() - d
                 }
                 instances.value[img.id].properties[v.propertyId] = v.value
                 dirtyInstances.add(img.id)
             }
         }
 
-        console.log('update tag count', c)
     }
 
     function applyCommit(commit: DbCommit, emit?: boolean) {
-        console.log('start folder counter')
         updateFolderCount(commit.instances, commit.emptyInstances)
 
 
@@ -236,23 +231,18 @@ export const useDataStore = defineStore('dataStore', () => {
             })
 
         }
-        console.log('start instances')
         if (commit.instances?.length) {
             importInstances(commit.instances)
         }
-        console.log('start properties')
         if (commit.properties?.length) {
             importProperties(commit.properties)
         }
-        console.log('start tags')
         if (commit.tags?.length) {
             importTags(commit.tags)
         }
-        console.log('start instance values')
         if (commit.instanceValues?.length) {
             importInstanceValues(commit.instanceValues)
         }
-        console.log('start image values')
         if (commit.imageValues?.length) {
             importImageValues(commit.imageValues)
         }
@@ -464,7 +454,6 @@ export const useDataStore = defineStore('dataStore', () => {
     function updateFolderCount(updatedInstances: Instance[], deletedInstances: number[]) {
         updatedInstances = updatedInstances ?? []
         deletedInstances = deletedInstances ?? []
-        console.log(updatedInstances.length, deletedInstances.length)
         for (let instance of updatedInstances) {
             if (instances.value[instance.id] != undefined) continue
             let folder = folders.value[instance.folderId]
