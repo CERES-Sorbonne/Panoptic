@@ -77,7 +77,7 @@ watch(props, loadValue)
         <TextPreview v-if="localValue === undefined" :text="props.modelValue" @click="edit"
             style="font-size: inherit; cursor: pointer; "/>
         <TextInput v-else :model-value="localValue" @update:model-value="updateLocal" :min-height="props.minHeight"
-            :auto-focus="props.autoFocus" :no-shadow="props.noShadow"
+            :auto-focus="props.autoFocus" :no-shadow="props.noShadow" :width="props.width"
             :always-shadow="props.alwaysShadow" :blur-on-enter="props.blurOnEnter" @cancel="cancel()" @blur="emitValue"
             @update:height="emitHeight" ref="inputElem" />
     </div>

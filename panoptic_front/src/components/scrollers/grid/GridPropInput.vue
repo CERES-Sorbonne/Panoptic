@@ -5,7 +5,6 @@ import CellTextInput from '@/components/property_cell_input/CellTextInput.vue';
 import CellUrlInput from '@/components/property_cell_input/CellUrlInput.vue';
 import CheckboxInput from '@/components/property_inputs/CheckboxInput.vue';
 import DBInput from '@/components/property_inputs/DBInput.vue';
-import NumberInput from '@/components/property_inputs/NumberInput.vue';
 import TextInput from '@/components/property_inputs/TextInput.vue';
 import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
 import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
@@ -48,7 +47,7 @@ function focus() {
         <DBInput :instance="props.instance" :property-id="props.property.id">
             <template #default="{ value, set }">
                 <div style="padding: 2px 0px">
-                    <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value"
+                    <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :can-create="true" :can-delete="true" :can-customize="true"
                         @update:model-value="set" @update:height="emitHeight" :min-height="props.minHeight"
                         :teleport="true" :width="props.width" :auto-focus="true" ref="inputElem" />
 

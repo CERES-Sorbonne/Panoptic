@@ -102,26 +102,6 @@ export function buildGroup(id: string | number, images: Instance[], type: GroupT
     } as Group
 }
 
-// function valueToKey(propertyValue: PropertyValue, properties: PropertyIndex) {
-//     const property = properties[propertyValue.propertyId]
-//     if (Array.isArray(propertyValue)) {
-//         throw new Error('ValueToKey doesnt work for Array values: ' + propertyValue)
-//     }
-//     if (property.type == PropertyType.checkbox) {
-//         return propertyValue.value ?? false
-//     }
-//     if (propertyValue.value == undefined) {
-//         return UNDEFINED_KEY
-//     }
-//     return String(propertyValue.value)
-// }
-
-// function propValuesToId(propertyValues: PropertyValue[], properties: PropertyIndex) {
-//     let res = ''
-//     propertyValues.forEach(v => res += ':' + String(v.propertyId) + '-' + valueToKey(v, properties))
-//     return res
-// }
-
 function buildRoot(images: Instance[]): Group {
     return buildGroup(0, images)
 }
