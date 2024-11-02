@@ -1,5 +1,6 @@
 import os
 import webbrowser
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
@@ -13,6 +14,13 @@ from panoptic.utils import get_base_path
 
 
 def start():
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        await panoptic.close()
+
+
     panoptic = Panoptic()
     panoptic.load_data()
 
@@ -21,7 +29,7 @@ def start():
     PORT = os.getenv("PANOPTIC_PORT", 8000)
 
     # FastAPI setup
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -48,9 +56,10 @@ def start():
     if not os.environ.get('REMOTE'):
         webbrowser.open(front_url)
 
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        await panoptic.close()
+    # @app.on_event("shutdown")
+    # async def shutdown_event():
+    #     await panoptic.close()
+
 
     uvicorn.run(app, host=HOST, port=PORT)
 

@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import io
-import os
-import time
 from typing import TYPE_CHECKING
 
 from PIL import Image
-from imagehash import average_hash
 
-from panoptic.models import DbCommit, Instance, ProjectSettings
+from panoptic.models import ProjectSettings
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project

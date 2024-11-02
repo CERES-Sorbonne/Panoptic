@@ -36,27 +36,22 @@ classifiers = [
 dependencies = [
     "aiofiles",
     "aiosqlite",
-    "faiss-cpu",
-    "fastapi==0.99.1",
-    "fastapi-camelcase==1.0.5",
-    "imagehash",
+    "fastapi",
+    "fastapi-camelcase",
     "numpy",
     "orjson",
     "pandas",
     "psutil",
     "pydantic",
     "pypika",
-    "pytesseract",
     "python-multipart",
     "requests",
-    "scikit-learn",
     "show-in-file-manager",
     "starlette",
-    "torch==2.0.1;sys_platform == 'darwin'",
-    "torch;sys_platform != 'darwin'",
-    "transformers",
     "uvicorn",
     "pendulum",
+    "imagehash",
+    "pillow"
 ]
 
 [project.urls]
