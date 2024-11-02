@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Dropdown from './Dropdown.vue';
-import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 import { Colors } from '@/data/models';
+import ColorInput from '../property_inputs/ColorInput.vue';
 const data = useDataStore()
 
 const props = defineProps<{
@@ -23,7 +23,7 @@ const emits = defineEmits(['update:modelValue'])
 
         <template v-slot:popup="{hide}">
             <div class="main-box pt-1">
-                <ColorPropInputNoDropdown :hide-preview="true" :hide-white="true" :model-value="props.modelValue"
+                <ColorInput :hide-preview="true" :hide-white="true" :model-value="props.modelValue"
                     @update:model-value="e => {emits('update:modelValue', e); hide();}" />
             </div>
         </template>

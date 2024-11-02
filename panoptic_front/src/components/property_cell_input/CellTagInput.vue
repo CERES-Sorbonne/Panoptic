@@ -61,9 +61,9 @@ onMounted(updateHeight)
 </script>
 
 <template>
-    <Dropdown :auto-focus="false" @hide="emits('hide')" :teleport="props.teleport" ref="dropdownElem">
+    <Dropdown :auto-focus="false" @hide="emits('hide')" :teleport="props.teleport" ref="dropdownElem" :offset="-25" placement="bottom-start">
         <template #button>
-            <div class="btn-class bb" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'"
+            <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'"
                 :style="{ width: props.width ? props.width + 'px' : '100%' }" ref="heightElem">
                 <span v-for="tag in tags">
                     <TagBadge :id="tag.id" class="me-1" />

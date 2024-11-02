@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ModalId, Property, PropertyMode, PropertyType } from '@/data/models';
-import { computed, onMounted, ref, watch } from 'vue';
+import { ModalId, Property, PropertyID, PropertyMode, PropertyType } from '@/data/models';
+import { computed, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
-import FilterDropdown from '../dropdowns/FilterDropdown.vue';
 import TagMenu from '../tags/TagMenu.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
 import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
+import { Dropdowns } from '@/data/dropdowns';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
@@ -100,6 +100,18 @@ async function renameProperty() {
     toggleOptionsMenu()
 }
 
+function setFilter() {
+    const manager = filterManager()
+    if(!isInFilter.value) {
+        manager.addNewFilter(props.property.id)
+        Dropdowns.filter.show()
+    } else {
+        manager.deleteFilter(filterId.value)
+        Dropdowns.filter.hide()
+    }
+    
+}
+
 watch(() => props.property, () => {
     optionsOpen.value = false
 })
@@ -166,10 +178,10 @@ watch(() => props.property, () => {
         </div>
         <div>
             <div v-if="optionsOpen" class="ms-3 pt-1">
-                <div class="options hover-light" :class="isInFilter ? ' text-primary' : ''">
-                    <FilterDropdown :manager="filterManager()" :filter-id="filterId" :mode="2" :property-id="property.id">
+                <div v-if="property.id != PropertyID.folders" class="options hover-light" :class="isInFilter ? ' text-primary' : ''" @click="setFilter">
+                    <div>
                         <i class="bi bi-funnel-fill me-2"></i>{{ $t("main.menu.filters") }}
-                    </FilterDropdown>
+                    </div>
                 </div>
                 <div class="options hover-light" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
                         class="bi bi-filter me-2"></i>{{ $t("main.menu.sort.title") }}</div>

@@ -5,7 +5,6 @@ import { Property, PropertyType, Instance } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import NumberInput from '@/components/property_inputs/NumberInput.vue';
 import DBInput from '@/components/property_inputs/DBInput.vue';
 import CellTagInput from '@/components/property_cell_input/CellTagInput.vue';
 import CellColorInput from '@/components/property_cell_input/CellColorInput.vue';

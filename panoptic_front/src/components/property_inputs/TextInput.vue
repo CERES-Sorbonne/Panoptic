@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue';
 import { keyState } from '@/data/keyState';
-import ContentEditable from '../inputs2/utils/ContentEditable.vue';
+import ContentEditable from './ContentEditable.vue';
 
 const props = withDefaults(defineProps<{
     editable?: boolean
