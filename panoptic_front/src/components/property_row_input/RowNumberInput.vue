@@ -51,7 +51,7 @@ watch(props, loadValue)
         <NumberPreview v-if="localValue === undefined" :number="props.modelValue" @click="edit"
             style="font-size: inherit; cursor: pointer;" />
         <div v-else :style="{lineHeight: inputLineHeight + 'px', top: inputOffset + 'px', position: 'relative'}">
-            <NumberInput  :model-value="props.modelValue" @update:model-value="emitValue" :width="props.width"
+            <NumberInput  :model-value="props.modelValue" @update:model-value="emitValue" :width="props.width" @keydown.esc.stop
                 @blur="loadValue" ref="inputElem" class="reduced" />
         </div>
     </div>

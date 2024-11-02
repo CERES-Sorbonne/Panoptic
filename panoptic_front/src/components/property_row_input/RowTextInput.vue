@@ -4,11 +4,15 @@ import { onMounted, ref, watch } from 'vue';
 import TextPreview from '@/components/property_preview/TextPreview.vue';
 import TextInput from '@/components/property_inputs/TextInput.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     modelValue?: string
     width?: number
     height?: number
-}>()
+    teleport?: boolean
+    offset?: number
+}>(), {
+    offset: -24
+})
 
 const emits = defineEmits(['update:modelValue'])
 
@@ -57,19 +61,20 @@ watch(() => props.modelValue, loadValue)
 </script>
 
 <template>
-    <Dropdown :offset="-20" :no-shadow="true" :teleport="true" @show="computeSize" @hide="submit">
+    <Dropdown :offset="props.offset" :no-shadow="true" :teleport="props.teleport" @show="computeSize" @hide="submit"
+        placement="bottom-start">
         <template #button>
-            <div ref="previewElem" :style="{width: props.width+'px'}">
-                <TextPreview :text="props.modelValue" style="cursor: pointer;" />
+            <div ref="previewElem" :style="{ width: props.width + 'px' }">
+                <TextPreview :text="props.modelValue" style="cursor: pointer; font-size: 14px;" />
             </div>
         </template>
-        <template #popup="{hide}">
-            <div class="" style="font-size: 12px; line-height: 22px;" :style="{ width: widthGoal + 'px' }">
-                <TextInput v-model="localValue" :auto-focus="true" @cancel="cancel(); hide();" @submit="hide()" @blur="hide" />
+        <template #popup="{ hide }">
+            <div class="bg-white" style="font-size: 14px; position: relative; top:0.5px; left:-2px" :style="{ width: widthGoal + 'px' }">
+                <TextInput v-model="localValue" :auto-focus="true" :min-height="26" @cancel="cancel(); hide();"
+                    @submit="hide()" @blur="hide" />
             </div>
         </template>
     </Dropdown>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

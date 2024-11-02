@@ -48,10 +48,10 @@ const width = computed(() => (props.width ?? 100) - 22)
                     @update:model-value="set" :width="width" :height="26" :input-offset="3"/>
 
                 <RowTextInput v-else-if="props.property.type == PropertyType.string" :model-value="value"
-                    @update:model-value="set" :width="width" />
+                    @update:model-value="set" :width="width" :teleport="true" style="height: 25px;" />
 
                 <RowUrlInput v-else-if="props.property.type == PropertyType.url" :model-value="value"
-                    @update:model-value="set" :width="width" />
+                    @update:model-value="set" :width="width" :teleport="true"/>
 
                 <CheckboxInput v-else-if="props.property.type == PropertyType.checkbox" :model-value="value"
                     @update:model-value="set" :label="props.property.name" :width="width" />
