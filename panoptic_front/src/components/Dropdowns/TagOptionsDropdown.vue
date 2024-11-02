@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
-import ColorPropInputNoDropdown from '../inputs/ColorPropInputNoDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
+import ColorInput from '../property_inputs/ColorInput.vue';
 const data = useDataStore()
 
 const props = defineProps({
@@ -69,7 +69,7 @@ watch(() => props.tagId, updateFromStore)
 </script>
 
 <template>
-    <Dropdown ref="dropdown" @show="onShow" @hide="onHide">
+    <Dropdown ref="dropdown" @show="onShow" @hide="onHide" :teleport="false">
         <template v-slot:button>
             <span class="pe-1"><i class="bi bi-three-dots sm-btn"  style="position: relative; top: 1.5px;"/></span>
         </template>
@@ -82,7 +82,7 @@ watch(() => props.tagId, updateFromStore)
                 </div>
                 <div class="hr w-100" />
                 <div v-if="props.canCustomize" class="mt-1" style="height: 317px;">
-                    <ColorPropInputNoDropdown :hide-preview="true" :hide-white="true" :model-value="localColor" @update:model-value="setColor"/>
+                    <ColorInput  :hide-preview="true" :hide-white="true" :model-value="localColor" @update:model-value="setColor"/>
                 </div>
             </div>
         </template>

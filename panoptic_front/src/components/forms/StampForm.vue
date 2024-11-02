@@ -2,21 +2,14 @@
 import { PropertyType } from '@/data/models';
 import { computed } from 'vue';
 
-import StandalonePropertyInput from '../inputs/StandalonePropertyInput.vue';
-import StandaloneColorPropInput from '../inputs/StandaloneColorPropInput.vue';
-import StandaloneDateInput from '../inputs/monoline/StandaloneDateInput.vue';
-import StandaloneTextInput from '../inputs/multiline/StandaloneTextInput.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
-import TagInputDropdown from '../tags/TagInputDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils';
 import { useDataStore } from '@/data/dataStore';
 import CellTagInput from '../property_cell_input/CellTagInput.vue';
-import TextInput from '../property_inputs/TextInput.vue';
 import CheckboxInput from '../property_inputs/CheckboxInput.vue';
 import CellColorInput from '../property_cell_input/CellColorInput.vue';
 import RowDateInput from '../property_row_input/RowDateInput.vue';
-import NumberInput from '../property_inputs/NumberInput.vue';
 import RowNumberInput from '../property_row_input/RowNumberInput.vue';
 import CellTextInput from '../property_cell_input/CellTextInput.vue';
 import CellUrlInput from '../property_cell_input/CellUrlInput.vue';

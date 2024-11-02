@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import FilterDropdown from '../dropdowns/FilterDropdown.vue';
-import FilterPreview from '../preview/FilterPreview.vue';
-import PropertyDropdown from '../properties/PropertyDropdown.vue';
-import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager, FilterOperator } from '@/core/FilterManager';
 import { useDataStore } from '@/data/dataStore';
-import GridPropInput from '../scrollers/grid/GridPropInput.vue';
 import FilterGroupOperator from './FilterGroupOperator.vue';
 import FilterGroupVue from './FilterGroup.vue'
-import OperatorChoice from './OperatorChoice.vue';
-import FilterValueInput from './FilterValueInput.vue';
 import FilterRow from './FilterRow.vue';
 import AddFilterBtn from './AddFilterBtn.vue';
 
