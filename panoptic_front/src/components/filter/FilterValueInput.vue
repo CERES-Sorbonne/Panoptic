@@ -26,31 +26,28 @@ function set(value) {
 
 <template>
     <div class="d-flex text-nowrap overflow-hidden" style="font-size: 14px;">
-        <PropertyIcon v-if="props.property.type != PropertyType.checkbox" :type="property.type"
-            style="margin-right: 2px;" />
-
         <CellTagInput v-if="isTag(property.type)" :model-value="props.modelValue" @update:model-value="set"
             :no-wrap="true" :auto-focus="true" :can-create="true" :can-customize="true" :property="props.property"
-            :teleport="false" :width="props.width" />
+            :teleport="false" :width="props.width" class="sb" />
 
         <CellColorInput v-else-if="props.property.type == PropertyType.color" :model-value="props.modelValue"
-            @update:model-value="set" :width="props.width" :rounded="true" :min-height="20" :teleport="false"
-            :offset="4" />
+            @update:model-value="set" :width="props.width" :rounded="true" :min-height="22" :teleport="false"
+            :offset="2" class="sb" />
 
         <RowNumberInput v-else-if="props.property.type == PropertyType.number" :model-value="props.modelValue"
-            @update:model-value="set" :width="props.width" :height="26" :input-offset="3" />
+            @update:model-value="set" :width="props.width" :height="26" :input-offset="0" class="sb" />
 
         <RowUrlInput v-else-if="props.property.type == PropertyType.url" :model-value="props.modelValue"
-            @update:model-value="set" :width="props.width" :offset="-22" />
+            @update:model-value="set" :width="props.width" :offset="-22" class="sb" />
 
         <CheckboxInput v-else-if="props.property.type == PropertyType.checkbox" :model-value="props.modelValue"
-            @update:model-value="set" :label="props.property.name" :width="props.width" />
+            @update:model-value="set" :label="props.property.name" :width="props.width" class="sb" />
 
         <RowDateInput v-else-if="props.property.type == PropertyType.date" :model-value="props.modelValue"
-            :teleport="false" @update:model-value="set" :width="props.width" />
+            :teleport="false" @update:model-value="set" :width="props.width" class="sb" />
 
         <RowTextInput v-else-if="props.property.type == PropertyType.string" :model-value="props.modelValue"
-            @update:model-value="set" :width="props.width" :offset="-22"/>
+            @update:model-value="set" :width="props.width" :offset="-22" class="sb" />
     </div>
 </template>
 

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 
 /**
+ * 
+ * DO NOT USE !!!!
+ * END OF LIFE
+ *  
  * FilterDropdown view
  * Interface to FilterManager functions
  * Allows to create a new Filter from start or modify an existing filter.
