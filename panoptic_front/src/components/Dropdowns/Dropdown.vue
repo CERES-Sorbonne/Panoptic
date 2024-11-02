@@ -4,13 +4,18 @@ import { Dropdown } from 'floating-vue'
 import 'floating-vue/dist/style.css'
 import { useProjectStore } from '@/data/projectStore';
 
-const props = defineProps({
-    offset: { default: 0, type: Number },
-    noShadow: Boolean,
-    autoFocus: { default: true, type: Boolean },
-    teleport: Boolean,
-    placement: String,
-    skidding: Number
+const props = withDefaults(defineProps<{
+    offset?: number
+    noShadow?: boolean
+    autoFocus?: boolean
+    teleport?: boolean
+    placement?: string
+    skidding?: number
+}>(), {
+    placement: 'auto',
+    autoFocus: true,
+    offset: 0,
+    skidding: 0
 })
 const emits = defineEmits(['show', 'hide', 'esc', 'enter'])
 defineExpose({ hide, show, focus })

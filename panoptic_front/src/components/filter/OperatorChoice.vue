@@ -27,9 +27,9 @@ async function select(op: FilterOperator) {
 </script>
 
 <template>
-    <Dropdown @hide="emits('hide')">
+    <Dropdown @hide="emits('hide')" placement="bottom">
         <template #button>
-            <div class="text-nowrap" :class="(props.disabled ? '' : 'dropdown-toggle hover-light button-like')"
+            <div class="text-nowrap sb ps-1 pe-1"
                 :disabled="props.disabled">
                 <span>{{ $t('modals.filters.operators.' + props.modelValue) }}</span>
             </div>

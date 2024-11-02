@@ -11,6 +11,8 @@ import FilterGroupOperator from './FilterGroupOperator.vue';
 import FilterGroupVue from './FilterGroup.vue'
 import OperatorChoice from './OperatorChoice.vue';
 import FilterValueInput from './FilterValueInput.vue';
+import FilterRow from './FilterRow.vue';
+import AddFilterBtn from './AddFilterBtn.vue';
 
 const data = useDataStore()
 
@@ -30,10 +32,6 @@ const subGroupStyle = computed(() => {
     return `background: rgb(${val},${val},${val});`
 })
 
-function updateProperty(filterId: number, propertyId: number) {
-    props.manager.updateFilter(filterId, { propertyId })
-    // props.manager.update(true)
-}
 
 function deleteFilter(filter: Filter | FilterGroup) {
     props.manager.deleteFilter(filter.id)
@@ -50,21 +48,13 @@ function updateOperator(filterId: number, operator: FilterOperator.and | FilterO
     // props.manager.update(true)
 }
 
-function updateFilterOperator(filterId: number, operator: FilterOperator) {
-    props.manager.updateFilter(filterId, {operator: operator})
-}
-
-function updateFilterValue(filterId: number, value: any) {
-    props.manager.updateFilter(filterId, {value: value})
-}
-
 </script>
 
 <template>
     <div class="filter-group">
         <table class="table table-sm">
-            <tr v-for="children, index in filters">
-                <td class="align-top p-0 m-0">
+            <tr v-for="children, index in filters" style="height: 33px;">
+                <td class="">
                     <div v-if="index == 0" class="m-0 p-0">{{ $t('modals.filters.where') }}</div>
                     <template v-else-if="index == 1">
 
@@ -74,23 +64,8 @@ function updateFilterValue(filterId: number, value: any) {
                     </template>
                     <span v-else class="text-secondary">{{ $t('modals.filters.' + filter.groupOperator) }}</span>
                 </td>
-                <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
-                    <PropertyDropdown :model-value="data.properties[(children as Filter).propertyId]"
-                        @update:model-value="p => updateProperty(children.id, p.id)" />
-                </td>
-                <td v-if="(children as Filter).propertyId !== undefined">
-                    <OperatorChoice :property-id="children.propertyId" :model-value="children.operator" @update:model-value="op => updateFilterOperator(children.id, op)"/>
-                </td>
-                <td v-if="(children as Filter).propertyId !== undefined" style="width: 150px;">
-                    <FilterValueInput :model-value="children.value" @update:model-value="v => updateFilterValue(children.id, v)" :property="data.properties[children.propertyId]" :width="100" />
-                </td>
-
-                <!-- <td v-if="(children as Filter).propertyId !== undefined" class="p-0 m-0 ps-2">
-                    <FilterDropdown class="flex-grow-1" :manager="manager" :mode="2" :parent-id="filter.id"
-                        :filter-id="children.id" :parent="props.parent">
-                        <FilterPreview :filter="(children as Filter)" />
-                    </FilterDropdown>
-                </td> -->
+                <FilterRow v-if="(children as Filter).propertyId !== undefined" :filter="children"
+                    :manager="props.manager" />
                 <td v-else colspan="3" :style="subGroupStyle">
                     <div class="border rounded">
                         <FilterGroupVue :filter="(children as FilterGroup)" :manager="props.manager" />
@@ -105,10 +80,13 @@ function updateFilterValue(filterId: number, value: any) {
         </table>
 
         <div class="d-flex text-secondary ms-2">
-            <FilterDropdown :manager="props.manager" :parent-id="filter.id">
+            <AddFilterBtn :group="props.filter" :manager="props.manager">
                 <div class="add-options hover-light"><i class="bi bi-plus"></i>{{ $t('modals.filters.new_filter') }}
                 </div>
-            </FilterDropdown>
+            </AddFilterBtn>
+            <!-- <FilterDropdown :manager="props.manager" :parent-id="filter.id">
+                
+            </FilterDropdown> -->
             <div class="add-options hover-light" @click="addFilterGroup(filter.id)">
                 <i class="bi bi-plus"></i>{{ $t('modals.filters.new_group') }}
             </div>

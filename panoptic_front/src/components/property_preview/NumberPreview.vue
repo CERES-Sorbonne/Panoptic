@@ -2,12 +2,13 @@
 
 const props = defineProps<{
   number?: number
+  width?: number
 }>()
 
 </script>
 
 <template>
-  <div>
+  <div :style="{width: props.width? props.width + 'px': '100%'}">
     <div v-if="props.number != undefined" class="ellipsis">{{ props.number }}</div>
     <div v-else>None...</div>
   </div>

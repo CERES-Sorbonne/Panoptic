@@ -71,12 +71,13 @@ defineExpose({
 <template>
     <Dropdown :teleport="props.teleport" :offset="0" @show="onShow" ref="dropdown">
         <template #button>
-            <div v-if="props.modelValue !== undefined" :style="{ height: props.minHeight + 'px' }" style="cursor: pointer;" ref="previewElem">
+            <div v-if="props.modelValue !== undefined" :style="{ height: props.minHeight + 'px' }"
+                style="cursor: pointer;" ref="previewElem">
                 <div :class="props.rounded ? 'rounded' : ''" style="margin: auto;"
                     :style="{ width: width, backgroundColor: color, height: 'calc(100% - 3px)', position: 'relative', top: props.offset + 'px' }">
                 </div>
             </div>
-            <div v-else style="cursor: pointer;">None...</div>
+            <div v-else style="cursor: pointer;" :style="{ width: width }">None...</div>
         </template>
         <template #popup="{ hide }">
             <div :style="{ width: (previewWidth + 8) + 'px' }" class="p-1">

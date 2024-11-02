@@ -14,7 +14,7 @@ const props = defineProps<{
 
 const emits = defineEmits(['update:modelValue'])
 
-defineExpose({focus})
+defineExpose({ focus })
 
 const dropdownElem = ref(null)
 const previewElem = ref(null)
@@ -34,7 +34,7 @@ function cancel() {
 }
 
 function focus() {
-    if(!dropdownElem.value) return
+    if (!dropdownElem.value) return
     dropdownElem.value.show()
 }
 
@@ -45,16 +45,18 @@ watch(() => props.modelValue, loadValue)
 </script>
 
 <template>
-    <Dropdown :offset="-20" :no-shadow="false" :teleport="props.teleport" @esc="cancel" @enter="submit" ref="dropdownElem">
+    <Dropdown :offset="-20" :no-shadow="false" :teleport="props.teleport" @esc="cancel" @enter="submit"
+        ref="dropdownElem">
         <template v-slot:button>
             <div ref="previewElem" style="padding-left: 0px;">
-                <DatePreview :date="props.modelValue" class="row-preview" style="cursor: pointer;" />
+                <DatePreview :date="props.modelValue" class="row-preview" style="cursor: pointer;"
+                    :style="{ width: props.width ? props.width + 'px' : '100%' }" />
             </div>
         </template>
         <template v-slot:popup="{ hide }">
             <div class="p-2">
-                <DateInput v-model="localValue" :extended="true" :auto-focus="true"
-                    @cancel="cancel(); hide()" @submit="submit(hide)" />
+                <DateInput v-model="localValue" :extended="true" :auto-focus="true" @cancel="cancel(); hide()"
+                    @submit="submit(hide)" />
             </div>
         </template>
     </Dropdown>
