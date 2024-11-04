@@ -40,7 +40,6 @@ if (Test-Path $envDir) {
     Write-Host "Installation de panoptic dans l'environnement virtuel..."
     & "$envDir\Scripts\Activate.ps1"
     & $pipExec install --upgrade pip
-    & $pipExec install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     & $pipExec install panoptic
 }
 
