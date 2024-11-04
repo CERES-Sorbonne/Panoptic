@@ -1,5 +1,5 @@
 # Variables de configuration
-$envDir = "panoptic_env"
+$envDir = "$home\panoptic\panoptic_env"
 $minPythonVersion = "3.10"
 $targetPythonVersion = "3.12.7"
 $pythonInstaller = "python-installer.exe"
@@ -9,7 +9,7 @@ $pythonDownloadUrl = "https://www.python.org/ftp/python/$targetPythonVersion/pyt
 function Install-Python {
     Write-Host "Installation de Python version $targetPythonVersion..."
     Invoke-WebRequest -Uri $pythonDownloadUrl -OutFile $pythonInstaller
-    Start-Process -FilePath $pythonInstaller -ArgumentList "/quiet", "InstallAllUsers=1", "PrependPath=1" -Wait
+    Start-Process -FilePath $pythonInstaller -ArgumentList "/passive", "InstallAllUsers=1", "PrependPath=1" -Wait
     Remove-Item $pythonInstaller
     $global:pythonExec = "python"
     $global:pipExec = "pip"
@@ -39,7 +39,7 @@ if (Test-Path $envDir) {
     & $pythonExec -m venv $envDir
     Write-Host "Installation de panoptic dans l'environnement virtuel..."
     & "$envDir\Scripts\Activate.ps1"
-    & $pipExec install --upgrade pip
+    & $pythonExec -m $pipExec install --upgrade pip
     & $pipExec install panoptic
 }
 
