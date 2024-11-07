@@ -13,8 +13,8 @@ class TestParams(BaseModel):
 
 
 class PluginBase(APlugin):
-    def __init__(self, project: PluginProjectInterface, plugin_path: str):
-        super().__init__(name='TestPlugin1', project=project, plugin_path=plugin_path)
+    def __init__(self, project: PluginProjectInterface, plugin_path: str, name: str):
+        super().__init__(name=name, project=project, plugin_path=plugin_path)
         self.params = TestParams()
 
         self.add_action_easy(self.test_function, ['execute'])

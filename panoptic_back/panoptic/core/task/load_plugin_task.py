@@ -49,7 +49,7 @@ class LoadPluginTask(Task):
             file_path = str(Path(path) / '__init__.py')
         plugin_module = await self._async(import_module_from_path, name, file_path)
         project_interface = PluginProjectInterface(self.project)
-        plugin = plugin_module.plugin_class(project_interface, path)
+        plugin = plugin_module.plugin_class(project_interface, path, name)
         await plugin.start()
         self.project.plugins.append(plugin)
 
