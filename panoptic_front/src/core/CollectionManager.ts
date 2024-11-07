@@ -57,17 +57,11 @@ export class CollectionManager {
         this.state.isDirty = true
         if (this.options.autoReload) {
             if (instanceIds) {
-                let instance = Array.from(instanceIds)[0]
-                console.log(this.groupManager.result.root.images.findIndex(i => i.id == instance))
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
-                console.log(filterUpdate.updated, filterUpdate.removed)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 this.groupManager.lastOrder = this.sortManager.result.order
                 this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 this.state.isDirty = false
-
-                let newIndex = this.groupManager.result.root.images.findIndex(i => i.id == instance)
-                console.log(newIndex, this.groupManager.result.root.images[newIndex-1])
             } else {
                 this.update()
             }
