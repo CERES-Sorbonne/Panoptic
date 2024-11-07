@@ -41,14 +41,8 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======Functions=======
     // =======================
     async function init() {
-        // console.log('iniiit data')
         let dbFolders = await apiGetFolders()
         const folderIndex = buildFolderNodes(dbFolders)
-        // for(let folder of objValues(folderIndex)) {
-        //     if(folders.value[folder.id]) {
-        //         folder.count = folders.value[folder.id].count
-        //     }
-        // }
         folders.value = folderIndex
         console.time('Request')
         let dbState = await apiGetDbState()
@@ -77,7 +71,7 @@ export const useDataStore = defineStore('dataStore', () => {
     function importInstances(toImport: Instance[]) {
         for (let img of toImport) {
             const values = getComputedValues(img)
-            
+
             img.urlSmall = SERVER_PREFIX + '/image/small/' + img.sha1
             img.urlMedium = SERVER_PREFIX + '/image/medium/' + img.sha1
             img.urlLarge = SERVER_PREFIX + '/image/large/' + img.sha1
@@ -121,9 +115,9 @@ export const useDataStore = defineStore('dataStore', () => {
     function importTags(toImport: Tag[]) {
         const updated = new Set<number>()
         for (let tag of toImport) {
-            if(tag.id == deletedID) continue
+            if (tag.id == deletedID) continue
 
-            if(tags.value[tag.id]) {
+            if (tags.value[tag.id]) {
                 tag.count = tags.value[tag.id].count
                 instanceList.value.forEach(i => dirtyInstances.add(i.id))
             } else {
@@ -150,7 +144,7 @@ export const useDataStore = defineStore('dataStore', () => {
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag, tags.value)
         }
-        
+
     }
 
     async function mergeTags(tagIds: number[]) {
@@ -199,7 +193,7 @@ export const useDataStore = defineStore('dataStore', () => {
                     dirtyInstances.add(i.id)
                 })
             })
-    
+
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
@@ -209,14 +203,14 @@ export const useDataStore = defineStore('dataStore', () => {
                 delete instances.value[v.instanceId].properties[v.propertyId]
                 dirtyInstances.add(v.instanceId)
             })
-    
+
         }
         if (commit.emptyTags) {
             commit.emptyTags.forEach(i => {
                 tags.value[i].id = deletedID
                 tags.value[i].value = deletedName
             })
-            
+
         }
         if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
@@ -249,7 +243,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.history) {
             history.value = commit.history
         }
-        
+
         triggerRef(properties)
         triggerRef(folders)
         triggerRef(instances)
@@ -407,9 +401,9 @@ export const useDataStore = defineStore('dataStore', () => {
         if (newTags == undefined) {
             newTags = []
         }
-        if(!Array.isArray(oldTags)) oldTags = [oldTags]
-        if(!Array.isArray(newTags)) newTags = [newTags]
-        
+        if (!Array.isArray(oldTags)) oldTags = [oldTags]
+        if (!Array.isArray(newTags)) newTags = [newTags]
+
         const old = new Set(oldTags)
         const now = new Set(newTags)
 
