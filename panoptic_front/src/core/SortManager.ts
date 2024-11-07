@@ -50,8 +50,8 @@ export function buildSortOption(): SortOption {
 
 export const sortParser: { [type in PropertyType]?: any } = {
     [PropertyType.checkbox]: (x?: boolean) => {
-        if (!x) return false
-        return true
+        if (!x) return 0
+        return 1
     },
     [PropertyType.color]: (x?: number) => {
         if (isNaN(x)) return -1
@@ -169,19 +169,19 @@ function quadraticFindIndex(target: Instance[], elem: SortableImage, startIndex:
     let maxIndex = target.length
     let dist = maxIndex - startIndex
     while (dist > 10) {
-        const center = Math.floor(startIndex + dist / 2)
-        // console.log(startIndex, center, maxIndex)
+        const center = Math.floor(startIndex + (dist / 2))
         const sortableTarget = getSortableImages([target[center]], properties)[0]
         const cmp = compareSortable(elem, sortableTarget, orders)
         if (cmp == 0) return center
         if (cmp < 0) {
-            maxIndex = center
+            maxIndex = center+1
         }
         else {
             startIndex = center
         }
         dist = maxIndex - startIndex
     }
+
     for (let i = startIndex; i < maxIndex; i++) {
         const sortableTarget = getSortableImages([target[i]], properties)[0]
         if (compareSortable(elem, sortableTarget, orders) < 0) {

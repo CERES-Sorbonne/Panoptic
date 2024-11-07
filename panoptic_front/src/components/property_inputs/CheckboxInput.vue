@@ -19,7 +19,6 @@ function focus() {
 }
 
 function emitValue(v) {
-    console.log(v.target.checked)
     if (!v.target.checked) {
         emits('update:modelValue', undefined)
     } else {
