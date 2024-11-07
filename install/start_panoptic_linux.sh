@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ENV_DIR="panoptic_env"
+ENV_DIR="~/panoptic/panoptic_env"
 MIN_PYTHON_VERSION="3.10"
 TARGET_PYTHON_VERSION="3.12"
 
