@@ -8,6 +8,8 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import { goNext } from '@/utils/utils';
 import { useDataStore } from '@/data/dataStore';
+import PropertyModeDropdown from '../dropdowns/PropertyModeDropdown.vue';
+import TextInput from '../property_inputs/TextInput.vue';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
@@ -60,7 +62,8 @@ async function saveProperty() {
         return
     }
 
-    await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
+    const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
+    project.getTabManager().setVisibleProperty(prop.id, true)
 
     hide()
 }
@@ -90,15 +93,15 @@ onMounted(() => {
                     <b class="modal-title" id="exampleModalLabel">{{ $t("modals.properties.title") }}</b>
                     <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <form @submit.prevent="saveProperty" class="d-flex flex-row">
-                        <!-- TODO: a remettre quand on laissera le choix de la propriété -->
-                        <!-- <div class="me-1">
+                <div class="modal-body" id="tmp1">
+                    <form @submit.prevent="saveProperty" class="d-flex flex-row" style="font-size: 15px;">
+                        <div class="me-1">
                             <PropertyModeDropdown v-model="newProperty.mode" />
-                        </div> -->
+                        </div>
                         <div class="flex-grow-1 me-1">
-                            <input type="text" style="width: 100%" class="text-input input-lg" id="propertyName" name="propertyName"
+                            <input type="text" style="width: 100%" class="" id="propertyName" name="propertyName"
                                 v-model="newProperty.name" :placeholder="$t('modals.properties.input')" required>
+                                <!-- <TextInput :no-nl="true" :width="200" v-model="newProperty.name" :always-shadow="true" :auto-focus="true"/> -->
                             <div class="invalid-feedback">
                                 {{ nameError }}
                             </div>
