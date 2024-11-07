@@ -86,14 +86,14 @@ class Panoptic:
                 from panoptic.routes.project_routes import set_project
                 set_project(self.project)
 
-    def add_plugin_path(self, path: str):
+    def add_plugin_path(self, path: str, name: str):
         path = Path(path)
         if any(path == p.path for p in self.data.plugins):
             return
         init_path = Path(path) / '__init__.py'
         if not init_path.exists():
             raise Exception(f'No __init__.py file found at {path}')
-        self.data.plugins.append(PluginKey(name=path.name, path=str(path)))
+        self.data.plugins.append(PluginKey(name=name, path=str(path)))
         self.save_data()
 
     def del_plugin_path(self, path: str):

@@ -1,5 +1,6 @@
 import asyncio
 
+from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext, PropertyType, PropertyMode, DbCommit, \
     Instance, ImageProperty, Property
@@ -32,8 +33,8 @@ async def ocr(instance: Instance, prop: Property):
 
 
 class MacOCR(APlugin):
-    def __init__(self, project: Project, plugin_path: str):
-        super().__init__(name='MacOCR', project=project, plugin_path=plugin_path)
+    def __init__(self, project: PluginProjectInterface, plugin_path: str, name: str):
+        super().__init__(name=name, project=project, plugin_path=plugin_path)
         self.add_action_easy(self.ocr, ['execute'])
 
     async def ocr(self, context: ActionContext):
