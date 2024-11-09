@@ -48,7 +48,12 @@ function computeSize() {
 }
 
 function submit() {
-    emits('update:modelValue', localValue.value)
+    let value = localValue.value
+    if (value == '') {
+        value = undefined
+    }
+    console.log('emit', value)
+    emits('update:modelValue', value)
 }
 
 function cancel() {

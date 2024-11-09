@@ -9,7 +9,7 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import TagInput from '@/components/property_inputs/TagInput.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { Property } from '@/data/models';
+import { Property, PropertyType } from '@/data/models';
 
 const props = defineProps<{
     property: Property
@@ -33,17 +33,22 @@ defineExpose({
 const heightElem = ref(null)
 const inputElem = ref(null)
 const dropdownElem = ref(null)
-const safeValue = computed(() => props.modelValue ?? [])
+const safeValue = computed(() => localValue.value ?? [])
 const tags = computed(() => safeValue.value.map(tId => props.property.tags[tId]))
+
+const localValue = ref(undefined)
 
 function getHeight() {
     if (heightElem.value == undefined) return 0
     return heightElem.value.clientHeight
 }
 
-async function updateValue(value) {
-    emits('update:modelValue', value)
+async function updateValue(value, hide) {
+    localValue.value = value
     updateHeight()
+    if(props.property.type == PropertyType.tag) {
+        hide()
+    }
 }
 
 async function updateHeight() {
@@ -56,27 +61,39 @@ function focus() {
     dropdownElem.value.show()
 }
 
+function updateLocal() {
+    localValue.value = props.modelValue
+}
+
+function onHide() {
+    emits('hide')
+    emits('update:modelValue', localValue.value)
+}
+
 watch(() => props.width, updateHeight)
+watch(() => props.modelValue, updateLocal)
 onMounted(updateHeight)
+onMounted(updateLocal)
+
 </script>
 
 <template>
-    <Dropdown :auto-focus="false" @hide="emits('hide')" :teleport="props.teleport" ref="dropdownElem" :offset="-25" placement="bottom-start">
+    <Dropdown :auto-focus="false" @hide="onHide" :teleport="props.teleport" ref="dropdownElem" :offset="-25" placement="bottom-start">
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'"
                 :style="{ width: props.width ? props.width + 'px' : '100%' }" ref="heightElem">
                 <span v-for="tag in tags">
                     <TagBadge :id="tag.id" class="me-1" />
                 </span>
-                <span v-if="tags.length == 0" class="text-secondary">None</span>
+                <span v-if="tags.length == 0" style="font-size: 14px;" class="text-secondary">{{ $t('none') }}</span>
             </div>
         </template>
 
-        <template #popup>
+        <template #popup="{hide}">
             <div class="p-1" style="max-width: 250px;">
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
-                    :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="updateValue"
+                    :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
                     ref="inputElem" />
             </div>
         </template>

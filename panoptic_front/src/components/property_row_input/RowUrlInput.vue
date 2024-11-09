@@ -71,7 +71,7 @@ watch(() => props.modelValue, loadValue)
     <Dropdown :offset="props.offset" :no-shadow="true" :teleport="props.teleport" @show="computeSize" @hide="submit"
         placement="bottom-start">
         <template #button>
-            <div ref="previewElem" style="padding-left: 2px;" :style="{ width: props.width + 'px' }">
+            <div ref="previewElem" style="" :style="{ width: props.width + 'px' }">
                 <UrlPreview :url="props.modelValue" class="row-preview" style="cursor: pointer; font-size: 14px;"
                     @click="clickUrl" />
             </div>
