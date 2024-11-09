@@ -10,7 +10,11 @@
             },
             "create_title": "Creation de projet",
             "plugins": {
-                "warning": "Warning: On est pas responsable (a changer)"
+                "warning": "Warning: On est pas responsable (a changer)",
+                "require_url": "Url requise",
+                "require_unique_name": "Choisir un nom de plugin unique",
+                "require_folder": "Choisir un dossier",
+                "error_name_not_unique": "Le nom de plugin est deja utilisé"
             }
         },
         "status": {

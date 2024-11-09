@@ -27,15 +27,15 @@ const showLoad = computed(() => showName.value && isNameValid.value)
 
 const helpMessage = computed(() => {
     if (showName.value && takenNames.value.includes(pluginName.value)) {
-        return 'Error: plugin name is already used'
+        return 'main.home.plugins.error_name_not_unique'
     }
     if (showName.value) {
-        return 'Select unique plugin name'
+        return 'main.home.plugins.require_unique_name'
     }
     if (mode.value == 'github') {
-        return 'Github path is required'
+        return 'main.home.plugins.require_url'
     }
-    return 'Select a folder'
+    return 'main.home.plugins.require_folder'
 })
 
 function setLocalPath(value) {
@@ -71,6 +71,7 @@ async function load() {
     isLoading.value = false
     emits('cancel')
 }
+
 </script>
 
 <template>
@@ -102,8 +103,8 @@ async function load() {
                 <span class="visually-hidden">Loading...</span>
             </div>
         </div>
-        <div class="mt-2 mb-2" :class="helpMessage.startsWith('Error') ? 'text-danger' : ''">
-            {{ helpMessage }}
+        <div class="mt-2 mb-2" :class="helpMessage.includes('.error') ? 'text-danger' : ''">
+            {{ $t(helpMessage) }}
         </div>
         <div class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
         <div>
