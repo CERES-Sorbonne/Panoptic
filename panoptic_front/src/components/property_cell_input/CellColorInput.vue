@@ -77,7 +77,7 @@ defineExpose({
                     :style="{ width: width, backgroundColor: color, height: 'calc(100% - 3px)', position: 'relative', top: props.offset + 'px' }">
                 </div>
             </div>
-            <div v-else style="cursor: pointer;" :style="{ width: width }">None...</div>
+            <div v-else class="text-secondary" style="cursor: pointer;" :style="{ width: width }">{{ $t('none') }}</div>
         </template>
         <template #popup="{ hide }">
             <div :style="{ width: (previewWidth + 8) + 'px' }" class="p-1">

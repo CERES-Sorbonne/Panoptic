@@ -8,7 +8,7 @@ const props = defineProps<{
 
 <template>
   <div v-if="props.text" class="ellipsis">{{ props.text }}</div>
-  <div v-else>None...</div>
+  <div v-else class="text-secondary">{{ $t('none') }}</div>
 </template>
 
 <style scoped>

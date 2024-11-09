@@ -295,6 +295,14 @@
         },
         "close-clusters": "Retirer les clusters",
         "save-clusters": "Sauvegarde les clusters dans une propriétés tag"
-    }
+    },
+    "datepicker": {
+        "cancel": "Annuler",
+        "submit": "Confirmer",
+        "valid": "Valide",
+        "invalid": "Invalid",
+        "correct": "Correction"
+    },
+    "none": "Vide..."
 
 }

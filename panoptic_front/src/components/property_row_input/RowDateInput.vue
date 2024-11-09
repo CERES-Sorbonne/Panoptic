@@ -48,7 +48,7 @@ watch(() => props.modelValue, loadValue)
     <Dropdown :offset="-20" :no-shadow="false" :teleport="props.teleport" @esc="cancel" @enter="submit" placement="bottom"
         ref="dropdownElem">
         <template v-slot:button>
-            <div ref="previewElem" style="padding-left: 0px;">
+            <div ref="previewElem" style="font-size: 14px;">
                 <DatePreview :date="props.modelValue" class="row-preview" style="cursor: pointer;"
                     :style="{ width: props.width ? props.width + 'px' : '100%' }" />
             </div>

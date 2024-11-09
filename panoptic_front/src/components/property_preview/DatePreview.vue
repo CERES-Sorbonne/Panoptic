@@ -14,8 +14,8 @@ const props = withDefaults(defineProps<{
 
 const dateString = computed(() => {
     let date = new Date(props.date)
-    if(isNaN(+date)) {
-        return 'None...'
+    if (isNaN(+date)) {
+        return undefined
     }
     return dateToString(date)
 })
@@ -44,10 +44,10 @@ function dateToString(date: Date) {
 </script>
 
 <template>
-  <div>
-    {{ dateString }}
-  </div>
+    <div>
+        <span v-if="!dateString" class="text-secondary">{{ $t('none') }}</span>
+        <span v-else>{{ dateString }}</span>
+    </div>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

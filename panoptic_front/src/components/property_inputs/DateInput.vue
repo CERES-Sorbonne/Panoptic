@@ -459,7 +459,7 @@ onMounted(() => {
 
 <template>
     <div class="">
-        <div class="d-flex flex-nowrap" style="line-height: 20px;" ref="divElem">
+        <div class="d-flex flex-nowrap justify-content-center" style="line-height: 20px;" ref="divElem">
             <template v-for="data, formatIndex in viewFormat">
                 <div v-if="data == 'Y'">
                     <div class="d-flex">
@@ -543,24 +543,26 @@ onMounted(() => {
             <div><i class="bi bi-calendar3 bb" @click="setDate(getNow())"></i></div>
             <!-- <div> <i class="bi bi-arrow-counterclockwise bb" @click="loadValue(props.modelValue)" /></div> -->
             <div class="ms-2">
-                <div v-if="!localDate.closest && !localDate.date" style="width: 50px;" class="text-warning">None...
+                <div v-if="!localDate.closest && !localDate.date" style="width: 50px;" class="text-warning">{{ $t("none") }}
                 </div>
                 <div v-if="localDate.closest && !localDate.date" class="text-warning" style="width: 50px;">
-                    Invalid
+                    {{ $t('datepicker.invalid') }}
                 </div>
                 <div v-if="localDate.date" style="width: 50px;">
                     <span class="text-success">
-                        Valid
+                        {{ $t('datepicker.valid') }}
                     </span>
                 </div>
             </div>
             <div class="flex-grow-1"></div>
-            <div v-if="props.extended"><span class="bb" @click="emits('cancel')">Cancel</span></div>
-            <div v-if="props.extended"><span class="bb" @click="emits('submit')">Submit</span></div>
+            <div v-if="props.extended"><span class="bb" @click="emits('cancel')">{{ $t('datepicker.cancel') }}</span>
+            </div>
+            <div v-if="props.extended"><span class="bb" @click="emits('submit')">{{ $t('datepicker.submit') }}</span>
+            </div>
         </div>
-        <div v-if="localDate.closest && !localDate.date">
+        <div v-if="localDate.closest && !localDate.date" class="text-center">
             <span class="text-warning" style="cursor: pointer; font-size: 14px;" @click="correctDate">
-                correct: {{ dateToString(localDate.closest) }} ?
+                {{ $t('datepicker.correct') }}: {{ dateToString(localDate.closest) }} ?
             </span>
         </div>
     </div>

@@ -54,7 +54,7 @@ async function onShow() {
 }
 
 function onHide() {
-    if (project.status.loaded) {
+    if (project.status.loaded && visible.value) {
         visible.value = false
         emits('hide')
     }

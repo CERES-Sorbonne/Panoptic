@@ -32,7 +32,7 @@ const width = computed(() => (props.width ?? 100) - 22)
 <template>
     <DBInput :instance="props.instance" :property-id="props.property.id">
         <template #default="{ value, set }">
-            <div class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px;font-size: 13px;">
+            <div class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px;font-size: 14px;">
                 <PropertyIcon v-if="props.property.type != PropertyType.checkbox && property.id > 0"
                     :type="property.type" style="margin-right: 2px;" />
 

@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 
 
 const props = defineProps<{
-  url?: string
+    url?: string
 }>()
 
 const isHover = ref(false)
@@ -23,19 +23,19 @@ function contentClick() {
 </script>
 
 <template>
-  <div v-if="props.url" class="ellipsis" :style="{
-    cursor: urlMode ? 'pointer' : 'inherit',
-    color: urlMode ? 'blue' : '',
-  }" @mouseenter="isHover = true" @mouseleave="isHover = false" @click="contentClick">
-    {{ props.url }}
-  </div>
-  <div v-else>None...</div>
+    <div v-if="props.url" class="ellipsis" :style="{
+        cursor: urlMode ? 'pointer' : 'inherit',
+        color: urlMode ? 'blue' : '',
+    }" @mouseenter="isHover = true" @mouseleave="isHover = false" @click="contentClick">
+        {{ props.url }}
+    </div>
+    <div v-else class="text-secondary">{{ $t('none') }}</div>
 </template>
 
 <style scoped>
 .ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 </style>
