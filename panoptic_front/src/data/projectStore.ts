@@ -292,10 +292,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.plugins = plugins
     }
 
-    // async function setActionFunctions(updates: ActionParam[]) {
-    //     actions.value = await apiSetActions(updates)
-    // }
-
     async function setDefaultVectors(vector: VectorDescription) {
         data.vectors = await apiSetDefaultVector(vector)
     }
@@ -306,8 +302,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         const res = await apiCallActions(req)
         if (res.commit) {
             dataStore.applyCommit(res.commit)
-            // applyCommit(res.commit)
-            //console.log(res.commit)
             if (res.commit.properties) {
                 res.commit.properties.forEach(p => getTab().visibleProperties[p.id] = true)
             }
