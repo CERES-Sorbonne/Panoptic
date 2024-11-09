@@ -54,7 +54,9 @@ class LoadPluginTask(Task):
         self.project.plugins.append(plugin)
 
     async def run_if_last(self):
+        plugins = await self.project.plugins_info()
+
         self.project.plugin_loaded = True
         self.project.ui.update_counter.action += 1
-        self.project.ui.plugins = await self.project.plugins_info()
+        self.project.ui.plugins = plugins
         self.project.ui.actions = [a.description for a in self.project.action.actions.values()]
