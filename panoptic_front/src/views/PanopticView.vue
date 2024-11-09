@@ -4,8 +4,8 @@ import { ref, computed, onMounted, nextTick, onUnmounted, provide } from 'vue';
 import Menu from '../components/menu/Menu.vue';
 
 import { keyState } from '@/data/keyState';
-import MainView from '@/components/view/MainView.vue';
-import TabNav from '@/components/view/TabNav.vue';
+import MainView from '@/components/mainview/MainView.vue';
+import TabNav from '@/components/mainview/TabNav.vue';
 import { ModalId } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
