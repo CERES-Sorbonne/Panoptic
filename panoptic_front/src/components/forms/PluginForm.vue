@@ -9,7 +9,7 @@ const panoptic = usePanopticStore()
 
 const emits = defineEmits(['cancel'])
 
-const mode = ref('local')
+const mode = ref('github')
 const gitUrl = ref('')
 const localPath = ref('')
 const pluginName = ref('')
@@ -76,12 +76,12 @@ async function load() {
 <template>
     <div>
         <div style="font-size: 20px;" class="mb-1">
+            <i class="bi bi-github rounded bbb me-1" :class="mode == 'github' ? 'selected' : ''" @click="mode = 'github'" />
             <i class="bi bi-folder rounded bbb me-1" :class="mode == 'local' ? 'selected' : ''"
                 @click="mode = 'local'" />
-            <i class="bi bi-github rounded bbb" :class="mode == 'github' ? 'selected' : ''" @click="mode = 'github'" />
         </div>
         <div v-if="mode == 'github'" class="d-flex">
-            <i class="bi bi-github me-2" style="font-size: 19px;" />
+            <i class="bi bi-github me-2 ms-1" style="font-size: 19px;" />
             <input type="url" v-model="gitUrl" placeholder="Enter git url" style="width: 250px;" />
             <input v-if="showName" v-model="pluginName" type="text" placeholder="plugin unique name"
                 style="width: 150px;" class="ms-2" @focus="onNameFocus" />
@@ -105,6 +105,7 @@ async function load() {
         <div class="mt-2 mb-2" :class="helpMessage.startsWith('Error') ? 'text-danger' : ''">
             {{ helpMessage }}
         </div>
+        <div class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
         <div>
             <div class="bbb mt-2 text-center" style="width: 70px;" @click="emits('cancel')">Cancel</div>
         </div>

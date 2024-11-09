@@ -8,7 +8,10 @@
                 "create": "Creer",
                 "cancel": "Annuler"
             },
-            "create_title": "Creation de projet"
+            "create_title": "Creation de projet",
+            "plugins": {
+                "warning": "Warning: On est pas responsable (a changer)"
+            }
         },
         "status": {
             "no_project": "Aucun projet Panoptic ouvert"
