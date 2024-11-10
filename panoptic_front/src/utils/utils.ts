@@ -1,4 +1,4 @@
-import { Group } from "@/core/GroupManager"
+import { Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
 import { deletedID, useDataStore } from "@/data/dataStore"
 import { PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
@@ -283,4 +283,17 @@ export function adjustForTimezone(date: Date): Date {
     console.log(timeOffsetInMS)
     date.setTime(date.getTime() - timeOffsetInMS);
     return date
+}
+
+export function allChildrenSha1Groups(group: Group) {
+    function recursive(child: Group) {
+        if(!child.isSha1Group && child.type != GroupType.Sha1) {
+            return false
+        }
+        if(child.children) {
+            return child.children.every(allChildrenSha1Groups)
+        }
+        return true
+    }
+    return group.children.every(recursive)
 }
