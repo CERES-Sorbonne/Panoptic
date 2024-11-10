@@ -5,16 +5,13 @@
  */
 
 import { defineStore } from "pinia";
-import { computed, nextTick, reactive, ref, shallowRef, watch } from "vue";
-import { Actions, CommitHistory, DbCommit, ExecuteActionPayload, Folder, FolderIndex, FunctionDescription, ImagePropertyValue, ImportState, Instance, InstanceIndex, InstancePropertyValue, ModalId, PluginDescription, ProjectSettings, ProjectVectorDescription, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, StatusUpdate, TabIndex, TabState, Tag, TagIndex, VectorDescription } from "./models";
+import { nextTick, reactive, ref, shallowRef } from "vue";
+import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiAddFolder, apiGetFolders, apiGetTabs, apiReImportFolder, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiUndo, apiRedo, apiGetHistory, apiCallActions, apiGetUpdate, SERVER_PREFIX, apiGetDbState, apiCommit, apiGetStatus, apiDeleteFolder, apiGetSettings, apiSetSettings } from "./api";
-import { buildFolderNodes, computeTagCount } from "./storeutils";
+import { apiGetTabs, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings } from "./api";
 import { TabManager } from "@/core/TabManager";
-import { deepCopy, sleep } from "@/utils/utils";
+import { sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
-import { usePanopticStore } from "./panopticStore";
-import { interpolateCubehelixDefault } from "d3";
 
 let tabManager: TabManager = undefined
 
