@@ -55,6 +55,10 @@ const instancesForExecute = computed(() => {
     return images.value
 })
 
+async function addCluster(cluster: GroupResult) {
+    await addClusters([cluster])
+}
+
 async function addClusters(clusters: GroupResult[]) {
     const localSha1Index: Sha1ToInstances = {}
     for(let inst of group.value.images) {
@@ -221,7 +225,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
             <div class="ms-2">
                 <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
-                    @groups="addClusters" />
+                    @groups="addClusters" @instances="addCluster"/>
             </div>
 
             <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
