@@ -45,7 +45,6 @@ const bodyStyle = computed(() => {
 
 function hide() {
     if (active.value) {
-        console.log('hide')
         active.value = false
         emits('hide')
     }
