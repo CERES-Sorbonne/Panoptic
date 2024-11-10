@@ -6,6 +6,7 @@ import { useProjectStore } from "@/data/projectStore";
 import { sum } from "@/utils/utils";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import wTT from '@/components/tooltips/withToolTip.vue'
+import { keyState } from "@/data/keyState";
 
 
 interface Line {
@@ -155,7 +156,7 @@ async function reorderLines() {
         for (const col of columns) {
             for (let i = 0; i < col.length; i++) {
                 const tag = col[i]
-                if(!tag) continue
+                if (!tag) continue
                 indexes[tag.id] = i
             }
         }
@@ -266,7 +267,7 @@ const tagClass = computed(() => {
             res[tag.id].push('selected-tag')
         } else {
             res[tag.id].push('tag')
-            if(props.selectedTags.length && !tag.allChildren.find(c => selectedSet.has(c))) {
+            if (props.selectedTags.length && !tag.allChildren.find(c => selectedSet.has(c))) {
                 res[tag.id].push('no-hover-tag')
             }
         }
@@ -321,11 +322,16 @@ function onClickTag(tag: Tag) {
 function onSelectTag(tag: Tag) {
     const selected = selectedIndex.value
     if (isDrawing.value && sourceTag.value != tag.id) return
-    if (selected[tag.id]) {
-        emits('select', props.selectedTags.filter(t => t.id != tag.id))
+    if (keyState.shift) {
+        if (selected[tag.id]) {
+            emits('select', props.selectedTags.filter(t => t.id != tag.id))
+        } else {
+            emits('select', [...props.selectedTags, tag])
+        }
     } else {
-        emits('select', [...props.selectedTags, tag])
+        emits('select', [tag])
     }
+
     if (tagFilter.value) {
         reDraw()
     }
