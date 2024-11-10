@@ -18,12 +18,10 @@ const height = ref(0)
 const width = ref(0)
 
 function update() {
-    console.log('setup')
     groupManager.group(props.instances)
 
     width.value = box.value.offsetWidth
     height.value = box.value.offsetHeight
-    console.log(width.value, height.value)
 
     nextTick(() => scroller.value.computeLines())
 }

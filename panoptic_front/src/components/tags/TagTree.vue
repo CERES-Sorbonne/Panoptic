@@ -258,6 +258,7 @@ async function reDraw() {
 
 const tagClass = computed(() => {
     const selectedSet = new Set<number>(props.selectedTags.map(t => t.id))
+    // const selectedSet = new Set<number>(hoveredTag.value > 0 ? [hoveredTag.value] : [])
     let res = {}
     for (let tag of tagList.value) {
         res[tag.id] = []
@@ -279,6 +280,9 @@ const selectedLines = computed(() => {
     const res = []
     const valid = new Set<number>()
     const list = props.selectedTags.map(t => t.id)
+    if (hoveredTag.value > 0) {
+        list.push(hoveredTag.value)
+    }
     list.forEach(t => valid.add(t))
     list.forEach(t => data.tags[t].allChildren.forEach(c => valid.add(c)))
     list.forEach(t => data.tags[t].allParents.forEach(p => valid.add(p)))
@@ -329,7 +333,11 @@ function onSelectTag(tag: Tag) {
             emits('select', [...props.selectedTags, tag])
         }
     } else {
-        emits('select', [tag])
+        if (props.selectedTags.length > 1 || !selected[tag.id]) {
+            emits('select', [tag])
+        } else {
+            emits('select', [])
+        }
     }
 
     if (tagFilter.value) {
