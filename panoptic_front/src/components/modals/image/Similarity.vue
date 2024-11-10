@@ -110,10 +110,12 @@ watch(useFilter, updateSimilarGroup)
                 <SelectCircle v-if="similarGroup.hasResult()" :model-value="similarGroup.result.root.view.selected"
                     @update:model-value="v => similarGroup.toggleAll()" style="margin-top: -1px;" />
                 <div class="sep ms-1 me-1"></div>
-                <div class="text-secondary" @click="toggleFilter">
-                    <span v-if="useFilter" class="bi bi-funnel-fill bb text-primary"></span>
-                    <span v-else class="bi bi-funnel bb"></span>
-                </div>
+                <wTT message="modals.image.main_filter_tooltip">
+                    <div class="text-secondary" @click="toggleFilter">
+                        <span v-if="useFilter" class="bi bi-funnel-fill bb text-primary"></span>
+                        <span v-else class="bi bi-funnel bb"></span>
+                    </div>
+                </wTT>
                 <div class="sep ms-1 me-1"></div>
                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                 <wTT message="modals.image.similarity_filter_tooltip">
