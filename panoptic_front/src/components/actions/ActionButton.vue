@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch, computed } from 'vue';
+import { defineProps, defineEmits, ref, onMounted, watch, computed, unref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
@@ -38,10 +38,6 @@ function loadInput() {
     if (!actions.index[funcId]) return
     const params = actions.index[funcId].params
 
-    // const inputs = []
-    // for (let param of params) {
-    //     inputs.push(Object.assign(param, { defaultValue: defaults[param.name] }))
-    // }
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
 
@@ -93,6 +89,7 @@ function setRef(elem, i) {
 }
 
 onMounted(loadAction)
+watch(() => actions.update, loadAction)
 watch(defaultFunction, loadAction)
 watch(() => props.action, loadAction)
 watch(localFunction, loadInput)

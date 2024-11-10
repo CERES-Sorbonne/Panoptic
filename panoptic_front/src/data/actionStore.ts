@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
 import { ActionContext, Actions, ExecuteActionPayload, ParamDefaults, SearchResult } from "./models";
-import { computed, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import { apiCallActions, apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
 
@@ -18,22 +18,25 @@ export const useActionStore = defineStore('actionStore', () => {
         import: undefined,
         export: undefined
     })
+    const update = ref(0)
 
     const hasSimilaryFunction = computed(() => defaultActions.similar != undefined)
 
     async function load() {
         if (!project.status.loaded) return
         if (!Object.keys(project.actions).length) return
-        index.value = project.actions
-        const defaults = apiGetUIData('param_defaults')
+        const defaults = await apiGetUIData('param_defaults')
 
-        for (let action of objValues(index.value)) {
-            for (let param of action.params) {
+        let actionIndex = project.actions
+        for(let actionKey in actionIndex) {
+            const action = actionIndex[actionKey]
+            for(let param of action.params) {
                 if (defaults[param.id] !== undefined) {
                     param.defaultValue = defaults[param.id]
                 }
             }
         }
+        index.value = actionIndex
 
         for (let key in defaultActions) {
             if (defaultActions[key] && index.value[defaultActions[key]] == undefined) {
@@ -46,8 +49,11 @@ export const useActionStore = defineStore('actionStore', () => {
                 }
             }
         }
+
         await getDefaultActions()
         await getDefaultParams()
+
+        update.value += 1
     }
 
     async function getSimilarImages(ctx: ActionContext) {
@@ -105,6 +111,6 @@ export const useActionStore = defineStore('actionStore', () => {
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction,
         getSimilarImages,
-        clear
+        clear, update
     }
 })
