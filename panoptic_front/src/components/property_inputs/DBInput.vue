@@ -20,7 +20,7 @@ async function set(value: any) {
     // very important to avoid settings values of old input to new input params
     // creates the crazy UI bug where everythings gets set around
     if (!valid.value) return
-    if (value === propValue.value) return
+    if (JSON.stringify(value) === JSON.stringify(propValue.value)) return
     localValue.value = value
     await data.setPropertyValue(props.propertyId, props.instance, value)
     loadValue()

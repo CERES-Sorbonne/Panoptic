@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import List
 
@@ -97,6 +98,14 @@ class Panoptic:
         self.save_data()
 
     def del_plugin_path(self, path: str):
+        removed = next(p for p in self.data.plugins if p.path == path)
+        for project in self.data.projects:
+            plugin_data_path = Path(project.path) / "plugin_data" / removed.name.lower()
+            try:
+                shutil.rmtree(plugin_data_path)
+            except Exception as e:
+                print(e)
+
         self.data.plugins = [p for p in self.data.plugins if p.path != path]
         self.save_data()
 
