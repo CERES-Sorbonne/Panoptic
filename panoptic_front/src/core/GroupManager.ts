@@ -50,6 +50,7 @@ export interface Group {
 
     view: GroupView
     meta: GroupMetaData
+    isSha1Group?: boolean
 }
 
 export interface GroupView {

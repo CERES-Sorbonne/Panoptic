@@ -6,9 +6,10 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { Group, GroupManager, GroupTree, GroupType, buildGroup } from '@/core/GroupManager'
-import { DbCommit, GroupLine, GroupResult, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Tag, buildTag } from '@/data/models'
+import { DbCommit, GroupLine, GroupResult, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Sha1ToInstances, Tag, buildTag } from '@/data/models'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
+import { allChildrenSha1Groups } from '@/utils/utils'
 
 const data = useDataStore()
 
@@ -55,11 +56,24 @@ const instancesForExecute = computed(() => {
 })
 
 async function addClusters(clusters: GroupResult[]) {
+    const localSha1Index: Sha1ToInstances = {}
+    for(let inst of group.value.images) {
+        if(!localSha1Index[inst.sha1]) {
+            localSha1Index[inst.sha1] = []
+        }
+        localSha1Index[inst.sha1].push(inst)
+    }
     const groups = clusters.map((group, index) => {
-        const instances = group.ids.map(i => data.instances[i])
+        let instances: Instance[] = []
+        if(group.ids) {
+            instances = group.ids.map(i => data.instances[i])
+        } else {
+            group.sha1s.forEach(sha1 => localSha1Index[sha1].forEach(i => instances.push(i)))
+        }
         const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
         res.meta.score = Math.round(group.score)
         res.name = group.name
+        res.isSha1Group = group.ids ? false : true
         return res
     })
     props.manager.addCustomGroups(group.value.id, groups, true)
@@ -103,7 +117,9 @@ async function saveHirachy() {
 
     saving.value = true
     const children = group.value.children
-    const property: Property = {id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: PropertyMode.id}
+    const mode = allChildrenSha1Groups(group.value) ? PropertyMode.sha1 : PropertyMode.id
+    console.log(mode)
+    const property: Property = {id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: mode}
     let id = 0
     const idFunc = () => { id -= 1; return id }
     const tagToImages: { [tagId: number]: Instance[] } = {}
@@ -229,6 +245,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     </span>
                 </div>
             </wTT>
+            <!-- <span v-if="group.isSha1Group">lala</span> -->
         </div>
 
     </div>
