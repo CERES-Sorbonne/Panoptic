@@ -90,7 +90,7 @@ async def add_plugins_route(payload: AddPluginPayload):
     path = payload.path
     if payload.git_url:
         path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    return panoptic.add_plugin_path(path, payload.plugin_name)
+    return panoptic.add_plugin_path(path, payload.plugin_name, payload.git_url)
 
 
 @selection_router.delete('/plugins')

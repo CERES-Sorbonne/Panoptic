@@ -9,6 +9,10 @@ const panoptic = usePanopticStore()
 
 const emits = defineEmits(['cancel'])
 
+defineExpose({
+    setPanopticMl
+})
+
 const mode = ref('github')
 const gitUrl = ref('')
 const localPath = ref('')
@@ -70,6 +74,12 @@ async function load() {
     await panoptic.addPlugin(plugin)
     isLoading.value = false
     emits('cancel')
+}
+
+function setPanopticMl() {
+    mode.value = 'github'
+    gitUrl.value = 'https://github.com/CERES-Sorbonne/PanopticML'
+    pluginName.value = 'PanopticML'
 }
 
 </script>

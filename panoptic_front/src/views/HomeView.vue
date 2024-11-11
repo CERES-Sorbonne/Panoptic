@@ -2,10 +2,9 @@
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
-import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import router from '@/router';
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 
@@ -13,8 +12,10 @@ const panoptic = usePanopticStore()
 
 const menuMode = ref(0) // 0 options 1 create
 const showPluginForm = ref(false)
+const pluginFormElem = ref(null)
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
 const showTutorial = computed(() => !hasProjects.value && panoptic.data.init)
+const hasPanopticMlPlugin = computed(() => panoptic.data.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
 
 // use Unicode NON-BREAKING HYPHEN (U+2011)
 // https://stackoverflow.com/questions/8753296/how-to-prevent-line-break-at-hyphens-in-all-browsers
@@ -35,6 +36,12 @@ function importProject(path: string) {
 
 function delPlugin(path: string) {
     panoptic.delPlugin(path)
+}
+
+async function loadDefaultPlugin() {
+    showPluginForm.value = true
+    await nextTick()
+    pluginFormElem.value.setPanopticMl()
 }
 
 onMounted(() => {
@@ -89,9 +96,15 @@ onMounted(() => {
                         <span class="sb bi bi-plus" style="position: relative; top:1px"
                             @click="showPluginForm = true"></span>
                     </h5>
+                    <div class="text-center">
+                        <span v-if="!hasPanopticMlPlugin" class="bb" @click="loadDefaultPlugin">
+                            <i class="bi bi-lightbulb"></i>
+                            Install PanopticML
+                        </span>
+                    </div>
                 </div>
                 <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
-                    <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" />
+                    <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem"/>
                     <div v-else>
                         <div v-for="plugin in panoptic.data.plugins" class="ps-1">
                             <span @click="delPlugin(plugin.path)" class="bi bi-x base-hover"></span>
