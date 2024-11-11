@@ -11,6 +11,7 @@ from panoptic.core.project.project import Project
 from panoptic.models import PluginKey, PanopticData, ProjectId
 from panoptic.utils import get_datadir
 
+
 class Panoptic:
     def __init__(self):
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
@@ -18,12 +19,6 @@ class Panoptic:
         self.data = self.load_data()
         self.project_id = None
         self.project: Project | None = None
-
-        # if not self.data.plugins:
-        #     from panoptic.plugins import FaissPlugin
-        #     module_path = os.path.abspath(FaissPlugin.__file__)
-        #     module_path = module_path.replace('__init__.py', '')
-        #     self.data.plugins.append(PluginKey(name="FaissPlugin", path=module_path))
 
     def load_data(self):
         try:
@@ -87,14 +82,14 @@ class Panoptic:
                 from panoptic.routes.project_routes import set_project
                 set_project(self.project)
 
-    def add_plugin_path(self, path: str, name: str):
+    def add_plugin_path(self, path: str, name: str, source_url: str = None):
         path = Path(path)
         if any(path == p.path for p in self.data.plugins):
             return
         init_path = Path(path) / '__init__.py'
         if not init_path.exists():
             raise Exception(f'No __init__.py file found at {path}')
-        self.data.plugins.append(PluginKey(name=name, path=str(path)))
+        self.data.plugins.append(PluginKey(name=name, path=str(path), source_url=source_url))
         self.save_data()
 
     def del_plugin_path(self, path: str):
@@ -105,7 +100,11 @@ class Panoptic:
                 shutil.rmtree(plugin_data_path)
             except Exception as e:
                 print(e)
-
+        if removed.source_url:
+            try:
+                shutil.rmtree(removed.path)
+            except Exception as e:
+                print(e)
         self.data.plugins = [p for p in self.data.plugins if p.path != path]
         self.save_data()
 

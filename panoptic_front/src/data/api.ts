@@ -154,7 +154,7 @@ export async function apiReImportFolder(folderId: number) {
 
 export async function apiGetPlugins() {
     let res = await axios.get('/plugins')
-    return res.data as PluginKey[]
+    return keysToCamel(res.data) as PluginKey[]
 }
 
 export async function apiAddPlugin(payload: PluginAddPayload) {

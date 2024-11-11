@@ -13,6 +13,7 @@ export interface Project {
 export interface PluginKey {
     name: string
     path: string
+    sourceUrl?: string
 }
 
 export interface SelectionStatus {
