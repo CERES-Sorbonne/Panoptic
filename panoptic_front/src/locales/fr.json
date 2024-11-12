@@ -10,11 +10,14 @@
             },
             "create_title": "Creation de projet",
             "plugins": {
-                "warning": "Warning: On est pas responsable (a changer)",
+                "warning": "Attention: nous ne contrôlons pas le contenu des plugins développés par des tierces",
                 "require_url": "Url requise",
                 "require_unique_name": "Choisir un nom de plugin unique",
                 "require_folder": "Choisir un dossier",
-                "error_name_not_unique": "Le nom de plugin est deja utilisé"
+                "error_name_not_unique": "Le nom de plugin est deja utilisé",
+                "install_panoptic_ml": "Installer le plugin de similarité",
+                "install": "Installer",
+                "load": "Installation..."
             }
         },
         "status": {
@@ -301,7 +304,7 @@
         "cancel": "Annuler",
         "submit": "Confirmer",
         "valid": "Valide",
-        "invalid": "Invalid",
+        "invalid": "Invalide",
         "correct": "Correction"
     },
     "none": "Vide..."
