@@ -21,7 +21,7 @@ class ProjectId(BaseModel):
 class PluginKey(BaseModel):
     name: str
     path: str
-    source_url: str = None
+    source_url: str | None = None
 
 
 class PanopticData(BaseModel):
