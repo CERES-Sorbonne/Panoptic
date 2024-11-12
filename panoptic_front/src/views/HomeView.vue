@@ -100,7 +100,7 @@ onMounted(() => {
                     <div v-if="!hasPanopticMlPlugin" class="text-center">
                         <span class="bb ms-1 me-1" @click="loadDefaultPlugin">
                             <i class="bi bi-lightbulb"></i>
-                            Install PanopticML
+                            {{ $t('main.home.plugins.install_panoptic_ml') }}
                         </span>
                     </div>
                 </div>

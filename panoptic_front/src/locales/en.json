@@ -8,16 +8,27 @@
                 "create": "Create",
                 "cancel": "Cancel"
             },
-            "create_title": "Create project"
+            "create_title": "Create project",
+            "plugins": {
+                "warning": "Warning: we can't control the content of third party plugins",
+                "require_url": "Git URL",
+                "require_unique_name": "Unique plugin name",
+                "require_folder": "Folder selection",
+                "error_name_not_unique": "This plugin name is already taken",
+                "install_panoptic_ml": "Install PanopticML",
+                "install": "Install",
+                "load": "Installing..."
+            }
         },
-        
         "status": {
             "no_project": "No open Panoptic project"
         },
         "nav": {
             "folders": {
                 "title": "Folders",
-                "add": "Add an images folder"
+                "add": "Add an images folder",
+                "del": "Remove",
+                "del_alert": "Removing this folder will delete every images from this folder from panoptic"
             },
             "tasks": {
                 "title": "Background task",
@@ -34,7 +45,8 @@
                 "expand_property_tooltip": "Show tags",
                 "collapse_property_tooltip": "Hide tags",
                 "add_property": "New property",
-                "delete_property": "Delete"
+                "delete_property": "Delete",
+                "open_tags": "Open tags management"
             },
             "computed": {
                 "title": "Panoptic Properties",
@@ -46,7 +58,7 @@
                 "5_tooltip": "Image width",
                 "6_tooltip": "Image height",
                 "7_tooltip": "Path of the image on disk"
-            }            
+            }
         },
         "menu": {
             "add_tab_tooltip": "Create a new tab",
@@ -73,7 +85,8 @@
                 "order_desc": "Sort by descending order",
                 "order_asc": "Sort in ascending order"
             },
-            "import_status_title": "Status Import"
+            "import_status_title": "Status Import",
+            "issue": "Create an Issue"
         },
         "recommand": {
             "title": "Image suggestions",
@@ -117,7 +130,8 @@
             "similarity_filter_tooltip": "The minimum similarity percentage that images displayed here must have. For more information, see the documentation on the similarity score.",
             "toggle_property_tooltip": "Show / Hide this property in the 'Similar images' view",
             "fill_property_tooltip": "Tag all similar images with the value of this property",
-            "history": "History"
+            "history": "History",
+            "main_filter_tooltip": "Toggle global filter"
         },
         "properties": {
             "title": "New property",
@@ -197,7 +211,11 @@
             "properties_all": "All",
             "properties_visible": "Visible",
             "properties_none": "None",
-            "export_images": "Include images"
+            "export_images": "Include images",
+            "key_label": "Image identifier",
+            "id": "ID",
+            "local_path": "Relative path",
+            "global_path": "Absolute path"
         },
         "settings": {
             "title": "Project Parameters"
@@ -205,10 +223,9 @@
         "import": {
             "title": "Import File"
         }
-        
     },
     "tutorial": {
-        "buttons":{
+        "buttons": {
             "skip": "Skip",
             "next": "Next",
             "finish": "Finish"
@@ -244,7 +261,39 @@
         "action_images": "Image Actions",
         "action_group": "Group Actions",
         "import": "Import",
-        "export": "Export"
+        "export": "Export",
+        "execute": "Run"
     },
+    "dropdown": {
+        "history": {
+            "info": "History of modifications",
+            "button": "History",
+            "values": "modified values",
+            "tags": "modified tags",
+            "undo": "Undo",
+            "redo": "Redo"
+        },
+        "action": {
+            "execute": "Run a plugin function",
+            "group": "Run a clustering function"
+        }
+    },
+    "btn": {
+        "reload": {
+            "auto": "Hot reload, click to deactivate",
+            "valid": "Up to-date, click to activate hot-reload",
+            "dirty": "Data is not up to-date, click to reload"
+        },
+        "close-clusters": "Close clusters",
+        "save-clusters": "Save the clusters in a new property"
+    },
+    "datepicker": {
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "valid": "Valid",
+        "invalid": "Invalid",
+        "correct": "Rectify"
+    },
+    "none": "Empty...",
     "tmp": "Tooltip to be written"
 }
