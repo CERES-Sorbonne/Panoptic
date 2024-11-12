@@ -28,11 +28,13 @@ export const useActionStore = defineStore('actionStore', () => {
         const defaults = await apiGetUIData('param_defaults')
 
         let actionIndex = project.actions
-        for(let actionKey in actionIndex) {
-            const action = actionIndex[actionKey]
-            for(let param of action.params) {
-                if (defaults[param.id] !== undefined) {
-                    param.defaultValue = defaults[param.id]
+        if(defaults){
+            for(let actionKey in actionIndex) {
+                const action = actionIndex[actionKey]
+                for(let param of action.params) {
+                    if (defaults[param.id] !== undefined) {
+                        param.defaultValue = defaults[param.id]
+                    }
                 }
             }
         }
