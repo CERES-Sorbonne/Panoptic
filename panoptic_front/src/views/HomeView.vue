@@ -96,15 +96,15 @@ onMounted(() => {
                         <span class="sb bi bi-plus" style="position: relative; top:1px"
                             @click="showPluginForm = true"></span>
                     </h5>
-                    <div class="text-center">
-                        <span v-if="!hasPanopticMlPlugin" class="bb" @click="loadDefaultPlugin">
+                    <div v-if="!hasPanopticMlPlugin" class="text-center">
+                        <span class="bb ms-1 me-1" @click="loadDefaultPlugin">
                             <i class="bi bi-lightbulb"></i>
                             Install PanopticML
                         </span>
                     </div>
                 </div>
                 <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
-                    <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem"/>
+                    <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem" />
                     <div v-else>
                         <div v-for="plugin in panoptic.data.plugins" class="ps-1">
                             <span @click="delPlugin(plugin.path)" class="bi bi-x base-hover"></span>
