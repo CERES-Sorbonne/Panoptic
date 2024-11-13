@@ -6,6 +6,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 import router from '@/router';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
+import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 
@@ -54,6 +55,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Egg />
     <Tutorial v-if="showTutorial" />
 
     <div class="window2 d-flex ">

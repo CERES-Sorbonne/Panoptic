@@ -116,7 +116,7 @@ function setPanopticMl() {
         <div class="mt-2 mb-2" :class="helpMessage.includes('.error') ? 'text-danger' : ''">
             {{ $t(helpMessage) }}
         </div>
-        <div class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
+        <div v-if="mode != 'github' || (mode == 'github' && !gitUrl.includes('github.com/CERES-Sorbonne'))" class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
         <div>
             <div class="bbb mt-2 text-center" style="width: 70px;" @click="emits('cancel')">Cancel</div>
         </div>
