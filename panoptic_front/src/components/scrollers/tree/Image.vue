@@ -67,7 +67,7 @@ const hideImg = inject('hideImg')
             <div :style="imageContainerStyle" class="img-container"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
                 @mouseleave="hover = false">
-                <div v-if="props.score != undefined" class="simi-ratio">{{ Math.floor(props.score * 100) }}</div>
+                <div v-if="props.score != undefined" class="simi-ratio">{{ "." + Math.floor(props.score * 100) }}</div>
                 <!-- <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" /> -->
                 <CenteredImage :image="props.image.image" :width="Math.max(imageSizes.width, props.size)-2" :height="props.size"
                 style="position: absolute; top:0"

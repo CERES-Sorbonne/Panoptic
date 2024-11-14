@@ -28,7 +28,7 @@
                 "title": "Dossiers",
                 "add": "Ajouter un dossier d'images",
                 "del": "Retirer",
-                "del_alert": "Retirer le dossier supprimera toutes les instances associés aux images contenu dans le dossier."
+                "del_alert": "Retirer le dossier supprimera toutes les instances associées aux images contenues dans le dossier."
             },
             "tasks": {
                 "title": "Tache de fond",
