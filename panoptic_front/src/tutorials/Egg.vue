@@ -1,5 +1,4 @@
 <script setup>
-import { active } from 'd3';
 import { ref } from 'vue';
 
 let konamiCode = ""
