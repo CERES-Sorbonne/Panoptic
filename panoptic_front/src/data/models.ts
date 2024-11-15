@@ -223,7 +223,8 @@ export enum ModalId {
     FOLDERSELECTION = 'explorer',
     SETTINGS = "settings",
     IMPORT = "import",
-    TAG = "tag"
+    TAG = "tag",
+    FIRSTMODAL = "firstmodal"
 }
 
 export interface ImportState {

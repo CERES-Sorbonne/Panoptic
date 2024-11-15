@@ -5,7 +5,7 @@ let konamiCode = ""
 let rightPosition = ref(-1100)
 let duckClass = ""
 
-const secretCode = 'ArrowUpArrowUpArrowDownArrowDownArrowLeftArrowRightArrowLeftArrowRight';
+const secretCode = 'ArrowUpArrowUpArrowDownArrowDownArrowLeftArrowRightArrowLeftArrowRightba';
 
 window.addEventListener('keydown', async function (e) {
     konamiCode += e.key;

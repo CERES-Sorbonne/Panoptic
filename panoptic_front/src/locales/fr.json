@@ -117,7 +117,7 @@
         "fs": {
             "fast": "Accès rapide",
             "partitions": "Disques",
-            "images":"Choisir un dossier d'images à ajouter",
+            "images": "Choisir un dossier d'images à ajouter",
             "import": "Choisir un projet à importer",
             "create": "Choisir l'emplacement où créer",
             "open": "Sélectionner"
@@ -234,10 +234,14 @@
         },
         "import": {
             "title": "Importer Fichier"
+        },
+        "first": {
+            "introduction": "Did you ever hear the story of PanopticML the Machine Learning Sage I thought not Its not a tale shared in standard plugin repositories its a legend among data scientists PanopticML was a plugin of immense capability so advanced and so refined it could transform vast image corpora into structured insights It wielded the power of OpenAIs CLIP to encode visual data grouping them into meaningful clusters using FAISS Kmeans It could even draw uncanny connections between images and texts a feat most considered beyond the grasp of ordinary software Machine learning it was said is a pathway to insights some deem impossible It became indispensable a tool feared only for the overwhelming potential it placed in the users hands But as with all great power its secrets came with risks an irony that even in mastery PanopticML demanded the humility to wield it wisely",
+            "install_ml": "Installer Plugin ML"
         }
     },
     "tutorial": {
-        "buttons":{
+        "buttons": {
             "skip": "Passer",
             "next": "Suivant",
             "finish": "Terminer"
@@ -284,9 +288,9 @@
             "values": "valeur(s) modifiée(s)",
             "tags": "tag(s) modifié(s)",
             "undo": "Annuler",
-            "redo": "Refaire" 
+            "redo": "Refaire"
         },
-        "action" : {
+        "action": {
             "execute": "Execute une fonction plugin sur les instances",
             "group": "Execute une fonction de clustering sur les instances"
         }
@@ -307,6 +311,7 @@
         "invalid": "Invalide",
         "correct": "Correction"
     },
-    "none": "Vide..."
-
+    "none": "Vide...",
+    "installing": "Installation...",
+    "installed": "Installé"
 }
