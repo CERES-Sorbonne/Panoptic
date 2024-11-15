@@ -96,10 +96,10 @@ function setPanopticMl() {
             <input type="url" v-model="gitUrl" placeholder="Enter git url" style="width: 250px;" />
             <input v-if="showName" v-model="pluginName" type="text" placeholder="plugin unique name"
                 style="width: 150px;" class="ms-2" @focus="onNameFocus" />
-            <div v-if="showLoad" class="bbb ms-2" @click="load">Load</div>
+            <div v-if="showLoad" class="bbb ms-2" @click="load">{{ $t('main.home.plugins.install') }}</div>
             <div v-if="isLoading" style="position: relative; top: 7px"
                 class="spinner-border spinner-border-sm text-primary ms-1" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">{{ $t('main.home.plugins.load') }}</span>
             </div>
         </div>
         <div v-if="mode == 'local'" class="d-flex">
@@ -107,16 +107,16 @@ function setPanopticMl() {
             <input type="url" v-model="localPath" placeholder="Folder path" style="width: 200px;" />
             <input v-if="showName" v-model="pluginName" type="text" placeholder="plugin unique name"
                 style="width: 150px;" class="ms-2" />
-            <div v-if="showLoad" class="bbb ms-2" @click="load">Load</div>
+            <div v-if="showLoad" class="bbb ms-2" @click="load">{{ $t('main.home.plugins.install') }}</div>
             <div v-if="isLoading" style="position: relative; top: 7px"
                 class="spinner-border spinner-border-sm text-primary ms-1" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">{{ $t('main.home.plugins.load') }}</span>
             </div>
         </div>
         <div class="mt-2 mb-2" :class="helpMessage.includes('.error') ? 'text-danger' : ''">
             {{ $t(helpMessage) }}
         </div>
-        <div class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
+        <div v-if="mode != 'github' || (mode == 'github' && !gitUrl.includes('github.com/CERES-Sorbonne'))" class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
         <div>
             <div class="bbb mt-2 text-center" style="width: 70px;" @click="emits('cancel')">Cancel</div>
         </div>

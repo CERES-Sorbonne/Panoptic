@@ -28,7 +28,7 @@ similarGroup.setSha1Mode(true)
 const useFilter = ref(true)
 const scrollerElem = ref(null)
 const search = ref<SearchResult>(null)
-const minSimilarityDist = computed(() => project.getTabManager().state.similarityDist ?? 80)
+const minSimilarityDist = computed(() => project.getTabManager().state.similarityDist ?? 0.8)
 const state = reactive({
     sha1Scores: {}
 })
@@ -64,7 +64,7 @@ async function setSimilar() {
 function updateSimilarGroup() {
     if (!search.value) return
 
-    let matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value / 100.0))
+    let matches = search.value.matches.filter(i => i.score >= (minSimilarityDist.value))
 
     if (useFilter.value) {
         const tab = project.getTabManager()
@@ -119,10 +119,10 @@ watch(useFilter, updateSimilarGroup)
                 <div class="sep ms-1 me-1"></div>
                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                 <wTT message="modals.image.similarity_filter_tooltip">
-                    <RangeInput class="me-2" :min="0" :max="100" :model-value="minSimilarityDist"
+                    <RangeInput class="me-2" :min="0" :max="1" :model-value="minSimilarityDist"
                         @update:model-value="setSimilarDist" />
                 </wTT>
-                <div>min: {{ minSimilarityDist }}%</div>
+                <div>min: {{ minSimilarityDist }} </div>
                 <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">
                     ({{ similarGroup.result.root.children.length }} images)
                 </div>

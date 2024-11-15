@@ -6,7 +6,9 @@ import { usePanopticStore } from '@/data/panopticStore';
 import router from '@/router';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
+import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
+import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 
 const panoptic = usePanopticStore()
 
@@ -53,6 +55,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <Egg />
     <Tutorial v-if="showTutorial" />
 
     <div class="window2 d-flex ">
@@ -82,9 +85,9 @@ onMounted(() => {
         <div v-if="panoptic.data.init" class="flex-grow-1">
             <div class="d-flex flex-column main-menu justify-content-center">
                 <div>
-                    <div class="icon">👀</div>
+                    <div class="icon"><PanopticIcon/></div>
                     <h1 class="m-0 p-0">Panoptic</h1>
-                    <h6 class="dimmed-2">Version 0.3</h6>
+                    <h6 class="dimmed-2">Version 0.4</h6>
                 </div>
                 <div id="main-menu" class="create-menu mt-5 pt-5">
                     <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
@@ -99,7 +102,7 @@ onMounted(() => {
                     <div v-if="!hasPanopticMlPlugin" class="text-center">
                         <span class="bb ms-1 me-1" @click="loadDefaultPlugin">
                             <i class="bi bi-lightbulb"></i>
-                            Install PanopticML
+                            {{ $t('main.home.plugins.install_panoptic_ml') }}
                         </span>
                     </div>
                 </div>
