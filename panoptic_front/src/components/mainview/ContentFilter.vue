@@ -13,9 +13,6 @@ import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
-import { useProjectStore } from '@/data/projectStore';
-
-const project = useProjectStore()
 
 const props = defineProps({
     tab: TabManager,

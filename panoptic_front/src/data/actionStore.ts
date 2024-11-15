@@ -28,14 +28,17 @@ export const useActionStore = defineStore('actionStore', () => {
         const defaults = await apiGetUIData('param_defaults')
 
         let actionIndex = project.actions
-        for(let actionKey in actionIndex) {
-            const action = actionIndex[actionKey]
-            for(let param of action.params) {
-                if (defaults[param.id] !== undefined) {
-                    param.defaultValue = defaults[param.id]
+        if (defaults) {
+            for (let actionKey in actionIndex) {
+                const action = actionIndex[actionKey]
+                for (let param of action.params) {
+                    if (defaults[param.id] !== undefined) {
+                        param.defaultValue = defaults[param.id]
+                    }
                 }
             }
         }
+
         index.value = actionIndex
 
         for (let key in defaultActions) {
@@ -78,12 +81,12 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getDefaultParams() {
         const res = await apiGetUIData('param_defaults')
-        if(!res) return
+        if (!res) return
 
-        for(let action of objValues(index.value)) {
-            for(let param of action.params) {
+        for (let action of objValues(index.value)) {
+            for (let param of action.params) {
                 const key = action.id + '.' + param.name
-                if(key in res) {
+                if (key in res) {
                     param.defaultValue = res[key]
                 }
             }
@@ -111,6 +114,6 @@ export const useActionStore = defineStore('actionStore', () => {
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction,
         getSimilarImages,
-        clear, update
+        clear, update, load
     }
 })
