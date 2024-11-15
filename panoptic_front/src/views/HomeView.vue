@@ -9,6 +9,7 @@ import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
+import { ModalId } from '@/data/models';
 
 const panoptic = usePanopticStore()
 
@@ -16,7 +17,10 @@ const menuMode = ref(0) // 0 options 1 create
 const showPluginForm = ref(false)
 const pluginFormElem = ref(null)
 const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
-const showTutorial = computed(() => !hasProjects.value && panoptic.data.init)
+
+const showFirstModal = computed(() => !hasProjects.value && panoptic.data.init)
+const showTutorial = computed(() => !hasProjects.value && panoptic.data.init && panoptic.openModalId !== ModalId.FIRSTMODAL)
+
 const hasPanopticMlPlugin = computed(() => panoptic.data.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
 
 // use Unicode NON-BREAKING HYPHEN (U+2011)
@@ -49,6 +53,9 @@ async function loadDefaultPlugin() {
 onMounted(() => {
     if (panoptic.isProjectLoaded) {
         router.push('/view')
+    }
+    if(showFirstModal.value) {
+        panoptic.showModal(ModalId.FIRSTMODAL)
     }
 })
 
