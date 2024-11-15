@@ -10,8 +10,8 @@ const props = withDefaults(defineProps < {
     modelValue: number
 } > (), {
   min: 0,
-  max: 100,
-  step: 1
+  max: 1,
+  step: 0.1
 })
 
 // define emits for the slider component
@@ -23,7 +23,7 @@ const slider = ref(null);
 
 // function to get the progress of the slider
 const getProgress = (value, min, max) => {
-  return ((value - min) / (max - min)) * 100;
+  return ((value - min) / (max - min));
 };
 
 // function to set the css variable for the progress
