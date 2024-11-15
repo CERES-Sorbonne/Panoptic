@@ -113,7 +113,7 @@ class Panoptic:
 
     async def close_project(self):
         self.project_id = None
-        self.data.last_opened = {}
+        self.data.last_opened = None
         self.save_data()
         await self.project.close()
         self.project = None

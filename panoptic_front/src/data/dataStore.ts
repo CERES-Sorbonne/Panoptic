@@ -179,7 +179,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     }
 
-    function applyCommit(commit: DbCommit, emit?: boolean) {
+    function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
 
 
@@ -244,6 +244,8 @@ export const useDataStore = defineStore('dataStore', () => {
             history.value = commit.history
         }
 
+        if(disableTrigger) return
+
         triggerRef(properties)
         triggerRef(folders)
         triggerRef(instances)
@@ -266,19 +268,20 @@ export const useDataStore = defineStore('dataStore', () => {
         onUndo.value = 0
     }
 
-    async function sendCommit(commit: DbCommit, undo?: boolean) {
+    async function sendCommit(commit: DbCommit, undo?: boolean, disableTrigger?: boolean) {
         // console.log('send commit', commit)
         if (undo) {
             commit.undo = true
         }
         const res = await apiCommit(commit)
-        applyCommit(res)
+        applyCommit(res, disableTrigger)
         return res
     }
 
     async function addTag(propertyId: number, tagValue: string, parentIds: number[] = undefined, color = -1): Promise<Tag> {
         const tag: Tag = { id: -1, propertyId: propertyId, value: tagValue, parents: parentIds ?? [], color: color }
-        const res = await sendCommit({ tags: [tag] })
+        const res = await sendCommit({ tags: [tag] }, true, true)
+        triggerRef(tags)
         return res.tags[0]
     }
 
