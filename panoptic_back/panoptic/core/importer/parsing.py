@@ -8,7 +8,7 @@ def parse_string(value):
 
 
 def parse_number(value):
-    if value is None:
+    if value is None or value == '':
         return None
     if value.find('.') >= 0:
         value = float(value)
