@@ -343,6 +343,23 @@ async def test_import_export_equal(instance_project: Project, import_csv: str, t
     assert import_data == export_data
 
 
+async def test_import_export_equal_with_empty(instance_project: Project, import_with_empty_csv: str, tmp_path: Path):
+    await instance_project.importer.upload_csv(import_with_empty_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.confirm_import()
+
+    res_dir = await instance_project.exporter.export_data(str(tmp_path), "tmp", None, [1, 2, 3, 4, 5, 6, 7, 8],
+                                                          False, key='local_path')
+    res_csv = Path(res_dir) / "data.csv"
+
+    with open(import_with_empty_csv) as f:
+        import_data = f.read()
+    with open(res_csv) as f:
+        export_data = f.read()
+
+    assert export_data == import_data
+
+
 async def test_import_export_equal_mode_image(instance_project: Project, import_csv: str, tmp_path: Path):
     prop_definitions = {
         1: Property(id=-1, name="tag", type=PropertyType.tag, mode=PropertyMode.sha1),
@@ -830,4 +847,3 @@ async def test_update_tag_parent_ignore_cycles_3(data_project: Project):
     # should not have added parent to avoid cycle
     db_tag2 = next(t for t in await db.get_tags(prop_id) if t.id == tag2.id)
     assert len(db_tag2.parents) == 0
-

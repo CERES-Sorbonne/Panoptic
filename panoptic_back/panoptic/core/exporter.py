@@ -122,7 +122,7 @@ class Exporter:
                     else:
                         row.append(value)
                 else:
-                    row.append(None)
+                    row.append('')
             rows.append(row)
         df = pd.DataFrame.from_records(rows, columns=columns)
         return df

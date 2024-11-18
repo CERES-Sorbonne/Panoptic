@@ -22,6 +22,11 @@ def import_csv(request):
 
 
 @pytest.fixture
+def import_with_empty_csv(request):
+    return str(Path(request.fspath).parent / "data" / "import_with_empty.csv")
+
+
+@pytest.fixture
 async def empty_project(request, tmp_path):
     base_path = Path(request.fspath).parent / EMPTY_DB_PATH
 
