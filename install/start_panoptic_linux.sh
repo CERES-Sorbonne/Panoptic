@@ -60,10 +60,11 @@ add_to_bin () {
         if [ "$SCRIPT_NAME" == "$COMMAND_NAME" ]; then
             echo "Le script est déjà dans le PATH. (Nom du script = Nom de la commande)"
             return 0
+        else
+          sudo cp "$SCRIPT_NAME" "$BIN_DIR/$COMMAND_NAME" || { echo "Erreur lors de la copie du script dans $BIN_DIR."; exit 1; }
+          sudo chmod +x "$BIN_DIR/$COMMAND_NAME" || { echo "Erreur lors du changement des permissions du script."; exit 1; }
+          echo "Le script a été copié dans $BIN_DIR."
         fi
-        sudo cp "$SCRIPT_NAME" "$BIN_DIR/$COMMAND_NAME"
-        sudo chmod +x "$BIN_DIR/$COMMAND_NAME"
-        echo "Le script a été copié dans $BIN_DIR."
     else
         echo "Le répertoire $BIN_DIR n'existe pas. Le script n'a pas été copié."
     fi
@@ -91,7 +92,7 @@ install_packages () {
 check_python_install () {
   commands=("$PYTHON_EXEC" "$PIP_EXEC" "$VENV_EXEC")
   for cmd in "${commands[@]}"; do
-    if ! command -v $cmd &> /dev/null; then
+    if ! command -v "$cmd" &> /dev/null; then
         echo "Installation de $cmd requis..."
         return 1
     fi
@@ -118,7 +119,7 @@ check_panoptic () {
 }
 
 create_venv () {
-    $VENV_EXEC
+    $VENV_EXEC || { echo "Erreur lors de la création de l'environnement virtuel."; exit 1; }
     echo "Installation de panoptic dans l'environnement virtuel..."
     source "$VENV_DIR"/bin/activate
     $PIP_EXEC install --upgrade pip
