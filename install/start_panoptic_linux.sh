@@ -2,6 +2,7 @@
 
 assume_yes=false
 reinstall=false
+update_script_in_path=true
 no_bin_copy=false
 
 VENV_DIR="$HOME/panoptic/panoptic_env"
@@ -9,7 +10,6 @@ PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
 BIN_DIR="/usr/local/bin"
-PACKAGES_TO_CHECK="venv"
 
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
 PYTHON_EXEC="python$PYTHON_VERSION"
@@ -17,10 +17,13 @@ PYTHON_EXEC="python$PYTHON_VERSION"
 PIP_EXEC="$PYTHON_EXEC -m pip"
 VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
 
-
 is_script_in_path () {
     if [ -x "$(command -v $COMMAND_NAME)" ]; then
         echo "Le script est déjà dans le PATH."
+        if [ "$update_script_in_path" = true ]; then
+            echo "Le script sera mis à jour."
+            return 1
+        fi
         return 0
     fi
     return 1
@@ -58,7 +61,7 @@ add_to_bin () {
     fi
 
     if [ -d "$BIN_DIR" ]; then
-        if [ "$SCRIPT_NAME" == "$COMMAND_NAME" ]; then
+        if [ "$SCRIPT_NAME" == "$COMMAND_NAME" ] && [ $update_script_in_path != true ]; then
             echo "Le script est déjà dans le PATH. (Nom du script = Nom de la commande)"
             return 0
         else
@@ -91,17 +94,6 @@ install_packages () {
     fi
     }
 
-#check_python_install () {
-#    if ! command -v $PYTHON_EXEC &> /dev/null; then
-#        return 1
-#    fi
-#
-#    for package in $PACKAGES_TO_CHECK; do
-#      ($PYTHON_EXEC -m pip show "$package" 2>&1) || { echo "Package $package not found."; return 1; }
-#    done
-#    return 0
-#  }
-
 check_python_version_in_venv () {
     if [[ "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "$PYTHON_VERSION" ]]; then
         echo "Installation de Python == $PYTHON_VERSION requis..."
@@ -111,7 +103,6 @@ check_python_version_in_venv () {
 }
 
 check_panoptic () {
-    source "$VENV_DIR"/bin/activate
     if ! command -v panoptic &> /dev/null; then
         echo "Installation de panoptic dans l'environnement virtuel..."
         $PIP_EXEC install panoptic
@@ -121,7 +112,7 @@ check_panoptic () {
 }
 
 create_venv () {
-    $VENV_EXEC || { echo "Erreur lors de la création de l'environnement virtuel."; exit 1; }
+    $VENV_EXEC || (install_packages "$PACKAGES" && $VENV_EXEC ) || { echo "Erreur lors de la création de l'environnement virtuel"; exit 1; }
     echo "Installation de panoptic dans l'environnement virtuel..."
     source "$VENV_DIR"/bin/activate
     $PIP_EXEC install --upgrade pip
@@ -136,34 +127,38 @@ recreate () {
     create_venv
 }
 
-check_venv () {
-    if [ "$reinstall" = true ]; then
-        recreate
-    else
-      if [ ! -d "$VENV_DIR" ]; then
-          echo "L'environnement virtuel '$VENV_DIR' n'existe pas. Création..."
-          create_venv
-      else
-          echo "L'environnement virtuel '$VENV_DIR' existe déjà. Activation..."
-          check_python_version_in_venv
-          if [ $? -eq 1 ]; then
-              if [ "$assume_yes" = true ]; then
-                  REPLY="o"
-              else
-                read -p "L'environnement virtuel existant a été créé avec une version de Python différente.\nSouhaitez-vous le recréer ? (o/n) avec la version $PYTHON_VERSION puis réinstaller panoptic ? " -n 1 -r
-                echo
-              fi
+resolve_venv () {
+  if [ ! -d "$VENV_DIR" ]; then
+      echo "L'environnement virtuel n'existe pas."
+      create_venv
+      return 0
+  fi
 
-              if [[ $REPLY =~ ^[Oo]$ ]]; then
-                  recreate
-              else
-                  check_panoptic
-              fi
-          fi
-      fi
+  echo "L'environnement virtuel '$VENV_DIR' existe déjà."
+  if [ "$reinstall" = true ]; then
+    recreate
+    return 0
+  fi
+
+  echo "Activation de l'environnement virtuel..."
+  source "$VENV_DIR"/bin/activate
+
+  check_python_version_in_venv
+  if [ $? -eq 1 ]; then
+    if [ "$assume_yes" = true ]; then
+      REPLY="o"
+    else
+      read -p "L'environnement virtuel existant a été créé avec une version de Python différente.\nSouhaitez-vous le recréer ? (o/n) avec la version $PYTHON_VERSION puis réinstaller panoptic ? " -n 1 -r
+      echo
+    fi
+
+    if [[ $REPLY =~ ^[Oo]$ ]]; then
+      recreate
+    else
+      check_panoptic
+    fi
     fi
 }
-
 
 for i in "$@"; do
   case $i in
@@ -187,6 +182,10 @@ for i in "$@"; do
       no_bin_copy=true
       shift
       ;;
+    --no-update-script)
+      update_script_in_path=false
+      shift
+      ;;
     -h|--help)
       echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [-h|--help]"
       echo "Options:"
@@ -195,6 +194,7 @@ for i in "$@"; do
       echo "  -s, --start-only         Start panoptic without checking the environment."
       echo "  -u, --uninstall          Uninstall panoptic and remove the virtual environment, won't remove any data nor system packages."
       echo "  --no-bin-copy            Don't copy the script to $BIN_DIR."
+      echo "  --no-update-script       Don't update the script in $BIN_DIR."
       echo "  -h, --help               Display this help message."
       exit 0
       ;;
@@ -208,16 +208,7 @@ done
 # Ajoute le script dans le PATH
 add_to_bin
 
-# Vérifie si Python == `$PYTHON_VERSION`, pip et venv sont installés, sinon installe ceux qui manquent
-#if ! command -v $PYTHON_EXEC &> /dev/null || ! command -v $PIP_EXEC &> /dev/null || command -v $VENV_EXEC &> /dev/null; then
-#if ! check_python_install; then
-#    echo "Installation de python$PYTHON_VERSION, pip et/ou venv requis..."
-install_packages "$PACKAGES" || { echo "Erreur lors de l'installation de python$PYTHON_VERSION, pip et/ou venv."; exit 1; }
-#else
-#    echo "python$PYTHON_VERSION, pip et venv sont déjà installés."
-#fi
-
-check_venv
+resolve_venv
 
 # Active l'environnement virtuel
 source "$VENV_DIR"/bin/activate

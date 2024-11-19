@@ -86,7 +86,7 @@ chmod +x start_panoptic_linux.sh
 
 Vous pouvez également préciser les paramètres de lancement de Panoptic en utilisant la commande suivante:
 ```bash
-./start_panoptic_linux.sh [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [-h|--help]
+./start_panoptic_linux.sh [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [--no-update-script] [-h|--help]
 ```
 Les options disponibles sont les suivantes:
 - `-y`, `--yes` ou `--assume-yes`: Utilisez cette option pour accepter automatiquement toutes les demandes de confirmation.
@@ -94,6 +94,7 @@ Les options disponibles sont les suivantes:
 - `-s` ou `--start-only`: Utilisez cette option pour lancer Panoptic sans réinstaller.
 - `-u` ou `--uninstall`: Utilisez cette option pour désinstaller Panoptic (ne supprime pas les données ni les dépendances système).'
 - `--no-bin-copy`: Utilisez cette option pour ne pas copier le script de lancement de Panoptic dans le répertoire `/usr/local/bin`.
+- `--no-update-script`: Utilisez cette option pour ne pas mettre à jour le script de lancement de Panoptic dans le répertoire `/usr/local/bin`.
 - `-h` ou `--help`: Utilisez cette option pour afficher l'aide.
 
 #### Post-installation
@@ -104,7 +105,7 @@ start-panoptic
  
 Vous pouvez également préciser les paramètres de lancement de Panoptic en utilisant la commande suivante:
 ```bash
-start-panoptic [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [-h|--help]
+start-panoptic [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [-no-update-script] [-h|--help]
 ```
 Les options disponibles sont les suivantes:
 - `-y`, `--yes` ou `--assume-yes`: Utilisez cette option pour accepter automatiquement toutes les demandes de confirmation.
@@ -112,6 +113,7 @@ Les options disponibles sont les suivantes:
 - `-s` ou `--start-only`: Utilisez cette option pour lancer Panoptic sans réinstaller.
 - `-u` ou `--uninstall`: Utilisez cette option pour désinstaller Panoptic (ne supprime pas les données ni les dépendances système).'
 - `--no-bin-copy`: Utilisez cette option pour ne pas copier le script de lancement de Panoptic dans le répertoire `/usr/local/bin`.
+- `--no-update-script`: Utilisez cette option pour ne pas mettre à jour le script de lancement de Panoptic dans le répertoire `/usr/local/bin`.
 - `-h` ou `--help`: Utilisez cette option pour afficher l'aide.
 
 
