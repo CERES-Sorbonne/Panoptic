@@ -2,12 +2,20 @@
 
 assume_yes=false
 reinstall=false
-start_only=false
+no_bin_copy=false
 
 VENV_DIR="$HOME/panoptic/panoptic_env"
 PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
+BIN_DIR="/usr/local/bin/"
+
+PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
+PYTHON_EXEC="python$PYTHON_VERSION"
+
+PIP_EXEC="$PYTHON_EXEC -m pip"
+VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
+
 
 is_script_in_path () {
     if [ -x "$(command -v $COMMAND_NAME)" ]; then
@@ -32,77 +40,34 @@ uninstall () {
     rm -rf "$VENV_DIR"
     if is_script_in_path; then
         echo "Suppression du script de démarrage '$COMMAND_NAME'..."
-        rm "/usr/bin/$COMMAND_NAME"
+        rm "$BIN_DIR/$COMMAND_NAME"
     fi
     echo "Désinstallation terminée, les fichiers de données et les paquets système ne sont pas affectés."
 }
 
-for i in "$@"; do
-  case $i in
-    -y|--yes|--assume-yes)
-      assume_yes=true
-      shift
-      ;;
-    -r|--reinstall)
-      reinstall=true
-      shift
-      ;;
-    -s|--start-only)
-      start_only=true
-      shift
-      ;;
-    -u|--uninstall)
-      uninstall
-      exit 0
-      ;;
-    -h|--help)
-      echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [-h|--help]"
-      echo "Options:"
-      echo "  -y, --yes, --assume-yes  Assume yes for all prompts."
-      echo "  -r, --reinstall          Recreate the virtual environment and reinstall panoptic."
-      echo "  -s, --start-only         Start panoptic without checking the environment."
-      echo "  -u, --uninstall          Uninstall panoptic and remove the virtual environment, won't remove any data nor system packages."
-      echo "  -h, --help               Display this help message."
-      exit 0
-      ;;
-    *)
-      ;;
-  esac
-done
-
-if [ "$start_only" = true ]; then
+start_only () {
     source "$VENV_DIR"/bin/activate || { echo "L'environnement virtuel n'existe pas. Veuillez exécuter le script sans l'option -s pour utilisez les procédures d'installation."; exit 1; }
     echo "Lancement de panoptic..."
     panoptic || { echo "Erreur lors du lancement de panoptic."; exit 1; }
-    exit 0
-fi
-
-PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
-PYTHON_EXEC="python$PYTHON_VERSION"
-
-PIP_EXEC="$PYTHON_EXEC -m pip"
-VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
-
-
+}
 
 add_to_bin () {
-    if is_script_in_path; then
+    if [ "$no_bin_copy" = true ] || is_script_in_path ;  then
         return 0
     fi
 
-    if [ -d "/usr/bin" ]; then
+    if [ -d "$BIN_DIR" ]; then
         if [ "$SCRIPT_NAME" == "$COMMAND_NAME" ]; then
             echo "Le script est déjà dans le PATH. (Nom du script = Nom de la commande)"
             return 0
         fi
-        cp "$SCRIPT_NAME" "/usr/bin/$COMMAND_NAME"
-        chmod +x "/usr/bin/$COMMAND_NAME"
-        echo "Le script a été copié dans /usr/bin."
+        sudo cp "$SCRIPT_NAME" "$BIN_DIR/$COMMAND_NAME"
+        chmod +x "$BIN_DIR/$COMMAND_NAME"
+        echo "Le script a été copié dans $BIN_DIR."
     else
-        echo "Le répertoire /usr/bin n'existe pas. Le script n'a pas été copié."
+        echo "Le répertoire $BIN_DIR n'existe pas. Le script n'a pas été copié."
     fi
 }
-
 
 install_packages () {
     packagesNeeded=$1
@@ -195,6 +160,47 @@ check_venv () {
       fi
     fi
 }
+
+
+for i in "$@"; do
+  case $i in
+    -y|--yes|--assume-yes)
+      assume_yes=true
+      shift
+      ;;
+    -r|--reinstall)
+      reinstall=true
+      shift
+      ;;
+    -s|--start-only)
+      start_only
+      exit 0
+      ;;
+    -u|--uninstall)
+      uninstall
+      exit 0
+      ;;
+    --no-bin-copy)
+      no_bin_copy=true
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [-h|--help]"
+      echo "Options:"
+      echo "  -y, --yes, --assume-yes  Assume yes for all prompts."
+      echo "  -r, --reinstall          Recreate the virtual environment and reinstall panoptic."
+      echo "  -s, --start-only         Start panoptic without checking the environment."
+      echo "  -u, --uninstall          Uninstall panoptic and remove the virtual environment, won't remove any data nor system packages."
+      echo "  --no-bin-copy            Don't copy the script to $BIN_DIR."
+      echo "  -h, --help               Display this help message."
+      exit 0
+      ;;
+    *)
+      ;;
+  esac
+done
+
+## MAIN ##
 
 # Ajoute le script dans le PATH
 add_to_bin
