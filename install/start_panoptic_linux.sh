@@ -6,6 +6,8 @@ start_only=false
 
 VENV_DIR="$HOME/panoptic/panoptic_env"
 PYTHON_VERSION="3.12"
+SCRIPT_NAME=$(basename "$0")
+COMMAND_NAME="start-panoptic"
 
 for i in "$@"; do
   case $i in
@@ -20,6 +22,15 @@ for i in "$@"; do
     -s|--start-only)
       start_only=true
       shift
+      ;;
+    -h|--help)
+      echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-h|--help]"
+      echo "Options:"
+      echo "  -y, --yes, --assume-yes  Assume yes for all prompts."
+      echo "  -r, --reinstall          Recreate the virtual environment and reinstall panoptic."
+      echo "  -s, --start-only         Start panoptic without checking the environment."
+      echo "  -h, --help               Display this help message."
+      exit 0
       ;;
     *)
       ;;
@@ -38,6 +49,33 @@ PYTHON_EXEC="python$PYTHON_VERSION"
 
 PIP_EXEC="$PYTHON_EXEC -m pip"
 VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
+
+is_script_in_path () {
+    if [ -x "$(command -v $COMMAND_NAME)" ]; then
+        echo "Le script est déjà dans le PATH."
+        return 0
+    fi
+    return 1
+}
+
+add_to_bin () {
+    if is_script_in_path; then
+        return 0
+    fi
+
+    if [ -d "/usr/bin" ]; then
+        if [ "$SCRIPT_NAME" == "$COMMAND_NAME" ]; then
+            echo "Le script est déjà dans le PATH. (Nom du script = Nom de la commande)"
+            return 0
+        fi
+        cp "$SCRIPT_NAME" "/usr/bin/$COMMAND_NAME"
+        chmod +x "/usr/bin/$COMMAND_NAME"
+        echo "Le script a été copié dans /usr/bin."
+    else
+        echo "Le répertoire /usr/bin n'existe pas. Le script n'a pas été copié."
+    fi
+}
+
 
 install_packages () {
     packagesNeeded=$1
@@ -130,6 +168,9 @@ check_venv () {
       fi
     fi
 }
+
+# Ajoute le script dans le PATH
+add_to_bin
 
 # Vérifie si Python == `$PYTHON_VERSION`, pip et venv sont installés, sinon installe ceux qui manquent
 #if ! command -v $PYTHON_EXEC &> /dev/null || ! command -v $PIP_EXEC &> /dev/null || command -v $VENV_EXEC &> /dev/null; then
