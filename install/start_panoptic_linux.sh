@@ -41,7 +41,7 @@ uninstall () {
     rm -rf "$VENV_DIR"
     if is_script_in_path; then
         echo "Suppression du script de démarrage '$COMMAND_NAME'..."
-        rm "$BIN_DIR/$COMMAND_NAME"
+        sudo rm "$BIN_DIR/$COMMAND_NAME"
     fi
     echo "Désinstallation terminée, les fichiers de données et les paquets système ne sont pas affectés."
 }
