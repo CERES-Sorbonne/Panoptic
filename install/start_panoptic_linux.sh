@@ -9,6 +9,7 @@ PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
 BIN_DIR="/usr/local/bin"
+PACKAGES_TO_CHECK="venv"
 
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
 PYTHON_EXEC="python$PYTHON_VERSION"
@@ -72,7 +73,7 @@ add_to_bin () {
 
 install_packages () {
     packagesNeeded=$1
-    # shellcheck disable=SC2068
+    # shellcheck disable=SC2086
     if [ -x "$(command -v apk)" ];
     then
         sudo apk add --no-cache $packagesNeeded ${assume_yes:+"--noconfirm"}
@@ -91,14 +92,14 @@ install_packages () {
     }
 
 check_python_install () {
-  commands=("$PYTHON_EXEC" "$PIP_EXEC" "$VENV_EXEC")
-  for cmd in "${commands[@]}"; do
-    if ! command -v "$cmd" &> /dev/null; then
-        echo "Installation de $cmd requis..."
+    if ! command -v $PYTHON_EXEC &> /dev/null; then
         return 1
     fi
-  done
-  return 0
+
+    for package in $PACKAGES_TO_CHECK; do
+      ($PYTHON_EXEC -m pip show "$package" 2>&1) || { echo "Package $package not found."; return 1; }
+    done
+    return 0
   }
 
 check_python_version_in_venv () {
