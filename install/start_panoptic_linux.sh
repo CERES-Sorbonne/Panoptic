@@ -72,18 +72,19 @@ add_to_bin () {
 
 install_packages () {
     packagesNeeded=$1
+    # shellcheck disable=SC2068
     if [ -x "$(command -v apk)" ];
     then
-        sudo apk add --no-cache "${packagesNeeded[@]}" ${assume_yes:+"--noconfirm"}
+        sudo apk add --no-cache ${packagesNeeded[@]} ${assume_yes:+"--noconfirm"}
     elif [ -x "$(command -v apt-get)" ];
     then
-        sudo apt-get install "${packagesNeeded[@]}" ${assume_yes:+"--yes"}
+        sudo apt-get install ${packagesNeeded[@]} ${assume_yes:+"--yes"}
     elif [ -x "$(command -v dnf)" ];
     then
-        sudo dnf install "${packagesNeeded[@]}" ${assume_yes:+"-y"}
+        sudo dnf install ${packagesNeeded[@]} ${assume_yes:+"-y"}
     elif [ -x "$(command -v zypper)" ];
     then
-        sudo zypper install "${packagesNeeded[@]}" ${assume_yes:+"-y"}
+        sudo zypper install ${packagesNeeded[@]} ${assume_yes:+"-y"}
     else
         echo "FAILED TO INSTALL PACKAGE: Package manager not found. You must manually install: ${packagesNeeded[*]}">&2;
     fi
