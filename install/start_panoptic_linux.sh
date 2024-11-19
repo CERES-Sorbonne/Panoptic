@@ -91,16 +91,16 @@ install_packages () {
     fi
     }
 
-check_python_install () {
-    if ! command -v $PYTHON_EXEC &> /dev/null; then
-        return 1
-    fi
-
-    for package in $PACKAGES_TO_CHECK; do
-      ($PYTHON_EXEC -m pip show "$package" 2>&1) || { echo "Package $package not found."; return 1; }
-    done
-    return 0
-  }
+#check_python_install () {
+#    if ! command -v $PYTHON_EXEC &> /dev/null; then
+#        return 1
+#    fi
+#
+#    for package in $PACKAGES_TO_CHECK; do
+#      ($PYTHON_EXEC -m pip show "$package" 2>&1) || { echo "Package $package not found."; return 1; }
+#    done
+#    return 0
+#  }
 
 check_python_version_in_venv () {
     if [[ "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "$PYTHON_VERSION" ]]; then
@@ -210,12 +210,12 @@ add_to_bin
 
 # Vérifie si Python == `$PYTHON_VERSION`, pip et venv sont installés, sinon installe ceux qui manquent
 #if ! command -v $PYTHON_EXEC &> /dev/null || ! command -v $PIP_EXEC &> /dev/null || command -v $VENV_EXEC &> /dev/null; then
-if ! check_python_install; then
-    echo "Installation de python$PYTHON_VERSION, pip et/ou venv requis..."
-    install_packages "$PACKAGES" || { echo "Erreur lors de l'installation de python$PYTHON_VERSION, pip et/ou venv."; exit 1; }
-else
-    echo "python$PYTHON_VERSION, pip et venv sont déjà installés."
-fi
+#if ! check_python_install; then
+#    echo "Installation de python$PYTHON_VERSION, pip et/ou venv requis..."
+install_packages "$PACKAGES" || { echo "Erreur lors de l'installation de python$PYTHON_VERSION, pip et/ou venv."; exit 1; }
+#else
+#    echo "python$PYTHON_VERSION, pip et venv sont déjà installés."
+#fi
 
 check_venv
 
