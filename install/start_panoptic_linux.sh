@@ -8,7 +8,7 @@ VENV_DIR="$HOME/panoptic/panoptic_env"
 PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
-BIN_DIR="/usr/local/bin/"
+BIN_DIR="/usr/local/bin"
 
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
 PYTHON_EXEC="python$PYTHON_VERSION"
@@ -62,7 +62,7 @@ add_to_bin () {
             return 0
         fi
         sudo cp "$SCRIPT_NAME" "$BIN_DIR/$COMMAND_NAME"
-        chmod +x "$BIN_DIR/$COMMAND_NAME"
+        sudo chmod +x "$BIN_DIR/$COMMAND_NAME"
         echo "Le script a été copié dans $BIN_DIR."
     else
         echo "Le répertoire $BIN_DIR n'existe pas. Le script n'a pas été copié."
