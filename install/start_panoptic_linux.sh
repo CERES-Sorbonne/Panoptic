@@ -9,6 +9,34 @@ PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
 
+is_script_in_path () {
+    if [ -x "$(command -v $COMMAND_NAME)" ]; then
+        echo "Le script est déjà dans le PATH."
+        return 0
+    fi
+    return 1
+}
+
+uninstall () {
+    if [ $assume_yes = true ]; then
+        REPLY="n"
+    else
+        read -p "Voulez-vous vraiment désinstaller panoptic ? (o/n) " -n 1 -r
+        echo
+    fi
+    if [[ ! $REPLY =~ ^[Oo]$ ]]; then
+        echo "Désinstallation annulée."
+        exit 0
+    fi
+    echo "Suppression de l'environnement virtuel '$VENV_DIR'..."
+    rm -rf "$VENV_DIR"
+    if is_script_in_path; then
+        echo "Suppression du script de démarrage '$COMMAND_NAME'..."
+        rm "/usr/bin/$COMMAND_NAME"
+    fi
+    echo "Désinstallation terminée, les fichiers de données et les paquets système ne sont pas affectés."
+}
+
 for i in "$@"; do
   case $i in
     -y|--yes|--assume-yes)
@@ -23,12 +51,17 @@ for i in "$@"; do
       start_only=true
       shift
       ;;
+    -u|--uninstall)
+      uninstall
+      exit 0
+      ;;
     -h|--help)
-      echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-h|--help]"
+      echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [-h|--help]"
       echo "Options:"
       echo "  -y, --yes, --assume-yes  Assume yes for all prompts."
       echo "  -r, --reinstall          Recreate the virtual environment and reinstall panoptic."
       echo "  -s, --start-only         Start panoptic without checking the environment."
+      echo "  -u, --uninstall          Uninstall panoptic and remove the virtual environment, won't remove any data nor system packages."
       echo "  -h, --help               Display this help message."
       exit 0
       ;;
@@ -50,13 +83,7 @@ PYTHON_EXEC="python$PYTHON_VERSION"
 PIP_EXEC="$PYTHON_EXEC -m pip"
 VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
 
-is_script_in_path () {
-    if [ -x "$(command -v $COMMAND_NAME)" ]; then
-        echo "Le script est déjà dans le PATH."
-        return 0
-    fi
-    return 1
-}
+
 
 add_to_bin () {
     if is_script_in_path; then
