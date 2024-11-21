@@ -1,0 +1,20 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Panoptic
+Comment=Panoptic
+Terminal=true
+Icon=/home/panoptic/icon.png
+Exec=/usr/local/bin/start-panoptic
+
+[Desktop Action start-only]
+Name=Start Panoptic
+Exec=/usr/local/bin/start-panoptic -s
+
+[Desktop Action reinstall]
+Name=Reinstall Panoptic
+Exec=/usr/local/bin/start-panoptic -r
+
+[Desktop Action uninstall]
+Name=Uninstall Panoptic
+Exec=/usr/local/bin/start-panoptic -u
