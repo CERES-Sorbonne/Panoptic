@@ -29,7 +29,7 @@ Ayant besoin de librairies de deep learning, il est recommandé de l'utiliser av
 > Attention: Panoptic est encore en phase active de développement et n'est pour l'instant qu'un prototype, il est fort probable que vous rencontriez des bugs, aussi nous recommandons de n'utiliser cet outil que pour des tests et ne pas se reposer dessus pour un travail académique conséquent. 
 
 ## Installation
-### Installations manuelle (avec pip)
+### Via pip
 <p style="color: red;">
 Quel que soit votre OS vous aurez besoin de Python 3.10 ou supérieur, nous vous recommandons d'utiliser la version 3.12.
 </p>
