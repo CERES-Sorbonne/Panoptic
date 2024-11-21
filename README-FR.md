@@ -12,6 +12,9 @@
 2. [Installation](#installation)
     1. [Via pip](#via-pip)
     2. [Scripts d'installation et de lancement automatique (recommandé)](#scripts-dinstallation-automatique-et-de-lancement-recommandé)
+        1. [Windows](#windows)
+        2. [Linux](#linux)
+        3. [MacOS](#macos)
     3. [Installation Docker](#installation-docker)
     4. [Installation (développement)](#installation-développement)
 3. [Utilisation](#utilisation)
@@ -49,46 +52,37 @@ Il se peut que le script vous demande votre mot de passe pour installer les dép
 
 #### Windows
 
-[//]: # (Voici les trois commandes à exécuter pour installer Panoptic sur Windows:)
+Voici les deux commandes à exécuter pour installer Panoptic sur Windows:
 
-[//]: # (```cmd)
+```powershell
+curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1
+powershell -ExecutionPolicy Bypass -File start_panoptic_windows.ps1
+```
 
-[//]: # (curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1)
 
-[//]: # (powershell -ExecutionPolicy Bypass -File start_panoptic_windows.ps1)
+Pour détailler un peu plus les étapes:
 
-[//]: # (```)
+1. Téléchargez le script d'installation automatique et de lancement de Panoptic en cliquant sur le lien suivant: [start_panoptic_windows.ps1](https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1) ou directement depuis le terminal avec la commande suivante:
 
-[//]: # ()
-[//]: # (Pour détailler un peu plus les étapes:)
+```powershell
+curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1
+```
 
-[//]: # (1. Téléchargez le script d'installation automatique et de lancement de Panoptic en cliquant sur le lien suivant: [start_panoptic_windows.ps1]&#40;https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1&#41; ou directement depuis le terminal avec la commande suivante:)
 
-[//]: # (```cmd)
+2. Exécutez le script en double-cliquant sur le fichier ou en utilisant la commande suivante:
 
-[//]: # (curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1)
+```powershell
+powershell -ExecutionPolicy Bypass -File start_panoptic_windows.ps1
+```
 
-[//]: # (```)
 
-[//]: # ()
-[//]: # (2. Exécutez le script en double-cliquant sur le fichier ou en utilisant la commande suivante:)
+#### Post-installation
 
-[//]: # (```cmd)
+Après l'installation, vous pouvez lancer Panoptic en vous rendant de nouveau dans le dossier où vous avez exécuté le script d'installation et en exécutant la commande suivante:
 
-[//]: # (powershell -ExecutionPolicy Bypass -File start_panoptic_windows.ps1)
-
-[//]: # (```)
-
-[//]: # ()
-[//]: # (#### Post-installation)
-
-[//]: # (Après l'installation, vous pouvez lancer Panoptic en vous rendant de nouveau dans le dossier où vous avez exécuté le script d'installation et en exécutant la commande suivante:)
-
-[//]: # (```cmd)
-
-[//]: # (powershell -ExecutionPolicy Bypass -File start-panoptic.ps1)
-
-[//]: # (```)
+```powershell
+powershell -ExecutionPolicy Bypass -File start-panoptic.ps1
+```
 
 
 #### Linux
@@ -173,8 +167,6 @@ Après l'installation, vous pouvez lancer Panoptic en vous rendant de nouveau da
 ```
 
 
-
-
 ### Installation Docker
 
 Si vous avez rencontré des problèmes avec l'installation classique, ou que vous préférez utiliser Docker, une image est à disposition. Il faut tout d'abord:
@@ -190,7 +182,7 @@ Sur la version docker, il n'existe pas la petite interface pour ajouter des doss
 
 #### Option 1: Un seul dossier pour les images et pour les données panoptic:
 
-Cela implique d'avoir créé un dossier spécial appelé "images", dans le dossier que vous indiquerez en entrée de panoptic. Dans l'exemple suivant, il faudrait ainsi que dans le dossier: `/chemin/vers/le/dossier`, il existe un dossier `images`dont le chemin complet serait par conséquent `/chemin/vers/le/dossier/images`.
+Cela implique d'avoir créé un dossier spécial appelé "images", dans le dossier que vous indiquerez en entrée de panoptic. Dans l'exemple suivant, il faudrait ainsi que dans le dossier: `/chemin/vers/le/dossier`, il existe un dossier `images` dont le chemin complet serait par conséquent `/chemin/vers/le/dossier/images`.
 
 Il faut ensuite lancer la commande suivante (avec Docker de lancé au préalable)
 
