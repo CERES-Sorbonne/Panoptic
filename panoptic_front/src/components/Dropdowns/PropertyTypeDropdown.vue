@@ -17,7 +17,7 @@ const filtered = computed(() => types.filter(t => t != PropertyType.image_link &
 <template>
     <div class="dropdown">
         <button class="input-lg text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <span v-if="props.modelValue == null">Type de propriété..</span>
+            <span v-if="props.modelValue == null">{{$t('modals.properties.type')}}</span>
             <span v-else>
                 <PropertyIcon :type="props.modelValue"/>
                 {{ $t('modals.properties.' + props.modelValue) }}

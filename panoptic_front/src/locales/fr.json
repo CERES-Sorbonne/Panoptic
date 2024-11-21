@@ -72,7 +72,7 @@
             "image_size_tooltip": "Taille des images",
             "all_images": "Images",
             "sha1_images": "Instances",
-            "image_mode_tooltip": "Switcher entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
+            "image_mode_tooltip": "Altérner entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
             "selected_images": "images sélectionnées",
             "tag_selection": "Tagger les ",
             "remove_selection_tooltip": "Annuler la sélection",
@@ -125,8 +125,8 @@
         "image": {
             "similar_images": "Images similaires",
             "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",
-            "unique_properties": "Propriétés uniques",
-            "unique_properties_tooltip": "Affichage des propriétés liées aux instances de cette image.",
+            "unique_properties": "Propriétés des instances",
+            "unique_properties_tooltip": "Affichage des propriétés liées à toutes les instances de cette image.",
             "similarity_filter_tooltip": "Le pourcentage de similarité minimal que doivent avoir les images affichées ici. Pour plus d'information, voir la documentation sur le score de similarité.",
             "toggle_property_tooltip": "Afficher / Masquer cette propriété dans la vue 'Images similaires'",
             "main_filter_tooltip": "Activer / Désactiver le filtre global",
@@ -136,21 +136,24 @@
         "properties": {
             "title": "Nouvelle propriété",
             "input": "Nom de la propriété",
+            "type": "Type de propriété",
+            "instance": "Propriété d'instance",
+            "image": "Propriété d'image",
             "cancel": "Annuler",
             "confirm": "Confirmer",
-            "string": "Texte",
+            "string": "Text",
             "string_tooltip": "Du texte, ex: le contenu d'un tweet, la description d'une image",
-            "number": "Numérique",
+            "number": "Number",
             "number_tooltip": "Des nombres, ex: le nombre de likes sur twitter, la largeur d'un tableau",
-            "tag": "Label",
-            "tag_tooltip": "Un label unique choisi parmi une liste, ex: une catégorie d'image, un lieu, une source",
-            "multi_tags": "Labels",
-            "multi_tags_tooltip": "Permet d'assigner un ou plusieurs labels parmi une liste, ex: des catégories, des lieux, des objets",
+            "tag": "Tag",
+            "tag_tooltip": "Un tag unique choisi parmi une liste, ex: une catégorie d'image, un lieu, une source",
+            "multi_tags": "MultiTags",
+            "multi_tags_tooltip": "Permet d'assigner un ou plusieurs tags parmi une liste, ex: des catégories, des lieux, des objets",
             "url": "URL",
             "url_tooltip": "Une URL cliquable, ex: le lien vers la source d'une image",
             "date": "Date",
             "date_tooltip": "Une date au format jj / mm / aaaa",
-            "color": "Couleur",
+            "color": "Color",
             "color_tooltip": "Un simple carré de couleur permettant de catégoriser sans assigner de label",
             "checkbox": "Checkbox",
             "checkbox_tooltip": "Une case à cocher, ex: 'pertinent' / 'non pertinent', 'sensible / non sensible'"
@@ -233,10 +236,23 @@
             "title": "Parametres Projet"
         },
         "import": {
-            "title": "Importer Fichier"
+            "title": "Importer Fichier",
+            "help": {
+                "0": "Un fichier valide de propriétés à importer est un csv:",
+                "1": "Avec séparateur ';'",
+                "2": "Ayant comme première colonne soit:",
+                "3": "path: un chemin relatif ou absolu vers le fichier d'image",
+                "4": "id: un id panoptic (correspondant à une image déjà importée dans panoptic)",
+                "5": "Une liste de colonnes correspondant à chaque fois au nom de la propriété à donner puis à son type entre crochets.",
+                "6": "Exemple: categories[multi_tags]",
+                "7": "Dans le cas d'une propriété multi_tags, les tags devront être séparés par des virgules au sein de la colonne",
+                "8": "Tableau d'équivalence des propriétés:",
+                "9": "Nom dans panoptic",
+                "10": "Nom à l'import / export"
+            }
         },
         "first": {
-            "introduction": "Did you ever hear the story of PanopticML the Machine Learning Sage I thought not Its not a tale shared in standard plugin repositories its a legend among data scientists PanopticML was a plugin of immense capability so advanced and so refined it could transform vast image corpora into structured insights It wielded the power of OpenAIs CLIP to encode visual data grouping them into meaningful clusters using FAISS Kmeans It could even draw uncanny connections between images and texts a feat most considered beyond the grasp of ordinary software Machine learning it was said is a pathway to insights some deem impossible It became indispensable a tool feared only for the overwhelming potential it placed in the users hands But as with all great power its secrets came with risks an irony that even in mastery PanopticML demanded the humility to wield it wisely",
+            "introduction": "Bienvenue sur Panoptic, logiciel proposant d'explorer de grands corpus d'images en les manipulant par leurs propriétés et à l'aide d'outils de machine learning. Ces derniers ne sont pas installés de base pour limiter la taille de panoptic dans le cas où ils ne vous intéresseraient pas. Il est cependant recommandé de les installer pour profiter des pleines fonctionnalités de Panoptic.",
             "install_ml": "Installer Plugin ML"
         }
     },
@@ -310,6 +326,15 @@
         "valid": "Valide",
         "invalid": "Invalide",
         "correct": "Correction"
+    },
+    "common": {
+        "properties": {
+            "panoptic": "Propriétés Panoptic",
+            "instance": "Propriétés de l'instance",
+            "instances": "Propriété des instances",
+            "image": "Propriétés d'image",
+            "delete": "Voulez vous vraiment supprimer la propriété"
+        }
     },
     "none": "Vide...",
     "installing": "Installation...",

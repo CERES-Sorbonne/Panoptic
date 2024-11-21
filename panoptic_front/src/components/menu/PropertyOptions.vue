@@ -10,6 +10,9 @@ import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import { Dropdowns } from '@/data/dropdowns';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n(({ useScope: 'global' }))
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
@@ -88,7 +91,7 @@ function setGroup() {
 }
 
 function deleteProperty() {
-    if (confirm('Supprimer la propriété: ' + props.property.name + ' ?   ' + props.property.id))
+    if (confirm(t('common.properties.delete') + ': ' + props.property.name + ' ?   ' + props.property.id))
         data.deleteProperty(props.property.id)
 }
 
