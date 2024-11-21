@@ -100,7 +100,7 @@ function redirectHome() {
 </script>
 
 <template>
-    <Tutorial tutorial="project" /> <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
+    <Tutorial v-if="mainViewRef && !mainViewRef.imageList" tutorial="project" /> <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
     <div id="panoptic" :key="project.status.renderNb">
         <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
         <div class="d-flex flex-row m-0 p-0 overflow-hidden">

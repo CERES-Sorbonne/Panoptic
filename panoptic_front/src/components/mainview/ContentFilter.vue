@@ -93,7 +93,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             <wTT message="main.menu.image_mode_tooltip">
                 <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode"
                     @change="updateSha1Mode" />
-                <span class="ms-1">Mode Image unique</span>
+                <span class="ms-1">{{ $t('main.menu.image_mode') }}</span>
             </wTT>
         </div>
         <div class="ms-4">

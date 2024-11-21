@@ -19,19 +19,26 @@ def save_json(filepath, data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-def get_missing_keys(fr_data, en_data):
-    """Trouve les clés présentes dans fr.json mais absentes de en.json."""
-    diff = DeepDiff(en_data, fr_data, ignore_order=True)
-    missing_keys = diff.get('dictionary_item_added', [])
-    return [key.replace('root[', '').replace('[', '.').replace(']', '').replace("'", "") for key in missing_keys]
+def get_missing_text_keys(fr_data, en_data, prefix=""):
+    """Trouve les clés textuelles présentes dans fr.json mais absentes de en.json."""
+    missing_text_keys = {}
+    for key, fr_value in fr_data.items():
+        current_key_path = f"{prefix}.{key}" if prefix else key
+        en_value = en_data.get(key)
 
+        # Si la clé est un sous-dictionnaire, on descend récursivement
+        if isinstance(fr_value, dict):
+            # Descend dans les sous-dictionnaires
+            if isinstance(en_value, dict):
+                missing_text_keys.update(get_missing_text_keys(fr_value, en_value, current_key_path))
+            else:
+                missing_text_keys.update(get_missing_text_keys(fr_value, {}, current_key_path))
 
-def get_nested_value(data, key_path):
-    """Récupère la valeur d'une clé imbriquée à partir de son chemin."""
-    keys = key_path.split('.')
-    for key in keys:
-        data = data[key]
-    return data
+        # Si la valeur est textuelle et n'existe pas dans en.json, on l'ajoute
+        elif isinstance(fr_value, str) and en_value is None:
+            missing_text_keys[current_key_path] = fr_value
+
+    return missing_text_keys
 
 
 def set_nested_value(data, key_path, value):
@@ -46,15 +53,13 @@ def set_nested_value(data, key_path, value):
 en_data = load_json(path_en)
 fr_data = load_json(path_fr)
 
-# Obtenir les clés manquantes dans en.json
-missing_keys = get_missing_keys(fr_data, en_data)
+# Obtenir les clés textuelles manquantes dans en.json
+missing_text_keys = get_missing_text_keys(fr_data, en_data)
 
-if not missing_keys:
-    print("Toutes les clés de fr.json sont déjà présentes dans en.json.")
+if not missing_text_keys:
+    print("Toutes les clés de texte de fr.json sont déjà présentes dans en.json.")
 else:
-    for key_path in missing_keys:
-        # Obtenir la valeur dans fr.json pour la clé manquante
-        fr_value = get_nested_value(fr_data, key_path)
+    for key_path, fr_value in missing_text_keys.items():
         print(f"Clé manquante : {key_path}")
         print(f"Valeur dans fr.json : {fr_value}")
 

@@ -72,14 +72,15 @@
             "image_size_tooltip": "Image size",
             "all_images": "Instances",
             "sha1_images": "Images",
+            "image_mode": "Stack identical images",
             "image_mode_tooltip": "Switch between instance and image modes, in image mode, only properties common to all instances of an image will be displayed.",
             "selected_images": "selected images",
             "tag_selection": "Tag the ",
             "remove_selection_tooltip": "Cancel selection",
-            "filters": "Filter: ",
-            "groupby": "Group: ",
+            "filters": "Filter ",
+            "groupby": "Group ",
             "sort": {
-                "title": "Sort: ",
+                "title": "Sort ",
                 "group_order_az_tooltip": "Sort groups by name",
                 "group_order_nb_tooltip": "Sort groups by number of images",
                 "order_desc": "Sort by descending order",
@@ -140,12 +141,12 @@
             "confirm": "Confirm",
             "string": "Text",
             "string_tooltip": "Text, e.g. tweet content, image description",
-            "number": "Numeric",
+            "number": "Number",
             "number_tooltip": "Numbers, e.g. the number of likes on twitter, the width of a table",
-            "tag": "Label",
-            "tag_tooltip": "A single label chosen from a list, e.g. an image category, a location, a source",
-            "multi_tags": "Labels",
-            "multi_tags_tooltip": "Like a label but with the possibility of assigning several at the same time",
+            "tag": "Tag",
+            "tag_tooltip": "A single tag chosen from a list, e.g. an image category, a location, a source",
+            "multi_tags": "MultiTags",
+            "multi_tags_tooltip": "Like a tag but with the possibility of assigning several at the same time",
             "url": "URL",
             "url_tooltip": "A clickable URL, e.g. the link to the source of an image",
             "date": "Date",
@@ -153,7 +154,10 @@
             "color": "Color",
             "color_tooltip": "A simple colored square to categorize without assigning a label",
             "checkbox": "Checkbox",
-            "checkbox_tooltip": "A checkbox, e.g. 'relevant' / 'irrelevant', 'sensitive / non-sensitive'"
+            "checkbox_tooltip": "A checkbox, e.g. 'relevant' / 'irrelevant', 'sensitive / non-sensitive'",
+            "type": "Property Type",
+            "instance": "Instance Property",
+            "image": "Image Property"
         },
         "filters": {
             "title": "Filters:",
@@ -192,7 +196,19 @@
             "erase_tooltip": "Erase this field for whole selection",
             "cancel_tooltip": "Cancel changes"
         },
-        "tags": {},
+        "tags": {
+            "filter_tree": "Display only selected tags",
+            "unselect_tree": "Cancel selection",
+            "merge_tree": "Merge tags",
+            "tree_view": "Tree View",
+            "list_view": "List view",
+            "click_to_select": "Click to select tags",
+            "click_any": "Click to select",
+            "col_title_all": "All tags",
+            "col_title_children": "Children tags",
+            "col_title_siblings": "Siblings tags",
+            "col_title_parents": "Parents tags"
+        },
         "export": {
             "title": "Export Data",
             "images": "Only images from the tab",
@@ -222,6 +238,10 @@
         },
         "import": {
             "title": "Import File"
+        },
+        "first": {
+            "introduction": "Bienvenue sur Panoptic, logiciel proposant d'explorer de grands corpus d'images en les manipulant par leurs propriétés et à l'aide d'outils de machine learning. Ces derniers ne sont pas installés de base pour limiter la taille de panoptic dans le cas où ils ne vous intéresseraient pas. Il est cependant recommandé de les installer pour profiter des pleines fonctionnalités de Panoptic.",
+            "install_ml": "Install Plugin ML"
         }
     },
     "tutorial": {
@@ -295,5 +315,16 @@
         "correct": "Rectify"
     },
     "none": "Empty...",
-    "tmp": "Tooltip to be written"
+    "tmp": "Tooltip to be written",
+    "common": {
+        "properties": {
+            "panoptic": "Panoptic properties",
+            "instance": "Instance properties",
+            "instances": "All instances properties",
+            "image": "Image properties",
+            "delete": "Do you really want to delete property"
+        }
+    },
+    "installing": "Installing",
+    "installed": "Installed"
 }
