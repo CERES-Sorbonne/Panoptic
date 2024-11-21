@@ -36,41 +36,23 @@ classifiers = [
 dependencies = [
     "aiofiles",
     "aiosqlite",
-    "faiss-cpu",
-    "fastapi==0.99.1",
-    "fastapi-camelcase==1.0.5",
-    "imagehash",
+    "fastapi",
+    "fastapi-camelcase",
     "numpy",
     "orjson",
     "pandas",
     "psutil",
     "pydantic",
     "pypika",
-    "pytesseract",
     "python-multipart",
     "requests",
-    "scikit-learn",
     "show-in-file-manager",
     "starlette",
-    "transformers",
     "uvicorn",
     "pendulum",
-    "torch==2.0.1 ; sys_platform == 'darwin'",
-    "torch ; sys_platform != 'darwin'",
+    "imagehash",
+    "pillow"
 ]
-
-[tool.hatch.envs.default]
-installer = "uv"
-
-[tool.hatch.envs.hatch-uv]
-dependencies = [
-  "uv>9000",
-]
-
-[tool.hatch.envs.default.env-vars]
-PIP_INDEX_URL="https://download.pytorch.org/whl/cpu"
-#PIP_EXTRA_INDEX_URL="https://pypi.org/simple"
-
 
 [project.urls]
 Repository = "https://github.com/CERES-Sorbonne/panoptic"
