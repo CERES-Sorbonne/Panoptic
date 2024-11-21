@@ -10,6 +10,10 @@ PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
 BIN_DIR="/usr/local/bin"
+DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/panoptic.desktop"
+DESKTOP_FILE="panoptic.desktop"
+WHERE_TO_PUT_DESKTOP_FILE=(/usr/share/applications "$HOME/.local/share/applications" "$HOME/Desktop")
+
 
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
 PYTHON_EXEC="python$PYTHON_VERSION"
@@ -72,6 +76,18 @@ add_to_bin () {
     else
         echo "Le répertoire $BIN_DIR n'existe pas. Le script n'a pas été copié."
     fi
+}
+
+add_desktop_file () {
+    wget -O "$DESKTOP_FILE" "$DESKTOP_FILE_URL" || { echo "Erreur lors du téléchargement du fichier desktop."; exit 1; }
+    for i in "${WHERE_TO_PUT_DESKTOP_FILE[@]}"; do
+        if [ -d "$i" ]; then
+            sudo cp "$DESKTOP_FILE" "$i" || { echo "Erreur lors de la copie du fichier desktop dans $i."; exit 1; }
+            sudo chmod +x "$i/$DESKTOP_FILE" || { echo "Erreur lors du changement des permissions du fichier desktop."; exit 1; }
+            echo "Le fichier desktop a été copié dans $i."
+        fi
+    done
+    rm "$DESKTOP_FILE"
 }
 
 install_packages () {
@@ -207,6 +223,7 @@ done
 
 # Ajoute le script dans le PATH
 add_to_bin
+add_desktop_file
 
 resolve_venv
 
