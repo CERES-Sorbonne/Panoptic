@@ -54,7 +54,7 @@ export type PropertyIndex = { [propertyId: number]: Property }
 export enum PropertyType {
     multi_tags = "multi_tags",
     tag = "tag",
-    string = "string",
+    string = "text",
     number = "number",
     date = "date",
     color = "color",

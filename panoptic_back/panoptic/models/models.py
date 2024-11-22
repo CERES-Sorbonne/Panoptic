@@ -37,7 +37,7 @@ class PanopticDataOld(BaseModel):
 
 
 class PropertyType(Enum):
-    string = "string"
+    string = "text"
     number = "number"
     tag = "tag"
     multi_tags = "multi_tags"

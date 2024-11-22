@@ -1,4 +1,4 @@
-path;tag[tag];multi_tags[multi_tags];string[string];number[number];date[date];color[color];url[url];checkbox[checkbox]
+path;tag[tag];multi_tags[multi_tags];string[text];number[number];date[date];color[color];url[url];checkbox[checkbox]
 images/number_1.png;1;1,odd;one;1;2024-09-01T00:00:00Z;0;1;True
 images/7-10/number_7.png;7;7,odd;seven;7;2024-09-07T00:00:00Z;6;7;True
 images/7-10/number_9.png;9;9,odd;nine;9;2024-09-09T00:00:00Z;8;9;True
