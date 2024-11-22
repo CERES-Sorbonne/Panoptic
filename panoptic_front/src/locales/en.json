@@ -261,7 +261,7 @@
             }
         },
         "first": {
-            "introduction": "Bienvenue sur Panoptic, logiciel proposant d'explorer de grands corpus d'images en les manipulant par leurs propriétés et à l'aide d'outils de machine learning. Ces derniers ne sont pas installés de base pour limiter la taille de panoptic dans le cas où ils ne vous intéresseraient pas. Il est cependant recommandé de les installer pour profiter des pleines fonctionnalités de Panoptic.",
+            "introduction": "Welcome to Panoptic, a program that lets you explore large corpora of images by manipulating them through their properties and using machine learning tools. The latter are not installed as standard, to limit the size of Panoptic should they not be of interest to you. However, it is recommended that you install them to benefit from Panoptic's full functionalities.",
             "install_ml": "Install Plugin ML"
         }
     },

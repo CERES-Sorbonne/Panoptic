@@ -15,10 +15,10 @@ window.addEventListener('keydown', async function (e) {
     if (konamiCode.length === secretCode.length) {
         if (konamiCode === secretCode) {
             duckClass = ""
-            rightPosition.value = -300
+            rightPosition.value = -50
             setTimeout(() => {
                 duckClass = "active"
-                rightPosition.value = -1100, 1500
+                rightPosition.value = -100, 1500
             }, 1500)
             konamiCode = ""; // Réinitialiser le code Konami
         } else {
@@ -30,7 +30,7 @@ window.addEventListener('keydown', async function (e) {
 </script>
 
 <template>
-    <div id="duck-container" :style="{right: rightPosition.toString() + 'px'}" :class="duckClass">
+    <div id="duck-container" :style="{right: rightPosition.toString() + 'vh'}" :class="duckClass">
         <img alt="Duck" class="logo" src="../assets/duck.svg"  :style="{height: '100vh'}"/>
     </div>
 </template>
