@@ -124,15 +124,17 @@ add_desktop_file () {
             echo "Le fichier desktop a été copié dans $i."
         fi
     done
-    case $PWD/ in
-      */Panoptic/install/*)
-        echo "$DESKTOP_FILE ne sera pas supprimé, car le script est exécuté depuis le dépôt git."
-        return 0
-        ;;
-      *)
-        rm "$DESKTOP_FILE"
-        ;;
-    esac
+    if [ "$downloaded" = true ]; then
+      case $PWD/ in
+        */Panoptic/install/*)
+          echo "$DESKTOP_FILE ne sera pas supprimé, car le script est exécuté depuis le dépôt git."
+          return 0
+          ;;
+        *)
+          rm "$DESKTOP_FILE"
+          ;;
+      esac
+    fi
 }
 
 # Fonction pour installer des paquets système peu importe le gestionnaire de paquets utilisé (apt, dnf, zypper, apk) only
