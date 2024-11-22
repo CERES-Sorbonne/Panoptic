@@ -4,7 +4,7 @@ Type=Application
 Name=Panoptic
 Comment=Panoptic
 Terminal=true
-Icon=/home/panoptic/icon.png
+Icon=PANOPTIC_ICON_PATH
 Exec=/usr/local/bin/start-panoptic
 
 [Desktop Action start-only]
