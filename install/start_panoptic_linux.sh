@@ -17,6 +17,7 @@ DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs
 DESKTOP_FILE="panoptic.desktop"
 WHERE_TO_PUT_DESKTOP_FILE=("${XDG_DATA_HOME:-$HOME/.local/share}/applications" "$XDG_DESKTOP_DIR" "$HOME/Desktop" "$HOME/Bureau")
 ICON_DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/panoptic.ico"
+BACKUP_ICON_DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/pedro.png"
 ICON_DESKTOP_FILE="panoptic.ico"
 
 # Variables calculées
@@ -165,6 +166,11 @@ add_desktop_file () {
     fi
 }
 
+pedro () {
+  ICON_DESKTOP_FILE_URL="$BACKUP_ICON_DESKTOP_FILE_URL"
+  add_icon_file
+}
+
 # Fonction pour installer des paquets système peu importe le gestionnaire de paquets utilisé (apt, dnf, zypper, apk) only
 install_packages () {
     packagesNeeded=$1
@@ -298,6 +304,10 @@ for i in "$@"; do
     -u|--uninstall)
       uninstall
       exit 0
+      ;;
+    -p|--pedro)
+      pedro
+      shift
       ;;
     --no-bin-copy)
       no_bin_copy=true
