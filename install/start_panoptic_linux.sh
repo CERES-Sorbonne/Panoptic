@@ -2,8 +2,8 @@
 
 assume_yes=false
 reinstall=false
-update_script_in_path=true
 no_bin_copy=false
+terminated=false
 
 VENV_DIR="$HOME/panoptic/panoptic_env"
 PYTHON_VERSION="3.12"
@@ -24,6 +24,9 @@ PYTHON_EXEC="python$PYTHON_VERSION"
 PIP_EXEC="$PYTHON_EXEC -m pip"
 VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
 
+terminate () {
+   terminated=true
+ }
 is_script_in_path () {
     if [ -x "$(command -v $COMMAND_NAME)" ]; then
         echo "Le script est déjà dans le PATH."
@@ -254,6 +257,7 @@ for i in "$@"; do
 done
 
 ## MAIN ##
+trap terminate SIGINT
 
 # Ajoute le script dans le PATH
 if ! is_script_in_path || [ "$reinstall" = true ]; then
@@ -292,3 +296,20 @@ fi
 # Lance la commande panoptic
 echo "Lancement de panoptic..."
 panoptic || { echo "Erreur lors du lancement de panoptic."; exit 1; }
+panoptic >> "$HOME/panoptic/panoptic.log" 2>&1
+
+echo ""
+
+if [ "$terminated" = true ]; then
+  echo "Panoptic a été fermé par l'utilisateur."
+else
+  if [ $? -eq 0 ]; then
+      echo "Panoptic a été fermé normalement."
+  else
+    read -p "Panoptic a rencontré une erreur. Voulez-vous voir les logs ? (o/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Oo]$ ]]; then
+        less "$HOME/panoptic/panoptic.log"
+    fi
+  fi
+fi
