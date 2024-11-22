@@ -18,6 +18,14 @@
                 "install_panoptic_ml": "Install PanopticML",
                 "install": "Install",
                 "load": "Installing..."
+            },
+            "projects": {
+                "create": "Create new project",
+                "create_details": "Create a new panoptic project in a folder.",
+                "create_button": "Create",
+                "import": "Import project",
+                "import_details": "Choose an existing Panoptic folder.",
+                "import_button": "Import"
             }
         },
         "status": {
