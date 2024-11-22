@@ -63,19 +63,14 @@ start_only () {
 }
 
 add_to_bin () {
-    if [ "$no_bin_copy" = true ] || is_script_in_path ;  then
+    if [ "$no_bin_copy" = true ] ;  then
         return 0
     fi
 
     if [ -d "$BIN_DIR" ]; then
-        if [ "$SCRIPT_NAME" == "$COMMAND_NAME" ] && [ $update_script_in_path != true ]; then
-            echo "Le script est déjà dans le PATH. (Nom du script = Nom de la commande)"
-            return 0
-        else
           sudo cp "$SCRIPT_NAME" "$BIN_DIR/$COMMAND_NAME" || { echo "Erreur lors de la copie du script dans $BIN_DIR."; exit 1; }
           sudo chmod +x "$BIN_DIR/$COMMAND_NAME" || { echo "Erreur lors du changement des permissions du script."; exit 1; }
           echo "Le script a été copié dans $BIN_DIR."
-        fi
     else
         echo "Le répertoire $BIN_DIR n'existe pas. Le script n'a pas été copié."
     fi
@@ -261,7 +256,12 @@ done
 ## MAIN ##
 
 # Ajoute le script dans le PATH
-add_to_bin
+if ! is_script_in_path || [ "$reinstall" = true ]; then
+    echo "Ajout du script dans le PATH..."
+    add_to_bin
+fi
+
+# Ajoute le fichier desktop dans les répertoires standards (si possible)
 add_desktop_file
 
 resolve_venv
