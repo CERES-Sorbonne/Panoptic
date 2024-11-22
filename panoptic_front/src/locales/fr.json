@@ -18,6 +18,14 @@
                 "install_panoptic_ml": "Installer le plugin de similarité",
                 "install": "Installer",
                 "load": "Installation..."
+            },
+            "projects": {
+                "create": "Créer un nouveau projet",
+                "create_details": "Créer un nouveau projet panoptic dans un dossier.",
+                "create_button": "Créer",
+                "import": "Importer un projet",
+                "import_details": "Choisissez un dossier Panoptic existant.",
+                "import_button": "Importer"
             }
         },
         "status": {

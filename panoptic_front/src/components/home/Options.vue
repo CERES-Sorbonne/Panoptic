@@ -22,17 +22,17 @@ function promptPath() {
 <template>
     <div class="create-option d-flex">
         <div class="flex-grow-1">
-            <h6 class="create-title m-0">Créer un nouveau projet</h6>
-            <span class="create-explanation">Créer un nouveau projet panoptic dans un dossier.</span>
+            <h6 class="create-title m-0"> {{$t('main.projects.create')}}</h6>
+            <span class="create-explanation">{{$t('main.projects.create_details')}}</span>
         </div>
-        <div id="create-project" class="create-btn highlight" @click="emits('create');goNext()">Créer</div>
+        <div id="create-project" class="create-btn highlight" @click="emits('create');goNext()">{{$t('main.projects.create_button')}}</div>
     </div>
     <div class="create-option d-flex">
         <div class="flex-grow-1">
-            <h6 class="create-title m-0">Importer un projet</h6>
-            <span class="create-explanation">Choisissez un dossier Panoptic existant.</span>
+            <h6 class="create-title m-0">{{$t('main.projects.import')}}</h6>
+            <span class="create-explanation">{{$t('main.projects.import_details')}}</span>
         </div>
-        <div class="create-btn" @click="promptPath">Importer</div>
+        <div class="create-btn" @click="promptPath">{{$t('main.projects.import_button')}}</div>
     </div>
 </template>
 
