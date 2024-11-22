@@ -8,7 +8,7 @@ no_bin_copy=false
 terminated=false
 
 # Chemins, noms de fichiers et URL pour le script (partie à configurer)
-VENV_DIR="$HOME/panoptic/panoptic_env"
+PANOPTIC_ROOT="$HOME/panoptic"
 PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
 COMMAND_NAME="start-panoptic"
@@ -18,11 +18,12 @@ DESKTOP_FILE="panoptic.desktop"
 WHERE_TO_PUT_DESKTOP_FILE=("${XDG_DATA_HOME:-$HOME/.local/share}/applications" "$XDG_DESKTOP_DIR" "$HOME/Desktop" "$HOME/Bureau")
 ICON_DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/panoptic.ico"
 ICON_DESKTOP_FILE="panoptic.ico"
-ICON_DESKTOP_DIR="$HOME/panoptic"
 
 # Variables calculées
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
 PYTHON_EXEC="python$PYTHON_VERSION"
+ICON_DESKTOP_DIR="$PANOPTIC_ROOT"
+VENV_DIR="$PANOPTIC_ROOT/panoptic_env"
 
 # Variables calculées sur la base des variables calculées précédentes
 PIP_EXEC="$PYTHON_EXEC -m pip"
@@ -34,6 +35,33 @@ VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
 terminate () {
    terminated=true
  }
+
+# Fonction pour gérer la fin du script, prend un argument qui est le code de sortie de la commande panoptic
+say_bye () {
+  echo "" # Pour sauter une ligne
+  if [ "$terminated" = true ]; then
+    echo "Panoptic a été fermé par l'utilisateur."
+  else
+    if [ "$1" -eq 0 ]; then
+        echo "Panoptic a été fermé normalement."
+    else
+      read -p "Panoptic a rencontré une erreur. Voulez-vous voir les logs ? (o/n) " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Oo]$ ]]; then
+          less "$HOME/panoptic/panoptic.log"
+      fi
+    fi
+  fi
+  echo "Merci d'avoir utilisé Panoptic ! 👀"
+}
+
+# Fonction pour vérifier si le $PANOPTIC_ROOT existe et le créer si nécessaire
+check_panoptic_root () {
+    if [ ! -d "$PANOPTIC_ROOT" ]; then
+        mkdir -p "$PANOPTIC_ROOT" || { echo "Erreur lors de la création du répertoire $PANOPTIC_ROOT."; exit 1; }
+        echo "Le répertoire $PANOPTIC_ROOT a été créé."
+    fi
+}
 
 # Fonction pour vérifier si le script est déjà dans le PATH
 is_script_in_path () {
@@ -294,7 +322,11 @@ done
 ## FIN GESTION DES OPTIONS ##
 
 ## MAIN ##
+# Gestion des interruptions (pour l'instant on set juste une variable pour `say_bye`)
 trap terminate SIGINT
+
+# Vérifie si le répertoire $PANOPTIC_ROOT existe et le crée si nécessaire
+check_panoptic_root
 
 # Ajoute le script dans le PATH
 if ! is_script_in_path || [ "$reinstall" = true ]; then
@@ -320,21 +352,8 @@ Si ce n'est pas le cas, vous pouvez accéder à l'interface graphique depuis l'a
 
 panoptic >> "$HOME/panoptic/panoptic.log" 2>&1
 
-echo ""
-
-if [ "$terminated" = true ]; then
-  echo "Panoptic a été fermé par l'utilisateur."
-else
-  if [ $? -eq 0 ]; then
-      echo "Panoptic a été fermé normalement."
-  else
-    read -p "Panoptic a rencontré une erreur. Voulez-vous voir les logs ? (o/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Oo]$ ]]; then
-        less "$HOME/panoptic/panoptic.log"
-    fi
-  fi
-fi
+# On dit au revoir
+say_bye $?
 ## FIN MAIN ##
 
 # Si tout s'est bien passé, on sort avec un code de succès
