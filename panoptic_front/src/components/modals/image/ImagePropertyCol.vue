@@ -85,7 +85,7 @@ function toggleClosed(index: number) {
                     <i v-if="closed[0]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                Propriétés d'image
+                {{$t('common.properties.image')}}
             </div>
             <PropertyInputTable v-if="!closed[0]" :image="props.image.image" :properties="imageProperties"
                 :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
@@ -95,7 +95,7 @@ function toggleClosed(index: number) {
                     <i v-if="closed[1]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                Propriétés d'instance
+                {{$t('common.properties.instance')}}
             </div>
             <PropertyInputTable v-if="!closed[1]" :image="props.image.image" :properties="instanceProperties"
                 :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
@@ -105,7 +105,7 @@ function toggleClosed(index: number) {
                     <i v-if="closed[2]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                Metadonnées</div>
+                {{$t('common.properties.panoptic')}}</div>
             <PropertyInputTable v-if="!closed[2]" :image="props.image.image" :properties="metaProperties"
                 :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
                 @hoverEnd="emits('hoverEnd')" />
