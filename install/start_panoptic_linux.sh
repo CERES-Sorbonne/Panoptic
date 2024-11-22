@@ -265,8 +265,8 @@ resolve_venv () {
 
 # Fonction pour vérifier si une mise à jour de panoptic est disponible et, le cas échéant, propose de l'installer
 check_for_panoptic_updates () {
-  LATEST_PANOPTIC_VERSION=$($PIP_EXEC install panoptic==pedro 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
-  CURRENT_PANOPTIC_VERSION=$($PIP_EXEC show panoptic | grep -oP '(?<=Version: )[^ ]+')
+  LATEST_PANOPTIC_VERSION=$(eval $PIP_EXEC install panoptic==999999 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
+  CURRENT_PANOPTIC_VERSION=$(eval $PIP_EXEC show panoptic | grep -oP '(?<=Version: )[^ ]+')
 
   if [[ "$LATEST_PANOPTIC_VERSION" > "$CURRENT_PANOPTIC_VERSION" ]]; then
       echo "Une nouvelle version de panoptic est disponible : $LATEST_PANOPTIC_VERSION (actuellement installée : $CURRENT_PANOPTIC_VERSION)."
