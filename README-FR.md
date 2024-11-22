@@ -160,10 +160,10 @@ chmod +x start_panoptic_mac.sh
 ./start_panoptic_mac.sh
 ```
 
-#### Post-installation
+#### Lancement
 Après l'installation, vous pouvez lancer Panoptic en vous rendant de nouveau dans le dossier où vous avez exécuté le script d'installation et en exécutant la commande suivante:
 ```bash
-./start-panoptic.sh
+./start_panoptic_mac.sh
 ```
 
 
@@ -217,14 +217,12 @@ Pour tester et modifier le fonctionnement backend, nous fournissons un front-end
 
 #### Développement front et back
 
-1. Réaliser tout d'abord les étapes d'installation du backend
+1. réaliser tout d'abord les étapes d'installation du backend
 2. aller dans le dossier `panoptic-front`
 3. lancer `npm install`
 4. lancer `npm run dev`
 5. avant de lancer le backend la variable d'environnement `PANOPTIC_ENV` devra être set à `DEV` afin d'utiliser le frontend de développement.
 
-## Utilisation
-Une fois installé, vous pouvez accéder à l'interface de Panoptic en vous rendant à l'adresse http://localhost:8000 dans votre navigateur.
 
 ## License
 Ce projet est sous licence MPL-2.0 - voir le fichier [LICENSE](https://github.com/CERES-Sorbonne/Panoptic/blob/main/LICENSE) pour plus de détails.

@@ -80,6 +80,7 @@
             "image_size_tooltip": "Taille des images",
             "all_images": "Images",
             "sha1_images": "Instances",
+            "image_mode": "Mode images uniques",
             "image_mode_tooltip": "Altérner entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
             "selected_images": "images sélectionnées",
             "tag_selection": "Tagger les ",
