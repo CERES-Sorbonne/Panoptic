@@ -47,7 +47,7 @@ if (Test-Path $envDir) {
 & "$envDir\Scripts\Activate.ps1"
 
 # Vérifie s'il y a une mise à jour de panoptic disponible
-$latestPanopticVersion = (& $pipExec install panoptic==nonexistent 2>&1 | Select-String -Pattern "from versions: ").ToString().Split()[-1]
+$latestPanopticVersion = (& $pipExec install panoptic==9999999 2>&1 | Select-String -Pattern "from versions: ").ToString().Split()[-1]
 $currentPanopticVersion = (& $pipExec show panoptic | Select-String -Pattern "Version").ToString().Split()[-1]
 
 if ($latestPanopticVersion -gt $currentPanopticVersion -and $latestPanopticVersion -notmatch "rc") {
