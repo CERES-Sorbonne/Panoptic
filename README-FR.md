@@ -186,13 +186,13 @@ Cela implique d'avoir créé un dossier spécial appelé "images", dans le dossi
 
 Il faut ensuite lancer la commande suivante (avec Docker de lancé au préalable)
 
-```console
+```bash
 docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
 ```
 
 #### Option 2: Un dossier pour les images, et un dossier pour les données panoptic:
 
-```console
+```bash
 docker run -it -p 8000:8000 \
 -v /path/to/your/data:/data \
 -v /path/to/your/images:/data/images \
@@ -202,7 +202,7 @@ ceressorbonne/panoptic
 
 ### Installation (développement)
 
-Les étapes suivantes impliquent d'avoir cloné le répertoire et sont recommandées pour les utilisateurs souhaitant avoir accès aux versions de développement, ou souhaitant modifier eux même le code afin de constribuer.
+Les étapes suivantes impliquent d'avoir cloné le répertoire et sont recommandées pour les utilisateurs souhaitant avoir accès aux versions de développement, ou souhaitant modifier eux même le code afin de contribuer.
 
 #### Développement back uniquement
 
