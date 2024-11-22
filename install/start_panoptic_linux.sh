@@ -24,9 +24,13 @@ PYTHON_EXEC="python$PYTHON_VERSION"
 PIP_EXEC="$PYTHON_EXEC -m pip"
 VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
 
+## FONCTIONS ##
+# Fonction pour gérer l'interruption du script (comme Ctrl+C)
 terminate () {
    terminated=true
  }
+
+# Fonction pour vérifier si le script est déjà dans le PATH
 is_script_in_path () {
     if [ -x "$(command -v $COMMAND_NAME)" ]; then
         echo "Le script est déjà dans le PATH."
@@ -213,6 +217,30 @@ resolve_venv () {
     fi
 }
 
+# Fonction pour vérifier si une mise à jour de panoptic est disponible et, le cas échéant, propose de l'installer
+check_for_panoptic_updates () {
+  LATEST_PANOPTIC_VERSION=$($PIP_EXEC install panoptic==pedro 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
+  CURRENT_PANOPTIC_VERSION=$($PIP_EXEC show panoptic | grep -oP '(?<=Version: )[^ ]+')
+
+  if [[ "$LATEST_PANOPTIC_VERSION" > "$CURRENT_PANOPTIC_VERSION" ]]; then
+      echo "Une nouvelle version de panoptic est disponible : $LATEST_PANOPTIC_VERSION (actuellement installée : $CURRENT_PANOPTIC_VERSION)."
+      if [ "$assume_yes" = true ]; then
+          REPLY="o"
+      else
+          read -p "Souhaitez-vous installer la dernière version stable ? (o/n) " -n 1 -r
+          echo
+      fi
+      if [[ $REPLY =~ ^[Oo]$ ]]; then
+          $PIP_EXEC install -U panoptic
+          echo "Panoptic mis à jour vers la version $LATEST_PANOPTIC_VERSION."
+      fi
+  else
+      echo "Vous possédez déjà la dernière version stable de panoptic."
+  fi
+}
+## FIN FONCTIONS ##
+
+## GESTION DES OPTIONS ##
 for i in "$@"; do
   case $i in
     -y|--yes|--assume-yes)
@@ -292,6 +320,7 @@ if [[ "$LATEST_PANOPTIC_VERSION" > "$CURRENT_PANOPTIC_VERSION" ]]; then
 else
     echo "Vous possédez déjà la dernière version stable de panoptic."
 fi
+check_for_panoptic_updates
 
 # Lance la commande panoptic
 echo "Lancement de panoptic..."
