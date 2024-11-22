@@ -357,7 +357,7 @@ check_for_panoptic_updates
 printf "\nLancement de Panoptic...
 L'interface graphique devrait s'ouvrir automatiquement dans votre navigateur web par défaut.
 Si ce n'est pas le cas, vous pouvez accéder à l'interface graphique depuis l'adresse
-    http://localhost:8080
+    http://localhost:8000
 "
 
 panoptic >> "$HOME/panoptic/panoptic.log" 2>&1
