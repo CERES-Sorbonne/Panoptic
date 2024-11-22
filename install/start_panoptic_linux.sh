@@ -12,7 +12,10 @@ COMMAND_NAME="start-panoptic"
 BIN_DIR="/usr/local/bin"
 DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/panoptic.desktop"
 DESKTOP_FILE="panoptic.desktop"
-WHERE_TO_PUT_DESKTOP_FILE=(/usr/share/applications "$HOME/.local/share/applications" "$HOME/Desktop")
+WHERE_TO_PUT_DESKTOP_FILE=("${XDG_DATA_HOME:-$HOME/.local/share}/applications" "$XDG_DESKTOP_DIR" "$HOME/Desktop" "$HOME/Bureau")
+ICON_DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/panoptic.ico"
+ICON_DESKTOP_FILE="panoptic.ico"
+ICON_DESKTOP_DIR="$HOME/panoptic"
 
 
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
@@ -78,16 +81,52 @@ add_to_bin () {
     fi
 }
 
+# Fonction pour ajouter l'icône desktop
+add_icon_file () {
+  wget -O "$ICON_DESKTOP_FILE" "$ICON_DESKTOP_FILE_URL" || { echo "Erreur lors du téléchargement de l'icône desktop."; exit 1; }
+  cp "$ICON_DESKTOP_FILE" "$ICON_DESKTOP_DIR/$ICON_DESKTOP_FILE" || { echo "Erreur lors de la copie de l'icône desktop dans $ICON_DESKTOP_DIR."; exit 1; }
+}
+
+# Fonction pour ajouter le fichier desktop dans les répertoires standards
 add_desktop_file () {
-    wget -O "$DESKTOP_FILE" "$DESKTOP_FILE_URL" || { echo "Erreur lors du téléchargement du fichier desktop."; exit 1; }
+    downloaded=false
     for i in "${WHERE_TO_PUT_DESKTOP_FILE[@]}"; do
+        if [ ! -d "$i" ]; then
+            continue
+        fi
+
+        if [ -f "$i/$DESKTOP_FILE" ]; then
+          if [ "$reinstall" = true ] ; then
+            rm "$i/$DESKTOP_FILE" || { echo "Erreur lors de la suppression du fichier desktop dans $i."; exit 1; }
+          else
+            echo "Le fichier desktop existe déjà dans $i."
+            continue
+          fi
+        fi
+
         if [ -d "$i" ]; then
-            sudo cp "$DESKTOP_FILE" "$i" || { echo "Erreur lors de la copie du fichier desktop dans $i."; exit 1; }
-            sudo chmod +x "$i/$DESKTOP_FILE" || { echo "Erreur lors du changement des permissions du fichier desktop."; exit 1; }
+            if [ "$downloaded" = false ]; then
+                echo "Téléchargement du fichier desktop..."
+                wget -O "$DESKTOP_FILE" "$DESKTOP_FILE_URL" || { echo "Erreur lors du téléchargement du fichier desktop."; exit 1; }
+                sed -i 's|PANOPTIC_ICON_PATH|'"${ICON_DESKTOP_DIR}/${ICON_DESKTOP_FILE}"'|g' "$DESKTOP_FILE"
+                add_icon_file
+                downloaded=true
+            fi
+            cp "$DESKTOP_FILE" "$i" || { echo "Erreur lors de la copie du fichier desktop dans $i."; exit 1; }
+            gio set "$i/$DESKTOP_FILE" "metadata::trusted" true || { echo "Erreur lors du changement des permissions du fichier desktop."; exit 1; }
+            chmod a+x "$i/$DESKTOP_FILE" || { echo "Erreur lors du changement des permissions du fichier desktop."; exit 1; }
             echo "Le fichier desktop a été copié dans $i."
         fi
     done
-    rm "$DESKTOP_FILE"
+    case $PWD/ in
+      */Panoptic/install/*)
+        echo "$DESKTOP_FILE ne sera pas supprimé, car le script est exécuté depuis le dépôt git."
+        return 0
+        ;;
+      *)
+        rm "$DESKTOP_FILE"
+        ;;
+    esac
 }
 
 install_packages () {
