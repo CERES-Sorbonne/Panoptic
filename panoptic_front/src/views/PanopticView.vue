@@ -20,11 +20,18 @@ const mainViewRef = ref(null)
 const navElem = ref(null)
 const windowHeight = ref(window.innerHeight)
 const hasHeight = ref(false)
+const show = ref(true)
 
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
 const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
 let isMac = navigator.userAgent.indexOf('Mac OS X') !== -1
+
+async function rerender() {
+    show.value = false
+    await nextTick()
+    show.value = true
+}
 
 onMounted(async () => {
     if (!panoptic.isProjectLoaded) {
@@ -88,10 +95,6 @@ function showModal() {
     panoptic.showModal(ModalId.EXPORT, filteredImages)
 }
 
-function reRender() {
-    project.rerender()
-}
-
 function redirectHome() {
     router.push('/')
 }
@@ -100,34 +103,37 @@ function redirectHome() {
 </script>
 
 <template>
-    <Tutorial v-if="mainViewRef && !mainViewRef.imageList" tutorial="project" /> <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
-    <div id="panoptic" :key="project.status.renderNb">
-        <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
-        <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-            <template v-if="project.status.loaded">
-                <div>
-                    <Menu @export="showModal()" />
-                </div>
-                <div class="w-100">
-                    <div class="ms-3" ref="navElem">
-                        <TabNav :re-render="reRender" />
+    <div v-if="show">
+        <Tutorial v-if="mainViewRef && !mainViewRef.imageList" tutorial="project" />
+        <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
+        <div id="panoptic" :key="project.status.renderNb">
+            <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
+            <div class="d-flex flex-row m-0 p-0 overflow-hidden">
+                <template v-if="project.status.loaded">
+                    <div>
+                        <Menu @export="showModal()" />
                     </div>
-                    <div class="custom-hr" v-if="hasHeight" />
+                    <div class="w-100">
+                        <div class="ms-3" ref="navElem">
+                            <TabNav :re-render="rerender" />
+                        </div>
+                        <div class="custom-hr" v-if="hasHeight" />
 
-                    <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" />
-                </div>
+                        <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" />
+                    </div>
 
-            </template>
-            <div v-else-if="!panoptic.isProjectLoaded" class="loading">
-                <div class="text-center">
-                    <div>{{ $t('main.status.no_project') }}</div>
-                    <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;">
+                </template>
+                <div v-else-if="!panoptic.isProjectLoaded" class="loading">
+                    <div class="text-center">
+                        <div>{{ $t('main.status.no_project') }}</div>
+                        <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div v-else class="loading">
-                <i class="spinner-border" role="status"></i>
-                <span class="ms-1">Loading...</span>
+                <div v-else class="loading">
+                    <i class="spinner-border" role="status"></i>
+                    <span class="ms-1">Loading...</span>
+                </div>
             </div>
         </div>
     </div>

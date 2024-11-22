@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {reactive, ref, nextTick } from 'vue';
+import { reactive, ref, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
 import { TabState } from '@/data/models';
@@ -43,7 +43,7 @@ function addTab(event: any) {
 
 async function deleteTab(tab: TabState) {
     let ok = confirm('Are you sure to delete Tab: ' + tab.name)
-    if(!ok) return
+    if (!ok) return
     await project.removeTab(tab.id)
 }
 
@@ -60,24 +60,29 @@ const langs = ['fr', 'en']
                 @mouseleave="e => hover[tab.id] = false">
                 <!-- <i class="btn-icon bi bi-pencil tab-icon me-2" :class="hover[tab.id] ? '' : 'hidden'" style="font-size: 9px;"></i> -->
                 <template v-if="editTab != tab.id">
-                    <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab(tab.id)" class="bi bi-pencil me-1 tab-icon hover-light" :class="(hover[tab.id] && project.data.selectedTabId == tab.id)? '' : 'hidden'" style="font-size: 10px;"></i></wTT>
+                    <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab(tab.id)"
+                            class="bi bi-pencil me-1 tab-icon hover-light"
+                            :class="(hover[tab.id] && project.data.selectedTabId == tab.id) ? '' : 'hidden'"
+                            style="font-size: 10px;"></i></wTT>
                     <div class="tab-button" :class="(tab.id == project.data.selectedTabId ? ' active' : '')"
                         @click="select(tab.id)">
                         <span>{{ tab.name }}</span>
                     </div>
                     <wTT message="main.menu.delete_tab_tooltip">
-                        <i @click="deleteTab(tab)" class="btn-icon bi bi-x tab-icon hover-light" style="font-size: 15px;"
-                            :class="hover[tab.id] ? '' : 'hidden'"></i>
+                        <i @click="deleteTab(tab)" class="btn-icon bi bi-x tab-icon hover-light"
+                            style="font-size: 15px;" :class="hover[tab.id] ? '' : 'hidden'"></i>
                     </wTT>
                 </template>
                 <template v-else>
                     <div class="tab-button" :class="(tab.id == project.data.selectedTabId ? ' active' : '')">
-                        <form @submit.stop.prevent="endEdit"><input @focusout="endEdit" @keydown.escape="endEdit" type="text" class="text-input" v-model="tab.name" ref="inputElem"/></form>
+                        <form @submit.stop.prevent="endEdit"><input @focusout="endEdit" @keydown.escape="endEdit"
+                                type="text" class="text-input" v-model="tab.name" ref="inputElem" /></form>
                     </div>
-                    
+
                 </template>
             </div>
-            <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab" id="add-tab-button" ><span class="bi bi-plus"></span></button></wTT>
+            <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"
+                    id="add-tab-button"><span class="bi bi-plus"></span></button></wTT>
             <div class="lang">
                 <i class="bi bi-translate" style="margin-right:0.5rem"></i>
                 <select v-model="$i18n.locale" @change="props.reRender()">
@@ -85,7 +90,7 @@ const langs = ['fr', 'en']
                         {{ lang.toUpperCase() }}
                     </option>
                 </select>
-        </div>
+            </div>
         </div>
     </nav>
 </template>
@@ -99,11 +104,11 @@ const langs = ['fr', 'en']
     visibility: hidden;
 }
 
-.lang{
+.lang {
     margin-left: auto;
     order: 2;
     margin-top: 0.1em;
     margin-right: 0.5em;
-    font-size:16px
+    font-size: 16px
 }
 </style>
