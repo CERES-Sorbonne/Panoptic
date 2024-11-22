@@ -262,7 +262,7 @@
         },
         "first": {
             "introduction": "Welcome to Panoptic, a program that lets you explore large corpora of images by manipulating them through their properties and using machine learning tools. The latter are not installed as standard, to limit the size of Panoptic should they not be of interest to you. However, it is recommended that you install them to benefit from Panoptic's full functionalities.",
-            "install_ml": "Install Plugin ML"
+            "install_ml": "Install Similarity Plugin"
         }
     },
     "tutorial": {
