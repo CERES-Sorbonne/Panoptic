@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
+## VARIABLES GLOBALES ##
+# Variables pour les options
 assume_yes=false
 reinstall=false
 no_bin_copy=false
 terminated=false
 
+# Chemins, noms de fichiers et URL pour le script (partie à configurer)
 VENV_DIR="$HOME/panoptic/panoptic_env"
 PYTHON_VERSION="3.12"
 SCRIPT_NAME=$(basename "$0")
@@ -17,12 +20,14 @@ ICON_DESKTOP_FILE_URL="https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic
 ICON_DESKTOP_FILE="panoptic.ico"
 ICON_DESKTOP_DIR="$HOME/panoptic"
 
-
+# Variables calculées
 PACKAGES="python$PYTHON_VERSION python$PYTHON_VERSION-venv python$PYTHON_VERSION-dev"
 PYTHON_EXEC="python$PYTHON_VERSION"
 
+# Variables calculées sur la base des variables calculées précédentes
 PIP_EXEC="$PYTHON_EXEC -m pip"
 VENV_EXEC="$PYTHON_EXEC -m venv $VENV_DIR"
+## FIN VARIABLES GLOBALES ##
 
 ## FONCTIONS ##
 # Fonction pour gérer l'interruption du script (comme Ctrl+C)
@@ -39,6 +44,7 @@ is_script_in_path () {
     return 1
 }
 
+# Fonction pour désinstaller panoptic (venv, script dans le PATH et fichier(s) desktop)
 uninstall () {
     if [ $assume_yes = true ]; then
         REPLY="n"
@@ -59,12 +65,14 @@ uninstall () {
     echo "Désinstallation terminée, les fichiers de données et les paquets système ne sont pas affectés."
 }
 
+# Fonction pour lancer panoptic sans rien vérifier ni installer
 start_only () {
     source "$VENV_DIR"/bin/activate || { echo "L'environnement virtuel n'existe pas. Veuillez exécuter le script sans l'option -s pour utilisez les procédures d'installation."; exit 1; }
     echo "Lancement de panoptic..."
     panoptic || { echo "Erreur lors du lancement de panoptic."; exit 1; }
 }
 
+# Fonction pour ajouter le script dans le PATH
 add_to_bin () {
     if [ "$no_bin_copy" = true ] ;  then
         return 0
@@ -127,6 +135,7 @@ add_desktop_file () {
     esac
 }
 
+# Fonction pour installer des paquets système peu importe le gestionnaire de paquets utilisé (apt, dnf, zypper, apk) only
 install_packages () {
     packagesNeeded=$1
     # shellcheck disable=SC2086
@@ -147,6 +156,7 @@ install_packages () {
     fi
     }
 
+# Fonction pour vérifier la version de Python dans l'environnement virtuel
 check_python_version_in_venv () {
     if [[ "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" != "$PYTHON_VERSION" ]]; then
         echo "Installation de Python == $PYTHON_VERSION requis..."
@@ -155,6 +165,7 @@ check_python_version_in_venv () {
     return 0
 }
 
+# Fonction pour vérifier si panoptic est installé dans l'environnement virtuel
 check_panoptic () {
     if ! command -v panoptic &> /dev/null; then
         echo "Installation de panoptic dans l'environnement virtuel..."
@@ -164,6 +175,7 @@ check_panoptic () {
     fi
 }
 
+# Fonction pour créer l'environnement virtuel et installer panoptic
 create_venv () {
     $VENV_EXEC || (install_packages "$PACKAGES" && $VENV_EXEC ) || { echo "Erreur lors de la création de l'environnement virtuel"; exit 1; }
     echo "Installation de panoptic dans l'environnement virtuel..."
@@ -174,12 +186,14 @@ create_venv () {
     echo "L'environnement virtuel '$VENV_DIR' a été créé et panoptic a été installé."
 }
 
+# Fonction pour recréer l'environnement virtuel
 recreate () {
     echo "Suppression de l'environnement virtuel '$VENV_DIR'..."
     rm -rf "$VENV_DIR"
     create_venv
 }
 
+# Fonction pour vérifier si l'environnement virtuel existe et est correct ou le crée
 resolve_venv () {
   if [ ! -d "$VENV_DIR" ]; then
       echo "L'environnement virtuel n'existe pas."
@@ -275,6 +289,7 @@ for i in "$@"; do
       ;;
   esac
 done
+## FIN GESTION DES OPTIONS ##
 
 ## MAIN ##
 trap terminate SIGINT
@@ -288,6 +303,7 @@ fi
 # Ajoute le fichier desktop dans les répertoires standards (si possible)
 add_desktop_file
 
+# Vérifie si l'environnement virtuel existe et est correct ou le crée
 resolve_venv
 
 # Vérifie si une mise à jour de panoptic est disponible et, le cas échéant, propose de l'installer
@@ -317,3 +333,7 @@ else
     fi
   fi
 fi
+## FIN MAIN ##
+
+# Si tout s'est bien passé, on sort avec un code de succès
+exit 0
