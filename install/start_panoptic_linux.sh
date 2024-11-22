@@ -34,10 +34,6 @@ terminate () {
 is_script_in_path () {
     if [ -x "$(command -v $COMMAND_NAME)" ]; then
         echo "Le script est déjà dans le PATH."
-        if [ "$update_script_in_path" = true ]; then
-            echo "Le script sera mis à jour."
-            return 1
-        fi
         return 0
     fi
     return 1
@@ -263,10 +259,6 @@ for i in "$@"; do
       no_bin_copy=true
       shift
       ;;
-    --no-update-script)
-      update_script_in_path=false
-      shift
-      ;;
     -h|--help)
       echo "Usage: $SCRIPT_NAME [-y|--yes|--assume-yes] [-r|--reinstall] [-s|--start-only] [-u|--uninstall] [--no-bin-copy] [-h|--help]"
       echo "Options:"
@@ -298,28 +290,7 @@ add_desktop_file
 
 resolve_venv
 
-# Active l'environnement virtuel
-source "$VENV_DIR"/bin/activate
-
-# Vérifie si une mise à jour de panoptic est disponible et propose de l'installer
-LATEST_PANOPTIC_VERSION=$($PIP_EXEC install panoptic==pedro 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
-CURRENT_PANOPTIC_VERSION=$($PIP_EXEC show panoptic | grep -oP '(?<=Version: )[^ ]+')
-
-if [[ "$LATEST_PANOPTIC_VERSION" > "$CURRENT_PANOPTIC_VERSION" ]]; then
-    echo "Une nouvelle version de panoptic est disponible : $LATEST_PANOPTIC_VERSION (actuellement installée : $CURRENT_PANOPTIC_VERSION)."
-    if [ "$assume_yes" = true ]; then
-        REPLY="o"
-    else
-        read -p "Souhaitez-vous installer la dernière version stable ? (o/n) " -n 1 -r
-        echo
-    fi
-    if [[ $REPLY =~ ^[Oo]$ ]]; then
-        $PIP_EXEC install -U panoptic
-        echo "Panoptic mis à jour vers la version $LATEST_PANOPTIC_VERSION."
-    fi
-else
-    echo "Vous possédez déjà la dernière version stable de panoptic."
-fi
+# Vérifie si une mise à jour de panoptic est disponible et, le cas échéant, propose de l'installer
 check_for_panoptic_updates
 
 # Lance la commande panoptic
