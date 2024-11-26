@@ -258,6 +258,20 @@
                 "8": "Names of the property types: ",
                 "9": "Name in panoptic",
                 "10": "Name to use when importing"
+            },
+            "fusion": {
+                "title": "Fusion mode:",
+                "tooltip": "If the property is already set for an instance, how should the new data be added ? ",
+                "first": "Replace first",
+                "first_tooltip": "Override data of the oldest instance of the panoptic database with the data of the csv file",
+                "last": "Replace last",
+                "last_tooltip": "Override data of the newest instance of the panoptic database with the data of the csv file",
+                "new": "Create new",
+                "new_tooltip": "No data override, new instances will be created in the database",
+                "all": "Replace all",
+                "all_tooltip": "Replace all existing instances with new ones created from the data of the csv file",
+                "path": "Relative path ? ",
+                "path_tooltip": "Is the path used in the csv to identify the images is relative to the imported folder or absolute (from the root of the harddrive) ? "
             }
         },
         "first": {

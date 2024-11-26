@@ -7,6 +7,8 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import { ref } from 'vue';
 import { ModalId } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
+import wTT from '@/components/tooltips/withToolTip.vue'
+import FusionModeDropdown from '../Dropdowns/FusionModeDropdown.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -106,38 +108,30 @@ function clear() {
                             </span>
                         </td>
                     </tr>
-                    <tr v-if="properties.key == 'path'" >
-                        <td colspan="3" class="pt-2">
-                            <div class="d-flex">
-                                <div class="me-1">Fusion Mode</div>
-                                <select v-model="fusion" :disabled="loading">
-                                    <option value="first">First</option>
-                                    <option value="last">Last</option>
-                                    <option value="new">New</option>
-                                    <option value="all">All</option>
-                                </select>
-                            </div>
-                        </td>
-                        <td colspan="2" class="pt-2">
-                            Relatif Path
-                            <input type="checkbox" v-model="relative"/>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" class="">
-                            <div class="d-flex mt-2 flex-center w-100">
-                                <div v-if="!loading" class="bbb text-center w-100" @click="importFile">Import
-                                </div>
-                                <div v-if="loading" class="text-center w-100 border rounded">
-                                    <div class="spinner-border spinner-border-sm"
-                                        style="position: relative; top: -1px" role="status">
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-
                 </table>
+                <div v-if="properties.key == 'path'" >
+                    <div class="d-flex mt-3">
+                        <div class="me-1">{{ $t('modals.import.fusion.title') }}</div>
+                        <FusionModeDropdown :model-value="fusion" @update:model-value="e => fusion = e" />
+                        <wTT :icon="true" message="modals.import.fusion.tooltip"></wTT>
+                    </div>
+                    <div class="d-flex mt-3">
+                        {{$t('modals.import.fusion.path')}}
+                        <input type="checkbox" :style="{ 'margin-left':'0.5rem' }" v-model="relative"/>
+                        <wTT :icon="true" message="modals.import.fusion.path_tooltip"></wTT>
+                    </div>
+                    <div>
+                        <div class="d-flex mt-2 flex-center w-20">
+                            <div v-if="!loading" class="bbb text-center w-100" @click="importFile">Import
+                            </div>
+                            <div v-if="loading" class="text-center w-100 border rounded">
+                                <div class="spinner-border spinner-border-sm"
+                                    style="position: relative; top: -1px" role="status">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
 
             </div>
             <div v-else class="m-4">
@@ -186,7 +180,7 @@ function clear() {
                         <td class="border text-center">number</td>
                     </tr>
                     <tr>
-                        <td class="border text-center">{{ $t("modals.properties.string") }} </td>
+                        <td class="border text-center">{{ $t("modals.properties.text") }} </td>
                         <td class="border text-center">text</td>
                     </tr>
                     <tr>
