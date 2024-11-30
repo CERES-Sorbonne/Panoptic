@@ -231,6 +231,9 @@ class Importer:
         data.values = to_import
         self._data = data
 
+        missing = [(i, self._df[file_key][i]) for i, x in enumerate(row_to_ids) if not x]
+        return missing
+
     async def confirm_import(self):
         return await self.project.importer.import_data(self._data)
 

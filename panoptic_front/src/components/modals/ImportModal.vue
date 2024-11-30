@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { apiConfirmImport, apiUploadPropertyCsv } from '@/data/api';
+import { apiConfirmImport, apiParseImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
 import Modal from './Modal.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
@@ -20,6 +20,8 @@ const loading = ref(false)
 const fusion = ref('first')
 const relative = ref(true)
 
+const missing = ref(null)
+
 async function importFile() {
     // console.log(importOptions.value)
     loading.value = true
@@ -30,11 +32,20 @@ async function importFile() {
         exclude: exclude,
         relative: relative.value
     }
-    const res = await apiConfirmImport(params)
+    missing.value = await apiParseImport(params)
+    loading.value = false
+    if (!missing.value.length) {
+        confirmImport()
+    }
+}
+
+async function confirmImport() {
+    loading.value = true
+    const res = await apiConfirmImport()
     data.applyCommit(res)
+    loading.value = false
     clear()
     panoptic.hideModal()
-    // project.reload()
 }
 
 async function uploadFile(e) {
@@ -55,6 +66,7 @@ function clear() {
     relative.value = true
     fusion.value = 'first'
     loading.value = false
+    missing.value = null
 }
 
 </script>
@@ -106,7 +118,7 @@ function clear() {
                             </span>
                         </td>
                     </tr>
-                    <tr v-if="properties.key == 'path'" >
+                    <tr v-if="properties.key == 'path'">
                         <td colspan="3" class="pt-2">
                             <div class="d-flex">
                                 <div class="me-1">Fusion Mode</div>
@@ -120,17 +132,17 @@ function clear() {
                         </td>
                         <td colspan="2" class="pt-2">
                             Relatif Path
-                            <input type="checkbox" v-model="relative"/>
+                            <input type="checkbox" v-model="relative" />
                         </td>
                     </tr>
                     <tr>
                         <td colspan="5" class="">
-                            <div class="d-flex mt-2 flex-center w-100">
+                            <div v-if="!missing" class="d-flex mt-2 flex-center w-100">
                                 <div v-if="!loading" class="bbb text-center w-100" @click="importFile">Import
                                 </div>
                                 <div v-if="loading" class="text-center w-100 border rounded">
-                                    <div class="spinner-border spinner-border-sm"
-                                        style="position: relative; top: -1px" role="status">
+                                    <div class="spinner-border spinner-border-sm" style="position: relative; top: -1px"
+                                        role="status">
                                     </div>
                                 </div>
                             </div>
@@ -139,34 +151,53 @@ function clear() {
 
                 </table>
 
+                <div v-if="missing">
+                    <div class="text-warning mb-2">
+                        {{ missing.length }} {{ $t('modals.import.not_found') }}
+                    </div>
+                    <div v-if="!loading" style="width: 300px;" class="bbb text-center" @click="confirmImport">{{ $t('confirm') }}
+                    </div>
+                    <div v-if="loading" class="text-center w-100 border rounded">
+                        <div class="spinner-border spinner-border-sm" style="position: relative; top: -1px"
+                            role="status">
+                        </div>
+                    </div>
+                    <div class="mt-2 p-2"
+                        style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color);">
+                        <div v-for="lines in missing">
+                            {{ $t('modals.import.row') }}: {{ lines[0] + 1 }} {{ $t('modals.import.key') }}: {{ lines[1] }}
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div v-else class="m-4">
-                {{$t('modals.import.help.0')}}
-                    <ul>
-                        <li>
-                            {{$t('modals.import.help.1')}}
-                        </li>
-                        <li>
-                            {{$t('modals.import.help.2')}}
-                            <ul>
-                                <li>
-                                    {{$t('modals.import.help.3')}}
-                                </li>
-                                <li>
-                                    {{$t('modals.import.help.4')}}
-                                </li>
-                            </ul>
-                        </li>
-                        <li>
-                            {{$t('modals.import.help.5')}}
-                            <br>
-                            {{$t('modals.import.help.6')}}
-                        </li>
-                        <li>
-                            {{$t('modals.import.help.7')}}
-                        </li>
-                    </ul>
-                    {{$t('modals.import.help.8')}}
+                {{ $t('modals.import.help.0') }}
+                <ul>
+                    <li>
+                        {{ $t('modals.import.help.1') }}
+                    </li>
+                    <li>
+                        {{ $t('modals.import.help.2') }}
+                        <ul>
+                            <li>
+                                {{ $t('modals.import.help.3') }}
+                            </li>
+                            <li>
+                                {{ $t('modals.import.help.4') }}
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        {{ $t('modals.import.help.5') }}
+                        <br>
+                        {{ $t('modals.import.help.6') }}
+                    </li>
+                    <li>
+                        {{ $t('modals.import.help.7') }}
+                    </li>
+                </ul>
+                {{ $t('modals.import.help.8') }}
 
                 <table>
                     <tr>

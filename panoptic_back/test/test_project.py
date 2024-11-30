@@ -360,6 +360,13 @@ async def test_import_export_equal_with_empty(instance_project: Project, import_
     assert export_data == import_data
 
 
+async def test_import_missing_detection(instance_project: Project, import_with_missing_csv: str, tmp_path: Path):
+    await instance_project.importer.upload_csv(import_with_missing_csv)
+    missing = await instance_project.importer.parse_file(relative=True, fusion='new')
+
+    assert len(missing) == 2
+
+
 async def test_import_export_equal_mode_image(instance_project: Project, import_csv: str, tmp_path: Path):
     prop_definitions = {
         1: Property(id=-1, name="tag", type=PropertyType.tag, mode=PropertyMode.sha1),
