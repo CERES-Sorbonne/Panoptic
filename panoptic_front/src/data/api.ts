@@ -92,9 +92,14 @@ export async function apiUploadPropertyCsv(file) {
     return res.data
 }
 
-export async function apiConfirmImport(options) {
-    const res = await axios.post('/import/confirm', options)
+export async function apiParseImport(options) {
+    const res = await axios.post('/import/parse', options)
     return keysToCamel(res.data)
+}
+
+export async function apiConfirmImport() {
+    const res = await axios.post('/import/confirm')
+    return keysToCamel(res.data) as DbCommit
 }
 
 export const apiExportProperties = async (name?: string, images?: number[], key?: string, properties?: number[], exportImages = false) => {

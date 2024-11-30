@@ -1,0 +1,11 @@
+path;tag[tag];multi_tags[multi_tags];string[text];number[number];date[date];color[color];url[url];checkbox[checkbox]
+images/number_1.png;;1,odd;one;1.1;2024-09-01T00:00:00Z;0;1;True
+images/7-10/number_7.png;7;;seven;7.1;2024-09-07T00:00:00Z;6;7;True
+images/7-10/number_9.png;9;9,odd;;9.2;2024-09-09T00:00:00Z;8;9;True
+images/7-10/number_8.png;8;8,even;eight;;2024-09-08T00:00:00Z;7;8;
+images/4-6/number_6.png;6;6,even;six;6;;5;6;
+images/7-10/number_10.png;10;10,even;ten;10;2024-09-10T00:00:00Z;;10;
+images/4-6/number_4.png;4;4,even;four;4;2024-09-04T00:00:00Z;3;;
+images/4-6/number_5.png;5;5,odd;five;5;2024-09-05T00:00:00Z;4;5;True
+images/2-3/number_300.png;3;3,odd;three;3;2024-09-03T00:00:00Z;2;3;True
+images/2-3/number_200.png;2;2,even;two;2;2024-09-02T00:00:00Z;1;2;

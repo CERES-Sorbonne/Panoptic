@@ -61,9 +61,22 @@ async def upload_file_route(file: UploadFile):
     # return await project.importer.analyse_file()
 
 
+# @project_router.post('/import/confirm')
+# async def import_parse_route(req: ImportPayload):
+#     await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative, fusion=req.fusion)
+#     res = await project.importer.confirm_import()
+#     return ORJSONResponse(res)
+
+
+@project_router.post('/import/parse')
+async def import_parse_file_route(req: ImportPayload):
+    missing = await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative,
+                                                fusion=req.fusion)
+    return missing
+
+
 @project_router.post('/import/confirm')
-async def import_parse_route(req: ImportPayload):
-    await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative, fusion=req.fusion)
+async def import_confirm_route():
     res = await project.importer.confirm_import()
     return ORJSONResponse(res)
 
