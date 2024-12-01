@@ -99,7 +99,6 @@ function toggleFilter() {
 }
 
 async function updateFunction(name: string) {
-    console.log(name)
     const update = {}
     update['similar'] = name
     await actions.updateDefaultActions(update)
