@@ -95,8 +95,6 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function updateDefaultActions(defaults: any) {
         Object.assign(defaultActions, defaults)
-        console.log(defaults)
-        console.log(defaultActions)
         await apiSetUIData('default_actions', defaultActions)
     }
 

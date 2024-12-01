@@ -1,4 +1,5 @@
 import asyncio
+import math
 
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.core.project.project import Project
@@ -37,6 +38,7 @@ class MacOCR(APlugin):
         super().__init__(name=name, project=project, plugin_path=plugin_path)
         self.add_action_easy(self.ocr, ['execute'])
         self.add_action_easy(self.find_close_id, ['similar'])
+        self.add_action_easy(self.cluster_up, ['group'])
 
     async def ocr(self, context: ActionContext):
         commit = DbCommit()
@@ -57,3 +59,11 @@ class MacOCR(APlugin):
         close_ids = [(i-5)+ids[0] for i in range(10)]
 
         return ActionResult(instances=Group(ids=close_ids))
+
+    async def cluster_up(self, context: ActionContext, size: int):
+        ids = context.instance_ids
+
+        nb = math.ceil(len(ids) / size)
+
+        groups = [Group(ids=ids[i*size: i*size+size]) for i in range(nb)]
+        return ActionResult(groups=groups)

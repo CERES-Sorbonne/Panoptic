@@ -45,7 +45,6 @@ async function call() {
     if (loading.value) return
     loading.value = true
     try {
-        console.log(localFunction.value, defaultFunction.value)
         const uiInputs = {}
         for (let input of localInputs.value) {
             if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
@@ -64,7 +63,10 @@ async function call() {
         if (res.instances) {
             emits('instances', res.instances)
         }
+    } catch (e) {
 
+    }
+    try {
         if (setDefault.value) {
             const funcId = localFunction.value
             for (let i in localInputs.value) {
@@ -76,16 +78,11 @@ async function call() {
             update[props.action] = localFunction.value
             await actions.updateDefaultActions(update)
         }
-    } catch (e) {
+    } catch(e) {
 
     }
+
     loading.value = false
-}
-
-function setRef(elem, i) {
-    if (i == 0 && elem) {
-        elem.focus()
-    }
 }
 
 onMounted(loadAction)
