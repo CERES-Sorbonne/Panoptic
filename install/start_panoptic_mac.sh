@@ -49,7 +49,7 @@ fi
 source $ENV_DIR/bin/activate
 
 # Vérifie si une mise à jour de panoptic est disponible et propose de l'installer
-LATEST_PANOPTIC_VERSION=$($PIP_EXEC install panoptic==nonexistent 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
+LATEST_PANOPTIC_VERSION=$($PIP_EXEC install panoptic==999999 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
 CURRENT_PANOPTIC_VERSION=$($PIP_EXEC show panoptic | grep -oP '(?<=Version: )[^ ]+')
 
 if [[ "$LATEST_PANOPTIC_VERSION" > "$CURRENT_PANOPTIC_VERSION" ]]; then

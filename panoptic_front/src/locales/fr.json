@@ -18,6 +18,14 @@
                 "install_panoptic_ml": "Installer le plugin de similarité",
                 "install": "Installer",
                 "load": "Installation..."
+            },
+            "projects": {
+                "create": "Créer un nouveau projet",
+                "create_details": "Créer un nouveau projet panoptic dans un dossier.",
+                "create_button": "Créer",
+                "import": "Importer un projet",
+                "import_details": "Choisissez un dossier Panoptic existant.",
+                "import_button": "Importer"
             }
         },
         "status": {
@@ -72,6 +80,7 @@
             "image_size_tooltip": "Taille des images",
             "all_images": "Images",
             "sha1_images": "Instances",
+            "image_mode": "Mode images uniques",
             "image_mode_tooltip": "Altérner entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
             "selected_images": "images sélectionnées",
             "tag_selection": "Tagger les ",
@@ -141,9 +150,9 @@
             "image": "Propriété d'image",
             "cancel": "Annuler",
             "confirm": "Confirmer",
-            "text": "Texte",
+            "text": "Text",
             "text_tooltip": "Du texte, ex: le contenu d'un tweet, la description d'une image",
-            "number": "Numérique",
+            "number": "Number",
             "number_tooltip": "Des nombres, ex: le nombre de likes sur twitter, la largeur d'un tableau",
             "tag": "Tag",
             "tag_tooltip": "Un tag unique choisi parmi une liste, ex: une catégorie d'image, un lieu, une source",
@@ -237,6 +246,20 @@
         },
         "import": {
             "title": "Importer Fichier",
+            "fusion": {
+                "title": "Mode de fusion: ",
+                "tooltip": "Si la propriété est déjà renseignée pour une instance, quel doit être le comportement pour gérer les valeurs ?",
+                "first": "Remplacer première",
+                "first_tooltip": "Ecraser les données de la plus ancienne instance enregistrée dans panoptic, et remplacer ses données par celles renseignées dans le csv",
+                "last": "Remplacer dernière",
+                "last_tooltip": "Ecraser les données de la plus récente instance enregistrée dans panoptic, et remplacer ses données par celles renseignées dans le csv",
+                "new": "Créer nouvelle",
+                "new_tooltip": "On écrase aucune donnée et on créé de nouvelles instances qui s'ajouteront à celles existantes",
+                "all": "Remplacer toutes",
+                "all_tooltip": "On écrase toutes les instances actuelles pour en créer seulement avec les valeurs renseignées dans le csv",
+                "path":"Chemin relatif ? ",
+                "path_tooltip": "Est ce que le chemin renseigné dans le csv pour identifier les images est relatif par rapport au dossier importé dans panoptic, ou absolu (depuis la racine du disque dur) ?"
+            },
             "help": {
                 "0": "Un fichier valide de propriétés à importer est un csv:",
                 "1": "Avec séparateur ';'",
