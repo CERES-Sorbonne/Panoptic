@@ -4,7 +4,7 @@ from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext, PropertyType, PropertyMode, DbCommit, \
     Instance, ImageProperty, Property
-from panoptic.models.results import ActionResult
+from panoptic.models.results import ActionResult, Group
 from panoptic.core.plugin.plugin import APlugin
 
 
@@ -36,9 +36,9 @@ class MacOCR(APlugin):
     def __init__(self, project: PluginProjectInterface, plugin_path: str, name: str):
         super().__init__(name=name, project=project, plugin_path=plugin_path)
         self.add_action_easy(self.ocr, ['execute'])
+        self.add_action_easy(self.find_close_id, ['similar'])
 
     async def ocr(self, context: ActionContext):
-        print(context.instance_ids)
         commit = DbCommit()
         prop = self.project.create_property('OCR', PropertyType.string, PropertyMode.sha1)
         instances = await self.project.get_instances(ids=context.instance_ids)
@@ -51,3 +51,9 @@ class MacOCR(APlugin):
 
         res = await self.project.do(commit)
         return ActionResult(commit=res)
+
+    async def find_close_id(self, context: ActionContext):
+        ids = context.instance_ids
+        close_ids = [(i-5)+ids[0] for i in range(10)]
+
+        return ActionResult(instances=Group(ids=close_ids))

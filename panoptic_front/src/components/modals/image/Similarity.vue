@@ -9,6 +9,7 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
+import ActionSelect from '@/components/actions/ActionSelect.vue';
 const project = useProjectStore()
 const actions = useActionStore()
 const data = useDataStore()
@@ -34,6 +35,7 @@ const state = reactive({
 })
 
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
+const defaultFunction = computed(() => actions.defaultActions['similar'])
 
 async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
@@ -41,11 +43,12 @@ async function setSimilar() {
     const res = await actions.getSimilarImages({ instanceIds: [props.image.id] })
     if (!res.instances) throw new Error('No instances in ActionResult')
 
+    console.log(res)
     let matches: InstanceMatch[] = []
     const scores = res.instances.scores ?? []
     if (res.instances.ids) {
         for (let i in res.instances.ids) {
-            const match: InstanceMatch = { id: res.instances.ids[i], score: scores[i] }
+            const match: InstanceMatch = { id: res.instances.ids[i], score: scores[i] ?? 1.0 }
             matches.push(match)
         }
     } else {
@@ -95,6 +98,14 @@ function toggleFilter() {
     useFilter.value = !useFilter.value
 }
 
+async function updateFunction(name: string) {
+    console.log(name)
+    const update = {}
+    update['similar'] = name
+    await actions.updateDefaultActions(update)
+    await setSimilar()
+}
+
 onMounted(setSimilar)
 watch(() => props.image, setSimilar)
 watch(minSimilarityDist, updateSimilarGroup)
@@ -127,9 +138,16 @@ watch(useFilter, updateSimilarGroup)
                     ({{ similarGroup.result.root.children.length }} images)
                 </div>
             </div>
+            <div class="d-flex mt-1 mb-1">
+                <div class="me-2" style="margin-left: 2px;">Search function</div>
+                <div>
+                    <ActionSelect :model-value="defaultFunction" :action="'similar'"
+                        @update:model-value="updateFunction" />
+                </div>
+            </div>
 
 
-            <TreeScroller class="" :image-size="70" :height="props.height - 25" :width="props.width"
+            <TreeScroller class="" :image-size="70" :height="props.height - 60" :width="props.width"
                 :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
                 :sha1-scores="state.sha1Scores" ref="scrollerElem" :preview="props.preview" />
         </div>
