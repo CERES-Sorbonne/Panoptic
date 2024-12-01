@@ -103,7 +103,7 @@ function setPanopticMl() {
             </div>
         </div>
         <div v-if="mode == 'local'" class="d-flex">
-            <div class="bbb pe-2 me-2" @click="propmptFolder"><i class="bi bi-folder me-2 ms-1" />Select</div>
+            <div class="bbb pe-2 me-2" style="white-space: nowrap;" @click="propmptFolder"><i class="bi bi-folder me-2 ms-1" />Select</div>
             <input type="url" v-model="localPath" placeholder="Folder path" style="width: 180px;" />
             <input v-if="showName" v-model="pluginName" type="text" placeholder="plugin unique name"
                 style="width: 150px;" class="ms-2" />
