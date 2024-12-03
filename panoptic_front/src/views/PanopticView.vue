@@ -6,11 +6,13 @@ import Menu from '../components/menu/Menu.vue';
 import { keyState } from '@/data/keyState';
 import MainView from '@/components/mainview/MainView.vue';
 import TabNav from '@/components/mainview/TabNav.vue';
-import { ModalId } from '@/data/models';
+import { ModalId, NotifType } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import { useDataStore } from '@/data/dataStore';
+
+let x = 0
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -70,6 +72,7 @@ onMounted(async () => {
         if (ev.key == 'Shift') keyState.shift = false;
         if (ev.key == 'ArrowLeft') keyState.left = false;
         if (ev.key == 'ArrowRight') keyState.right = false;
+        if (ev.key == 'z') { panoptic.notify({id: 10+x, name: "hehe", message: "a nice error message", type: NotifType.ERROR}); x++; }
     })
     window.addEventListener('mousemove', (ev) => {
         keyState.ctrl = ev.ctrlKey

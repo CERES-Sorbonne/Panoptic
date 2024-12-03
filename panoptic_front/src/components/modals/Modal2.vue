@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ModalId } from '@/data/models';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import * as bootstrap from 'bootstrap';
 import { usePanopticStore } from '@/data/panopticStore';
+import { useModalStore } from '@/data/modalStore';
 
+const modal = useModalStore()
 const panoptic = usePanopticStore()
 
 const props = defineProps<{
     id: ModalId
+    layer?: number
     maxWidth?: number
     maxHeight?: number
     noTitle?: boolean,
@@ -20,7 +22,6 @@ defineExpose({
 })
 
 const modalElem = ref(null)
-let modal: bootstrap.Modal = null
 
 const totalHeight = ref(0)
 const totalWidth = ref(0)
@@ -30,13 +31,13 @@ const modalWidth = computed(() => totalWidth.value - 56)
 const modalHeight = computed(() => totalHeight.value - 56)
 
 const titleStyle = computed(() => {
-    if(!props.titleStyle) return 'title'
-    if(props.titleStyle == 1) return 'title1'
+    if (!props.titleStyle) return 'title'
+    if (props.titleStyle == 1) return 'title1'
 })
 
 const data = computed(() => panoptic.modalData)
 const modalStyle = computed(() => {
-    return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
+    return { width: modalWidth.value + 'px', height: modalHeight.value + 'px' }
 })
 const bodyStyle = computed(() => {
     // return { maxWidth: modalWidth.value + 'px', height: modalHeight.value + 'px' }
@@ -70,10 +71,11 @@ function onWindowResize() {
 onMounted(() => {
     window.addEventListener('resize', onWindowResize)
     onWindowResize()
+    modal.registerModal(props.id, props.layer)
 })
 
-watch(() => panoptic.openModalId, () => {
-    if (panoptic.openModalId == props.id) {
+watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
+    if (newVal) {
         show()
         onWindowResize()
     }
@@ -85,9 +87,9 @@ watch(() => panoptic.openModalId, () => {
 </script>
 
 <template>
-    <div v-if="active" class="p-modal" tabindex="-1" ref="modalElem" @click="panoptic.hideModal"
-        @keydown.esc="panoptic.hideModal">
-        <div class="modal-container" :style="modalStyle" @click.stop>
+    <div v-if="active" class="p-modal" tabindex="-1" ref="modalElem" @click="panoptic.hideModal(props.id)"
+        @keydown.esc="panoptic.hideModal(props.id)">
+        <!-- <div class="modal-container" :style="modalStyle" @click.stop>
             <div class="modal-content d-flex flex-column h-100" v-if="active">
                 <div :class="titleStyle" v-if="!props.noTitle">
                     <div class="d-flex">
@@ -101,6 +103,23 @@ watch(() => panoptic.openModalId, () => {
                     <slot name="content" :data="data" :width="modalWidth" :height="modalHeight"></slot>
                 </div>
             </div>
+        </div> -->
+        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+            <div class="modal-container" :style="modalStyle" @click.stop>
+                <div class="modal-content d-flex flex-column h-100" v-if="active">
+                    <div :class="titleStyle" v-if="!props.noTitle">
+                        <div class="d-flex">
+                            <div class="flex-grow-1">
+                                <slot name="title"></slot>
+                            </div>
+                            <div class="close bi bi-x btn-icon" @click="panoptic.hideModal(props.id)"></div>
+                        </div>
+                    </div>
+                    <div class="body flex-grow-1" :style="bodyStyle">
+                        <slot name="content" :data="data" :width="modalWidth" :height="modalHeight"></slot>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -108,18 +127,17 @@ watch(() => panoptic.openModalId, () => {
 
 <style scoped>
 .modal-container {
+    margin: 0px;
     background-color: white;
-    border-radius: 3px;
     overflow: hidden;
-
     border-radius: 3px !important;
     border: 2px solid var(--border-color) !important;
-    margin: 28px;
 }
 
 .body {
     background-color: white;
     overflow: hidden;
+
 }
 
 .title {
