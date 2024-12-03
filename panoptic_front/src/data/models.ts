@@ -224,7 +224,8 @@ export enum ModalId {
     SETTINGS = "settings",
     IMPORT = "import",
     TAG = "tag",
-    FIRSTMODAL = "firstmodal"
+    FIRSTMODAL = "firstmodal",
+    NOTIF = "notif"
 }
 
 export interface ImportState {
@@ -518,4 +519,36 @@ export interface ProjectSettings {
     saveImageLarge: boolean
 
     saveFileRaw: boolean
+}
+
+
+// ========= Notifications =========
+
+export enum NotifType {
+    DEBUG = 'debug',
+    INFO = 'info',
+    WARNING = 'warning',
+    ERROR = 'error'
+}
+
+export interface NotifFunction {
+    id: string
+    message: string
+    params: any
+    context: ActionContext
+}
+
+export interface Notif {
+    type?: NotifType
+
+    id?: number
+    createdAt?: Date
+    receivedAt?: Date
+    name?: string
+    message?: string
+    data?: any
+
+    functions?: NotifFunction[]
+
+    read?: boolean
 }
