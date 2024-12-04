@@ -76,6 +76,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     async function closeProject() {
         project.status.loaded = false
         project.clear()
+        notifs.value = []
         data.status = await apiCloseProject()
         router.push('/')
     }
@@ -136,12 +137,19 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         showModal(ModalId.NOTIF, notif.id)
     }
 
+    function delNotif(id: number) {
+        const index = notifs.value.findIndex(n => n.id == id)
+        console.log(index)
+        if(index < 0) return
+        notifs.value.splice(index, 1)
+    }
+
     return {
         init, data, state,
         modalData, hideModal, showModal, openModalId,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject,
         addPlugin, delPlugin,
-        notifs, clearNotif, notify
+        notifs, clearNotif, notify, delNotif
     }
 })

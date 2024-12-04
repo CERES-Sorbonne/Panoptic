@@ -24,7 +24,7 @@ const emits = defineEmits([])
 
 <style scoped>
 .notif-header {
-    padding: 6px;
+    padding: 2px;
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
     word-break: break-all;
