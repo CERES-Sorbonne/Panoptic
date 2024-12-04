@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ModalId, NotifType } from '@/data/models';
 import Modal2 from './Modal2.vue';
-import { useProjectStore } from '@/data/projectStore';
 import { computed, nextTick, ref, watch } from 'vue';
 import NotifPreview from '../notif/NotifPreview.vue';
 import NotifBody from '../notif/NotifBody.vue';
@@ -12,7 +11,7 @@ import { usePanopticStore } from '@/data/panopticStore';
 const panoptic = usePanopticStore()
 const modal = useModalStore()
 
-const selectedNotifId = ref(null)
+const selectedNotifId = ref(undefined)
 const typeList = ref([NotifType.DEBUG, NotifType.INFO, NotifType.WARNING, NotifType.ERROR])
 const selectedNotif = computed(() => panoptic.notifs.find(n => n.id == selectedNotifId.value))
 
@@ -45,7 +44,6 @@ async function readNotif(id: number, scroll?: boolean) {
     selectedNotifId.value = id
     selectedNotif.value.read = true
 
-
     await nextTick()
     if (scroll && previewElems.value[id]) {
         previewElems.value[id].scrollIntoView()
@@ -65,6 +63,24 @@ function onShow() {
     else if (selectedNotif.value === undefined) {
         let last = filteredNotifs.value.length - 1
         readNotif(filteredNotifs.value[last].id)
+    }
+}
+
+function unread() {
+    if (!selectedNotif.value) return
+    delete selectedNotif.value.read
+    selectedNotifId.value = undefined
+}
+
+function delNotif() {
+    if (!selectedNotif.value) return
+    const id = selectedNotifId.value
+    const index = filteredNotifs.value.findIndex(n => n.id == id)
+    panoptic.delNotif(id)
+    if (index == 0 && filteredNotifs.value.length > 0) {
+        readNotif(filteredNotifs.value[0].id)
+    } else if (filteredNotifs.value.length > 0) {
+        readNotif(filteredNotifs.value[index - 1].id)
     }
 }
 
@@ -98,8 +114,15 @@ watch(() => modal.getData(ModalId.NOTIF), (newValue, oldValue) => {
                         </div>
                     </template>
                 </div>
-                <div v-if="selectedNotif" class="p-2 notif-body">
-                    <NotifBody :notif="selectedNotif" />
+                <div v-if="selectedNotif" class="notif-body d-flex flex-column w-100 h-100">
+                    <div style="border-bottom: 1px solid var(--border-color); padding: 2px 0;" class="w-100 d-flex">
+                        <div class="flex-grow-1"></div>
+                        <div class="me-1"><span class="bb" @click="delNotif">delete</span></div>
+                        <div class="me-1"><span class="bb" @click="unread">unread</span></div>
+                    </div>
+                    <div class="p-2 h-100 overflow-auto">
+                        <NotifBody :notif="selectedNotif" />
+                    </div>
                 </div>
             </div>
         </template>

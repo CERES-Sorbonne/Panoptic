@@ -72,7 +72,6 @@ onMounted(async () => {
         if (ev.key == 'Shift') keyState.shift = false;
         if (ev.key == 'ArrowLeft') keyState.left = false;
         if (ev.key == 'ArrowRight') keyState.right = false;
-        if (ev.key == 'z') { panoptic.notify({id: 10+x, name: "hehe", message: "a nice error message", type: NotifType.ERROR}); x++; }
     })
     window.addEventListener('mousemove', (ev) => {
         keyState.ctrl = ev.ctrlKey
