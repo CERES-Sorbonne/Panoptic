@@ -22,7 +22,9 @@ const notifFilter = ref({
     [NotifType.DEBUG]: true
 })
 
-const filteredNotifs = computed(() => panoptic.notifs.filter(n => !notifFilter.value[n.type]))
+const readFilter = ref(false)
+
+const filteredNotifs = computed(() => panoptic.notifs.filter(n => (!notifFilter.value[n.type] && (!n.read || !readFilter.value)) || n.id == selectedNotifId.value))
 
 function iconStyle(type: NotifType) {
     if (notifFilter.value[type]) {
@@ -45,24 +47,29 @@ async function readNotif(id: number, scroll?: boolean) {
 
 
     await nextTick()
-    if(scroll && previewElems.value[id]) {
+    if (scroll && previewElems.value[id]) {
         previewElems.value[id].scrollIntoView()
     }
 }
 
+function toggleReadFilter() {
+    readFilter.value = !readFilter.value
+
+}
+
 function onShow() {
     const notifId = useModalStore().getData(ModalId.NOTIF)
-    if(notifId !== undefined) {
+    if (notifId !== undefined) {
         readNotif(notifId, true)
     }
-    else if(selectedNotif.value === undefined) {
+    else if (selectedNotif.value === undefined) {
         let last = filteredNotifs.value.length - 1
         readNotif(filteredNotifs.value[last].id)
     }
 }
 
 watch(() => modal.getData(ModalId.NOTIF), (newValue, oldValue) => {
-    onShow()
+    // readNotif(newValue)
 })
 
 </script>
@@ -73,13 +80,20 @@ watch(() => modal.getData(ModalId.NOTIF), (newValue, oldValue) => {
             <span v-for="typ in typeList" class="bb" :class="iconStyle(typ)" @click="toggleFilter(typ)">
                 <NotifIcon :type="typ" />
             </span>
-            <b class="ms-1 ps-1" style="border-left: 1px solid var(--border-color);">Notification Center</b>
+            <span style="border-left: 1px solid var(--border-color); margin: 0 1px;"></span>
+            <span class="bb" :class="readFilter ? '' : 'dimmed'" @click="toggleReadFilter()">
+                <i class="bi bi-circle-fill text-primary"
+                    style="font-size: 8px; position: relative; top: -3px; left:0px; margin: 0 2px" />
+            </span>
+            <b class="ps-1" style="border-left: 1px solid var(--border-color); margin-left: 1px;">Notification
+                Center</b>
         </template>
         <template #content="{ data }">
             <div class="d-flex h-100" style="border-top: 1px solid var(--border-color)">
                 <div class="d-flex flex-column notif-list flex-shrink-0">
                     <template v-for="notif in filteredNotifs">
-                        <div @click="readNotif(notif.id)" :class="selectedNotifId == notif.id ? 'selected' : ''" :ref="e => previewElems[notif.id] = e" >
+                        <div @click="readNotif(notif.id)" :class="selectedNotifId == notif.id ? 'selected' : ''"
+                            :ref="e => previewElems[notif.id] = e">
                             <NotifPreview :notif="notif" />
                         </div>
                     </template>
