@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 
 const props = withDefaults(defineProps<{
     modelValue: any,

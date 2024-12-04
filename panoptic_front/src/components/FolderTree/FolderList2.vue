@@ -100,8 +100,10 @@ function unselectParent(folderId: number, selected: Set<number>) {
     <ul :class="props.root ? 'tree' : ''" :style="props.root ? 'padding-left:0px;' : ''">
         <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''" class="no-break"
             @mouseenter="hoverId = folder.id" @mouseleave="hoverId = null">
-            <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }} <span
-                    class="text-secondary">{{ folder.count }}</span></summary>
+            <div style="display: inline;">
+                <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }} <span
+                        class="text-secondary">{{ folder.count }}</span></summary>
+            </div>
             <i v-if="folder.children && folder.children.length > 0" @click="toggleFolderVisible(folder.id)"
                 :class="'bi bi-chevron-' + (isVisible[folder.id] ? 'down' : 'right') + ' ms-2 btn-icon'"
                 style="font-size: 9px;"></i>

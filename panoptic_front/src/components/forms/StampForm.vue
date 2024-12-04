@@ -45,8 +45,8 @@ const propertyColor = computed(() => {
 </script>
 
 <template>
+    <div class="p-1"><b>{{ $t('modals.tagging.title') }}</b></div>
     <table class="table table-sm">
-        <b>{{ $t('modals.tagging.title') }}</b>
         <tbody style="border-top: 1px solid var(--border-color)">
             <tr v-for="property in properties" style="min-height: 26px;">
                 <template v-if="property.id >= 0">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
 import { objValues } from '@/utils/utils';
-import { defineProps, defineEmits, computed } from 'vue'
+import { computed } from 'vue'
 
 const actions = useActionStore()
 

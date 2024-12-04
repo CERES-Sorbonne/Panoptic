@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import TextInput from '../property_inputs/TextInput.vue';
 import UrlPreview from '../property_preview/UrlPreview.vue';
 

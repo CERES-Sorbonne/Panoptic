@@ -16,7 +16,7 @@ export default defineConfig({
     },
     // assetsInclude: replaceFiles,
     plugins: [
-        vue(), 
+        vue(),
     ],
     resolve: {
         alias: {
@@ -26,6 +26,10 @@ export default defineConfig({
     build: {
         outDir: '../panoptic_back/panoptic/html',
         emptyOutDir: true
+    },
+    define: {
+        // enable hydration mismatch details in production build
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
     }
 })
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Colors } from '@/data/models';
-import { computed, onMounted, ref, withDefaults } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import 'vue-color-kit/dist/vue-color-kit.css'
 import Dropdown from '../dropdowns/Dropdown.vue';
 

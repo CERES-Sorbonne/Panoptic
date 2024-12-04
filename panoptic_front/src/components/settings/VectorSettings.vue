@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ProjectVectorDescription } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
-import { defineProps, defineEmits, ref, onMounted, watch, computed } from 'vue';
+import {  ref, onMounted, watch, computed } from 'vue';
 const project = useProjectStore()
-// const props = defineProps<{}>();
-// const emits = defineEmits([]);
 
 const localVectors = ref<ProjectVectorDescription>(null)
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Notif } from '@/data/models';
-import { defineProps, defineEmits } from 'vue'
 import NotifIcon from './NotifIcon.vue';
 
 const props = defineProps<{

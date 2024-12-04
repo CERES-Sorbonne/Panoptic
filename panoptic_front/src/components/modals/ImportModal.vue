@@ -47,7 +47,7 @@ async function confirmImport() {
     data.applyCommit(res)
     loading.value = false
     clear()
-    panoptic.hideModal()
+    panoptic.hideModal(ModalId.IMPORT)
 }
 
 async function uploadFile(e) {
@@ -90,36 +90,39 @@ function clear() {
             </div>
             <div v-if="filename" class="p-2">
                 <table>
-                    <tr>
-                        <th class="border">Import</th>
-                        <th class="border">Col</th>
-                        <th class="border">Property</th>
-                        <th class="border">Exist</th>
-                        <th class="border">Mode</th>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <th class="border">Import</th>
+                            <th class="border">Col</th>
+                            <th class="border">Property</th>
+                            <th class="border">Exist</th>
+                            <th class="border">Mode</th>
+                        </tr>
 
-                    <tr v-for="p, i in properties.properties" class="border" :class="!take[i] ? 'dimmed' : ''">
-                        <td class="border text-center"><input v-if="i != 0" type="checkbox" v-model="take[i]" /></td>
-                        <td class="border text-center">{{ i }}</td>
-                        <td class="border">
-                            <PropertyIcon :type="p.type" /> {{ p.name }}
-                        </td>
-                        <td class="border text-center">
-                            <div v-if="p.id > 0" class="exist"></div>
-                        </td>
-                        <td class="border">
-                            <span v-if="p.id < 0">
-                                <select id="base" name="base" v-model="p.mode" :disabled="!take[i]">
-                                    <option value="sha1">Image</option>
-                                    <option value="id">Instance</option>
-                                </select>
-                            </span>
-                            <span v-else>
-                                <span v-if="p.mode == 'id'">Instance</span>
-                                <span v-if="p.mode == 'sha1'">Image</span>
-                            </span>
-                        </td>
-                    </tr>
+                        <tr v-for="p, i in properties.properties" class="border" :class="!take[i] ? 'dimmed' : ''">
+                            <td class="border text-center"><input v-if="i != 0" type="checkbox" v-model="take[i]" />
+                            </td>
+                            <td class="border text-center">{{ i }}</td>
+                            <td class="border">
+                                <PropertyIcon :type="p.type" /> {{ p.name }}
+                            </td>
+                            <td class="border text-center">
+                                <div v-if="p.id > 0" class="exist"></div>
+                            </td>
+                            <td class="border">
+                                <span v-if="p.id < 0">
+                                    <select id="base" name="base" v-model="p.mode" :disabled="!take[i]">
+                                        <option value="sha1">Image</option>
+                                        <option value="id">Instance</option>
+                                    </select>
+                                </span>
+                                <span v-else>
+                                    <span v-if="p.mode == 'id'">Instance</span>
+                                    <span v-if="p.mode == 'sha1'">Image</span>
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
                 <div v-if="properties.key == 'path'">
                     <div class="d-flex mt-3">
@@ -199,42 +202,44 @@ function clear() {
                 {{ $t('modals.import.help.8') }}
 
                 <table>
-                    <tr>
-                        <th class="border">{{ $t("modals.import.help.9") }} </th>
-                        <th class="border">{{ $t("modals.import.help.10") }} </th>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.multi_tags") }} </td>
-                        <td class="border text-center">multi_tags</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.tag") }} </td>
-                        <td class="border text-center">tag</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.number") }} </td>
-                        <td class="border text-center">number</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.text") }} </td>
-                        <td class="border text-center">text</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.checkbox") }} </td>
-                        <td class="border text-center">checkbox</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.color") }} </td>
-                        <td class="border text-center">color</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.date") }} </td>
-                        <td class="border text-center">date</td>
-                    </tr>
-                    <tr>
-                        <td class="border text-center">{{ $t("modals.properties.url") }} </td>
-                        <td class="border text-center">url</td>
-                    </tr>
+                    <tbody>
+                        <tr>
+                            <th class="border">{{ $t("modals.import.help.9") }} </th>
+                            <th class="border">{{ $t("modals.import.help.10") }} </th>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.multi_tags") }} </td>
+                            <td class="border text-center">multi_tags</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.tag") }} </td>
+                            <td class="border text-center">tag</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.number") }} </td>
+                            <td class="border text-center">number</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.text") }} </td>
+                            <td class="border text-center">text</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.checkbox") }} </td>
+                            <td class="border text-center">checkbox</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.color") }} </td>
+                            <td class="border text-center">color</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.date") }} </td>
+                            <td class="border text-center">date</td>
+                        </tr>
+                        <tr>
+                            <td class="border text-center">{{ $t("modals.properties.url") }} </td>
+                            <td class="border text-center">url</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </template>

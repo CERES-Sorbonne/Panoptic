@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Instance, Tag } from '@/data/models';
-import { defineProps, defineEmits, computed } from 'vue'
+import { computed } from 'vue'
 import ImagePreview from '../preview/ImagePreview.vue';
 import EditableTag from '../tags/EditableTag.vue';
 import { useDataStore } from '@/data/dataStore';

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { ModalId } from '../../data/models';
-import { ref, defineEmits, watch, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../foldertree/FolderList2.vue';

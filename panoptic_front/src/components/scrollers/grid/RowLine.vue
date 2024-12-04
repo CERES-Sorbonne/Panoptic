@@ -1,25 +1,16 @@
 <script setup lang="ts">
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
-import CheckboxPropInput from '@/components/inputs/CheckboxPropInput.vue';
-import ColorPropInput2 from '@/components/inputs/ColorPropInput2.vue';
-import DatePropInput from '@/components/inputs/DatePropInput.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import TextPropInput from '@/components/inputs/TextPropInput.vue';
-import TagPropInputDropdown from '@/components/tags/TagPropInputDropdown.vue';
-import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Group } from '@/core/GroupManager';
-import { useDataStore } from '@/data/dataStore';
-import { ModalId, PileRowLine, Property, PropertyID, PropertyType, RowLine } from '@/data/models';
+import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
-import { isTag, objValues } from '@/utils/utils';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GridPropInput from './GridPropInput.vue';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
-const data = useDataStore()
 
 const props = defineProps({
     item: Object,

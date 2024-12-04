@@ -5,7 +5,7 @@ import { deletedID, useDataStore } from '@/data/dataStore';
 import { keyState } from '@/data/keyState';
 import { Tag } from '@/data/models';
 import { sum } from '@/utils/utils';
-import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import draggableComponent from 'vuedraggable';
 
 const data = useDataStore()

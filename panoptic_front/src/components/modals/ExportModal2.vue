@@ -129,80 +129,83 @@ async function buildRequest() {
             <div class="d-flex flex-column p-2">
                 <div>
                     <table class="main-table">
-                        <!-- <tbody> -->
-                        <tr class="">
-                            <td class="option-label">{{ $t('modals.export.name') }}</td>
-                            <td class="ps-1"><input type="text" style="line-height: 20px;"
-                                    :placeholder="$t('modals.export.name_placeholder')" v-model="state.name" />
-                            </td>
-                        </tr>
-                        <tr class="option-row">
-                            <td class="option-label">{{ $t('modals.export.selection_label') }}</td>
-                            <td class="d-flex options">
-                                <div class="option flex-grow-1" :class="getClass(state.selection, 'all')"
-                                    @click="set('selection', 'all')">{{ $t('modals.export.selection_all') }}
-                                </div>
-                                <template v-if="selectedCount > 0">
+                        <tbody>
+                            <tr class="">
+                                <td class="option-label">{{ $t('modals.export.name') }}</td>
+                                <td class="ps-1"><input type="text" style="line-height: 20px;"
+                                        :placeholder="$t('modals.export.name_placeholder')" v-model="state.name" />
+                                </td>
+                            </tr>
+                            <tr class="option-row">
+                                <td class="option-label">{{ $t('modals.export.selection_label') }}</td>
+                                <td class="d-flex options">
+                                    <div class="option flex-grow-1" :class="getClass(state.selection, 'all')"
+                                        @click="set('selection', 'all')">{{ $t('modals.export.selection_all') }}
+                                    </div>
+                                    <template v-if="selectedCount > 0">
+                                        <div class="separator"></div>
+                                        <div class="option flex-grow-1" :class="getClass(state.selection, 'selected')"
+                                            @click="set('selection', 'selected')">{{
+                                                $t('modals.export.selection_selected')
+                                            }}
+                                            ({{
+                                                selectedCount }})</div>
+                                    </template>
                                     <div class="separator"></div>
-                                    <div class="option flex-grow-1" :class="getClass(state.selection, 'selected')"
-                                        @click="set('selection', 'selected')">{{ $t('modals.export.selection_selected')
-                                        }}
-                                        ({{
-                                            selectedCount }})</div>
-                                </template>
-                                <div class="separator"></div>
-                                <div class="option flex-grow-1" :class="getClass(state.selection, 'filtered')"
-                                    @click="set('selection', 'filtered')">{{
-                                        $t('modals.export.selection_filtered') }}</div>
-                            </td>
+                                    <div class="option flex-grow-1" :class="getClass(state.selection, 'filtered')"
+                                        @click="set('selection', 'filtered')">{{
+                                            $t('modals.export.selection_filtered') }}</div>
+                                </td>
 
-                        </tr>
-                        <tr class="option-row">
-                            <td class="option-label">{{ $t('modals.export.key_label') }}</td>
-                            <td class="d-flex options">
-                                <div class="option flex-grow-1" :class="getClass(state.key, 'id')"
-                                    @click="set('key', 'id')">
-                                    {{ $t('modals.export.id') }}
-                                </div>
-                                <div class="separator"></div>
-                                <div class="option flex-grow-1" :class="getClass(state.key, 'local_path')"
-                                    @click="set('key', 'local_path')">
-                                    {{ $t('modals.export.local_path') }}
-                                </div>
-                                <div class="separator"></div>
-                                <div class="option flex-grow-1" :class="getClass(state.key, 'global_path')"
-                                    @click="set('key', 'global_path')">
-                                    {{ $t('modals.export.global_path') }}
-                                </div>
-                            </td>
+                            </tr>
+                            <tr class="option-row">
+                                <td class="option-label">{{ $t('modals.export.key_label') }}</td>
+                                <td class="d-flex options">
+                                    <div class="option flex-grow-1" :class="getClass(state.key, 'id')"
+                                        @click="set('key', 'id')">
+                                        {{ $t('modals.export.id') }}
+                                    </div>
+                                    <div class="separator"></div>
+                                    <div class="option flex-grow-1" :class="getClass(state.key, 'local_path')"
+                                        @click="set('key', 'local_path')">
+                                        {{ $t('modals.export.local_path') }}
+                                    </div>
+                                    <div class="separator"></div>
+                                    <div class="option flex-grow-1" :class="getClass(state.key, 'global_path')"
+                                        @click="set('key', 'global_path')">
+                                        {{ $t('modals.export.global_path') }}
+                                    </div>
+                                </td>
 
-                        </tr>
-                        <tr class="option-row">
-                            <td class="option-label">{{ $t('modals.export.properties_label') }}</td>
-                            <div>
-                                <table>
-                                    <tr>
-                                        <td class="text-center"><input type="checkbox" :checked="all"
-                                                @input="toggleAll" /></td>
-                                        <td>All</td>
-                                    </tr>
-                                    <tr v-for="p in properties" class="property-table">
-                                        <td class="text-center"><input type="checkbox"
-                                                v-model="state.properties[p.id]" /> </td>
-                                        <td>
-                                            <PropertyIcon :type="p.type" class="me-1" />{{ p.name }}
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </tr>
-                        <tr class="option-row">
-                            <td class="option-label">{{ $t('modals.export.export_images') }}</td>
-                            <td class="ps-1">
-                                <input type="checkbox" v-model="state.exportImages" />
-                            </td>
-                        </tr>
-                        <!-- </tbody> -->
+                            </tr>
+                            <tr class="option-row">
+                                <td class="option-label">{{ $t('modals.export.properties_label') }}</td>
+                                <td>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-center"><input type="checkbox" :checked="all"
+                                                        @input="toggleAll" /></td>
+                                                <td>All</td>
+                                            </tr>
+                                            <tr v-for="p in properties" class="property-table">
+                                                <td class="text-center"><input type="checkbox"
+                                                        v-model="state.properties[p.id]" /> </td>
+                                                <td>
+                                                    <PropertyIcon :type="p.type" class="me-1" />{{ p.name }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr class="option-row">
+                                <td class="option-label">{{ $t('modals.export.export_images') }}</td>
+                                <td class="ps-1">
+                                    <input type="checkbox" v-model="state.exportImages" />
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
 
