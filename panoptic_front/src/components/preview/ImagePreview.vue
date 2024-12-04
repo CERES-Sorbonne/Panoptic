@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
 import { Instance, Property } from '@/data/models';
-import { defineProps, defineEmits, onMounted, watch, ref, nextTick } from 'vue'
+import { onMounted, watch, ref, nextTick } from 'vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 
 const props = defineProps<{
@@ -33,8 +33,8 @@ watch(() => props.instances, update)
 
 <template>
     <div style="height: 100%; width: 100%;" ref="box">
-        <TreeScroller :group-manager="groupManager" :image-size="100" :height="height" :width="width -20"
-            :properties="props.properties ?? []" ref="scroller" :hide-group="true"/>
+        <TreeScroller :group-manager="groupManager" :image-size="100" :height="height" :width="width - 20"
+            :properties="props.properties ?? []" ref="scroller" :hide-group="true" />
     </div>
 </template>
 

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { CollectionManager } from '@/core/CollectionManager';
-import { Group, GroupIterator, GroupManager } from '@/core/GroupManager';
+import { Group, GroupIterator } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
 import { PropertyType } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
-import { defineProps, defineEmits, computed, ref } from 'vue'
+import { ref } from 'vue'
 import LineChart from './LineChart.vue'
 
 const dataStore = useDataStore()

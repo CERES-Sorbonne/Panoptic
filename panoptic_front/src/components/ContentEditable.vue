@@ -10,7 +10,7 @@
 <script setup lang="ts">
 
 
-import { defineProps, ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 
 
 function replaceAll(str: string, search: string, replacement: string) {

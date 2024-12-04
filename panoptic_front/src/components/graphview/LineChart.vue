@@ -1,6 +1,6 @@
 <script setup>
 
-import { defineProps, nextTick, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { PropertyType } from '@/data/models';
 
 const props = defineProps({

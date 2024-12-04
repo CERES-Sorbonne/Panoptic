@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch, computed, unref } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { ActionContext, ExecuteActionPayload, Instance, NotifType, ParamDescription } from '@/data/models';
+import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
 import ActionSelect from './ActionSelect.vue';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { usePanopticStore } from '@/data/panopticStore';
 
 const project = useProjectStore()
 const data = useDataStore()

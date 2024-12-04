@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { NotifType } from '@/data/models';
-import { defineProps, defineEmits } from 'vue'
 
 const props = defineProps<{
     type: NotifType

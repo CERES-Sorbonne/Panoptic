@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { FilterGroup, FilterManager } from '@/core/FilterManager';
-import { defineProps, defineEmits } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import PropertySelection from '../inputs/PropertySelection.vue';
 import { PropertyID } from '@/data/models';

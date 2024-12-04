@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, defineExpose, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';

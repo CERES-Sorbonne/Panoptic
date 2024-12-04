@@ -2,7 +2,7 @@
 import { useDataStore } from '@/data/dataStore';
 import { Tag } from '@/data/models';
 import { deepCopy, sum } from '@/utils/utils';
-import { defineProps, defineEmits, ref, nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
 import ColorDropdown from '../dropdowns/ColorDropdown.vue';
 
 const data = useDataStore()

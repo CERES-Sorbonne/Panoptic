@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Filter, FilterManager, FilterOperator, operatorHasInput } from '@/core/FilterManager';
-import { defineProps, defineEmits, computed } from 'vue'
+import { computed } from 'vue'
 import OperatorChoice from './OperatorChoice.vue';
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import FilterValueInput from './FilterValueInput.vue';

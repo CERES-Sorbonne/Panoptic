@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { Property, PropertyType } from '@/data/models';
 import { isTag } from '@/utils/utils';
-import { defineProps, defineEmits } from 'vue'
-import PropertyIcon from '../properties/PropertyIcon.vue';
 import RowTextInput from '../property_row_input/RowTextInput.vue';
 import CellTagInput from '../property_cell_input/CellTagInput.vue';
 import CellColorInput from '../property_cell_input/CellColorInput.vue';

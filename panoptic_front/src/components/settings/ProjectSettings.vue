@@ -37,20 +37,22 @@ watch(() => project.data.settings, updateLocal)
         <h4 class="text-center">Project</h4>
         <!-- <div class="custom-hr mb-3" /> -->
         <table>
-            <tr>
-                <td>Save small image</td>
-                <td><input type="checkbox" v-model="localSettings.saveImageSmall" /></td>
-            </tr>
-            <tr>
-                <td>Save medium image</td>
-                <td><input type="checkbox" v-model="localSettings.saveImageMedium" /></td>
-            </tr>
-            <tr>
-                <td>Save large image</td>
-                <td>
-                    <input type="checkbox" v-model="localSettings.saveImageLarge" />
-                </td>
-            </tr>
+            <tbody>
+                <tr>
+                    <td>Save small image</td>
+                    <td><input type="checkbox" v-model="localSettings.saveImageSmall" /></td>
+                </tr>
+                <tr>
+                    <td>Save medium image</td>
+                    <td><input type="checkbox" v-model="localSettings.saveImageMedium" /></td>
+                </tr>
+                <tr>
+                    <td>Save large image</td>
+                    <td>
+                        <input type="checkbox" v-model="localSettings.saveImageLarge" />
+                    </td>
+                </tr>
+            </tbody>
         </table>
 
         <div v-if="changed" class="d-flex changed">

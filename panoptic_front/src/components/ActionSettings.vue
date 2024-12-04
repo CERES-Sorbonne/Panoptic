@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
 import { FunctionDescription } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
 import { objValues } from '@/utils/utils';
-import { defineProps, defineEmits, ref, Ref, onMounted, computed, watch, reactive } from 'vue';
+import { onMounted, computed, watch, reactive } from 'vue';
 
 // const project = useProjectStore()
 const actions = useActionStore()
