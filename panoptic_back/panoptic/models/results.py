@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
 from typing import Any
 
-from panoptic.models import InstanceProperty, Tag, DbCommit
+from panoptic.models import InstanceProperty, Tag, DbCommit, ExecuteActionPayload, ActionContext
 
 
 @dataclass
@@ -26,6 +28,7 @@ class ActionResult:
 
     commit: DbCommit = None
 
+    notifs: list[Notif] = None
     errors: list[ActionError] = None
 
 
@@ -58,3 +61,29 @@ class DeleteTagResult:
     tag_id: int
     updated_values: list[InstanceProperty]
     updated_tags: list[Tag]
+
+
+@dataclass
+class NotifType(Enum):
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+@dataclass
+class NotifFunction(ExecuteActionPayload):
+    message: str
+
+
+@dataclass
+class Notif:
+    type: NotifType = None
+    id: int= None
+    created_at: datetime = None
+    received_at: datetime = None
+    name: str = None
+    message: str = None
+    data: Any = None
+    functions: list[NotifFunction] = None
+    read: bool = None

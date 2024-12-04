@@ -5,7 +5,7 @@ from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.core.project.project import Project
 from panoptic.models import ActionContext, PropertyType, PropertyMode, DbCommit, \
     Instance, ImageProperty, Property
-from panoptic.models.results import ActionResult, Group
+from panoptic.models.results import ActionResult, Group, Notif, NotifType
 from panoptic.core.plugin.plugin import APlugin
 
 
@@ -41,6 +41,9 @@ class MacOCR(APlugin):
         self.add_action_easy(self.cluster_up, ['group'])
 
     async def ocr(self, context: ActionContext):
+        error2 = Notif(type=NotifType.ERROR, name='OCRERROR2', message='Unexpected ERROR during OCR')
+        return ActionResult(notifs=[error2])
+
         commit = DbCommit()
         prop = self.project.create_property('OCR', PropertyType.string, PropertyMode.sha1)
         instances = await self.project.get_instances(ids=context.instance_ids)

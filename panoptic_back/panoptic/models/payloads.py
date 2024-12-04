@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi_camelcase import CamelModel
@@ -91,8 +92,9 @@ class UpdateActionsPayload(CamelModel):
     updates: list[ActionParam]
 
 
-class ExecuteActionPayload(CamelModel):
-    function: str = None
+@dataclass
+class ExecuteActionPayload:
+    function: str
     context: ActionContext
 
 

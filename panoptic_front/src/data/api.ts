@@ -3,8 +3,8 @@
  */
 
 import axios from 'axios'
-import { DeleteTagResult, DirInfo, ExecuteActionPayload, InstancePropertyValue, PluginDescription, ProjectVectorDescription, Property, PropertyMode, PropertyType, Tag, VectorDescription, Actions, ParamDefaults, TabIndex, ImagePropertyValue, DbCommit, CommitHistory, ActionResult, Update, Instance, ProjectSettings, PluginAddPayload } from './models'
-import { PluginKey, SelectionStatus } from './panopticStore'
+import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, Actions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType } from './models'
+import { PluginKey, SelectionStatus, usePanopticStore } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
 export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
@@ -21,7 +21,17 @@ async function uploadFile(route: string, file) {
     })
     return res
 }
-// axios.interceptors.response.use()
+axios.interceptors.response.use(response => response, (error) => {
+    const panoptic = usePanopticStore()
+
+    const baseURL = error.config.baseURL
+    const method = error.config.method
+    const url = error.config.url
+    const data = error.config.data
+
+    const notif: Notif = {type: NotifType.ERROR, name: 'BackendError', message: 'Unexpected Error during backend call', data: {method, baseURL, url, data}}
+    panoptic.notify(notif)
+})
 
 export async function apiGetDbState() {
     const res = await axios.get('/db_state')
@@ -188,7 +198,7 @@ export async function apiGetActions() {
 }
 
 export async function apiCallActions(req: ExecuteActionPayload) {
-    let res = await axios.post('/action_execute', req)
+    let res = await axios.post('/action_execute', keysToSnake(req))
     const ares: ActionResult = res.data
     if (ares.commit) ares.commit = keysToCamel(ares.commit)
     return ares

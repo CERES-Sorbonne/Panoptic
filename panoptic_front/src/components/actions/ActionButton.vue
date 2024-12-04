@@ -8,10 +8,12 @@ import ActionSelect from './ActionSelect.vue';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
+import { usePanopticStore } from '@/data/panopticStore';
 
 const project = useProjectStore()
 const data = useDataStore()
 const actions = useActionStore()
+const panoptic = usePanopticStore()
 
 const props = defineProps<{
     action: string
@@ -57,6 +59,10 @@ async function call() {
         const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
+
+        if(res.notifs) {
+            panoptic.notify(res.notifs)
+        }
 
         if (res.groups) {
             emits('groups', res.groups)

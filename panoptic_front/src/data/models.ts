@@ -457,6 +457,7 @@ export interface ActionResult {
     urls?: string[]
     commit?: DbCommit
 
+    notifs?: Notif[]
     errors?: string[]
 }
 
@@ -531,10 +532,8 @@ export enum NotifType {
     ERROR = 'error'
 }
 
-export interface NotifFunction {
-    id: string
+export interface NotifFunction extends ExecuteActionPayload {
     message: string
-    params: any
     context: ActionContext
 }
 

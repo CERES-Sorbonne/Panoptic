@@ -129,11 +129,17 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         notifs.value = []
     }
 
-    function notify(notif: Notif) {
-        notif.id = getId()
-        notif.receivedAt = new Date()
-        notifs.value.push(notif)
-        showModal(ModalId.NOTIF, notif.id)
+    function notify(notifList: Notif | Notif[]) {
+        if(!Array.isArray(notifList)) {
+            notifList = [notifList]
+        }
+        for(let notif of notifList) {
+            notif.id = getId()
+            notif.receivedAt = new Date()
+            notifs.value.push(notif)
+        }
+
+        showModal(ModalId.NOTIF, notifList[notifList.length-1].id)
     }
 
     function delNotif(id: number) {
