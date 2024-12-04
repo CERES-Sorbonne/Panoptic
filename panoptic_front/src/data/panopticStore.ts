@@ -6,6 +6,8 @@ import { useProjectStore } from "./projectStore"
 import { ModalId, Notif, NotifType, PluginAddPayload } from "./models"
 import { useModalStore } from "./modalStore"
 
+let idCounter = 0
+
 export interface Project {
     path: string
     name: string
@@ -40,12 +42,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const openModalId = ref(null)
     const modalData = ref(null)
 
-    const notifs = ref<Notif[]>([
-        {id: 0, name: 'some example', type: NotifType.DEBUG, data: data},
-        {id: 1, name: 'some other', type: NotifType.INFO},
-        {id: 2, name: 'some big warniiiiinnnngngngnggnn', type: NotifType.WARNING},
-        {id: 3, name: 'no ! error !', type: NotifType.ERROR}
-    ])
+    const notifs = ref<Notif[]>([])
 
     const isProjectLoaded = computed(() => data.status.isLoaded)
 
@@ -133,6 +130,8 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     function notify(notif: Notif) {
+        notif.id = getId()
+        notif.receivedAt = new Date()
         notifs.value.push(notif)
         showModal(ModalId.NOTIF, notif.id)
     }
@@ -142,6 +141,11 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         console.log(index)
         if(index < 0) return
         notifs.value.splice(index, 1)
+    }
+
+    function getId() {
+        idCounter += 1
+        return idCounter
     }
 
     return {
