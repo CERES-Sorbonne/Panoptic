@@ -2,6 +2,7 @@ import asyncio
 import os
 import pathlib
 import sys
+from enum import Enum
 from queue import Queue
 from typing import List, Any, Callable, Awaitable, Dict
 
@@ -9,7 +10,7 @@ from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
 from panoptic.models import ParamDescription, Instance, ImageProperty, InstanceProperty, Property, \
-    PropertyType, PropertyId, Tag, Folder
+    PropertyType, PropertyId, Tag, Folder, ActionContext
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -91,7 +92,9 @@ def to_str_type(type_):
         return 'float'
     if type_ is str:
         return 'str'
-    if type_ is List[str]:
+    if issubclass(type_, Enum):
+        return 'enum'
+    if type_ is list[str]:
         return '[str]'
     if type_ is bool:
         return 'bool'
@@ -99,6 +102,8 @@ def to_str_type(type_):
         return 'path'
     if type_ is PropertyId:
         return 'property'
+    if type_ is ActionContext:
+        return 'context'
     return None
 
 

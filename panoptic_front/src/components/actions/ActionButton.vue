@@ -120,8 +120,7 @@ watch(project.actions, loadAction)
                     <div class="p-2 pb-1">
                         <form @submit.prevent="call(); hide();" class="">
                             <div v-for="input, i in localInputs" class="mb-1">
-                                <ParamInput :type="input.type" v-model="input.defaultValue" :label="input.name"
-                                    :desc="input.description" />
+                                <ParamInput :input="input" />
                             </div>
                             <div class="d-flex flex-center mt-3" style="height: 20px;">
                                 <div class="me-1"><input type="checkbox" v-model="setDefault"

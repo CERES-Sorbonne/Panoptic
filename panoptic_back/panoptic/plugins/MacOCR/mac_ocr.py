@@ -1,5 +1,6 @@
 import asyncio
 import math
+from enum import Enum
 
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.core.project.project import Project
@@ -33,12 +34,21 @@ async def ocr(instance: Instance, prop: Property):
     return ImageProperty(property_id=prop.id, sha1=instance.sha1, value=text)
 
 
+class VectorType(Enum):
+    clip = 'clip'
+    clip_grey = 'clip_grey'
+
+
 class MacOCR(APlugin):
     def __init__(self, project: PluginProjectInterface, plugin_path: str, name: str):
         super().__init__(name=name, project=project, plugin_path=plugin_path)
         self.add_action_easy(self.ocr, ['execute'])
         self.add_action_easy(self.find_close_id, ['similar'])
         self.add_action_easy(self.cluster_up, ['group'])
+        self.add_action_easy(self.test_action, ['execute'])
+
+    async def test_action(self, ctx: ActionContext, vector: VectorType):
+        print(vector == VectorType.clip_grey)
 
     async def ocr(self, context: ActionContext):
         error2 = Notif(type=NotifType.ERROR, name='OCRERROR2', message='Unexpected ERROR during OCR')
@@ -59,7 +69,7 @@ class MacOCR(APlugin):
 
     async def find_close_id(self, context: ActionContext):
         ids = context.instance_ids
-        close_ids = [(i-5)+ids[0] for i in range(10)]
+        close_ids = [(i - 5) + ids[0] for i in range(10)]
 
         return ActionResult(instances=Group(ids=close_ids))
 
@@ -68,5 +78,5 @@ class MacOCR(APlugin):
 
         nb = math.ceil(len(ids) / size)
 
-        groups = [Group(ids=ids[i*size: i*size+size]) for i in range(nb)]
+        groups = [Group(ids=ids[i * size: i * size + size]) for i in range(nb)]
         return ActionResult(groups=groups)

@@ -1,4 +1,5 @@
 import inspect
+from enum import Enum
 from pathlib import Path
 from typing import List
 
@@ -22,7 +23,7 @@ def get_params(f):
     return res
 
 
-possible_inputs = [int, float, str, List[str], bool, Path, PropertyId]
+possible_inputs = [to_str_type(t) for t in [int, float, str, list[str], bool, Path, PropertyId, Enum]]
 
 
 def get_param_description(f: AsyncCallable, param_name: str):
@@ -41,9 +42,21 @@ def get_param_description(f: AsyncCallable, param_name: str):
 
 def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
     types = get_params(f)
-    return [ParamDescription(name=t, type=to_str_type(types[t][0]), default_value=types[t][1],
-                             description=get_param_description(f, t))
-            for t in types if types[t][0] in possible_inputs]
+    res = []
+    for t in types:
+        tt = types[t]
+        str_type = to_str_type(tt[0])
+        if str_type not in possible_inputs:
+            continue
+
+        desc = ParamDescription(name=t,
+                                type=str_type,
+                                default_value=tt[1],
+                                description=get_param_description(f, t))
+        if str_type == 'enum':
+            desc.possible_values = [e.value for e in tt[0]]
+        res.append(desc)
+    return res
 
 
 def get_function_description(source: APlugin, function: AsyncCallable):
@@ -63,6 +76,15 @@ class Action:
         self.description = description
 
     async def call(self, ctx: ActionContext):
+        params = get_params(self._function)
+        for desc in self.description.params:
+            if desc.type != 'enum':
+                continue
+            param_type = [params[p][0] for p in params if p == desc.name][0]
+            if not ctx.ui_inputs.get(desc.name):
+                continue
+            ctx.ui_inputs[desc.name] = param_type(ctx.ui_inputs[desc.name])
+
         return await self._function(ctx, **ctx.ui_inputs)
 
 
