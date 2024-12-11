@@ -21,7 +21,7 @@ This documentation also exist in [French](https://github.com/CERES-Sorbonne/Pano
 3. [Usage](#usage)
 4. [License](#license)
 
-## Description
+## 1. Description
 
 Panoptic is a tool for exploring and annotating large image corpora, utilizing image analysis and machine learning tools to facilitate these tasks.
 
@@ -29,8 +29,8 @@ Since it requires deep learning libraries, it is recommended to use it on a comp
 
 > Warning: Panoptic is still in active development and currently only a prototype. You may encounter bugs, so we recommend using this tool only for testing and not relying on it for significant academic work.
 
-## Installation
-### Via pip
+## 2. Installation
+### 2.1 Via pip
 <p style="color: red;">
 Regardless of your OS, you will need Python 3.10 or higher; we recommend using version 3.12.
 </p>
@@ -46,12 +46,12 @@ Generally, you just need to open a terminal and run the following commands to in
 - `pip3 install panoptic`
 - `panoptic`
 
-### Automatic Installation and Launch Scripts (recommended)
+### 2.2 Automatic Installation and Launch Scripts (recommended)
 <p style="color: red;">
 The script may ask for your password to install dependencies. This is necessary if you are missing system dependencies to install Panoptic (python, pip, and/or venv).
 </p>
 
-#### Windows
+#### 2.2.1 Windows
 
 Here are the two commands to run to install Panoptic on Windows:
 
@@ -86,7 +86,7 @@ powershell -ExecutionPolicy Bypass -File start-panoptic.ps1
 ```
 
 
-#### Linux
+#### 2.2.2 Linux
 Here are the three commands to run to install Panoptic on Linux:
 ```bash
 wget https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_linux.sh -O start_panoptic_linux.sh
@@ -142,7 +142,7 @@ Available options are:
 - `-h` or `--help`: Use this option to display help.
 
 
-#### MacOS
+#### 2.2.3 MacOS
 Here are the three commands to run to install Panoptic on MacOS:
 ```bash
 curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_mac.sh
@@ -168,11 +168,11 @@ After installation, you can launch Panoptic by going back to the folder where yo
 ```
 
 
-### Docker Installation
+### 2.3 Docker Installation
 
 If you encountered issues with the standard installation, or prefer using Docker, an image is available. First, you need to:
 
-#### Install Docker
+#### 2.3.1 Install Docker
 - [On MacOS](https://docs.docker.com/desktop/install/mac-install/)
 - [On Windows](https://docs.docker.com/desktop/install/windows-install/)
 - [On Linux](https://docs.docker.com/desktop/install/linux-install/)
@@ -181,7 +181,7 @@ If you encountered issues with the standard installation, or prefer using Docker
 
 In the Docker version, there is no small interface for adding folders or managing projects; you need to directly specify the folders to Docker to work with:
 
-#### Option 1: One folder for images and Panoptic data:
+#### 2.3.2 Option 1: One folder for images and Panoptic data:
 
 This requires creating a special folder named "images" within the folder you provide to Panoptic as input. In the following example, you would need a folder named `images` inside `/path/to/your/folder`, resulting in `/path/to/your/folder/images`.
 
@@ -191,7 +191,7 @@ Then run the following command (with Docker already running):
 docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
 ```
 
-#### Option 2: Separate folders for images and Panoptic data:
+#### 2.3.3 Option 2: Separate folders for images and Panoptic data:
 
 ```console
 docker run -it -p 8000:8000 \
@@ -202,7 +202,7 @@ docker run -it -p 8000:8000 \
 
 Once launched, visit [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser to access Panoptic.
 
-#### Post-installation (Docker)
+#### 2.3.4 Post-installation (Docker)
 
 To relaunch Panoptic with Docker after the initial installation:
 
@@ -218,11 +218,11 @@ docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceress
 
 Available options are the same as for the Linux installation.
 
-### Development Installation
+### 2.4 Development Installation
 
 If you want to contribute to Panoptic's development or test the latest unpublished features, you can clone the GitHub repository and install Panoptic in development mode.
 
-#### Backend Development Only
+#### 2.4.1 Backend Development Only
 
 To test and modify the backend, we provide a pre-built frontend in the backend's `html` folder.
 * Navigate to the `panoptic-back` folder.
@@ -232,7 +232,7 @@ To test and modify the backend, we provide a pre-built frontend in the backend's
     - `pip3 install -r requirements.txt` and add `panoptic-back` to `PYTHON_PATH` for development as well.
 * Run the backend with `python panoptic/main.py`.
 
-#### Frontend and Backend Development
+#### 2.4.2 Frontend and Backend Development
 
 1. First, complete the backend installation steps.
 2. Navigate to the `panoptic-front` folder.
