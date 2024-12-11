@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide, triggerRef, onUnmounted } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -257,6 +257,11 @@ function toggleGroupSelect(groupId: number) {
     props.groupManager.toggleGroupIterator(iterator, keyState.shift)
 }
 
+function triggerUpdate() {
+    // triggerRef(imageLines)
+    // console.log('trigger ref')
+}
+
 
 onMounted(computeLines)
 
@@ -302,6 +307,9 @@ watch(() => props.width, () => {
     clearTimeout(resizeWidthHandler)
     setTimeout(computeLines, 500)
 })
+
+onMounted(() => props.groupManager.onChange.addListener(triggerUpdate))
+onUnmounted(() => props.groupManager.onChange.removeListener(triggerUpdate))
 
 </script>
 
