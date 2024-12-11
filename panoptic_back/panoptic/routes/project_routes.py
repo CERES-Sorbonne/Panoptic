@@ -1,7 +1,5 @@
 import asyncio
-import io
 import logging
-import os
 from sys import platform
 from time import time
 from typing import Optional
@@ -9,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, UploadFile
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from starlette.responses import FileResponse, StreamingResponse, Response
+from starlette.responses import FileResponse
 
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \

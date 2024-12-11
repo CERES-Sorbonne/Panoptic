@@ -11,6 +11,7 @@ class Task:
         self._executor: Executor | None = None
         self.has_priority = priority
         self.name = type(self).__name__
+        self.key = type(self).__name__
 
     def set_executor(self, executor: Executor):
         self._executor = executor
