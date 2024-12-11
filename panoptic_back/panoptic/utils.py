@@ -128,8 +128,17 @@ def get_model_params_description(model: BaseModel):
         field_type = field_info.annotation
         default_value = field_info.default
         description = get_param_comment_from_model(model, field_name)
-        res.append(ParamDescription(name=field_name, description=description, type=to_str_type(field_type),
-                                    default_value=default_value))
+
+        param_desc = ParamDescription(
+            name=field_name,
+            description=description,
+            type=to_str_type(field_type),
+            default_value=default_value)
+
+        if param_desc.type == 'enum':
+            param_desc.possible_values = [e for e in field_type]
+
+        res.append(param_desc)
     return res
 
 

@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 import traceback
+from collections import defaultdict
 from concurrent.futures import Executor
 from typing import Dict, List
 
@@ -20,6 +21,8 @@ class TaskQueue:
         self._workers: List[asyncio.Task] = []
         self._working: Dict[int, bool] = {}
         self.onFinish = asyncio.Event()
+
+        self.counters: dict[str, int] = defaultdict(int)
 
         self._task_states: Dict[str, TaskState] = {}
 
@@ -46,6 +49,8 @@ class TaskQueue:
         state.done = False
         state.total += 1
         state.remain += 1
+
+        self.counters[task.key] += 1
 
     async def _worker(self, worker_id: int):
         while True:
@@ -76,6 +81,7 @@ class TaskQueue:
                     self.onFinish.clear()
                     await task.run()
                     state.computing -= 1
+                    self.counters[task.key] -= 1
                 except Exception as e:
                     state.computing -= 1
                     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -84,6 +90,7 @@ class TaskQueue:
                 if state.remain == 0 and state.computing == 0:
                     state.done = True
                     self.onFinish.set()
+                if self.counters[task.key] == 0:
                     await task.run_if_last()
 
             except Exception as e:

@@ -2,9 +2,6 @@ import json
 import os
 import shutil
 from pathlib import Path
-from typing import List
-
-from pydantic import BaseModel
 
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project

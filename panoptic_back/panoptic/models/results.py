@@ -79,7 +79,7 @@ class NotifFunction(ExecuteActionPayload):
 @dataclass
 class Notif:
     type: NotifType = None
-    id: int= None
+    id: int = None
     created_at: datetime = None
     received_at: datetime = None
     name: str = None
