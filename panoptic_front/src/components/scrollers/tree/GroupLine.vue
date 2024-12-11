@@ -28,13 +28,15 @@ const hoverGroup = ref(false)
 const group = computed(() => props.item.data)
 const images = computed(() => group.value.images)
 const piles = computed(() => undefined /*props.item.data.imagePiles*/)
-const subgroups = computed(() => group.value.children)
+const subgroups = computed(() => group.value.children ?? [])
 const hasImages = computed(() => images.value.length > 0)
 const hasPiles = computed(() => Array.isArray(piles.value))
-const hasSubgroups = computed(() => subgroups.value.length > 0 && group.value.subGroupType != GroupType.Sha1)
+const hasSubgroups = computed(() => {
+    return props.item.data.children.length > 0 && props.item.data.subGroupType != GroupType.Sha1
+})
 const properties = computed(() => group.value.meta.propertyValues.map(v => data.properties[v.propertyId]))
 const propertyValues = computed(() => group.value.meta.propertyValues)
-const closed = computed(() => group.value.view.closed)
+const closed = computed(() => props.item.data.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
 const selected = computed(() => !props.item.data.images.some(i => !props.manager.selectedImages.value[i.id]))
