@@ -52,7 +52,7 @@ class APlugin(ABC):
 
     def add_action_easy(self, function: AsyncCallable, hooks: list[str] = None):
         source = self
-        self._project.action.easy_add(source, function, hooks)
+        return self._project.action.easy_add(source, function, hooks)
 
     def _get_param_description(self):
         if not self.params:

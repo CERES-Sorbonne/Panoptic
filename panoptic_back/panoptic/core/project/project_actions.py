@@ -100,6 +100,7 @@ class ProjectActions:
         if hooks:
             description.hooks = hooks
         self.add(function, description)
+        return description
 
     async def call(self, function_id: str, ctx: ActionContext):
         return await self.actions[function_id].call(ctx)
