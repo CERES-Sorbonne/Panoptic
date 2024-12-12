@@ -25,7 +25,7 @@ const emits = defineEmits({
     'toggle:image': Object,
 })
 
-const inputElems = reactive([])
+const inputElems = ref([])
 const hover = ref(false)
 
 
@@ -134,8 +134,8 @@ const classes = computed(() => {
 
 
 function focusInput(index: number) {
-    console.log(inputElems[index])
-    inputElems[index].focus()
+    console.log(inputElems.value[index])
+    inputElems.value[index].focus()
     // inputElems[index].getInput().focus()
     // inputElems[index].inputElem
 }

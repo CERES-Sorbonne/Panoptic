@@ -251,12 +251,13 @@ class Clusters:
     distances: list[int]
 
 
-class ActionContext(CamelModel):
+@dataclass
+class ActionContext:
     instance_ids: List[int] | None = None
     property_ids: List[int] | None = None
     file: str | None = None
     text: str | None = None
-    ui_inputs: Dict[str, Any] = {}
+    ui_inputs: Dict[str, Any] = field(default_factory=dict)
 
 
 class ParamDescription(CamelModel):

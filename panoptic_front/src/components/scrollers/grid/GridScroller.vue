@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { ShallowReactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, triggerRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ImageIterator } from '@/core/GroupManager';
-import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId } from '@/data/models';
+import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId, PropertyMode } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
 import {RecycleScroller} from 'vue-virtual-scroller';
@@ -34,10 +34,13 @@ const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
 const resizeEvent = shallowRef(null)
+const visibleProperties = computed(() => props.selectedProperties.filter(p => {
+    return p.mode == PropertyMode.sha1 || props.manager.state.sha1Mode == false
+}))
 
 const totalPropWidth = computed(() => {
     const options = project.getTab().propertyOptions
-    let propSum = props.selectedProperties.map(p => options[p.id]?.size ?? 0).reduce((a, b) => a + b, 0)
+    let propSum = visibleProperties.value.map(p => options[p.id]?.size ?? 0).reduce((a, b) => a + b, 0)
     if (props.showImages) {
         propSum += project.getTab().imageSize
     }
@@ -283,7 +286,7 @@ watch(() => project.getTab().imageSize, (now,old) => {
 
 <template>
     <div class="grid-container overflow-hidden" :style="{ width: scrollerStyle.width }">
-        <TableHeader :manager="props.manager" :properties="props.selectedProperties" :missing-width="missingWidth"
+        <TableHeader :manager="props.manager" :properties="visibleProperties" :missing-width="missingWidth"
             :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
         <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle" 
@@ -292,7 +295,7 @@ watch(() => project.getTab().imageSize, (now,old) => {
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active && !hideFromModal">
-                    <GridScrollerLine :item="item" :properties="props.selectedProperties" :width="scrollerWidth"
+                    <GridScrollerLine :item="item" :properties="visibleProperties" :width="scrollerWidth"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"
