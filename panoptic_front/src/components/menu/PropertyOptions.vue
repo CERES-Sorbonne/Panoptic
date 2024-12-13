@@ -19,9 +19,10 @@ const project = useProjectStore()
 const data = useDataStore()
 const tabManager = project.getTabManager()
 
-const props = defineProps({
-    property: Object as () => Property
-})
+const props = defineProps<{
+    property: Property,
+    open?: boolean
+}>()
 
 const optionsOpen = ref(false)
 const valuesOpen = ref(false)
@@ -51,6 +52,7 @@ function toggleVisible() {
 }
 
 function toggleOptionsMenu() {
+    if (!props.open) return
     if (optionsOpen.value) {
         optionsOpen.value = false
     } else {
@@ -105,14 +107,14 @@ async function renameProperty() {
 
 function setFilter() {
     const manager = filterManager()
-    if(!isInFilter.value) {
+    if (!isInFilter.value) {
         manager.addNewFilter(props.property.id)
         Dropdowns.filter.show()
     } else {
         manager.deleteFilter(filterId.value)
         Dropdowns.filter.hide()
     }
-    
+
 }
 
 watch(() => props.property, () => {
@@ -124,18 +126,18 @@ watch(() => props.property, () => {
 <template>
     <div :class="fullHover ? 'hover-light' : ''">
         <div class="d-flex flex-row">
-            <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;"
-                @click="toggleOptionsMenu">
-                <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true"
-                    @mouseleave="fullHover = false" />
-                <span>{{ props.property.name }}</span>
-                <!-- <span class="clickable" @click="toggleOptionsMenu">
-                    <span v-if="!optionsOpen">{{ props.property.name }}</span>
-                    <span v-else></span>
-                </span> -->
-            </div>
-
-            <div v-if="optionsOpen" class="d-flex" style="width: 150px;">
+            <template v-if="props.open">
+                <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;"
+                    @click="toggleOptionsMenu">
+                    <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true"
+                        @mouseleave="fullHover = false" />
+                    <span>{{ props.property.name }}</span>
+                </div>
+            </template>
+            <template v-else>
+                <PropertyIcon :type="props.property.type" class="me-2" style="position: relative; top: 2px;"/>
+            </template>
+            <div v-if="optionsOpen && props.open" class="d-flex" style="width: 150px;">
                 <div><i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu"
                         @mouseenter="fullHover = true" @mouseleave="fullHover = false" />
                 </div>
@@ -148,18 +150,20 @@ watch(() => props.property, () => {
                     </span>
                 </div>
             </div>
-            <div v-if="isTag(props.property.type)" style="width: 20px; margin-top: 2px; cursor: pointer;" class="text-center" @click="panoptic.showModal(ModalId.TAG, {propId: props.property.id})">
-                <wTT :click="false"
-                    message="main.nav.properties.open_tags">
-                    <i class="bi bi-arrows-fullscreen"></i>
-                </wTT>
-            </div>
-            <div style="width: 20px; margin-top: 2px;" class="text-center">
-                <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
-                    message="main.nav.properties.linked_property_tooltip">
-                    <i class="bi bi-link-45deg"></i>
-                </wTT>
-            </div>
+            <template v-if="props.open">
+                <div v-if="isTag(props.property.type)" style="width: 20px; margin-top: 2px; cursor: pointer;"
+                    class="text-center" @click="panoptic.showModal(ModalId.TAG, { propId: props.property.id })">
+                    <wTT :click="false" message="main.nav.properties.open_tags">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                    </wTT>
+                </div>
+                <div style="width: 20px; margin-top: 2px;" class="text-center">
+                    <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
+                        message="main.nav.properties.linked_property_tooltip">
+                        <i class="bi bi-link-45deg"></i>
+                    </wTT>
+                </div>
+            </template>
             <div style="width: 20px; margin-top: 2px;" @click="toggleVisible" class="btn-icon text-center">
                 <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"
                     message="main.nav.properties.hidden_property_tooltip">
@@ -169,19 +173,23 @@ watch(() => props.property, () => {
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
             </div>
-            <div class="text-center" style="width: 20px; margin-top: 2px;">
-                <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
-                    @click="toggleValuesMenu" style="cursor: pointer;">
-                    <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
-                            class="bi bi-chevron-down"></i></wTT>
-                    <wTT v-else message="main.nav.properties.expand_property_tooltip"><i class="bi bi-chevron-right"></i>
-                    </wTT>
+            <template v-if="props.open">
+                <div class="text-center" style="width: 20px; margin-top: 2px;">
+                    <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
+                        @click="toggleValuesMenu" style="cursor: pointer;">
+                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
+                                class="bi bi-chevron-down"></i></wTT>
+                        <wTT v-else message="main.nav.properties.expand_property_tooltip"><i
+                                class="bi bi-chevron-right"></i>
+                        </wTT>
+                    </div>
                 </div>
-            </div>
+            </template>
         </div>
-        <div>
+        <div v-if="props.open">
             <div v-if="optionsOpen" class="ms-3 pt-1">
-                <div v-if="property.id != PropertyID.folders" class="options hover-light" :class="isInFilter ? ' text-primary' : ''" @click="setFilter">
+                <div v-if="property.id != PropertyID.folders" class="options hover-light"
+                    :class="isInFilter ? ' text-primary' : ''" @click="setFilter">
                     <div>
                         <i class="bi bi-funnel-fill me-2"></i>{{ $t("main.menu.filters") }}
                     </div>

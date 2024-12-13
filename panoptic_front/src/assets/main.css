@@ -29,36 +29,6 @@
   user-select: none;
 }
 
-.menu {
-  font-size: 13px;
-  height: 100vh;
-  /* position: sticky; */
-  /* position: relative; */
-  top: 0;
-  width: 210px;
-  border-right: 1px solid var(--border-color);
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
-  overflow-y: scroll;
-}
-
-.menu::-webkit-scrollbar {
-  display: none;
-}
-
-
-.menu b {
-  font-size: 13px;
-}
-
-.menu h3,
-.menu .h3 {
-  font-size: 1.1rem;
-  margin-left: 1rem;
-}
-
 .clickable:hover {
   cursor: pointer;
 }

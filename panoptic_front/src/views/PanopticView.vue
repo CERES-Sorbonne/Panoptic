@@ -24,6 +24,8 @@ const windowHeight = ref(window.innerHeight)
 const hasHeight = ref(false)
 const show = ref(true)
 
+const filterOpen = ref(true)
+
 const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
 const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
 
@@ -101,6 +103,11 @@ function redirectHome() {
     router.push('/')
 }
 
+function updateWidth() {
+    if(mainViewRef.value) {
+        mainViewRef.value.updateScrollerWidth()
+    }
+}
 
 </script>
 
@@ -113,15 +120,15 @@ function redirectHome() {
             <div class="d-flex flex-row m-0 p-0 overflow-hidden">
                 <template v-if="project.status.loaded">
                     <div>
-                        <Menu @export="showModal()" />
+                        <Menu @export="showModal()" @toggle="updateWidth" />
                     </div>
                     <div class="w-100">
-                        <div class="ms-3" ref="navElem">
-                            <TabNav :re-render="rerender" />
+                        <div class="ms-1" ref="navElem">
+                            <TabNav :re-render="rerender" :filterOpen="filterOpen" @update:filterOpen="v => filterOpen = v"/>
                         </div>
                         <div class="custom-hr" v-if="hasHeight" />
 
-                        <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" />
+                        <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" :filter-open="filterOpen"/>
                     </div>
 
                 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { ImagePropertyValue, Instance, InstanceMatch, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
+import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
@@ -121,6 +121,7 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
     }
 }
 
+// TODO: fix with new score logic + similarity choice function
 async function getReco() {
     if (!props.group) return
     console.log('get reco')
