@@ -48,7 +48,6 @@ async function setSimilar() {
     // if (modalMode.value != ImageModalMode.Similarity) return
     const ctx: ActionContext = { instanceIds: [props.image.id] }
     const res = await actions.getSimilarImages(ctx)
-    console.log(res)
     if (!res.groups) return
     let groups = convertSearchGroupResult(res.groups, ctx)
     let group = groups[0]
@@ -57,7 +56,6 @@ async function setSimilar() {
     }
     searchResult.value = group
     updateInterval(group.scores)
-    console.log(group.scores)
     updateSimilarGroup()
 }
 
