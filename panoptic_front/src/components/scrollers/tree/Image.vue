@@ -16,7 +16,6 @@ const data = useDataStore()
 
 const props = defineProps({
     image: ImageIterator,
-    score: Number,
     size: { type: Number, default: 100 },
     index: Number,
     groupId: Number,
@@ -58,6 +57,12 @@ const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSi
 
 const hideImg = inject('hideImg')
 
+const score = computed(() => {
+    let group = props.image.group
+    if(!group.scores) return undefined
+    return group.scores.valueIndex[props.image.image.id]
+})
+
 </script>
 
 <template>
@@ -67,7 +72,7 @@ const hideImg = inject('hideImg')
             <div :style="imageContainerStyle" class="img-container"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
                 @mouseleave="hover = false">
-                <div v-if="props.score != undefined" class="simi-ratio">{{ "." + Math.floor(props.score * 100) }}</div>
+                <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
                 <!-- <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" /> -->
                 <CenteredImage :image="props.image.image" :width="Math.max(imageSizes.width, props.size)-2" :height="props.size"
                 style="position: absolute; top:0"

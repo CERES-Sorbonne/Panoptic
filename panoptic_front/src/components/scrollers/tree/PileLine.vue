@@ -48,7 +48,6 @@ const previews = computed(() => {
         </div>
         <ImageVue :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
             :properties="props.properties" :selected="selected[imageIt.image.id]" :selectedPreview="previews[imageIt.image.id]"
-            :score="(props.sha1Scores ? props.sha1Scores[imageIt.image.sha1] : undefined)"
             @update:selected="v => emits('update:selected-image', { id: imageIt.image.id, value: v })"
             v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
 

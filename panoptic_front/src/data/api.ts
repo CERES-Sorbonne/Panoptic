@@ -201,6 +201,7 @@ export async function apiCallActions(req: ExecuteActionPayload) {
     let res = await axios.post('/action_execute', keysToSnake(req))
     const ares: ActionResult = res.data
     if (ares.commit) ares.commit = keysToCamel(ares.commit)
+    if (ares.groups) ares.groups = keysToCamel(ares.groups)
     return ares
 }
 

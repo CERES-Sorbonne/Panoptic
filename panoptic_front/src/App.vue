@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import '@vuepic/vue-datepicker/dist/main.css';
 import './assets/main.css';
+import "@vueform/slider/themes/default.css"
 import { usePanopticStore } from './data/panopticStore';
 import PropertyModal from './components/modals/PropertyModal.vue';
 import FolderSelectionModal from './components/modals/FolderSelectionModal.vue';
