@@ -6,7 +6,7 @@
 
 import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
-import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, Notif, NotifType, PluginDescription, ProjectSettings, ProjectVectorDescription, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
+import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiGetTabs, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings } from "./api";
 import { TabManager } from "@/core/TabManager";
