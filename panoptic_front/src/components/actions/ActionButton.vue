@@ -60,10 +60,6 @@ async function call() {
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
 
-        if(res.notifs) {
-            panoptic.notify(res.notifs)
-        }
-
         if (res.groups) {
             emits('groups', res.groups)
         }

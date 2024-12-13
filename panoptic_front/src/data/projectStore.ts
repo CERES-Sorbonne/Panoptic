@@ -12,6 +12,7 @@ import { apiGetTabs, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, a
 import { TabManager } from "@/core/TabManager";
 import { sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
+import { usePanopticStore } from "./panopticStore";
 
 let tabManager: TabManager = undefined
 
@@ -297,6 +298,11 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function call(req: ExecuteActionPayload) {
         const res = await apiCallActions(req)
+        console.log(res.notifs)
+        if(res.notifs) {
+            const panoptic = usePanopticStore()
+            panoptic.notify(res.notifs)
+        }
         if (res.commit) {
             dataStore.applyCommit(res.commit)
             if (res.commit.properties) {

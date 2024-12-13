@@ -41,9 +41,8 @@ async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
     // if (modalMode.value != ImageModalMode.Similarity) return
     const res = await actions.getSimilarImages({ instanceIds: [props.image.id] })
-    if (!res.instances) throw new Error('No instances in ActionResult')
+    if (!res.instances) return
 
-    console.log(res)
     let matches: InstanceMatch[] = []
     const scores = res.instances.scores ?? []
     if (res.instances.ids) {
