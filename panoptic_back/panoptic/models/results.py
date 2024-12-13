@@ -9,18 +9,36 @@ from panoptic.models import InstanceProperty, Tag, DbCommit, ExecuteActionPayloa
 
 
 @dataclass
+class ScoreList:
+    values: list[float]
+    min: float
+    max: float
+    description: str = ''
+    max_is_best: bool = True
+
+
+@dataclass
+class Score:
+    value: float
+    min: float
+    max: float
+    description: str = ''
+    max_is_best: bool = True
+
+
+@dataclass
 class Group:
     ids: list[int] = None
     sha1s: list[str] = None
-    scores: list[int] = None
-
-    score: int = None
+    # scores of the ids or sha1's
+    scores: ScoreList = None
+    # score of the group
+    score: Score = None
     name: str = None
 
 
 @dataclass
 class ActionResult:
-    instances: Group = None
     groups: list[Group] = None
 
     datas: list[dict] = None

@@ -430,21 +430,12 @@ export interface ExecuteActionPayload {
     context: ActionContext
 }
 
-export interface InstanceMatch {
-    id: number;
-    score: number;
-}
-
-export interface SearchResult {
-    matches: InstanceMatch[];
-}
-
 export interface GroupResult {
     ids?: number[]
     sha1s?: number[]
-    scores?: number[]
+    scores?: ScoreList
 
-    score?: number
+    score?: Score
     name?: string
 }
 
@@ -550,4 +541,33 @@ export interface Notif {
     functions?: NotifFunction[]
 
     read?: boolean
+}
+
+// =============== Scores ==========
+export interface Score {
+    value: number
+    min: number
+    max: number
+    description: string
+    maxIsBest: boolean
+}
+
+export interface ScoreList {
+    values: number[]
+    min: number
+    max: number
+    description: string
+    maxIsBest: boolean
+}
+
+export interface GroupScoreList {
+    valueIndex: ScoreIndex
+    min: number
+    max: number
+    description: string
+    maxIsBest: boolean
+}
+
+export interface ScoreIndex {
+    [instanceId: number]: number
 }

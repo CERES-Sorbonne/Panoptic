@@ -5,7 +5,7 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { DateUnit, DateUnitFactor, FolderIndex, Instance, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
+import { DateUnit, DateUnitFactor, FolderIndex, GroupScoreList, Instance, PropertyIndex, PropertyValue, Score, ScoreList, TagIndex } from "@/data/models";
 import { Ref, reactive, shallowRef, toRefs, triggerRef } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
@@ -47,6 +47,11 @@ export interface Group {
     children: Group[]
     depth: number
     order: number
+
+    // group score
+    score?: Score
+    // images scores
+    scores?: GroupScoreList
 
     view: GroupView
     meta: GroupMetaData
@@ -612,6 +617,11 @@ export class GroupManager {
         this.customGroups = {}
         this.lastOrder = {}
         if (emit) this.onChange.emit()
+    }
+
+    emptyRoot(emit?: boolean) {
+        this.clear()
+        this.group([], undefined, emit)
     }
 
     verifyState(properties: PropertyIndex) {

@@ -57,31 +57,7 @@ const instancesForExecute = computed(() => {
     return images.value
 })
 
-async function addCluster(cluster: GroupResult) {
-    await addClusters([cluster])
-}
-
-async function addClusters(clusters: GroupResult[]) {
-    const localSha1Index: Sha1ToInstances = {}
-    for(let inst of group.value.images) {
-        if(!localSha1Index[inst.sha1]) {
-            localSha1Index[inst.sha1] = []
-        }
-        localSha1Index[inst.sha1].push(inst)
-    }
-    const groups = clusters.map((group, index) => {
-        let instances: Instance[] = []
-        if(group.ids) {
-            instances = group.ids.map(i => data.instances[i])
-        } else {
-            group.sha1s.forEach(sha1 => localSha1Index[sha1].forEach(i => instances.push(i)))
-        }
-        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
-        res.meta.score = Math.round(group.score)
-        res.name = group.name
-        res.isSha1Group = group.ids ? false : true
-        return res
-    })
+async function addClusters(groups: Group[]) {
     props.manager.addCustomGroups(group.value.id, groups, true)
 }
 
@@ -209,7 +185,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         </div>
         <div v-else class="align-self-center me-2"><b>{{ groupName }}</b></div>
         <div v-if="group.type == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
-            <ClusterBadge :value="group.meta.score" />
+            <ClusterBadge v-if="group.score" :value="Math.round(group.score.value)" />
         </div>
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.images.length }} Images
         </div>
@@ -227,7 +203,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
             <div class="ms-2">
                 <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
-                    @groups="addClusters" @instances="addCluster"/>
+                    @groups="addClusters" />
             </div>
 
             <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"

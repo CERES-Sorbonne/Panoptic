@@ -1,7 +1,7 @@
-import { Group, GroupType } from "@/core/GroupManager"
+import { buildGroup, Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
 import { deletedID, useDataStore } from "@/data/dataStore"
-import { PropertyType, Tag, Folder, Property, Instance, TagIndex } from "@/data/models"
+import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, inject } from "vue"
 
@@ -287,13 +287,108 @@ export function adjustForTimezone(date: Date): Date {
 
 export function allChildrenSha1Groups(group: Group) {
     function recursive(child: Group) {
-        if(!child.isSha1Group && child.type != GroupType.Sha1) {
+        if (!child.isSha1Group && child.type != GroupType.Sha1) {
             return false
         }
-        if(child.children) {
+        if (child.children) {
             return child.children.every(allChildrenSha1Groups)
         }
         return true
     }
     return group.children.every(recursive)
+}
+
+export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext) {
+    const data = useDataStore()
+    const sha1Index: { [key: string]: number[] } = {}
+
+    ctx.instanceIds.forEach(id => {
+        const sha1 = data.instances[id].sha1
+        if (!sha1Index[sha1]) sha1Index[sha1] = []
+        sha1Index[sha1].push(id)
+    })
+
+    return groups.map((group) => {
+        let instances: Instance[] = []
+        const scoreIndex: { [sha1: string]: number } = {}
+        if (group.ids) {
+            instances = group.ids.map(i => data.instances[i])
+        } else {
+            if (group.scores) {
+                group.sha1s.forEach((sha1, i) => {
+                    scoreIndex[sha1] = group.scores.values[i]
+                })
+            }
+            group.sha1s.forEach(sha1 => sha1Index[sha1].forEach(i => instances.push(data.instances[i])))
+        }
+        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
+        res.meta.score = Math.round(group.score?.value ?? undefined)
+        res.name = group.name
+        res.isSha1Group = group.ids ? false : true
+        res.score = group.score
+        res.scores = convertScoreListToGroupScoreList(group, data.sha1Index)
+
+        return res
+    })
+}
+
+export function convertSearchGroupResult(groups: GroupResult[], ctx: ActionContext) {
+    const data = useDataStore()
+
+    return groups.map((group) => {
+        let instances: Instance[] = []
+        const scoreIndex: { [sha1: string]: number } = {}
+        if (group.ids) {
+            instances = group.ids.map(i => data.instances[i])
+        } else {
+            if (group.scores) {
+                group.sha1s.forEach((sha1, i) => {
+                    scoreIndex[sha1] = group.scores.values[i]
+                })
+            }
+            group.sha1s.forEach(sha1 => data.sha1Index[sha1].forEach(i => instances.push(i)))
+        }
+        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
+        res.meta.score = Math.round(group.score?.value)
+        res.name = group.name
+        res.isSha1Group = group.ids ? false : true
+        res.score = group.score
+        res.scores = convertScoreListToGroupScoreList(group, data.sha1Index)
+        return res
+    })
+}
+
+export function sortGroupByScore(group: Group) {
+    let dir = group.scores.maxIsBest ? -1 : 1
+    group.images.sort((i1, i2) => {
+        return (group.scores.valueIndex[i1.id] - group.scores.valueIndex[i2.id]) * dir
+    })
+    return group
+}
+
+export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: Sha1ToInstances) {
+    if(!group.scores) return
+
+    const index: ScoreIndex = {}
+    if (group.sha1s) {
+        for (let i = 0; i < group.sha1s.length; i++) {
+            let sha1 = group.sha1s[i]
+            for (let instance of sha1Index[sha1]) {
+                index[instance.id] = group.scores.values[i]
+            }
+        }
+    }
+    if (group.ids) {
+        group.ids.forEach((id, i) => {
+            index[id] = group.scores.values[i]
+        })
+    }
+    const scores: GroupScoreList = {
+        min: group.scores.min,
+        max: group.scores.max,
+        maxIsBest: group.scores.maxIsBest,
+        valueIndex: index,
+        description: group.scores.description
+    }
+    return scores
 }

@@ -9,6 +9,7 @@ import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
+import { convertClusterGroupResult } from '@/utils/utils';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -61,13 +62,11 @@ async function call() {
         const res = await project.call(req)
 
         if (res.groups) {
-            emits('groups', res.groups)
-        }
-        if (res.instances) {
-            emits('instances', res.instances)
+            const groups = convertClusterGroupResult(res.groups, context)
+            emits('groups', groups)
         }
     } catch (e) {
-
+        console.error(e)
     }
     try {
         if (setDefault.value) {
