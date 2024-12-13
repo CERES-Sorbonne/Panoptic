@@ -45,7 +45,6 @@ const defaultFunction = computed(() => actions.defaultActions['similar'])
 
 async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
-    // if (modalMode.value != ImageModalMode.Similarity) return
     const ctx: ActionContext = { instanceIds: [props.image.id] }
     const res = await actions.getSimilarImages(ctx)
     if (!res.groups) return
