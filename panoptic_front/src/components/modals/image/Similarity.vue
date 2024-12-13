@@ -145,7 +145,7 @@ watch(useFilter, updateSimilarGroup)
                 <div class="sep ms-1 me-1"></div>
                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                 <div style="width: 100px;" class="me-3">
-                    <Slider v-model=scoreInterval.values :min="0" :max="1" :step="-1" direction="ltr" :merge="0.4"
+                    <Slider v-model=scoreInterval.values :min="scoreInterval.min" :max="scoreInterval.max" :step="-1" direction="ltr" :merge="0.4"
                         showTooltip="drag" />
                 </div>
                 <div v-if="scoreInterval.description.length" class="me-1"><wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT></div>
