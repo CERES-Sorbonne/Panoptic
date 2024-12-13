@@ -18,7 +18,7 @@ const emits = defineEmits([])
                 <NotifIcon :type="props.notif.type" />
             </span> {{ props.notif.type }}</div>
         <div>Name: {{ props.notif.name }}</div>
-        <div>Message: {{ props.notif.message }}</div>
+        <div style="word-break:normal;">Message: {{ props.notif.message }}</div>
         <div v-if="props.notif.functions" class="func-proposition">
             Proposed Functions:
             <div v-for="fnc in props.notif.functions" class="func">

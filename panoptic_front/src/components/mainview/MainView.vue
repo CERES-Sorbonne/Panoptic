@@ -4,7 +4,7 @@
  *  MainView of the open Tab
  */
 
-import { reactive, computed, watch, onMounted, ref, nextTick } from 'vue';
+import { reactive, computed, watch, onMounted, ref, nextTick, onUnmounted } from 'vue';
 import ContentFilter from './ContentFilter.vue';
 
 import GridScroller from '../scrollers/grid/GridScroller.vue';
@@ -16,9 +16,14 @@ import GraphView from '../graphview/GraphView.vue';
 const project = useProjectStore()
 const tabManager = project.getTabManager()
 
-const props = defineProps({
-    tabId: Number,
-    height: Number
+const props = defineProps<{
+    tabId: number
+    height: number
+    filterOpen: boolean
+}>()
+
+defineExpose({
+    updateScrollerWidth
 })
 
 const recoGroup = ref({} as Group)
@@ -65,16 +70,22 @@ function closeReco() {
     nextTick(() => updateScrollerHeight())
 }
 
+async function updateScrollerWidth() {
+    await nextTick()
+    scrollerWidth.value = filterElem.value?.clientWidth ?? scrollerWidth.value
+}
+
 onMounted(() => {
     scrollerWidth.value = filterElem.value.clientWidth
-    window.addEventListener('resize', () => {
-        nextTick(() => {
-            scrollerWidth.value = filterElem.value?.clientWidth ?? scrollerWidth.value
-        })
-    })
+    window.addEventListener('resize', updateScrollerWidth)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateScrollerWidth)
 })
 
 watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
+watch(() => props.filterOpen, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
 })
@@ -92,12 +103,15 @@ watch(() => props.tabId, async () => {
 
 <template>
     <div id="main-content" ref="filterElem">
-        <ContentFilter :tab="tabManager" :compute-status="computeStatus" />
+        <template v-if="props.filterOpen">
+            <ContentFilter :tab="tabManager" :compute-status="computeStatus" />
+        </template>
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">
-            <RecommendedMenu :group="recoGroup" :image-size="tabManager.state.imageSize" :width="scrollerWidth" :height="50"
-                @close="closeReco" @scroll="imageList.scrollTo" @update="nextTick(() => updateScrollerHeight())" />
+            <RecommendedMenu :group="recoGroup" :image-size="tabManager.state.imageSize" :width="scrollerWidth"
+                :height="50" @close="closeReco" @scroll="imageList.scrollTo"
+                @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
     <div v-if="scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
@@ -111,12 +125,13 @@ watch(() => props.tabId, async () => {
         <template v-if="tabManager.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
                 <GridScroller :manager="tabManager.collection.groupManager" :height="scrollerHeight - 15"
-                    :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0" :show-images="true"
-                    :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList" :hide-if-modal="true" />
+                    :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0"
+                    :show-images="true" :selected-images="tabManager.collection.groupManager.selectedImages"
+                    ref="imageList" :hide-if-modal="true" />
             </div>
         </template>
         <template v-if="tabManager.state.display == 'graph'">
-            <GraphView :collection="tabManager.collection" :height="scrollerHeight -15" />
+            <GraphView :collection="tabManager.collection" :height="scrollerHeight - 15" />
         </template>
 
     </div>

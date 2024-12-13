@@ -11,9 +11,12 @@ const editTab = ref(-1)
 const newTabName = ref('')
 const inputElem = ref(null)
 
-const props = defineProps({
+const props = defineProps<{
     reRender: Function
-})
+    filterOpen: boolean
+}>()
+
+const emits = defineEmits(['update:filterOpen'])
 
 
 function select(id: number) {
@@ -51,11 +54,19 @@ const hover = reactive({}) as any
 const editId = ref(-1)
 const langs = ['fr', 'en']
 
+function toggleFilter() {
+    emits('update:filterOpen', !props.filterOpen)
+}
+
 </script>
 
 <template>
     <nav>
         <div class="d-flex d-row" style="cursor: pointer;">
+            <div class="pt-1"><span @click="toggleFilter">
+                    <i v-if="props.filterOpen" class="bb bi bi-chevron-down" />
+                    <i v-else class="bb bi bi-chevron-right" />
+                </span> </div>
             <div class="d-flex d-row me-2" v-for="tab in project.data.tabs" @mouseenter="e => hover[tab.id] = true"
                 @mouseleave="e => hover[tab.id] = false">
                 <!-- <i class="btn-icon bi bi-pencil tab-icon me-2" :class="hover[tab.id] ? '' : 'hidden'" style="font-size: 9px;"></i> -->
