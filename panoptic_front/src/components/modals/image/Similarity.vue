@@ -40,9 +40,6 @@ const scoreInterval = reactive({
     description: ''
 })
 
-const minSimilarityDist = computed(() => project.getTabManager().state.similarityDist ?? 0.8)
-
-
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
 const defaultFunction = computed(() => actions.defaultActions['similar'])
 
@@ -68,7 +65,11 @@ function updateSimilarGroup() {
     if (!searchResult.value) return
 
     let group = deepCopy(searchResult.value)
-    console.log(scoreInterval.values)
+    if(useFilter.value) {
+        let valid = {}
+        project.getTabManager().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
+        group.images = group.images.filter(i => valid[i.id])
+    }
     group.images = group.images.filter(i => group.scores.valueIndex[i.id] >= scoreInterval.values[0] && group.scores.valueIndex[i.id] <= scoreInterval.values[1])
 
     similarGroup.emptyRoot()
