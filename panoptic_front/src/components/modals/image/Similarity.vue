@@ -146,10 +146,6 @@ watch(useFilter, updateSimilarGroup)
                 </wTT>
                 <div class="sep ms-1 me-1"></div>
                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
-                <!-- <wTT message="modals.image.similarity_filter_tooltip">
-                    <RangeInput class="me-2" :min="0" :max="1" :model-value="minSimilarityDist"
-                        @update:model-value="setSimilarDist" />
-                </wTT> -->
                 <div style="width: 100px;" class="me-3">
                     <Slider v-model=scoreInterval.values :min="0" :max="1" :step="-1" direction="ltr" :merge="0.4"
                         showTooltip="drag" />
