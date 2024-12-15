@@ -9,6 +9,7 @@ import { Group } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils';
+import ActionSelect from '../actions/ActionSelect.vue';
 
 
 interface Sha1Pile {
@@ -39,13 +40,15 @@ const blacklist = reactive(new Set())
 
 const useFilter = ref(true)
 
-function removeImage(sha1: string) {
-    // let index = sha1s.indexOf(sha1)
-    // if (index < 0) {
-    //     return
-    // }
-    // sha1s.splice(index, 1)
-    // computeLines()
+function removeImage(img: Instance) {
+    const group = searchResult.value
+    if(group.isSha1Group) {
+        group.images = group.images.filter(i => i.sha1 != img.sha1)
+    } else {
+        group.images = group.images.filter(i => i.id != img.id)
+    }
+    searchResult.value = group
+    computeLines()
 }
 
 async function acceptRecommend(image: Instance) {
@@ -71,20 +74,33 @@ async function acceptRecommend(image: Instance) {
         }
     })
     await data.setPropertyValues(instanceValues, imageValues)
-
-    removeImage(image.sha1)
+    removeImage(image)
 }
 
 function refuseRecommend(image: Instance) {
-    blacklist.add(image.sha1)
-    removeImage(image.sha1)
+    if(searchResult.value.isSha1Group) {
+        searchResult.value.images.filter(img => img.sha1 == image.sha1).forEach(img => blacklist.add(img.id))
+    } else {
+        blacklist.add(image.id)
+    }
+    removeImage(image)
 }
 
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
-    
-    const piles = sha1s.map((sha1: string) => ({ sha1, images: data.sha1Index[sha1] }))
+    let piles = []
+    const images = searchResult.value.images
+    if(searchResult.value.isSha1Group) {
+        const index = {}
+        const sha1s = Array.from(new Set(images.map(i => i.sha1)))
+        sha1s.forEach(s => index[s] = [])
+        images.forEach(i => index[i.sha1].push(i))
+        sha1s.forEach(sha1 => piles.push({sha1, images: data.sha1Index[sha1]}))
+    }
+    else {
+        images.forEach(img => piles.push({sha1: img.sha1, images: [img]}))
+    }
     computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
 
@@ -99,7 +115,8 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
         }
         let pile = piles[i]
         // let img = pile.images[0]
-        if (blacklist.has(pile.sha1)) {
+        pile.images = pile.images.filter(i => !blacklist.has(i.id))
+        if (pile.images.length == 0) {
             continue
         }
         let imgWidth = imageWidth + imageMargin
@@ -123,7 +140,6 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
     }
 }
 
-// TODO: fix with new score logic + similarity choice function
 async function getReco() {
     if (!props.group) return
 
@@ -133,10 +149,16 @@ async function getReco() {
     ctx.instanceIds = props.group.images.map(i => i.id)
     const res = await actions.getSimilarImages(ctx)
     if(!res) return
-    if (!res.instances) throw new Error('No instances in ActionResult')
+    if (!res.groups) throw new Error('No instances in ActionResult')
 
     let groups = convertSearchGroupResult(res.groups, ctx)
     let group = groups[0]
+
+    if(useFilter.value) {
+        const valid = new Set(project.getTabManager().collection.filterManager.result.images.map(i => i.id))
+        group.images = group.images.filter(i => valid.has(i.id))
+    }
+
     if (group.scores) {
         sortGroupByScore(group)
     }
@@ -195,9 +217,9 @@ watch(useFilter, getReco)
             <div class="b-left pe-1"></div>
 
             <!-- <div style="border-right: 1px solid black; height: 20px;"></div> -->
-
             <wTT icon-pos="left" message="main.recommand.tooltip" :icon="true"><span class="text-secondary me-2">{{
                 $t('main.recommand.title') }}</span></wTT>
+            <div style="padding-top: 2px;" class="me-1"><ActionSelect action="similar" @changed="getReco"/></div>
             <div class="flex-grow-1">
                 <div class="d-flex flex-row">
                     <template v-for="value, index in propertyValues">
