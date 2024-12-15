@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
-import { ActionContext, Actions, ExecuteActionPayload, ParamDefaults, SearchResult } from "./models";
-import { computed, nextTick, reactive, ref, watch } from "vue";
-import { apiCallActions, apiGetUIData, apiSetUIData } from "./api";
+import { ActionContext, Actions } from "./models";
+import { computed, reactive, ref, watch } from "vue";
+import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
 
 const hooks = ['similar', 'group', 'execute', 'import', 'export']
@@ -103,6 +103,15 @@ export const useActionStore = defineStore('actionStore', () => {
         Object.assign(defaultActions, res)
     }
 
+    function getContext(funcName: string) {
+        const ctx: ActionContext = {uiInputs: {}}
+        const act = index.value[funcName]
+        for(let param of act.params) {
+            ctx.uiInputs[param.name] = param.defaultValue
+        }
+        return ctx
+    }
+
     load()
     watch(() => project.status.loaded, (loaded) => {
         if (!loaded) clear()
@@ -113,7 +122,7 @@ export const useActionStore = defineStore('actionStore', () => {
         index, defaultActions,
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction,
-        getSimilarImages,
+        getSimilarImages, getContext,
         clear, update, load
     }
 })

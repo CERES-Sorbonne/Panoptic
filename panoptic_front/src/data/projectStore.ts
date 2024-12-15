@@ -298,6 +298,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function call(req: ExecuteActionPayload) {
         const res = await apiCallActions(req)
+        if(!res) return
         if(res.notifs) {
             const panoptic = usePanopticStore()
             panoptic.notify(res.notifs)
