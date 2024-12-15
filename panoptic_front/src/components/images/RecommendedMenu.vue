@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
+import { ActionContext, ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore'
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
+import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils';
 
 
 interface Sha1Pile {
@@ -31,7 +32,7 @@ const maxLines = ref(1)
 const lines = reactive([])
 const imageMargin = 10
 
-const sha1s = reactive([]) as string[]
+const searchResult = ref<Group>(null)
 const propertyValues = reactive([]) as PropertyValue[]
 
 const blacklist = reactive(new Set())
@@ -39,12 +40,12 @@ const blacklist = reactive(new Set())
 const useFilter = ref(true)
 
 function removeImage(sha1: string) {
-    let index = sha1s.indexOf(sha1)
-    if (index < 0) {
-        return
-    }
-    sha1s.splice(index, 1)
-    computeLines()
+    // let index = sha1s.indexOf(sha1)
+    // if (index < 0) {
+    //     return
+    // }
+    // sha1s.splice(index, 1)
+    // computeLines()
 }
 
 async function acceptRecommend(image: Instance) {
@@ -82,6 +83,7 @@ function refuseRecommend(image: Instance) {
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
+    
     const piles = sha1s.map((sha1: string) => ({ sha1, images: data.sha1Index[sha1] }))
     computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
@@ -124,36 +126,21 @@ function computeImageLines(piles: Sha1Pile[], lines: Sha1Pile[][], maxLines: num
 // TODO: fix with new score logic + similarity choice function
 async function getReco() {
     if (!props.group) return
-    console.log('get reco')
-    const instanceIds = props.group.images.map(i => i.id)
-    let res = await actions.getSimilarImages({ instanceIds })
-    console.log(res)
+
+    if (!actions.hasSimilaryFunction) return
+    const func = actions.defaultActions['similar']
+    const ctx = actions.getContext(func)
+    ctx.instanceIds = props.group.images.map(i => i.id)
+    const res = await actions.getSimilarImages(ctx)
+    if(!res) return
     if (!res.instances) throw new Error('No instances in ActionResult')
 
-    let matches = []
-    const scores = res.instances.scores ?? []
-    if (res.instances.ids) {
-        for (let i in res.instances.ids) {
-            const match: InstanceMatch = { id: res.instances.ids[i], score: scores[i] }
-            matches.push(match)
-        }
-    } else {
-        for (let i in res.instances.sha1s) {
-            const sha1 = res.instances.sha1s[i]
-            for (let img of data.sha1Index[sha1]) {
-                const match: InstanceMatch = { id: img.id, score: scores[i] }
-                matches.push(match)
-            }
-        }
+    let groups = convertSearchGroupResult(res.groups, ctx)
+    let group = groups[0]
+    if (group.scores) {
+        sortGroupByScore(group)
     }
-
-    matches.sort((a, b) => b.score - a.score)
-    if (useFilter.value) {
-        const tab = project.getTabManager()
-        const valid = new Set(tab.collection.groupManager.result.root.images.map(i => i.id))
-        matches = matches.filter(m => valid.has(m.id))
-    }
-    const resSha1s = Array.from(new Set(matches.map(r => data.instances[r.id].sha1)))
+    searchResult.value = group
 
     propertyValues.length = 0
     let current = props.group
@@ -161,9 +148,7 @@ async function getReco() {
         propertyValues.push(...current.meta.propertyValues)
         current = current.parent
     }
-    sha1s.length = 0
-    sha1s.push(...resSha1s)
-
+    
     blacklist.clear()
     computeLines()
 

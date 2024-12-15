@@ -365,5 +365,6 @@
     "none": "Vide...",
     "installing": "Installation...",
     "installed": "Installé",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "cancel": "Annuler"
 }

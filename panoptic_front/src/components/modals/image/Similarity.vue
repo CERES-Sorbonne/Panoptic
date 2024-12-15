@@ -42,12 +42,18 @@ const scoreInterval = reactive({
 
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
 const defaultFunction = computed(() => actions.defaultActions['similar'])
+const actionContext = computed(() => {
+    const ctx: ActionContext = {instanceIds: [props.image.id]}
+    return ctx
+})
 
 async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
-    const ctx: ActionContext = { instanceIds: [props.image.id] }
+    const func = actions.defaultActions['similar']
+    const ctx = actions.getContext(func)
+    ctx.instanceIds = [props.image.id]
     const res = await actions.getSimilarImages(ctx)
-    if (!res.groups) return
+    if (!res || !res.groups) return
     let groups = convertSearchGroupResult(res.groups, ctx)
     let group = groups[0]
     if (group.scores) {
@@ -157,8 +163,7 @@ watch(useFilter, updateSimilarGroup)
             <div class="d-flex mt-1 mb-1">
                 <div class="me-2" style="margin-left: 2px;">Search function</div>
                 <div>
-                    <ActionSelect :model-value="defaultFunction" :action="'similar'"
-                        @update:model-value="updateFunction" />
+                    <ActionSelect :action="'similar'" @changed="setSimilar"/>
                 </div>
             </div>
 
