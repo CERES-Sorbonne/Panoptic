@@ -25,8 +25,8 @@ function set(value) {
 <template>
     <div class="d-flex text-nowrap overflow-hidden" style="font-size: 14px;">
         <CellTagInput v-if="isTag(property.type)" :model-value="props.modelValue" @update:model-value="set"
-            :no-wrap="true" :auto-focus="true" :can-create="true" :can-customize="true" :property="props.property"
-            :teleport="false" :width="props.width" class="sb" />
+            :no-wrap="true" :auto-focus="true" :can-create="false" :can-customize="false" :property="props.property"
+            :teleport="false" :width="props.width" class="sb" :force-multi="true"/>
 
         <CellColorInput v-else-if="props.property.type == PropertyType.color" :model-value="props.modelValue"
             @update:model-value="set" :width="props.width" :rounded="true" :min-height="22" :teleport="false"

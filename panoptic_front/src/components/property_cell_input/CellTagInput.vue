@@ -24,6 +24,7 @@ const props = defineProps<{
     teleport?: boolean
     minHeight?: number
     width?: number
+    forceMulti?: boolean
 }>()
 const emits = defineEmits(['update:modelValue', 'hide', 'update:height'])
 defineExpose({
@@ -46,7 +47,7 @@ function getHeight() {
 async function updateValue(value, hide) {
     localValue.value = value
     updateHeight()
-    if(props.property.type == PropertyType.tag) {
+    if(props.property.type == PropertyType.tag && !props.forceMulti) {
         hide()
     }
 }
@@ -94,6 +95,7 @@ onMounted(updateLocal)
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
+                    :force-multi="true"
                     ref="inputElem" />
             </div>
         </template>
