@@ -110,7 +110,7 @@ watch(project.actions, loadAction)
             </template>
             <template #popup="{ hide }">
                 <div style="min-width: 200px;">
-                    <ActionSelect style="font-size: 10px; margin: 2px 2px 0 0;" class="text-end" v-model="localFunction"
+                    <ActionSelect style="font-size: 10px; margin: 2px 2px 0 4px;" v-model="localFunction"
                         :action="props.action" :hide-gear="true" />
                     <div class="p-2 pb-1">
                         <form @submit.prevent="call(); hide();" class="">
