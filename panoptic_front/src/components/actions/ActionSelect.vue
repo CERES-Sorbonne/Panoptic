@@ -10,6 +10,7 @@ const actions = useActionStore()
 
 const props = defineProps<{
     action: string
+    hideGear?: boolean
 }>()
 const emits = defineEmits(['changed'])
 
@@ -81,7 +82,7 @@ onMounted(loadAction)
                 {{ f }}
             </option>
         </select> -->
-        <div v-if="localInputs.length" class="ms-1">
+        <div v-if="localInputs.length && !props.hideGear" class="ms-1">
             <Dropdown>
                 <template #button>
                     <span class="bbb"><i class="bi bi-gear" /></span>
