@@ -71,7 +71,7 @@ watch(() => props.plugin, updateLocalDefaults)
         <div class="custom-hr mt-2 mb-2"></div>
         <h5>Base Settings</h5>
         <div class="function">
-            <div v-for="param in props.plugin.baseParams.params" class="param">
+            <div v-for="param in localDefaults" class="param">
                 <!-- {{ param }} -->
                 <template v-if="localDefaults[param.name]">
                     <ParamInput :input="param" />
