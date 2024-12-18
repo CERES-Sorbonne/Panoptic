@@ -336,7 +336,8 @@
         "action_images": "Action Images",
         "action_group": "Action Groupes",
         "import": "Importer",
-        "export": "Exporter"
+        "export": "Exporter",
+        "default": "par default"
     },
     "tmp": "Tooltip to be written",
     "dropdown": {
@@ -382,5 +383,6 @@
     "installing": "Installation...",
     "installed": "Installé",
     "confirm": "Confirmer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "call": "Lancer"
 }
