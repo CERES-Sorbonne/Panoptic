@@ -25,6 +25,20 @@ function focus() {
     }
 }
 
+function initValues() {
+    if (props.input.type == 'property' && props.input.defaultValue == undefined) {
+        localValue.value = data.propertyList[0]?.id
+    }
+    if (props.input.type == 'property' && localValue.value in data.properties) {
+        defaultProperty.value = data.properties[localValue.value]
+    }
+    if (props.input.type == 'enum' && props.input.defaultValue == undefined) {
+        localValue.value = props.input.possibleValues[0]
+    } else if (props.input.type == 'enum' && props.input.possibleValues.indexOf(props.input.defaultValue) < 0) {
+        localValue.value = props.input.possibleValues[0]
+    }
+}
+
 watch(() => props.input.defaultValue, () => localValue.value = props.input.defaultValue)
 watch(localValue, () => {
     if (props.input.type == 'property' && localValue.value in data.properties) {
@@ -40,21 +54,10 @@ watch(localValue, () => {
     }
 })
 
-onMounted(() => {
-    if (props.input.type == 'property' && props.input.defaultValue == undefined) {
-        localValue.value = data.propertyList[0]?.id
-    }
-    if (props.input.type == 'property' && localValue.value in data.properties) {
-        defaultProperty.value = data.properties[localValue.value]
-    }
-    if(props.input.type == 'enum' && props.input.possibleValues.indexOf(props.input.defaultValue) >= 0) {
-        localValue.value = props.input.possibleValues[0]
-    }
-    if(props.input.type == 'enum' && props.input.defaultValue == undefined) {
-        localValue.value = props.input.possibleValues[0]
-    }
+watch(props, initValues)
 
-})
+
+onMounted(initValues)
 </script>
 
 <template>
