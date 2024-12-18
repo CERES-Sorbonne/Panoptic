@@ -282,7 +282,12 @@
             "install_ml": "Installer Plugin ML"
         },
         "notif": {
-            "icon": "Ouvrir le centre de Notification"
+            "icon": "Ouvrir le centre de Notification",
+            "debug_icon": "Afficher/Cacher notifications: Debug",
+            "info_icon": "Afficher/Cacher notifications: Info",
+            "warning_icon": "Afficher/Cacher notifications: Alerte",
+            "error_icon": "Afficher/Cacher notifications: Erreur",
+            "read_icon": "Afficher/Cacher notifications lus"
         }
     },
     "tutorial": {
