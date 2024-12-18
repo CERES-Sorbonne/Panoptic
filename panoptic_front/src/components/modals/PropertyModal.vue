@@ -1,124 +1,82 @@
 <script setup lang="ts">
 
-import { Property, PropertyMode, PropertyType } from '@/data/models';
-import * as bootstrap from 'bootstrap';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
+import { ModalId, Property } from '@/data/models';
+import { ref, reactive } from 'vue';
 import PropertyTypeDropdown from '@/components/dropdowns/PropertyTypeDropdown.vue';
 import { useProjectStore } from '@/data/projectStore';
-import { usePanopticStore } from '@/data/panopticStore';
-import { goNext } from '@/utils/utils';
 import { useDataStore } from '@/data/dataStore';
 import PropertyModeDropdown from '../dropdowns/PropertyModeDropdown.vue';
-import TextInput from '../property_inputs/TextInput.vue';
+import Modal2 from './Modal2.vue';
 
-const panoptic = usePanopticStore()
 const project = useProjectStore()
 const data = useDataStore()
 
-const modalElem = ref(null)
-let modal: bootstrap.Modal = null
-
-const props = defineProps({
-    id: { type: String, required: true }
-})
-
-const isActive = computed(() => panoptic.openModalId == props.id)
-
-
-function onHide() {
-    if (panoptic.openModalId == props.id) {
-        panoptic.hideModal()
-    }
-    resetNewProperty()
-}
-
-function hide() {
-    modal.hide()
-}
-
-function show() {
-    modal.show()
-}
-
 const newProperty = reactive({}) as Property
-const nameError = ref('')
 
-function resetNewProperty() {
-    newProperty.name = ''
-    newProperty.type = PropertyType.multi_tags
-    newProperty.mode = PropertyMode.sha1
-    nameError.value = ''
-}
+const message = ref('')
 
-async function saveProperty() {
 
+async function saveProperty(hide) {
+    console.log('halloo')
     if (!newProperty.name) {
-        nameError.value = 'Name is Empty!'
+        message.value = 'modals.properties.no_name'
         return
     }
     let propNames = data.propertyList.map(p => p.name)
     if (propNames.includes(newProperty.name)) {
-        nameError.value = 'A Property with same name already exist! Please choose a new name'
+        message.value = 'modals.properties.not_unique_name'
         return
+    }
+
+    if (!newProperty.type) {
+        message.value = "modals.properties.no_type"
     }
 
     const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
     project.getTabManager().setVisibleProperty(prop.id, true)
-
     hide()
 }
 
-watch(() => panoptic.openModalId, (id) => {
-    if (id == props.id) {
-        show()
-    }
-    else {
-        hide()
-    }
-})
-
-onMounted(() => {
-    modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
-    modalElem.value.addEventListener('hide.bs.modal', onHide)
-    resetNewProperty()
-})
 </script>
 
 
 <template>
-    <div class="modal fade text-dark modal-m" role="dialog" ref="modalElem">
-        <div class="modal-dialog">
-            <div class="modal-content" v-if="isActive">
-                <div class="modal-header m-0 p-2 ps-3 pe-3">
-                    <b class="modal-title" id="exampleModalLabel">{{ $t("modals.properties.title") }}</b>
-                    <button type="button" class="btn-close" @click="hide" aria-label="Close"></button>
+    <Modal2 :id="ModalId.PROPERTY" :max-height="170" :max-width="500">
+        <template #title>
+            {{ $t("modals.properties.title") }}
+        </template>
+        <template #content="{ hide }">
+            <div class="d-flex p-2 justify-content-center">
+                <div class="me-1">
+                    <PropertyModeDropdown v-model="newProperty.mode" />
                 </div>
-                <div class="modal-body" id="tmp1">
-                    <form @submit.prevent="saveProperty" class="d-flex flex-row" style="font-size: 15px;">
-                        <div class="me-1">
-                            <PropertyModeDropdown v-model="newProperty.mode" />
-                        </div>
-                        <div class="flex-grow-1 me-1">
-                            <input type="text" style="width: 100%" class="" id="propertyName" name="propertyName"
-                                v-model="newProperty.name" :placeholder="$t('modals.properties.input')" required>
-                                <!-- <TextInput :no-nl="true" :width="200" v-model="newProperty.name" :always-shadow="true" :auto-focus="true"/> -->
-                            <div class="invalid-feedback">
-                                {{ nameError }}
-                            </div>
-                        </div>
-                        <div class="">
-                            <PropertyTypeDropdown id="select-property" v-model="newProperty.type" class="input-lg" />
-                        </div>
-
-                    </form>
+                <div>
+                    <input type="text" style="width: 100%" class="" id="propertyName" name="propertyName"
+                        v-model="newProperty.name" :placeholder="$t('modals.properties.input')">
                 </div>
-                <div class="modal-footer pt-2 pb-2">
-                    <button type="button" @click="hide">{{ $t("modals.properties.cancel") }}</button>
-                    <button id="confirm-property" type="button" @click="saveProperty();goNext()">{{ $t("modals.properties.confirm") }}</button>
+                <div class="ms-1">
+                    <PropertyTypeDropdown id="select-property" v-model="newProperty.type" class="input-lg" />
                 </div>
             </div>
-        </div>
-    </div>
+
+            <div class="text-center">
+                <span v-if="message" class="text-warning">{{ $t(message) }}</span>
+                <span v-else>{{ $t('modals.properties.message') }}</span>
+            </div>
+
+            <div class="d-flex p-2 justify-content-center">
+                <!-- <div class="flex-grow-1"></div> -->
+                <div class="bbb me-2" @click="hide">{{ $t("modals.properties.cancel") }}</div>
+                <div class="bbb" @click="saveProperty(hide)">{{
+                    $t("modals.properties.confirm") }}</div>
+            </div>
+        </template>
+    </Modal2>
 </template>
 
-<style scoped></style>
+<style scoped>
+input {
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+}
+</style>
