@@ -2,9 +2,10 @@
 import { reactive, ref, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
-import { TabState } from '@/data/models';
+import { ModalId, TabState } from '@/data/models';
+import { usePanopticStore } from '@/data/panopticStore';
 
-
+const panoptic = usePanopticStore()
 const project = useProjectStore()
 
 const editTab = ref(-1)
@@ -94,6 +95,12 @@ function toggleFilter() {
             </div>
             <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"
                     id="add-tab-button"><span class="bi bi-plus"></span></button></wTT>
+            <div class="flex-grow-1"></div>
+            <div style="padding-top: 2px; margin-right: 2px;">
+                <wTT message="modals.notif.icon">
+                    <span class="bb" @click="panoptic.showModal(ModalId.NOTIF)"><i class="bi bi-bell"></i></span>
+                </wTT>
+            </div>
             <div class="lang">
                 <i class="bi bi-translate" style="margin-right:0.5rem"></i>
                 <select v-model="$i18n.locale" @change="props.reRender()">
