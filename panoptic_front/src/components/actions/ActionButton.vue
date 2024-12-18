@@ -80,7 +80,7 @@ async function call() {
             update[props.action] = localFunction.value
             await actions.updateDefaultActions(update)
         }
-    } catch(e) {
+    } catch (e) {
 
     }
 
@@ -110,9 +110,10 @@ watch(project.actions, loadAction)
             </template>
             <template #popup="{ hide }">
                 <div style="min-width: 200px;">
-                    <ActionSelect style="font-size: 10px; margin: 2px 2px 0 4px;" v-model="localFunction"
-                        :action="props.action" :hide-gear="true" />
-                    <div class="p-2 pb-1">
+                    <div class="pt-1 ps-1">
+                        <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true" :size="12" />
+                    </div>
+                    <div class="ps-1 pt-1 pb-1">
                         <form @submit.prevent="call(); hide();" class="">
                             <div v-for="input, i in localInputs" class="mb-1">
                                 <ParamInput :input="input" />

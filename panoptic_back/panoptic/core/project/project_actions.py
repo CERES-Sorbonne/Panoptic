@@ -65,6 +65,10 @@ def get_function_description(source: APlugin, function: AsyncCallable):
     description = function.__doc__
     if description and '@' in description:
         description = description[0: description.index('@')]
+    if description:
+        description = description.rstrip('\n')
+        description = description.lstrip('\n')
+        description = description.strip()
     params = get_params_description(function)
     return FunctionDescription(id=function_id, name=name, description=description, params=params)
 

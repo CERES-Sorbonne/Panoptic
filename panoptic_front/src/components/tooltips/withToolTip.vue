@@ -53,7 +53,7 @@ const realMessage = computed(() => {
                     class="bi bi-question-circle small-icon"></i></span>
         </div>
         <template #popper>
-            <div style="max-width: 300px;">
+            <div style="max-width: 300px; word-break:normal; word-wrap: break-word;">
                 <span v-for="line in realMessage">{{ line }}<br /></span>
             </div>
         </template>

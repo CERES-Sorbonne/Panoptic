@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
-import { ActionContext, ParamDescription } from '@/data/models';
-import { deepCopy, objValues } from '@/utils/utils';
-import { computed, onMounted, ref, watch } from 'vue'
+import { ParamDescription } from '@/data/models';
+import { objValues } from '@/utils/utils';
+import { computed, onMounted, ref } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
 import ParamInput from '../inputs/ParamInput.vue';
+import wTT from '../tooltips/withToolTip.vue';
 
 const actions = useActionStore()
 
 const props = defineProps<{
     action: string
     hideGear?: boolean
+    size?: number
 }>()
 const emits = defineEmits(['changed'])
 
@@ -19,6 +21,7 @@ const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localInputs = ref<ParamDescription[]>([])
 const localFunction = ref(null)
 
+const fontSize = computed(() => props.size ? props.size : 12)
 const available = computed(() => {
     const valid = objValues(actions.index).filter(a => a.hooks.includes(props.action))
     return valid.map(a => a.id)
@@ -66,26 +69,33 @@ onMounted(loadAction)
 </script>
 
 <template>
-    <div class="d-flex">
+    <div class="d-flex" :style="{ fontSize: fontSize + 'px' }">
         <Dropdown>
             <template #button>
-                <span class="bbb">{{ localFunction }}<i style="font-size: 13px;" class="ms-1 bi bi-chevron-down" /></span>
+                <div>
+                    <wTT class="p-0 m-0" v-if="localFunction" :message="actions.index[localFunction].description">
+                        <span class="bbb">{{ localFunction }}<i class="ms-1 bi bi-chevron-down" /></span>
+                    </wTT>
+                </div>
             </template>
-            <template #popup="{hide}">
+            <template #popup="{ hide }">
                 <div class="p-2">
-                    <div v-for="f in available" class="bb" @click="updateFunction(f); hide();">{{ f }}</div>
+                    <div v-for="f in available" class="bb" @click="updateFunction(f); hide();">
+                        <wTT :message="actions.index[f].description">
+                            {{ f }}
+                        </wTT>
+                    </div>
                 </div>
             </template>
         </Dropdown>
-        <!-- <select :value="localFunction" @change="(e: any) => updateFunction(e.target.value)">
-            <option v-for="f in available" :value="f">
-                {{ f }}
-            </option>
-        </select> -->
         <div v-if="localInputs.length && !props.hideGear" class="ms-1">
             <Dropdown>
                 <template #button>
-                    <span class="bbb"><i class="bi bi-gear" /></span>
+                    <div>
+                        <wTT message="Options">
+                            <span class="bbb"><i class="bi bi-gear" /></span>
+                        </wTT>
+                    </div>
                 </template>
                 <template #popup="{ hide }">
                     <form @submit.prevent="submit(); hide();" class="p-2">
