@@ -103,7 +103,10 @@
             "tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches du groupe sélectionné en utilisant l'algorithme KDTree et des vecteurs d'image",
             "accept": "Ajouter au groupe sélectionné",
             "refuse": "Retirer des images similaires",
-            "group": "Aller au groupe"
+            "group": "Aller au groupe",
+            "close": "Fermer les propsitions",
+            "scroll": "Retrouver le groupe dans la vue",
+            "filter": "Activer/Désactiver le filtre global d'image dans les propositions"
         },
         "view": {
             "all_group": "Toutes",

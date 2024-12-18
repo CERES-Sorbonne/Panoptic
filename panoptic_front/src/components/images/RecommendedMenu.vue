@@ -42,7 +42,7 @@ const useFilter = ref(true)
 
 function removeImage(img: Instance) {
     const group = searchResult.value
-    if(group.isSha1Group) {
+    if (group.isSha1Group) {
         group.images = group.images.filter(i => i.sha1 != img.sha1)
     } else {
         group.images = group.images.filter(i => i.id != img.id)
@@ -78,7 +78,7 @@ async function acceptRecommend(image: Instance) {
 }
 
 function refuseRecommend(image: Instance) {
-    if(searchResult.value.isSha1Group) {
+    if (searchResult.value.isSha1Group) {
         searchResult.value.images.filter(img => img.sha1 == image.sha1).forEach(img => blacklist.add(img.id))
     } else {
         blacklist.add(image.id)
@@ -91,15 +91,15 @@ function computeLines() {
     // console.log(props.width, props.imageSize)
     let piles = []
     const images = searchResult.value.images
-    if(searchResult.value.isSha1Group) {
+    if (searchResult.value.isSha1Group) {
         const index = {}
         const sha1s = Array.from(new Set(images.map(i => i.sha1)))
         sha1s.forEach(s => index[s] = [])
         images.forEach(i => index[i.sha1].push(i))
-        sha1s.forEach(sha1 => piles.push({sha1, images: data.sha1Index[sha1]}))
+        sha1s.forEach(sha1 => piles.push({ sha1, images: data.sha1Index[sha1] }))
     }
     else {
-        images.forEach(img => piles.push({sha1: img.sha1, images: [img]}))
+        images.forEach(img => piles.push({ sha1: img.sha1, images: [img] }))
     }
     computeImageLines(piles, lines, maxLines.value, props.imageSize, props.width)
 }
@@ -148,13 +148,13 @@ async function getReco() {
     const ctx = actions.getContext(func)
     ctx.instanceIds = props.group.images.map(i => i.id)
     const res = await actions.getSimilarImages(ctx)
-    if(!res) return
+    if (!res) return
     if (!res.groups) throw new Error('No instances in ActionResult')
 
     let groups = convertSearchGroupResult(res.groups, ctx)
     let group = groups[0]
 
-    if(useFilter.value) {
+    if (useFilter.value) {
         const valid = new Set(project.getTabManager().collection.filterManager.result.images.map(i => i.id))
         group.images = group.images.filter(i => valid.has(i.id))
     }
@@ -170,7 +170,7 @@ async function getReco() {
         propertyValues.push(...current.meta.propertyValues)
         current = current.parent
     }
-    
+
     blacklist.clear()
     computeLines()
 
@@ -196,30 +196,38 @@ watch(useFilter, getReco)
     <div class="reco-container">
         <div class="d-flex flex-row m-0 ps-2 center mb-1 mt-0" style="height: 25px;">
 
-            <div class="text-secondary pe-1" @click="emits('close')">
-                <span class="bi bi-x-lg bb " style=""></span>
-            </div>
+            <wTT message="main.recommand.close">
+                <div class="text-secondary pe-1" @click="emits('close')">
+                    <span class="bi bi-x-lg bb"></span>
+                </div>
+            </wTT>
 
             <div class="b-left pe-1"></div>
 
-            <div class="text-secondary pe-1" @click="emits('scroll', props.group.id)">
-                <!-- {{ $t('main.recommand.group') }} -->
-                <span class="bi bi-arrow-down-circle bb"></span>
-            </div>
+            <wTT message="main.recommand.scroll">
+                <div class="text-secondary pe-1" @click="emits('scroll', props.group.id)">
+                    <!-- {{ $t('main.recommand.group') }} -->
+                    <span class="bi bi-arrow-down-circle bb"></span>
+                </div>
+            </wTT>
 
             <div class="b-left pe-1"></div>
 
-            <div class="text-secondary pe-1" @click="toggleFilter">
-                <span v-if="useFilter" class="bi bi-funnel-fill bb text-primary"></span>
-                <span v-else class="bi bi-funnel bb"></span>
-            </div>
+            <wTT message="main.recommand.filter">
+                <div class="text-secondary pe-1" @click="toggleFilter">
+                    <span v-if="useFilter" class="bi bi-funnel-fill bb text-primary"></span>
+                    <span v-else class="bi bi-funnel bb"></span>
+                </div>
+            </wTT>
 
             <div class="b-left pe-1"></div>
 
             <!-- <div style="border-right: 1px solid black; height: 20px;"></div> -->
             <wTT icon-pos="left" message="main.recommand.tooltip" :icon="true"><span class="text-secondary me-2">{{
                 $t('main.recommand.title') }}</span></wTT>
-            <div style="padding-top: 2px;" class="me-1"><ActionSelect action="similar" @changed="getReco"/></div>
+            <div style="padding-top: 2px;" class="me-1">
+                <ActionSelect action="similar" @changed="getReco" />
+            </div>
             <div class="flex-grow-1">
                 <div class="d-flex flex-row">
                     <template v-for="value, index in propertyValues">
