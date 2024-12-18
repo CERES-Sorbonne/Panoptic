@@ -28,7 +28,7 @@ onMounted(() => searchElem.value.focus())
 </script>
 
 <template>
-    <div>
+    <div class="p-1">
         <div class="mb-1 ps-2 pe-2"><input class="w-100 bg-light" type="text" ref="searchElem" v-model="propertyFilter" /></div>
         <div v-for="prop in filteredProperties" class="p-1 base-hover text-black" style="cursor:pointer" @click="emits('select', prop.id)">
             <PropertyIcon :type="prop.type" class="me-2" />

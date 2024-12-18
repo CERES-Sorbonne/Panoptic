@@ -118,7 +118,7 @@ watch(project.actions, loadAction)
                             <div v-for="input, i in localInputs" class="mb-1">
                                 <ParamInput :input="input" />
                             </div>
-                            <div class="d-flex flex-center mt-3" style="height: 20px;">
+                            <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
                                 <div class="me-1"><input type="checkbox" v-model="setDefault"
                                         style="position: relative; top: 2px" /></div>
                                 <div class="text-secondary">as default</div>
