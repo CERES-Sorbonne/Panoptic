@@ -163,7 +163,7 @@ watch(useFilter, updateSimilarGroup)
             <div class="d-flex mt-1 mb-1">
                 <div class="me-2" style="margin-left: 2px;">Search function</div>
                 <div>
-                    <ActionSelect :action="'similar'" @changed="setSimilar"/>
+                    <ActionSelect  :size="15" :action="'similar'" @changed="setSimilar"/>
                 </div>
             </div>
 
