@@ -19,7 +19,6 @@ psutil
 starlette
 numpy
 show-in-file-manager
-
 Pillow
 scipy
 tqdm
