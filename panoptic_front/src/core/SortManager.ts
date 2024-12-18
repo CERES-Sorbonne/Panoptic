@@ -11,6 +11,8 @@ import { useProjectStore } from "@/data/projectStore"
 import { EventEmitter } from "@/utils/utils"
 import { reactive, toRefs, unref } from "vue"
 
+const LAST_STRING = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzz'
+
 export enum SortDirection {
     Ascending = 1,
     Descending = -1
@@ -70,19 +72,19 @@ export const sortParser: { [type in PropertyType]?: any } = {
         return x
     },
     [PropertyType.path]: (x?: string) => {
-        if (!x) return ''
+        if (!x) return LAST_STRING
         return x.toLocaleLowerCase()
     },
     [PropertyType.string]: (x?: string) => {
-        if (!x) return ''
+        if (!x) return LAST_STRING
         return x.toLocaleLowerCase()
     },
     [PropertyType.tag]: (x?: string) => {
-        if (!x) return ''
-        return x
+        if (!x) return LAST_STRING
+        return x.toLocaleLowerCase()
     },
     [PropertyType.url]: (x?: string) => {
-        if (!x) return ''
+        if (!x) return LAST_STRING
         return x.toLocaleLowerCase()
     },
     [PropertyType._ahash]: (x: string) => {
