@@ -3,6 +3,7 @@ from pathlib import Path
 
 from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, Property, PropertyMode, InstanceProperty, DbCommit
+from panoptic.utils import Trie
 
 TAG_ID = 1
 MULTI_TAGS_ID = 2
@@ -854,3 +855,18 @@ async def test_update_tag_parent_ignore_cycles_3(data_project: Project):
     # should not have added parent to avoid cycle
     db_tag2 = next(t for t in await db.get_tags(prop_id) if t.id == tag2.id)
     assert len(db_tag2.parents) == 0
+
+
+# def test_trie_relative():
+#     trie = Trie()
+#
+#     url1 = '/lala/Image_1.jpg'
+#     url2 = '/1.jpg'
+#     trie.insert(url1[::-1], 1)
+#     trie.insert(url2[::-1], 2)
+#
+#     search = '/1.jpg'
+#
+#     res = trie.search_by_prefix(search[::-1])
+#     print(res)
+

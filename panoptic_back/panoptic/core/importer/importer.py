@@ -159,6 +159,7 @@ class Importer:
         if file_key == 'path':
             pass
             paths = self._df[file_key]
+            paths = [f"/{path}" if not path.startswith("/") else path for path in paths]
             trie = Trie()
             for inst in instances:
                 url = inst.url.replace('\\', '/')
