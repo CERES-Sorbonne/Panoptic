@@ -47,7 +47,7 @@ onMounted(() => {
     if (props.input.type == 'property' && localValue.value in data.properties) {
         defaultProperty.value = data.properties[localValue.value]
     }
-    if(props.input.type == 'enum' && props.input.possibleValues.indexOf(props.input.defaultValue) < 0) {
+    if(props.input.type == 'enum' && props.input.possibleValues.indexOf(props.input.defaultValue) >= 0) {
         localValue.value = props.input.possibleValues[0]
     }
     if(props.input.type == 'enum' && props.input.defaultValue == undefined) {

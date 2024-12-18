@@ -109,8 +109,8 @@ watch(project.actions, loadAction)
                 <div class="bb" style="margin: 0 1px; font-size: 8px;"><i class="bi bi-chevron-down"></i></div>
             </template>
             <template #popup="{ hide }">
-                <div style="min-width: 200px;">
-                    <div class="pt-1 ps-1">
+                <div style="min-width: 200px;" class="p-1">
+                    <div class="">
                         <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true" :size="12" />
                     </div>
                     <div class="ps-1 pt-1 pb-1">
@@ -121,10 +121,10 @@ watch(project.actions, loadAction)
                             <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
                                 <div class="me-1"><input type="checkbox" v-model="setDefault"
                                         style="position: relative; top: 2px" /></div>
-                                <div class="text-secondary">as default</div>
-                                <div class="flex-grow-1"></div>
-                                <div class="bb" @click="hide">Cancel</div>
-                                <div class="bb" @click="call(); hide();">Call</div>
+                                <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
+                                <div class="ms-2 flex-grow-1"></div>
+                                <div class="bb" @click="hide">{{ $t('cancel') }}</div>
+                                <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
                             </div>
                         </form>
                     </div>
