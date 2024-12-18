@@ -76,11 +76,11 @@ async function apply() {
         </template>
         <template #popup>
             <div @keydown.escape.prevent.stop="">
-                <div class="m-2" style="width: 300px;">
+                <div class="m-2" style="width: 300px; max-height: 400px; overflow-y: auto;">
                     <StampForm :values="stamp" :erase="erase" @blur="dropdownElem.focus" />
                 </div>
 
-                <div class="d-flex pe-2 mb-2">
+                <div class="d-flex pe-2 pb-2">
                     <div class="flex-grow-1"></div>
                     <button class="me-2" @click="close">
                         {{ $t('modals.tagging.cancel') }}
