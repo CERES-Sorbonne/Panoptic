@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
-import { ActionContext, GroupScoreList, Instance } from '@/data/models';
+import { GroupScoreList, Instance } from '@/data/models';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
@@ -41,11 +41,6 @@ const scoreInterval = reactive({
 })
 
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
-const defaultFunction = computed(() => actions.defaultActions['similar'])
-const actionContext = computed(() => {
-    const ctx: ActionContext = {instanceIds: [props.image.id]}
-    return ctx
-})
 
 async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
@@ -66,7 +61,6 @@ async function setSimilar() {
 
 function updateSimilarGroup() {
     if (!searchResult.value) return
-
     let group = deepCopy(searchResult.value)
     if(useFilter.value) {
         let valid = {}
@@ -75,8 +69,7 @@ function updateSimilarGroup() {
     }
     group.images = group.images.filter(i => group.scores.valueIndex[i.id] >= scoreInterval.values[0] && group.scores.valueIndex[i.id] <= scoreInterval.values[1])
 
-    similarGroup.emptyRoot()
-    similarGroup.addCustomGroups(0, [group], true)
+    similarGroup.setAsRoot(group)
 
     if (scrollerElem.value) {
         scrollerElem.value.computeLines()
@@ -88,17 +81,10 @@ function toggleFilter() {
     useFilter.value = !useFilter.value
 }
 
-async function updateFunction(name: string) {
-    const update = {}
-    update['similar'] = name
-    await actions.updateDefaultActions(update)
-    await setSimilar()
-}
-
 function updateInterval(score: GroupScoreList) {
-    let minEq = score.min != scoreInterval.min
-    let maxEq = score.max != scoreInterval.max
-    let bestEq = score.maxIsBest != scoreInterval.maxIsBest
+    let minEq = score.min === scoreInterval.min
+    let maxEq = score.max === scoreInterval.max
+    let bestEq = score.maxIsBest === scoreInterval.maxIsBest
 
     if (minEq && maxEq && bestEq) return
 
@@ -157,7 +143,7 @@ watch(useFilter, updateSimilarGroup)
                 <div v-if="scoreInterval.description.length" class="me-1"><wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT></div>
                 <div class="text-secondary">({{ scoreInterval.values[0] }} - {{ scoreInterval.values[1] }})</div>
                 <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">
-                    ({{ similarGroup.result.root.children[0].children.length }} images)
+                    ({{ similarGroup.result.root.children.length }} images)
                 </div>
             </div>
             <div class="d-flex mt-1 mb-1">
