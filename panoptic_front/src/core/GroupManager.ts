@@ -9,7 +9,7 @@ import { DateUnit, DateUnitFactor, FolderIndex, GroupScoreList, Instance, Proper
 import { Ref, reactive, shallowRef, toRefs, triggerRef } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
-import { EventEmitter, isTag, objValues } from "@/utils/utils";
+import { deepCopy, EventEmitter, isTag, objValues } from "@/utils/utils";
 import { deletedID, useDataStore } from "@/data/dataStore";
 
 
@@ -622,6 +622,19 @@ export class GroupManager {
     emptyRoot(emit?: boolean) {
         this.clear()
         this.group([], undefined, emit)
+    }
+
+    setAsRoot(group: Group, emit?: boolean) {
+        this.emptyRoot()
+        let copy = deepCopy(group)
+        delete copy.id
+        Object.assign(this.result.root, copy)
+        if(this.state.sha1Mode) {
+            this.groupBySha1(this.result.root)
+        }
+        if(emit) {
+            this.onChange.emit()
+        }
     }
 
     verifyState(properties: PropertyIndex) {
