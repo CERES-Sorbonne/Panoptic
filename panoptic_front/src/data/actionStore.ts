@@ -57,8 +57,6 @@ export const useActionStore = defineStore('actionStore', () => {
         await getDefaultParams()
 
         update.value += 1
-
-        console.log(index.value['PanopticML.compute_clusters'])
     }
 
     async function getSimilarImages(ctx: ActionContext) {

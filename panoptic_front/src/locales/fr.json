@@ -166,7 +166,11 @@
             "color": "Color",
             "color_tooltip": "Un simple carré de couleur permettant de catégoriser sans assigner de label",
             "checkbox": "Checkbox",
-            "checkbox_tooltip": "Une case à cocher, ex: 'pertinent' / 'non pertinent', 'sensible / non sensible'"
+            "checkbox_tooltip": "Une case à cocher, ex: 'pertinent' / 'non pertinent', 'sensible / non sensible'",
+            "message": "Choisissez un nom unique et un type de propriété",
+            "not_unique_name": "Une propriété avec ce nom existe deja. Veuillez choisir un nom unique",
+            "no_type": "Aucun type de propriété a été choisi. Veuillez selectioner un type",
+            "no_name": "Aucun nom de propriété a été donné. Veuillez choisir un nom unique"
         },
         "filters": {
             "title": "Filtres:",

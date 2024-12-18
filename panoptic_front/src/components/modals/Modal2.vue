@@ -68,6 +68,11 @@ function onWindowResize() {
     emits('resize', { height: totalHeight.value, width: totalWidth.value })
 }
 
+
+function close() {
+    panoptic.hideModal(props.id)
+}
+
 onMounted(() => {
     window.addEventListener('resize', onWindowResize)
     onWindowResize()
@@ -89,21 +94,6 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
 <template>
     <div v-if="active" class="p-modal" tabindex="-1" ref="modalElem" @click="panoptic.hideModal(props.id)"
         @keydown.esc="panoptic.hideModal(props.id)">
-        <!-- <div class="modal-container" :style="modalStyle" @click.stop>
-            <div class="modal-content d-flex flex-column h-100" v-if="active">
-                <div :class="titleStyle" v-if="!props.noTitle">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <slot name="title"></slot>
-                        </div>
-                        <div class="close bi bi-x btn-icon" @click="panoptic.hideModal"></div>
-                    </div>
-                </div>
-                <div class="body flex-grow-1" :style="bodyStyle">
-                    <slot name="content" :data="data" :width="modalWidth" :height="modalHeight"></slot>
-                </div>
-            </div>
-        </div> -->
         <div class="d-flex w-100 h-100 justify-content-center align-items-center">
             <div class="modal-container" :style="modalStyle" @click.stop>
                 <div class="modal-content d-flex flex-column h-100" v-if="active">
@@ -116,7 +106,7 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
                         </div>
                     </div>
                     <div class="body flex-grow-1" :style="bodyStyle">
-                        <slot name="content" :data="data" :width="modalWidth" :height="modalHeight"></slot>
+                        <slot name="content" :data="data" :width="modalWidth" :height="modalHeight" :hide="close"></slot>
                     </div>
                 </div>
             </div>

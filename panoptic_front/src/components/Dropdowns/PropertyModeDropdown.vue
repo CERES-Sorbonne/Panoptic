@@ -19,7 +19,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Dropdown>
+    <Dropdown :teleport="true">
         <template #button>
             <div class="bbb">
                 <span v-if="props.modelValue == null">Mode..</span>
@@ -32,11 +32,10 @@ onMounted(() => {
             </div>
         </template>
         <template #popup="{hide}">
-            <div class="p-2">
+            <div class="p-2 text-nowrap">
                 <div class="bb" @click="emits('update:modelValue', PropertyMode.id); hide()"> {{$t('modals.properties.instance')}} </div>
                 <div class="bb" @click="emits('update:modelValue', PropertyMode.sha1); hide()"> {{$t('modals.properties.image')}} </div>
             </div>
-
         </template>
     </Dropdown>
 </template>
