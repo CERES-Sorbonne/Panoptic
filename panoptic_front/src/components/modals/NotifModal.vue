@@ -7,6 +7,7 @@ import NotifBody from '../notif/NotifBody.vue';
 import NotifIcon from '../notif/NotifIcon.vue';
 import { useModalStore } from '@/data/modalStore';
 import { usePanopticStore } from '@/data/panopticStore';
+import wTT from '../tooltips/withToolTip.vue';
 
 const panoptic = usePanopticStore()
 const modal = useModalStore()
@@ -93,16 +94,22 @@ watch(() => modal.getData(ModalId.NOTIF), (newValue, oldValue) => {
 <template>
     <Modal2 :id="ModalId.NOTIF" :layer="1" :max-width="800" :max-height="400" @show="onShow">
         <template #title>
-            <span v-for="typ in typeList" class="bb" :class="iconStyle(typ)" @click="toggleFilter(typ)">
-                <NotifIcon :type="typ" />
-            </span>
-            <span style="border-left: 1px solid var(--border-color); margin: 0 1px;"></span>
-            <span class="bb" :class="readFilter ? '' : 'dimmed'" @click="toggleReadFilter()">
-                <i class="bi bi-circle-fill text-primary"
-                    style="font-size: 8px; position: relative; top: -3px; left:0px; margin: 0 2px" />
-            </span>
-            <b class="ps-1" style="border-left: 1px solid var(--border-color); margin-left: 1px;">Notification
-                Center</b>
+            <div class="d-flex">
+                <span v-for="typ in typeList" class="bb" :class="iconStyle(typ)" @click="toggleFilter(typ)">
+                    <wTT :message="'modals.notif.' + typ + '_icon'">
+                        <NotifIcon :type="typ" />
+                    </wTT>
+                </span>
+                <span style="border-left: 1px solid var(--border-color); margin: 0 1px;"></span>
+                <wTT message="modals.notif.read_icon">
+                    <span class="bb" :class="readFilter ? '' : 'dimmed'" @click="toggleReadFilter()">
+                        <i class="bi bi-circle-fill text-primary"
+                            style="font-size: 8px; position: relative; top: -3px; left:0px; margin: 0 2px" />
+                    </span>
+                </wTT>
+                <b class="ps-1" style="border-left: 1px solid var(--border-color); margin-left: 1px;">Notification
+                    Center</b>
+            </div>
         </template>
         <template #content="{ data }">
             <div class="d-flex h-100" style="border-top: 1px solid var(--border-color)">
