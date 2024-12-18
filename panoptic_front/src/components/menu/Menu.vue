@@ -63,13 +63,16 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                             <div class="flex-grow-1 text-capitalize overflow-hidden" @click="">{{
                                 panoptic.data.status.selectedProject?.name }}
                             </div>
-                            <div class="base-hover p-1" @click="panoptic.closeProject()"><i
-                                    class="bi bi-x-octagon-fill red-hover"></i></div>
+                            <wTT message="main.menu.close_project">
+                                <div class="base-hover p-1" @click="panoptic.closeProject()"><i
+                                        class="bi bi-arrow-up-left-square red-hover"></i></div>
+                            </wTT>
                             <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i
                                     class="bi bi-gear"></i>
                             </div>
                         </template>
-                        <div class="base-hover p-1" :class="menuOpen ? '': 'flex-grow-1 text-center'" style="margin-right: 6px;" @click="toggleMenu">
+                        <div class="base-hover p-1" :class="menuOpen ? '' : 'flex-grow-1 text-center'"
+                            style="margin-right: 6px;" @click="toggleMenu">
                             <i v-if="menuOpen" class="bi bi-chevron-left"></i>
                             <i v-else class="bi bi-chevron-right" />
                         </div>

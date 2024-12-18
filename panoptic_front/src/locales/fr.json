@@ -95,7 +95,8 @@
                 "order_asc": "Tri par ordre croissant"
             },
             "import_status_title": "Import",
-            "issue": "Signaler un probleme"
+            "issue": "Signaler un probleme",
+            "close_project": "Retour a la liste des projets"
         },
         "recommand": {
             "title": "Propositions d'images",

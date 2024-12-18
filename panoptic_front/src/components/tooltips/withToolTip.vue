@@ -30,6 +30,8 @@ const realMessage = computed(() => {
     let res = ''
     if (['main', 'modals', 'dropdown', 'btn'].indexOf(props.message.split('.')[0]) > -1) {
         res = t(props.message)
+    } else if (props.message.startsWith('.')) {
+        res = t(props.message.slice(1))
     }
     else {
         res = props.message
