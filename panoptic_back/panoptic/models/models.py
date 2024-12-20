@@ -28,6 +28,7 @@ class PanopticData(BaseModel):
     projects: list[ProjectId]
     last_opened: ProjectId | None = None
     plugins: List[PluginKey] = []
+    ignored_plugins: dict[str, list[str]] = {}
 
 
 class PanopticDataOld(BaseModel):
