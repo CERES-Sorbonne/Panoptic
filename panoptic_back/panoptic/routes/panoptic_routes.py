@@ -30,7 +30,8 @@ async def get_status_route():
     return {
         'isLoaded': panoptic.is_loaded(),
         'selectedProject': panoptic.project_id,
-        'projects': panoptic.data.projects
+        'projects': panoptic.data.projects,
+        'data': panoptic.data
     }
 
 
