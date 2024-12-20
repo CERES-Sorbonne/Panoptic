@@ -41,7 +41,7 @@ async function saveProperty(hide) {
 
 
 <template>
-    <Modal2 :id="ModalId.PROPERTY" :max-height="170" :max-width="500">
+    <Modal2 :id="ModalId.PROPERTY" :max-height="170" :max-width="600">
         <template #title>
             {{ $t("modals.properties.title") }}
         </template>
