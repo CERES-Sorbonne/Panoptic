@@ -52,5 +52,4 @@ def add_plugin_from_git(git_url, plugin_name=None):
     zip_url = get_zip_url(git_url)
     name = git_url.split("/")[-1] if not plugin_name else plugin_name
     folder_name = download_and_extract_zip(zip_url, name)
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", os.path.join(folder_name, 'requirements.txt')])
     return folder_name

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from panoptic.core.panoptic import Panoptic
 from panoptic.core.plugin import add_plugin_from_git
-from panoptic.models import AddPluginPayload
+from panoptic.models import AddPluginPayload, PanopticData, IgnoredPluginPayload
 
 selection_router = APIRouter()
 
@@ -31,8 +31,13 @@ async def get_status_route():
         'isLoaded': panoptic.is_loaded(),
         'selectedProject': panoptic.project_id,
         'projects': panoptic.data.projects,
-        'data': panoptic.data
+        'ignoredPlugins': panoptic.data.ignored_plugins
     }
+
+
+@selection_router.post('/ignored_plugin')
+async def update_ignored_plugins(data: IgnoredPluginPayload):
+    return await panoptic.set_ignored_plugin(data.project, data.plugin, data.value)
 
 
 @selection_router.post("/load")
@@ -77,7 +82,7 @@ def filesystem_info_route():
 
 @selection_router.get("/filesystem/count/{path:path}")
 def fs_count_route(path: str = ""):
-    return {"count": count_contents(path), "path": path }
+    return {"count": count_contents(path), "path": path}
 
 
 @selection_router.get('/plugins')
@@ -145,7 +150,7 @@ def list_disk():
 
 def list_index():
     mounted = []
-    
+
     partitions = psutil.disk_partitions()
     partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
     for partition in partitions:
