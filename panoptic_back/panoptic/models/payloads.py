@@ -121,3 +121,9 @@ class PluginParamsPayload(CamelModel):
 
 class TagMergePayload(CamelModel):
     tag_ids: list[int]
+
+
+class IgnoredPluginPayload(CamelModel):
+    project: str
+    plugin: str
+    value: bool

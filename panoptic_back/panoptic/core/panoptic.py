@@ -1,6 +1,8 @@
 import json
 import os
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from panoptic.core.project import verify_panoptic_data
@@ -73,7 +75,10 @@ class Panoptic:
 
                 if self.project:
                     await self.project.close()
-                self.project = Project(path, self.data.plugins)
+                plugins = self.data.plugins
+                if path in self.data.ignored_plugins:
+                    plugins = [p for p in plugins if p.name not in self.data.ignored_plugins[path]]
+                self.project = Project(path, plugins)
                 await self.project.start()
 
                 from panoptic.routes.project_routes import set_project
@@ -83,6 +88,9 @@ class Panoptic:
         path = Path(path)
         if any(path == p.path for p in self.data.plugins):
             return
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-r", os.path.join(path, 'requirements.txt')])
+
         init_path = Path(path) / '__init__.py'
         if not init_path.exists():
             raise Exception(f'No __init__.py file found at {path}')
@@ -116,6 +124,16 @@ class Panoptic:
         self.project = None
         from panoptic.routes.project_routes import set_project
         set_project(self.project)
+
+    async def set_ignored_plugin(self, project: str, plugin: str, value: bool):
+        if project not in self.data.ignored_plugins:
+            self.data.ignored_plugins[project] = []
+        if value and plugin not in self.data.ignored_plugins[project]:
+            self.data.ignored_plugins[project].append(plugin)
+        if not value:
+            self.data.ignored_plugins[project] = [p for p in self.data.ignored_plugins[project] if p != plugin]
+        self.save_data()
+        return self.data.ignored_plugins
 
     async def close(self):
         if self.project:

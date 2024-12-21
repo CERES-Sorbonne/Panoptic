@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, Actions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType } from './models'
+import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, Actions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload } from './models'
 import { PluginKey, SelectionStatus, usePanopticStore } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -266,5 +266,10 @@ export async function apiGetSettings() {
 
 export async function apiSetSettings(settings: ProjectSettings) {
     const res = await axios.post('/settings', keysToSnake(settings))
+    return keysToCamel(res.data)
+}
+
+export async function apiSetIgnoredPlugin(data: IngoredPluginPayload) {
+    const res = await axios.post('/ignored_plugin', keysToSnake(data))
     return keysToCamel(res.data)
 }

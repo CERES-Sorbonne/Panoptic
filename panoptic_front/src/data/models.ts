@@ -571,3 +571,13 @@ export interface GroupScoreList {
 export interface ScoreIndex {
     [instanceId: number]: number
 }
+
+export interface IgnoredPlugins {
+    [project: string]: string[]
+}
+
+export interface IngoredPluginPayload {
+    project: string
+    plugin: string
+    value: boolean
+}
