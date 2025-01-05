@@ -54,10 +54,6 @@ export const usePanopticStore = defineStore('panopticStore', () => {
             data.status = await apiGetStatus()
             data.plugins = await apiGetPlugins()
 
-            for(let i = 0; i < 20; i++) {
-                data.plugins.push(deepCopy(data.plugins[0]))
-            }
-
             data.init = true
             if (data.status.isLoaded) {
                 project.init()
