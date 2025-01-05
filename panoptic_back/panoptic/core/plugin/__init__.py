@@ -31,6 +31,12 @@ def download_and_extract_zip(zip_url, plugin_name):
     with tempfile.TemporaryDirectory() as temp_dir: # Create a temporary directory
         zip_path = os.path.join(temp_dir, "repo.zip")
         plugin_path = os.path.join(get_datadir(), 'panoptic', 'plugins', plugin_name)
+
+        # reset folder if already exist
+        if os.path.exists(plugin_path) and os.path.isdir(plugin_path):
+            shutil.rmtree(plugin_path)
+        os.makedirs(plugin_path)
+
         # Download the zip file
         response = requests.get(zip_url, stream=True)
         with open(zip_path, "wb") as f:

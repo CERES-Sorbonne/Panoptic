@@ -182,6 +182,11 @@ export async function apiDelPlugin(path: string) {
     return res.data as string[]
 }
 
+export async function apiUpdatePlugin(data: PluginAddPayload) {
+    let res = await axios.post('/plugin/update', data)
+    return res.data as boolean
+}
+
 export async function apiGetPluginsInfo() {
     let res = await axios.get('/plugins_info')
     return res.data as PluginDescription[]

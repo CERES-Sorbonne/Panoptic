@@ -97,6 +97,13 @@ class Panoptic:
         self.data.plugins.append(PluginKey(name=name, path=str(path), source_url=source_url))
         self.save_data()
 
+    def update_plugin(self, path: str):
+        path = Path(path)
+        if any(path == p.path for p in self.data.plugins):
+            return
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-r", os.path.join(path, 'requirements.txt')])
+
     def del_plugin_path(self, path: str):
         removed = next(p for p in self.data.plugins if p.path == path)
         for project in self.data.projects:

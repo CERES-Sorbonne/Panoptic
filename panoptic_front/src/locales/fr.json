@@ -379,6 +379,13 @@
             "delete": "Voulez vous vraiment supprimer la propriété"
         }
     },
+    "plugin": {
+        "remove": "Supprimer le Plugin",
+        "update": "Mettre a jour le plugin",
+        "update_local": "Réinstaller le plugin",
+        "path": "Chemin",
+        "source": "Source"
+    },
     "none": "Vide...",
     "installing": "Installation...",
     "installed": "Installé",
