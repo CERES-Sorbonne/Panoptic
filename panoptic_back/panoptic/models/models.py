@@ -218,6 +218,10 @@ class AddPluginPayload(CamelModel):
     plugin_name: str | None = None
 
 
+class UpdatePluginPayload(BaseModel):
+    path: str | None = None
+
+
 class UpdateCounter(CamelModel):
     action: int = 0
     image: int = 0

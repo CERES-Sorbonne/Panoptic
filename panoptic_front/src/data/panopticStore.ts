@@ -1,10 +1,11 @@
 import { defineStore } from "pinia"
 import { computed, nextTick, reactive, ref } from "vue"
-import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject, apiSetIgnoredPlugin } from "./api"
+import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject, apiSetIgnoredPlugin, apiUpdatePlugin } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
 import { IgnoredPlugins, ModalId, Notif, NotifType, PluginAddPayload } from "./models"
 import { useModalStore } from "./modalStore"
+import { deepCopy } from "@/utils/utils"
 
 let idCounter = 0
 
@@ -52,6 +53,11 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         try {
             data.status = await apiGetStatus()
             data.plugins = await apiGetPlugins()
+
+            for(let i = 0; i < 20; i++) {
+                data.plugins.push(deepCopy(data.plugins[0]))
+            }
+
             data.init = true
             if (data.status.isLoaded) {
                 project.init()
@@ -128,6 +134,15 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.plugins = await apiGetPlugins()
     }
 
+    async function updatePlugin(data: PluginKey) {
+       const res = await apiUpdatePlugin({
+        pluginName: data.name,
+        gitUrl: data.sourceUrl,
+        path: data.path
+       })
+       return res
+    }
+
     function clearNotif() {
         notifs.value = []
     }
@@ -167,7 +182,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modalData, hideModal, showModal, openModalId,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateIgnorePlugin,
-        addPlugin, delPlugin,
+        addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif
     }
 })

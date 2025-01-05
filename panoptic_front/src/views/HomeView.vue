@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Dropdown from '@/components/Dropdowns/Dropdown.vue';
+import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
 import { usePanopticStore } from '@/data/panopticStore';
@@ -10,6 +10,7 @@ import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 import { ModalId } from '@/data/models';
+import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
 
 const panoptic = usePanopticStore()
 
@@ -103,16 +104,21 @@ onMounted(() => {
                     </div>
                     <div class="project-option flex-shrink-0">
                         <Dropdown>
-                            <template #button><div style="position: relative; top: 10px;"><i class="bb bi bi-three-dots-vertical"></i></div></template>
+                            <template #button>
+                                <div style="position: relative; top: 10px;"><i class="bb bi bi-three-dots-vertical"></i>
+                                </div>
+                            </template>
                             <template #popup="{ hide }">
                                 <div class="text-start p-1">
-                                    <div @click="panoptic.deleteProject(project.path); hide();"
-                                        class="bb">
+                                    <div @click="panoptic.deleteProject(project.path); hide();" class="bb">
                                         <i class="bi bi-trash me-1"></i>delete
                                     </div>
-                                    <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1"></div>
+                                    <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
+                                    </div>
                                     <div v-for="p in panoptic.data.plugins" class="mt-1">
-                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.path][p.name]" @change="e => updateIgnorePlugin(project.path, p.name, (e.target as any).checked)"/>{{ p.name }}
+                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.path][p.name]"
+                                            @change="e => updateIgnorePlugin(project.path, p.name, (e.target as any).checked)" />{{
+                                        p.name }}
                                     </div>
                                     <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
                                 </div>
@@ -160,8 +166,12 @@ onMounted(() => {
                         <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem" />
                         <div v-else>
                             <div v-for="plugin in panoptic.data.plugins" class="ps-1">
+                                <!-- <span v-if="plugin.sourceUrl" class="bi bi-globe" />
                                 <span @click="delPlugin(plugin.path)" class="bi bi-x base-hover"></span>
-                                <span>{{ plugin.name }}</span>
+                                <span>{{ plugin.name }}</span> -->
+                            </div>
+                            <div v-for="plugin in panoptic.data.plugins" style="display: inline-block;">
+                                <PluginOptionsDropdown :plugin="plugin"></PluginOptionsDropdown>
                             </div>
                         </div>
                     </div>

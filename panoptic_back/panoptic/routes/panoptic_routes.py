@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from panoptic.core.panoptic import Panoptic
 from panoptic.core.plugin import add_plugin_from_git
-from panoptic.models import AddPluginPayload, PanopticData, IgnoredPluginPayload
+from panoptic.models import AddPluginPayload, PanopticData, IgnoredPluginPayload, UpdatePluginPayload
 
 selection_router = APIRouter()
 
@@ -97,6 +97,15 @@ async def add_plugins_route(payload: AddPluginPayload):
     if payload.git_url:
         path = add_plugin_from_git(payload.git_url, payload.plugin_name)
     return panoptic.add_plugin_path(path, payload.plugin_name, payload.git_url)
+
+
+@selection_router.post('/plugin/update')
+async def update_plugin_route(payload: AddPluginPayload):
+    path = payload.path
+    if payload.git_url:
+        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
+    panoptic.update_plugin(path)
+    return True
 
 
 @selection_router.delete('/plugins')
