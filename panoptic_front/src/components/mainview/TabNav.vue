@@ -41,8 +41,11 @@ function endEdit() {
     newTabName.value = ''
 }
 
-function addTab(event: any) {
-    project.addTab('New Tab')
+async function addTab(event: any) {
+    let newTab = await project.addTab('New Tab')
+    await nextTick()
+    console.log(newTab)
+    setEditTab(newTab.id)
 }
 
 async function deleteTab(tab: TabState) {

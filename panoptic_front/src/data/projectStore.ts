@@ -195,8 +195,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         const id = Math.max(-1, ...Object.keys(data.tabs).map(Number)) + 1
         state.id = id
         data.tabs[id] = state
-        apiSetTabs(data.tabs)
+        await apiSetTabs(data.tabs)
         await selectTab(id)
+        return data.tabs[id]
     }
 
     async function removeTab(tabId: number) {
