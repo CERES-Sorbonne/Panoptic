@@ -57,6 +57,10 @@ async def stream_db_state():
         state = LoadState()
         chunk_size = 10000
 
+        state.max_instance_value = await project.db.get_raw_db().get_instance_values_count()
+        state.max_image_value = await project.db.get_raw_db().get_image_values_count()
+        state.max_instance = await project.db.get_raw_db().get_instances_count()
+
         while not state.finished():
             if not state.finished_property:
                 props = await project.db.get_properties(computed=True)

@@ -91,6 +91,10 @@ class LoadState:
     counter_instance_value: int = 0
     counter_image_value: int = 0
 
+    max_instance: int = 0
+    max_instance_value: int = 0
+    max_image_value: int = 0
+
     def finished(self):
         return self.finished_property and self.finished_instance and self.finished_tags and \
             self.finished_instance_values and self.finished_image_values and self.finished_property_groups

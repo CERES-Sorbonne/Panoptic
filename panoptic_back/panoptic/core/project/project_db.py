@@ -505,7 +505,7 @@ class ProjectDb:
             ORDER BY rowid ASC
             LIMIT ?;
             """
-            cursor = await self.conn.execute_query(query, (position, chunk_size))
+            cursor = await self._db.conn.execute_query(query, (position, chunk_size))
             rows = await cursor.fetchall()
 
             if not rows:

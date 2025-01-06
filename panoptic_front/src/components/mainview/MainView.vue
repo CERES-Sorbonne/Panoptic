@@ -14,6 +14,7 @@ import { Group } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
+import DataLoad from '../loading/DataLoad.vue';
 const project = useProjectStore()
 const tabManager = project.getTabManager()
 
@@ -118,22 +119,8 @@ watch(() => props.tabId, async () => {
                 @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
-    <div v-if="!data.isLoaded && data.loadState" class="h-100 center">
-        <div class="text-start p-2" style="display: inline-block;">
-            <div>
-                <p>Properties: {{ data.loadState.finishedProperty ? 'Finished' : 'In Progress' }}</p>
-                <p>Tags: {{ data.loadState.finishedTags ? 'Finished' : 'In Progress' }}</p>
-                <p>Instance Values: {{ data.loadState.finishedInstanceValues ? 'Finished' : 'In Progress' }}</p>
-                <p>Image Values: {{ data.loadState.finishedImageValues ? 'Finished' : 'In Progress' }}</p>
-                <p>Property Groups: {{ data.loadState.finishedPropertyGroups ? 'Finished' : 'In Progress' }}</p>
-            </div>
-
-            <div>
-                <p>Instance Counter: {{ data.loadState.counterInstance }}</p>
-                <p>Instance Values Counter: {{ data.loadState.counterInstanceValue }}</p>
-                <p>Image Values Counter: {{ data.loadState.counterImageValue }}</p>
-            </div>
-        </div>
+    <div v-if="scrollerHeight > 0 && !data.isLoaded" class="d-flex flex-column" :style="{height: scrollerHeight+'px'}">
+        <DataLoad class="flex-grow-1"/>
     </div>
     <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
         <!-- <button @click="imageList.computeLines()">test</button> -->
@@ -162,12 +149,5 @@ watch(() => props.tabId, async () => {
 .grid-container {
     overflow-y: hidden;
     overflow-x: overlay;
-}
-
-.center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height:fit-content;
 }
 </style>
