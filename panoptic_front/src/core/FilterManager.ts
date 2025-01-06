@@ -407,15 +407,15 @@ export class FilterManager {
         // this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
         this.result.images = res.valid
         console.timeEnd('Filter')
-
+        // if(images.length == 0) throw new Error()
         if (emit) this.onChange.emit(this.result)
 
         return this.result
     }
 
     async update(emit?: boolean) {
-        if (!this.lastImages) return
-        await this.filter(this.lastImages)
+        const data = useDataStore()
+        await this.filter(data.instanceList)
         if (emit) this.onChange.emit(this.result)
     }
 

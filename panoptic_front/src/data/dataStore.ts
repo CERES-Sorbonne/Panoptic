@@ -267,7 +267,7 @@ export const useDataStore = defineStore('dataStore', () => {
         }
 
         if(disableTrigger) return
-
+        console.log('trigger refss')
         triggerRef(properties)
         triggerRef(folders)
         triggerRef(instances)
