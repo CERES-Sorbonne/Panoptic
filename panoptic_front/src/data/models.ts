@@ -590,3 +590,21 @@ export interface PropertyGroup {
     id: number,
     name: string
 }
+
+export interface LoadResult {
+    chunk: DbCommit
+    state: LoadState
+}
+
+export interface LoadState {
+    finishedProperty?: boolean
+    finishedInstance?: boolean
+    finishedTags?: boolean
+    finishedInstanceValues?: boolean
+    finishedImageValues?: boolean
+    finishedPropertyGroups?: boolean
+
+    counterInstance: number
+    counterInstanceValue: number
+    counterImageValue: number
+}

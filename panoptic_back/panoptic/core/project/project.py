@@ -3,6 +3,7 @@ import atexit
 import os
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from time import time
 from pathlib import Path
 from typing import List, Any
 
@@ -34,6 +35,7 @@ def get_executor():
 
 class Project:
     def __init__(self, folder_path: str, plugins: List[PluginKey]):
+        self._load_task = None
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
@@ -62,7 +64,7 @@ class Project:
             self.db.on_import_instance.redirect(self.on.import_instance)
 
             # avoid blocking response for UI on longer loads
-            asyncio.create_task(self._parallel_load())
+            self._load_task = asyncio.create_task(self._parallel_load())
 
             # from panoptic.plugins import DefaultPlugin
             # paths = [DefaultPlugin.__file__, *self.plugin_paths]
@@ -77,8 +79,8 @@ class Project:
             return False
 
     async def _parallel_load(self):
-        await self._load_sha1_to_files()
         await self._load_settings()
+        await self._load_sha1_to_files()
 
     async def redirect_on_import(self, x):
         self.on.import_instance.emit(x)
@@ -163,9 +165,9 @@ class Project:
         await self.update_settings(self.settings.copy())
 
     async def _load_sha1_to_files(self):
-        rows = await self.db.get_raw_db().get_instance_sha1_and_url()
-        for row in rows:
-            self.sha1_to_files[row[0]].append(row[1])
+        async for rows in await self.db.stream_instance_sha1_and_url():
+            for row in rows:
+                self.sha1_to_files[row[0]].append(row[1])
 
     async def update_settings(self, settings: ProjectSettings):
         description = get_model_params_description(self.settings)

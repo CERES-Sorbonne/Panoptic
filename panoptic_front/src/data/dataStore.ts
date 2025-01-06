@@ -1,10 +1,10 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyGroup, PropertyGroupIndex, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupIndex, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
-import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiReImportFolder, apiRedo, apiUndo } from "./api";
+import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiReImportFolder, apiRedo, apiStreamLoadState, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
-import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isTag } from "@/utils/utils";
+import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isFinished, isTag } from "@/utils/utils";
 import { useProjectStore } from "./projectStore";
 
 export const deletedID = -999999999
@@ -25,11 +25,14 @@ export const useDataStore = defineStore('dataStore', () => {
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
 
+    const loadState = ref<LoadState>(null)
+
     const onUndo = ref(0)
 
     // =======================
     // =======Computed=======
     // =======================
+    const isLoaded = computed(() => isFinished(loadState.value))
     const folderRoots = computed(() => {
         return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
     })
@@ -46,14 +49,18 @@ export const useDataStore = defineStore('dataStore', () => {
         let dbFolders = await apiGetFolders()
         const folderIndex = buildFolderNodes(dbFolders)
         folders.value = folderIndex
-        console.time('Request')
-        let dbState = await apiGetDbState()
-        console.timeEnd('Request')
+        // console.time('Request')
+        // // let dbState = await apiGetDbState()
+        // console.timeEnd('Request')
 
+        apiStreamLoadState(async (v) => {
+            applyCommit(v.chunk, !isFinished(v.state))
+            loadState.value = v.state
+        })
 
-        console.time('commit')
-        applyCommit(dbState)
-        console.timeEnd('commit')
+        // console.time('commit')
+        // // applyCommit(dbState)
+        // console.timeEnd('commit')
 
         await getHistory()
     }
@@ -106,7 +113,6 @@ export const useDataStore = defineStore('dataStore', () => {
                 property.tags = properties.value[property.id].tags
             }
             properties.value[property.id] = property
-            console.log(property)
         }
         if (someNew) {
             const project = useProjectStore()
@@ -506,7 +512,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     return {
-        init, getTmpId,
+        init, getTmpId, loadState, isLoaded,
         onChange,
         folders, instances, properties, tags, history,
         folderRoots, sha1Index, instanceList, propertyList, tagList,

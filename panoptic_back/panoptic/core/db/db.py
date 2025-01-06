@@ -197,6 +197,32 @@ class Db:
             res.extend([ImageProperty(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
+    async def stream_instance_property_values(self, position: int, chunk_size: int):
+        query = """
+        SELECT * FROM instance_property_values
+        WHERE rowid > ?
+        ORDER BY rowid ASC
+        LIMIT ?;
+        """
+        cursor = await self.conn.execute_query(query, (position, chunk_size))
+        rows = await cursor.fetchall()
+        if rows:
+            return [InstanceProperty(**auto_dict(row, cursor)) for row in rows]
+        return []
+
+    async def stream_image_property_values(self, position: int, chunk_size: int):
+        query = """
+        SELECT * FROM image_property_values
+        WHERE rowid > ?
+        ORDER BY rowid ASC
+        LIMIT ?;
+        """
+        cursor = await self.conn.execute_query(query, (position, chunk_size))
+        rows = await cursor.fetchall()
+        if rows:
+            return [ImageProperty(**auto_dict(row, cursor)) for row in rows]
+        return []
+
     async def import_instance_property_values(self, values: list[InstanceProperty]):
         query = "INSERT OR REPLACE INTO instance_property_values (property_id, instance_id, value) VALUES (?, ?, ?)"
         await self.conn.execute_query_many(query, [(v.property_id, v.instance_id, json.dumps(v.value)) for v in values])
@@ -382,6 +408,19 @@ class Db:
         cursor = await self.conn.execute_query(query.get_sql())
         instance = [Instance(*instance) for instance in await cursor.fetchall()]
         return instance
+
+    async def stream_instances(self, position: int, chunk_size: int):
+        query = """
+        SELECT * FROM instances
+        WHERE rowid > ?
+        ORDER BY rowid ASC
+        LIMIT ?;
+        """
+        cursor = await self.conn.execute_query(query, (position, chunk_size))
+        rows = await cursor.fetchall()
+        if rows:
+            return [Instance(*row) for row in rows]
+        return []
 
     async def get_instance_sha1_and_url(self):
         query = "SELECT sha1, url FROM instances"

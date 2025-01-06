@@ -75,6 +75,23 @@ class ProjectDb:
         res = await self._db.get_image_property_values(property_ids, sha1s)
         return res
 
+    # async def stream_instance_property_values(self, chunk_size: int):
+    #     cursor = 0
+    #     cont = True  # continue
+    #     while cont:
+    #         chunk = await self._db.stream_instance_property_values(cursor, chunk_size)
+    #         if len(chunk) < chunk_size:
+    #             cont = False
+    #         cursor += len(chunk)
+
+    async def stream_instance_property_values(self, position: int, chunk_size: int):
+        res = await self._db.stream_instance_property_values(position, chunk_size)
+        return res, len(res) < chunk_size
+
+    async def stream_image_property_values(self, position: int, chunk_size: int):
+        res = await self._db.stream_image_property_values(position, chunk_size)
+        return res, len(res) < chunk_size
+
     @staticmethod
     def get_computed_values(instances: list[Instance]):
         computed_values = [v for i in instances for v in get_computed_values(i)]
@@ -120,6 +137,10 @@ class ProjectDb:
         [instance_index[v.instance_id].properties.update({v.property_id: v}) for v in instance_values]
 
         return instances
+
+    async def stream_instances(self, position: int, chunk_size: int):
+        res = await self._db.stream_instances(position, chunk_size)
+        return res, len(res) < chunk_size
 
     async def test_empty(self, instance_ids: list[int]):
         res = await self._db.count_instance_values(instance_ids)
@@ -473,3 +494,24 @@ class ProjectDb:
             # TODO: or not to do ?
             # await self._db.delete_instance(ids=commit.empty_instances)
         return inverse
+
+    async def stream_instance_sha1_and_url(self, chunk_size: int = 10000):
+        position = 0
+
+        while True:
+            query = """
+            SELECT sha1, url FROM instances
+            WHERE rowid > ?
+            ORDER BY rowid ASC
+            LIMIT ?;
+            """
+            cursor = await self.conn.execute_query(query, (position, chunk_size))
+            rows = await cursor.fetchall()
+
+            if not rows:
+                break
+
+            for row in rows:
+                yield row  # Yielding each row one at a time
+
+            position += len(rows)
