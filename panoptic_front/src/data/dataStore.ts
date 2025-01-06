@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, Property, PropertyGroup, PropertyGroupIndex, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
 import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiReImportFolder, apiRedo, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
@@ -19,6 +19,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const folders = shallowRef<FolderIndex>({})
     const instances = shallowRef<InstanceIndex>({})
     const properties = shallowRef<PropertyIndex>({})
+    const propertyGroups = shallowRef<PropertyGroupIndex>({})
     const tags = shallowRef<TagIndex>({})
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
@@ -35,6 +36,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const instanceList = computed(() => objValues(instances.value))
     const propertyList = computed(() => objValues(properties.value))
     const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
+    const propertyGroupsList = computed(() => objValues(propertyGroups.value))
 
 
     // =======================
@@ -104,6 +106,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 property.tags = properties.value[property.id].tags
             }
             properties.value[property.id] = property
+            console.log(property)
         }
         if (someNew) {
             const project = useProjectStore()
@@ -176,7 +179,12 @@ export const useDataStore = defineStore('dataStore', () => {
                 dirtyInstances.add(img.id)
             }
         }
+    }
 
+    function importPropertyGroups(groups: PropertyGroup[]) {
+        for(let group of groups) {
+            propertyGroups.value[group.id] = group
+        }
     }
 
     function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
@@ -212,6 +220,11 @@ export const useDataStore = defineStore('dataStore', () => {
             })
 
         }
+        if (commit.emptyPropertyGroups) {
+            for(let id of commit.emptyPropertyGroups) {
+                delete propertyGroups.value[id]
+            }
+        }
         if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
                 properties.value[i].id = deletedID
@@ -227,6 +240,9 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         if (commit.instances?.length) {
             importInstances(commit.instances)
+        }
+        if (commit.propertyGroups?.length) {
+            importPropertyGroups(commit.propertyGroups)
         }
         if (commit.properties?.length) {
             importProperties(commit.properties)
@@ -251,6 +267,7 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(instances)
         triggerRef(sha1Index)
         triggerRef(tags)
+        triggerRef(propertyGroups)
         emitOnChange()
     }
 
@@ -382,9 +399,12 @@ export const useDataStore = defineStore('dataStore', () => {
         folders.value = updatedNodes
     }
 
-    async function updateProperty(propertyId: number, name?: string) {
+    async function updateProperty(propertyId: number, name?: string, group?: number) {
         const prop = deepCopy(properties.value[propertyId])
         prop.name = name
+        if(group !== undefined) {
+            prop.propertyGroupId = group
+        }
         sendCommit({ properties: [prop] })
         // TODO: verify
         // updatePropertyOptions()
@@ -473,6 +493,18 @@ export const useDataStore = defineStore('dataStore', () => {
         }
     }
 
+    async function addPropertyGroup(name: string) {
+        await sendCommit({propertyGroups: [{id: -1, name}]}, false, false)
+    }
+
+    async function updatePropertyGroup(id: number, name: string) {
+        await sendCommit({propertyGroups: [{id: id, name: name}]}, false, false)
+    }
+
+    async function deletePropertyGroup(id: number) {
+        await sendCommit({emptyPropertyGroups: [id]})
+    }
+
     return {
         init, getTmpId,
         onChange,
@@ -482,6 +514,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags,
         applyCommit, sendCommit, undo, redo, onUndo,
+        addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         clear
     }
 
