@@ -102,7 +102,7 @@ function unselectParent(folderId: number, selected: Set<number>) {
             @mouseenter="hoverId = folder.id" @mouseleave="hoverId = null">
             <div style="display: inline;">
                 <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }} <span
-                        class="text-secondary">{{ folder.count }}</span></summary>
+                        class="text-secondary">{{ data.folders[folder.id].count }}</span></summary>
             </div>
             <i v-if="folder.children && folder.children.length > 0" @click="toggleFolderVisible(folder.id)"
                 :class="'bi bi-chevron-' + (isVisible[folder.id] ? 'down' : 'right') + ' ms-2 btn-icon'"
