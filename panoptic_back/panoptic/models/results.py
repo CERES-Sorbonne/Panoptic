@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from panoptic.models import InstanceProperty, Tag, DbCommit, ExecuteActionPayload, ActionContext
+from panoptic.models import InstanceProperty, Tag, DbCommit, ExecuteActionPayload, ActionContext, LoadState
 
 
 @dataclass
@@ -105,3 +105,9 @@ class Notif:
     data: Any = None
     functions: list[NotifFunction] = None
     read: bool = None
+
+
+@dataclass
+class LoadResult:
+    chunk: DbCommit
+    state: LoadState

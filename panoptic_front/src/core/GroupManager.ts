@@ -381,7 +381,8 @@ export class GroupManager {
                 this.addInstanceToGroups(instance, data.properties, data.tags)
             }
         } else {
-            this.result.root.images.push(...images)
+            images.forEach(i => this.result.root.images.push(i))
+            // this.result.root.images.push(...images)
         }
         if (order) {
             // console.time('group order update')

@@ -1,18 +1,21 @@
 import asyncio
 import logging
+from dataclasses import asdict
 from sys import platform
 from time import time
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile
 from fastapi.responses import ORJSONResponse
+import orjson
 from pydantic import BaseModel
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, StreamingResponse
 
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update, \
-    ProjectSettings, TagMergePayload
+    ProjectSettings, TagMergePayload, LoadState
+from panoptic.models.results import LoadResult
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 
 project_router = APIRouter()
@@ -46,6 +49,51 @@ async def get_db_state_route():
     print(time() - now)
     return ORJSONResponse(state)
     # return state
+
+
+@project_router.get('/db_state_stream')
+async def stream_db_state():
+    async def load_routine():
+        state = LoadState()
+        chunk_size = 10000
+
+        while not state.finished():
+            if not state.finished_property:
+                props = await project.db.get_properties(computed=True)
+                chunk = DbCommit(properties=props)
+                state.finished_property = True
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+            if not state.finished_property_groups:
+                groups = await project.db.get_property_groups()
+                chunk = DbCommit(property_groups=groups)
+                state.finished_property_groups = True
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+            if not state.finished_tags:
+                tags = await project.db.get_tags()
+                chunk = DbCommit(tags=tags)
+                state.finished_tags = True
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+
+            if not state.finished_instance:
+                instances, end = await project.db.stream_instances(state.counter_instance, chunk_size)
+                chunk = DbCommit(instances=instances)
+                state.counter_instance += len(instances)
+                state.finished_instance = end
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+            elif not state.finished_instance_values:
+                values, end = await project.db.stream_instance_property_values(state.counter_instance_value, chunk_size)
+                chunk = DbCommit(instance_values=values)
+                state.counter_instance_value += len(values)
+                state.finished_instance_values = end
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+            elif not state.finished_image_values:
+                values, end = await project.db.stream_image_property_values(state.counter_image_value, chunk_size)
+                chunk = DbCommit(image_values=values)
+                state.counter_image_value += len(values)
+                state.finished_image_values = end
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+
+    return StreamingResponse(load_routine(), media_type="application/json")
 
 
 @project_router.get("/property")

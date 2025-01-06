@@ -78,6 +78,24 @@ class PropertyGroup:
     name: str
 
 
+@dataclass
+class LoadState:
+    finished_property: bool = False
+    finished_instance: bool = False
+    finished_tags: bool = False
+    finished_instance_values: bool = False
+    finished_image_values: bool = False
+    finished_property_groups: bool = False
+
+    counter_instance: int = 0
+    counter_instance_value: int = 0
+    counter_image_value: int = 0
+
+    def finished(self):
+        return self.finished_property and self.finished_instance and self.finished_tags and \
+            self.finished_instance_values and self.finished_image_values and self.finished_property_groups
+
+
 class PropertyDescription(Property):
     id: int | None = None
     type: PropertyType | None = None
