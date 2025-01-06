@@ -607,4 +607,8 @@ export interface LoadState {
     counterInstance: number
     counterInstanceValue: number
     counterImageValue: number
+
+    maxInstance: number
+    maxInstanceValue: number
+    maxImageValue: number
 }

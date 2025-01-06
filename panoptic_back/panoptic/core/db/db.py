@@ -136,6 +136,20 @@ class Db:
     # =============== Property Values =====================
     # =====================================================
 
+    async def get_instance_values_count(self):
+        query = "SELECT count(*) FROM instance_property_values;"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
+
+    async def get_image_values_count(self):
+        query = "SELECT count(*) FROM image_property_values;"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
+
     async def get_instance_property_values(self, property_ids: List[int] = None, instance_ids: list[int] = None) \
             -> list[InstanceProperty]:
         values = Table('instance_property_values')
@@ -379,6 +393,13 @@ class Db:
     # =====================================================
     # ================= Instances =========================
     # =====================================================
+
+    async def get_instances_count(self):
+        query = "SELECT count(*) FROM instances;"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
 
     async def import_instances(self, instances: list[Instance]):
         fake_ids = [i for i in instances if i.id < 0]
@@ -630,7 +651,7 @@ class Db:
         next_id = row[0]
 
         update = "INSERT OR REPLACE INTO id_counter VALUES (?,?)"
-        await self.conn.execute_query(update, (counter_name, next_id+nb))
+        await self.conn.execute_query(update, (counter_name, next_id + nb))
         return [next_id + i for i in range(nb)]
 
     async def get_new_property_group_ids(self, nb: int):
