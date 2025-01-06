@@ -4,7 +4,7 @@ import pathlib
 import sys
 from enum import Enum
 from queue import Queue
-from typing import List, Any, Callable, Awaitable, Dict
+from typing import List, Any, Callable, Awaitable, Dict, TypeVar, Tuple
 
 from pydantic import BaseModel
 
@@ -303,3 +303,12 @@ def get_local_paths(index: dict[int, Folder], folders: list[Folder]):
             parent_id = parent.parent
         paths[folder.id] = path
     return paths
+
+
+T = TypeVar('T')
+
+
+def separate_ids(objs: List[T]) -> Tuple[List[T], List[T]]:
+    valid = [o for o in objs if o.id >= 0]
+    new = [o for o in objs if o.id < 0]
+    return new, valid

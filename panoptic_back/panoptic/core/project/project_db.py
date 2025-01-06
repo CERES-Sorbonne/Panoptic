@@ -9,7 +9,7 @@ from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty
 from panoptic.models.computed_properties import computed_properties
-from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values
+from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids
 
 
 class ProjectDb:
@@ -41,6 +41,13 @@ class ProjectDb:
         if not computed:
             return properties
         return [*properties, *computed_properties.values()]
+
+    # =====================================================
+    # ================= Property Groups ===================
+    # =====================================================
+
+    async def get_property_groups(self):
+        return await self._db.get_property_groups()
 
     # =====================================================
     # =============== Property Values =====================
@@ -157,7 +164,8 @@ class ProjectDb:
 
         all_tags = await self.get_tags(prop_id)
         main_tag.parents = list(set([p for t in tags for p in t.parents if p not in removed_set and p != main_tag.id]))
-        tags_to_update = [t for t in all_tags if any([p in removed_set for p in t.parents]) and t.id not in removed_set and t.id != main_tag.id]
+        tags_to_update = [t for t in all_tags if any([p in removed_set for p in
+                                                      t.parents]) and t.id not in removed_set and t.id != main_tag.id]
         for tag in tags_to_update:
             corrected_parents = []
             has_main_tag = False
@@ -343,6 +351,16 @@ class ProjectDb:
             inverse.empty_instances.extend([i.id for i in db_instances if i.id not in current_ids])
             inverse.instances.extend(current)
 
+        # TODO: correct ids for property
+        if commit.property_groups:
+            new, old = separate_ids(commit.property_groups)
+            len_new = len(new)
+            if len_new:
+                new_ids = await self._db.get_new_property_group_ids(len_new)
+                for pg, id_ in zip(new, new_ids):
+                    pg.id = id_
+            await self._db.import_property_groups(commit.property_groups)
+
         if commit.properties:
             ids = [p.id for p in commit.properties]
             current = await self._db.get_properties(ids=ids)
@@ -445,6 +463,9 @@ class ProjectDb:
             current = await self._db.get_properties()
             inverse.properties.extend([p for p in current if p.id in commit.empty_properties])
             [await self._db.delete_property(pid) for pid in commit.empty_properties]
+
+        if commit.empty_property_groups:
+            await self._db.delete_property_groups(commit.empty_property_groups)
 
         if commit.empty_instances:
             current = await self._db.get_instances(ids=commit.empty_instances)

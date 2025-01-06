@@ -68,7 +68,14 @@ class Property:
     name: str
     type: PropertyType
     mode: PropertyMode
+    property_group_id: int | None = None
     computed: bool = False
+
+
+@dataclass
+class PropertyGroup:
+    id: int
+    name: str
 
 
 class PropertyDescription(Property):
@@ -330,6 +337,7 @@ class ColumnOption(BaseModel):
 @dataclass
 class DbCommit:
     empty_instances: list[int] = field(default_factory=list)
+    empty_property_groups: list[int] = field(default_factory=list)
     empty_properties: list[int] = field(default_factory=list)
     empty_tags: list[int] = field(default_factory=list)
     empty_instance_values: list[InstancePropertyKey] = field(default_factory=list)
@@ -337,6 +345,7 @@ class DbCommit:
 
     folders: list[Folder] = field(default_factory=list)
     instances: list[Instance] = field(default_factory=list)
+    property_groups: list[PropertyGroup] = field(default_factory=list)
     properties: list[Property] = field(default_factory=list)
     tags: list[Tag] = field(default_factory=list)
     instance_values: list[InstanceProperty] = field(default_factory=list)

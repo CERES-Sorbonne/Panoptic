@@ -34,14 +34,15 @@ async def get_db_state_route():
     # get_values = project.db.get_property_values(instances, property_ids= no_computed=True)
     get_image_values = project.db.get_image_property_values()
     get_instance_values = project.db.get_instance_property_values()
+    get_property_groups = project.db.get_property_groups()
 
-    get_all = asyncio.gather(get_properties, get_tags, get_image_values, get_instance_values)
-    properties, tags, img_values, instance_values = await get_all
+    get_all = asyncio.gather(get_properties, get_tags, get_image_values, get_instance_values, get_property_groups)
+    properties, tags, img_values, instance_values, property_groups = await get_all
     # computed_values = project.db.get_computed_values(instances)
     # instance_values.extend(computed_values)
 
     state = DbCommit(instances=instances, properties=properties, tags=tags, image_values=img_values,
-                     instance_values=instance_values)
+                     instance_values=instance_values, property_groups=property_groups)
     print(time() - now)
     return ORJSONResponse(state)
     # return state
