@@ -32,7 +32,10 @@ async function updatePlugin() {
     <Dropdown>
         <template #button>
             <div>
-                <span class="bb">{{ props.plugin.name }}</span>
+                <span class="bb">
+                    {{ props.plugin.name }}
+                    <i class="bi bi-three-dots-vertical"></i>
+                </span>
             </div>
         </template>
         <template #popup>
