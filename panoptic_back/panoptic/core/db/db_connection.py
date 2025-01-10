@@ -9,6 +9,7 @@ import numpy as np
 from panoptic.core.db.create import tables, DB_VERSION, software_db_version
 from panoptic.core.db.migrations.v3 import v3_sql
 from panoptic.core.db.migrations.v4 import v4_sql
+from panoptic.core.db.migrations.v5 import v5_sql
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
 aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='float32'))
@@ -59,14 +60,15 @@ class DbConnection:
         self.is_loaded = True
 
     async def update_version(self, db_version: int, target_version: int):
-        if target_version == 3:
+        if db_version < 3:
             await self.conn.executescript(v3_sql)
-            await self.set_param(DB_VERSION, str(target_version))
-            logging.warning(f'Correctly updated to Software DB Version ({software_db_version})')
-        if target_version == 4:
+        if db_version < 4:
             await self.conn.executescript(v4_sql)
-            await self.set_param(DB_VERSION, str(target_version))
-            logging.warning(f'Correctly updated to Software DB Version ({software_db_version})')
+        if db_version < 5:
+            await self.conn.executescript(v5_sql)
+
+        await self.set_param(DB_VERSION, str(target_version))
+        logging.warning(f'Correctly updated to Software DB Version ({target_version})')
 
     async def execute_query(self, query: str, parameters: tuple = None):
         cursor = await self.conn.cursor()

@@ -13,8 +13,13 @@ import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
 import { useProjectStore } from '@/data/projectStore';
 import GraphView from '../graphview/GraphView.vue';
+import { useDataStore } from '@/data/dataStore';
+import DataLoad from '../loading/DataLoad.vue';
 const project = useProjectStore()
 const tabManager = project.getTabManager()
+
+
+const data = useDataStore()
 
 const props = defineProps<{
     tabId: number
@@ -114,7 +119,10 @@ watch(() => props.tabId, async () => {
                 @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
-    <div v-if="scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
+    <div v-if="scrollerHeight > 0 && !data.isLoaded" class="d-flex flex-column" :style="{height: scrollerHeight+'px'}">
+        <DataLoad class="flex-grow-1"/>
+    </div>
+    <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="tabManager.state.display == 'tree'">
             <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"

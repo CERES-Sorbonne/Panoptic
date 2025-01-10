@@ -41,6 +41,7 @@ export interface Property {
     name: string
     type: PropertyType
     mode: PropertyMode
+    propertyGroupId?: number
     computed?: boolean
     tags?: TagIndex
 }
@@ -50,6 +51,7 @@ export interface PropertyDescription extends Property {
 }
 
 export type PropertyIndex = { [propertyId: number]: Property }
+export type PropertyGroupIndex = {[groupId: number]: PropertyGroup}
 
 export enum PropertyType {
     multi_tags = "multi_tags",
@@ -468,12 +470,14 @@ export interface ProjectVectorDescription {
 // ========= Commit =================
 export interface DbCommit {
     emptyInstances?: number[]
+    emptyPropertyGroups?: number[]
     emptyProperties?: number[]
     emptyTags?: number[]
     emptyInstanceValues? : InstancePropertyValue[]
     emptyImageValues?: ImagePropertyValue[]
 
     instances?: Instance[]
+    propertyGroups?: PropertyGroup[]
     properties?: Property[]
     tags?: Tag[]
     instanceValues?: InstancePropertyValue[]
@@ -570,4 +574,41 @@ export interface GroupScoreList {
 
 export interface ScoreIndex {
     [instanceId: number]: number
+}
+
+export interface IgnoredPlugins {
+    [project: string]: string[]
+}
+
+export interface IngoredPluginPayload {
+    project: string
+    plugin: string
+    value: boolean
+}
+
+export interface PropertyGroup {
+    id: number,
+    name: string
+}
+
+export interface LoadResult {
+    chunk: DbCommit
+    state: LoadState
+}
+
+export interface LoadState {
+    finishedProperty?: boolean
+    finishedInstance?: boolean
+    finishedTags?: boolean
+    finishedInstanceValues?: boolean
+    finishedImageValues?: boolean
+    finishedPropertyGroups?: boolean
+
+    counterInstance: number
+    counterInstanceValue: number
+    counterImageValue: number
+
+    maxInstance: number
+    maxInstanceValue: number
+    maxImageValue: number
 }

@@ -28,6 +28,7 @@ class PanopticData(BaseModel):
     projects: list[ProjectId]
     last_opened: ProjectId | None = None
     plugins: List[PluginKey] = []
+    ignored_plugins: dict[str, list[str]] = {}
 
 
 class PanopticDataOld(BaseModel):
@@ -67,7 +68,36 @@ class Property:
     name: str
     type: PropertyType
     mode: PropertyMode
+    property_group_id: int | None = None
     computed: bool = False
+
+
+@dataclass
+class PropertyGroup:
+    id: int
+    name: str
+
+
+@dataclass
+class LoadState:
+    finished_property: bool = False
+    finished_instance: bool = False
+    finished_tags: bool = False
+    finished_instance_values: bool = False
+    finished_image_values: bool = False
+    finished_property_groups: bool = False
+
+    counter_instance: int = 0
+    counter_instance_value: int = 0
+    counter_image_value: int = 0
+
+    max_instance: int = 0
+    max_instance_value: int = 0
+    max_image_value: int = 0
+
+    def finished(self):
+        return self.finished_property and self.finished_instance and self.finished_tags and \
+            self.finished_instance_values and self.finished_image_values and self.finished_property_groups
 
 
 class PropertyDescription(Property):
@@ -217,6 +247,10 @@ class AddPluginPayload(CamelModel):
     plugin_name: str | None = None
 
 
+class UpdatePluginPayload(BaseModel):
+    path: str | None = None
+
+
 class UpdateCounter(CamelModel):
     action: int = 0
     image: int = 0
@@ -325,6 +359,7 @@ class ColumnOption(BaseModel):
 @dataclass
 class DbCommit:
     empty_instances: list[int] = field(default_factory=list)
+    empty_property_groups: list[int] = field(default_factory=list)
     empty_properties: list[int] = field(default_factory=list)
     empty_tags: list[int] = field(default_factory=list)
     empty_instance_values: list[InstancePropertyKey] = field(default_factory=list)
@@ -332,6 +367,7 @@ class DbCommit:
 
     folders: list[Folder] = field(default_factory=list)
     instances: list[Instance] = field(default_factory=list)
+    property_groups: list[PropertyGroup] = field(default_factory=list)
     properties: list[Property] = field(default_factory=list)
     tags: list[Tag] = field(default_factory=list)
     instance_values: list[InstanceProperty] = field(default_factory=list)

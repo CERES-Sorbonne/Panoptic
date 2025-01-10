@@ -1,4 +1,4 @@
-software_db_version = 4
+software_db_version = 5
 
 DB_VERSION = 'db_version'
 
@@ -208,6 +208,30 @@ def create_images_table():
     return query
 
 
+def create_property_group_table():
+    query = """
+    CREATE TABLE property_group (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL
+    );
+    """
+    return query
+
+
+def create_id_counter_table():
+    query = """
+    CREATE TABLE id_counter (
+        name TEXT PRIMARY KEY,
+        next INTEGER NOT NULL
+    );
+    INSERT INTO id_counter VALUES ('instance', '0');
+    INSERT INTO id_counter VALUES ('property', '0');
+    INSERT INTO id_counter VALUES ('tag', '0');
+    INSERT INTO id_counter VALUES ('property_group', '0');
+    """
+    return query
+
+
 tables = {
     'panoptic': create_panoptic_table(),
     'folders': create_folders_table(),
@@ -220,5 +244,7 @@ tables = {
     'vectors': create_vectors_table(),
     'ui_data': create_ui_data(),
     'plugin_data': create_plugin_data(),
-    'project': create_project_params()
+    'project': create_project_params(),
+    'property_group': create_property_group_table(),
+    'id_counter': create_id_counter_table()
 }

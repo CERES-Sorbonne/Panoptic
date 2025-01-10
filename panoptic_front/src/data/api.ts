@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, Actions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType } from './models'
+import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, Actions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult } from './models'
 import { PluginKey, SelectionStatus, usePanopticStore } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -11,7 +11,7 @@ export const SERVER_PREFIX = (import.meta as any).env.VITE_API_ROUTE
 axios.defaults.baseURL = SERVER_PREFIX
 
 async function uploadFile(route: string, file) {
-    let formData = new FormData();
+    let formData = new FormData()
     formData.append('file', file)
     const res = await axios.post(route,
         formData, {
@@ -86,8 +86,8 @@ export async function apiSetTabs(tabs: TabIndex) {
 }
 
 export const apiUploadPropFile = async (file: any) => {
-    let formData = new FormData();
-    formData.append('file', file);
+    let formData = new FormData()
+    formData.append('file', file)
     const res = await axios.post('/property/file',
         formData, {
         headers: {
@@ -182,6 +182,11 @@ export async function apiDelPlugin(path: string) {
     return res.data as string[]
 }
 
+export async function apiUpdatePlugin(data: PluginAddPayload) {
+    let res = await axios.post('/plugin/update', data)
+    return res.data as boolean
+}
+
 export async function apiGetPluginsInfo() {
     let res = await axios.get('/plugins_info')
     return res.data as PluginDescription[]
@@ -267,4 +272,66 @@ export async function apiGetSettings() {
 export async function apiSetSettings(settings: ProjectSettings) {
     const res = await axios.post('/settings', keysToSnake(settings))
     return keysToCamel(res.data)
+}
+
+export async function apiSetIgnoredPlugin(data: IngoredPluginPayload) {
+    const res = await axios.post('/ignored_plugin', keysToSnake(data))
+    return keysToCamel(res.data)
+}
+
+export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
+    const url = SERVER_PREFIX + '/db_state_stream'
+    const response = await fetch(url, {
+        method: 'GET',
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch data from the stream')
+    }
+
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    // Read the stream chunk by chunk
+    while (true) {
+        const { done, value } = await reader?.read() ?? {}
+
+        if (done && buffer) {
+            // If the stream is done and there's data left in the buffer, process it
+            try {
+                const data = JSON.parse(buffer)
+                let res = keysToCamel(data)
+                await callback(res)
+            } catch (e) {
+                console.error('Failed to parse final chunk', e)
+            }
+            break
+        }
+
+        if (done) {
+            break
+        }
+
+        // Decode the chunk and append it to the buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Try to parse the JSON objects from the buffer
+        let boundary = buffer.indexOf('}{')  // Look for end of one JSON object and start of the next
+        while (boundary !== -1) {
+            const chunk = buffer.slice(0, boundary + 1)  // Include the complete JSON object
+            buffer = buffer.slice(boundary + 1)  // Remainder to be processed next
+
+            try {
+                const data = JSON.parse(chunk)
+                let res = keysToCamel(data)
+                await callback(res)
+            } catch (e) {
+                console.error('Failed to parse chunk', e)
+            }
+
+            // Look for another boundary
+            boundary = buffer.indexOf('}{')
+        }
+    }
 }

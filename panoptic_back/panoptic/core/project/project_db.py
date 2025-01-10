@@ -9,7 +9,7 @@ from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty
 from panoptic.models.computed_properties import computed_properties
-from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values
+from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids
 
 
 class ProjectDb:
@@ -43,6 +43,13 @@ class ProjectDb:
         return [*properties, *computed_properties.values()]
 
     # =====================================================
+    # ================= Property Groups ===================
+    # =====================================================
+
+    async def get_property_groups(self):
+        return await self._db.get_property_groups()
+
+    # =====================================================
     # =============== Property Values =====================
     # =====================================================
 
@@ -67,6 +74,23 @@ class ProjectDb:
             -> list[ImageProperty]:
         res = await self._db.get_image_property_values(property_ids, sha1s)
         return res
+
+    # async def stream_instance_property_values(self, chunk_size: int):
+    #     cursor = 0
+    #     cont = True  # continue
+    #     while cont:
+    #         chunk = await self._db.stream_instance_property_values(cursor, chunk_size)
+    #         if len(chunk) < chunk_size:
+    #             cont = False
+    #         cursor += len(chunk)
+
+    async def stream_instance_property_values(self, position: int, chunk_size: int):
+        res = await self._db.stream_instance_property_values(position, chunk_size)
+        return res, len(res) < chunk_size
+
+    async def stream_image_property_values(self, position: int, chunk_size: int):
+        res = await self._db.stream_image_property_values(position, chunk_size)
+        return res, len(res) < chunk_size
 
     @staticmethod
     def get_computed_values(instances: list[Instance]):
@@ -114,6 +138,10 @@ class ProjectDb:
 
         return instances
 
+    async def stream_instances(self, position: int, chunk_size: int):
+        res = await self._db.stream_instances(position, chunk_size)
+        return res, len(res) < chunk_size
+
     async def test_empty(self, instance_ids: list[int]):
         res = await self._db.count_instance_values(instance_ids)
         return set([i for i in instance_ids if i not in res])
@@ -157,7 +185,8 @@ class ProjectDb:
 
         all_tags = await self.get_tags(prop_id)
         main_tag.parents = list(set([p for t in tags for p in t.parents if p not in removed_set and p != main_tag.id]))
-        tags_to_update = [t for t in all_tags if any([p in removed_set for p in t.parents]) and t.id not in removed_set and t.id != main_tag.id]
+        tags_to_update = [t for t in all_tags if any([p in removed_set for p in
+                                                      t.parents]) and t.id not in removed_set and t.id != main_tag.id]
         for tag in tags_to_update:
             corrected_parents = []
             has_main_tag = False
@@ -343,6 +372,16 @@ class ProjectDb:
             inverse.empty_instances.extend([i.id for i in db_instances if i.id not in current_ids])
             inverse.instances.extend(current)
 
+        # TODO: correct ids for property
+        if commit.property_groups:
+            new, old = separate_ids(commit.property_groups)
+            len_new = len(new)
+            if len_new:
+                new_ids = await self._db.get_new_property_group_ids(len_new)
+                for pg, id_ in zip(new, new_ids):
+                    pg.id = id_
+            await self._db.import_property_groups(commit.property_groups)
+
         if commit.properties:
             ids = [p.id for p in commit.properties]
             current = await self._db.get_properties(ids=ids)
@@ -446,9 +485,33 @@ class ProjectDb:
             inverse.properties.extend([p for p in current if p.id in commit.empty_properties])
             [await self._db.delete_property(pid) for pid in commit.empty_properties]
 
+        if commit.empty_property_groups:
+            await self._db.delete_property_groups(commit.empty_property_groups)
+
         if commit.empty_instances:
             current = await self._db.get_instances(ids=commit.empty_instances)
             inverse.instances.extend(current)
             # TODO: or not to do ?
             # await self._db.delete_instance(ids=commit.empty_instances)
         return inverse
+
+    async def stream_instance_sha1_and_url(self, chunk_size: int = 10000):
+        position = 0
+
+        while True:
+            query = """
+            SELECT sha1, url FROM instances
+            WHERE rowid > ?
+            ORDER BY rowid ASC
+            LIMIT ?;
+            """
+            cursor = await self._db.conn.execute_query(query, (position, chunk_size))
+            rows = await cursor.fetchall()
+
+            if not rows:
+                break
+
+            for row in rows:
+                yield row  # Yielding each row one at a time
+
+            position += len(rows)
