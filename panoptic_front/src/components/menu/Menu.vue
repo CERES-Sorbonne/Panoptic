@@ -29,7 +29,7 @@ const isUploading = ref(false)
 const menuOpen = ref(true)
 const menuWidth = computed(() => menuOpen.value ? BASE_WIDTH : SMALL_WIDTH)
 
-const propertiesWithoutGroup = computed(() => data.propertyList.filter(p => p.id >= 0 && (!p.propertyGroupId || !data.propertyGroups[p.propertyGroupId])))
+const propertiesWithoutGroup = computed(() => data.propertyList.filter(p => p.id >= 0 && (p.propertyGroupId === undefined || !data.propertyGroups[p.propertyGroupId])))
 
 const handleInput = async (e: any) => {
     panoptic.showModal(ModalId.IMPORT)

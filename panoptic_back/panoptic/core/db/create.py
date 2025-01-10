@@ -33,7 +33,8 @@ def create_properties_table():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         type TEXT,
-        mode TEXT DEFAULT 'id'
+        mode TEXT DEFAULT 'id',
+        property_group_id INTEGER
     );
     """
     return query
@@ -224,10 +225,10 @@ def create_id_counter_table():
         name TEXT PRIMARY KEY,
         next INTEGER NOT NULL
     );
-    INSERT INTO id_counter VALUES ('instance', '0');
-    INSERT INTO id_counter VALUES ('property', '0');
-    INSERT INTO id_counter VALUES ('tag', '0');
-    INSERT INTO id_counter VALUES ('property_group', '0');
+    INSERT INTO id_counter VALUES ('instance', '1');
+    INSERT INTO id_counter VALUES ('property', '1');
+    INSERT INTO id_counter VALUES ('tag', '1');
+    INSERT INTO id_counter VALUES ('property_group', '1');
     """
     return query
 
