@@ -95,7 +95,7 @@ onMounted(updateLocal)
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
-                    :force-multi="true"
+                    :force-multi="props.forceMulti"
                     ref="inputElem" />
             </div>
         </template>

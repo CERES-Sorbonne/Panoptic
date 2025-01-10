@@ -165,11 +165,6 @@ onMounted(() => {
                     <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
                         <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem" />
                         <div v-else>
-                            <div v-for="plugin in panoptic.data.plugins" class="ps-1">
-                                <!-- <span v-if="plugin.sourceUrl" class="bi bi-globe" />
-                                <span @click="delPlugin(plugin.path)" class="bi bi-x base-hover"></span>
-                                <span>{{ plugin.name }}</span> -->
-                            </div>
                             <div v-for="plugin in panoptic.data.plugins" style="display: inline-block;">
                                 <PluginOptionsDropdown :plugin="plugin"></PluginOptionsDropdown>
                             </div>
