@@ -1,10 +1,11 @@
 import { defineStore } from "pinia"
 import { computed, nextTick, reactive, ref } from "vue"
-import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject } from "./api"
+import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject, apiSetIgnoredPlugin, apiUpdatePlugin } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { ModalId, Notif, NotifType, PluginAddPayload } from "./models"
+import { IgnoredPlugins, ModalId, Notif, NotifType, PluginAddPayload } from "./models"
 import { useModalStore } from "./modalStore"
+import { deepCopy } from "@/utils/utils"
 
 let idCounter = 0
 
@@ -23,6 +24,7 @@ export interface SelectionStatus {
     isLoaded: boolean
     selectedProject: Project
     projects: Project[]
+    ignoredPlugins: IgnoredPlugins
 }
 
 export const usePanopticStore = defineStore('panopticStore', () => {
@@ -31,7 +33,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const data = reactive({
         status: {} as SelectionStatus,
         plugins: [] as PluginKey[],
-        init: false
+        init: false,
     })
 
     const state = reactive({
@@ -51,6 +53,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         try {
             data.status = await apiGetStatus()
             data.plugins = await apiGetPlugins()
+
             data.init = true
             if (data.status.isLoaded) {
                 project.init()
@@ -67,7 +70,9 @@ export const usePanopticStore = defineStore('panopticStore', () => {
             data.status = await apiLoadProject(path)
         }
         await router.push('/view')
-        setTimeout(() => project.init(), 10)
+        // setTimeout(() => project.init(), 10)
+        await nextTick()
+        project.init()
     }
 
     async function closeProject() {
@@ -125,6 +130,15 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.plugins = await apiGetPlugins()
     }
 
+    async function updatePlugin(data: PluginKey) {
+       const res = await apiUpdatePlugin({
+        pluginName: data.name,
+        gitUrl: data.sourceUrl,
+        path: data.path
+       })
+       return res
+    }
+
     function clearNotif() {
         notifs.value = []
     }
@@ -154,12 +168,17 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         return idCounter
     }
 
+    async function updateIgnorePlugin(project, plugin, value) {
+        const res = await apiSetIgnoredPlugin({project, plugin, value})
+        data.status.ignoredPlugins = res
+    }
+
     return {
         init, data, state,
         modalData, hideModal, showModal, openModalId,
         isProjectLoaded,
-        loadProject, closeProject, deleteProject, createProject, importProject,
-        addPlugin, delPlugin,
+        loadProject, closeProject, deleteProject, createProject, importProject, updateIgnorePlugin,
+        addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif
     }
 })

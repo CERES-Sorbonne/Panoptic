@@ -7,9 +7,10 @@ import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
-import { goNext } from '@/utils/utils';
+import { goNext, objValues } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
 import { deletedID, useDataStore } from '@/data/dataStore';
+import PropertyGroup from './PropertyGroup.vue';
 
 const BASE_WIDTH = 200
 const SMALL_WIDTH = 55
@@ -28,6 +29,7 @@ const isUploading = ref(false)
 const menuOpen = ref(true)
 const menuWidth = computed(() => menuOpen.value ? BASE_WIDTH : SMALL_WIDTH)
 
+const propertiesWithoutGroup = computed(() => data.propertyList.filter(p => p.id >= 0 && (!p.propertyGroupId || !data.propertyGroups[p.propertyGroupId])))
 
 const handleInput = async (e: any) => {
     panoptic.showModal(ModalId.IMPORT)
@@ -117,9 +119,9 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                 </template>
 
                 <div class="custom-hr" />
-                <div class="p-2 mt-0">
+                <div class="p-1 mt-0">
                     <template v-if="menuOpen">
-                        <div class="d-flex">
+                        <div class="d-flex p-1">
                             <wTT message="main.nav.properties.properties_tooltip" pos="top" :icon=true><b>{{
                                 $t('main.nav.properties.title') }}</b></wTT>
                             <span class="flex-grow-1"></span>
@@ -142,17 +144,26 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                         </div>
                     </template>
                     <div class="mt-2" v-if="project.status.loaded">
-                        <template v-for="property in data.properties">
+                        <div v-for="group in objValues(data.propertyGroups)" style="padding-left: 0px;">
+                            <PropertyGroup :group="group" class="mb-1" :menu-open="menuOpen"/>
+                        </div>
+                        <div v-for="property in propertiesWithoutGroup" class="ps-1 pe-1">
                             <div class="property-item" v-if="property.id >= 0">
                                 <PropertyOptions :property="property" :open="menuOpen" />
                             </div>
-                        </template>
+                        </div>
                         <template v-if="menuOpen">
                             <div class="property-item m-0 p-0"></div>
                             <div id="add-property" @click="panoptic.showModal(ModalId.PROPERTY, undefined); goNext()"
                                 class="btn-icon base-hover mt-1" style="line-height: 25px;">
                                 <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
                                 <span>{{ $t('main.nav.properties.add_property') }}</span>
+                            </div>
+                            <div class="custom-hr mt-1" />
+                            <div @click="data.addPropertyGroup('New Group')"
+                                class="btn-icon base-hover mt-1" style="line-height: 25px;">
+                                <i class="bi bi-plus btn-icon float-start" style="font-size: 25px;"></i>
+                                <span>{{ $t('main.nav.properties.add_property_group') }}</span>
                             </div>
                         </template>
                     </div>

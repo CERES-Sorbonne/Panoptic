@@ -53,8 +53,10 @@
                 "expand_property_tooltip": "Afficher les tags",
                 "collapse_property_tooltip": "Masquer les tags",
                 "add_property": "Nouvelle propriété",
+                "add_property_group": "Nouveau Groupe",
                 "delete_property": "Supprimer",
-                "open_tags": "Ouvrir modal des tags"
+                "open_tags": "Ouvrir modal des tags",
+                "set_group": "Vers Dossier"
             },
             "computed": {
                 "title": "Propriétés Panoptic",
@@ -378,6 +380,13 @@
             "image": "Propriétés d'image",
             "delete": "Voulez vous vraiment supprimer la propriété"
         }
+    },
+    "plugin": {
+        "remove": "Supprimer le Plugin",
+        "update": "Mettre a jour le plugin",
+        "update_local": "Réinstaller le plugin",
+        "path": "Chemin",
+        "source": "Source"
     },
     "none": "Vide...",
     "installing": "Installation...",

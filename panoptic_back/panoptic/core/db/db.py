@@ -1,6 +1,7 @@
 # Connexion à la DB SQLite
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 from typing import List
@@ -10,7 +11,7 @@ from pypika import Table, PostgreSQLQuery, Order, functions
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict, decode_if_json
 from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
-    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode
+    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup
 from panoptic.models import Tag, Property, Folder
 
 Query = PostgreSQLQuery
@@ -25,6 +26,8 @@ class Db:
         self._last_instance_id = 0
         self._last_property_id = 0
         self._last_tag_id = 0
+
+        self.property_group_id_lock = asyncio.Lock()
 
     async def close(self):
         await self.conn.conn.close()
@@ -87,14 +90,15 @@ class Db:
                 prop.id = id_
 
         query = """
-        INSERT INTO properties (id, name, type, mode) VALUES (?, ?, ?, ?) 
+        INSERT INTO properties (id, name, type, mode, property_group_id) VALUES (?, ?, ?, ?, ?) 
         ON CONFLICT(id) DO UPDATE SET
             name=excluded.name,
             type=excluded.type,
-            mode=excluded.mode
+            mode=excluded.mode,
+            property_group_id=excluded.property_group_id
         """
         values = [
-            (p.id, p.name, p.type.value, p.mode.value) for p in properties
+            (p.id, p.name, p.type.value, p.mode.value, p.property_group_id) for p in properties
         ]
         await self.conn.execute_query_many(query, values)
         return properties
@@ -107,7 +111,7 @@ class Db:
         cursor = await self.conn.execute_query(query.get_sql())
         rows = await cursor.fetchall()
         if rows:
-            properties = [Property(row[0], row[1], PropertyType(row[2]), PropertyMode(row[3])) for row in rows]
+            properties = [Property(row[0], row[1], PropertyType(row[2]), PropertyMode(row[3]), row[4]) for row in rows]
             return properties
         return []
 
@@ -131,6 +135,20 @@ class Db:
     # =====================================================
     # =============== Property Values =====================
     # =====================================================
+
+    async def get_instance_values_count(self):
+        query = "SELECT count(*) FROM instance_property_values;"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
+
+    async def get_image_values_count(self):
+        query = "SELECT count(*) FROM image_property_values;"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
 
     async def get_instance_property_values(self, property_ids: List[int] = None, instance_ids: list[int] = None) \
             -> list[InstanceProperty]:
@@ -193,6 +211,32 @@ class Db:
             res.extend([ImageProperty(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
 
+    async def stream_instance_property_values(self, position: int, chunk_size: int):
+        query = """
+        SELECT * FROM instance_property_values
+        WHERE rowid > ?
+        ORDER BY rowid ASC
+        LIMIT ?;
+        """
+        cursor = await self.conn.execute_query(query, (position, chunk_size))
+        rows = await cursor.fetchall()
+        if rows:
+            return [InstanceProperty(**auto_dict(row, cursor)) for row in rows]
+        return []
+
+    async def stream_image_property_values(self, position: int, chunk_size: int):
+        query = """
+        SELECT * FROM image_property_values
+        WHERE rowid > ?
+        ORDER BY rowid ASC
+        LIMIT ?;
+        """
+        cursor = await self.conn.execute_query(query, (position, chunk_size))
+        rows = await cursor.fetchall()
+        if rows:
+            return [ImageProperty(**auto_dict(row, cursor)) for row in rows]
+        return []
+
     async def import_instance_property_values(self, values: list[InstanceProperty]):
         query = "INSERT OR REPLACE INTO instance_property_values (property_id, instance_id, value) VALUES (?, ?, ?)"
         await self.conn.execute_query_many(query, [(v.property_id, v.instance_id, json.dumps(v.value)) for v in values])
@@ -237,7 +281,7 @@ class Db:
 
         query = "INSERT OR REPLACE INTO tags (id, property_id, value, parents, color) VALUES (?, ?, ?, ?, ?)"
         await self.conn.execute_query_many(query, [(t.id, t.property_id, t.value, json.dumps(t.parents),
-                                                             t.color) for t in tags])
+                                                    t.color) for t in tags])
         return tags
 
     async def get_tag_by_id(self, tag_id):
@@ -350,6 +394,13 @@ class Db:
     # ================= Instances =========================
     # =====================================================
 
+    async def get_instances_count(self):
+        query = "SELECT count(*) FROM instances;"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
+
     async def import_instances(self, instances: list[Instance]):
         fake_ids = [i for i in instances if i.id < 0]
         if fake_ids:
@@ -378,6 +429,19 @@ class Db:
         cursor = await self.conn.execute_query(query.get_sql())
         instance = [Instance(*instance) for instance in await cursor.fetchall()]
         return instance
+
+    async def stream_instances(self, position: int, chunk_size: int):
+        query = """
+        SELECT * FROM instances
+        WHERE rowid > ?
+        ORDER BY rowid ASC
+        LIMIT ?;
+        """
+        cursor = await self.conn.execute_query(query, (position, chunk_size))
+        rows = await cursor.fetchall()
+        if rows:
+            return [Instance(*row) for row in rows]
+        return []
 
     async def get_instance_sha1_and_url(self):
         query = "SELECT sha1, url FROM instances"
@@ -554,3 +618,42 @@ class Db:
                 """
         cursor = await self.conn.execute_query(query, (key, json.dumps(value)))
         return cursor
+
+    # =====================================================
+    # ================ PROPERTY GROUPS ====================
+    # =====================================================
+
+    async def get_property_groups(self):
+        query = "SELECT * FROM property_group"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        if rows:
+            return [PropertyGroup(*row) for row in rows]
+        return None
+
+    async def import_property_groups(self, groups: list[PropertyGroup]):
+        query = "INSERT OR REPLACE INTO property_group (id, name) VALUES (?, ?)"
+        await self.conn.execute_query_many(query, [(g.id, g.name) for g in groups])
+        return groups
+
+    async def delete_property_groups(self, groups: list[int]):
+        query = "DELETE FROM property_group WHERE id=?;"
+        await self.conn.execute_query_many(query, [(i,) for i in groups])
+
+    # =====================================================
+    # ==================== ID COUNTERS ====================
+    # =====================================================
+
+    async def _get_id_counter_helper(self, counter_name: str, nb: int):
+        query = f"SELECT next FROM id_counter WHERE name='{counter_name}';"
+        cursor = await self.conn.execute_query(query)
+        row = await cursor.fetchone()
+        next_id = row[0]
+
+        update = "INSERT OR REPLACE INTO id_counter VALUES (?,?)"
+        await self.conn.execute_query(update, (counter_name, next_id + nb))
+        return [next_id + i for i in range(nb)]
+
+    async def get_new_property_group_ids(self, nb: int):
+        async with self.property_group_id_lock:
+            return await self._get_id_counter_helper('property_group', nb)

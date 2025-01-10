@@ -7,10 +7,11 @@ import TagMenu from '../tags/TagMenu.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { Filter } from '@/core/FilterManager';
 import { useDataStore } from '@/data/dataStore';
-import { isTag } from '@/utils/utils';
+import { isTag, objValues } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import { Dropdowns } from '@/data/dropdowns';
 import { useI18n } from 'vue-i18n';
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 const { t } = useI18n(({ useScope: 'global' }))
 
@@ -117,6 +118,10 @@ function setFilter() {
 
 }
 
+function setPropertyGroup(id: number) {
+    data.updateProperty(props.property.id, props.property.name, id)
+}
+
 watch(() => props.property, () => {
     optionsOpen.value = false
 })
@@ -135,7 +140,7 @@ watch(() => props.property, () => {
                 </div>
             </template>
             <template v-else>
-                <PropertyIcon :type="props.property.type" class="me-2" style="position: relative; top: 2px;"/>
+                <PropertyIcon :type="props.property.type" class="me-2" style="position: relative; top: 2px;" />
             </template>
             <div v-if="optionsOpen && props.open" class="d-flex" style="width: 150px;">
                 <div><i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu"
@@ -200,6 +205,24 @@ watch(() => props.property, () => {
                         class="bi bi-collection me-2"></i>{{ $t("main.menu.groupby") }}</div>
                 <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i
                         class="bi bi-trash me-2"></i>{{ $t("main.nav.properties.delete_property") }}</div>
+                <Dropdown v-if="props.property.id >= 0 && data.propertyGroupsList.length" :teleport="true">
+                    <template #button>
+                        <div class="options hover-light">
+                            <i class="bi bi-folder me-1"></i>
+                            {{ $t("main.nav.properties.set_group") }}
+                        </div>
+                    </template>
+                    <template #popup>
+                        <div class="p-1" style="min-width: 100px;">
+                            <div v-if="props.property.propertyGroupId && data.propertyGroups[props.property.propertyGroupId]" class="bb" @click="setPropertyGroup(null)">None</div>
+                            <div v-if="props.property.propertyGroupId && data.propertyGroups[props.property.propertyGroupId]" class="custom-hr mt-1 mb-1" />
+                            <div v-for="group of data.propertyGroupsList" class="bb" @click="setPropertyGroup(group.id)">
+                                {{ group.name }}
+                            </div>
+                        </div>
+                    </template>
+                </Dropdown>
+
             </div>
             <div v-else-if="valuesOpen">
                 <!-- <TagProperty :data="props.property" /> -->

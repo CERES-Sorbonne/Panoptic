@@ -1,7 +1,7 @@
 import { buildGroup, Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
 import { deletedID, useDataStore } from "@/data/dataStore"
-import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList } from "@/data/models"
+import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, inject } from "vue"
 
@@ -391,4 +391,15 @@ export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: 
         description: group.scores.description
     }
     return scores
+}
+
+export function isFinished(state: LoadState): boolean {
+    if(!state) return false
+
+    return state.finishedProperty && 
+           state.finishedInstance && 
+           state.finishedTags && 
+           state.finishedInstanceValues && 
+           state.finishedImageValues && 
+           state.finishedPropertyGroups
 }
