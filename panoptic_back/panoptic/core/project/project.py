@@ -165,7 +165,7 @@ class Project:
         await self.update_settings(self.settings.copy())
 
     async def _load_sha1_to_files(self):
-        async for rows in await self.db.stream_instance_sha1_and_url():
+        async for rows in self.db.stream_instance_sha1_and_url():
             for row in rows:
                 self.sha1_to_files[row[0]].append(row[1])
 
