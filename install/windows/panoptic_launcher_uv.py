@@ -39,6 +39,10 @@ run_command("uv pip install pip")
 # Vérifier si panoptic est installé, sinon l'installer
 if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
     run_command("uv pip install panoptic")
+    with_cuda = input(
+        "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme: (O/N").strip().lower()
+    if with_cuda == 'o':
+        run_command("uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
 
 # Vérifier si panoptic est obsolète
 outdated = run_command("uv pip list --outdated", capture_output=True).stdout
@@ -49,7 +53,12 @@ if "panoptic" in outdated:
 else:
     print("La dernière version de panoptic est déjà installée.")
 
+
+run_command("uv run panoptic")
+
 # Activer l'environnement virtuel et lancer panoptic
-venv_activate = panoptic_dir / ".venv" / "Scripts" / "activate"
-panoptic_exe = panoptic_dir / ".venv" / "Scripts" / "panoptic"
-subprocess.run(f"call {venv_activate} & call {panoptic_exe}", shell=True)
+# venv_activate = panoptic_dir / ".venv" / "Scripts" / "activate"
+# panoptic_exe = panoptic_dir / ".venv" / "Scripts" / "panoptic"
+# subprocess.run(f"call {venv_activate} & call {panoptic_exe}", shell=True)
+
+# pyinstaller --onefile --noconsole --icon=panoptic.ico panoptic_launcher_uv.py
