@@ -202,6 +202,20 @@ export interface TabState {
     autoReload: boolean
 }
 
+export interface TabData {
+    version: number
+    id: number
+    name: string
+    display: string
+
+    filterState: FilterState
+    sortState: SortState,
+    groupState: GroupState,
+
+    
+
+}
+
 export interface TabIndex {
     [tabId: number]: TabState
 }
