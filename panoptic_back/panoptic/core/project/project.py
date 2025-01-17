@@ -165,9 +165,8 @@ class Project:
         await self.update_settings(self.settings.copy())
 
     async def _load_sha1_to_files(self):
-        async for rows in self.db.stream_instance_sha1_and_url():
-            for row in rows:
-                self.sha1_to_files[row[0]].append(row[1])
+        async for row in self.db.stream_instance_sha1_and_url():
+            self.sha1_to_files[row[0]].append(row[1])
 
     async def update_settings(self, settings: ProjectSettings):
         description = get_model_params_description(self.settings)
