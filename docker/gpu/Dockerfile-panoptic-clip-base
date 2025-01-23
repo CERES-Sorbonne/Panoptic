@@ -2,6 +2,7 @@
 
 # FROM nvcr.io/nvidia/pytorch:24.01-py3
 FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-devel
+# FROM ceressorbonne/faiss
 
 RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
