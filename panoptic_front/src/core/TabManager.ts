@@ -5,33 +5,29 @@ import { reactive, toRefs } from "vue"
 import { EventEmitter } from "@/utils/utils"
 import { useDataStore } from "@/data/dataStore"
 import { defaultPropertyOption } from "@/data/builder"
+import { useTabStore } from "@/data/tabStore"
 
 export class TabManager {
-    isLoaded: boolean
     state: TabState
     collection: CollectionManager
+    isNew?: boolean
 
     onLoad: EventEmitter
     
-    constructor(state?: TabState) {
-        this.isLoaded = false
-        this.state = reactive({} as TabState)
-        this.collection = new CollectionManager(undefined, undefined, undefined, undefined, undefined, this.state)
+    constructor(state: TabState) {
+        this.state = reactive(state)
+        this.collection = new CollectionManager(state.collectionState, state.filterState, state.sortState, state.groupState)
         this.onLoad = new EventEmitter()
+        this.verifyState()
 
-        if(state) this.load(state)
+        this.collection.filterManager.onStateChange.addListener(this.saveManagerStates.bind(this))
+        this.collection.groupManager.onStateChange.addListener(this.saveManagerStates.bind(this))
+        this.collection.sortManager.onStateChange.addListener(this.saveManagerStates.bind(this))
     }
 
-    async load(state: TabState) {
-        const data = useDataStore()
-        Object.assign(this.state, toRefs(state))
-        if(!state) return
-        this.collection.load(state.filterState, state.sortState, state.groupState)
+    async update() {
         this.verifyState()
-        this.isLoaded = true
-        await this.collection.update(data.instances)
-
-        this.onLoad.emit()
+        await this.collection.update()
     }
 
     verifyState() {
@@ -44,14 +40,10 @@ export class TabManager {
             this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
         }
     }
-    
-    saveState() {
-        const project = useProjectStore()
-        project.updateTabs()
-    }
 
     setVisibleProperty(propId: number, value: boolean) {
         this.state.visibleProperties[propId] = value
+        this.saveState()
     }
 
     isVisibleProperty(propId: number) {
@@ -70,6 +62,19 @@ export class TabManager {
 
     getVisibleSha1Properties() {
         return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1)
+    }
+
+    private saveManagerStates() {
+        Object.assign(this.state.collectionState, this.collection.state)
+        Object.assign(this.state.filterState, this.collection.filterManager.state)
+        Object.assign(this.state.sortState, this.collection.sortManager.state)
+        Object.assign(this.state.groupState, this.collection.groupManager.state)
+        this.saveState()
+    }
+
+    saveState() {
+        const tabStore = useTabStore()
+        tabStore.saveTabToStorage(this.state.id)
     }
 
 }

@@ -181,6 +181,11 @@ export interface FolderIndex {
 //     collection?: CollectionManager
 // }
 
+export interface CollectionState {
+    autoReload: boolean,
+    instances?: number[]
+}
+
 export interface TabState {
     version: number
     id: number
@@ -188,6 +193,7 @@ export interface TabState {
     display: string
     selected?: boolean
 
+    collectionState: CollectionState
     filterState: FilterState
     sortState: SortState,
     groupState: GroupState,

@@ -15,14 +15,14 @@ import { useProjectStore } from '@/data/projectStore';
 import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
 import DataLoad from '../loading/DataLoad.vue';
+import { TabManager } from '@/core/TabManager';
 const project = useProjectStore()
-const tabManager = project.getTabManager()
 
 
 const data = useDataStore()
 
 const props = defineProps<{
-    tabId: number
+    tab: TabManager
     height: number
     filterOpen: boolean
 }>()
@@ -45,7 +45,7 @@ const scrollerWidth = ref(0)
 
 const computeStatus = reactive({ groups: false })
 
-const visibleProperties = computed(() => tabManager.getVisibleProperties())
+const visibleProperties = computed(() => props.tab.getVisibleProperties())
 
 function updateScrollerHeight() {
     if (filterElem.value && boxElem.value) {
@@ -59,14 +59,14 @@ function updateScrollerHeight() {
     }
 }
 
-tabManager.collection.groupManager.onChange.addListener(() => {
-    if (imageList.value && tabManager.state.display == 'tree') {
+props.tab.collection.groupManager.onResultChange.addListener(() => {
+    if (imageList.value && props.tab.state.display == 'tree') {
         imageList.value.computeLines()
     }
 })
 
 function setRecoImages(groupId: number) {
-    recoGroup.value = tabManager.collection.groupManager.result.index[groupId]
+    recoGroup.value = props.tab.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())
 }
 
@@ -89,57 +89,57 @@ onUnmounted(() => {
     window.removeEventListener('resize', updateScrollerWidth)
 })
 
-watch(() => tabManager.state.imageSize, () => nextTick(updateScrollerHeight))
+watch(() => props.tab.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.filterOpen, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
 })
-watch(tabManager.state, (state) => {
+watch(props.tab.state, (state) => {
     project.updateTabs()
 }, { deep: true })
 
-watch(() => props.tabId, async () => {
-    valid.value = false
-    await nextTick()
-    valid.value = true
-})
+// watch(() => props.tabId, async () => {
+//     valid.value = false
+//     await nextTick()
+//     valid.value = true
+// })
+
+onMounted(updateScrollerHeight)
+onMounted(() => props.tab.update())
 
 </script>
 
 <template>
     <div id="main-content" ref="filterElem">
         <template v-if="props.filterOpen">
-            <ContentFilter :tab="tabManager" :compute-status="computeStatus" />
+            <ContentFilter :tab="props.tab" :compute-status="computeStatus" />
         </template>
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">
-            <RecommendedMenu :group="recoGroup" :image-size="tabManager.state.imageSize" :width="scrollerWidth"
+            <RecommendedMenu :group="recoGroup" :image-size="props.tab.state.imageSize" :width="scrollerWidth"
                 :height="50" @close="closeReco" @scroll="imageList.scrollTo"
                 @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
-    <div v-if="scrollerHeight > 0 && !data.isLoaded" class="d-flex flex-column" :style="{height: scrollerHeight+'px'}">
-        <DataLoad class="flex-grow-1"/>
-    </div>
     <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
         <!-- <button @click="imageList.computeLines()">test</button> -->
-        <template v-if="tabManager.state.display == 'tree'">
-            <TreeScroller :group-manager="tabManager.collection.groupManager" :image-size="tabManager.state.imageSize"
+        <template v-if="props.tab.state.display == 'tree'">
+            <TreeScroller :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.imageSize"
                 :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
-                :selected-images="tabManager.collection.groupManager.selectedImages" ref="imageList"
+                :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList"
                 :width="scrollerWidth - 25" @recommend="setRecoImages" />
         </template>
-        <template v-if="tabManager.state.display == 'grid'">
+        <template v-if="props.tab.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :manager="tabManager.collection.groupManager" :height="scrollerHeight - 15"
+                <GridScroller :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15"
                     :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0"
-                    :show-images="true" :selected-images="tabManager.collection.groupManager.selectedImages"
+                    :show-images="true" :selected-images="props.tab.collection.groupManager.selectedImages"
                     ref="imageList" :hide-if-modal="true" />
             </div>
         </template>
-        <template v-if="tabManager.state.display == 'graph'">
-            <GraphView :collection="tabManager.collection" :height="scrollerHeight - 15" />
+        <template v-if="props.tab.state.display == 'graph'">
+            <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15" />
         </template>
 
     </div>

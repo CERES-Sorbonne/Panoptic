@@ -8,13 +8,11 @@ import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
 import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiGetTabs, apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings } from "./api";
-import { TabManager } from "@/core/TabManager";
+import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings } from "./api";
 import { sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
-
-let tabManager: TabManager = undefined
+import { useTabStore } from "./tabStore";
 
 export const test = shallowRef({ count: 0 })
 
@@ -57,12 +55,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======================
 
     async function init() {
-
-
         console.log('init')
-        if (!tabManager) {
-            tabManager = new TabManager()
-        }
         // Execute all async functions here before setting any data into the store
         // This avoids other UI elements to react to changes before the init function is finished
         // let folders = await apiGetFolders()
@@ -73,7 +66,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()
-        let tabs = await apiGetTabs()
+        // let tabs = await apiGetTabs()
         let settings = await apiGetSettings()
 
         backendStatus.value = (await apiGetUpdate()).status
@@ -103,8 +96,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         await dataStore.init()
 
-        await loadTabs(tabs)
-        verifyData()
+        // await loadTabs(tabs)
+        // verifyData()
 
 
         status.loaded = true
@@ -130,7 +123,8 @@ export const useProjectStore = defineStore('projectStore', () => {
                     for (let commit of update.commits) {
                         dataStore.applyCommit(commit)
                     }
-                    tabManager.collection.update()
+                    // TODO: see if need fix
+                    // tabManager.collection.update()
                 }
             }
             await sleep(1000)
@@ -166,14 +160,9 @@ export const useProjectStore = defineStore('projectStore', () => {
         })
         actions.value = {}
         backendStatus.value = null
-        tabManager = undefined
         routine = 0
         dataStore.clear()
 
-    }
-
-    function verifyData() {
-        tabManager.verifyState()
     }
 
     async function applyStatusUpdate(update: StatusUpdate) {
@@ -183,10 +172,6 @@ export const useProjectStore = defineStore('projectStore', () => {
     async function reload() {
         await nextTick()
         init()
-    }
-
-    function getTab() {
-        return getTabManager().state
     }
 
     async function addTab(tabName: string) {
@@ -213,18 +198,20 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function updateTabs() {
-        Object.assign(data.tabs[data.selectedTabId], tabManager.state)
-        await apiSetTabs(data.tabs)
+        // TODO: see if need fix
+        // Object.assign(data.tabs[data.selectedTabId], tabManager.state)
+        // await apiSetTabs(data.tabs)
     }
 
     async function selectTab(tabId: number) {
-        objValues(data.tabs).forEach(t => {
-            if (t.id == tabId) t.selected = true
-            else t.selected = false
-        })
-        data.selectedTabId = tabId
-        await tabManager.load(data.tabs[data.selectedTabId])
-        updatePropertyOptions()
+        // TODO: see if need fix
+        // objValues(data.tabs).forEach(t => {
+        //     if (t.id == tabId) t.selected = true
+        //     else t.selected = false
+        // })
+        // data.selectedTabId = tabId
+        // await tabManager.load(data.tabs[data.selectedTabId])
+        // updatePropertyOptions()
     }
 
     async function loadTabs(tabs: TabIndex) {
@@ -269,14 +256,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         return res
     }
 
-
-
-    function getTabManager() {
-        return tabManager
-    }
-
-
-
     function clearImport() {
         status.import.to_import = undefined
     }
@@ -307,7 +286,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (res.commit) {
             dataStore.applyCommit(res.commit)
             if (res.commit.properties) {
-                res.commit.properties.forEach(p => getTab().visibleProperties[p.id] = true)
+                // TODO: see if need fix
+                // res.commit.properties.forEach(p => getTab().visibleProperties[p.id] = true)
             }
         }
         return res
@@ -325,7 +305,7 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // functions
         init, clear, rerender,
-        addTab, removeTab, updateTabs, selectTab, getTab, getTabManager,
+        addTab, removeTab, updateTabs, selectTab,
         updateSettings,
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginParams,

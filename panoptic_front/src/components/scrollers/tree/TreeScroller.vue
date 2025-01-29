@@ -308,8 +308,8 @@ watch(() => props.width, () => {
     setTimeout(computeLines, 500)
 })
 
-onMounted(() => props.groupManager.onChange.addListener(triggerUpdate))
-onUnmounted(() => props.groupManager.onChange.removeListener(triggerUpdate))
+onMounted(() => props.groupManager.onResultChange.addListener(triggerUpdate))
+onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate))
 
 </script>
 

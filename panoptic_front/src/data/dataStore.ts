@@ -6,6 +6,7 @@ import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState,
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isFinished, isTag } from "@/utils/utils";
 import { useProjectStore } from "./projectStore";
+import { useTabStore } from "./tabStore";
 
 export const deletedID = -999999999
 const deletedName = 'Deleted'
@@ -56,6 +57,11 @@ export const useDataStore = defineStore('dataStore', () => {
         apiStreamLoadState(async (v) => {
             applyCommit(v.chunk, !isFinished(v.state))
             loadState.value = v.state
+
+            if(isFinished(v.state)) {
+                const tabStore = useTabStore()
+                tabStore.init()
+            }
         })
 
         // console.time('commit')
@@ -115,9 +121,9 @@ export const useDataStore = defineStore('dataStore', () => {
             properties.value[property.id] = property
         }
         if (someNew) {
-            const project = useProjectStore()
-            const tab = project.getTabManager()
-            tab.verifyState()
+            // const tabStore = useTabStore()
+            // const tab = tabStore.getTab(tabStore.mainTab)
+            // tab.verifyState()
         }
     }
 
@@ -418,9 +424,10 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function deleteProperty(propertyId: number) {
         await sendCommit({ emptyProperties: [propertyId] })
-        const project = useProjectStore()
-        project.getTabManager().verifyState()
-        project.getTabManager().collection.update()
+        const tabStore = useTabStore()
+        const tab = tabStore.getMainTab()
+        tab.verifyState()
+        tab.update()
     }
 
     function updateTagCount(oldTags: number[], newTags: number[]) {

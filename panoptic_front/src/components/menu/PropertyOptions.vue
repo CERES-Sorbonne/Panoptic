@@ -12,15 +12,16 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { Dropdowns } from '@/data/dropdowns';
 import { useI18n } from 'vue-i18n';
 import Dropdown from '../dropdowns/Dropdown.vue';
+import { TabManager } from '@/core/TabManager';
 
 const { t } = useI18n(({ useScope: 'global' }))
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
 const data = useDataStore()
-const tabManager = project.getTabManager()
 
 const props = defineProps<{
+    tab: TabManager
     property: Property,
     open?: boolean
 }>()
@@ -31,24 +32,23 @@ const localName = ref('')
 
 const fullHover = ref(false)
 
-const tab = computed(() => project.getTab())
-const propertyVisible = computed(() => tab.value.visibleProperties[props.property.id] == true)
+const propertyVisible = computed(() => props.tab.state.visibleProperties[props.property.id] == true)
 
-const isInFilter = computed(() => tabManager.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
-const isInGroups = computed(() => tabManager.collection.groupManager.state.groupBy.includes(props.property.id))
-const isInSort = computed(() => tabManager.collection.sortManager.state.sortBy.includes(props.property.id))
+const isInFilter = computed(() => props.tab.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
+const isInGroups = computed(() => props.tab.collection.groupManager.state.groupBy.includes(props.property.id))
+const isInSort = computed(() => props.tab.collection.sortManager.state.sortBy.includes(props.property.id))
 const filterId = computed(() => {
     if (!isInFilter.value) return undefined
-    return tabManager.collection.filterManager.state.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
+    return props.tab.collection.filterManager.state.filter.filters.find((f) => !f.isGroup && (f as Filter).propertyId == props.property.id).id
 })
-const filterManager = () => tabManager.collection.filterManager
-const sha1Mode = computed(() => tabManager.getSha1Mode())
+const filterManager = () => props.tab.collection.filterManager
+const sha1Mode = computed(() => props.tab.getSha1Mode())
 
 function toggleVisible() {
     if (propertyVisible.value) {
-        tabManager.setVisibleProperty(props.property.id, false)
+        props.tab.setVisibleProperty(props.property.id, false)
     } else {
-        tabManager.setVisibleProperty(props.property.id, true)
+        props.tab.setVisibleProperty(props.property.id, true)
     }
 }
 
@@ -77,20 +77,20 @@ function toggleValuesMenu() {
 
 function setSort() {
     if (!isInSort.value) {
-        tabManager.collection.sortManager.setSort(props.property.id)
+        props.tab.collection.sortManager.setSort(props.property.id)
     } else {
-        tabManager.collection.sortManager.delSort(props.property.id)
+        props.tab.collection.sortManager.delSort(props.property.id)
     }
-    tabManager.collection.sortManager.update(true)
+    props.tab.collection.sortManager.update(true)
 }
 
 function setGroup() {
     if (!isInGroups.value) {
-        tabManager.collection.groupManager.setGroupOption(props.property.id)
+        props.tab.collection.groupManager.setGroupOption(props.property.id)
     } else {
-        tabManager.collection.groupManager.delGroupOption(props.property.id)
+        props.tab.collection.groupManager.delGroupOption(props.property.id)
     }
-    tabManager.collection.groupManager.update(true)
+    props.tab.collection.groupManager.update(true)
 }
 
 function deleteProperty() {

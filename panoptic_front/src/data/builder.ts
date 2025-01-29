@@ -3,17 +3,19 @@ import { PropertyOption, PropertyType, TabState } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
-import { softwareUiVersion } from "./projectStore";
+import { createCollectionState } from "@/core/CollectionManager";
+import { TAB_MODEL_VERSION } from "./tabStore";
 
 export function buildTabState(): TabState {
     return reactive({
-        version: softwareUiVersion,
+        version: TAB_MODEL_VERSION,
         id: -1,
-        name: 'Tab',
+        name: 'New Tab',
         display: 'tree',
         filterState: createFilterState(),
         sortState: createSortState(),
         groupState: createGroupState(),
+        collectionState: createCollectionState(),
         imageSize: 100,
         visibleProperties: {},
         visibleFolders: {},
