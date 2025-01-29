@@ -4,11 +4,13 @@ import { PropertyGroup } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
+import { TabManager } from '@/core/TabManager';
 
 const data = useDataStore()
 
 
 const props = defineProps<{
+    tab: TabManager
     group: PropertyGroup,
     menuOpen?: boolean
 }>()
@@ -59,7 +61,7 @@ watch(props, updateLocalName)
         <div v-if="open && properties.length" class="ps-1 pe-1 pt-1">
             <template v-for="property in properties">
                 <div class="property-item" >
-                    <PropertyOptions :property="property" :open="props.menuOpen" />
+                    <PropertyOptions :tab="props.tab" :property="property" :open="props.menuOpen" />
                 </div>
 
             </template>

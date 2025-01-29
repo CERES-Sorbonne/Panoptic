@@ -11,12 +11,16 @@ import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import { useDataStore } from '@/data/dataStore';
+import TabContainer from '@/components/TabContainer.vue';
+import { useTabStore } from '@/data/tabStore';
+import DataLoad from '@/components/loading/DataLoad.vue';
 
 let x = 0
 
 const project = useProjectStore()
 const data = useDataStore()
 const panoptic = usePanopticStore()
+const tabStore = useTabStore()
 
 const mainViewRef = ref(null)
 const navElem = ref(null)
@@ -104,7 +108,7 @@ function redirectHome() {
 }
 
 function updateWidth() {
-    if(mainViewRef.value) {
+    if (mainViewRef.value) {
         mainViewRef.value.updateScrollerWidth()
     }
 }
@@ -118,17 +122,25 @@ function updateWidth() {
         <div id="panoptic" :key="project.status.renderNb">
             <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
             <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-                <template v-if="project.status.loaded">
+                <div v-if="!data.isLoaded" class="d-flex flex-column w-100" :style="{height: windowHeight+'px'}">
+                    <DataLoad class="flex-grow-1" />
+                </div>
+                <template v-else-if="data.isLoaded">
                     <div>
                         <Menu @export="showModal()" @toggle="updateWidth" />
                     </div>
                     <div class="w-100">
                         <div class="ms-1" ref="navElem">
-                            <TabNav :re-render="rerender" :filterOpen="filterOpen" @update:filterOpen="v => filterOpen = v"/>
+                            <TabNav :re-render="rerender" :filterOpen="filterOpen"
+                                @update:filterOpen="v => filterOpen = v" />
                         </div>
                         <div class="custom-hr" v-if="hasHeight" />
-
-                        <MainView :tab-id="project.data.selectedTabId" :height="contentHeight" ref="mainViewRef" :filter-open="filterOpen"/>
+                        <TabContainer :id="tabStore.mainTab">
+                            <template #default="{ tab }">
+                                <MainView :tab="tab" :height="contentHeight" ref="mainViewRef"
+                                    :filter-open="filterOpen" />
+                            </template>
+                        </TabContainer>
                     </div>
 
                 </template>

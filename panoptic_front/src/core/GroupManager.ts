@@ -345,33 +345,33 @@ export class GroupManager {
 
     lastOrder: ImageOrder
     customGroups: { [parentgroupId: number]: Group[] }
-    onChange: EventEmitter
+    onResultChange: EventEmitter
+    onStateChange: EventEmitter
 
     selectedImages: Ref<SelectedImages>
     private selection: { lastImage: ImageIterator, lastGroup: GroupIterator }
     private iterators: GroupIterator[]
 
     constructor(state?: GroupState, selectedImages?: Ref<SelectedImages>) {
+        this.state = reactive(createGroupState())
         if (state) {
-            this.state = state
-        } else {
-            this.state = reactive(createGroupState())
+            Object.assign(this.state, state)
         }
         this.result = { root: undefined, index: {}, imageToGroups: {}, valueIndex: new GroupValueIndex() }
         this.customGroups = {}
-        this.onChange = new EventEmitter()
+        this.onResultChange = new EventEmitter()
+        this.onStateChange = new EventEmitter()
 
         this.selectedImages = selectedImages ?? shallowRef<SelectedImages>({})
         this.selection = { lastImage: undefined, lastGroup: undefined }
         this.iterators = []
     }
 
-    load(state: GroupState) {
-        Object.assign(this.state, toRefs(state))
-        this.clear()
-    }
-
     addUpdatedToGroups(images: Instance[], order?: ImageOrder) {
+        if (!this.result.root) {
+            this.group(images, order)
+            return
+        }
         console.time('Group Update')
         const data = useDataStore()
         this.invalidateIterators()
@@ -407,7 +407,7 @@ export class GroupManager {
         // console.timeEnd('group order')
 
         console.timeEnd('Group Update')
-        this.onChange.emit(this.result)
+        this.onResultChange.emit(this.result)
         return this.result
     }
 
@@ -475,7 +475,7 @@ export class GroupManager {
                 if (!this.result.index[groupId]) {
                     const group = buildGroup(groupId, [], GroupType.Property)
                     let realValue = key[key.length - 1]
-                    if(property.type == PropertyType.date) {
+                    if (property.type == PropertyType.date) {
                         realValue = new Date(realValue)
                     }
                     let propValues = [{ propertyId: property.id, value: realValue, valueEnd: intervalEnd, unit: option.stepUnit } as PropertyValue]
@@ -562,7 +562,7 @@ export class GroupManager {
         // console.timeEnd('group order')
 
         if (time) console.timeEnd('Group')
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
         return this.result
     }
 
@@ -573,7 +573,7 @@ export class GroupManager {
             if (group.children.length == 0) continue
             sortGroup(group, this.state.options[group.children[0].meta.propertyValues[0].propertyId])
         }
-        if (emit) this.onChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     private saveImagesToGroup(group: Group) {
@@ -617,7 +617,7 @@ export class GroupManager {
         this.clearSelection()
         this.customGroups = {}
         this.lastOrder = {}
-        if (emit) this.onChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     emptyRoot(emit?: boolean) {
@@ -630,11 +630,11 @@ export class GroupManager {
         let copy = deepCopy(group)
         delete copy.id
         Object.assign(this.result.root, copy)
-        if(this.state.sha1Mode) {
+        if (this.state.sha1Mode) {
             this.groupBySha1(this.result.root)
         }
-        if(emit) {
-            this.onChange.emit()
+        if (emit) {
+            this.onResultChange.emit()
         }
     }
 
@@ -723,7 +723,7 @@ export class GroupManager {
             }
             const oldLen = group.children.length
             group.children = group.children.filter(g => g.images.length > 0)
-            if(group.children.length < oldLen) {
+            if (group.children.length < oldLen) {
                 group.dirty = true
             }
         }
@@ -733,18 +733,18 @@ export class GroupManager {
         }
 
         for (let group of objValues(this.result.index)) {
-            if(!group.dirty) continue
+            if (!group.dirty) continue
             if (group.subGroupType == GroupType.Property) {
                 const option = this.state.options[group.children[0].meta.propertyValues[0].propertyId]
                 sortGroup(group, option)
             }
-            if(group.type == GroupType.Property) {
+            if (group.type == GroupType.Property) {
                 sortGroupImages(group, this.lastOrder)
             }
             group.dirty = false
         }
         setOrder(this.result.root)
-        this.onChange.emit(this.result)
+        this.onResultChange.emit(this.result)
     }
 
     sort(order: ImageOrder, emit?: boolean) {
@@ -762,7 +762,7 @@ export class GroupManager {
             this.groupLeafsBySha1()
         }
 
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
     }
 
     setGroupOption(propertyId: number, option?: GroupOption) {
@@ -773,9 +773,11 @@ export class GroupManager {
         if (option) {
             Object.assign(this.state.options[propertyId], option)
         }
-        if (this.state.groupBy.includes(propertyId)) return
-        this.state.groupBy.push(propertyId)
-        this.customGroups = {}
+        if (!this.state.groupBy.includes(propertyId)) {
+            this.state.groupBy.push(propertyId)
+            this.customGroups = {}
+        }
+        this.onStateChange.emit()
     }
 
     delGroupOption(propertyId: number) {
@@ -783,6 +785,7 @@ export class GroupManager {
         if (index < 0) return
         this.state.groupBy.splice(index, 1)
         this.customGroups = {}
+        this.onStateChange.emit()
     }
 
     addCustomGroups(targetGroupId: number, groups: Group[], emit?: boolean) {
@@ -800,14 +803,14 @@ export class GroupManager {
             })
         }
         setOrder(this.result.root)
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
     }
 
     delCustomGroups(targetGroupId: number, emit?: boolean) {
         delete this.customGroups[targetGroupId]
         this.removeChildren(this.result.index[targetGroupId])
 
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
     }
 
     clearCustomGroups(emit?: boolean) {
@@ -815,7 +818,7 @@ export class GroupManager {
             this.delCustomGroups(groupId)
         }
 
-        if (emit) this.onChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     setSha1Mode(value: boolean, emit?: boolean) {
@@ -829,25 +832,26 @@ export class GroupManager {
         else {
             this.removeSha1Groups()
         }
-        if (emit) this.onChange.emit()
+        this.onStateChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     toggleGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = this.result.index[groupId].view.closed ? false : true
 
-        if (emit) this.onChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     openGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = false
 
-        if (emit) this.onChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     closeGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = true
 
-        if (emit) this.onChange.emit()
+        if (emit) this.onResultChange.emit()
     }
 
     getGroupIterator(groupId?: number, options?: GroupIteratorOptions) {
@@ -966,7 +970,7 @@ export class GroupManager {
             now = performance.now()
             for (let v of values) {
                 let keyValue = v
-                if(v && property.type == PropertyType.date) {
+                if (v && property.type == PropertyType.date) {
                     keyValue = keyValue.toISOString()
                 }
                 const key = [...group.key, keyValue]
@@ -1162,22 +1166,10 @@ export class GroupManager {
 
     selectGroup(group: Group) {
         this.selectImages(group.images.map(i => i.id))
-        // const recursive = (g: Group) => {
-        //     g.view.selected = true
-        //     g.children.forEach(c => recursive(c))
-        // }
-        // recursive(group)
     }
 
     unselectGroup(group: Group) {
-        // console.log('unselect')
         this.unselectImages(group.images.map(i => i.id))
-
-        // const recursive = (g: Group) => {
-        //     g.view.selected = false
-        //     g.children.forEach(c => recursive(c))
-        // }
-        // recursive(group)
     }
 
     selectGroupIterator(iterator: GroupIterator, shift = false) {

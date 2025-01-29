@@ -3,13 +3,18 @@
  * Is responsible to connect the different managers together for reactivity
  */
 
-import { InstanceIndex } from "@/data/models";
-import { CollectionState, FilterManager, FilterResult, FilterState } from "./FilterManager";
+import { CollectionState, InstanceIndex } from "@/data/models";
+import { FilterManager, FilterResult, FilterState } from "./FilterManager";
 import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
-import { objValues } from "@/utils/utils";
+import { EventEmitter, objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { Ref, reactive } from "vue";
+
+
+export function createCollectionState(): CollectionState {
+    return { autoReload: true }
+}
 
 export class CollectionManager {
     images: InstanceIndex
@@ -17,33 +22,31 @@ export class CollectionManager {
     filterManager: FilterManager
     sortManager: SortManager
     groupManager: GroupManager
-    options: { autoReload: boolean }
 
-    constructor(images?: InstanceIndex, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>, options?: { autoReload: boolean }) {
+    isDirty: boolean
+
+    onStateChange: EventEmitter
+
+    constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
         this.filterManager = new FilterManager(filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
-        this.state = reactive({ isDirty: false } as CollectionState)
+        this.state = reactive({ autoReload: true })
 
-        this.filterManager.onChange.addListener(this.onFilter.bind(this))
-        this.sortManager.onChange.addListener(this.onSort.bind(this))
-        this.groupManager.onChange.addListener(this.onGroup.bind(this))
+        if (state) {
+            Object.assign(this.state, state)
+        }
 
-        this.filterManager.onDirty.addListener(() => this.setDirty())
-        this.options = options ?? { autoReload: false }
+        this.filterManager.onResultChange.addListener(this.onFilter.bind(this))
+        this.sortManager.onResultChange.addListener(this.onSort.bind(this))
+        this.groupManager.onResultChange.addListener(this.onGroup.bind(this))
+
+        this.filterManager.onStateChange.addListener(this.setDirty.bind(this))
 
         const data = useDataStore()
-        data.onChange.addListener((dirtyInstances) => this.updateInstances(dirtyInstances))
-        // if(images) this.update(images)
+        data.onChange.addListener(this.updateInstances.bind(this))
 
-    }
-
-    load(filterState?: FilterState, sortState?: SortState, groupState?: GroupState) {
-        this.filterManager.load(filterState)
-        this.sortManager.load(sortState)
-        this.groupManager.load(groupState)
-
-        // if(this.images) this.update(this.images)
+        this.onStateChange = new EventEmitter()
     }
 
     verifyState() {
@@ -53,15 +56,20 @@ export class CollectionManager {
         this.groupManager.verifyState(data.properties)
     }
 
+    setAutoReload(value: boolean) {
+        this.state.autoReload = value
+        this.onStateChange.emit()
+    }
+
     async setDirty(instanceIds?: Set<number>) {
-        this.state.isDirty = true
-        if (this.options.autoReload) {
+        this.isDirty = true
+        if (this.state.autoReload) {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 this.groupManager.lastOrder = this.sortManager.result.order
                 this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
-                this.state.isDirty = false
+                this.isDirty = false
             } else {
                 this.update()
             }
@@ -69,16 +77,20 @@ export class CollectionManager {
         }
     }
 
-    async update(images?: InstanceIndex) {
-        // throw new Error('update')
-        // console.log('update')
-        this.images = images ?? this.images
+    async update() {
+        const data = useDataStore()
+        if(this.state.instances) {
+            this.images = {}
+            this.state.instances.forEach(i => this.images[i] = data.instances[i])
+        } else {
+            this.images = data.instances
+        }
         if (!this.images) return
 
         const filterRes = await this.filterManager.filter(objValues(this.images))
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)
-        this.state.isDirty = false
+        this.isDirty = false
     }
 
     private onFilter(result: FilterResult) {

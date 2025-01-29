@@ -369,15 +369,16 @@ export class FilterManager {
     filterIndex: { [filterId: number]: AFilter }
 
     lastImages: Instance[]
-    onChange: EventEmitter
-    onDirty: EventEmitter
+    onResultChange: EventEmitter
+    onStateChange: EventEmitter
 
     constructor(state?: FilterState) {
         this.lastFilterId = null
         this.filterIndex = {}
         this.result = { images: [] }
-        this.onChange = new EventEmitter()
-        this.onDirty = new EventEmitter()
+        this.onResultChange = new EventEmitter()
+        this.onStateChange = new EventEmitter()
+
         if (state) {
             this.state = reactive(state)
             this.recursiveRegister(this.state.filter)
@@ -408,7 +409,7 @@ export class FilterManager {
         this.result.images = res.valid
         console.timeEnd('Filter')
         // if(images.length == 0) throw new Error()
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
 
         return this.result
     }
@@ -416,7 +417,7 @@ export class FilterManager {
     async update(emit?: boolean) {
         const data = useDataStore()
         await this.filter(data.instanceList)
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
     }
 
     async updateSelection(instanceIds: Set<number>) {
@@ -494,7 +495,7 @@ export class FilterManager {
             parent.filters.push(group)
             const reactiveGroup = parent.filters[parent.filters.length - 1]
             this.registerFilter(reactiveGroup)
-            this.onDirty.emit()
+            this.onStateChange.emit()
             return reactiveGroup
         }
 
@@ -502,7 +503,7 @@ export class FilterManager {
         mainFilter.filters.push(group)
         const reactiveGroup = mainFilter.filters[mainFilter.filters.length - 1]
         this.registerFilter(reactiveGroup)
-        this.onDirty.emit()
+        this.onStateChange.emit()
         return reactiveGroup
     }
 
@@ -518,7 +519,7 @@ export class FilterManager {
             group.filters.push(filter)
             const reactiveFilter = group.filters[group.filters.length - 1]
             this.registerFilter(reactiveFilter)
-            this.onDirty.emit()
+            this.onStateChange.emit()
             return reactiveFilter
         }
 
@@ -527,7 +528,7 @@ export class FilterManager {
         // get the reactive version
         const reactiveFilter = mainFilter.filters[mainFilter.filters.length - 1]
         this.registerFilter(reactiveFilter)
-        this.onDirty.emit()
+        this.onStateChange.emit()
         return reactiveFilter
     }
 
@@ -538,7 +539,7 @@ export class FilterManager {
             group.filters = group.filters.filter(f => f.id != filterId)
         })
         delete this.filterIndex[filterId]
-        this.onDirty.emit()
+        this.onStateChange.emit()
     }
 
 
@@ -562,14 +563,14 @@ export class FilterManager {
         } else {
             filter.value = propertyDefault(type)
         }
-        this.onDirty.emit()
+        this.onStateChange.emit()
     }
 
     updateFilterGroup(filterId: number, operator: FilterOperator.or | FilterOperator.and) {
         if (this.filterIndex[filterId] == undefined || !this.filterIndex[filterId].isGroup) return
         const group = this.filterIndex[filterId] as FilterGroup
         group.groupOperator = operator
-        this.onDirty.emit()
+        this.onStateChange.emit()
     }
 
     private changeFilter(filter: Filter, propertyId: number) {

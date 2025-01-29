@@ -2,17 +2,20 @@
 import { useProjectStore } from '@/data/projectStore';
 import { computed } from 'vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
+import { TabManager } from '@/core/TabManager';
 
 const project = useProjectStore()
 
-// const props = defineProps<{}>()
+const props = defineProps<{
+    tab: TabManager
+}>()
 const emits = defineEmits([])
 
 const mode = computed(() => {
-    if (project.getTab().autoReload) {
+    if (props.tab.collection.state.autoReload) {
         return 2
     }
-    if (project.getTabManager().collection.state.isDirty) {
+    if (props.tab.collection.isDirty) {
         return 0
     }
     return 1
@@ -20,15 +23,13 @@ const mode = computed(() => {
 
 function toggleMode() {
     if (mode.value == 0) {
-        project.getTabManager().collection.update()
+        props.tab.collection.update()
     }
     else if (mode.value == 1) {
-        project.getTab().autoReload = true
-        project.updateTabs()
+        props.tab.collection.setAutoReload(true)
     }
     else {
-        project.getTab().autoReload = false
-        project.updateTabs()
+        props.tab.collection.setAutoReload(false)
     }
 }
 

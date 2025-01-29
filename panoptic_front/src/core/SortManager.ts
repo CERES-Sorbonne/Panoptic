@@ -208,24 +208,23 @@ export class SortManager {
     state: SortState
     result: SortResult
 
-    onChange: EventEmitter
+    onResultChange: EventEmitter
+    onStateChange: EventEmitter
 
     constructor(state?: SortState) {
-        this.state = state
-        this.onChange = new EventEmitter()
-        if (!this.state) {
-            this.state = createSortState()
+        this.onResultChange = new EventEmitter()
+        this.onStateChange = new EventEmitter()
+
+        this.state = createSortState()
+
+        if (state) {
+            Object.assign(this.state, state)
         }
 
         this.result = {
             images: [],
             order: {}
         }
-    }
-
-    load(state: SortState) {
-        Object.assign(this.state, toRefs(state))
-        this.clear()
     }
 
     clear() {
@@ -250,7 +249,7 @@ export class SortManager {
         }
         console.timeEnd('Sort')
 
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
         return this.result
     }
 
@@ -274,7 +273,7 @@ export class SortManager {
     update(emit?: boolean) {
         console.log('update sort', this.result.images.length)
         this.sort(this.result.images)
-        if (emit) this.onChange.emit(this.result)
+        if (emit) this.onResultChange.emit(this.result)
     }
 
     setSort(propertyId: number, option?: SortOption) {
@@ -284,15 +283,17 @@ export class SortManager {
             this.state.options[propertyId] = buildSortOption()
         }
 
-        if (this.state.sortBy.includes(propertyId)) return
-        this.state.sortBy.push(propertyId)
-        console.log(this.state)
+        if (!this.state.sortBy.includes(propertyId)) {
+            this.state.sortBy.push(propertyId)
+        }
+        this.onStateChange.emit()
     }
 
     delSort(propertyId: number) {
         const index = this.state.sortBy.indexOf(propertyId)
         if (index < 0) return
         this.state.sortBy.splice(index, 1)
+        this.onStateChange.emit()
     }
 
     verifyState(properties: PropertyIndex) {
