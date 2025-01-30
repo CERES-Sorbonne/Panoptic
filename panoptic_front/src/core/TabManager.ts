@@ -13,7 +13,7 @@ export class TabManager {
     isNew?: boolean
 
     onLoad: EventEmitter
-    
+
     constructor(state: TabState) {
         this.state = reactive(state)
         this.collection = new CollectionManager(state.collectionState, state.filterState, state.sortState, state.groupState)
@@ -39,6 +39,8 @@ export class TabManager {
         for (let propId in data.properties) {
             this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
         }
+
+        this.updatePropertyOptions()
     }
 
     setVisibleProperty(propId: number, value: boolean) {
@@ -70,6 +72,16 @@ export class TabManager {
         Object.assign(this.state.sortState, this.collection.sortManager.state)
         Object.assign(this.state.groupState, this.collection.groupManager.state)
         this.saveState()
+    }
+
+    private updatePropertyOptions() {
+        if (this.state.propertyOptions == undefined) {
+            this.state.propertyOptions = {}
+        }
+        const data = useDataStore()
+        for (let propId in data.properties) {
+            this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
+        }
     }
 
     saveState() {

@@ -94,15 +94,6 @@ watch(() => props.filterOpen, () => nextTick(updateScrollerHeight))
 watch(() => props.height, async () => {
     await nextTick(updateScrollerHeight)
 })
-watch(props.tab.state, (state) => {
-    project.updateTabs()
-}, { deep: true })
-
-// watch(() => props.tabId, async () => {
-//     valid.value = false
-//     await nextTick()
-//     valid.value = true
-// })
 
 onMounted(updateScrollerHeight)
 onMounted(() => props.tab.update())

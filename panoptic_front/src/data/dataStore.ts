@@ -418,8 +418,7 @@ export const useDataStore = defineStore('dataStore', () => {
             prop.propertyGroupId = group
         }
         sendCommit({ properties: [prop] })
-        // TODO: verify
-        // updatePropertyOptions()
+        useTabStore().getMainTab().update()
     }
 
     async function deleteProperty(propertyId: number) {

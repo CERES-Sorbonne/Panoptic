@@ -84,7 +84,6 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         routine += 1
         updateRoutine(routine)
-        updatePropertyOptions()
 
         // computeTagCount()
 
@@ -123,8 +122,7 @@ export const useProjectStore = defineStore('projectStore', () => {
                     for (let commit of update.commits) {
                         dataStore.applyCommit(commit)
                     }
-                    // TODO: see if need fix
-                    // tabManager.collection.update()
+                    useTabStore().getMainTab().update()
                 }
             }
             await sleep(1000)
@@ -173,78 +171,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         await nextTick()
         init()
     }
-
-    async function addTab(tabName: string) {
-        let state = buildTabState()
-        state.name = tabName
-        const id = Math.max(-1, ...Object.keys(data.tabs).map(Number)) + 1
-        state.id = id
-        data.tabs[id] = state
-        await apiSetTabs(data.tabs)
-        await selectTab(id)
-        return data.tabs[id]
-    }
-
-    async function removeTab(tabId: number) {
-        if (objValues(data.tabs).length == 1) {
-            await addTab('Tab1')
-        } else {
-            let index = objValues(data.tabs).sort((a, b) => a.id - b.id).findIndex(t => t.id == tabId)
-            index = index != 0 ? index - 1 : 1
-            await selectTab(objValues(data.tabs)[index].id)
-        }
-        delete data.tabs[tabId]
-        await apiSetTabs(data.tabs)
-    }
-
-    async function updateTabs() {
-        // TODO: see if need fix
-        // Object.assign(data.tabs[data.selectedTabId], tabManager.state)
-        // await apiSetTabs(data.tabs)
-    }
-
-    async function selectTab(tabId: number) {
-        // TODO: see if need fix
-        // objValues(data.tabs).forEach(t => {
-        //     if (t.id == tabId) t.selected = true
-        //     else t.selected = false
-        // })
-        // data.selectedTabId = tabId
-        // await tabManager.load(data.tabs[data.selectedTabId])
-        // updatePropertyOptions()
-    }
-
-    async function loadTabs(tabs: TabIndex) {
-        for (let tab of Object.values(tabs) as TabState[]) {
-            if (tab.version != softwareUiVersion) continue
-            data.tabs[tab.id] = tab
-        }
-        if (Object.keys(data.tabs).length == 0) {
-            await addTab('Tab1')
-        } else {
-            const selected = objValues(data.tabs).find(t => t.selected)
-            if (selected) {
-                await selectTab(selected.id)
-            } else {
-                await selectTab(tabs[0].id)
-            }
-        }
-        updatePropertyOptions()
-    }
-
-    function updatePropertyOptions() {
-        for (let tabId in data.tabs) {
-            const tab = data.tabs[tabId]
-            if (tab.propertyOptions == undefined) {
-                tab.propertyOptions = {}
-            }
-            for (let propId in dataStore.properties) {
-                tab.propertyOptions[propId] = Object.assign(defaultPropertyOption(), tab.propertyOptions[propId])
-            }
-        }
-    }
-
-
 
     function rerender() {
         status.renderNb += 1
@@ -305,7 +231,6 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // functions
         init, clear, rerender,
-        addTab, removeTab, updateTabs, selectTab,
         updateSettings,
         uploadPropFile, clearImport,
         updatePluginInfos, setPluginParams,
@@ -313,7 +238,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         actions,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
-        backendStatus, reload, updatePropertyOptions,
+        backendStatus, reload,
         showTutorial
     }
 
