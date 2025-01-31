@@ -47,7 +47,6 @@ class ActionResult:
     commit: DbCommit = None
 
     notifs: list[Notif] = None
-    errors: list[ActionError] = None
 
 
 @dataclass
