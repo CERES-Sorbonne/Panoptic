@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
 
 const data = useDataStore()
 
@@ -15,7 +15,7 @@ const searchElem = ref(null)
 const propertyFilter = ref('')
 
 const filteredProperties = computed(() => {
-    let properties = data.propertyList
+    let properties = data.propertyList.filter(p => p.id != deletedID)
     if(props.ignoreIds) {
         properties = properties.filter(p => !props.ignoreIds.includes(p.id))
     }

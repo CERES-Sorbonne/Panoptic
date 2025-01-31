@@ -317,7 +317,8 @@
         "action_group": "Group Actions",
         "import": "Import",
         "export": "Export",
-        "execute": "Run"
+        "execute": "Run",
+        "default": "by default"
     },
     "dropdown": {
         "history": {

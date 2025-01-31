@@ -57,7 +57,7 @@ const propertyColor = computed(() => {
                     <template v-if="!props.erase.has(property.id)">
                         <td class="w-100">
                             <CellTagInput v-if="isTag(property.type)" :property="property"
-                                v-model="props.values[property.id]" :teleport="true" :auto-focus="true"
+                                v-model="props.values[property.id]" :teleport="true" :auto-focus="true" :can-create="true"
                                 ref="inputElem" />
 
                             <CellTextInput v-else-if="property.type == PropertyType.string"
