@@ -243,4 +243,4 @@ To test and modify the backend, we provide a pre-built frontend in the backend's
 
 
 ## License
-This project is licensed under the MPL-2.0 License - see the [LICENSE](https://github.com/CERES-Sorbonne/Panoptic/blob/main/LICENSE) file for details.
+This project is licensed under the GNU-GPL3 - see the [LICENSE](https://github.com/CERES-Sorbonne/Panoptic/blob/main/LICENSE) file for details.

@@ -72,14 +72,35 @@ function computeTagColumns() {
     for (let i = 0; i <= maxDepth.value; i++) {
         res[i] = tagList.value.filter(t => tagDepth.value[t.id] == i)
     }
-    for (let i = 0; i < res.length - 1; i++) {
-        const order: { [tId: number]: number } = {}
-        for (let j = 0; j < res[i].length; j++) {
-            order[res[i][j].id] = j
+    // for (let i = 0; i < res.length - 1; i++) {
+    //     const order: { [tId: number]: number } = {}
+    //     for (let j = 0; j < res[i].length; j++) {
+    //         order[res[i][j].id] = j
+    //     }
+    //     res[i + 1].sort((t1, t2) => order[t1.id] - order[t2.id])
+    // }
+
+    // preorder
+    const res2 = [res[0]]
+    for(let i = 0; i < res.length -1; i++) {
+        const col = res[i]
+        const nextCol = res[i+1]
+
+        const orders = {}
+        for(let j = 0; j < col.length; j++) {
+            const tag = col[j]
+            for(let y = 0; y < nextCol.length; y++) {
+                const nextTag = nextCol[y]
+                if(tag.children.includes(nextTag.id) && orders[y] === undefined) {
+                    orders[nextTag.id] = j
+                }
+            }
         }
-        res[i + 1].sort((t1, t2) => order[t1.id] - order[t2.id])
+        nextCol.sort((a,b) => orders[a.id] - orders[b.id])
+        res2.push(nextCol)
     }
-    tagColumns.value = res
+
+    tagColumns.value = res2
 }
 
 async function computeGraph() {
@@ -182,6 +203,7 @@ async function reorderLines() {
             //     goals[tag.id] = middle
             // }
             // const sorted = [...col].sort((t1, t2) => goals[t1.id] - goals[t2.id])
+
             if (colI < columns.length - 1) {
                 const nextCol = columns[colI + 1]
                 let childIndex = 0
