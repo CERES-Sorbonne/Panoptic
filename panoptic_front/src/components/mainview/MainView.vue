@@ -123,7 +123,7 @@ onMounted(() => props.tab.update())
         </template>
         <template v-if="props.tab.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
-                <GridScroller :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15"
+                <GridScroller :tab="tab" :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15"
                     :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0"
                     :show-images="true" :selected-images="props.tab.collection.groupManager.selectedImages"
                     ref="imageList" :hide-if-modal="true" />

@@ -169,7 +169,6 @@ function hideZoomedImage() {
     const zoomedImg = document.getElementById('zoomed-image');
     zoomedImg.style.display = 'none';
 }
-console.log("test")
 </script>
 
 <template>

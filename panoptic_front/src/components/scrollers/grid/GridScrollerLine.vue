@@ -5,9 +5,11 @@ import { PileRowLine, type GroupLine, type Property, type RowLine, type Scroller
 import GroupLineVue from './GroupLine.vue';
 import RowLineVue from './RowLine.vue';
 import { SelectedImages } from '@/core/GroupManager';
+import { TabManager } from '@/core/TabManager';
 
 
 const props = defineProps<{
+    tab: TabManager,
     item: ScrollerLine,
     width: number,
     missingWidth: number,
@@ -53,12 +55,12 @@ watch(() => props.item.id, reload)
         </div>
         <div v-if="item.type == 'image'">
             <!-- <div class="border-top position-absolute border-warning" style="width: 100%;"></div> -->
-            <RowLineVue :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :tab="props.tab" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
                 @toggle:image="e => emits('toggle:image', e)" :selected="selected" />
         </div>
         <div v-if="item.type == 'pile'">
-            <RowLineVue :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :tab="props.tab" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)" :selected="selected"
                 @toggle:image="e => emits('toggle:image', { groupId: item.data.parent.id, imageIndex: item.data.parentIdx })" />
         </div>

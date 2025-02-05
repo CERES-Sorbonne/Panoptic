@@ -14,10 +14,10 @@ import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 
-const props = defineProps({
+const props = defineProps<{
     tab: TabManager,
-    computeStatus: Object as () => { groups: boolean },
-})
+    computeStatus: { groups: boolean }
+}>()
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
@@ -66,18 +66,18 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div class="me-5 d-flex">
             <wTT message="main.menu.grid_tooltip">
                 <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.state.display == 'tree' ? '' : ' text-secondary')"
-                    @click="props.tab.state.display = 'tree'"></i>
+                    @click="props.tab.setViewMode('tree')"></i>
             </wTT>
             <wTT message="main.menu.table_tooltip">
                 <i id="toot"
                     :class="'bi bi-table btn-icon me-2' + (props.tab.state.display == 'grid' ? '' : ' text-secondary')"
-                    @click="props.tab.state.display = 'grid'">
+                    @click="props.tab.setViewMode('grid')">
                 </i>
             </wTT>
             <wTT message="main.menu.graph_tooltip">
                 <i id="toot"
                     :class="'bi bi-bar-chart btn-icon' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
-                    @click="props.tab.state.display = 'graph'">
+                    @click="props.tab.setViewMode('graph')">
                 </i>
             </wTT>
         </div>

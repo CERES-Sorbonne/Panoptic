@@ -66,6 +66,11 @@ export class TabManager {
         return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1)
     }
 
+    setViewMode(mode: string) {
+        this.state.display = mode
+        this.saveState()
+    }
+
     private saveManagerStates() {
         Object.assign(this.state.collectionState, this.collection.state)
         Object.assign(this.state.filterState, this.collection.filterManager.state)
@@ -84,9 +89,9 @@ export class TabManager {
         }
     }
 
-    saveState() {
+    async saveState() {
         const tabStore = useTabStore()
-        tabStore.saveTabToStorage(this.state.id)
+        tabStore.saveTabsToStorage()
     }
 
 }

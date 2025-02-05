@@ -8,18 +8,20 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GridPropInput from './GridPropInput.vue';
+import { TabManager } from '@/core/TabManager';
 
 const panoptic = usePanopticStore()
 const project = useProjectStore()
 
-const props = defineProps({
-    item: Object,
-    properties: Array<Property>,
-    showImage: Boolean,
-    selected: Boolean,
-    missingWidth: Number,
-    // expandImage: Boolean
-})
+const props = defineProps<{
+    tab: TabManager,
+    item: any,
+    properties: Property[],
+    showImage: boolean,
+    selected?: boolean,
+    missingWidth: number,
+    // expandImage: boolean
+}>()
 const emits = defineEmits({
     'resizeHeight': Number,
     'toggle:image': Object,
@@ -30,7 +32,7 @@ const hover = ref(false)
 
 
 
-const tab = computed(() => project.getTab())
+const tab = computed(() => props.tab.state)
 const image = computed(() => {
     if (props.item.type == 'pile') {
         return (props.item as PileRowLine).data.images[0]
