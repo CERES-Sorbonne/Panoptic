@@ -7,7 +7,8 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { TabState } from "./models";
 import { TabManager } from "@/core/TabManager";
-import { buildTabState } from "./builder";
+import { buildTabState, objValues } from "./builder";
+import { apiGetTabs, apiSetTabs } from "./api";
 
 const TAB_LIST_KEY = 'tab_list'
 const TAB_PREFIX = 'tab_id_'
@@ -23,7 +24,7 @@ export const useTabStore = defineStore('tabStore', () => {
     const loadedTabs = ref([])
 
     async function init() {
-        loadTabsFromStorage()
+        await loadTabsFromStorage()
         loaded.value = true
     }
 
@@ -52,27 +53,27 @@ export const useTabStore = defineStore('tabStore', () => {
         return managers[mainTab.value]
     }
 
-    function loadTabsFromStorage() {
-        let ids = getSaveTabIdsFromStorage()
-        const tabs = []
-        for(let id of ids) {
-            let tab = getTabFromStorage(id)
+    async function loadTabsFromStorage() {
+        const tabs = await apiGetTabs()
+        const tabList = objValues(tabs)
+        const toLoad = []
+        for(let tab of tabList) {
             if(!tab || tab.version != TAB_MODEL_VERSION) continue
-            tabs.push(tab)
+            toLoad.push(tab)
         }
 
-        for(let tab of tabs) {
+        for(let tab of toLoad) {
             importTab(tab)
         }
 
-        if(!tabs.length) {
-            addTab()
+        if(!toLoad.length) {
+            await addTab()
         }
 
         selectMainTab(loadedTabs.value[0])
     }
 
-    function addTab(name?: string) {
+    async function addTab(name?: string) {
         const tab = buildTabState()
         let id = 1
         if(loadedTabs.value.length) {
@@ -82,48 +83,22 @@ export const useTabStore = defineStore('tabStore', () => {
         tab.id = id
         if(name) tab.name = name
         importTab(tab)
-        saveTabIdsToStorage()
-        saveTabToStorage(id)
+        await saveTabsToStorage()
         mainTab.value = id
         managers[id].isNew = true
         return tab
     }
 
-    function saveTabIdsToStorage() {
-        localStorage.setItem(TAB_LIST_KEY, JSON.stringify(loadedTabs.value))
-    }
-
-    function saveTabToStorage(id: number) {
-        let tab = managers[id]
-        const key = TAB_PREFIX + String(id)
-        localStorage.setItem(key, JSON.stringify(tab.state))
-    }
-
-    function getTabFromStorage(id: number): TabState {
-        const key = TAB_PREFIX + String(id)
-        let res = localStorage.getItem(key)
-        if(res) {
-            return JSON.parse(res)
-        }
-        return undefined
-    }
-
-    function getSaveTabIdsFromStorage() {
-        let res = localStorage.getItem(TAB_LIST_KEY)
-        if(res) {
-            return JSON.parse(res)
-        } 
-        return []
-    }
-
-    function deleteTab(id: number) {
+    async function deleteTab(id: number) {
         let tabs = loadedTabs.value
         loadedTabs.value = tabs.filter(t => t != id)
         delete managers[id]
-        saveTabIdsToStorage()
+        await saveTabsToStorage()
+        console.log('locaded tabs', loadedTabs.value)
+        console.log('main tab', mainTab.value, id)
         if (mainTab.value == id && loadedTabs.value.length) {
             selectMainTab(loadedTabs.value[0])
-        } else {
+        } else if(!loadedTabs.value.length) {
             addTab()
         }
     }
@@ -135,8 +110,16 @@ export const useTabStore = defineStore('tabStore', () => {
         managers[id].update()
     }
 
+    async function saveTabsToStorage() {
+        const tabs = {}
+        for(let id of loadedTabs.value) {
+            tabs[id] = managers[id].state
+        }
+        await apiSetTabs(tabs)
+    }
+
     return {
-        loaded, init, clear, getTab, mainTab, deleteTab, addTab, loadedTabs, selectMainTab, getMainTab, saveTabToStorage
+        loaded, init, clear, getTab, mainTab, deleteTab, addTab, loadedTabs, selectMainTab, getMainTab, saveTabsToStorage
     }
 
 })

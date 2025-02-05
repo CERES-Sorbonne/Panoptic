@@ -9,11 +9,13 @@ import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
 import {RecycleScroller} from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
+import { TabManager } from '@/core/TabManager';
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
 
 const props = defineProps({
+    tab: TabManager,
     manager: GroupManager,
     height: Number,
     width: Number,
@@ -38,11 +40,13 @@ const visibleProperties = computed(() => props.selectedProperties.filter(p => {
     return p.mode == PropertyMode.sha1 || props.manager.state.sha1Mode == false
 }))
 
+const tabState = computed(() => props.tab.state)
+
 const totalPropWidth = computed(() => {
-    const options = project.getTab().propertyOptions
+    const options =tabState.value.propertyOptions
     let propSum = visibleProperties.value.map(p => options[p.id]?.size ?? 0).reduce((a, b) => a + b, 0)
     if (props.showImages) {
-        propSum += project.getTab().imageSize
+        propSum += tabState.value.imageSize
     }
     return propSum
 })
@@ -147,7 +151,7 @@ function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
         id: groupId + '-img:' + String(image.id),
         data: image,
         type: 'image',
-        size: lineSizes[image.id] ?? (project.getTab().imageSize + 4),
+        size: lineSizes[image.id] ?? (tabState.value.imageSize + 4),
         index: imageIndex,
         groupId: groupId,
         iterator: it
@@ -161,7 +165,7 @@ function computePileLine(it: ImageIterator) {
         id: group.id + '-sha1:' + String(group.images[0].sha1),
         data: group,
         type: 'pile',
-        size: lineSizes[group.images[0].id] ?? (project.getTab().imageSize + 4),
+        size: lineSizes[group.images[0].id] ?? (tabState.value.imageSize + 4),
         iterator: it
     }
     return res
@@ -241,21 +245,15 @@ function changeHandler(){
     computeLines()
 }
 onMounted(() => {
-    props.manager.onChange.addListener(changeHandler)
+    props.manager.onResultChange.addListener(changeHandler)
     props.manager.clearCustomGroups(true)
 })
 
 onUnmounted(() => {
-    props.manager.onChange.removeListener(changeHandler)
+    props.manager.onResultChange.removeListener(changeHandler)
 })
 
-watch(() => project.getTab().id, () => {
-    nextTick(() => {
-        setLines(dataLines, 0)
-    })
-})
-
-watch(() => project.getTab().imageSize, (now,old) => {
+watch(() => tabState.value.imageSize, (now,old) => {
     let hook = 0
     let acc = 0
     for(const l of dataLines) {
@@ -286,7 +284,7 @@ watch(() => project.getTab().imageSize, (now,old) => {
 
 <template>
     <div class="grid-container overflow-hidden" :style="{ width: scrollerStyle.width }">
-        <TableHeader :manager="props.manager" :properties="visibleProperties" :missing-width="missingWidth"
+        <TableHeader :tab="props.tab" :manager="props.manager" :properties="visibleProperties" :missing-width="missingWidth"
             :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
         <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle" 
@@ -295,7 +293,7 @@ watch(() => project.getTab().imageSize, (now,old) => {
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active && !hideFromModal">
-                    <GridScrollerLine :item="item" :properties="visibleProperties" :width="scrollerWidth"
+                    <GridScrollerLine :item="item" :tab="props.tab" :properties="visibleProperties" :width="scrollerWidth"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"

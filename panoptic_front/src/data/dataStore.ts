@@ -60,7 +60,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
             if(isFinished(v.state)) {
                 const tabStore = useTabStore()
-                tabStore.init()
+                await tabStore.init()
             }
         })
 

@@ -121,15 +121,11 @@ function computeSeries() {
         dataType: firstPropType
     }
 }
-props.collection.groupManager.onChange.addListener(() => chartData.value = computeSeries())
+props.collection.groupManager.onResultChange.addListener(() => chartData.value = computeSeries())
 </script>
 
 <template>
     <div class="" :style="{ height: props.height + 'px' }">
-        <!-- <div>{{ props.collection.filterManager.state }}</div>
-    <div>{{ props.collection.sortManager.state }}</div>
-    <div>{{ props.collection.groupManager.state }}</div>
-    <span v-for="item in data">{{item}}</span> -->
         <line-chart :chartData="chartData" :height="(props.height - 50) + 'px'" v-if="error === ''" />
         <span v-else>{{ error }}</span>
     </div>

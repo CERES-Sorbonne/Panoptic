@@ -7,18 +7,20 @@ import { Property } from '@/data/models';
 import { Group, GroupManager } from '@/core/GroupManager';
 import { getGroupParents } from '@/utils/utils';
 import { useProjectStore } from '@/data/projectStore';
+import { TabManager } from '@/core/TabManager';
 
 const project = useProjectStore()
 
-const props = defineProps({
-    properties: Array<Property>,
-    missingWidth: Number,
-    showImage: Boolean,
+const props = defineProps<{
+    tab: TabManager
+    properties: Property[],
+    missingWidth: number,
+    showImage: boolean,
     manager: GroupManager,
-    currentGroup: Object as () => Group
-})
+    currentGroup: Group
+}>()
 
-const tab = computed(() => project.getTab())
+const tab = computed(() => props.tab.state)
 const instanceNb = ref(0)
 
 
@@ -43,8 +45,8 @@ function onUpdate() {
     instanceNb.value = props.manager.result.root.images.length
 }
 
-onMounted(() => props.manager.onChange.addListener(onUpdate))
-onUnmounted(() => props.manager.onChange.removeListener(onUpdate))
+onMounted(() => props.manager.onResultChange.addListener(onUpdate))
+onUnmounted(() => props.manager.onResultChange.removeListener(onUpdate))
 
 </script>
 
