@@ -71,6 +71,11 @@ export class TabManager {
         this.saveState()
     }
 
+    renameTab(name: string) {
+        this.state.name = name
+        this.saveState()
+    }
+
     private saveManagerStates() {
         Object.assign(this.state.collectionState, this.collection.state)
         Object.assign(this.state.filterState, this.collection.filterManager.state)
