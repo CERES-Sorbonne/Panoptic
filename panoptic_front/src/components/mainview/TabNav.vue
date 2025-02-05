@@ -8,12 +8,8 @@ import { useTabStore } from '@/data/tabStore';
 import TabButton from './TabButton.vue';
 
 const panoptic = usePanopticStore()
-const project = useProjectStore()
 const tabStore = useTabStore()
 
-const editTab = ref(-1)
-const newTabName = ref('')
-const inputElem = ref(null)
 
 const props = defineProps<{
     reRender: Function
@@ -23,9 +19,7 @@ const props = defineProps<{
 const emits = defineEmits(['update:filterOpen'])
 
 async function addTab(event: any) {
-    let newTab = await tabStore.addTab('New Tab')
-    await nextTick()
-    // setEditTab(newTab.id)
+    await tabStore.addTab('New Tab')
 }
 
 const langs = ['fr', 'en']
