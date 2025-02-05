@@ -78,6 +78,9 @@ class Project:
             print(e)
             return False
 
+    async def wait_full_start(self):
+        await self._load_task
+
     async def _parallel_load(self):
         await self._load_settings()
         await self._load_sha1_to_files()

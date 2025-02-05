@@ -8,7 +8,7 @@ import pandas as pd
 from fastapi import UploadFile
 
 from panoptic.core.importer.parsing import parser
-from panoptic.utils import Trie
+from panoptic.utils import Trie, RelativePathTrie
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
@@ -159,17 +159,13 @@ class Importer:
         if file_key == 'path':
             pass
             paths = self._df[file_key]
-            paths = [f"/{path}" if not path.startswith("/") else path for path in paths]
-            trie = Trie()
-            for inst in instances:
-                url = inst.url.replace('\\', '/')
-                url = url[::-1]
-                trie.insert(url, inst.id)
+            trie = RelativePathTrie()
+            trie.insert_paths(instances)
             for path in paths:
                 if relative:
-                    ids = trie.search_by_prefix(path[::-1])
+                    ids = trie.search_relative_path(path)
                 else:
-                    ids = trie.search_by_word(path[::-1])
+                    ids = trie.search_absolute_path(path)
                 row_to_ids.append(ids)
 
             if fusion == 'first':

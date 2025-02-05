@@ -47,7 +47,6 @@ onMounted(() => {
 
 <template>
     <div class="d-flex d-row me-2" @mouseenter="isHover = true" @mouseleave="isHover = false">
-        <!-- <i class="btn-icon bi bi-pencil tab-icon me-2" :class="hover[tab.id] ? '' : 'hidden'" style="font-size: 9px;"></i> -->
         <template v-if="!isEdit">
             <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab"
                     class="bi bi-pencil me-1 tab-icon hover-light"
