@@ -41,6 +41,7 @@ async def empty_project(request, tmp_path):
 
     project = Project(str(project_path), [])
     await project.start()
+    await project.wait_full_start()
     # Yield the connection object to the test
     yield project
 
@@ -60,6 +61,7 @@ async def instance_project(request, tmp_path):
 
     project = Project(str(project_path), [])
     await project.start()
+    await project.wait_full_start()
     # Yield the connection object to the test
     yield project
 
@@ -79,6 +81,7 @@ async def data_project(request, tmp_path):
 
     project = Project(str(project_path), [])
     await project.start()
+    await project.wait_full_start()
     # Yield the connection object to the test
     yield project
 

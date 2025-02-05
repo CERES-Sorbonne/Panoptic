@@ -2,8 +2,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, Property, PropertyMode, InstanceProperty, DbCommit
-from panoptic.utils import Trie
+from panoptic.models import PropertyType, Property, PropertyMode, InstanceProperty, DbCommit, Instance
+from panoptic.utils import Trie, RelativePathTrie
 
 TAG_ID = 1
 MULTI_TAGS_ID = 2
@@ -18,6 +18,7 @@ CHECKBOX_ID = 8
 async def test_create_project(tmp_path: str):
     project = Project(tmp_path, [])
     await project.start()
+    await project.wait_full_start()
 
     instances = await project.db.get_instances()
     assert len(instances) == 0
@@ -857,16 +858,43 @@ async def test_update_tag_parent_ignore_cycles_3(data_project: Project):
     assert len(db_tag2.parents) == 0
 
 
-# def test_trie_relative():
-#     trie = Trie()
-#
-#     url1 = '/lala/Image_1.jpg'
-#     url2 = '/1.jpg'
-#     trie.insert(url1[::-1], 1)
-#     trie.insert(url2[::-1], 2)
-#
-#     search = '/1.jpg'
-#
-#     res = trie.search_by_prefix(search[::-1])
-#     print(res)
+async def test_trie(data_project: Project):
+    db = data_project.db
+    instance_index: dict[str, Instance] = {i.name: i for i in await db.get_instances()}
 
+    instance1 = instance_index['number_1.png']
+    instance2 = instance_index['number_2.png']
+    instance3 = instance_index['number_3.png']
+
+    instance1.url = 'D:\\some\\windows\\path.jpg'
+    instance2.url = '/some/unix/path.jpg'
+    instance3.url = 'D:/some/weird/windows/path.jpg'
+
+    win_global = 'D:\\some\\windows\\path.jpg'
+    win_local_1 = 'windows\\path.jpg'
+    win_local_2 = 'windows/path.jpg'
+
+    unix_global = '/some/unix/path.jpg'
+    unix_local = 'unix/path.jpg'
+    unix_no_slash = 'th.jpg'
+
+    trie = RelativePathTrie()
+    trie.insert_paths([instance1, instance2, instance3])
+
+    res1 = trie.search_absolute_path(win_global)
+    assert(res1[0] == instance1.id)
+
+    res2 = trie.search_relative_path(win_local_1)
+    assert (res2[0] == instance1.id)
+
+    res3 = trie.search_relative_path(win_local_2)
+    assert (res3[0] == instance1.id)
+
+    res4 = trie.search_absolute_path(unix_global)
+    assert (res4[0] == instance2.id)
+
+    res5 = trie.search_relative_path(unix_local)
+    assert (res5[0] == instance2.id)
+
+    res6 = trie.search_relative_path(unix_no_slash)
+    assert (len(res6) == 0)

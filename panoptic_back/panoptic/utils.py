@@ -265,6 +265,33 @@ class Trie:
             self._find_suffixes(child, suffixes)
 
 
+class RelativePathTrie(Trie):
+    def insert_paths(self, instances: list[Instance]):
+        for inst in instances:
+            path = inst.url
+            if not path.startswith('/'):
+                path = '/' + path
+            path = path.replace('\\', '/')
+            inverse = path[::-1]
+            self.insert(inverse, inst.id)
+
+    def search_relative_path(self, path):
+        if not path.startswith('/'):
+            path = '/' + path
+        path = path.replace('\\', '/')
+        inverse = path[::-1]
+        res = self.search_by_prefix(inverse)
+        return res
+
+    def search_absolute_path(self, path):
+        if not path.startswith('/'):
+            path = '/' + path
+        path = path.replace('\\', '/')
+        inverse = path[::-1]
+        res = self.search_by_word(inverse)
+        return res
+
+
 def chunk_list(input_list, n):
     """Split a list into chunks of a given size."""
     # Use a list comprehension to create chunks
