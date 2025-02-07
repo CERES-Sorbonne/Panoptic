@@ -9,8 +9,11 @@ import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
 import { EventEmitter, objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
-import { Ref, reactive } from "vue";
+import { Reactive, Ref, reactive } from "vue";
 
+export interface RunCollectionState {
+    isDirty: boolean
+}
 
 export function createCollectionState(): CollectionState {
     return { autoReload: true }
@@ -23,7 +26,7 @@ export class CollectionManager {
     sortManager: SortManager
     groupManager: GroupManager
 
-    isDirty: boolean
+    runState: Reactive<RunCollectionState>
 
     onStateChange: EventEmitter
 
@@ -32,6 +35,7 @@ export class CollectionManager {
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
         this.state = reactive({ autoReload: true })
+        this.runState = reactive({ isDirty: false })
 
         if (state) {
             Object.assign(this.state, state)
@@ -62,14 +66,15 @@ export class CollectionManager {
     }
 
     async setDirty(instanceIds?: Set<number>) {
-        this.isDirty = true
+        console.log('set dirty', instanceIds)
+        this.runState.isDirty = true
         if (this.state.autoReload) {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 this.groupManager.lastOrder = this.sortManager.result.order
                 this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
-                this.isDirty = false
+                this.runState.isDirty = false
             } else {
                 this.update()
             }
@@ -91,7 +96,7 @@ export class CollectionManager {
         const filterRes = await this.filterManager.filter(objValues(this.images))
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)
-        this.isDirty = false
+        this.runState.isDirty = false
     }
 
     private onFilter(result: FilterResult) {
