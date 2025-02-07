@@ -367,7 +367,7 @@ export class GroupManager {
         this.iterators = []
     }
 
-    addUpdatedToGroups(images: Instance[], order?: ImageOrder) {
+    addUpdatedToGroups(images: Instance[], order?: ImageOrder, emit?: boolean) {
         if (!this.result.root) {
             this.group(images, order)
             return
@@ -407,7 +407,10 @@ export class GroupManager {
         // console.timeEnd('group order')
 
         console.timeEnd('Group Update')
-        this.onResultChange.emit(this.result)
+        if(emit) {
+            // // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
         return this.result
     }
 
@@ -562,7 +565,10 @@ export class GroupManager {
         // console.timeEnd('group order')
 
         if (time) console.timeEnd('Group')
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
         return this.result
     }
 
@@ -573,7 +579,10 @@ export class GroupManager {
             if (group.children.length == 0) continue
             sortGroup(group, this.state.options[group.children[0].meta.propertyValues[0].propertyId])
         }
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit()
+        }
     }
 
     private saveImagesToGroup(group: Group) {
@@ -617,7 +626,10 @@ export class GroupManager {
         this.clearSelection()
         this.customGroups = {}
         this.lastOrder = {}
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit()
+        }
     }
 
     emptyRoot(emit?: boolean) {
@@ -634,6 +646,7 @@ export class GroupManager {
             this.groupBySha1(this.result.root)
         }
         if (emit) {
+            // console.log('Group Update Emit')
             this.onResultChange.emit()
         }
     }
@@ -744,6 +757,7 @@ export class GroupManager {
             group.dirty = false
         }
         setOrder(this.result.root)
+        // console.log('Group Update Emit')
         this.onResultChange.emit(this.result)
     }
 
@@ -762,7 +776,10 @@ export class GroupManager {
             this.groupLeafsBySha1()
         }
 
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     setGroupOption(propertyId: number, option?: GroupOption) {
@@ -803,14 +820,20 @@ export class GroupManager {
             })
         }
         setOrder(this.result.root)
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     delCustomGroups(targetGroupId: number, emit?: boolean) {
         delete this.customGroups[targetGroupId]
         this.removeChildren(this.result.index[targetGroupId])
 
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     clearCustomGroups(emit?: boolean) {
@@ -818,7 +841,10 @@ export class GroupManager {
             this.delCustomGroups(groupId)
         }
 
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     setSha1Mode(value: boolean, emit?: boolean) {
@@ -833,25 +859,37 @@ export class GroupManager {
             this.removeSha1Groups()
         }
         this.onStateChange.emit()
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     toggleGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = this.result.index[groupId].view.closed ? false : true
 
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     openGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = false
 
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     closeGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = true
 
-        if (emit) this.onResultChange.emit()
+        if (emit) {
+            // console.log('Group Update Emit')
+            this.onResultChange.emit(this.result)
+        }
     }
 
     getGroupIterator(groupId?: number, options?: GroupIteratorOptions) {

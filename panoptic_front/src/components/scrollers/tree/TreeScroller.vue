@@ -108,7 +108,7 @@ function GroupToLines(it: GroupIterator) {
 
 function computeLines() {
     if (!props.groupManager.result.root) return
-    // console.time('compute lines')
+    // console.log('compute lines')
     // console.time('compute lines2')
     clear()
     let it = props.groupManager.getGroupIterator()
@@ -258,8 +258,8 @@ function toggleGroupSelect(groupId: number) {
 }
 
 function triggerUpdate() {
-    // triggerRef(imageLines)
-    // console.log('trigger ref')
+    console.log('trigger update')
+    computeLines()
 }
 
 
@@ -333,7 +333,7 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
                         :selected-images="props.groupManager.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
-                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" @update="computeLines()" />
+                        @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                 </div>
                 <div v-else-if="item.type == 'piles'">
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
@@ -342,7 +342,7 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
                         :selected-images="props.groupManager.selectedImages" :sha1-scores="props.sha1Scores"
                         :preview="props.preview" @update:selected-image="e => updateImageSelection(e, item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
-                        @update="computeLines()" />
+                        />
                 </div>
                 <div v-else-if="item.type == 'filler'">
                     <div :style="{ height: item.size + 'px' }" class=""></div>
