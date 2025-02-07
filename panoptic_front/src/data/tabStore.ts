@@ -43,6 +43,7 @@ export const useTabStore = defineStore('tabStore', () => {
         loadedTabs.value.push(tab.id)
         let manager = new TabManager(tab)
         managers[tab.id] = manager
+        manager.deactivate()
     }
 
     function getTab(id: number) {
@@ -105,8 +106,13 @@ export const useTabStore = defineStore('tabStore', () => {
 
     function selectMainTab(id: number) {
         if(!managers[id]) return
-        mainTab.value = id
 
+        for(let manager of objValues(managers)) {
+            manager.deactivate()
+        }
+
+        mainTab.value = id
+        managers[id].activate()
         managers[id].update()
     }
 
