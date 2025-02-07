@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { useProjectStore } from '@/data/projectStore';
 import { computed } from 'vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
-
-const project = useProjectStore()
 
 const props = defineProps<{
     tab: TabManager
@@ -15,7 +12,7 @@ const mode = computed(() => {
     if (props.tab.collection.state.autoReload) {
         return 2
     }
-    if (props.tab.collection.isDirty) {
+    if (props.tab.collection.runState.isDirty) {
         return 0
     }
     return 1
