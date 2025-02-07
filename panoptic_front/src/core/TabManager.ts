@@ -23,6 +23,7 @@ export class TabManager {
         this.collection.filterManager.onStateChange.addListener(this.saveManagerStates.bind(this))
         this.collection.groupManager.onStateChange.addListener(this.saveManagerStates.bind(this))
         this.collection.sortManager.onStateChange.addListener(this.saveManagerStates.bind(this))
+        this.collection.onStateChange.addListener(this.saveManagerStates.bind(this))
     }
 
     async update() {
