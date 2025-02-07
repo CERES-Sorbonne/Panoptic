@@ -2,7 +2,7 @@
 import { ScrollerLine, Property, ImageLine } from '@/data/models';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
-import { Ref, computed } from 'vue';
+import { Ref, computed, onMounted } from 'vue';
 
 
 const props = defineProps<{
@@ -17,7 +17,7 @@ const props = defineProps<{
     preview?: Ref<SelectedImages>,
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'update:selected-image'])
 
 const selected = computed(() => {
     const res = {}
@@ -30,7 +30,6 @@ const preview = computed(() => {
     props.item.data.forEach(it => res[it.image.id] = props.preview?.value[it.image.id])
     return res
 })
-
 </script>
 
 <template>

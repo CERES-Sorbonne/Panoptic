@@ -59,12 +59,6 @@ function updateScrollerHeight() {
     }
 }
 
-props.tab.collection.groupManager.onResultChange.addListener(() => {
-    if (imageList.value && props.tab.state.display == 'tree') {
-        imageList.value.computeLines()
-    }
-})
-
 function setRecoImages(groupId: number) {
     recoGroup.value = props.tab.collection.groupManager.result.index[groupId]
     nextTick(() => updateScrollerHeight())

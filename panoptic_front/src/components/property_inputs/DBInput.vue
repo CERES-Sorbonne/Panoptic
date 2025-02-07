@@ -30,13 +30,15 @@ function loadValue() {
     localValue.value = propValue.value
 }
 
-onMounted(loadValue)
-watch(propValue, loadValue)
-watch(props, async () => {
+async function forceUpdate() {
     valid.value = false
     await nextTick()
     valid.value = true
-})
+}
+
+onMounted(loadValue)
+watch(propValue, loadValue)
+watch(() => props.instance.id, forceUpdate)
 </script>
 
 <template>

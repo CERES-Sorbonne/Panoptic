@@ -35,7 +35,6 @@ const rowLines = ref([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
 const currentGroup = reactive({} as Group)
-const resizeEvent = shallowRef(null)
 const visibleProperties = computed(() => props.selectedProperties.filter(p => {
     return p.mode == PropertyMode.sha1 || props.manager.state.sha1Mode == false
 }))

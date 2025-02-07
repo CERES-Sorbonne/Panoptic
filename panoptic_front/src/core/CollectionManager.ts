@@ -78,6 +78,7 @@ export class CollectionManager {
     }
 
     async update() {
+        // console.log('collection update')
         const data = useDataStore()
         if(this.state.instances) {
             this.images = {}
@@ -107,6 +108,7 @@ export class CollectionManager {
     }
 
     updateInstances(instanceIds: Set<number>) {
+        console.log('update instances', instanceIds)
         this.setDirty(instanceIds)
     }
 }

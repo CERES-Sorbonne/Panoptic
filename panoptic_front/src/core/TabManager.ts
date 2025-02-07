@@ -27,7 +27,7 @@ export class TabManager {
 
     async update() {
         this.verifyState()
-        await this.collection.update()
+            await this.collection.update()
     }
 
     verifyState() {
