@@ -31,6 +31,14 @@ export class TabManager {
             await this.collection.update()
     }
 
+    async deactivate() {
+        this.collection.runState.active = false
+    }
+
+    async activate() {
+        this.collection.runState.active = true
+    }
+
     verifyState() {
         const data = useDataStore()
         this.collection.verifyState()

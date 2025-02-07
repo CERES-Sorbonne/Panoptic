@@ -13,6 +13,7 @@ import { Reactive, Ref, reactive } from "vue";
 
 export interface RunCollectionState {
     isDirty: boolean
+    active: boolean
 }
 
 export function createCollectionState(): CollectionState {
@@ -35,7 +36,7 @@ export class CollectionManager {
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
         this.state = reactive({ autoReload: true })
-        this.runState = reactive({ isDirty: false })
+        this.runState = reactive({ isDirty: false, active: true })
 
         if (state) {
             Object.assign(this.state, state)
@@ -66,8 +67,11 @@ export class CollectionManager {
     }
 
     async setDirty(instanceIds?: Set<number>) {
-        console.log('set dirty', instanceIds)
         this.runState.isDirty = true
+        if(!this.runState.active) {
+            return
+        }
+
         if (this.state.autoReload) {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
