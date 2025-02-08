@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
-import { ActionContext, ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore'
+import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import PropertyValueVue from '../properties/PropertyValue.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { Group } from '@/core/GroupManager';
@@ -10,17 +9,18 @@ import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils';
 import ActionSelect from '../actions/ActionSelect.vue';
+import { TabManager } from '@/core/TabManager';
 
 
 interface Sha1Pile {
     sha1: string
     images: Instance[]
 }
-const project = useProjectStore()
 const data = useDataStore()
 const actions = useActionStore()
 
 const props = defineProps<{
+    tab: TabManager
     imageSize: number
     group: Group
     width: number
@@ -155,7 +155,7 @@ async function getReco() {
     let group = groups[0]
 
     if (useFilter.value) {
-        const valid = new Set(project.getTabManager().collection.filterManager.result.images.map(i => i.id))
+        const valid = new Set(props.tab.collection.filterManager.result.images.map(i => i.id))
         group.images = group.images.filter(i => valid.has(i.id))
     }
 
