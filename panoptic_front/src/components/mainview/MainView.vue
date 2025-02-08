@@ -102,7 +102,7 @@ onMounted(() => props.tab.update())
     </div>
     <div ref="boxElem" class="m-0 p-0">
         <div v-if="recoGroup.id" class="m-0 p-0">
-            <RecommendedMenu :group="recoGroup" :image-size="props.tab.state.imageSize" :width="scrollerWidth"
+            <RecommendedMenu :tab="props.tab" :group="recoGroup" :image-size="props.tab.state.imageSize" :width="scrollerWidth"
                 :height="50" @close="closeReco" @scroll="imageList.scrollTo"
                 @update="nextTick(() => updateScrollerHeight())" />
         </div>
