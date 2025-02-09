@@ -222,6 +222,14 @@ watch(useFilter, getReco)
 
             <div class="b-left pe-1"></div>
 
+            <wTT message="main.recommand.reload">
+                <div class="text-secondary pe-1" @click="getReco">
+                    <span class="bi bi-arrow-clockwise bb"></span>
+                </div>
+            </wTT>
+
+            <div class="b-left pe-1"></div>
+
             <!-- <div style="border-right: 1px solid black; height: 20px;"></div> -->
             <wTT icon-pos="left" message="main.recommand.tooltip" :icon="true"><span class="text-secondary me-2">{{
                 $t('main.recommand.title') }}</span></wTT>
