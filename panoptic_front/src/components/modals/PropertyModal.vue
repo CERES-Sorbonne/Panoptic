@@ -7,9 +7,11 @@ import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
 import PropertyModeDropdown from '../dropdowns/PropertyModeDropdown.vue';
 import Modal2 from './Modal2.vue';
+import { useTabStore } from '@/data/tabStore';
 
 const project = useProjectStore()
 const data = useDataStore()
+const tabStore = useTabStore()
 
 const newProperty = reactive({}) as Property
 
@@ -33,7 +35,7 @@ async function saveProperty(hide) {
     }
 
     const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
-    project.getTabManager().setVisibleProperty(prop.id, true)
+    tabStore.getMainTab().setVisibleProperty(prop.id, true)
     hide()
 }
 
