@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
-import { GroupScoreList, Instance } from '@/data/models';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { GroupScoreList, Instance, ScoreInterval } from '@/data/models';
+import { computed, onMounted, Reactive, reactive, ref, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { useProjectStore } from '@/data/projectStore';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import ActionSelect from '@/components/actions/ActionSelect.vue';
 import { convertSearchGroupResult, deepCopy, sortGroupByScore } from '@/utils/utils';
 import Slider from '@vueform/slider'
-const project = useProjectStore()
+import { useProjectStore } from '@/data/projectStore';
+import { useTabStore } from '@/data/tabStore';
 const actions = useActionStore()
 const data = useDataStore()
-
+const project = useProjectStore()
+const tabStore = useTabStore()
 
 const props = defineProps<{
     image: Instance
@@ -32,7 +33,7 @@ const scrollerElem = ref(null)
 
 
 const searchResult = ref<Group>(null)
-const scoreInterval = reactive({
+const scoreInterval: Reactive<ScoreInterval> = reactive({
     min: 0,
     max: 100,
     maxIsBest: true,
@@ -55,6 +56,7 @@ async function setSimilar() {
         sortGroupByScore(group)
     }
     searchResult.value = group
+    setDefaultInterval()
     updateInterval(group.scores)
     updateSimilarGroup()
 }
@@ -64,7 +66,7 @@ function updateSimilarGroup() {
     let group = deepCopy(searchResult.value)
     if(useFilter.value) {
         let valid = {}
-        project.getTabManager().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
+        tabStore.getMainTab().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
         group.images = group.images.filter(i => valid[i.id])
     }
     group.images = group.images.filter(i => group.scores.valueIndex[i.id] >= scoreInterval.values[0] && group.scores.valueIndex[i.id] <= scoreInterval.values[1])
@@ -113,11 +115,24 @@ function updateInterval(score: GroupScoreList) {
     scoreInterval.values = [v0, v1]
 }
 
+function setDefaultInterval() {
+    const intervals = project.data.similarityIntervals
+    const func = actions.defaultActions['similar']
+    if(!func || !intervals[func.id]) {
+        return
+    }
+    Object.assign(scoreInterval, intervals[func.id])
+}
+
 onMounted(setSimilar)
+onMounted(setDefaultInterval)
 watch(() => props.image, setSimilar)
 watch(() => scoreInterval.values, updateSimilarGroup)
 watch(() => props.width, updateSimilarGroup)
 watch(useFilter, updateSimilarGroup)
+watch(scoreInterval, () => {
+    project.data.similarityIntervals[actions.defaultActions['similar'].id] = deepCopy(scoreInterval)
+})
 </script>
 
 <template>

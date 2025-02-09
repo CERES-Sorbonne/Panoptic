@@ -1,4 +1,4 @@
-import { PropertyMode, TabState } from "@/data/models"
+import { PropertyMode, ScoreInterval, TabState } from "@/data/models"
 import { CollectionManager } from "./CollectionManager"
 import { useProjectStore } from "@/data/projectStore"
 import { reactive, toRefs } from "vue"

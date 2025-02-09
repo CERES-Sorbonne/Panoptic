@@ -12,7 +12,7 @@ import { apiGetTabs, apiSetTabs } from "./api";
 
 const TAB_LIST_KEY = 'tab_list'
 const TAB_PREFIX = 'tab_id_'
-export const TAB_MODEL_VERSION = 1
+export const TAB_MODEL_VERSION = 6
 
 let managers: {[tabId: number]: TabManager} = {}
 
