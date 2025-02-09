@@ -6,7 +6,7 @@
 
 import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
-import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
+import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings } from "./api";
 import { sleep } from "@/utils/utils";
@@ -34,7 +34,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         plugins: [] as PluginDescription[],
         vectors: {} as ProjectVectorDescription,
         counter: 0,
-        settings: {} as ProjectSettings
+        settings: {} as ProjectSettings,
+        similarityIntervals: {} as {[key: string]: ScoreInterval}
     })
 
     const status = reactive({
@@ -62,7 +63,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         // console.time('Request')
         // let dbState = await apiGetDbState()
         // console.timeEnd('Request')
-
         let plugins = await apiGetPluginsInfo()
         let apiActions = await apiGetActions()
         let vectors = await apiGetVectorInfo()

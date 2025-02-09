@@ -174,16 +174,17 @@ export interface FolderIndex {
 //==============Tab==================
 //===================================
 
-// export interface Tab {
-//     id?: number
-//     state: TabState
-
-//     collection?: CollectionManager
-// }
-
 export interface CollectionState {
     autoReload: boolean,
     instances?: number[]
+}
+
+export interface ScoreInterval {
+    min: number
+    max: number
+    maxIsBest: boolean
+    values: number[]
+    description: string
 }
 
 export interface TabState {
@@ -202,10 +203,7 @@ export interface TabState {
     visibleProperties: { [key: number]: boolean }
     visibleFolders: { [key: number]: boolean }
     selectedFolders: { [key: number]: boolean }
-    sha1Mode: boolean
     propertyOptions: { [key: number]: PropertyOption }
-    similarityDist: number
-    autoReload: boolean
 }
 
 export interface TabData {
