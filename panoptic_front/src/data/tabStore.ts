@@ -87,6 +87,7 @@ export const useTabStore = defineStore('tabStore', () => {
         await saveTabsToStorage()
         mainTab.value = id
         managers[id].isNew = true
+        selectMainTab(id)
         return tab
     }
 
