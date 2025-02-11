@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import ImageRecomended from './ImageRecomended.vue';
 import { ImagePropertyValue, Instance, InstancePropertyValue, PropertyMode, PropertyType, PropertyValue } from '@/data/models';
 import PropertyValueVue from '../properties/PropertyValue.vue';
@@ -40,16 +40,8 @@ const blacklist = reactive(new Set())
 
 const useFilter = ref(true)
 
-function removeImage(img: Instance) {
-    const group = searchResult.value
-    if (group.isSha1Group) {
-        group.images = group.images.filter(i => i.sha1 != img.sha1)
-    } else {
-        group.images = group.images.filter(i => i.id != img.id)
-    }
-    searchResult.value = group
-    computeLines()
-}
+const similarImages: number[] = []
+const activeImages: number[] = []
 
 async function acceptRecommend(image: Instance) {
     const imageValues: ImagePropertyValue[] = []
@@ -74,7 +66,6 @@ async function acceptRecommend(image: Instance) {
         }
     })
     await data.setPropertyValues(instanceValues, imageValues)
-    removeImage(image)
 }
 
 function refuseRecommend(image: Instance) {
@@ -83,14 +74,15 @@ function refuseRecommend(image: Instance) {
     } else {
         blacklist.add(image.id)
     }
-    removeImage(image)
+    updateActive()
 }
 
 function computeLines() {
     lines.length = 0
     // console.log(props.width, props.imageSize)
     let piles = []
-    const images = searchResult.value.images
+    // const images = searchResult.value.images
+    const images = activeImages.map(id => data.instances[id])
     if (searchResult.value.isSha1Group) {
         const index = {}
         const sha1s = Array.from(new Set(images.map(i => i.sha1)))
@@ -172,14 +164,45 @@ async function getReco() {
     }
 
     blacklist.clear()
-    computeLines()
 
+    similarImages.length = 0
+    group.images.forEach(i => similarImages.push(i.id))
+    updateActive()
     emits('update')
 }
 
 function toggleFilter() {
     useFilter.value = !useFilter.value
 }
+
+function init() {
+    const manager = props.tab.collection.groupManager
+    manager.onResultChange.addListener(updateActive)
+}
+
+function close() {
+    const manager = props.tab.collection.groupManager
+    manager.onResultChange.removeListener(updateActive)
+}
+
+function updateActive() {
+    const group = props.tab.collection.groupManager.result.index[props.group.id]
+    if(!group) {
+        emits('close')
+        return
+    }
+    activeImages.length = 0
+    const groupImages = new Set(group.images.map(i => i.id))
+    similarImages.forEach( id => {
+        if(groupImages.has(id) || blacklist.has(id)) return
+        activeImages.push(id)
+    })
+
+    computeLines()
+}
+
+onMounted(init)
+onUnmounted(close)
 
 onMounted(getReco)
 watch(() => props.group, () => {

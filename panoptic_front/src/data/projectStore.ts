@@ -160,6 +160,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         backendStatus.value = null
         routine = 0
         dataStore.clear()
+        useTabStore().clear()
 
     }
 

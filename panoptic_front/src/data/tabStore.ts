@@ -32,6 +32,7 @@ export const useTabStore = defineStore('tabStore', () => {
         loaded.value = false
         mainTab.value = null
         managers = {}
+        loadedTabs.value = []
     }
 
     function importTab(tab: TabState) {
