@@ -30,7 +30,9 @@ Since it requires deep learning libraries, it is recommended to use it on a comp
 > Warning: Panoptic is still in active development and currently only a prototype. You may encounter bugs, so we recommend using this tool only for testing and not relying on it for significant academic work.
 
 ## 2. Installation
-### 2.1 Via pip
+### 2.1 Via pip:
+Recommended way if you already have python !
+We also recommended creating a virtualenv to avoid any existing conflicts. 
 <p style="color: red;">
 Regardless of your OS, you will need Python 3.10 or higher; we recommend using version 3.12.
 </p>
@@ -53,37 +55,8 @@ The script may ask for your password to install dependencies. This is necessary 
 
 #### 2.2.1 Windows
 
-Here are the two commands to run to install Panoptic on Windows:
-
-```powershell
-curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1
-powershell -ExecutionPolicy Bypass -File start_panoptic_windows.ps1
-```
-
-
-For more detailed steps:
-
-1. Download the automatic installation and launch script for Panoptic by clicking the following link: [start_panoptic_windows.ps1](https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1) or directly from the terminal with the following command:
-
-```powershell
-curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_windows.ps1
-```
-
-
-2. Run the script by double-clicking the file or using the following command:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File start_panoptic_windows.ps1
-```
-
-
-#### Post-installation
-
-After installation, you can launch Panoptic by going back to the folder where you executed the installation script and running the following command:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File start-panoptic.ps1
-```
+We have a prebuild [launcher hosted here: ](https://github.com/CERES-Sorbonne/Panoptic/blob/main/install/windows/panoptic.exe) you can use it to install and then launch panoptic.
+Note that you might have a warning message from windows but if you're here we guess you trust us, if you don't you can still use the python installer !
 
 
 #### 2.2.2 Linux
