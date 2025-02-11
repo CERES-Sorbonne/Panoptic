@@ -581,7 +581,7 @@ export class GroupManager {
         }
         if (emit) {
             // console.log('Group Update Emit')
-            this.onResultChange.emit()
+            this.onResultChange.emit(this.result)
         }
     }
 
@@ -628,7 +628,7 @@ export class GroupManager {
         this.lastOrder = {}
         if (emit) {
             // console.log('Group Update Emit')
-            this.onResultChange.emit()
+            this.onResultChange.emit(this.result)
         }
     }
 
@@ -647,7 +647,7 @@ export class GroupManager {
         }
         if (emit) {
             // console.log('Group Update Emit')
-            this.onResultChange.emit()
+            this.onResultChange.emit(this.result)
         }
     }
 

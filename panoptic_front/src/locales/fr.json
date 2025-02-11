@@ -108,7 +108,8 @@
             "group": "Aller au groupe",
             "close": "Fermer les propsitions",
             "scroll": "Retrouver le groupe dans la vue",
-            "filter": "Activer/Désactiver le filtre global d'image dans les propositions"
+            "filter": "Activer/Désactiver le filtre global d'image dans les propositions",
+            "reload": "Recharger les propositions"
         },
         "view": {
             "all_group": "Toutes",
