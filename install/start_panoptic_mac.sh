@@ -41,7 +41,7 @@ else
     echo "Installation de panoptic dans l'environnement virtuel..."
     source $ENV_DIR/bin/activate
     $PIP_EXEC install --upgrade pip
-    $PIP_EXEC install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    $PIP_EXEC install torch==2.1.2 torchvision==2.1.2 --index-url https://download.pytorch.org/whl/cpu
     $PIP_EXEC install panoptic
 fi
 
