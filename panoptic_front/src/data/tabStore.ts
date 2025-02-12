@@ -9,12 +9,13 @@ import { TabState } from "./models";
 import { TabManager } from "@/core/TabManager";
 import { buildTabState, objValues } from "./builder";
 import { apiGetTabs, apiSetTabs } from "./api";
+import { useProjectStore } from "./projectStore";
 
 const TAB_LIST_KEY = 'tab_list'
 const TAB_PREFIX = 'tab_id_'
 export const TAB_MODEL_VERSION = 6
 
-let managers: {[tabId: number]: TabManager} = {}
+let managers: { [tabId: number]: TabManager } = {}
 
 export const useTabStore = defineStore('tabStore', () => {
 
@@ -37,7 +38,7 @@ export const useTabStore = defineStore('tabStore', () => {
 
     function importTab(tab: TabState) {
         let id = tab.id
-        if(loadedTabs.value.includes(id)) {
+        if (loadedTabs.value.includes(id)) {
             console.warn('import tab that already exist. why ?')
             return
         }
@@ -59,31 +60,36 @@ export const useTabStore = defineStore('tabStore', () => {
         const tabs = await apiGetTabs()
         const tabList = objValues(tabs)
         const toLoad = []
-        for(let tab of tabList) {
-            if(!tab || tab.version != TAB_MODEL_VERSION) continue
+        for (let tab of tabList) {
+            if (!tab || tab.version != TAB_MODEL_VERSION) continue
             toLoad.push(tab)
         }
 
-        for(let tab of toLoad) {
+        for (let tab of toLoad) {
             importTab(tab)
         }
 
-        if(!toLoad.length) {
+        if (!toLoad.length) {
             await addTab()
         }
 
-        selectMainTab(loadedTabs.value[0])
+        const activeTab = useProjectStore().data.uiState?.activeTab
+        if (activeTab && loadedTabs.value.includes(activeTab)) {
+            selectMainTab(activeTab)
+        } else {
+            selectMainTab(loadedTabs.value[0])
+        }
     }
 
     async function addTab(name?: string) {
         const tab = buildTabState()
         let id = 1
-        if(loadedTabs.value.length) {
+        if (loadedTabs.value.length) {
             let maxId = Math.max(...loadedTabs.value)
             id = maxId + 1
         }
         tab.id = id
-        if(name) tab.name = name
+        if (name) tab.name = name
         importTab(tab)
         await saveTabsToStorage()
         mainTab.value = id
@@ -101,26 +107,29 @@ export const useTabStore = defineStore('tabStore', () => {
         console.log('main tab', mainTab.value, id)
         if (mainTab.value == id && loadedTabs.value.length) {
             selectMainTab(loadedTabs.value[0])
-        } else if(!loadedTabs.value.length) {
+        } else if (!loadedTabs.value.length) {
             addTab()
         }
     }
 
     function selectMainTab(id: number) {
-        if(!managers[id]) return
+        if (!managers[id]) return
 
-        for(let manager of objValues(managers)) {
+        for (let manager of objValues(managers)) {
             manager.deactivate()
         }
 
         mainTab.value = id
         managers[id].activate()
         managers[id].update()
+
+        useProjectStore().data.uiState.activeTab = id
+        useProjectStore().saveUiState()
     }
 
     async function saveTabsToStorage() {
         const tabs = {}
-        for(let id of loadedTabs.value) {
+        for (let id of loadedTabs.value) {
             tabs[id] = managers[id].state
         }
         await apiSetTabs(tabs)

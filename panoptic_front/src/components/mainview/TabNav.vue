@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
+const { locale } = useI18n();
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
-import { ModalId, TabState } from '@/data/models';
+import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useTabStore } from '@/data/tabStore';
 import TabButton from './TabButton.vue';
@@ -28,6 +29,13 @@ function toggleFilter() {
     emits('update:filterOpen', !props.filterOpen)
 }
 
+function onChangeLang(event) {
+    props.reRender()
+    const lang = event.target.value;
+    locale.value = lang;
+    useProjectStore().setLang(lang)
+}
+
 </script>
 
 <template>
@@ -50,7 +58,7 @@ function toggleFilter() {
             </div>
             <div class="lang">
                 <i class="bi bi-translate" style="margin-right:0.5rem"></i>
-                <select v-model="$i18n.locale" @change="props.reRender()">
+                <select :value="$i18n.locale" @change="onChangeLang">
                     <option v-for="(lang, i) in langs" :key="`Lang${i}`" :value="lang">
                         {{ lang.toUpperCase() }}
                     </option>

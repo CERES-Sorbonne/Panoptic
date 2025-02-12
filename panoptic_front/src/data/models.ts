@@ -535,6 +535,11 @@ export interface ProjectSettings {
     saveFileRaw: boolean
 }
 
+export interface UiState {
+    activeTab?: number
+    lang?: string
+}
+
 
 // ========= Notifications =========
 
