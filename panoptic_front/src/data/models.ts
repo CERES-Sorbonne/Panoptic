@@ -538,6 +538,7 @@ export interface ProjectSettings {
 export interface UiState {
     activeTab?: number
     lang?: string
+    similarityIntervals: {[key: string]: ScoreInterval}
 }
 
 

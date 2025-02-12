@@ -9,7 +9,7 @@ import { nextTick, reactive, ref, shallowRef } from "vue";
 import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, TabState, UiState, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
 import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
-import { sleep } from "@/utils/utils";
+import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
@@ -35,8 +35,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         vectors: {} as ProjectVectorDescription,
         counter: 0,
         settings: {} as ProjectSettings,
-        uiState: {} as UiState,
-        similarityIntervals: {} as {[key: string]: ScoreInterval}
+        uiState: { similarityIntervals: {} } as UiState,
     })
 
     const status = reactive({
@@ -46,7 +45,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         renderNb: 0,
         onUndo: 0,
         import: {} as ImportState,
-        uiState: {} as UiState
     })
 
     const actions = ref({} as Actions)
@@ -149,7 +147,8 @@ export const useProjectStore = defineStore('projectStore', () => {
             plugins: [] as PluginDescription[],
             vectors: {} as ProjectVectorDescription,
             counter: 0,
-            settings: {} as ProjectSettings
+            settings: {} as ProjectSettings,
+            uiState: { similarityIntervals: {} } as UiState,
         })
 
         Object.assign(status, {
@@ -205,12 +204,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.vectors = await apiSetDefaultVector(vector)
     }
 
-
-
     async function call(req: ExecuteActionPayload) {
         const res = await apiCallActions(req)
-        if(!res) return
-        if(res.notifs) {
+        if (!res) return
+        if (res.notifs) {
             const panoptic = usePanopticStore()
             panoptic.notify(res.notifs)
         }
@@ -231,12 +228,20 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function loadUiState() {
         const res = await apiGetUIData('uiState')
-        if(res) {
+        if (res) {
             data.uiState = res
 
-            if(data.uiState.lang) {
-                locale.value  = data.uiState.lang
+            if (data.uiState.lang) {
+                locale.value = data.uiState.lang
             }
+        }
+
+        correctUiState()
+    }
+
+    function correctUiState() {
+        if (!data.uiState.similarityIntervals) {
+            data.uiState.similarityIntervals = {}
         }
     }
 
@@ -247,6 +252,11 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function saveUiState() {
         await apiSetUIData('uiState', data.uiState)
+    }
+
+    async function updateScoreInterval(funcId: string, interval: ScoreInterval) {
+        data.uiState.similarityIntervals[funcId] = deepCopy(interval)
+        await saveUiState()
     }
 
     return {
@@ -260,6 +270,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         updatePluginInfos, setPluginParams, saveUiState,
         call,
         actions,
+        updateScoreInterval,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
         backendStatus, reload,

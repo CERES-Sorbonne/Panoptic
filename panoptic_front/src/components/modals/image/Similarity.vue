@@ -116,7 +116,7 @@ function updateInterval(score: GroupScoreList) {
 }
 
 function setDefaultInterval() {
-    const intervals = project.data.similarityIntervals
+    const intervals = project.data.uiState.similarityIntervals
     const func = actions.defaultActions['similar']
     if(!func || !intervals[func.id]) {
         return
@@ -131,7 +131,7 @@ watch(() => scoreInterval.values, updateSimilarGroup)
 watch(() => props.width, updateSimilarGroup)
 watch(useFilter, updateSimilarGroup)
 watch(scoreInterval, () => {
-    project.data.similarityIntervals[actions.defaultActions['similar'].id] = deepCopy(scoreInterval)
+    project.updateScoreInterval(actions.defaultActions['similar'].id, scoreInterval)
 })
 </script>
 
