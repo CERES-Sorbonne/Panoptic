@@ -6,13 +6,14 @@
 
 import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
-import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, TabState, VectorDescription } from "./models";
+import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, TabState, UiState, VectorDescription } from "./models";
 import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings } from "./api";
+import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
 import { sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
+import { useI18n } from 'vue-i18n';
 
 export const test = shallowRef({ count: 0 })
 
@@ -23,10 +24,9 @@ export const useProjectStore = defineStore('projectStore', () => {
     let routine = 0
 
     const dataStore = useDataStore()
+    const { locale } = useI18n();
 
     const showTutorial = ref(false)
-    // const images = shallowRef({} as ImageIndex)
-    const images = shallowRef({})
 
     const data = reactive({
         tabs: {} as TabIndex,
@@ -35,6 +35,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         vectors: {} as ProjectVectorDescription,
         counter: 0,
         settings: {} as ProjectSettings,
+        uiState: {} as UiState,
         similarityIntervals: {} as {[key: string]: ScoreInterval}
     })
 
@@ -44,7 +45,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         changed: false,
         renderNb: 0,
         onUndo: 0,
-        import: {} as ImportState
+        import: {} as ImportState,
+        uiState: {} as UiState
     })
 
     const actions = ref({} as Actions)
@@ -89,6 +91,8 @@ export const useProjectStore = defineStore('projectStore', () => {
 
         // TODO: put back
         // countImagePerFolder(data.folders, imageList.value)
+
+        await loadUiState()
 
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
@@ -225,22 +229,41 @@ export const useProjectStore = defineStore('projectStore', () => {
         data.settings = res
     }
 
+    async function loadUiState() {
+        const res = await apiGetUIData('uiState')
+        if(res) {
+            data.uiState = res
+
+            if(data.uiState.lang) {
+                locale.value  = data.uiState.lang
+            }
+        }
+    }
+
+    async function setLang(lang: string) {
+        data.uiState.lang = lang
+        await saveUiState()
+    }
+
+    async function saveUiState() {
+        await apiSetUIData('uiState', data.uiState)
+    }
+
     return {
         // variables
         data, status,
-        images,
 
         // functions
         init, clear, rerender,
         updateSettings,
         uploadPropFile, clearImport,
-        updatePluginInfos, setPluginParams,
+        updatePluginInfos, setPluginParams, saveUiState,
         call,
         actions,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         setDefaultVectors,
         backendStatus, reload,
-        showTutorial
+        showTutorial, setLang
     }
 
 })
