@@ -535,6 +535,12 @@ export interface ProjectSettings {
     saveFileRaw: boolean
 }
 
+export interface UiState {
+    activeTab?: number
+    lang?: string
+    similarityIntervals: {[key: string]: ScoreInterval}
+}
+
 
 // ========= Notifications =========
 

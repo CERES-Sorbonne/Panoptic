@@ -217,10 +217,19 @@ create_venv () {
     echo "Installation de panoptic dans l'environnement virtuel..."
     source "$VENV_DIR"/bin/activate
     $PIP_EXEC install --upgrade pip
-    $PIP_EXEC install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+    read -p "Si vous possédez une carte graphique NVIDIA, vous pouvez entrer 'y' pour installer une version plus rapide de torch : " NVIDIA_CHOICE
+
+    if [ "$NVIDIA_CHOICE" = "y" ]; then
+        $PIP_EXEC install torch torchvision
+    else
+        $PIP_EXEC install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    fi
+
     $PIP_EXEC install panoptic
     echo "L'environnement virtuel '$VENV_DIR' a été créé et panoptic a été installé."
 }
+
 
 # Fonction pour recréer l'environnement virtuel
 recreate () {
