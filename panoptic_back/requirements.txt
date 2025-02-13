@@ -11,8 +11,6 @@ uvicorn
 python-multipart
 pypika
 orjson
-torch
-faiss-cpu
 requests
 pydantic
 psutil
