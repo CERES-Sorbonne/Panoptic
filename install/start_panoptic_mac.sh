@@ -41,9 +41,17 @@ else
     echo "Installation de panoptic dans l'environnement virtuel..."
     source $ENV_DIR/bin/activate
     $PIP_EXEC install --upgrade pip
-    $PIP_EXEC install torch==2.1.2 torchvision==2.1.2 --index-url https://download.pytorch.org/whl/cpu
+
+    read -p "Si vous possédez une carte graphique NVIDIA, entrez 'y' pour installer une version plus rapide de torch : " NVIDIA_CHOICE
+
+    if [ "$NVIDIA_CHOICE" = "y" ]; then
+        $PIP_EXEC install torch==2.1.2 torchvision
+    else
+        $PIP_EXEC install torch==2.1.2 torchvision --index-url "https://download.pytorch.org/whl/cpu"
+    fi
     $PIP_EXEC install panoptic
 fi
+
 
 # Active l'environnement virtuel
 source $ENV_DIR/bin/activate
