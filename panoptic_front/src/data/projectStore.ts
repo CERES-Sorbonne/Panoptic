@@ -6,9 +6,8 @@
 
 import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
-import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, TabState, UiState, VectorDescription } from "./models";
-import { buildTabState, defaultPropertyOption, objValues } from "./builder";
-import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiSetTabs, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
+import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UiState, VectorDescription } from "./models";
+import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
 import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";

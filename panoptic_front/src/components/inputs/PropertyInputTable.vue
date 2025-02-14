@@ -5,6 +5,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
 import GridPropInput from '../scrollers/grid/GridPropInput.vue';
+import { ref } from 'vue';
 
 const data = useDataStore()
 
@@ -21,6 +22,8 @@ const emits = defineEmits<{
     toggleFilter: [e: number]
 }>()
 
+const inputElem = ref([])
+
 function toggleProperty(property: Property) {
     if (!props.visibleProperties) return
 
@@ -30,13 +33,18 @@ function toggleProperty(property: Property) {
         props.visibleProperties[property.id] = true
     }
 }
+
+async function paint(index: number, propertyId: number) {
+    await inputElem.value[index].waitForDbAction()
+    emits('paint', { instanceId: props.image.id, propertyId: propertyId })
+}
 </script>
 
 <template>
     <div class="main">
         <table class="table table-sm" style="margin-bottom: 0;table-layout: fixed;">
             <tbody class="main">
-                <tr v-for="property in properties" class="" style="font-size: 14px;">
+                <tr v-for="property, index in properties" class="" style="font-size: 14px;">
                     <td class="text-nowrap overflow-hidden" style="width: 100px !important;">
                         <PropertyIcon :type="property.type" />
                         <span class="text-wrap ms-1">
@@ -45,7 +53,7 @@ function toggleProperty(property: Property) {
                     </td>
                     <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
                         <GridPropInput v-if="property.id > 0" :property="data.properties[property.id]" :instance="image"
-                            :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20" />
+                            :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20" ref="inputElem"/>
                     </td>
                     <td v-else class="border-left" colspan="2" style="">
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{
@@ -57,7 +65,7 @@ function toggleProperty(property: Property) {
 
                     <td v-if="!property.computed" class="text-center btn-icon border-left"
                         style="padding: 4px 3px 0px 5px; width: 24px;"
-                        @click="emits('paint', { instanceId: props.image.id, propertyId: property.id })"
+                        @click="paint(index, property.id)"
                         @mouseenter="emits('hover')" @mouseleave="emits('hoverEnd')">
                         <wTT message="modals.image.fill_property_tooltip">
                             <i class="bi bi-paint-bucket"></i>
