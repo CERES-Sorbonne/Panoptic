@@ -115,7 +115,7 @@ class Project:
         folder = os.path.normpath(folder)
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
-                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg') or i.lower().endswith('.gif')]
 
         folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
 
