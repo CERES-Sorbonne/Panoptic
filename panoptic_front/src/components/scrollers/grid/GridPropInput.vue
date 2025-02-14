@@ -25,9 +25,11 @@ const props = defineProps<{
 const emits = defineEmits(['update:height'])
 
 defineExpose({
-    focus
+    focus,
+    waitForDbAction
 })
 
+const dbInput = ref(null)
 const inputElem = ref(null)
 
 const type = computed(() => props.property.type)
@@ -40,11 +42,15 @@ function focus() {
     inputElem.value.focus()
 }
 
+async function waitForDbAction() {
+    return dbInput.value.waitForDbAction()
+}
+
 </script>
 
 <template>
     <div>
-        <DBInput :instance="props.instance" :property-id="props.property.id">
+        <DBInput :instance="props.instance" :property-id="props.property.id" ref="dbInput">
             <template #default="{ value, set }">
                 <div style="padding: 2px 0px">
                     <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :can-create="true" :can-delete="true" :can-customize="true"

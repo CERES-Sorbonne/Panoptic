@@ -60,6 +60,8 @@ function paint(propRef: { propertyId: number, instanceId: number }) {
     if (viewMode.value != 0) return
     const property = data.properties[propRef.propertyId]
     const value = data.instances[propRef.instanceId].properties[property.id]
+    if(value === undefined) return
+
     let images = groupManager.result.root.images
     if (Object.keys(groupManager.selectedImages.value).length) {
         images = Object.keys(groupManager.selectedImages.value).map(id => data.instances[id])

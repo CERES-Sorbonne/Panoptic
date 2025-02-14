@@ -12,17 +12,25 @@ const props = defineProps<{
 }>()
 const emits = defineEmits([])
 
+defineExpose({
+    waitForDbAction
+})
+
 const propValue = computed(() => data.instances[props.instance.id].properties[props.propertyId])
 const localValue = ref(undefined)
 const valid = ref(true)
 
+let dbAction: Promise<any> | null = null
+
 async function set(value: any) {
-    // very important to avoid settings values of old input to new input params
+    // very important to avoid setting values of old input to new input params
     // creates the crazy UI bug where everythings gets set around
     if (!valid.value) return
     if (JSON.stringify(value) === JSON.stringify(propValue.value)) return
     localValue.value = value
-    await data.setPropertyValue(props.propertyId, props.instance, value)
+    dbAction = data.setPropertyValue(props.propertyId, props.instance, value)
+    await dbAction
+    dbAction = null
     loadValue()
 }
 
@@ -34,6 +42,10 @@ async function forceUpdate() {
     valid.value = false
     await nextTick()
     valid.value = true
+}
+
+async function waitForDbAction() {
+    if (dbAction) await dbAction
 }
 
 onMounted(loadValue)

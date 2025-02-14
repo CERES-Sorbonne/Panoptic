@@ -13,7 +13,7 @@ const props = defineProps({
 
 const images = computed(() => props.selectedImagesIds.map(id => data.instances[id]))
 
-const emits = defineEmits(['remove:selected'])
+const emits = defineEmits(['remove:selected', 'stamped'])
 
 </script>
 
@@ -22,7 +22,7 @@ const emits = defineEmits(['remove:selected'])
         <wTT message="main.menu.remove_selection_tooltip">
             <div class="btn-cls" @click="emits('remove:selected')"><i class="bi bi-x"></i></div>
         </wTT>
-        <div class="selection-counter"><StampDropdown :images="images" :no-border="true" :show-number="true"/></div>
+        <div class="selection-counter"><StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')"/></div>
     </div>
 </template>
 

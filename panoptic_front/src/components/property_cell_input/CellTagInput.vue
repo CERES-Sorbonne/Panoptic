@@ -26,7 +26,7 @@ const props = defineProps<{
     width?: number
     forceMulti?: boolean
 }>()
-const emits = defineEmits(['update:modelValue', 'hide', 'update:height'])
+const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show'])
 defineExpose({
     getHeight,
     focus
@@ -71,6 +71,10 @@ function onHide() {
     emits('update:modelValue', localValue.value)
 }
 
+function onShow() {
+    emits('show')
+}
+
 watch(() => props.width, updateHeight)
 watch(() => props.modelValue, updateLocal)
 onMounted(updateHeight)
@@ -79,7 +83,7 @@ onMounted(updateLocal)
 </script>
 
 <template>
-    <Dropdown :auto-focus="false" @hide="onHide" :teleport="props.teleport" ref="dropdownElem" :offset="-25" placement="bottom-start">
+    <Dropdown :auto-focus="false" @show="onShow" @hide="onHide" :teleport="props.teleport" ref="dropdownElem" :offset="-25" placement="bottom-start">
         <template #button>
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'"
                 :style="{ width: props.width ? props.width + 'px' : '100%' }" ref="heightElem">

@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<{
     blurOnEnter: true,
     autoFocus: false
 })
-const emits = defineEmits(['update:modelValue', 'update:height'])
+const emits = defineEmits(['update:modelValue', 'update:height', 'show', 'hide'])
 
 defineExpose({ focus })
 
@@ -41,6 +41,8 @@ async function emitValue() {
     if (localValue.value == '') {
         localValue.value = undefined
     }
+
+    emits('hide')
 }
 
 function emitHeight(height) {
@@ -52,6 +54,7 @@ async function edit() {
     await nextTick()
     if (!inputElem.value) return
     inputElem.value.focus()
+    emits('show')
 }
 
 function focus() {

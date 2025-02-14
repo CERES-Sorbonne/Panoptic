@@ -15,6 +15,8 @@ const props = defineProps<{
     showNumber?: boolean
 }>()
 
+const emits = defineEmits(['stamped'])
+
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
 const dropdownElem = ref(null)
@@ -22,6 +24,7 @@ const dropdownElem = ref(null)
 function close() {
     clear()
     dropdownElem.value?.hide()
+    emits('stamped')
 }
 
 function clear() {
@@ -57,9 +60,6 @@ async function apply() {
         }
     }
     await data.setPropertyValues(instanceValues, imageValues)
-
-    project.getTabManager().collection.groupManager.clearSelection()
-    // store.getTabManager().collection.update()
     close()
 }
 
