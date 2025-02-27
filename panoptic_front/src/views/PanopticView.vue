@@ -116,13 +116,13 @@ function updateWidth() {
 </script>
 
 <template>
-    <div v-if="show">
+    <div v-if="show && !panoptic.state.backendOff">
         <Tutorial v-if="mainViewRef && !mainViewRef.imageList" tutorial="project" />
         <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
         <div id="panoptic" :key="project.status.renderNb">
             <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
             <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-                <div v-if="!data.isLoaded" class="d-flex flex-column w-100" :style="{height: windowHeight+'px'}">
+                <div v-if="!data.isLoaded" class="d-flex flex-column w-100" :style="{ height: windowHeight + 'px' }">
                     <DataLoad class="flex-grow-1" />
                 </div>
                 <template v-else-if="data.isLoaded">
@@ -158,15 +158,15 @@ function updateWidth() {
             </div>
         </div>
     </div>
-    <!-- <div class="above bg-info">lalala</div>
-                <div class="above2 bg-warning">lalala</div> -->
+    <div v-if="panoptic.state.backendOff" class="above">Lost connection to backend. Verify that panoptic is running and reload page</div>
 </template>
 
 <style scoped>
 .above {
+    width: 100%;
     position: absolute;
-    top: 500px;
-    left: 500px;
+    top: 50%;
+    text-align: center;
     z-index: 200;
 }
 
