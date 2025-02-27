@@ -98,18 +98,19 @@ function unselectParent(folderId: number, selected: Set<number>) {
 
 <template>
     <ul :class="props.root ? 'tree' : ''" :style="props.root ? 'padding-left:0px;' : ''">
-        <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''" class="no-break"
-            @mouseenter="hoverId = folder.id" @mouseleave="hoverId = null">
-            <div style="display: inline;">
-                <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">{{ folder.name }} <span
-                        class="text-secondary">{{ data.folders[folder.id].count }}</span></summary>
+        <li v-for="folder in folders" :style="props.root ? 'padding-left:0px;' : ''" class="no-break">
+            <div style="display: inline;" @mouseenter="hoverId = folder.id" @mouseleave="hoverId = null">
+                <summary :class="folderClass[folder.id]" @click="toggleFolderSelect(folder.id)">
+                    <span :class="hoverId === folder.id ? 'visible-option' : 'invisible-option'" @click.stop="">
+                        <FolderOptionDropdown :folder="folder"/>
+                    </span>
+                    {{ folder.name }}
+                    <span class="text-secondary">{{ data.folders[folder.id].count }}</span>
+                </summary>
             </div>
             <i v-if="folder.children && folder.children.length > 0" @click="toggleFolderVisible(folder.id)"
                 :class="'bi bi-chevron-' + (isVisible[folder.id] ? 'down' : 'right') + ' ms-2 btn-icon'"
                 style="font-size: 9px;"></i>
-            <span :class="hoverId === folder.id ? 'visible-option' : 'invisible-option'">
-                <FolderOptionDropdown :folder="folder" style="display: inline-block;" />
-            </span>
             <template v-if="folder.children && folder.children.length > 0 && isVisible[folder.id]">
                 <FolderList2 :folders="folder.children" :root="false" :visible-folders="props.visibleFolders"
                     :filter-manager="props.filterManager" />
@@ -201,16 +202,22 @@ function unselectParent(folderId: number, selected: Set<number>) {
 }
 
 .visible-option {
-    padding-left: 3px;
-    position: relative;
-    top: 2px;
+    /* padding-left: 3px; */
+    /* position: relative;
+    top: 2px; */
     color: black;
+    display: inline-block;
 }
 
 .invisible-option {
-    padding-left: 3px;
-    position: relative;
-    top: 2px;
-    color: white;
+    /* padding-left: 3px; */
+    /* position: relative;
+    top: 2px; */
+    width: 0px !important;
+    height: 0px;
+    overflow: hidden;
+    opacity: 0;
+    /* color: white; */
+    display: inline-block;
 }
 </style>

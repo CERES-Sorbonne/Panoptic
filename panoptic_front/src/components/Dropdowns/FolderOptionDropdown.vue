@@ -25,7 +25,7 @@ function deleteFolder() {
 
 <template>
     <Dropdown :teleport="true">
-        <template #button><i class="bi bi-three-dots base-hover"></i></template>
+        <template #button><i class="bi bi-three-dots-vertical base-hover"></i></template>
         <template #popup="{ hide }">
             <div class="text-nowrap">
                 <div class="p-2 bb" @click="reImport(); hide();"><i class="bi bi-arrow-clockwise me-1"></i>Re import</div>
