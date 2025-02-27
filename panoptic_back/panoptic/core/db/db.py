@@ -462,6 +462,15 @@ class Db:
             return Instance(*res)
         return False
 
+    async def get_all_instances_ids(self):
+        query = 'SELECT id FROM instances'
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchall()
+        if res:
+            return {r[0] for r in res}
+        else:
+            return []
+
     # =====================================================
     # ================== Folders ==========================
     # =====================================================
