@@ -29,8 +29,15 @@ axios.interceptors.response.use(response => response, (error) => {
     const url = error.config.url
     const data = error.config.data
 
+    if(url == '/update' || url == '/status') {
+        if(error.code == 'ERR_NETWORK') {
+            const panoptic = usePanopticStore()
+            panoptic.state.backendOff = true
+        }
+    } else {
     const notif: Notif = {type: NotifType.ERROR, name: 'BackendError', message: 'Unexpected Error during backend call', data: {method, baseURL, url, data}}
     panoptic.notify(notif)
+    }
 })
 
 export async function apiGetDbState() {
@@ -262,6 +269,11 @@ export async function apiGetHistory() {
 
 export async function apiGetUpdate() {
     const res = await axios.get('/update')
+    if(!res?.data) {
+        return
+    }
+    const panoptic = usePanopticStore()
+    panoptic.state.backendOff = false
     return keysToCamel(res.data) as Update
 }
 

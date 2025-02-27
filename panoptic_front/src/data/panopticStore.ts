@@ -38,7 +38,8 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     const state = reactive({
         hasError: false,
-        error: ''
+        error: '',
+        backendOff: false
     })
 
     const openModalId = ref(null)
