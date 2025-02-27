@@ -636,3 +636,14 @@ export interface LoadState {
     maxInstanceValue: number
     maxImageValue: number
 }
+
+export enum UploadError {
+    no_key = 'no_key',
+    invalid_type = 'invalid_type'
+}
+
+export interface UploadConfirm {
+    key: string
+    colToProperty: { [key: number]: Property }
+    errors: { [key: number]: UploadError }
+}

@@ -408,6 +408,18 @@ class ProjectSettings(BaseModel):
     save_file_raw: bool = False
 
 
+class UploadError(Enum):
+    no_key = 'no_key'
+    invalid_type = 'invalid_type'
+
+
+@dataclass
+class UploadConfirm:
+    key: str
+    col_to_property: dict[int, Property]
+    errors: dict[int, UploadError]
+
+
 ImportOptions = dict[int, ColumnOption]
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 
 import { apiExportProperties } from '@/data/api';
-import { useProjectStore } from '@/data/projectStore';
 import { ref, computed, reactive } from 'vue';
 import Modal from './Modal.vue';
-import { ModalId, PropertyID } from '@/data/models';
+import { ModalId } from '@/data/models';
 import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { useDataStore } from '@/data/dataStore';
+import { useTabStore } from '@/data/tabStore';
 
-const project = useProjectStore()
 const data = useDataStore()
+const tabStore = useTabStore()
 
 const state = reactive({
     name: undefined,
@@ -28,7 +28,6 @@ const all = computed(() => properties.value.every(p => state.properties[p.id]))
 const properties = computed(() => {
     const tmp = Object.values(data.properties)
     tmp.sort((a, b) => a.id - b.id)
-    const res = []
     const computed = tmp.filter(p => p.id < 0)
     const personal = tmp.filter(p => p.id > 0)
 
@@ -36,22 +35,11 @@ const properties = computed(() => {
 })
 
 const selectedCount = computed(() => {
-    const tabManager = project.getTabManager()
+    const tabManager = tabStore.getMainTab()
     return Object.keys(tabManager.collection.groupManager.selectedImages.value).length
 })
 
-const visibleCount = computed(() => {
-    const tabManager = project.getTabManager()
-    if (state.mode == 'instance') { return tabManager.getVisibleProperties().length }
-    return tabManager.getVisibleSha1Properties().length
-})
 
-function exportFile() {
-    let images
-    let properties
-
-    apiExportProperties(images, properties)
-}
 
 function getClass(value, test) {
     if (value == test) {
@@ -90,7 +78,7 @@ function clear() {
 
 function show() {
     clear()
-    const properties = project.getTabManager().getVisibleProperties()
+    const properties = tabStore.getMainTab().getVisibleProperties()
     properties.forEach(p => state.properties[p.id] = true)
     // state.properties[-1] = true
 }
@@ -103,10 +91,10 @@ async function buildRequest() {
         req.name = state.name
     }
     if (state.selection == 'selected') {
-        req.images = Object.keys(project.getTabManager().collection.groupManager.selectedImages.value).map(Number)
+        req.images = Object.keys(tabStore.getMainTab().collection.groupManager.selectedImages.value).map(Number)
     }
     if (state.selection == 'filtered') {
-        req.images = project.getTabManager().collection.filterManager.result.images.map(i => i.id)
+        req.images = tabStore.getMainTab().collection.filterManager.result.images.map(i => i.id)
     }
     req.key = state.key
     isLoading.value = true

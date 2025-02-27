@@ -5,15 +5,14 @@ from random import randint
 from typing import TYPE_CHECKING
 
 import pandas as pd
-from fastapi import UploadFile
 
 from panoptic.core.importer.parsing import parser
-from panoptic.utils import Trie, RelativePathTrie
+from panoptic.utils import RelativePathTrie
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstanceProperty, \
-    ImageProperty, DbCommit
+    ImageProperty, DbCommit, UploadError, UploadConfirm
 
 
 @dataclass
@@ -55,16 +54,18 @@ def clean_type(type_: PropertyType):
     return type_
 
 
-# def parse_list(value: str):
-#     if value is None or value == '' or pd.isnull(value):
-#         return None
-#     return value.split(',')
-#
+valid_types = ['text', 'number', 'tag', 'multi_tags', 'url', 'date', 'path', 'color', 'checkbox']
 
-def parse_header(index: int, name: str):
+
+def parse_header(index: int, name: str, errors: dict):
     name, remain = name.split('[')
-    type_ = PropertyType(remain.split(']')[0])
-    type_ = clean_type(type_)
+    raw_type = remain.split(']')[0]
+    if raw_type not in valid_types:
+        errors[index] = UploadError.invalid_type
+        type_ = PropertyType.string
+    else:
+        type_ = PropertyType(raw_type)
+        type_ = clean_type(type_)
     return index, name, type_
 
 
@@ -86,6 +87,16 @@ def gen_instance_id():
     return __instance_id_counter
 
 
+valid_keys = ['id', 'path']
+
+
+def extract_key(columns):
+    key = columns[0]
+    if key not in valid_keys:
+        return None
+    return key
+
+
 class Importer:
     def __init__(self, project: Project):
         self.project = project
@@ -93,14 +104,20 @@ class Importer:
         self._data: ImportData | None = None
 
     async def upload_csv(self, file: str):
+        errors: dict[int, UploadError] = {}
+        col_to_prop: dict[int, Property] = {}
+
         file_data = pd.read_csv(file, delimiter=';', encoding='utf-8', keep_default_na=False, dtype=str)
         self._df = file_data
 
         columns = list(self._df.columns)
-        file_key = columns[0]
-        file_props = [parse_header(i, col_name) for i, col_name in enumerate(columns[1:], start=1) if col_name]
+        file_key = extract_key(columns)
+
+        if file_key is None:
+            errors[0] = UploadError.no_key
+
+        file_props = [parse_header(i, col_name, errors) for i, col_name in enumerate(columns[1:], start=1) if col_name]
         db_properties = await self.project.db.get_properties()
-        col_to_prop: dict[int, Property] = {}
 
         for i, name, type_ in file_props:
             col_to_prop[i] = Property(id=-i, name=name, type=type_, mode=PropertyMode.id)
@@ -111,8 +128,8 @@ class Importer:
                 if prop.name == db_prop.name and prop.type == db_prop.type:
                     prop.id = db_prop.id
                     prop.mode = db_prop.mode
-
-        return file_key, col_to_prop
+        print(errors)
+        return UploadConfirm(key=file_key, col_to_property=col_to_prop, errors=errors)
 
     async def parse_file(self, exclude: list[int] = None, properties: dict[int, Property] = None,
                          relative: bool = False, fusion: str = 'new'):
@@ -125,7 +142,7 @@ class Importer:
 
         columns = list(self._df.columns)
         file_key = columns[0]
-        file_props = [parse_header(i + 1, col_name) for i, col_name in enumerate(columns[1:]) if col_name]
+        file_props = [parse_header(i + 1, col_name, {}) for i, col_name in enumerate(columns[1:]) if col_name]
         db_properties = await self.project.db.get_properties()
         col_to_prop: dict[int, Property] = {}
 
@@ -154,10 +171,15 @@ class Importer:
         instance_index = {i.id: i for i in instances}
 
         if file_key == 'id':
+            all_ids = await self.project.db.get_all_instances_ids()
             for id_ in self._df[file_key]:
-                row_to_ids.append([id_])
+                n_id = int(id_)
+                if n_id in all_ids:
+                    row_to_ids.append([id_])
+                else:
+                    row_to_ids.append([])
+
         if file_key == 'path':
-            pass
             paths = self._df[file_key]
             trie = RelativePathTrie()
             trie.insert_paths(instances)

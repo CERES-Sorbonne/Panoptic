@@ -146,6 +146,9 @@ class ProjectDb:
         res = await self._db.count_instance_values(instance_ids)
         return set([i for i in instance_ids if i not in res])
 
+    async def get_all_instances_ids(self):
+        return await self._db.get_all_instances_ids()
+
     # ========== Tags ==========
 
     def create_tag(self, property_id: int, value: str, parent_ids: list[int] = None, color=-1):
