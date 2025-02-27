@@ -13,6 +13,7 @@ import { useProjectStore } from "@/data/projectStore";
 import { EventEmitter, getTagChildren, isTag, objValues } from "@/utils/utils";
 import { reactive, toRefs } from "vue";
 
+const fullTextTypes = new Set([PropertyType.string, PropertyType.path, PropertyType.url])
 
 export function operatorHasInput(operator: FilterOperator) {
     switch (operator) {
@@ -448,7 +449,7 @@ export class FilterManager {
             const query = this.state.query.toLocaleLowerCase()
             const project = useProjectStore()
             const props = objValues(data.properties)
-            const textProps = props.filter(p => p.type == PropertyType.string)
+            const textProps = props.filter(p => fullTextTypes.has(p.type))
             const tagProps = props.filter(p => isTag(p.type))
             filtered = filtered.filter(img => {
                 for (let p of textProps) {
