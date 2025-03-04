@@ -348,3 +348,13 @@ export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
         }
     }
 }
+
+export async function apiGetVersion() {
+    const res = await axios.get('/version')
+    return res.data
+}
+
+export async function apiGetPackagesInfo() {
+    const res = await axios.get('/packages')
+    return res.data
+}

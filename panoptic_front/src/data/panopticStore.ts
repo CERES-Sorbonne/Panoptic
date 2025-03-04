@@ -1,6 +1,19 @@
 import { defineStore } from "pinia"
 import { computed, nextTick, reactive, ref } from "vue"
-import { apiAddPlugin, apiCloseProject, apiCreateProject, apiDelPlugin, apiDeleteProject, apiGetPlugins, apiGetStatus, apiImportProject, apiLoadProject, apiSetIgnoredPlugin, apiUpdatePlugin } from "./api"
+import {
+    apiAddPlugin,
+    apiCloseProject,
+    apiCreateProject,
+    apiDelPlugin,
+    apiDeleteProject,
+    apiGetPlugins,
+    apiGetStatus,
+    apiImportProject,
+    apiLoadProject,
+    apiSetIgnoredPlugin,
+    apiUpdatePlugin,
+    apiGetVersion, apiGetPackagesInfo
+} from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
 import { IgnoredPlugins, ModalId, Notif, NotifType, PluginAddPayload } from "./models"
@@ -33,6 +46,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const data = reactive({
         status: {} as SelectionStatus,
         plugins: [] as PluginKey[],
+        version: "",
         init: false,
     })
 
@@ -54,6 +68,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         try {
             data.status = await apiGetStatus()
             data.plugins = await apiGetPlugins()
+            data.version = await apiGetVersion()
 
             data.init = true
             if (data.status.isLoaded) {
@@ -63,6 +78,10 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         catch { 
             setTimeout(() => init(), 1000)
         }
+    }
+
+    async function getPackagesInfo(){
+        return apiGetPackagesInfo()
     }
 
     async function loadProject(path: string, noCall?: boolean) {
@@ -180,6 +199,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateIgnorePlugin,
         addPlugin, delPlugin, updatePlugin,
-        notifs, clearNotif, notify, delNotif
+        notifs, clearNotif, notify, delNotif,
+        getPackagesInfo
     }
 })
