@@ -215,6 +215,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
         }
         if (commit.emptyInstanceValues) {
+            console.log(commit.emptyInstanceValues)
             commit.emptyInstanceValues.forEach(v => {
                 if (isTag(properties.value[v.propertyId].type)) {
                     updateTagCount(instances.value[v.instanceId].properties[v.propertyId], [])

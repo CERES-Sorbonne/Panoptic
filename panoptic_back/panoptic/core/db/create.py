@@ -1,4 +1,4 @@
-software_db_version = 5
+software_db_version = 6
 
 DB_VERSION = 'db_version'
 
@@ -58,6 +58,7 @@ def create_instances_table():
     
     CREATE INDEX idx_image_filepath ON instances (folder_id, name, extension);
     CREATE INDEX idx_image_sha1 ON instances (sha1);
+    CREATE INDEX idx_folder_id ON instances(folder_id);
     
     """
     return query
@@ -74,6 +75,8 @@ def create_instance_property_values_table():
         FOREIGN KEY (property_id) REFERENCES properties (id) ON DELETE CASCADE,
         FOREIGN KEY (instance_id) REFERENCES instances (id) ON DELETE CASCADE
     );
+    
+    CREATE INDEX idx_instance_values_instance_id ON instance_property_values(instance_id);
     """
     return query
 
@@ -127,6 +130,8 @@ def create_vectors_table():
         
         PRIMARY KEY (source, type, sha1)
     );
+    
+    CREATE INDEX idx_vectors_sha1 ON vectors(sha1);
     """
     return query
 

@@ -7,7 +7,7 @@
 
 import { propertyDefault } from "@/data/builder";
 import { deletedID, useDataStore } from "@/data/dataStore";
-import { Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
+import { FolderIndex, Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
 import { EventEmitter, getTagChildren, isTag, objValues } from "@/utils/utils";
@@ -386,8 +386,8 @@ export class FilterManager {
         } else {
             this.initFilterState()
         }
-
-        this.verifyState(useDataStore().properties)
+        const data = useDataStore()
+        this.verifyState(data.properties, data.folders)
     }
 
     load(state: FilterState) {
@@ -581,7 +581,7 @@ export class FilterManager {
     }
 
     // used to remove properties that doesnt exist anymore from filters 
-    public verifyState(properties: PropertyIndex) {
+    public verifyState(properties: PropertyIndex, folders: FolderIndex) {
         const recursive = (group: FilterGroup) => {
             const toRem = new Set()
             group.filters.forEach(f => {
@@ -598,6 +598,8 @@ export class FilterManager {
             group.filters = group.filters.filter(f => !toRem.has(f.id))
         }
         recursive(this.state.filter)
+
+        this.state.folders = this.state.folders.filter(fId => folders[fId])
     }
 
     private initFilterState() {
