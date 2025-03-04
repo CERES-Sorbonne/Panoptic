@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if ! xcode-select -p &> /dev/null; then
+    echo "Installation des outils de développement Xcode requis..."
+    xcode-select --install
+    read -p "Appuyez sur Entrée une fois l'installation des outils Xcode terminée..."
+fi
+
 # Vérifier si uv est installé
 if ! command -v uv &> /dev/null; then
     echo "uv n'est pas installé. Installation en cours..."
