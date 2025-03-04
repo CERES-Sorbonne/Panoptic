@@ -7,7 +7,7 @@ from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
-    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty
+    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids
 
@@ -299,7 +299,25 @@ class ProjectDb:
         return await self._db.get_folder(folder_id)
 
     async def delete_folder(self, folder_id: int):
-        return await self._db.delete_folder(folder_id)
+        old_folders = {f.id for f in await self._db.get_folders()}
+        old_ids = await self._db.get_all_instances_ids()
+        old_sha1s = await self._db.get_all_instance_sha1s()
+
+        await self._db.delete_folder(folder_id)
+
+        now_folders = {f.id for f in await self._db.get_folders()}
+        now_ids = await self._db.get_all_instances_ids()
+        now_sha1s = await self._db.get_all_instance_sha1s()
+
+        deleted_folders = list(old_folders - now_folders)
+        deleted_ids = list(old_ids - now_ids)
+        deleted_sha1s = list(old_sha1s - now_sha1s)
+
+        await self._db.delete_images(deleted_sha1s)
+        await self._db.delete_image_values(deleted_sha1s)
+        await self._db.delete_vectors(deleted_sha1s)
+
+        return DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids, deleted_sha1s=deleted_sha1s)
 
     # =========== Vectors ===========
     async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):

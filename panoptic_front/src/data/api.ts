@@ -76,7 +76,7 @@ export const apiImportFolder = async () => {
 
 export async function apiDeleteFolder(folderId: number) {
     let res = await axios.delete('/folder', { params: { folder_id: folderId } })
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export async function apiGetTabs() {

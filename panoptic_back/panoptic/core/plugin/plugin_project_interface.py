@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
 from panoptic.models import ImagePropertyKey, InstanceProperty, PropertyType, PropertyMode, Property, \
-    DbCommit, Vector, Instance
+    DbCommit, Vector, Instance, DeleteFolderConfirm
 
 
 class PluginProjectInterface:
@@ -93,3 +93,6 @@ class PluginProjectInterface:
     # EVENTS
     def on_instance_import(self, callback: Callable[[Instance], Awaitable[None]]):
         return self._project.on.import_instance.register(callback)
+
+    def on_folder_delete(self, callback: Callable[[DeleteFolderConfirm], Awaitable[None]]):
+        return self._project.on.delete_folder.register(callback)

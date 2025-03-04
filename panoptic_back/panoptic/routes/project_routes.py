@@ -208,11 +208,13 @@ async def reimport_folder_route(req: IdRequest):
     if not folder:
         raise Exception(f'Folder id does not exist [{req.id}]')
     await project.import_folder(folder.path)
+    return await get_folders_route()
 
 
 @project_router.delete('/folder')
 async def delete_folder(folder_id: int):
-    await project.delete_folder(folder_id)
+    res = await project.delete_folder(folder_id)
+    return res
 
 
 @project_router.post('/action_execute')
