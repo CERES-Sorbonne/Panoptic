@@ -1,15 +1,17 @@
 import glob
 import os
 import pathlib
-from time import time
+import subprocess
+import sys
 
 import psutil
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from panoptic import __version__ as panoptic_version
 from panoptic.core.panoptic import Panoptic
 from panoptic.core.plugin import add_plugin_from_git
-from panoptic.models import AddPluginPayload, PanopticData, IgnoredPluginPayload, UpdatePluginPayload
+from panoptic.models import AddPluginPayload, IgnoredPluginPayload
 
 selection_router = APIRouter()
 
@@ -113,6 +115,33 @@ async def update_plugin_route(payload: AddPluginPayload):
 async def del_plugins_route(path: str):
     return panoptic.del_plugin_path(path)
 
+
+@selection_router.get('/version')
+async def get_version_route():
+    return panoptic_version
+
+@selection_router.get('/packages')
+async def get_packages_route():
+    res = {
+        'python': sys.version.split(' ')[0],
+        'panopticPackages': {},
+        'pluginPackages': {},
+        'panoptic': panoptic_version,
+        'platform': sys.platform
+    }
+    base_packages = ['numpy', 'pandas', 'pydantic']
+    plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn']
+    base_package_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *base_packages])
+    plugin_packages_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *plugin_packages])
+    base_package_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in base_package_versions.split(b'Version:')[1:]]
+    plugin_packages_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in plugin_packages_versions.split(b'Version:')[1:]]
+
+    for index, base_package in enumerate(base_packages):
+        res['panopticPackages'][base_package] = base_package_versions[index]
+    if len(plugin_packages) > 0:
+        for index, base_package in enumerate(plugin_packages):
+            res['pluginPackages'][base_package] = plugin_packages_versions[index]
+    return res
 
 def images_in_folder(folder_path):
     types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types

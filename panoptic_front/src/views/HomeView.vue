@@ -11,6 +11,7 @@ import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 import { ModalId } from '@/data/models';
 import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
+import wTT from "@/components/tooltips/withToolTip.vue";
 
 const panoptic = usePanopticStore()
 
@@ -78,6 +79,22 @@ async function updateIgnorePlugin(a, b, c) {
     await panoptic.updateIgnorePlugin(a, b, !c)
 }
 
+async function downloadPackagesInfos(){
+  try {
+    const data = await panoptic.getPackagesInfo();
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'panoptic_infos.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+      console.error('Erreur lors de la récupération ou du téléchargement des données :', error);
+  }
+}
+
 onMounted(() => {
     if (panoptic.isProjectLoaded) {
         router.push('/view')
@@ -135,7 +152,10 @@ onMounted(() => {
                             <PanopticIcon />
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
-                        <h6 class="dimmed-2">Version 0.4</h6>
+                        <div class="d-flex justify-content-center gap-1">
+                          <h6 class="dimmed-2 mt-1">Version {{panoptic.data.version}} </h6>
+                          <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem" @click="downloadPackagesInfos"></i></wTT>
+                        </div>
                         <div class="lang">
                             <i class="bi bi-translate" style="margin-right:0.5rem"></i>
                             <select v-model="$i18n.locale" @change="rerender">
