@@ -56,7 +56,7 @@ export class CollectionManager {
 
     verifyState() {
         const data = useDataStore()
-        this.filterManager.verifyState(data.properties)
+        this.filterManager.verifyState(data.properties, data.folders)
         this.sortManager.verifyState(data.properties)
         this.groupManager.verifyState(data.properties)
     }
