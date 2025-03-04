@@ -268,6 +268,11 @@ class Db:
         # print(res)
         return res
 
+    async def delete_image_values(self, sha1s: list[str]):
+        query = "DELETE FROM image_property_values WHERE sha1 = ?"
+        await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
+        return True
+
     # =====================================================
     # ====================== Tag ==========================
     # =====================================================
@@ -390,6 +395,10 @@ class Db:
         query = "UPDATE images SET small = NULL"
         await self.conn.execute_query(query)
 
+    async def delete_images(self, sha1s: list[str]):
+        query = "DELETE FROM images WHERE sha1 = ?"
+        await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
+
     # =====================================================
     # ================= Instances =========================
     # =====================================================
@@ -469,7 +478,16 @@ class Db:
         if res:
             return {r[0] for r in res}
         else:
-            return []
+            return set()
+
+    async def get_all_instance_sha1s(self):
+        query = 'SELECT sha1 FROM instances'
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchall()
+        if res:
+            return {r[0] for r in res}
+        else:
+            return set()
 
     # =====================================================
     # ================== Folders ==========================
@@ -569,6 +587,10 @@ class Db:
 
     async def get_default_db_vector_id(self):
         await self.conn.get_param('default_vector')
+
+    async def delete_vectors(self, sha1s: list[str]):
+        query = "DELETE FROM vectors WHERE sha1 = ?"
+        await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
 
     # =====================================================
     # ================== Plugins ==========================

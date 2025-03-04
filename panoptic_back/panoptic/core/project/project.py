@@ -124,7 +124,9 @@ class Project:
         [self.task_queue.add_task(t) for t in tasks]
 
     async def delete_folder(self, folder_id: int):
-        await self.db.delete_folder(folder_id)
+        res = await self.db.delete_folder(folder_id)
+        self.on.delete_folder.emit(res)
+        return res
 
     async def _compute_folder_structure(self, root_path, all_files: List[str]):
         offset = len(root_path)

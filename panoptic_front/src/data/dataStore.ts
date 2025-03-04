@@ -468,15 +468,23 @@ export const useDataStore = defineStore('dataStore', () => {
         history.value = res
     }
 
-    function reImportFolder(folderId: number) {
-        apiReImportFolder(folderId)
+    async function reImportFolder(folderId: number) {
+        const updated = await apiReImportFolder(folderId)
+        const updatedNodes = buildFolderNodes(updated)
+        for (let f of objValues(updatedNodes)) {
+            if (f.id in folders.value) {
+                f.count = folders.value[f.id].count
+            }
+        }
+        folders.value = updatedNodes
     }
 
-
     async function deleteFolder(folderId: number) {
-        await apiDeleteFolder(folderId)
-        clear()
-        await init()
+        const res = await apiDeleteFolder(folderId)
+        location.reload()
+        // console.log(res)
+        // clear()
+        // await init()
     }
 
     function updateFolderCount(updatedInstances: Instance[], deletedInstances: number[]) {

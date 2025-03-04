@@ -420,6 +420,13 @@ class UploadConfirm:
     errors: dict[int, UploadError]
 
 
+@dataclass
+class DeleteFolderConfirm:
+    deleted_folders: list[int]
+    deleted_instances: list[int]
+    deleted_sha1s: list[str]
+
+
 ImportOptions = dict[int, ColumnOption]
 
 JSON: TypeAlias = Union[dict[str, "JSON"], list["JSON"], str, int, float, bool, None]
