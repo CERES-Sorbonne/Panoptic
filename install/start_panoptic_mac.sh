@@ -1,77 +1,50 @@
 #!/bin/bash
 
-ENV_DIR="panoptic_env"
-MIN_PYTHON_VERSION="3.10"
-
-# Vérifie et installe les outils de développement Xcode si non installés
 if ! xcode-select -p &> /dev/null; then
     echo "Installation des outils de développement Xcode requis..."
     xcode-select --install
     read -p "Appuyez sur Entrée une fois l'installation des outils Xcode terminée..."
 fi
 
-# Vérifie si Python >= 3.10 et pip3 sont installés, sinon installe Python via Homebrew
-check_and_install_python() {
-    if ! command -v python3 &> /dev/null || ! command -v pip3 &> /dev/null || [[ "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" < "$MIN_PYTHON_VERSION" ]]; then
-        echo "Installation de Python >= 3.10 et de pip3 requis..."
-        if ! command -v brew &> /dev/null; then
-            echo "Homebrew n'est pas installé. Installation de Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bash_profile
-            source ~/.bash_profile
+# Vérifier si uv est installé
+if ! command -v uv &> /dev/null; then
+    echo "uv n'est pas installé. Installation en cours..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+
+# Vérifier si le dossier ~/panoptic existe
+if [ ! -d "$HOME/panoptic" ]; then
+    echo "Création du dossier ~/panoptic"
+    mkdir -p "$HOME/panoptic"
+fi
+
+# Se déplacer dans le dossier
+cd "$HOME/panoptic" || exit
+
+# Vérifier si l'environnement virtuel existe
+if [ ! -d ".venv" ]; then
+    echo "Création de l'environnement virtuel Python 3.11"
+    uv venv --python 3.11
+fi
+
+# Installer la dernière version de pip
+uv pip install pip
+
+# Vérifier si panoptic est installé
+if ! uv pip show panoptic &> /dev/null; then
+    echo "Panoptic n'est pas installé. Installation en cours..."
+    uv pip install panoptic
+else
+    echo "Panoptic est installé. Vérification des mises à jour..."
+    LATEST_VERSION=$(uvx pip index versions panoptic | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
+    CURRENT_VERSION=$(uv pip show panoptic | grep -i "Version:" | sed -E 's/(.*)Version: (.*)/\2/')
+    if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+        read -p "Une nouvelle version de Panoptic ($LATEST_VERSION) est disponible. Voulez-vous l'installer ? (y/n) " choice
+        if [ "$choice" = "y" ]; then
+            uv pip install --upgrade panoptic
         fi
-        brew install python@3.11
-        PYTHON_EXEC="python3.11"
-        PIP_EXEC="pip3"
-    else
-        PYTHON_EXEC="python3"
-        PIP_EXEC="pip3"
     fi
-}
-
-# Vérifie et installe Python si nécessaire
-check_and_install_python
-
-# Vérifie si l'environnement virtuel existe
-if [ -d "$ENV_DIR" ]; then
-    echo "L'environnement '$ENV_DIR' existe déjà. Activation..."
-else
-    echo "Création de l'environnement virtuel '$ENV_DIR'..."
-    $PYTHON_EXEC -m venv $ENV_DIR
-    echo "Installation de panoptic dans l'environnement virtuel..."
-    source $ENV_DIR/bin/activate
-    $PIP_EXEC install --upgrade pip
-
-    read -p "Si vous possédez une carte graphique NVIDIA, entrez 'y' pour installer une version plus rapide de torch : " NVIDIA_CHOICE
-
-    if [ "$NVIDIA_CHOICE" = "y" ]; then
-        $PIP_EXEC install torch==2.1.2 torchvision
-    else
-        $PIP_EXEC install torch==2.1.2 torchvision --index-url "https://download.pytorch.org/whl/cpu"
-    fi
-    $PIP_EXEC install panoptic
 fi
 
-
-# Active l'environnement virtuel
-source $ENV_DIR/bin/activate
-
-# Vérifie si une mise à jour de panoptic est disponible et propose de l'installer
-LATEST_PANOPTIC_VERSION=$($PIP_EXEC install panoptic==999999 2>&1 | grep -oP '(?<=from versions: )[^)]+' | tr ', ' '\n' | grep -v 'rc' | tail -1)
-CURRENT_PANOPTIC_VERSION=$($PIP_EXEC show panoptic | grep -oP '(?<=Version: )[^ ]+')
-
-if [[ "$LATEST_PANOPTIC_VERSION" > "$CURRENT_PANOPTIC_VERSION" ]]; then
-    echo "Une nouvelle version de panoptic est disponible : $LATEST_PANOPTIC_VERSION (actuellement installée : $CURRENT_PANOPTIC_VERSION)."
-    read -p "Souhaitez-vous installer la dernière version stable ? (o/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Oo]$ ]]; then
-        $PIP_EXEC install -U panoptic
-        echo "Panoptic mis à jour vers la version $LATEST_PANOPTIC_VERSION."
-    fi
-else
-    echo "Vous utilisez déjà la dernière version stable de panoptic."
-fi
-
-# Lance la commande panoptic
-echo "Lancement de panoptic..."
-panoptic
+# Lancer Panoptic
+uv run panoptic

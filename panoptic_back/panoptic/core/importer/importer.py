@@ -58,14 +58,21 @@ valid_types = ['text', 'number', 'tag', 'multi_tags', 'url', 'date', 'path', 'co
 
 
 def parse_header(index: int, name: str, errors: dict):
-    name, remain = name.split('[')
-    raw_type = remain.split(']')[0]
-    if raw_type not in valid_types:
-        errors[index] = UploadError.invalid_type
+    if '[' not in name:
+        if name in valid_keys:
+            errors[index] = UploadError.invalid_position
+        else:
+            errors[index] = UploadError.missing_bracket
         type_ = PropertyType.string
     else:
-        type_ = PropertyType(raw_type)
-        type_ = clean_type(type_)
+        name, remain = name.split('[')
+        raw_type = remain.split(']')[0]
+        if raw_type not in valid_types:
+            errors[index] = UploadError.invalid_type
+            type_ = PropertyType.string
+        else:
+            type_ = PropertyType(raw_type)
+            type_ = clean_type(type_)
     return index, name, type_
 
 
@@ -107,7 +114,12 @@ class Importer:
         errors: dict[int, UploadError] = {}
         col_to_prop: dict[int, Property] = {}
 
-        file_data = pd.read_csv(file, delimiter=';', encoding='utf-8', keep_default_na=False, dtype=str)
+        try:
+            file_data = pd.read_csv(file, delimiter=';', encoding='utf-8', keep_default_na=False, dtype=str)
+        except pd.errors.ParserError:
+            errors[0] = UploadError.invalid_csv
+            return UploadConfirm(key="", col_to_property=col_to_prop, errors=errors)
+
         self._df = file_data
 
         columns = list(self._df.columns)
