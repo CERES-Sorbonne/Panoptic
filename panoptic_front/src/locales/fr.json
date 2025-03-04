@@ -26,7 +26,8 @@
                 "import": "Importer un projet",
                 "import_details": "Choisissez un dossier Panoptic existant.",
                 "import_button": "Importer"
-            }
+            },
+            "version_tooltip": "Afficher les informations de debug panoptic"
         },
         "status": {
             "no_project": "Aucun projet Panoptic ouvert"

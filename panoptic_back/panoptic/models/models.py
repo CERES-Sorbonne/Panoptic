@@ -409,8 +409,11 @@ class ProjectSettings(BaseModel):
 
 
 class UploadError(Enum):
-    no_key = 'no_key'
-    invalid_type = 'invalid_type'
+    invalid_csv = "The csv file is invalid, are you using ';' as separator ? "
+    no_key = 'No valid key (path or id) was found'
+    invalid_type = 'Invalid column type'
+    invalid_position = "A valid key (path or id) was found but should be on first column"
+    missing_bracket = "Missing bracket: A column that is not a key should always be in the form name[type]"
 
 
 @dataclass

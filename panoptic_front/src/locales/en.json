@@ -26,7 +26,8 @@
                 "import": "Import project",
                 "import_details": "Choose an existing Panoptic folder.",
                 "import_button": "Import"
-            }
+            },
+            "version_tooltip": "Display debug info of panoptic"
         },
         "status": {
             "no_project": "No open Panoptic project"
@@ -54,7 +55,9 @@
                 "collapse_property_tooltip": "Hide tags",
                 "add_property": "New property",
                 "delete_property": "Delete",
-                "open_tags": "Open tags management"
+                "open_tags": "Open tags management",
+                "add_property_group": "New Group",
+                "set_group": "Move to folder"
             },
             "computed": {
                 "title": "Panoptic Properties",
@@ -95,14 +98,19 @@
                 "order_asc": "Sort in ascending order"
             },
             "import_status_title": "Status Import",
-            "issue": "Create an Issue"
+            "issue": "Create an Issue",
+            "close_project": "Back to project list"
         },
         "recommand": {
             "title": "Image suggestions",
             "tooltip": "Images considered to be visually and/or semantically related",
             "accept": "Add to selected group",
             "refuse": "Remove similar images",
-            "group": "Go to group"
+            "group": "Go to group",
+            "close": "Close recommandations",
+            "scroll": "Go to group",
+            "filter": "Toggle global filter in recommandations",
+            "reload": "Reload recommandations"
         },
         "view": {
             "all_group": "All",
@@ -165,7 +173,11 @@
             "checkbox_tooltip": "A checkbox, e.g. 'relevant' / 'irrelevant', 'sensitive / non-sensitive'",
             "type": "Property Type",
             "instance": "Instance Property",
-            "image": "Image Property"
+            "image": "Image Property",
+            "message": "Enter a unique name and a property type",
+            "not_unique_name": "A property with this name already exists, please enter  another name",
+            "no_type": "No property type was chosen",
+            "no_name": "No name was provided"
         },
         "filters": {
             "title": "Filters:",
@@ -272,11 +284,23 @@
                 "all_tooltip": "Replace all existing instances with new ones created from the data of the csv file",
                 "path": "Relative path ? ",
                 "path_tooltip": "Is the path used in the csv to identify the images is relative to the imported folder or absolute (from the root of the harddrive) ? "
-            }
+            },
+            "not_found": "Line(s) not matching an image instance in the DB, please confirm before continuing.",
+            "row": "Line",
+            "key": "Identifier",
+            "reparse": "Verify"
         },
         "first": {
             "introduction": "Welcome to Panoptic, a program that lets you explore large corpora of images by manipulating them through their properties and using machine learning tools. The latter are not installed as standard, to limit the size of Panoptic should they not be of interest to you. However, it is recommended that you install them to benefit from Panoptic's full functionalities.",
             "install_ml": "Install Similarity Plugin"
+        },
+        "notif": {
+            "icon": "Open notification center",
+            "debug_icon": "Toggle notifications: Debug",
+            "info_icon": "Toggle notifications: Info",
+            "warning_icon": "Toggle notifications: Alert",
+            "error_icon": "Toggle notifications: Error",
+            "read_icon": "Toggle read notifications"
         }
     },
     "tutorial": {
@@ -362,5 +386,15 @@
         }
     },
     "installing": "Installing",
-    "installed": "Installed"
+    "installed": "Installed",
+    "plugin": {
+        "remove": "Delete Plugin",
+        "update": "Update Plugin",
+        "update_local": "Reinstall Plugin",
+        "path": "Path",
+        "source": "Source"
+    },
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "call": "Run"
 }
