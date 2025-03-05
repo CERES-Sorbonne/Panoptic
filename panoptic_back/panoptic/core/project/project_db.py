@@ -7,7 +7,8 @@ from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
 from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
-    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm
+    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, \
+    ImagePropertyKey, InstancePropertyKey
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids
 
@@ -435,11 +436,11 @@ class ProjectDb:
             inverse.empty_tags.extend([t.id for t in db_tags if t.id not in current_ids])
             inverse.tags.extend(current)
 
-        def correct_property_id(value: InstanceProperty | ImageProperty):
+        def correct_property_id(value: InstancePropertyKey | ImagePropertyKey):
             if value.property_id in property_id_map:
                 value.property_id = property_id_map[value.property_id]
 
-        def correct_instance_id(value: InstanceProperty):
+        def correct_instance_id(value: InstancePropertyKey):
             if value.instance_id in instance_id_map:
                 value.instance_id = instance_id_map[value.instance_id]
 
@@ -483,11 +484,16 @@ class ProjectDb:
             inverse.image_values.extend(current)
 
         if commit.empty_image_values:
+            [correct_property_id(v) for v in commit.empty_image_values]
+
             current = await self._db.get_image_property_values_from_keys(commit.empty_image_values)
             inverse.image_values.extend(current)
             await self._db.delete_image_property_values(commit.empty_image_values)
 
         if commit.empty_instance_values:
+            [correct_property_id(v) for v in commit.empty_instance_values]
+            [correct_instance_id(v) for v in commit.empty_instance_values]
+
             current = await self._db.get_instance_property_values_from_keys(commit.empty_instance_values)
             inverse.instance_values.extend(current)
             await self._db.delete_instance_property_values(commit.empty_instance_values)

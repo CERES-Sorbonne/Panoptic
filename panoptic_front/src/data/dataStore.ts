@@ -58,7 +58,7 @@ export const useDataStore = defineStore('dataStore', () => {
             applyCommit(v.chunk, !isFinished(v.state))
             loadState.value = v.state
 
-            if(isFinished(v.state)) {
+            if (isFinished(v.state)) {
                 const tabStore = useTabStore()
                 await tabStore.init()
             }
@@ -193,7 +193,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function importPropertyGroups(groups: PropertyGroup[]) {
-        for(let group of groups) {
+        for (let group of groups) {
             propertyGroups.value[group.id] = group
         }
     }
@@ -201,27 +201,30 @@ export const useDataStore = defineStore('dataStore', () => {
     function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
 
-
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 sha1Index.value[v.sha1].forEach(i => {
                     if (isTag(properties.value[v.propertyId].type)) {
                         updateTagCount(instances.value[i.id].properties[v.propertyId], [])
                     }
-                    delete instances.value[i.id].properties[v.propertyId]
-                    dirtyInstances.add(i.id)
+                    if (instances.value[i.id]) {
+                        delete instances.value[i.id].properties[v.propertyId]
+                        dirtyInstances.add(i.id)
+                    }
                 })
             })
 
         }
         if (commit.emptyInstanceValues) {
-            console.log(commit.emptyInstanceValues)
             commit.emptyInstanceValues.forEach(v => {
                 if (isTag(properties.value[v.propertyId].type)) {
                     updateTagCount(instances.value[v.instanceId].properties[v.propertyId], [])
                 }
-                delete instances.value[v.instanceId].properties[v.propertyId]
-                dirtyInstances.add(v.instanceId)
+                if (instances.value[v.instanceId]) {
+                    delete instances.value[v.instanceId].properties[v.propertyId]
+                    dirtyInstances.add(v.instanceId)
+                }
+
             })
 
         }
@@ -233,7 +236,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
         }
         if (commit.emptyPropertyGroups) {
-            for(let id of commit.emptyPropertyGroups) {
+            for (let id of commit.emptyPropertyGroups) {
                 delete propertyGroups.value[id]
             }
         }
@@ -272,7 +275,7 @@ export const useDataStore = defineStore('dataStore', () => {
             history.value = commit.history
         }
 
-        if(disableTrigger) return
+        if (disableTrigger) return
         console.log('trigger refss')
         triggerRef(properties)
         triggerRef(folders)
@@ -414,7 +417,7 @@ export const useDataStore = defineStore('dataStore', () => {
     async function updateProperty(propertyId: number, name?: string, group?: number) {
         const prop = deepCopy(properties.value[propertyId])
         prop.name = name
-        if(group !== undefined) {
+        if (group !== undefined) {
             prop.propertyGroupId = group
         }
         sendCommit({ properties: [prop] })
@@ -514,15 +517,15 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function addPropertyGroup(name: string) {
-        await sendCommit({propertyGroups: [{id: -1, name}]}, false, false)
+        await sendCommit({ propertyGroups: [{ id: -1, name }] }, false, false)
     }
 
     async function updatePropertyGroup(id: number, name: string) {
-        await sendCommit({propertyGroups: [{id: id, name: name}]}, false, false)
+        await sendCommit({ propertyGroups: [{ id: id, name: name }] }, false, false)
     }
 
     async function deletePropertyGroup(id: number) {
-        await sendCommit({emptyPropertyGroups: [id]})
+        await sendCommit({ emptyPropertyGroups: [id] })
     }
 
     return {
