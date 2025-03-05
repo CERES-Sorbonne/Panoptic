@@ -1,10 +1,10 @@
 import pandas as pd
 
-from panoptic.models import PropertyMode, PropertyType
+from panoptic.models import PropertyType
 
 
 def parse_string(value):
-    return value
+    return str(value)
 
 
 def parse_number(value):
