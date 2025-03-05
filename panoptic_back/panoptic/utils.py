@@ -92,10 +92,6 @@ def to_str_type(type_):
         return 'float'
     if type_ is str:
         return 'str'
-    if issubclass(type_, Enum):
-        return 'enum'
-    if type_ is list[str]:
-        return '[str]'
     if type_ is bool:
         return 'bool'
     if type_ is pathlib.Path:
@@ -104,6 +100,8 @@ def to_str_type(type_):
         return 'property'
     if type_ is ActionContext:
         return 'context'
+    if issubclass(type_, Enum):
+        return 'enum'
     return None
 
 
