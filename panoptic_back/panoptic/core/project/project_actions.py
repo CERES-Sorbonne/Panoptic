@@ -23,7 +23,7 @@ def get_params(f):
     return res
 
 
-possible_inputs = [to_str_type(t) for t in [int, float, str, list[str], bool, Path, PropertyId, Enum]]
+possible_inputs = [to_str_type(t) for t in [int, float, str, bool, Path, PropertyId, Enum]]
 
 
 def get_param_description(f: AsyncCallable, param_name: str):

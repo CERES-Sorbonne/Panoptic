@@ -22,3 +22,5 @@ scipy
 tqdm
 pendulum
 pytest
+torch
+faiss-cpu
