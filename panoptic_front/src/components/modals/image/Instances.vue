@@ -3,9 +3,11 @@ import GridScroller from '@/components/scrollers/grid/GridScroller.vue';
 import { GroupManager } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
 import { Instance, PropertyID, PropertyMode } from '@/data/models';
+import { useTabStore } from '@/data/tabStore';
 import { computed, onMounted, watch } from 'vue';
 
 const data = useDataStore()
+const tabStore = useTabStore()
 
 const props = defineProps<{
     image: Instance
@@ -34,7 +36,7 @@ watch(() => props.image, update)
 <template>
     <div v-if="props.groupManager.hasResult()" class="m-0 p-0" style="overflow-x: scroll; overflow-y: hidden;"
         :style="{ width: props.width + 'px', height: props.height + 'px' }">
-        <GridScroller :show-images="false" :manager="props.groupManager" :height="props.height" :width="props.width - 15"
+        <GridScroller :tab="tabStore.getMainTab()" :show-images="false" :manager="props.groupManager" :height="props.height" :width="props.width - 15"
             :selected-properties="properties" />
     </div>
 </template>
