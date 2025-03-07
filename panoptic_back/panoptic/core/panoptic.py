@@ -53,7 +53,7 @@ class Panoptic:
             raise f"ProjectId is already imported."
         project = ProjectId(path=str(p), name=str(p.name))
         self.data.projects.append(project)
-        await self.load_project(path)
+        # await self.load_project(path)
 
     def remove_project(self, path):
         self.data.projects = [p for p in self.data.projects if p.path != path]

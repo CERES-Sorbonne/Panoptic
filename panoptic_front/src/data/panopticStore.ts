@@ -116,7 +116,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     async function importProject(path: string) {
         data.status = await apiImportProject(path)
-        await loadProject(path, true)
+        await loadProject(path)
     }
 
     function showModal(modalId: ModalId, data?: any) {
