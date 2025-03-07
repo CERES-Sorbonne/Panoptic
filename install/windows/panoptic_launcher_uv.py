@@ -61,4 +61,4 @@ run_command("uv run panoptic")
 # panoptic_exe = panoptic_dir / ".venv" / "Scripts" / "panoptic"
 # subprocess.run(f"call {venv_activate} & call {panoptic_exe}", shell=True)
 
-# pyinstaller --onefile --noconsole --icon=panoptic.ico panoptic_launcher_uv.py
+# pyinstaller --onefile --console --icon=panoptic.ico panoptic_launcher_uv.py
