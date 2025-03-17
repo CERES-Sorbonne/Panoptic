@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Alié"
+  given-names: "Félix"
+  orcid: "https://orcid.org/0009-0006-8797-5397"
+- family-names: "Gödicke"
+  given-names: "David"
+title: "Panoptic Image Exploration"
+version: 0.5.4
+doi: 10.5281/zenodo.15039850
+date-released: 2025-03-17
+url: "https://github.com/CERES-Sorbonne/Panoptic"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Bouté"
+    given-names: "Edouard"
+  - family-names: "Alié"
+    given-names: "Félix"
+    orcid: "https://orcid.org/0009-0006-8797-5397"
+  - family-names: "Gödicke"
+    given-names: "David"
+  doi: "hal-04687627"
+  journal: "Humanistica"
+  title: "PANOPTIC, un outil d'exploration par similarité de vastes corpus d'images"
+  year: 2024
