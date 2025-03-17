@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Alié"
+  given-names: "Félix"
+  orcid: "https://orcid.org/0009-0006-8797-5397"
+- family-names: "Gödicke"
+  given-names: "David"
+title: "Panoptic Image Exploration"
+version: 0.5.4
+doi: 10.5281/zenodo.15039850
+date-released: 2025-03-17
+url: "https://github.com/CERES-Sorbonne/Panoptic"
+preferred-citation:
+  type: conference-paper
+  title: "PANOPTIC, un outil d'exploration par similarité de vastes corpus d'images"
+  authors:
+    - family-names: Bouté
+      given-names: Édouard
+    - family-names: Alié
+      given-names: Félix
+    - family-names: Gödicke
+      given-names: David
+    - family-names: Julliard
+      given-names: Virginie
+    - family-names: Pailler
+      given-names: Fred
+    - family-names: Ecrement
+      given-names: Victor
+  year: 2024
+  month: 5
+  conference: "Humanistica 2024"
+  location: "Meknès, Morocco"
+  publisher: "Association francophone des humanités numériques"
+  keywords:
+    - Image Corpus
+    - Computer vision
+    - Social network Analysis SNA
+    - Media history
+    - Corpus d'images
+    - Vision par ordinateur
+    - Analyse des réseaux sociaux
+    - Histoire des médias
+  url: "https://github.com/CERES-Sorbonne/Panoptic"
+  doi: "hal-04687627"
+  license: "CC-BY-SA-4.0"
+  repository-code: "https://hal.science/hal-04687627v1/file/Humanistica_2024_Boute.pdf"
+  journal: "Humanistica"
