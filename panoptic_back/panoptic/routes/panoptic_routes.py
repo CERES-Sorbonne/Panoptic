@@ -139,8 +139,8 @@ async def get_packages_route():
     for index, base_package in enumerate(base_packages):
         res['panopticPackages'][base_package] = base_package_versions[index]
     if len(plugin_packages) > 0:
-        for index, base_package in enumerate(plugin_packages):
-            res['pluginPackages'][base_package] = plugin_packages_versions[index]
+        for index, plugin_package in enumerate(plugin_packages):
+            res['pluginPackages'][plugin_package] = plugin_packages_versions[index]
     return res
 
 def images_in_folder(folder_path):
