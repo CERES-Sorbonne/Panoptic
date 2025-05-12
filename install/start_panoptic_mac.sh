@@ -10,6 +10,8 @@ fi
 if ! command -v uv &> /dev/null; then
     echo "uv n'est pas installé. Installation en cours..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
 fi
 
 # Vérifier si le dossier ~/panoptic existe
