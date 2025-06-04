@@ -2,12 +2,12 @@
 
 import { apiExportProperties } from '@/data/api';
 import { ref, computed, reactive } from 'vue';
-import Modal from './Modal.vue';
 import { ModalId } from '@/data/models';
 import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { useDataStore } from '@/data/dataStore';
 import { useTabStore } from '@/data/tabStore';
+import Modal2 from './Modal2.vue';
 
 const data = useDataStore()
 const tabStore = useTabStore()
@@ -109,7 +109,7 @@ async function buildRequest() {
 
 
 <template>
-    <Modal :id="ModalId.EXPORT" @show="show" ref="modalElem">
+    <Modal2 :id="ModalId.EXPORT" @show="show" ref="modalElem">
         <template #title>
             {{ $t('modals.export.title') }}
         </template>
@@ -206,7 +206,7 @@ async function buildRequest() {
 
             </div>
         </template>
-    </Modal>
+    </Modal2>
 </template>
 
 <style scoped>

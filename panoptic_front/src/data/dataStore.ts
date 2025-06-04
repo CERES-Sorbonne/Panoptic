@@ -201,10 +201,12 @@ export const useDataStore = defineStore('dataStore', () => {
     function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
 
+        const props = properties.value
+
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 sha1Index.value[v.sha1].forEach(i => {
-                    if (isTag(properties.value[v.propertyId].type)) {
+                    if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
                         updateTagCount(instances.value[i.id].properties[v.propertyId], [])
                     }
                     if (instances.value[i.id]) {
@@ -217,7 +219,7 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
-                if (isTag(properties.value[v.propertyId].type)) {
+                if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
                     updateTagCount(instances.value[v.instanceId].properties[v.propertyId], [])
                 }
                 if (instances.value[v.instanceId]) {
@@ -242,8 +244,8 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
-                properties.value[i].id = deletedID
-                properties.value[i].name = deletedName
+                props[i].id = deletedID
+                props[i].name = deletedName
             })
         }
         if (commit.emptyInstances) {
@@ -277,6 +279,8 @@ export const useDataStore = defineStore('dataStore', () => {
 
         if (disableTrigger) return
         console.log('trigger refss')
+
+        properties.value = props
         triggerRef(properties)
         triggerRef(folders)
         triggerRef(instances)
