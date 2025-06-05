@@ -7,14 +7,16 @@ import { useModalStore } from '@/data/modalStore';
 const modal = useModalStore()
 const panoptic = usePanopticStore()
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     id: ModalId
     layer?: number
     maxWidth?: number
     maxHeight?: number
     noTitle?: boolean,
     titleStyle?: number
-}>()
+}>(), {
+    layer: 0
+})
 
 const emits = defineEmits(['resize', 'show', 'hide'])
 defineExpose({
@@ -54,7 +56,7 @@ function hide() {
 function show() {
     active.value = true
     nextTick(() => modalElem.value.focus())
-    emits('show')
+    emits('show', modal.layerOpen[props.layer].data)
 }
 
 
@@ -68,9 +70,8 @@ function onWindowResize() {
     emits('resize', { height: totalHeight.value, width: totalWidth.value })
 }
 
-
 function close() {
-    panoptic.hideModal(props.id)
+    modal.closeModal(props.id)
 }
 
 onMounted(() => {
@@ -92,7 +93,7 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
 </script>
 
 <template>
-    <div v-if="active" class="p-modal" tabindex="-1" ref="modalElem" @click="panoptic.hideModal(props.id)"
+    <div v-if="active" class="p-modal" :style="{zIndex: 9000 + (props.layer ?? 0)}" tabindex="-1" ref="modalElem" @click="panoptic.hideModal(props.id)"
         @keydown.esc="panoptic.hideModal(props.id)">
         <div class="d-flex w-100 h-100 justify-content-center align-items-center">
             <div class="modal-container" :style="modalStyle" @click.stop>
@@ -165,6 +166,5 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.77);
-    z-index: 9000;
 }
 </style>
