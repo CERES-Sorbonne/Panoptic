@@ -8,6 +8,7 @@ import { useDataStore } from '@/data/dataStore';
 import PropertyModeDropdown from '../dropdowns/PropertyModeDropdown.vue';
 import Modal2 from './Modal2.vue';
 import { useTabStore } from '@/data/tabStore';
+import { useModalStore } from '@/data/modalStore';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -39,11 +40,17 @@ async function saveProperty(hide) {
     hide()
 }
 
+function onShow(data) {
+    if(data?.mode) {
+        newProperty.mode = data.mode
+    }
+}
+
 </script>
 
 
 <template>
-    <Modal2 :id="ModalId.PROPERTY" :max-height="170" :max-width="600">
+    <Modal2 :id="ModalId.PROPERTY" :layer="1" :max-height="170" :max-width="600" @show="onShow">
         <template #title>
             {{ $t("modals.properties.title") }}
         </template>
