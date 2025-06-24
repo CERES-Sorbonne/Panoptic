@@ -101,7 +101,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         </div>
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5"
             :selected-images-ids="selectedImageIds"
-            @remove:selected="props.tab.collection.groupManager.clearSelection()" @stamped="props.tab.collection.groupManager.clearSelection" />
+            @remove:selected="props.tab.collection.groupManager.clearSelection()" @stamped="props.tab.collection.groupManager.clearSelection()" />
         <div class="flex-grow-1"></div>
         <wTT message="main.menu.issue" class="bb ">
             <a href="https://github.com/CERES-Sorbonne/Panoptic/issues/new/choose" target="_blank"
