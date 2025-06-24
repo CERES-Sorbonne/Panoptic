@@ -358,3 +358,8 @@ export async function apiGetPackagesInfo() {
     const res = await axios.get('/packages')
     return res.data
 }
+
+export async function apiPostDeleteEmptyClones() {
+    const res = await axios.post('/delete_empty_clones')
+    return keysToCamel(res.data)
+}

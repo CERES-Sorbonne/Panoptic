@@ -542,3 +542,26 @@ class ProjectDb:
                 yield row  # Yielding each row one at a time
 
             position += len(rows)
+
+    async def delete_empty_instance_clones(self):
+        ids = await self.get_all_instances_ids()
+        non_empty_ids = set(await self._db.get_instance_values_instance_ids())
+
+        empty_ids = [id_ for id_ in ids if id_ not in non_empty_ids]
+        id_to_path = await self._db.get_instance_paths(empty_ids)
+        paths = {path for id_, path in id_to_path.items()}
+        counters = await self._db.get_paths_count(list(paths))
+
+        order = sorted([i for i in id_to_path.keys()], reverse=True)
+        to_delete = []
+
+        for id_ in order:
+            path = id_to_path[id_]
+            if counters[path] > 1:
+                counters[path] -= 1
+                to_delete.append(id_)
+
+        await self._db.delete_instances(to_delete)
+        return to_delete
+
+

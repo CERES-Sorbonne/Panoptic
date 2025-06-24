@@ -21,7 +21,7 @@ from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate, ProjectSettings, PluginKey
+from panoptic.models import StatusUpdate, ProjectSettings, PluginKey, DbCommit
 from panoptic.utils import get_model_params_description
 
 nb_workers = 8
@@ -214,6 +214,10 @@ class Project:
             sha1s = list(self.sha1_to_files.keys())
             [self.task_queue.add_task(ImportImageTask(self, sha1)) for sha1 in sha1s]
 
-
+    async def delete_empty_instance_clones(self):
+        ids = await self.db.delete_empty_instance_clones()
+        commit = DbCommit()
+        commit.empty_instances = ids
+        return commit
 
 

@@ -197,6 +197,46 @@ async def test_import_data_mode_instance(instance_project: Project, import_csv: 
     assert len(tags) == 22
 
 
+async def test_import_data_mode_instance_twice(instance_project: Project, import_csv: str):
+    await instance_project.importer.upload_csv(import_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.confirm_import()
+
+    await instance_project.importer.upload_csv(import_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.confirm_import()
+
+    instances = await instance_project.db.get_instances()
+    assert len(instances) == 20
+
+
+async def test_delete_empty_clones(instance_project: Project, import_csv: str):
+    await instance_project.importer.upload_csv(import_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.confirm_import()
+
+    await instance_project.importer.upload_csv(import_csv)
+    await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.confirm_import()
+
+    instances = await instance_project.db.get_instances()
+    assert len(instances) == 20
+
+    props = await instance_project.db.get_properties(computed=False)
+    for prop in props:
+        await instance_project.db.get_raw_db().delete_property(prop.id)
+
+    props2 = await instance_project.db.get_properties(computed=False)
+    assert len(props2) == 0
+
+    await instance_project.db.delete_empty_instance_clones()
+    instances2 = await instance_project.db.get_instances()
+    assert len(instances2) == 10
+
+    max_id = max(i.id for i in instances2)
+    assert max_id == 10
+
+
 async def test_import_data_mode_image(instance_project: Project, import_csv):
     prop_definitions = {
         1: Property(id=-1, name="tag", type=PropertyType.tag, mode=PropertyMode.sha1),
