@@ -138,6 +138,7 @@ function compareSortable(a: SortableImage, b: SortableImage, orders: number[]) {
 }
 
 function insertSort(old: Instance[], updatedIds: Set<number>, removed: Set<number>, properties: Property[], orders: number[], instances: InstanceIndex) {
+    removed.add(deletedID)
     const res: number[] = []
     const updated = Array.from(updatedIds).map(i => instances[i])
     const updatedSorted = sortSortable(getSortableImages(updated, properties), orders)

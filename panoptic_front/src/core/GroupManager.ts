@@ -5,7 +5,7 @@
  * GroupIterator and ImageIterator can be used to iterate over the tree
  */
 
-import { DateUnit, DateUnitFactor, FolderIndex, GroupScoreList, Instance, PropertyIndex, PropertyValue, Score, ScoreList, TagIndex } from "@/data/models";
+import { DateUnit, DateUnitFactor, FolderIndex, GroupScoreList, Instance, PropertyID, PropertyIndex, PropertyValue, Score, ScoreList, TagIndex } from "@/data/models";
 import { Ref, reactive, shallowRef, toRefs, triggerRef } from "vue";
 import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
@@ -569,6 +569,7 @@ export class GroupManager {
             // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
         }
+
         return this.result
     }
 
@@ -690,7 +691,7 @@ export class GroupManager {
                 const groupId = this.result.valueIndex.get(key)
                 groups[img.sha1] = buildGroup(groupId, [img], GroupType.Sha1)
                 groups[img.sha1].key = key
-                groups[img.sha1].meta.propertyValues.push({ propertyId: -1, value: img.sha1 })
+                groups[img.sha1].meta.propertyValues.push({ propertyId: PropertyID.sha1, value: img.sha1 })
                 order.push(img.sha1)
 
             } else {
@@ -722,6 +723,7 @@ export class GroupManager {
             if (!this.result.imageToGroups[instanceId]) continue
             this.result.imageToGroups[instanceId].forEach(g => groups.add(g))
         }
+        groups.add(0) // add root group
         for (let groupId of groups) {
             const group = this.result.index[groupId]
             if (group.type == GroupType.Cluster) continue
@@ -741,10 +743,6 @@ export class GroupManager {
             }
         }
 
-        if (this.state.sha1Mode) {
-            this.groupLeafsBySha1()
-        }
-
         for (let group of objValues(this.result.index)) {
             if (!group.dirty) continue
             if (group.subGroupType == GroupType.Property) {
@@ -757,8 +755,14 @@ export class GroupManager {
             group.dirty = false
         }
         setOrder(this.result.root)
+
+        if (this.state.sha1Mode) {
+            this.groupLeafsBySha1()
+        }
+
         // console.log('Group Update Emit')
         this.onResultChange.emit(this.result)
+        return this.result
     }
 
     sort(order: ImageOrder, emit?: boolean) {
@@ -927,9 +931,9 @@ export class GroupManager {
         }
         parent.subGroupType = parent.children.length ? groups[0].type : undefined
         // this.removeImageToGroups(parent)
-        if (parent.subGroupType == GroupType.Sha1) {
-            this.saveImagesToGroup(parent)
-        }
+        // if (parent.subGroupType == GroupType.Sha1) {
+        //     this.saveImagesToGroup(parent)
+        // }
     }
 
     private addChildGroup(parent: Group, group: Group) {

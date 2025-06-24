@@ -67,7 +67,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                         <div class="m-0" style="padding: 4px 0px 4px 8px">
                             <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
                                 <template v-if="menuOpen">
-                                    <div class="flex-grow-1 text-capitalize overflow-hidden" @click="">{{
+                                    <div class="flex-grow-1 text-capitalize overflow-hidden" >{{
                                         panoptic.data.status.selectedProject?.name }}
                                     </div>
                                     <wTT message="main.menu.close_project">

@@ -335,6 +335,12 @@ async def post_settings_route(settings: ProjectSettings):
     return project.settings
 
 
+@project_router.post('/delete_empty_clones')
+async def post_delete_empty_clones():
+    res = await project.delete_empty_instance_clones()
+    return res
+
+
 class EndpointFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         update = record.getMessage().find("/update") > -1

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
+import Dropdown from './Dropdown.vue';
 
 const data = useDataStore()
 
@@ -13,21 +14,23 @@ const modes = ['first', 'last', 'all', 'new']
 </script>
 
 <template>
-    <div class="dropdown">
-        <button class="input-lg text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            {{ $t('modals.import.fusion.' + props.modelValue) }}
-        </button>
+    <Dropdown>
+        <template #button>
+            <div class="bbb">{{ $t('modals.import.fusion.' + props.modelValue) }}</div>
+        </template>
 
-        <ul class="dropdown-menu">
-            <li v-for="mode in modes" @click="emits('update:modelValue', mode)">
-                <span class="dropdown-item" style="cursor: pointer;">
-                    <wTT :message="'modals.import.fusion.' + mode + '_tooltip'" >
-                        {{ $t('modals.import.fusion.' + mode) }}
-                    </wTT>
-                </span>
-            </li>
-        </ul>
-        </div>
+        <template #popup="{hide}">
+            <div class="p-1">
+                <div v-for="mode in modes" @click="emits('update:modelValue', mode); hide();" class="bb m-1">
+                    <span class="dropdown-item" style="cursor: pointer;">
+                        <wTT :message="'modals.import.fusion.' + mode + '_tooltip'">
+                            {{ $t('modals.import.fusion.' + mode) }}
+                        </wTT>
+                    </span>
+                </div>
+            </div>
+        </template>
+    </Dropdown>
 </template>
 
 <style scoped>
