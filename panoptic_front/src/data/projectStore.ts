@@ -13,6 +13,7 @@ import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
 import { useI18n } from 'vue-i18n';
+import { useActionStore } from "./actionStore";
 
 export const test = shallowRef({ count: 0 })
 
@@ -96,11 +97,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         await dataStore.init()
 
-        // await loadTabs(tabs)
-        // verifyData()
-
-
         status.loaded = true
+
+
+        useActionStore().load()
         // usePanopticStore().showModal(ModalId.TAG, {})
     }
 
