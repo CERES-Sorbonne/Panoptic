@@ -424,7 +424,7 @@ export class FunctionDescription {
     hooks: string[]
 }
 
-export interface Actions {
+export interface ActionFunctions {
     [id: string]: FunctionDescription
 }
 
