@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, Actions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult, UploadConfirm } from './models'
+import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, ActionFunctions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult, UploadConfirm } from './models'
 import { PluginKey, SelectionStatus, usePanopticStore } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -207,7 +207,7 @@ export async function apiSetPluginParams(plugin: string, params: any) {
 
 export async function apiGetActions() {
     let res = await axios.get('/actions')
-    return res.data as Actions
+    return res.data as ActionFunctions
 }
 
 export async function apiCallActions(req: ExecuteActionPayload) {
