@@ -834,6 +834,10 @@ export class GroupManager {
         delete this.customGroups[targetGroupId]
         this.removeChildren(this.result.index[targetGroupId])
 
+        if(this.state.sha1Mode) {
+            this.groupBySha1(this.result.index[targetGroupId])
+        }
+
         if (emit) {
             // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
