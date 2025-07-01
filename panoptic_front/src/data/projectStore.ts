@@ -239,8 +239,12 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function correctUiState() {
+
         if (!data.uiState.similarityIntervals) {
             data.uiState.similarityIntervals = {}
+        }
+        if (!data.uiState.similarityImageSize) {
+            data.uiState.similarityImageSize = 70
         }
     }
 
