@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
@@ -13,41 +13,39 @@ import { allChildrenSha1Groups } from '@/utils/utils'
 
 const data = useDataStore()
 
-const props = defineProps({
-    item: Object as () => GroupLine,
-    manager: GroupManager,
-    parentIds: Array<number>,
-    hoverBorder: Number,
-    data: Object as () => GroupTree,
-    hideOptions: Boolean
-})
+const props = defineProps<{
+    item: GroupLine
+    manager: GroupManager
+    parentIds: number[];
+    hoverBorder: number,
+    data: GroupTree,
+    hideOptions: boolean
+}>()
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
 
 const hoverGroup = ref(false)
 const group = computed(() => props.item.data)
-const images = computed(() => group.value.images)
-const piles = computed(() => undefined /*props.item.data.imagePiles*/)
-const subgroups = computed(() => group.value.children ?? [])
-const hasImages = computed(() => images.value.length > 0)
-const hasPiles = computed(() => Array.isArray(piles.value))
+const images = computed(() => props.item.data.images)
+const subgroups = computed(() => props.item.data.children ?? [])
+const hasImages = computed(() => props.item.data.images.length > 0)
 const hasSubgroups = computed(() => {
     return props.item.data.children.length > 0 && props.item.data.subGroupType != GroupType.Sha1
 })
-const properties = computed(() => group.value.meta.propertyValues.map(v => data.properties[v.propertyId]))
-const propertyValues = computed(() => group.value.meta.propertyValues)
+const properties = computed(() => props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId]))
+const propertyValues = computed(() => props.item.data.meta.propertyValues)
 const closed = computed(() => props.item.data.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
 const selected = computed(() => !props.item.data.images.some(i => !props.manager.selectedImages.value[i.id]))
 
 const groupName = computed(() => {
-    if (group.value.type == GroupType.All) return 'All'
-    if (group.value.type == GroupType.Cluster) return group.value.name ?? ('Cluster ' + group.value.parentIdx)
+    if (props.item.data.type == GroupType.All) return 'All'
+    if (props.item.data.type == GroupType.Cluster) return props.item.data.name ?? ('Cluster ' + props.item.data.parentIdx)
     return 'tmp name'
 })
 
-const someValue = computed(() => group.value.meta.propertyValues.some(v => v.value != undefined))
+const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v.value != undefined))
 
 const instancesForExecute = computed(() => {
     const selected = images.value.filter(i => props.manager.selectedImages.value[i.id])
@@ -58,11 +56,11 @@ const instancesForExecute = computed(() => {
 })
 
 async function addClusters(groups: Group[]) {
-    props.manager.addCustomGroups(group.value.id, groups, true)
+    props.manager.addCustomGroups(props.item.data.id, groups, true)
 }
 
 function clear() {
-    props.manager.delCustomGroups(group.value.id, true)
+    props.manager.delCustomGroups(props.item.data.id, true)
 }
 
 async function recommandImages() {
@@ -72,11 +70,11 @@ async function recommandImages() {
 function toggleClosed() {
     if (closed.value) {
         // props.groupIndex[props.item.id].closed = false
-        props.manager.toggleGroup(group.value.id, false)
+        props.manager.toggleGroup(props.item.data.id, false)
         emits('group:open', props.item.id)
     }
     else {
-        props.manager.toggleGroup(group.value.id, false)
+        props.manager.toggleGroup(props.item.data.id, false)
         emits('group:close', props.item.id)
     }
 }
@@ -206,7 +204,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     @groups="addClusters" />
             </div>
 
-            <div v-if="(hasImages || hasPiles) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
+            <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
                 class="ms-2">
                 <wTT message="main.recommand.tooltip">
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>

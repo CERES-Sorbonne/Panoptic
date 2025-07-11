@@ -1,16 +1,17 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
-import { ActionContext, Actions } from "./models";
+import { ActionContext, ActionFunctions } from "./models";
 import { computed, reactive, ref, watch } from "vue";
 import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
+import { Exception } from "sass";
 
 const hooks = ['similar', 'group', 'execute', 'import', 'export']
 
 export const useActionStore = defineStore('actionStore', () => {
     const project = useProjectStore()
 
-    const index = ref({} as Actions)
+    const index = ref({} as ActionFunctions)
     const defaultActions = reactive({
         similar: undefined,
         group: undefined,
@@ -82,7 +83,6 @@ export const useActionStore = defineStore('actionStore', () => {
     async function getDefaultParams() {
         const res = await apiGetUIData('param_defaults')
         if (!res) return
-
         for (let action of objValues(index.value)) {
             for (let param of action.params) {
                 const key = action.id + '.' + param.name
@@ -100,6 +100,11 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getDefaultActions() {
         const res = await apiGetUIData('default_actions')
+        for(let key of Object.keys(res)) {
+            if (!index.value[res[key]]) {
+                delete res[key]
+            }
+        }
         Object.assign(defaultActions, res)
     }
 

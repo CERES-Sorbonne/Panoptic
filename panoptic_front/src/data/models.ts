@@ -424,7 +424,7 @@ export class FunctionDescription {
     hooks: string[]
 }
 
-export interface Actions {
+export interface ActionFunctions {
     [id: string]: FunctionDescription
 }
 
@@ -538,7 +538,8 @@ export interface ProjectSettings {
 export interface UiState {
     activeTab?: number
     lang?: string
-    similarityIntervals: {[key: string]: ScoreInterval}
+    similarityIntervals: {[key: string]: ScoreInterval},
+    similarityImageSize: number
 }
 
 

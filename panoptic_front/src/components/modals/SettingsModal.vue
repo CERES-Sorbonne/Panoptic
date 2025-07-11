@@ -6,6 +6,7 @@ import { ref } from 'vue';
 import PluginSettings from '../settings/PluginSettings.vue';
 import { useProjectStore } from '@/data/projectStore';
 import GeneralSettings from '../settings/GeneralSettings.vue';
+import { useDataStore } from '@/data/dataStore';
 
 const project = useProjectStore()
 
@@ -36,6 +37,9 @@ async function updatePluginInfo() {
                 </div>
                 <div v-if="category == 'general'">
                     <GeneralSettings />
+                    <div>
+                        <span class="bbb" @click="useDataStore().deleteEmptyClones()"> Delete Empty Clones</span>
+                    </div>
                 </div>
                 <div v-if="category == 'plugins' && selectedPlugin">
                     <TabMenu :options="project.data.plugins.map(info => info.name)" v-model="selectedPlugin" />

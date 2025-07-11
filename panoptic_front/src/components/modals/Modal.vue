@@ -54,7 +54,7 @@ function onShow() {
 function onHide() {
     active.value = false
     if (panoptic.openModalId == props.id) {
-        panoptic.hideModal()
+        panoptic.hideModal(props.id)
     }
     emits('hide')
 }
