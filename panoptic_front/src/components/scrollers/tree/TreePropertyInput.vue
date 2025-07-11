@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import { Property, PropertyType, Instance } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { deletedID, useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import DBInput from '@/components/property_inputs/DBInput.vue';
@@ -30,7 +30,7 @@ const width = computed(() => (props.width ?? 100) - 22)
 </script>
 
 <template>
-    <DBInput :instance="props.instance" :property-id="props.property.id">
+    <DBInput v-if="props.instance.id != deletedID" :instance="props.instance" :property-id="props.property.id">
         <template #default="{ value, set }">
             <div class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px;font-size: 14px;">
                 <PropertyIcon v-if="props.property.type != PropertyType.checkbox && property.id > 0"

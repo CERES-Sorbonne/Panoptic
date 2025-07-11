@@ -489,6 +489,68 @@ class Db:
         else:
             return set()
 
+    async def get_instance_sha1s(self, ids: list[int]) -> dict[int, str]:
+        table = Table('instances')
+        query = Query.from_(table).select('id', 'sha1').where(table.id.isin(ids))
+
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+
+        if rows:
+            return {r[0]: r[1] for r in rows}
+        else:
+            return {}
+
+    async def get_instance_paths(self, ids: list[int]) -> dict[int, str]:
+        table = Table('instances')
+        query = Query.from_(table).select('id', 'url').where(table.id.isin(ids))
+
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+
+        if rows:
+            return {r[0]: r[1] for r in rows}
+        else:
+            return {}
+
+    async def get_sha1_count(self, sha1s: list[str]):
+        table = Table('instances')
+        query = (
+            Query.from_(table)
+            .select(table.sha1, functions.Count('*').as_('count'))
+            .where(table.sha1.isin(sha1s))
+            .groupby(table.sha1)
+        )
+
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+
+        if rows:
+            return {r[0]: r[1] for r in rows}  # returns dict: {sha1: count}
+        else:
+            return {}
+
+    async def get_paths_count(self, paths: list[str]):
+        table = Table('instances')
+        query = (
+            Query.from_(table)
+            .select(table.url, functions.Count('*').as_('count'))
+            .where(table.url.isin(paths))
+            .groupby(table.url)
+        )
+
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+
+        if rows:
+            return {r[0]: r[1] for r in rows}  # returns dict: {path: count}
+        else:
+            return {}
+
+    async def delete_instances(self, ids: list[int]):
+        query = "DELETE FROM instances WHERE id = ?"
+        await self.conn.execute_query_many(query, [(id_,) for id_ in ids])
+
     # =====================================================
     # ================== Folders ==========================
     # =====================================================
@@ -688,3 +750,9 @@ class Db:
     async def get_new_property_group_ids(self, nb: int):
         async with self.property_group_id_lock:
             return await self._get_id_counter_helper('property_group', nb)
+
+    async def get_instance_values_instance_ids(self):
+        query = f"SELECT DISTINCT instance_id FROM instance_property_values"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        return [r[0] for r in rows]

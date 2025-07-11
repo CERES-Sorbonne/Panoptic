@@ -12,6 +12,7 @@ import { convertSearchGroupResult, deepCopy, sortGroupByScore } from '@/utils/ut
 import Slider from '@vueform/slider'
 import { useProjectStore } from '@/data/projectStore';
 import { useTabStore } from '@/data/tabStore';
+import RangeInput from '@/components/inputs/RangeInput.vue';
 const actions = useActionStore()
 const data = useDataStore()
 const project = useProjectStore()
@@ -30,7 +31,6 @@ similarGroup.setSha1Mode(true)
 
 const useFilter = ref(true)
 const scrollerElem = ref(null)
-
 
 const searchResult = ref<Group>(null)
 const scoreInterval: Reactive<ScoreInterval> = reactive({
@@ -64,7 +64,7 @@ async function setSimilar() {
 function updateSimilarGroup() {
     if (!searchResult.value) return
     let group = deepCopy(searchResult.value)
-    if(useFilter.value) {
+    if (useFilter.value) {
         let valid = {}
         tabStore.getMainTab().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
         group.images = group.images.filter(i => valid[i.id])
@@ -118,7 +118,7 @@ function updateInterval(score: GroupScoreList) {
 function setDefaultInterval() {
     const intervals = project.data.uiState.similarityIntervals
     const func = actions.defaultActions['similar']
-    if(!func || !intervals[func.id]) {
+    if (!func || !intervals[func.id]) {
         return
     }
     Object.assign(scoreInterval, intervals[func.id])
@@ -152,24 +152,34 @@ watch(scoreInterval, () => {
                 <div class="sep ms-1 me-1"></div>
                 <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
                 <div style="width: 100px;" class="me-3">
-                    <Slider v-model=scoreInterval.values :min="scoreInterval.min" :max="scoreInterval.max" :step="-1" direction="ltr" :merge="0.4"
-                        showTooltip="drag" />
+                    <Slider v-model=scoreInterval.values :min="scoreInterval.min" :max="scoreInterval.max" :step="-1"
+                        direction="ltr" :merge="0.4" showTooltip="drag" />
                 </div>
-                <div v-if="scoreInterval.description.length" class="me-1"><wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT></div>
+                <div v-if="scoreInterval.description.length" class="me-1">
+                    <wTT :message="scoreInterval.description"><i class="bi bi-info-circle" /></wTT>
+                </div>
                 <div class="text-secondary">({{ scoreInterval.values[0] }} - {{ scoreInterval.values[1] }})</div>
                 <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">
                     ({{ similarGroup.result.root.children.length }} images)
                 </div>
             </div>
+            <div class="d-flex" style="height: 25px; margin-left: 1px;">
+                <wTT message="main.menu.image_size_tooltip" :click="false">
+                    <div class="bi bi-aspect-ratio me-1"></div>
+                </wTT>
+                <div>
+                    <RangeInput :min="60" :max="250" v-model="project.data.uiState.similarityImageSize" />
+                </div>
+            </div>
             <div class="d-flex mt-1 mb-1">
                 <div class="me-2" style="margin-left: 2px;">Search function</div>
                 <div>
-                    <ActionSelect  :size="15" :action="'similar'" @changed="setSimilar"/>
+                    <ActionSelect :size="15" :action="'similar'" @changed="setSimilar" />
                 </div>
             </div>
 
 
-            <TreeScroller class="" :image-size="70" :height="props.height - 60" :width="props.width"
+            <TreeScroller class="" :image-size="project.data.uiState.similarityImageSize" :height="props.height - 85" :width="props.width"
                 :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
                 ref="scrollerElem" :preview="props.preview" />
         </div>

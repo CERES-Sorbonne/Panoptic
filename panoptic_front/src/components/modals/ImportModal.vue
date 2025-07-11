@@ -2,7 +2,6 @@
 
 import { apiConfirmImport, apiParseImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
-import Modal from './Modal.vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { computed, Ref, ref, watch } from 'vue';
 import { ModalId, UploadConfirm } from '@/data/models';
@@ -10,6 +9,7 @@ import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import FusionModeDropdown from '../dropdowns/FusionModeDropdown.vue';
 import { objValues } from '@/utils/utils';
+import Modal2 from './Modal2.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -109,7 +109,7 @@ watch(relative, () => proposeReparse.value = true)
 
 
 <template>
-    <Modal :id="ModalId.IMPORT" ref="modalElem">
+    <Modal2 :id="ModalId.IMPORT" ref="modalElem">
         <template #title>
             {{ $t('modals.import.title') }}
         </template>
@@ -296,7 +296,7 @@ watch(relative, () => proposeReparse.value = true)
                 </table>
             </div>
         </template>
-    </Modal>
+    </Modal2>
 </template>
 
 <style scoped>

@@ -76,6 +76,7 @@ export class CollectionManager {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
+                console.log(this.sortManager.result)
                 this.groupManager.lastOrder = this.sortManager.result.order
                 this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 this.runState.isDirty = false

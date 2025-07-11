@@ -404,6 +404,7 @@ export class FilterManager {
 
     async filter(images: Instance[], emit?: boolean) {
         console.time('Filter')
+        images = images.filter(i => i.id != deletedID)
         this.lastImages = images
         const res = this.filterInstances(images)
         // this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
@@ -424,10 +425,13 @@ export class FilterManager {
     async updateSelection(instanceIds: Set<number>) {
         console.time('UpdateFilter')
         const data = useDataStore()
-        const instances = Array.from(instanceIds).map(i => data.instances[i])
+        const ids = Array.from(instanceIds)
+        const instances = ids.map(i => data.instances[i])
         const valid = []
+        const deleted = ids.filter(id => data.instances[id].id == deletedID)
+
         for(let instance of this.result.images) {
-            if(instanceIds.has(instance.id)) continue
+            if(instanceIds.has(instance.id) || instance.id == deletedID) continue
             valid.push(instance.id)
         }
         const updated = this.filterInstances(instances)
@@ -435,15 +439,17 @@ export class FilterManager {
             valid.push(instance.id)
         }
         this.result.images = valid.map(id => data.instances[id])
+        console.log(this.result.images)
         console.timeEnd('UpdateFilter')
 
         const res = {updated: new Set(updated.valid.map(i => i.id)), removed: new Set(updated.reject.map(i => i.id))}
+        deleted.forEach(id => res.removed.add(id))
         return res
     }
 
     private filterInstances(instances: Instance[]) {
         const data = useDataStore()
-        let filtered = instances
+        let filtered = instances.filter(i => i.id != deletedID)
 
         if (this.state.query) {
             const query = this.state.query.toLocaleLowerCase()

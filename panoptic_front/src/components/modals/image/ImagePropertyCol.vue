@@ -4,10 +4,12 @@ import CenteredImage from '@/components/images/CenteredImage.vue';
 import PropertyInputTable from '@/components/inputs/PropertyInputTable.vue';
 import { GroupManager, ImageIterator } from '@/core/GroupManager';
 import { deletedID, useDataStore } from '@/data/dataStore';
-import { PropertyMode } from '@/data/models';
+import { useModalStore } from '@/data/modalStore';
+import { ModalId, PropertyMode, PropertyType } from '@/data/models';
 import { Ref, computed, inject, reactive, ref } from 'vue';
 
 const data = useDataStore()
+const modals = useModalStore()
 
 const props = defineProps<{
     image: ImageIterator
@@ -85,27 +87,42 @@ function toggleClosed(index: number) {
                     <i v-if="closed[0]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                {{$t('common.properties.image')}}
+                {{ $t('common.properties.image') }}
             </div>
-            <PropertyInputTable v-if="!closed[0]" :image="props.image.image" :properties="imageProperties"
-                :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
-                @hoverEnd="emits('hoverEnd')" />
+            <template v-if="!closed[0]">
+                <PropertyInputTable :image="props.image.image" :properties="imageProperties"
+                    :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
+                    @hoverEnd="emits('hoverEnd')" />
+                <div @click="modals.openModal(ModalId.PROPERTY, { mode: PropertyMode.sha1 })"
+                    class="btn-icon base-hover text-secondary" style="line-height: 25px;">
+                    <i class="bi bi-plus btn-icon" style="font-size: 25px;"></i>
+                    <span>{{ $t('main.nav.properties.add_property') }}</span>
+                </div>
+            </template>
             <div class="option" @click="toggleClosed(1)">
                 <span>
                     <i v-if="closed[1]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                {{$t('common.properties.instance')}}
+                {{ $t('common.properties.instance') }}
             </div>
-            <PropertyInputTable v-if="!closed[1]" :image="props.image.image" :properties="instanceProperties"
-                :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
-                @hoverEnd="emits('hoverEnd')" />
+            <template v-if="!closed[1]">
+                <PropertyInputTable :image="props.image.image" :properties="instanceProperties"
+                    :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
+                    @hoverEnd="emits('hoverEnd')" />
+                <div @click="modals.openModal(ModalId.PROPERTY, { mode: PropertyMode.id })"
+                    class="btn-icon base-hover text-secondary" style="line-height: 25px;">
+                    <i class="bi bi-plus btn-icon" style="font-size: 25px;"></i>
+                    <span>{{ $t('main.nav.properties.add_property') }}</span>
+                </div>
+            </template>
             <div class="option" @click="toggleClosed(2)">
                 <span>
                     <i v-if="closed[2]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                {{$t('common.properties.panoptic')}}</div>
+                {{ $t('common.properties.panoptic') }}
+            </div>
             <PropertyInputTable v-if="!closed[2]" :image="props.image.image" :properties="metaProperties"
                 :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
                 @hoverEnd="emits('hoverEnd')" />

@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
 import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupIndex, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
 import { objValues } from "./builder";
-import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiReImportFolder, apiRedo, apiStreamLoadState, apiUndo } from "./api";
+import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiStreamLoadState, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isFinished, isTag } from "@/utils/utils";
 import { useProjectStore } from "./projectStore";
@@ -37,7 +37,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const folderRoots = computed(() => {
         return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
     })
-    const instanceList = computed(() => objValues(instances.value))
+    const instanceList = computed(() => objValues(instances.value).filter(i => i.id != deletedID))
     const propertyList = computed(() => objValues(properties.value))
     const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
@@ -201,10 +201,12 @@ export const useDataStore = defineStore('dataStore', () => {
     function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
 
+        const props = properties.value
+
         if (commit.emptyImageValues) {
             commit.emptyImageValues.forEach(v => {
                 sha1Index.value[v.sha1].forEach(i => {
-                    if (isTag(properties.value[v.propertyId].type)) {
+                    if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
                         updateTagCount(instances.value[i.id].properties[v.propertyId], [])
                     }
                     if (instances.value[i.id]) {
@@ -217,7 +219,7 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
-                if (isTag(properties.value[v.propertyId].type)) {
+                if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
                     updateTagCount(instances.value[v.instanceId].properties[v.propertyId], [])
                 }
                 if (instances.value[v.instanceId]) {
@@ -242,8 +244,8 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         if (commit.emptyProperties?.length) {
             commit.emptyProperties.forEach(i => {
-                properties.value[i].id = deletedID
-                properties.value[i].name = deletedName
+                props[i].id = deletedID
+                props[i].name = deletedName
             })
         }
         if (commit.emptyInstances) {
@@ -277,6 +279,8 @@ export const useDataStore = defineStore('dataStore', () => {
 
         if (disableTrigger) return
         console.log('trigger refss')
+
+        properties.value = props
         triggerRef(properties)
         triggerRef(folders)
         triggerRef(instances)
@@ -506,7 +510,8 @@ export const useDataStore = defineStore('dataStore', () => {
         }
         for (let id of deletedInstances) {
             if (instances.value[id] == undefined) continue
-            let folder = folders.value[id]
+            const instance = instances.value[id]
+            let folder = folders.value[instance.folderId]
             folder.count -= 1
             folder = folders.value[folder.parent]
             while (folder) {
@@ -528,6 +533,13 @@ export const useDataStore = defineStore('dataStore', () => {
         await sendCommit({ emptyPropertyGroups: [id] })
     }
 
+    async function deleteEmptyClones() {
+        const commit = await apiPostDeleteEmptyClones()
+        console.log(commit)
+        console.log(folders)
+        applyCommit(commit)
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
@@ -535,7 +547,7 @@ export const useDataStore = defineStore('dataStore', () => {
         folderRoots, sha1Index, instanceList, propertyList, tagList,
         addFolder, reImportFolder, deleteFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
-        addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags,
+        addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags, deleteEmptyClones,
         applyCommit, sendCommit, undo, redo, onUndo,
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         clear

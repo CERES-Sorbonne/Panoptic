@@ -10,6 +10,7 @@ import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
 import { convertClusterGroupResult } from '@/utils/utils';
+import Autofocus from '../utils/Autofocus.vue';
 
 const project = useProjectStore()
 const data = useDataStore()
@@ -109,26 +110,29 @@ watch(project.actions, loadAction)
                 <div class="bb" style="margin: 0 1px; font-size: 8px;"><i class="bi bi-chevron-down"></i></div>
             </template>
             <template #popup="{ hide }">
-                <div style="min-width: 200px;" class="p-1">
-                    <div class="">
-                        <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true" :size="12" />
+                <Autofocus @keydown.enter="call(); hide();">
+                    <div style="min-width: 200px;" class="p-1">
+                        <div class="">
+                            <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true" :size="12" />
+                        </div>
+                        <div class="ps-1 pt-1 pb-1">
+                            <form @submit.prevent="" class="">
+                                <div v-for="input, i in localInputs" class="mb-1">
+                                    <ParamInput :input="input" />
+                                </div>
+                                <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
+                                    <div class="me-1"><input type="checkbox" v-model="setDefault"
+                                            style="position: relative; top: 2px" /></div>
+                                    <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}
+                                    </div>
+                                    <div class="ms-2 flex-grow-1"></div>
+                                    <div class="bb" @click="hide">{{ $t('cancel') }}</div>
+                                    <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <div class="ps-1 pt-1 pb-1">
-                        <form @submit.prevent="call(); hide();" class="">
-                            <div v-for="input, i in localInputs" class="mb-1">
-                                <ParamInput :input="input" />
-                            </div>
-                            <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
-                                <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                        style="position: relative; top: 2px" /></div>
-                                <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
-                                <div class="ms-2 flex-grow-1"></div>
-                                <div class="bb" @click="hide">{{ $t('cancel') }}</div>
-                                <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                </Autofocus>
             </template>
         </Dropdown>
     </div>

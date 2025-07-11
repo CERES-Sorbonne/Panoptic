@@ -6,13 +6,14 @@
 
 import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
-import { Actions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UiState, VectorDescription } from "./models";
+import { ActionFunctions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UiState, VectorDescription } from "./models";
 import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
 import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
 import { useI18n } from 'vue-i18n';
+import { useActionStore } from "./actionStore";
 
 export const test = shallowRef({ count: 0 })
 
@@ -46,7 +47,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         import: {} as ImportState,
     })
 
-    const actions = ref({} as Actions)
+    const actions = ref({} as ActionFunctions)
 
     const backendStatus = ref<StatusUpdate>(null)
 
@@ -96,11 +97,10 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
         await dataStore.init()
 
-        // await loadTabs(tabs)
-        // verifyData()
-
-
         status.loaded = true
+
+
+        useActionStore().load()
         // usePanopticStore().showModal(ModalId.TAG, {})
     }
 
@@ -239,8 +239,12 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function correctUiState() {
+
         if (!data.uiState.similarityIntervals) {
             data.uiState.similarityIntervals = {}
+        }
+        if (!data.uiState.similarityImageSize) {
+            data.uiState.similarityImageSize = 70
         }
     }
 

@@ -18,7 +18,7 @@ This documentation also exist in [French](https://github.com/CERES-Sorbonne/Pano
         3. [MacOS](#macos)
     3. [Docker Installation](#docker-installation)
     4. [Installation (development)](#installation-development)
-3. [Usage](#usage)
+3. [Documentation](https://panopticorg.github.io)
 4. [License](#license)
 
 ## 1. Description
