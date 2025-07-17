@@ -1,10 +1,14 @@
 import os
+import traceback
 import webbrowser
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from starlette.exceptions import HTTPException
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from panoptic.core.panoptic import Panoptic
@@ -33,7 +37,7 @@ def start():
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -43,6 +47,23 @@ def start():
 
     app.include_router(selection_router)
     app.include_router(project_router)
+
+    @app.exception_handler(Exception)
+    async def unicorn_exception_handler(request: Request, exc: BaseException):
+        headers = {
+            "Access-Control-Allow-Origin": "*",  # match your CORS settings
+            "Access-Control-Allow-Credentials": "false",
+        }
+
+        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+        name = str(type(exc).__name__)
+        message = str(exc)
+
+        return JSONResponse(
+            status_code=500,
+            headers=headers,
+            content={"traceback": tb, "name": name, "message": message}
+        )
 
     set_panoptic(panoptic)
 
