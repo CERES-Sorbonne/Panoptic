@@ -40,21 +40,25 @@ class ImportImageTask(Task):
 
         image = image.convert('RGB')
 
+        small_size = settings.image_small_size
+        medium_size = settings.image_medium_size
         large_size = settings.image_large_size
-        if settings.save_image_large and (width > large_size or height > large_size):
+
+        # TODO: refacto when raw resolution can be stored in db
+
+        if settings.save_image_large and ((width > large_size or height > large_size) or ((width < large_size or height < large_size) and (width > medium_size or height > medium_size))):
+            large_size = min(width, height, large_size)
             image.thumbnail(size=(large_size, large_size))
             large_io = io.BytesIO()
             image.save(large_io, format='jpeg', quality=30)
             large_bytes = large_io.getvalue()
 
-        medium_size = settings.image_medium_size
         if settings.save_image_medium and (width > medium_size or height > medium_size):
             image.thumbnail(size=(medium_size, medium_size))
             medium_io = io.BytesIO()
             image.save(medium_io, format='jpeg', quality=30)
             medium_bytes = medium_io.getvalue()
 
-        small_size = settings.image_small_size
         if settings.save_image_small and (width > small_size or height > small_size):
             image.thumbnail(size=(small_size, small_size))
             small_io = io.BytesIO()
