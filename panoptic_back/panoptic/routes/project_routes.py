@@ -9,6 +9,7 @@ from fastapi import APIRouter, UploadFile
 from fastapi.responses import ORJSONResponse
 import orjson
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException
 from starlette.responses import FileResponse, StreamingResponse
 
 from panoptic.core.project.project import Project

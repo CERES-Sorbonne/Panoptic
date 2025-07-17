@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, ActionFunctions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult, UploadConfirm } from './models'
+import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, ActionFunctions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult, UploadConfirm, ApiRequestDescription } from './models'
 import { PluginKey, SelectionStatus, usePanopticStore } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -24,19 +24,26 @@ async function uploadFile(route: string, file) {
 axios.interceptors.response.use(response => response, (error) => {
     const panoptic = usePanopticStore()
 
-    const baseURL = error.config.baseURL
+    const baseURL: string = error.config.baseURL
     const method = error.config.method
     const url = error.config.url
     const data = error.config.data
+    const traceback = error.response?.data?.traceback
+    const message = error.response?.data?.message
+    const errorName = error.response?.data?.name
 
-    if(url == '/update' || url == '/status') {
-        if(error.code == 'ERR_NETWORK') {
+    const req: ApiRequestDescription = {
+        method, baseURL, url, data
+    }
+
+    if (url == '/update' || url == '/status') {
+        if (error.code == 'ERR_NETWORK') {
             const panoptic = usePanopticStore()
             panoptic.state.backendOff = true
         }
     } else {
-    const notif: Notif = {type: NotifType.ERROR, name: 'BackendError', message: 'Unexpected Error during backend call', data: {method, baseURL, url, data}}
-    panoptic.notify(notif)
+        const notif: Notif = { type: NotifType.ERROR, name: 'BackendError: ' + errorName, message: message, request: req, unexpected: true, traceback: traceback }
+        panoptic.notify(notif)
     }
 })
 
@@ -51,7 +58,7 @@ export const apiGetTags = async () => {
 }
 
 export async function apiMergeTags(tagIds: number[]) {
-    const res = await axios.post('/tags/merge', {tag_ids: tagIds})
+    const res = await axios.post('/tags/merge', { tag_ids: tagIds })
     return keysToCamel(res.data) as DbCommit
 }
 
@@ -211,8 +218,8 @@ export async function apiGetActions() {
 }
 
 export async function apiCallActions(req: ExecuteActionPayload) {
-    let res = await axios.post('/action_execute', keysToSnake(req))
-    if(!res) return
+    let res = await axios.post('/action_execute', keysToSnake(req)).catch((err) => console.log(err.response))
+    if (!res) return
     const ares: ActionResult = res.data
     if (ares.commit) ares.commit = keysToCamel(ares.commit)
     if (ares.groups) ares.groups = keysToCamel(ares.groups)
@@ -269,7 +276,7 @@ export async function apiGetHistory() {
 
 export async function apiGetUpdate() {
     const res = await axios.get('/update')
-    if(!res?.data) {
+    if (!res?.data) {
         return
     }
     const panoptic = usePanopticStore()

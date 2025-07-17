@@ -557,6 +557,13 @@ export interface NotifFunction extends ExecuteActionPayload {
     context: ActionContext
 }
 
+export interface ApiRequestDescription {
+    method: string,
+    baseURL: string,
+    url: string,
+    data: any
+}
+
 export interface Notif {
     type?: NotifType
 
@@ -570,6 +577,10 @@ export interface Notif {
     functions?: NotifFunction[]
 
     read?: boolean
+    unexpected?: boolean
+    traceback?: string[]
+
+    request?: ApiRequestDescription
 }
 
 // =============== Scores ==========
