@@ -1,6 +1,6 @@
-@import "../node_modules/bootstrap/scss/functions";
-@import "../node_modules/bootstrap/scss/variables";
-@import "../node_modules/bootstrap/scss/mixins";
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/mixins";
 
 $theme-colors: map-merge($theme-colors, ("selected": #eae8e8,
       "light": #fbfbfb,
@@ -13,4 +13,4 @@ $spinner-height-sm: $spinner-width-sm;
 $spinner-border-width-sm: 2px;
 
 
-@import "../node_modules/bootstrap/scss/bootstrap";
+@import "bootstrap/scss/bootstrap";
