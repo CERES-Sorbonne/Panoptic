@@ -205,7 +205,7 @@ watch(() => props.property, () => {
                         class="bi bi-collection me-2"></i>{{ $t("main.menu.groupby") }}</div>
                 <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i
                         class="bi bi-trash me-2"></i>{{ $t("main.nav.properties.delete_property") }}</div>
-                <Dropdown v-if="props.property.id >= 0 && data.propertyGroupsList.length" :teleport="true">
+                <!-- <Dropdown v-if="props.property.id >= 0 && data.propertyGroupsList.length" :teleport="true">
                     <template #button>
                         <div class="options hover-light">
                             <i class="bi bi-folder me-1"></i>
@@ -221,7 +221,7 @@ watch(() => props.property, () => {
                             </div>
                         </div>
                     </template>
-                </Dropdown>
+                </Dropdown> -->
 
             </div>
             <div v-else-if="valuesOpen">

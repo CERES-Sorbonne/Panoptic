@@ -732,7 +732,7 @@ class Db:
     async def delete_property_groups(self, groups: list[int]):
         query = "DELETE FROM property_group WHERE id=?;"
         await self.conn.execute_query_many(query, [(i,) for i in groups])
-
+        
     # =====================================================
     # ==================== ID COUNTERS ====================
     # =====================================================

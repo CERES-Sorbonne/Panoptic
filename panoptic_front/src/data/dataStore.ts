@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupIndex, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex } from "./models";
-import { objValues } from "./builder";
-import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiStreamLoadState, apiUndo } from "./api";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex, UIDataKeys } from "./models";
+import { buildPropertyGroupOrder, objValues } from "./builder";
+import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiGetUIData, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isFinished, isTag } from "@/utils/utils";
 import { useProjectStore } from "./projectStore";
@@ -20,6 +20,8 @@ export const useDataStore = defineStore('dataStore', () => {
     const folders = shallowRef<FolderIndex>({})
     const instances = shallowRef<InstanceIndex>({})
     const properties = shallowRef<PropertyIndex>({})
+    const propertyOrder = shallowRef<PropertyGroupOrder>(buildPropertyGroupOrder())
+    const propertyTree = ref<PropertyGroupNode[]>([])
     const propertyGroups = shallowRef<PropertyGroupIndex>({})
     const tags = shallowRef<TagIndex>({})
 
@@ -38,7 +40,7 @@ export const useDataStore = defineStore('dataStore', () => {
         return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
     })
     const instanceList = computed(() => objValues(instances.value).filter(i => i.id != deletedID))
-    const propertyList = computed(() => objValues(properties.value))
+    const propertyList = computed(() => objValues(properties.value).sort((a,b) => propertyOrder.value.properties[a.id] - propertyOrder.value.properties[b.id]))
     const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
 
@@ -61,6 +63,7 @@ export const useDataStore = defineStore('dataStore', () => {
             if (isFinished(v.state)) {
                 const tabStore = useTabStore()
                 await tabStore.init()
+                await computePropertyTree()
             }
         })
 
@@ -200,7 +203,6 @@ export const useDataStore = defineStore('dataStore', () => {
 
     function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
-
         const props = properties.value
 
         if (commit.emptyImageValues) {
@@ -277,6 +279,10 @@ export const useDataStore = defineStore('dataStore', () => {
             history.value = commit.history
         }
 
+        if(commit.properties || commit.emptyProperties || commit.propertyGroups || commit.emptyPropertyGroups) {
+            computePropertyTree()
+        }
+
         if (disableTrigger) return
         console.log('trigger refss')
 
@@ -294,6 +300,7 @@ export const useDataStore = defineStore('dataStore', () => {
         folders.value = {}
         instances.value = {}
         properties.value = {}
+        propertyOrder.value = buildPropertyGroupOrder()
         tags.value = {}
         sha1Index.value = {}
 
@@ -540,11 +547,103 @@ export const useDataStore = defineStore('dataStore', () => {
         applyCommit(commit)
     }
 
+    async function getPropertyOrderFromStorage() {
+        const res = await apiGetUIData(UIDataKeys.PROPERTY_ORDER)
+        return res as PropertyGroupOrder
+    }
+
+    async function savePropertyOrderToStorage() {
+        await apiSetUIData(UIDataKeys.PROPERTY_ORDER, propertyOrder.value)
+    }
+
+    function mergeOrder<T extends { id: number }>(items: T[], orderDict: Record<number, number>): Record<number, number> {
+        const result: Record<number, number> = {};
+        const baseOrder = Number.MAX_SAFE_INTEGER / 2;
+
+        for (const item of items) {
+            if (orderDict.hasOwnProperty(item.id)) {
+                result[item.id] = orderDict[item.id];
+            } else {
+                result[item.id] = baseOrder + item.id;
+            }
+        }
+        return result;
+    }
+
+    async function computePropertyTree() {
+        let save = await getPropertyOrderFromStorage()
+        if (!save) {
+            save = buildPropertyGroupOrder()
+        }
+
+        const props = objValues(properties.value)
+        const groups = objValues(propertyGroups.value)
+
+        const groupOrder = mergeOrder(groups, save.groups)
+        const propsOrder = mergeOrder(props, save.properties)
+
+        const tree: PropertyGroupNode[] = groups.map(g => ({groupId: g.id, propertyIds: []}))
+        tree.sort((a, b) => groupOrder[a.groupId] - groupOrder[b.groupId])
+        tree.push({groupId: PropertyGroupId.DEFAULT, propertyIds: []})
+        tree.push({groupId: PropertyGroupId.COMPUTED, propertyIds: []})
+
+        const groupToProperties: {[groupId: number]: number[]} = {}
+        tree.forEach(n => {
+            groupToProperties[n.groupId] = []
+        })
+        props.forEach(p => {
+            if(p.computed) {
+                p.propertyGroupId = PropertyGroupId.COMPUTED
+            }
+            if(p.propertyGroupId == undefined) {
+                p.propertyGroupId = PropertyGroupId.DEFAULT
+            }
+            groupToProperties[p.propertyGroupId].push(p.id)
+        })
+
+        tree.forEach(n => {
+            n.propertyIds = groupToProperties[n.groupId]
+            n.propertyIds.sort((a, b) => propsOrder[a] - propsOrder[b])
+        })
+
+        propertyTree.value = tree
+        propertyOrder.value.groups = groupOrder
+        propertyOrder.value.properties = propsOrder
+
+    }
+
+    async function triggerPropertyTreeChange() {
+        const groupOrder = {}
+        const propOrder = {}
+
+        for(let i = 0; i < propertyTree.value.length; i++) {
+            const val = propertyTree.value[i]
+            if(val.groupId >= 0) {
+                groupOrder[val.groupId] = i
+            }
+        }
+
+        let i = 0
+        for(let node of propertyTree.value) {
+            for(let prop of node.propertyIds) {
+                i += 1
+                propOrder[prop] = i
+            }
+        }
+
+        propertyOrder.value.properties = propOrder
+        propertyOrder.value.groups = groupOrder
+
+        await savePropertyOrderToStorage()
+        triggerRef(properties)
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
         folders, instances, properties, tags, history,
         folderRoots, sha1Index, instanceList, propertyList, tagList,
+        propertyTree, triggerPropertyTreeChange,
         addFolder, reImportFolder, deleteFolder,
         addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags, deleteEmptyClones,

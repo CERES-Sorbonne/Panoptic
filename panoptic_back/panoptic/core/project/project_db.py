@@ -369,6 +369,23 @@ class ProjectDb:
         tag_id_map: dict[int, int] = {}
 
         properties = {p.id: p for p in await self._db.get_properties()}
+
+        if commit.empty_property_groups:
+            deleted = {i for i in commit.empty_property_groups}
+            props = [p for p in properties.values() if p.property_group_id in deleted]
+
+            commit_props = {}
+            if commit.properties:
+                commit_props = {p.id for p in commit.properties}
+            missing_props = [p for p in props if p.id not in commit_props]
+            if missing_props:
+                if not commit.properties:
+                    commit.properties = []
+                commit.properties.extend(missing_props)
+            for p in commit.properties:
+                if p.property_group_id in deleted:
+                    p.property_group_id = None
+
         # add new properties to index
         if commit.properties:
             for p in commit.properties:
