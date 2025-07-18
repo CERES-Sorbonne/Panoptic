@@ -627,6 +627,21 @@ export interface PropertyGroup {
     name: string
 }
 
+export interface PropertyGroupNode {
+    groupId: number
+    propertyIds: number[]
+}
+
+export interface PropertyGroupOrder {
+    groups: {[groupId: number]: number}
+    properties: {[propertyId: number]: number}
+}
+
+export enum PropertyGroupId {
+    DEFAULT = -1,
+    COMPUTED = -2
+}
+
 export interface LoadResult {
     chunk: DbCommit
     state: LoadState
@@ -658,4 +673,9 @@ export interface UploadConfirm {
     key: string
     colToProperty: { [key: number]: Property }
     errors: { [key: number]: UploadError }
+}
+
+export enum UIDataKeys {
+    STATE = 'uiState',
+    PROPERTY_ORDER = 'propertyOrder'
 }

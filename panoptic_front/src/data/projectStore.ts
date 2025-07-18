@@ -6,7 +6,7 @@
 
 import { defineStore } from "pinia";
 import { nextTick, reactive, ref, shallowRef } from "vue";
-import { ActionFunctions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UiState, VectorDescription } from "./models";
+import { ActionFunctions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UIDataKeys, UiState, VectorDescription } from "./models";
 import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
 import { deepCopy, sleep } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
@@ -226,7 +226,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function loadUiState() {
-        const res = await apiGetUIData('uiState')
+        const res = await apiGetUIData(UIDataKeys.STATE)
         if (res) {
             data.uiState = res
 
@@ -254,7 +254,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function saveUiState() {
-        await apiSetUIData('uiState', data.uiState)
+        await apiSetUIData(UIDataKeys.STATE, data.uiState)
     }
 
     async function updateScoreInterval(funcId: string, interval: ScoreInterval) {

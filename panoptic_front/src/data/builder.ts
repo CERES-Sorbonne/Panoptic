@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { PropertyOption, PropertyType, TabState } from "./models";
+import { PropertyGroupOrder, PropertyOption, PropertyType, TabState } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
@@ -58,8 +58,13 @@ export function defaultPropertyOption() {
     } as PropertyOption
 }
 
+export function buildPropertyGroupOrder(): PropertyGroupOrder {
+    return {groups: {}, properties: {}}
+}
+
 type ObjectValues<T> = T[keyof T][];
 
 export function objValues<T>(obj: T): ObjectValues<T> {
   return Object.keys(obj).map(key => obj[key as keyof T]);
 }
+

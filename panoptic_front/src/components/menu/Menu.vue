@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { ModalId } from '../../data/models';
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, openBlock } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../foldertree/FolderList2.vue';
@@ -13,6 +13,7 @@ import { deletedID, useDataStore } from '@/data/dataStore';
 import PropertyGroup from './PropertyGroup.vue';
 import TabContainer from '../TabContainer.vue';
 import { useTabStore } from '@/data/tabStore';
+import DraggablePropertyList from './DraggablePropertyList.vue';
 
 const BASE_WIDTH = 200
 const SMALL_WIDTH = 55
@@ -67,7 +68,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                         <div class="m-0" style="padding: 4px 0px 4px 8px">
                             <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
                                 <template v-if="menuOpen">
-                                    <div class="flex-grow-1 text-capitalize overflow-hidden" >{{
+                                    <div class="flex-grow-1 text-capitalize overflow-hidden">{{
                                         panoptic.data.status.selectedProject?.name }}
                                     </div>
                                     <wTT message="main.menu.close_project">
@@ -150,14 +151,17 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                                 </div>
                             </template>
                             <div class="mt-2" v-if="project.status.loaded">
-                                <div v-for="group in objValues(data.propertyGroups)" style="padding-left: 0px;">
+                                <!-- <div v-for="group in objValues(data.propertyGroups)" style="padding-left: 0px;">
                                     <PropertyGroup :tab="tab" :group="group" class="mb-1" :menu-open="menuOpen" />
                                 </div>
                                 <div v-for="property in propertiesWithoutGroup" class="ps-1 pe-1">
                                     <div class="property-item" v-if="property.id >= 0">
                                         <PropertyOptions :tab="tab" :property="property" :open="menuOpen" />
                                     </div>
-                                </div>
+                                </div> -->
+                                <DraggablePropertyList :tab="tab" :menu-open="menuOpen"></DraggablePropertyList>
+
+
                                 <template v-if="menuOpen">
                                     <div class="property-item m-0 p-0"></div>
                                     <div id="add-property"
@@ -176,7 +180,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                             </div>
                         </div>
 
-                        <div class="custom-hr" />
+                        <!-- <div class="custom-hr" />
 
                         <div class="p-2 mt-0">
                             <template v-if="menuOpen">
@@ -194,7 +198,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                                     </div>
                                 </template>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
