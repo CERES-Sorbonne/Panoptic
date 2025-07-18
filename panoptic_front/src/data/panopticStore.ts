@@ -67,6 +67,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.init = false
         try {
             data.status = await apiGetStatus()
+            console.log(data.status)
             data.plugins = await apiGetPlugins()
             data.version = await apiGetVersion()
 

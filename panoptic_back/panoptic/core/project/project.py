@@ -1,6 +1,7 @@
 import asyncio
 import atexit
 import os
+import random
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from time import time
@@ -55,28 +56,23 @@ class Project:
         self.plugin_keys = plugins
 
     async def start(self):
-        try:
-            conn = DbConnection(self.base_path)
-            await conn.start()
-            self.db = ProjectDb(conn)
-            self.ui = ProjectUi(self.db.get_raw_db())
+        conn = DbConnection(self.base_path)
+        await conn.start()
+        self.db = ProjectDb(conn)
+        self.ui = ProjectUi(self.db.get_raw_db())
 
-            self.db.on_import_instance.redirect(self.on.import_instance)
+        self.db.on_import_instance.redirect(self.on.import_instance)
 
-            # avoid blocking response for UI on longer loads
-            self._load_task = asyncio.create_task(self._parallel_load())
+        # avoid blocking response for UI on longer loads
+        self._load_task = asyncio.create_task(self._parallel_load())
 
-            # from panoptic.plugins import DefaultPlugin
-            # paths = [DefaultPlugin.__file__, *self.plugin_paths]
-            for key in self.plugin_keys:
-                task = LoadPluginTask(self, key)
-                self.task_queue.add_task(task)
+        # from panoptic.plugins import DefaultPlugin
+        # paths = [DefaultPlugin.__file__, *self.plugin_paths]
+        for key in self.plugin_keys:
+            task = LoadPluginTask(self, key)
+            self.task_queue.add_task(task)
 
-            self.is_loaded = True
-            return True
-        except Exception as e:
-            print(e)
-            return False
+        self.is_loaded = True
 
     async def wait_full_start(self):
         await self._load_task
@@ -97,8 +93,11 @@ class Project:
     async def close(self):
         self.is_loaded = False
         self.base_path = ''
-        await self.db.close()
-        await self.task_queue.close()
+        try:
+            await self.db.close()
+            await self.task_queue.close()
+        except Exception:
+            pass
 
     async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
                           copy_images: bool = False, key: str = 'id'):
