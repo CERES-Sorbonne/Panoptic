@@ -42,6 +42,7 @@ async function rerender() {
 }
 
 onMounted(async () => {
+    console.log(panoptic.isProjectLoaded)
     if (!panoptic.isProjectLoaded) {
         // console.log('redirect')
         router.push('/')

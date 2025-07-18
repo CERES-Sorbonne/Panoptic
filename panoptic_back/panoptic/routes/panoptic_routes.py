@@ -45,8 +45,10 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 
 @selection_router.post("/load")
 async def load_project_route(path: AddPluginPayload):
-    await panoptic.load_project(path.path)
-    return await get_status_route()
+    res = await panoptic.load_project(path.path)
+    if res:
+        return await get_status_route()
+    return False
 
 
 @selection_router.post("/close")
