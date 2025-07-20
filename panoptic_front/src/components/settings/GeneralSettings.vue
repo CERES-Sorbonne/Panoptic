@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ActionSettings from '../ActionSettings.vue';
 import VectorSettings from './VectorSettings.vue';
-import ProjectSettings from './ProjectSettings.vue';
+import ProjectSettings from './StorageSettings.vue';
 
 </script>
 

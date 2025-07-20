@@ -5,7 +5,7 @@
  */
 
 import { defineStore } from "pinia";
-import { nextTick, reactive, ref, shallowRef } from "vue";
+import { computed, nextTick, reactive, ref, shallowRef } from "vue";
 import { ActionFunctions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UIDataKeys, UiState, VectorDescription } from "./models";
 import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
 import { deepCopy, sleep } from "@/utils/utils";
@@ -50,6 +50,11 @@ export const useProjectStore = defineStore('projectStore', () => {
     const actions = ref({} as ActionFunctions)
 
     const backendStatus = ref<StatusUpdate>(null)
+
+    const isImportingImages = computed(() => {
+        if(!backendStatus.value?.tasks) return false
+        return backendStatus.value.tasks.some(t => t.id.includes('ImportImageTask'))
+    })
 
     // =======================
     // =======Functions=======
@@ -265,7 +270,8 @@ export const useProjectStore = defineStore('projectStore', () => {
     return {
         // variables
         data, status,
-
+        // computed
+        isImportingImages,
         // functions
         init, clear, rerender,
         updateSettings,

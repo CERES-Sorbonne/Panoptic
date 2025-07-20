@@ -44,7 +44,7 @@ class Project:
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents()
         self.action = ProjectActions()
-        self.task_queue = TaskQueue(self.executor, num_workers=nb_workers*2)
+        self.task_queue = TaskQueue(self.executor, num_workers=nb_workers * 2)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
         self.sha1_to_files: dict[str, list[str]] = defaultdict(list)
@@ -114,7 +114,8 @@ class Project:
         folder = os.path.normpath(folder)
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
-                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg') or i.lower().endswith('.gif') or i.lower().endswith('.webp')]
+                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith(
+                          '.jpeg') or i.lower().endswith('.gif') or i.lower().endswith('.webp')]
 
         folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
 
@@ -159,54 +160,74 @@ class Project:
         return plugin
 
     async def _load_settings(self):
-        description = get_model_params_description(self.settings)
-        db = self.db.get_raw_db()
-        for setting in description:
-            name = setting.name
-            param_value = await db.get_project_param(name)
-            if param_value is not None:
-                setattr(self.settings, name, param_value)
-        await self.update_settings(self.settings.copy())
+        self.settings = await self.db.get_project_settings()
 
     async def _load_sha1_to_files(self):
         async for row in self.db.stream_instance_sha1_and_url():
             self.sha1_to_files[row[0]].append(row[1])
 
     async def update_settings(self, settings: ProjectSettings):
-        description = get_model_params_description(self.settings)
         db = self.db.get_raw_db()
-        changed = []
-        for setting in description:
-            name = setting.name
-            old_value = await db.get_project_param(name)
-            setattr(self.settings, name, old_value)
-            new_value = getattr(settings, name)
-            if old_value != new_value:
-                changed.append((name, old_value, new_value))
-        # update database options
-        for update in changed:
-            name, old_value, new_value = update
-            await db.set_project_param(name, new_value)
-
         re_import_images = False
-        if settings.save_image_large != self.settings.save_image_large:
-            if not settings.save_image_large:
-                await db.delete_large_images()
-            else:
-                re_import_images = True
 
-        if settings.save_image_medium != self.settings.save_image_medium:
-            if not settings.save_image_medium:
-                await db.delete_medium_images()
-            else:
+        delete_small = False
+        delete_medium = False
+        delete_large = False
+        delete_raw = False
+
+        # Small
+        if settings.image_small_size != self.settings.image_small_size:
+            delete_small = True
+            if settings.save_image_small:
                 re_import_images = True
 
         if settings.save_image_small != self.settings.save_image_small:
-            if not settings.save_image_small:
-                await db.delete_small_images()
+            if settings.save_image_small:
+                re_import_images = True
             else:
+                delete_small = True
+
+        # Medium
+        if settings.image_medium_size != self.settings.image_medium_size:
+            delete_medium = True
+            if settings.save_image_medium:
                 re_import_images = True
 
+        if settings.save_image_medium != self.settings.save_image_medium:
+            if settings.save_image_medium:
+                re_import_images = True
+            else:
+                delete_medium = True
+
+        # Large
+        if settings.image_large_size != self.settings.image_large_size:
+            delete_large = True
+            if settings.save_image_large:
+                re_import_images = True
+
+        if settings.save_image_large != self.settings.save_image_large:
+            if settings.save_image_large:
+                re_import_images = True
+            else:
+                delete_large = True
+
+        # Raw
+        if settings.save_file_raw != self.settings.save_file_raw:
+            if settings.save_file_raw:
+                re_import_images = True
+            else:
+                delete_raw = True
+
+        if delete_small:
+            await db.delete_small_images()
+        if delete_medium:
+            await db.delete_medium_images()
+        if delete_large:
+            await db.delete_large_images()
+        if delete_raw:
+            pass
+
+        await self.db.save_project_settings(settings)
         self.settings = settings
 
         if re_import_images:
@@ -218,5 +239,3 @@ class Project:
         commit = DbCommit()
         commit.empty_instances = ids
         return commit
-
-

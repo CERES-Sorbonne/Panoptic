@@ -40,7 +40,7 @@ export const useDataStore = defineStore('dataStore', () => {
         return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
     })
     const instanceList = computed(() => objValues(instances.value).filter(i => i.id != deletedID))
-    const propertyList = computed(() => objValues(properties.value).sort((a,b) => propertyOrder.value.properties[a.id] - propertyOrder.value.properties[b.id]))
+    const propertyList = computed(() => objValues(properties.value).sort((a, b) => propertyOrder.value.properties[a.id] - propertyOrder.value.properties[b.id]))
     const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
 
@@ -279,7 +279,7 @@ export const useDataStore = defineStore('dataStore', () => {
             history.value = commit.history
         }
 
-        if(commit.properties || commit.emptyProperties || commit.propertyGroups || commit.emptyPropertyGroups) {
+        if (commit.properties || commit.emptyProperties || commit.propertyGroups || commit.emptyPropertyGroups) {
             computePropertyTree()
         }
 
@@ -582,23 +582,26 @@ export const useDataStore = defineStore('dataStore', () => {
         const groupOrder = mergeOrder(groups, save.groups)
         const propsOrder = mergeOrder(props, save.properties)
 
-        const tree: PropertyGroupNode[] = groups.map(g => ({groupId: g.id, propertyIds: []}))
+        const tree: PropertyGroupNode[] = groups.map(g => ({ groupId: g.id, propertyIds: [] }))
         tree.sort((a, b) => groupOrder[a.groupId] - groupOrder[b.groupId])
-        tree.push({groupId: PropertyGroupId.DEFAULT, propertyIds: []})
-        tree.push({groupId: PropertyGroupId.COMPUTED, propertyIds: []})
+        tree.push({ groupId: PropertyGroupId.DEFAULT, propertyIds: [] })
+        tree.push({ groupId: PropertyGroupId.COMPUTED, propertyIds: [] })
 
-        const groupToProperties: {[groupId: number]: number[]} = {}
+        const groupToProperties: { [groupId: number]: number[] } = {}
         tree.forEach(n => {
             groupToProperties[n.groupId] = []
         })
         props.forEach(p => {
-            if(p.computed) {
+            if (p.computed) {
                 p.propertyGroupId = PropertyGroupId.COMPUTED
             }
-            if(p.propertyGroupId == undefined) {
+            if (p.propertyGroupId == undefined) {
                 p.propertyGroupId = PropertyGroupId.DEFAULT
             }
-            groupToProperties[p.propertyGroupId].push(p.id)
+            if (groupToProperties[p.propertyGroupId]) {
+                groupToProperties[p.propertyGroupId].push(p.id)
+            }
+
         })
 
         tree.forEach(n => {
@@ -616,16 +619,16 @@ export const useDataStore = defineStore('dataStore', () => {
         const groupOrder = {}
         const propOrder = {}
 
-        for(let i = 0; i < propertyTree.value.length; i++) {
+        for (let i = 0; i < propertyTree.value.length; i++) {
             const val = propertyTree.value[i]
-            if(val.groupId >= 0) {
+            if (val.groupId >= 0) {
                 groupOrder[val.groupId] = i
             }
         }
 
         let i = 0
-        for(let node of propertyTree.value) {
-            for(let prop of node.propertyIds) {
+        for (let node of propertyTree.value) {
+            for (let prop of node.propertyIds) {
                 i += 1
                 propOrder[prop] = i
             }
