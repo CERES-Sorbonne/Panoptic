@@ -8,9 +8,10 @@ from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, \
-    ImagePropertyKey, InstancePropertyKey
+    ImagePropertyKey, InstancePropertyKey, ProjectSettings
 from panoptic.models.computed_properties import computed_properties
-from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids
+from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
+    get_model_params_description
 
 
 class ProjectDb:
@@ -580,5 +581,23 @@ class ProjectDb:
 
         await self._db.delete_instances(to_delete)
         return to_delete
+
+    async def save_project_settings(self, settings: ProjectSettings):
+        description = get_model_params_description(settings)
+        for setting in description:
+            name = setting.name
+            new_value = getattr(settings, name)
+            await self._db.set_project_param(name, new_value)
+
+    async def get_project_settings(self):
+        settings = ProjectSettings()
+        description = get_model_params_description(settings)
+        for setting in description:
+            name = setting.name
+            db_value = await self._db.get_project_param(name)
+            if db_value:
+                setattr(settings, name, db_value)
+        return settings
+
 
 

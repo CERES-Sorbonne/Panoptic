@@ -396,6 +396,14 @@ class PropertyId(int):
     pass
 
 
+class VectorType(str):
+    pass
+
+
+class OwnVectorType(str):
+    pass
+
+
 class ProjectSettings(BaseModel):
     image_small_size: int = 128
     image_medium_size: int = 256

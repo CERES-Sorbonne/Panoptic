@@ -1,19 +1,26 @@
 <script setup lang="ts">
 import { ModalId } from '@/data/models';
-import Modal from './Modal.vue';
-import TabMenu from '../TabMenu.vue';
-import { ref } from 'vue';
-import PluginSettings from '../settings/PluginSettings.vue';
+import { ref, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
-import GeneralSettings from '../settings/GeneralSettings.vue';
-import { useDataStore } from '@/data/dataStore';
+import PageWindow from '../utils/PageWindow.vue';
+import StorageSettings from '../settings/StorageSettings.vue';
+import Modal2 from './Modal2.vue';
 
 const project = useProjectStore()
 
 const categories = ref(['general', 'plugins'])
 const category = ref(categories.value[0])
+const pageElem = ref(null)
 
+enum PAGE {
+    Storage = 'storage',
+    Vectors = 'vectors',
+    Plugins = 'plugins',
+}
 
+const options = ref(Object.values(PAGE))
+const selectedPage = ref('')
+const changed = ref(false)
 
 const selectedPlugin = ref('')
 
@@ -25,14 +32,67 @@ async function updatePluginInfo() {
     caches.keys().then((keyList) => Promise.all(keyList.map((key) => caches.delete(key))))
 }
 
+function applyChange() {
+    if(pageElem.value) {
+        pageElem.value.apply()
+    }
+}
+
+function cancelChange() {
+    if(pageElem.value) {
+        pageElem.value.cancel()
+    }
+}
+
+watch(selectedPage, () => changed.value = false)
+
 </script>
 
 <template>
-    <Modal :id="ModalId.SETTINGS" @show="updatePluginInfo">
+    <Modal2 :id="ModalId.SETTINGS" @show="updatePluginInfo">
         <template #title>{{ $t('modals.settings.title') }}</template>
         <template #content>
-            <div class="h-100 overflow-scroll">
-                <div class="w-100">
+            <div class="h-100">
+                <PageWindow :options="options" v-model:page="selectedPage">
+                    <template #header>
+                        <div v-if="changed" class="d-flex">
+                            <div class="h-100 ms-2" style="border-left: 1px solid var(--border-color);"></div>
+                            <div class="bb ms-3 text-success" @click="applyChange">Apply</div>
+                            <div class="bb ms-3 text-danger" @click="cancelChange">Cancel</div>
+                        </div>
+                    </template>
+                    <template #default="{ page }">
+                        <div v-if="page == ''" class="h-100 w-100">
+                            <div class="d-flex flex-wrap h-100 justify-content-center">
+                                <div class="bb align-self-center m-4" style="width: 120px;"
+                                    @click="selectedPage = PAGE.Storage">
+                                    <div class="border rounded p-2 text-center">
+                                        <div><i class="bi bi-hdd" style="font-size: 50px;" /></div>
+                                        <div>Storage</div>
+                                    </div>
+                                </div>
+
+                                <div class="bb align-self-center m-4" style="width: 120px;"
+                                    @click="selectedPage = PAGE.Vectors">
+                                    <div class="border rounded p-2 text-center">
+                                        <div><i class="bi bi-arrow-left-right" style="font-size: 50px;" /></div>
+                                        <div>Vectors</div>
+                                    </div>
+                                </div>
+
+                                <div class="bb align-self-center m-4" style="width: 120px;"
+                                    @click="selectedPage = PAGE.Plugins">
+                                    <div class="border rounded p-2 text-center">
+                                        <div><i class="bi bi-plugin" style="font-size: 50px;" /></div>
+                                        <div>Plugins</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <StorageSettings v-if="page == PAGE.Storage" v-model:changed="changed" ref="pageElem"/>
+                    </template>
+                </PageWindow>
+                <!-- <div class="w-100">
                     <TabMenu :options="categories" v-model="category" class="w-100" />
                 </div>
                 <div v-if="category == 'general'">
@@ -46,11 +106,11 @@ async function updatePluginInfo() {
                     <div class="p-3" style="max-width: 700px; margin: auto;">
                         <PluginSettings :plugin="project.data.plugins.find(info => info.name == selectedPlugin)" />
                     </div>
-                </div>
+                </div> -->
             </div>
 
         </template>
-    </Modal>
+    </Modal2>
 </template>
 
 <style scoped></style>

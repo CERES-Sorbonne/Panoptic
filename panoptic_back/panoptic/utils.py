@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
 from panoptic.models import ParamDescription, Instance, ImageProperty, InstanceProperty, Property, \
-    PropertyType, PropertyId, Tag, Folder, ActionContext
+    PropertyType, PropertyId, Tag, Folder, ActionContext, VectorType, OwnVectorType
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -100,6 +100,10 @@ def to_str_type(type_):
         return 'property'
     if type_ is ActionContext:
         return 'context'
+    if type_ is VectorType:
+        return 'vector_type'
+    if type_ is OwnVectorType:
+        return 'own_vector_type'
     if issubclass(type_, Enum):
         return 'enum'
     return None
