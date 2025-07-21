@@ -11,6 +11,7 @@ from panoptic.core.db.migrations.v3 import v3_sql
 from panoptic.core.db.migrations.v4 import v4_sql
 from panoptic.core.db.migrations.v5 import v5_sql
 from panoptic.core.db.migrations.v6 import v6_sql
+from panoptic.core.db.migrations.v7 import v7_sql
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
 aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='float32'))
@@ -69,6 +70,8 @@ class DbConnection:
             await self.conn.executescript(v5_sql)
         if db_version < 6:
             await self.conn.executescript(v6_sql)
+        if db_version < 7:
+            await self.conn.executescript(v7_sql)
 
         await self.set_param(DB_VERSION, str(target_version))
         logging.warning(f'Correctly updated to Software DB Version ({target_version})')

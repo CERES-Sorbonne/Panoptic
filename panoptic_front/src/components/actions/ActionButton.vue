@@ -9,7 +9,7 @@ import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult } from '@/utils/utils';
+import { convertClusterGroupResult, sourceFromFunction } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
 const project = useProjectStore()
@@ -26,9 +26,11 @@ const emits = defineEmits(['instances', 'groups'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
-const localFunction = ref(null)
+const localFunction = ref<string>(null)
 const setDefault = ref(false)
 const loading = ref(false)
+
+const source = computed(() => sourceFromFunction(localFunction.value))
 
 function loadAction() {
     localFunction.value = defaultFunction.value
@@ -41,6 +43,11 @@ function loadInput() {
 
     if (!actions.index[funcId]) return
     const params = actions.index[funcId].params
+    const defaults = actions.getContext(funcId).uiInputs
+
+    for(let param of params) {
+        param.defaultValue = defaults[param.name]
+    }
 
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
@@ -105,7 +112,7 @@ watch(project.actions, loadAction)
             <div @click="call">{{ $t('action.' + props.action) }}</div>
         </wTT>
         <div class="sep ms-1"></div>
-        <Dropdown :teleport="true">
+        <Dropdown :teleport="true" @show="loadAction">
             <template #button>
                 <div class="bb" style="margin: 0 1px; font-size: 8px;"><i class="bi bi-chevron-down"></i></div>
             </template>
@@ -118,7 +125,7 @@ watch(project.actions, loadAction)
                         <div class="ps-1 pt-1 pb-1">
                             <form @submit.prevent="" class="">
                                 <div v-for="input, i in localInputs" class="mb-1">
-                                    <ParamInput :input="input" />
+                                    <ParamInput :input="input" :source="source"/>
                                 </div>
                                 <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
                                     <div class="me-1"><input type="checkbox" v-model="setDefault"

@@ -47,6 +47,7 @@ async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
     const func = actions.defaultActions['similar']
     const ctx = actions.getContext(func)
+    console.log(ctx.uiInputs)
     ctx.instanceIds = [props.image.id]
     const res = await actions.getSimilarImages(ctx)
     if (!res || !res.groups) return

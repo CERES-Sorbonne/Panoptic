@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex, UIDataKeys } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex, UIDataKeys, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
-import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiGetUIData, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./api";
+import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteVectorType, apiGetDbState, apiGetFolders, apiGetHistory, apiGetUIData, apiGetVectorTypes, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./api";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isFinished, isTag } from "@/utils/utils";
 import { useProjectStore } from "./projectStore";
@@ -24,6 +24,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const propertyTree = ref<PropertyGroupNode[]>([])
     const propertyGroups = shallowRef<PropertyGroupIndex>({})
     const tags = shallowRef<TagIndex>({})
+    const vectorTypes = ref<VectorType[]>([])
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
@@ -55,6 +56,10 @@ export const useDataStore = defineStore('dataStore', () => {
         // console.time('Request')
         // // let dbState = await apiGetDbState()
         // console.timeEnd('Request')
+
+
+        const vecTypes = await apiGetVectorTypes()
+        vectorTypes.value = vecTypes
 
         apiStreamLoadState(async (v) => {
             applyCommit(v.chunk, !isFinished(v.state))
@@ -303,6 +308,7 @@ export const useDataStore = defineStore('dataStore', () => {
         propertyOrder.value = buildPropertyGroupOrder()
         tags.value = {}
         sha1Index.value = {}
+        vectorTypes.value = []
 
         onChange.clear()
         dirtyInstances.clear()
@@ -641,10 +647,19 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(properties)
     }
 
+    async function updateVectorTypes() {
+        vectorTypes.value = await apiGetVectorTypes()
+    }
+
+    async function deleteVectorType(id: number) {
+        await apiDeleteVectorType(id)
+        await updateVectorTypes()
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
-        folders, instances, properties, tags, history,
+        folders, instances, properties, tags, history, vectorTypes,
         folderRoots, sha1Index, instanceList, propertyList, tagList,
         propertyTree, triggerPropertyTreeChange,
         addFolder, reImportFolder, deleteFolder,
@@ -652,6 +667,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags, deleteEmptyClones,
         applyCommit, sendCommit, undo, redo, onUndo,
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
+        updateVectorTypes, deleteVectorType,
         clear
     }
 

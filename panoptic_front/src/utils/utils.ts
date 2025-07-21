@@ -403,3 +403,7 @@ export function isFinished(state: LoadState): boolean {
            state.finishedImageValues && 
            state.finishedPropertyGroups
 }
+
+export function sourceFromFunction(func: string) {
+    return func.slice(0, func.indexOf('.'))
+}

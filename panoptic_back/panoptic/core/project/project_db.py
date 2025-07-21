@@ -8,7 +8,7 @@ from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, \
-    ImagePropertyKey, InstancePropertyKey, ProjectSettings
+    ImagePropertyKey, InstancePropertyKey, ProjectSettings, VectorType
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
@@ -322,8 +322,14 @@ class ProjectDb:
         return DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids, deleted_sha1s=deleted_sha1s)
 
     # =========== Vectors ===========
-    async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):
-        return await self._db.get_vectors(source, type_, sha1s)
+    async def get_vectors(self, type_id: int, sha1s: list[str] = None):
+        return await self._db.get_vectors(type_id, sha1s)
+
+    async def get_vector_types(self, source: str = None):
+        return await self._db.get_vector_types(source=source)
+
+    async def delete_vector_type(self, id_: int):
+        return await self._db.delete_vector_type(id_)
 
     async def get_default_vectors(self, sha1s: list[str] = None):
         default = await self._db.get_default_db_vector_id()
@@ -332,11 +338,14 @@ class ProjectDb:
         source, type_ = default.split('.')
         return await self._db.get_vectors(source, type_, sha1s)
 
+    async def add_vector_type(self, vec: VectorType):
+        return await self._db.add_vector_type(vec)
+
     async def add_vector(self, vector: Vector):
         return await self._db.add_vector(vector)
 
-    async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
-        return await self._db.vector_exist(source, type_, sha1)
+    async def vector_exist(self, vec_id: int, sha1: str) -> bool:
+        return await self._db.vector_exist(vec_id, sha1)
 
     async def set_default_vectors(self, vector: VectorDescription):
         await self._db.set_default_vector_id(vector_id=vector.id)

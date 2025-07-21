@@ -5,8 +5,10 @@ import { computed, reactive, ref, watch } from "vue";
 import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
 import { Exception } from "sass";
+import { useDataStore } from "./dataStore";
+import { sourceFromFunction } from "@/utils/utils";
 
-const hooks = ['similar', 'group', 'execute', 'import', 'export']
+const hooks = ['similar', 'group', 'execute', 'import', 'export', 'vector_type', 'vector']
 
 export const useActionStore = defineStore('actionStore', () => {
     const project = useProjectStore()
@@ -17,7 +19,9 @@ export const useActionStore = defineStore('actionStore', () => {
         group: undefined,
         execute: undefined,
         import: undefined,
-        export: undefined
+        export: undefined,
+        vector_type: undefined,
+        vector: undefined
     })
     const update = ref(0)
 
@@ -58,10 +62,12 @@ export const useActionStore = defineStore('actionStore', () => {
         await getDefaultParams()
 
         update.value += 1
+
+        console.log(index.value)
     }
 
     async function getSimilarImages(ctx: ActionContext) {
-        const res = await project.call({function: defaultActions.similar, context: ctx})
+        const res = await project.call({ function: defaultActions.similar, context: ctx })
         return res
     }
 
@@ -100,7 +106,7 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getDefaultActions() {
         const res = await apiGetUIData('default_actions')
-        for(let key of Object.keys(res)) {
+        for (let key of Object.keys(res)) {
             if (!index.value[res[key]]) {
                 delete res[key]
             }
@@ -109,10 +115,63 @@ export const useActionStore = defineStore('actionStore', () => {
     }
 
     function getContext(funcName: string) {
-        const ctx: ActionContext = {uiInputs: {}}
+        const data = useDataStore()
+        const ctx: ActionContext = { uiInputs: {} }
         const act = index.value[funcName]
-        for(let param of act.params) {
-            ctx.uiInputs[param.name] = param.defaultValue
+        for (let param of act.params) {
+            // ctx.uiInputs[param.name] = param.defaultValue
+            // Set default Value
+            let baseValue = param.defaultValue
+
+            // Verify value is valid
+            if (baseValue != undefined) {
+                if (param.type == 'vector_type') {
+                    const type_id = baseValue.id
+                    if (data.vectorTypes.findIndex(v => v.id == type_id) < 0) {
+                        baseValue = undefined
+                    }
+                }
+                if (param.type == 'own_vector_type') {
+                    const type_id = baseValue.id
+                    const source = sourceFromFunction(funcName)
+                    const index = data.vectorTypes.findIndex(v => v.id == type_id)
+                    if(index < 0 || data.vectorTypes[index].source != source) {
+                        baseValue = undefined
+                    }
+                }
+                if (param.type == 'property') {
+                    if(!data.properties[baseValue]) {
+                        baseValue = undefined
+                    }
+                }
+            }
+
+            // Find any value to set
+            if (baseValue == undefined) {
+                if (param.type == 'vector_type') {
+                    if(data.vectorTypes.length) {
+                        console.log('set base')
+                        baseValue = data.vectorTypes[0]
+                    }
+                }
+                if (param.type == 'own_vector_type') {
+                    const source = sourceFromFunction(funcName)
+                    let first = data.vectorTypes.find(v => v.source = source)
+                    console.log(JSON.stringify(data.vectorTypes))
+                    console.log(first)
+                    if(first) {
+                        baseValue = first
+                    }
+                }
+                if (param.type == 'property') {
+                    if(data.propertyList.length) {
+                        baseValue = data.propertyList[0].id
+                    }
+                }
+            }
+
+            ctx.uiInputs[param.name] = baseValue
+
         }
         return ctx
     }
