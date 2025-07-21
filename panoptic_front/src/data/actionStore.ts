@@ -103,6 +103,9 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getDefaultActions() {
         const res = await apiGetUIData('default_actions')
+        if(!res) {
+            return
+        }
         for (let key of Object.keys(res)) {
             if (!index.value[res[key]]) {
                 delete res[key]
