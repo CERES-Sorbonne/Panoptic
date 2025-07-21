@@ -189,10 +189,19 @@ class ComputedValue:
     vector: numpy.ndarray
 
 
+class VectorType(BaseModel):
+    id: int = None
+    source: str
+    params: Any
+
+
+class OwnVectorType(VectorType):
+    pass
+
+
 @dataclasses.dataclass
 class Vector:
-    source: str
-    type: str
+    type_id: int
     sha1: str
     data: numpy.ndarray
 
@@ -394,15 +403,6 @@ class CommitHistory:
 
 class PropertyId(int):
     pass
-
-
-class VectorType(str):
-    pass
-
-
-class OwnVectorType(str):
-    pass
-
 
 class ProjectSettings(BaseModel):
     image_small_size: int = 128

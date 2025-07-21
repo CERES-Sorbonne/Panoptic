@@ -485,6 +485,12 @@ export interface ProjectVectorDescription {
     defaultVectors: VectorDescription
 }
 
+export interface VectorType {
+    id: number
+    source: string
+    params: any
+}
+
 // ========= Commit =================
 export interface DbCommit {
     emptyInstances?: number[]

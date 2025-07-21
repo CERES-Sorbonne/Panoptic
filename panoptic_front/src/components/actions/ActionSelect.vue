@@ -27,18 +27,27 @@ const available = computed(() => {
     return valid.map(a => a.id)
 })
 
+const sourceName = computed(() =>{
+    return localFunction.value.slice(0, localFunction.value.indexOf('.'))
+})
+
+
 function loadAction() {
     localFunction.value = defaultFunction.value
     loadInput()
 }
 
 function loadInput() {
-    localInputs.value = []
     const funcId = localFunction.value
     if (!funcId) return
 
     if (!actions.index[funcId]) return
     const params = actions.index[funcId].params
+    const defaults = actions.getContext(funcId).uiInputs
+
+    for(let param of params) {
+        param.defaultValue = defaults[param.name]
+    }
 
     localInputs.value = JSON.parse(JSON.stringify(params))
 }
@@ -100,7 +109,7 @@ onMounted(loadAction)
                 <template #popup="{ hide }">
                     <form @submit.prevent="submit(); hide();" class="p-2">
                         <div v-for="input, i in localInputs" class="mb-1">
-                            <ParamInput :input="input" />
+                            <ParamInput :input="input" :source="sourceName"/>
                         </div>
                         <div class="d-flex flex-center mt-3" style="height: 20px;">
                             <div class="flex-grow-1"></div>

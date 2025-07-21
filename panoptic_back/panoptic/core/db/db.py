@@ -11,7 +11,7 @@ from pypika import Table, PostgreSQLQuery, Order, functions
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict, decode_if_json
 from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
-    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup
+    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup, VectorType
 from panoptic.models import Tag, Property, Folder
 
 Query = PostgreSQLQuery
@@ -602,18 +602,26 @@ class Db:
     # ================== Vectors ==========================
     # =====================================================
 
+    async def add_vector_type(self, vector_type: VectorType):
+        query = """
+        INSERT INTO vector_type (source, params) VALUES (?, ?)
+        """
+        res = await self.conn.execute_query(query, (vector_type.source, json.dumps(vector_type.params)))
+        vector_type.id = res.lastrowid
+        return vector_type
+
     async def add_vector(self, vector: Vector):
         query = f"""
-            INSERT OR REPLACE INTO vectors (source, type, sha1, data)
-            VALUES (?, ?, ?, ?);
+            INSERT OR REPLACE INTO vectors (type_id, sha1, data)
+            VALUES (?, ?, ?);
         """
-        await self.conn.execute_query(query, (vector.source, vector.type, vector.sha1, vector.data))
+        await self.conn.execute_query(query, (vector.type_id, vector.sha1, vector.data))
         return vector
 
-    async def get_vectors(self, source: str, type_: str, sha1s: List[str] = None):
+    async def get_vectors(self, type_id: int, sha1s: List[str] = None):
         t = Table('vectors')
-        query = Query.from_(t).select('source', 'type', 'sha1', 'data')
-        query = query.where(t.source == source).where(t.type == type_)
+        query = Query.from_(t).select('type_id', 'sha1', 'data')
+        query = query.where(t.type_id == type_id)
         if sha1s:
             query = query.where(t.sha1.isin(sha1s))
         cursor = await self.conn.execute_query(query.get_sql())
@@ -621,10 +629,26 @@ class Db:
         res = [Vector(*row) for row in rows]
         return res
 
-    async def vector_exist(self, source: str, type_: str, sha1: str):
+    async def get_vector_types(self, source: str = None):
+        t = Table('vector_type')
+        query = Query.from_(t).select('*')
+        if source:
+            query = query.where(t.source == source)
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        if rows:
+            return [VectorType(**auto_dict(r, cursor)) for r in rows]
+        return []
+
+    async def delete_vector_type(self, id_: int):
+        query = """DELETE FROM vector_type WHERE id = ?"""
+        await self.conn.execute_query(query, (id_,))
+        return True
+
+    async def vector_exist(self, type_id: int, sha1: str):
         t = Table('vectors')
-        query = Query.from_(t).select('source', 'type', 'sha1')
-        query = query.where(t.source == source).where(t.type == type_)
+        query = Query.from_(t).select('type_id', 'sha1')
+        query = query.where(t.type_id == type_id)
         query = query.where(t.sha1 == sha1)
         cursor = await self.conn.execute_query(query.get_sql())
         rows = await cursor.fetchall()
@@ -632,16 +656,17 @@ class Db:
             return True
         return False
 
+    # TODO: remove
     async def get_vector_descriptions(self):
-        query = """ 
-        SELECT source, type, count(sha1) as count
-        FROM vectors
-        GROUP BY source, type;
-        """
-        cursor = await self.conn.execute_query(query)
-        rows = await cursor.fetchall()
-        if rows:
-            return [VectorDescription(**auto_dict(r, cursor)) for r in rows]
+        # query = """
+        # SELECT source, type, count(sha1) as count
+        # FROM vectors
+        # GROUP BY source, type;
+        # """
+        # cursor = await self.conn.execute_query(query)
+        # rows = await cursor.fetchall()
+        # if rows:
+        #     return [VectorDescription(**auto_dict(r, cursor)) for r in rows]
         return []
 
     async def set_default_vector_id(self, vector_id: str):
@@ -732,7 +757,7 @@ class Db:
     async def delete_property_groups(self, groups: list[int]):
         query = "DELETE FROM property_group WHERE id=?;"
         await self.conn.execute_query_many(query, [(i,) for i in groups])
-        
+
     # =====================================================
     # ==================== ID COUNTERS ====================
     # =====================================================

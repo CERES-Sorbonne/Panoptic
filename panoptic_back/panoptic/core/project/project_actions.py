@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from panoptic.models import ActionContext, FunctionDescription, ParamDescription, PropertyId
+from panoptic.models import ActionContext, FunctionDescription, ParamDescription, PropertyId, VectorType, OwnVectorType
 from panoptic.core.plugin.plugin import APlugin
 from panoptic.utils import AsyncCallable, to_str_type
 
@@ -23,7 +23,7 @@ def get_params(f):
     return res
 
 
-possible_inputs = [to_str_type(t) for t in [int, float, str, bool, Path, PropertyId, Enum]]
+possible_inputs = [to_str_type(t) for t in [int, float, str, bool, Path, PropertyId, Enum, VectorType, OwnVectorType]]
 
 
 def get_param_description(f: AsyncCallable, param_name: str):
@@ -82,12 +82,13 @@ class Action:
     async def call(self, ctx: ActionContext):
         params = get_params(self._function)
         for desc in self.description.params:
-            if desc.type != 'enum':
-                continue
-            param_type = [params[p][0] for p in params if p == desc.name][0]
             if not ctx.ui_inputs.get(desc.name):
                 continue
-            ctx.ui_inputs[desc.name] = param_type(ctx.ui_inputs[desc.name])
+            param_type = [params[p][0] for p in params if p == desc.name][0]
+            if desc.type == 'enum':
+                ctx.ui_inputs[desc.name] = param_type(ctx.ui_inputs[desc.name])
+            if desc.type == 'own_vector_type' or desc.type == 'vector_type':
+                ctx.ui_inputs[desc.name] = param_type(**ctx.ui_inputs[desc.name])
 
         return await self._function(ctx, **ctx.ui_inputs)
 

@@ -56,47 +56,50 @@ onMounted(initValues)
 </script>
 
 <template>
-    <wTT :message="props.input.description">
-        <div class="d-flex">
-            <div v-if="props.input.name" class="me-1">{{ props.input.name }}</div>
-            <!-- <div class="me-1">[{{ props.input.type }}]</div> -->
-            <div v-if="props.input.type == 'str'">
+    <tr>
+        <td>
+            <wTT :message="props.input.description">
+                <span v-if="props.input.name" class="me-1">{{ props.input.name }}</span>
+            </wTT>
+        </td>
+        <td>
+            <span v-if="props.input.type == 'str'">
                 <input type="text" v-model="localValue" ref="elem" />
-            </div>
-            <div v-if="props.input.type == 'int'">
+            </span>
+            <span v-if="props.input.type == 'int'">
                 <input type="number" step="1" v-model="localValue" ref="elem" />
-            </div>
-            <div v-if="props.input.type == 'float'">
+            </span>
+            <span v-if="props.input.type == 'float'">
                 <input type="number" v-model="localValue" ref="elem" />
-            </div>
-            <div v-if="props.input.type == 'bool'">
+            </span>
+            <span v-if="props.input.type == 'bool'">
                 <input type="checkbox" v-model="localValue" ref="elem" />
-            </div>
-            <div v-if="props.input.type == 'property'">
-                <div v-if="!data.propertyList.length" class="disabled rounded ps-1 pe-1">Create Property First</div>
+            </span>
+            <span v-if="props.input.type == 'property'">
+                <span v-if="!data.propertyList.length" class="disabled rounded ps-1 pe-1">Create Property First</span>
                 <PropertyDropdown v-else v-model="defaultProperty"
                     @update:model-value="localValue = defaultProperty.id" />
-            </div>
-            <div v-if="props.input.type == 'enum'">
+            </span>
+            <span v-if="props.input.type == 'enum'">
                 <select v-model="localValue">
                     <option v-for="v in props.input.possibleValues" :value="v">{{ v }}</option>
                 </select>
-            </div>
-            <div v-if="props.input.type == 'vector_type'">
+            </span>
+
+            <span v-if="props.input.type == 'vector_type'">
                 <select v-model="localValue" style="max-width: 200px;">
                     <option v-for="v in data.vectorTypes" :value="v">{{ vector_name(v) }}</option>
                 </select>
-            </div>
+            </span>
 
-            <div v-if="props.input.type == 'own_vector_type'">
+            <span v-if="props.input.type == 'own_vector_type'">
                 <select v-model="localValue" style="max-width: 200px;">
                     <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
                         vector_name(v) }}</option>
                 </select>
-            </div>
-
-        </div>
-    </wTT>
+            </span>
+        </td>
+    </tr>
 </template>
 
 <style scoped>

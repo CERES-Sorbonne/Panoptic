@@ -5,6 +5,7 @@ import { useProjectStore } from '@/data/projectStore';
 import PageWindow from '../utils/PageWindow.vue';
 import StorageSettings from '../settings/StorageSettings.vue';
 import Modal2 from './Modal2.vue';
+import VectorSettings from '../settings/VectorSettings.vue';
 
 const project = useProjectStore()
 
@@ -90,6 +91,7 @@ watch(selectedPage, () => changed.value = false)
                             </div>
                         </div>
                         <StorageSettings v-if="page == PAGE.Storage" v-model:changed="changed" ref="pageElem"/>
+                        <VectorSettings v-if="page == PAGE.Vectors" />
                     </template>
                 </PageWindow>
                 <!-- <div class="w-100">

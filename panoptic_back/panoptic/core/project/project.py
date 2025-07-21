@@ -22,7 +22,7 @@ from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate, ProjectSettings, PluginKey, DbCommit
+from panoptic.models import StatusUpdate, ProjectSettings, PluginKey, DbCommit, VectorType
 from panoptic.utils import get_model_params_description
 
 nb_workers = 8

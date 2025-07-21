@@ -15,7 +15,7 @@ from starlette.responses import FileResponse, StreamingResponse
 from panoptic.core.project.project import Project
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update, \
-    ProjectSettings, TagMergePayload, LoadState
+    ProjectSettings, TagMergePayload, LoadState, DeleteVectorTypePayload
 from panoptic.models.results import LoadResult
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 
@@ -260,6 +260,17 @@ async def post_plugin_params_route(req: PluginParamsPayload):
 async def get_vectors_info():
     vectors_description = await project.db.get_vectors_info()
     return vectors_description
+
+
+@project_router.get('/vector_types')
+async def get_vector_types():
+    types = await project.db.get_vector_types()
+    return types
+
+
+@project_router.post('/delete_vector_type')
+async def post_delete_vector_type(req: DeleteVectorTypePayload):
+    await project.db.delete_vector_type(req.id)
 
 
 @project_router.post('/default_vectors')
