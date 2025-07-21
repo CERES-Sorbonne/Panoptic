@@ -15,7 +15,7 @@ const category = ref(categories.value[0])
 const pageElem = ref(null)
 
 enum PAGE {
-    Storage = 'storage',
+    Images = 'images',
     Vectors = 'vectors',
     Plugins = 'plugins',
 }
@@ -67,10 +67,10 @@ watch(selectedPage, () => changed.value = false)
                         <div v-if="page == ''" class="h-100 w-100">
                             <div class="d-flex flex-wrap h-100 justify-content-center">
                                 <div class="bb align-self-center m-4" style="width: 120px;"
-                                    @click="selectedPage = PAGE.Storage">
+                                    @click="selectedPage = PAGE.Images">
                                     <div class="border rounded p-2 text-center">
-                                        <div><i class="bi bi-hdd" style="font-size: 50px;" /></div>
-                                        <div>Storage</div>
+                                        <div><i class="bi bi-images" style="font-size: 50px;" /></div>
+                                        <div>Images</div>
                                     </div>
                                 </div>
 
@@ -91,7 +91,7 @@ watch(selectedPage, () => changed.value = false)
                                 </div>
                             </div>
                         </div>
-                        <StorageSettings v-if="page == PAGE.Storage" v-model:changed="changed" ref="pageElem"/>
+                        <StorageSettings v-if="page == PAGE.Images" v-model:changed="changed" ref="pageElem"/>
                         <VectorSettings v-if="page == PAGE.Vectors" />
                         <PluginSettingsWindow v-if="page == PAGE.Plugins" v-model:changed="changed" ref="pageElem"/>
                     </template>
