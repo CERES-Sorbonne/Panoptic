@@ -263,6 +263,7 @@ class UpdatePluginPayload(BaseModel):
 class UpdateCounter(CamelModel):
     action: int = 0
     image: int = 0
+    vector_type: int = 0
 
 
 class StatusUpdate(CamelModel):

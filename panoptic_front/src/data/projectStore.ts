@@ -172,6 +172,9 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     async function applyStatusUpdate(update: StatusUpdate) {
+        if(update.update.vectorType != backendStatus.value.update.vectorType) {
+            await useDataStore().updateVectorTypes()
+        }
         backendStatus.value = update
     }
 
