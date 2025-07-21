@@ -5,13 +5,15 @@ import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed, ref } from 'vue';
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
+import { TabManager } from '@/core/TabManager';
 
 const data = useDataStore()
 const props = defineProps({
     folders: Array<Folder>,
     visibleFolders: Object as () => { [folderId: number]: boolean },
     filterManager: FilterManager,
-    root: { type: Boolean, default: true }
+    root: { type: Boolean, default: true },
+    tab: Object as () => TabManager
 })
 
 const hoverId = ref(null)
@@ -75,6 +77,7 @@ function toggleFolderSelect(folderId: number) {
     }
 
     props.filterManager.setFolders(Array.from(selected))
+    props.tab.setSelectedFolder(selected)
 
     props.filterManager.update(true)
 }
@@ -113,7 +116,7 @@ function unselectParent(folderId: number, selected: Set<number>) {
                 style="font-size: 9px;"></i>
             <template v-if="folder.children && folder.children.length > 0 && isVisible[folder.id]">
                 <FolderList2 :folders="folder.children" :root="false" :visible-folders="props.visibleFolders"
-                    :filter-manager="props.filterManager" />
+                    :filter-manager="props.filterManager" :tab="props.tab" />
             </template>
         </li>
     </ul>

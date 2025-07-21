@@ -57,6 +57,11 @@ export class TabManager {
         this.saveState()
     }
 
+    setSelectedFolder(selectedFolders) {
+        this.state.selectedFolders = selectedFolders 
+        this.saveState()
+    }
+
     isVisibleProperty(propId: number) {
         //console.log(this.tabs[this.selectedTab])
         return this.state.visibleProperties[propId]
