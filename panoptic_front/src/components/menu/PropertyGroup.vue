@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
-import { PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
+import { ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
 import { TabManager } from '@/core/TabManager';
 import draggableComponent from 'vuedraggable';
+import { usePanopticStore } from '@/data/panopticStore';
+import Dropdown from '../dropdowns/Dropdown.vue';
 
 const data = useDataStore()
-
+const panoptic = usePanopticStore()
 
 const props = defineProps<{
     tab: TabManager
@@ -92,12 +94,21 @@ watch(props, updateLocalName)
                                     @blur="editName = false" />
                             </div>
                             <div class="flex-grow-1"></div>
-                            <div v-if="!editName" class="bb me-1" @click.stop="editName = true"><i
-                                    class="bi bi-pencil" />
-                            </div>
-                            <div class="bb me-1" @click.stop="deleteGroup"><i class="bi bi-x" /></div>
+                            <Dropdown @click.prevent.stop="">
+                                <template #button><i class="bb bi bi-three-dots" /></template>
+                                <template #popup="{hide}">
+                                    <div class="p-1">
+                                        <div class="bb" @click="editName = true; hide();">Edit name</div>
+                                        <div class="bb" @click="deleteGroup">Delete Group</div>
+                                    </div>
+                                </template>
+                            </Dropdown>
                         </template>
-
+                        <div v-else class="flex-grow-1"></div>
+                        <!-- <div class="flex-grow-1"></div> -->
+                        <div v-if="props.node.groupId >= -1" class="bb me-2" @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, {group: props.node.groupId})">
+                            <i class="bi bi-plus"/>
+                        </div>
                     </template>
 
                 </div>
