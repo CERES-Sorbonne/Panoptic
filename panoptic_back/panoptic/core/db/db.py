@@ -343,6 +343,10 @@ class Db:
         await self.conn.execute_query(query, (sha1, small, medium, large))
         return sha1, small, medium, large
 
+    async def import_raw_image(self, sha1: str, mime_type: str, data: bytes):
+        query = "INSERT OR REPLACE INTO raw_images (sha1, mime_type, data) VALUES (?, ?, ?)"
+        await self.conn.execute_query(query, (sha1, mime_type, data))
+
     async def get_small_image(self, sha1: str):
         query = "SELECT small FROM images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
@@ -368,15 +372,23 @@ class Db:
         return row[0]
 
     async def get_raw_image(self, sha1: str):
-        query = "SELECT raw FROM images WHERE sha1=?"
+        query = "SELECT mime_type, data FROM raw_images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
         row = await cursor.fetchone()
         if not row:
             return row
-        return row[0]
+        return row[0], row[1]
 
     async def has_image(self, sha1: str):
         query = "SELECT sha1 FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return False
+        return True
+
+    async def has_raw_image(self, sha1: str):
+        query = "SELECT sha1 FROM raw_images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
         row = await cursor.fetchone()
         if not row:
@@ -398,6 +410,14 @@ class Db:
     async def delete_images(self, sha1s: list[str]):
         query = "DELETE FROM images WHERE sha1 = ?"
         await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
+
+    async def delete_raw_images(self, sha1s: list[str] = None):
+        if sha1s is None:
+            query = 'DELETE FROM raw_images'
+            await self.conn.execute_query(query)
+        else:
+            query = "DELETE FROM raw_images WHERE sha1 = ?"
+            await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
 
     # =====================================================
     # ================= Instances =========================

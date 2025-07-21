@@ -225,6 +225,17 @@ def create_images_table():
     return query
 
 
+def create_raw_images():
+    query = """
+    CREATE TABLE raw_images (
+        sha1 TEXT PRIMARY KEY,
+        mime_type TEXT,
+        data BLOB
+    );
+    """
+    return query
+
+
 def create_property_group_table():
     query = """
     CREATE TABLE property_group (
@@ -253,6 +264,7 @@ tables = {
     'panoptic': create_panoptic_table(),
     'folders': create_folders_table(),
     'images': create_images_table(),
+    'raw_images': create_raw_images(),
     'instances': create_instances_table(),
     'properties': create_properties_table(),
     'image_property_values': create_image_property_values_table(),
