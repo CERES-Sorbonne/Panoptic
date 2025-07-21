@@ -106,6 +106,9 @@ class ProjectDb:
     async def import_image(self, sha1: str, small: bytes, medium: bytes, large: bytes):
         return await self._db.import_image(sha1, small, medium, large)
 
+    async def import_raw_image(self, sha1: str, mime_type: str, data: bytes):
+        return await self._db.import_raw_image(sha1, mime_type, data)
+
     async def get_small_image(self, sha1: str):
         return await self._db.get_small_image(sha1)
 
@@ -117,6 +120,12 @@ class ProjectDb:
 
     async def has_image(self, sha1: str):
         return await self._db.has_image(sha1)
+
+    async def get_raw_image(self, sha1: str):
+        return await self._db.get_raw_image(sha1)
+
+    async def has_raw_image(self, sha1: str):
+        return await self._db.has_raw_image(sha1)
 
     # =====================================================
     # =================== Instances =======================
@@ -316,6 +325,7 @@ class ProjectDb:
         deleted_sha1s = list(old_sha1s - now_sha1s)
 
         await self._db.delete_images(deleted_sha1s)
+        await self._db.delete_raw_images(deleted_sha1s)
         await self._db.delete_image_values(deleted_sha1s)
         await self._db.delete_vectors(deleted_sha1s)
 

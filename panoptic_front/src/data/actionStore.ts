@@ -4,7 +4,6 @@ import { ActionContext, ActionFunctions } from "./models";
 import { computed, reactive, ref, watch } from "vue";
 import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
-import { Exception } from "sass";
 import { useDataStore } from "./dataStore";
 import { sourceFromFunction } from "@/utils/utils";
 
@@ -62,8 +61,6 @@ export const useActionStore = defineStore('actionStore', () => {
         await getDefaultParams()
 
         update.value += 1
-
-        console.log(index.value)
     }
 
     async function getSimilarImages(ctx: ActionContext) {
@@ -150,15 +147,12 @@ export const useActionStore = defineStore('actionStore', () => {
             if (baseValue == undefined) {
                 if (param.type == 'vector_type') {
                     if(data.vectorTypes.length) {
-                        console.log('set base')
                         baseValue = data.vectorTypes[0]
                     }
                 }
                 if (param.type == 'own_vector_type') {
                     const source = sourceFromFunction(funcName)
                     let first = data.vectorTypes.find(v => v.source = source)
-                    console.log(JSON.stringify(data.vectorTypes))
-                    console.log(first)
                     if(first) {
                         baseValue = first
                     }

@@ -225,7 +225,7 @@ class Project:
         if delete_large:
             await db.delete_large_images()
         if delete_raw:
-            pass
+            await db.delete_raw_images()
 
         await self.db.save_project_settings(settings)
         self.settings = settings

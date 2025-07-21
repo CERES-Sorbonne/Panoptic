@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image
 
+from panoptic.core.task.import_instance_task import format_to_mime
 from panoptic.models import ProjectSettings
 
 if TYPE_CHECKING:
@@ -23,8 +24,10 @@ class ImportImageTask(Task):
 
     async def run(self):
         image_file = self.project.sha1_to_files[self.sha1][0]
-        large, medium, small = await self._async(self._import_image, image_file, self.project.settings)
+        large, medium, small, raw, mime_type = await self._async(self._import_image, image_file, self.project.settings)
         await self.project.db.import_image(self.sha1, small, medium, large)
+        if raw:
+            await self.project.db.import_raw_image(self.sha1, mime_type, raw)
 
     async def run_if_last(self):
         pass
@@ -37,6 +40,15 @@ class ImportImageTask(Task):
         large_bytes = bytes()
         medium_bytes = bytes()
         small_bytes = bytes()
+        raw_bytes = bytes()
+
+        format_ = image.format  # e.g., 'JPEG'
+        mime_type = format_to_mime[format_]
+
+        if settings.save_file_raw:
+            raw_buffer = io.BytesIO()
+            image.save(raw_buffer, format=image.format)
+            raw_bytes = raw_buffer.getvalue()
 
         image = image.convert('RGB')
 
@@ -44,7 +56,7 @@ class ImportImageTask(Task):
         medium_size = settings.image_medium_size
         large_size = settings.image_large_size
 
-        # TODO: refacto when raw resolution can be stored in db
+
 
         if settings.save_image_large and ((width > large_size or height > large_size) or ((width < large_size or height < large_size) and (width > medium_size or height > medium_size))):
             large_size = min(width, height, large_size)
@@ -67,4 +79,4 @@ class ImportImageTask(Task):
 
         del image
 
-        return large_bytes, medium_bytes, small_bytes
+        return large_bytes, medium_bytes, small_bytes, raw_bytes, mime_type
