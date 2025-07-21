@@ -270,7 +270,7 @@ async def get_vector_types():
 
 @project_router.post('/delete_vector_type')
 async def post_delete_vector_type(req: DeleteVectorTypePayload):
-    await project.db.delete_vector_type(req.id)
+    await project.delete_vector_type(req.id)
 
 
 @project_router.post('/default_vectors')

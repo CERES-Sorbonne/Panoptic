@@ -239,3 +239,9 @@ class Project:
         commit = DbCommit()
         commit.empty_instances = ids
         return commit
+
+    async def delete_vector_type(self, id_: int):
+        res = await self.db.delete_vector_type(id_)
+        for p in self.plugins:
+            await p.load_vector_types()
+        return res
