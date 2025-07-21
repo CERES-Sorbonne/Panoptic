@@ -22,13 +22,18 @@ function changePage(page: string) {
             </div>
         </div>
         <div class="flex-grow-1 h-100">
-            <div v-if="props.page != ''" class="d-flex upper mb-2">
-                <div class="bb" @click="changePage('')"><i class="bi bi-arrow-left" /></div>
-                <div class="text-capitalize text-secondary">{{ props.page }}</div>
-                <!-- <div class="me-5"></div> -->
-                <slot name="header" :page="props.page"></slot>
+            <div class="d-flex flex-column h-100">
+                <div v-if="props.page != ''" class="d-flex upper">
+                    <div class="bb" @click="changePage('')"><i class="bi bi-arrow-left" /></div>
+                    <div class="text-capitalize text-secondary">{{ props.page }}</div>
+                    <!-- <div class="me-5"></div> -->
+                    <slot name="header" :page="props.page"></slot>
+                </div>
+                <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
+                    <slot :page="props.page"></slot>
+                </div>
             </div>
-            <slot :page="props.page"></slot>
+
         </div>
     </div>
 </template>

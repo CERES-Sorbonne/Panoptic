@@ -65,7 +65,7 @@ watch(() => props.plugin, updateLocalDefaults)
     <!-- <div>
         {{ defaultsChanged }}
     </div> -->
-    <div v-if="props.plugin && localDefaults" class=p-3>
+    <div v-if="props.plugin && localDefaults">
         <h3 class="text-center">{{ props.plugin.name }}</h3>
         <div class="">{{ props.plugin.description }}</div>
         <div class="custom-hr mt-2 mb-2"></div>
@@ -74,13 +74,30 @@ watch(() => props.plugin, updateLocalDefaults)
             <div v-for="param in localDefaults" class="param">
                 <!-- {{ param }} -->
                 <template v-if="localDefaults[param.name]">
-                    <ParamInput :input="param" :source="plugin.name" />
+                    <ParamInput :input="param" />
                     <div class="text-secondary">{{ param.description }}</div>
                 </template>
             </div>
         </div>
-
-
+        <!-- <h5>Registered Actions</h5>
+        <div v-for="action in Object.keys(actions)">
+            <div class="text-capitalize"><b>{{ action }}</b></div>
+            <div v-for="func in actions[action]" class="function">
+                <div>{{ func.name }}<span v-if="func.description" class="text-secondary">: {{ func.description }}</span>
+                </div>
+                <template v-if="func.params.length">
+                    <div class="custom-hr" style="margin: 2px 0;"></div>
+                    <div v-for="param in func.params" class="param">
+                        <div class="d-flex">
+                        <div class="ms-1" style="margin-top: 3px;"><input type="number" placeholder="default-value" /></div>
+                        <ParamInput :type="param.type" v-model="localDefaults.functions[func.name][param.name]"
+                            :label="param.name" />
+                        </div>
+                        <div class="text-secondary">{{ param.description }}</div>
+                    </div>
+                </template>
+            </div>
+        </div> -->
         <div v-if="defaultsChanged" class="d-flex">
             <div class="flex-grow-1"></div>
             <div class="base-btn me-3" @click="updateLocalDefaults">Reset</div>
