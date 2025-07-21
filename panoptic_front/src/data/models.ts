@@ -363,6 +363,7 @@ export const DateUnitFactor = {
 export interface UpdateCounter {
     action: number;
     image: number;
+    vectorType: number;
 }
 
 
