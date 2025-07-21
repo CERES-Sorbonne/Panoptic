@@ -18,6 +18,7 @@ const newProperty = reactive({}) as Property
 
 const message = ref('')
 
+const group = ref(undefined)
 
 async function saveProperty(hide) {
     console.log('halloo')
@@ -37,12 +38,22 @@ async function saveProperty(hide) {
 
     const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
     tabStore.getMainTab().setVisibleProperty(prop.id, true)
+
+    if (group.value != undefined && group.value >= 0) {
+        await data.updateProperty(prop.id, prop.name, group.value)
+    }
     hide()
 }
 
 function onShow(data) {
+    Object.keys(newProperty).forEach(k => delete newProperty[k])
     if(data?.mode) {
         newProperty.mode = data.mode
+    }
+    if(data?.group) {
+        group.value = data.group
+    } else {
+        group.value = undefined
     }
 }
 
