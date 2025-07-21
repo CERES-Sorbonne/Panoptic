@@ -6,6 +6,7 @@ import PageWindow from '../utils/PageWindow.vue';
 import StorageSettings from '../settings/StorageSettings.vue';
 import Modal2 from './Modal2.vue';
 import VectorSettings from '../settings/VectorSettings.vue';
+import PluginSettingsWindow from '../settings/PluginSettingsWindow.vue';
 
 const project = useProjectStore()
 
@@ -53,7 +54,7 @@ watch(selectedPage, () => changed.value = false)
     <Modal2 :id="ModalId.SETTINGS" @show="updatePluginInfo">
         <template #title>{{ $t('modals.settings.title') }}</template>
         <template #content>
-            <div class="h-100">
+            <div class="h-100 overflow-hidden">
                 <PageWindow :options="options" v-model:page="selectedPage">
                     <template #header>
                         <div v-if="changed" class="d-flex">
@@ -92,6 +93,7 @@ watch(selectedPage, () => changed.value = false)
                         </div>
                         <StorageSettings v-if="page == PAGE.Storage" v-model:changed="changed" ref="pageElem"/>
                         <VectorSettings v-if="page == PAGE.Vectors" />
+                        <PluginSettingsWindow v-if="page == PAGE.Plugins" v-model:changed="changed" ref="pageElem"/>
                     </template>
                 </PageWindow>
                 <!-- <div class="w-100">
