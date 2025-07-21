@@ -99,7 +99,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                                 <div style="max-height: 300px; overflow: auto;">
                                     <FolderList2 :folders="data.folderRoots"
                                         :filter-manager="tab.collection.filterManager"
-                                        :visible-folders="tab.state.visibleFolders" />
+                                        :visible-folders="tab.state.visibleFolders" :tab="tab" />
                                 </div>
 
                             </div>
