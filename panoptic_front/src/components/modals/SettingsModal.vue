@@ -3,15 +3,13 @@ import { ModalId } from '@/data/models';
 import { ref, watch } from 'vue';
 import { useProjectStore } from '@/data/projectStore';
 import PageWindow from '../utils/PageWindow.vue';
-import StorageSettings from '../settings/StorageSettings.vue';
 import Modal2 from './Modal2.vue';
 import VectorSettings from '../settings/VectorSettings.vue';
 import PluginSettingsWindow from '../settings/PluginSettingsWindow.vue';
+import ImageSettings from '../settings/ImageSettings.vue';
 
 const project = useProjectStore()
 
-const categories = ref(['general', 'plugins'])
-const category = ref(categories.value[0])
 const pageElem = ref(null)
 
 enum PAGE {
@@ -91,7 +89,7 @@ watch(selectedPage, () => changed.value = false)
                                 </div>
                             </div>
                         </div>
-                        <StorageSettings v-if="page == PAGE.Images" v-model:changed="changed" ref="pageElem"/>
+                        <ImageSettings v-if="page == PAGE.Images" v-model:changed="changed" ref="pageElem"/>
                         <VectorSettings v-if="page == PAGE.Vectors" />
                         <PluginSettingsWindow v-if="page == PAGE.Plugins" v-model:changed="changed" ref="pageElem"/>
                     </template>
