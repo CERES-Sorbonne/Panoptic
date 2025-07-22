@@ -582,7 +582,7 @@ export const useDataStore = defineStore('dataStore', () => {
             save = buildPropertyGroupOrder()
         }
 
-        const props = objValues(properties.value)
+        const props = objValues(properties.value).filter(p => p.id != deletedID)
         const groups = objValues(propertyGroups.value)
 
         const groupOrder = mergeOrder(groups, save.groups)
