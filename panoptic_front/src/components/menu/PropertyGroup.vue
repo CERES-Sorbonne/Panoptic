@@ -54,6 +54,17 @@ function deleteGroup() {
     data.deletePropertyGroup(group.value.id)
 }
 
+async function deleteProperties() {
+    let properties = data.propertyList.filter(p => p.propertyGroupId == props.node.groupId)
+    for (let prop of properties) {
+        await data.deleteProperty(prop.id)
+    }
+    if (props.node.groupId >= 0) {
+        await data.deletePropertyGroup(props.node.groupId)
+    }
+
+}
+
 async function log(e) {
     if (e.added) {
         let id = e.added.element
@@ -87,27 +98,27 @@ watch(props, updateLocalName)
                     <div v-if="!open"><i class="bi bi-caret-right-fill" /></div>
                     <template v-if="props.menuOpen">
                         <div v-if="!editName" class="ms-2 text-capitalize overflow-hidden">{{ group.name }}</div>
-                        <template v-if="isEditable">
-                            <div v-if="editName" class="ms-2">
-                                <TextInput :auto-focus="true" v-model="localName" style="background-color: white;"
-                                    :min-height="25" :width="135" @submit="updateName" @cancel="updateLocalName"
-                                    @blur="editName = false" />
-                            </div>
-                            <div class="flex-grow-1"></div>
-                            <Dropdown @click.prevent.stop="">
-                                <template #button><i class="bb bi bi-three-dots" /></template>
-                                <template #popup="{hide}">
-                                    <div class="p-1">
+                        <div v-if="editName" class="ms-2">
+                            <TextInput :auto-focus="true" v-model="localName" style="background-color: white;"
+                                :min-height="25" :width="135" @submit="updateName" @cancel="updateLocalName"
+                                @blur="editName = false" />
+                        </div>
+                        <div class="flex-grow-1"></div>
+                        <Dropdown @click.prevent.stop="" v-if="props.node.groupId >= PropertyGroupId.DEFAULT">
+                            <template #button><i class="bb bi bi-three-dots" /></template>
+                            <template #popup="{ hide }">
+                                <div class="p-1">
+                                    <template v-if="isEditable">
                                         <div class="bb" @click="editName = true; hide();">Edit name</div>
                                         <div class="bb" @click="deleteGroup">Delete Group</div>
-                                    </div>
-                                </template>
-                            </Dropdown>
-                        </template>
-                        <div v-else class="flex-grow-1"></div>
-                        <!-- <div class="flex-grow-1"></div> -->
-                        <div v-if="props.node.groupId >= -1" class="bb me-2" @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, {group: props.node.groupId})">
-                            <i class="bi bi-plus"/>
+                                    </template>
+                                    <div class="bb" @click="deleteProperties(); hide();">Delete Properties</div>
+                                </div>
+                            </template>
+                        </Dropdown>
+                        <div v-if="props.node.groupId >= -1" class="bb me-2"
+                            @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, { group: props.node.groupId })">
+                            <i class="bi bi-plus" />
                         </div>
                     </template>
 

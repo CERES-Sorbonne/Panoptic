@@ -329,7 +329,8 @@ class ProjectDb:
         await self._db.delete_image_values(deleted_sha1s)
         await self._db.delete_vectors(deleted_sha1s)
 
-        return DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids, deleted_sha1s=deleted_sha1s)
+        return DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids,
+                                   deleted_sha1s=deleted_sha1s)
 
     # =========== Vectors ===========
     async def get_vectors(self, type_id: int, sha1s: list[str] = None):
@@ -386,6 +387,7 @@ class ProjectDb:
 
         instance_id_map: dict[int, int] = {}
         property_id_map: dict[int, int] = {}
+        property_group_id_map: dict[int, int] = {}
         tag_id_map: dict[int, int] = {}
 
         properties = {p.id: p for p in await self._db.get_properties()}
@@ -431,19 +433,36 @@ class ProjectDb:
             inverse.empty_instances.extend([i.id for i in db_instances if i.id not in current_ids])
             inverse.instances.extend(current)
 
-        # TODO: correct ids for property
+        def correct_property_id(value: InstancePropertyKey | ImagePropertyKey):
+            if value.property_id in property_id_map:
+                value.property_id = property_id_map[value.property_id]
+
+        def correct_property_group_id(value: Property):
+            if value.property_group_id in property_group_id_map:
+                value.property_group_id = property_group_id_map[value.property_group_id]
+
+        def correct_instance_id(value: InstancePropertyKey):
+            if value.instance_id in instance_id_map:
+                value.instance_id = instance_id_map[value.instance_id]
+
+        def correct_tag_id(value: InstanceProperty | ImageProperty):
+            if isinstance(value.value, list):
+                value.value = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in value.value]
+
         if commit.property_groups:
             new, old = separate_ids(commit.property_groups)
             len_new = len(new)
             if len_new:
                 new_ids = await self._db.get_new_property_group_ids(len_new)
                 for pg, id_ in zip(new, new_ids):
+                    property_group_id_map[pg.id] = id_
                     pg.id = id_
             await self._db.import_property_groups(commit.property_groups)
 
         if commit.properties:
             ids = [p.id for p in commit.properties]
             current = await self._db.get_properties(ids=ids)
+            [correct_property_group_id(prop) for prop in commit.properties]
             db_properties = await self._db.import_properties(commit.properties)
             property_id_map = {old: new.id for old, new in zip(ids, db_properties)}
 
@@ -472,18 +491,6 @@ class ProjectDb:
             current_ids = {tt.id for tt in current}
             inverse.empty_tags.extend([t.id for t in db_tags if t.id not in current_ids])
             inverse.tags.extend(current)
-
-        def correct_property_id(value: InstancePropertyKey | ImagePropertyKey):
-            if value.property_id in property_id_map:
-                value.property_id = property_id_map[value.property_id]
-
-        def correct_instance_id(value: InstancePropertyKey):
-            if value.instance_id in instance_id_map:
-                value.instance_id = instance_id_map[value.instance_id]
-
-        def correct_tag_id(value: InstanceProperty | ImageProperty):
-            if isinstance(value.value, list):
-                value.value = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in value.value]
 
         if commit.instance_values:
             [correct_property_id(v) for v in commit.instance_values]
@@ -617,6 +624,3 @@ class ProjectDb:
             if db_value:
                 setattr(settings, name, db_value)
         return settings
-
-
-
