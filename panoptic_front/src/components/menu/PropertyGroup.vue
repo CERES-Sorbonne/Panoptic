@@ -8,6 +8,7 @@ import { TabManager } from '@/core/TabManager';
 import draggableComponent from 'vuedraggable';
 import { usePanopticStore } from '@/data/panopticStore';
 import Dropdown from '../dropdowns/Dropdown.vue';
+import WithToolTip from '../tooltips/withToolTip.vue';
 
 const data = useDataStore()
 const panoptic = usePanopticStore()
@@ -109,19 +110,26 @@ watch(props, updateLocalName)
                             <template #popup="{ hide }">
                                 <div class="p-1">
                                     <template v-if="isEditable">
-                                        <div class="bb" @click="editName = true; hide();">Edit name</div>
-                                        <div class="bb" @click="deleteGroup">Delete Group</div>
+                                        <div class="bb" @click="editName = true; hide();">
+                                            {{ $t('main.menu.editName') }}
+                                        </div>
+                                        <div class="bb" @click="deleteGroup">
+                                            {{ $t('main.menu.removeGroup') }}
+                                        </div>
                                     </template>
-                                    <div class="bb" @click="deleteProperties(); hide();">Delete Properties</div>
+                                    <div class="bb" @click="deleteProperties(); hide();">
+                                        {{ $t('main.menu.deleteGroupAndProperties') }}
+                                    </div>
                                 </div>
                             </template>
                         </Dropdown>
                         <div v-if="props.node.groupId >= -1" class="bb me-2"
                             @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, { group: props.node.groupId })">
-                            <i class="bi bi-plus" />
+                            <WithToolTip :message="$t('main.menu.addNewPropertyToGroup')">
+                                <i class="bi bi-plus" />
+                            </WithToolTip>
                         </div>
                     </template>
-
                 </div>
             </template>
             <template #item="{ element, index }">
@@ -134,6 +142,7 @@ watch(props, updateLocalName)
         </draggableComponent>
     </div>
 </template>
+
 
 <style scoped>
 .group-container {
