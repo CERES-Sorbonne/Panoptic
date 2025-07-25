@@ -23,7 +23,7 @@ const props = defineProps<{
     autoFocus?: boolean,
     forceMulti?: boolean
 }>()
-const emits = defineEmits(['update:modelValue', 'select', 'remove'])
+const emits = defineEmits(['update:modelValue', 'select', 'remove', 'tab'])
 defineExpose({
     focus
 })
@@ -72,7 +72,7 @@ function focus() {
         </div>
         <TagMenu :property="props.property" :excluded="allExcluded" :can-create="props.canCreate"
             :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete"
-            :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem" />
+            :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem" @tab="emits('tab')"/>
 
     </div>
 </template>

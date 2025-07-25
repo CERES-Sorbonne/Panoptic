@@ -26,7 +26,7 @@ const props = defineProps<{
     width?: number
     forceMulti?: boolean
 }>()
-const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show'])
+const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show', 'tab'])
 defineExpose({
     getHeight,
     focus
@@ -75,6 +75,11 @@ function onShow() {
     emits('show')
 }
 
+function onTab(hide) {
+    emits('tab')
+    hide()
+}
+
 watch(() => props.width, updateHeight)
 watch(() => props.modelValue, updateLocal)
 onMounted(updateHeight)
@@ -99,7 +104,7 @@ onMounted(updateLocal)
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
-                    :force-multi="props.forceMulti"
+                    :force-multi="props.forceMulti" @tab="onTab(hide)"
                     ref="inputElem" />
             </div>
         </template>

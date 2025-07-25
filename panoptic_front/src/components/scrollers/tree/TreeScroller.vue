@@ -22,9 +22,12 @@ const props = defineProps<{
     sha1Scores?: Sha1Scores,
     hideIfModal?: boolean
     preview?: SelectedImages
+    inputKey: string
 }>()
 
 const emits = defineEmits(['recommend'])
+
+provide('inputKey', props.inputKey)
 
 const groupIdx = {}
 const imageLines = shallowRef([]) as Ref<ScrollerLine[]>

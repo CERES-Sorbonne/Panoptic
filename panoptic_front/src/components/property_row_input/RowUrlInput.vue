@@ -15,7 +15,11 @@ const props = withDefaults(defineProps<{
     offset: -24
 })
 
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'focus', 'tab'])
+
+defineExpose({
+    focus
+})
 
 const previewElem = ref(null)
 const widthGoal = ref(0)
@@ -23,6 +27,11 @@ const localValue = ref(undefined)
 
 function loadValue() {
     localValue.value = props.modelValue
+}
+
+function onShow() {
+    computeSize()
+    emits('focus')
 }
 
 function computeSize() {
@@ -62,13 +71,17 @@ function clickUrl(e) {
     }
 }
 
+function focus() {
+    previewElem.value.click()
+}
+
 onMounted(loadValue)
 watch(() => props.modelValue, loadValue)
 
 </script>
 
 <template>
-    <Dropdown :offset="props.offset" :no-shadow="true" :teleport="props.teleport" @show="computeSize" @hide="submit"
+    <Dropdown :offset="props.offset" :no-shadow="true" :teleport="props.teleport" @show="onShow" @hide="submit"
         placement="bottom-start">
         <template #button>
             <div ref="previewElem" style="" :style="{ width: props.width + 'px' }">
@@ -80,7 +93,7 @@ watch(() => props.modelValue, loadValue)
             <div class="bg-white" style="font-size: 14px; position: relative; top:0.5px; left:0px"
                 :style="{ width: widthGoal + 'px' }">
                 <TextInput v-model="localValue" :auto-focus="true" :min-height="26" @cancel="cancel(); hide();"
-                    @submit="hide()" @blur="hide" :url-mode="true" />
+                    @submit="hide()" @blur="hide" :url-mode="true" @tab="emits('tab')" />
             </div>
         </template>
     </Dropdown>

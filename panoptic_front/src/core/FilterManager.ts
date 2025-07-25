@@ -439,7 +439,6 @@ export class FilterManager {
             valid.push(instance.id)
         }
         this.result.images = valid.map(id => data.instances[id])
-        console.log(this.result.images)
         console.timeEnd('UpdateFilter')
 
         const res = {updated: new Set(updated.valid.map(i => i.id)), removed: new Set(updated.reject.map(i => i.id))}
