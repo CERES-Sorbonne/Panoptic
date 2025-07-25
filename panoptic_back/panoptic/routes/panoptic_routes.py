@@ -97,7 +97,6 @@ async def get_plugins_route():
 
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    # TODO: add github parameter
     path = payload.path
     if payload.git_url:
         path = add_plugin_from_git(payload.git_url, payload.plugin_name)
