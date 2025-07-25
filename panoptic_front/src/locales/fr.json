@@ -99,7 +99,11 @@
             },
             "import_status_title": "Import",
             "issue": "Signaler un probleme",
-            "close_project": "Retour a la liste des projets"
+            "close_project": "Retour a la liste des projets",
+            "editName": "Modifier le nom",
+            "removeGroup": "Supprimer le groupe",
+            "deleteGroupAndProperties": "Supprimer le groupe et les propriétés",
+            "addNewPropertyToGroup": "Ajouter une propriété au groupe"
         },
         "recommand": {
             "title": "Propositions d'images",
