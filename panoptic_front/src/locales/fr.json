@@ -254,7 +254,33 @@
             "global_path": "Chemin absolu"
         },
         "settings": {
-            "title": "Parametres Projet"
+            "title": "Paramètres",
+            "apply": "Appliquer",
+            "cancel": "Annuler",
+            "images": "Images",
+            "vectors": "Vecteurs",
+            "plugins": "Extensions",
+            "baseSettings": "Paramètres généraux",
+            "reset": "Réinitialiser",
+            "update": "Actualiser",
+            "registeredVectorTypes": "Vecteurs disponibles",
+            "id": "ID",
+            "computed": "Généré",
+            "source": "Source",
+            "params": "Paramètres",
+            "createNewType": "Créer de nouveaux vecteurs",
+            "function": "Fonction",
+            "computeNow": "Calculer maintenant",
+            "computeNowTooltip": "Ne cochez pas si vous souhaitez lancer le calcul manuellement plus tard",
+            "create": "Créer",
+            "loading": "Chargement...",
+            "thumbnailStorage": "Stockage des miniatures",
+            "small": "Petit",
+            "medium": "Moyen",
+            "large": "Grand",
+            "px": "px",
+            "imageStorage": "Stockage des images complète",
+            "fullImage": "Image complète"
         },
         "import": {
             "title": "Importer Fichier",
@@ -269,7 +295,7 @@
                 "new_tooltip": "On écrase aucune donnée et on créé de nouvelles instances qui s'ajouteront à celles existantes",
                 "all": "Remplacer toutes",
                 "all_tooltip": "On écrase toutes les instances actuelles pour en créer seulement avec les valeurs renseignées dans le csv",
-                "path":"Chemin relatif ? ",
+                "path": "Chemin relatif ? ",
                 "path_tooltip": "Est ce que le chemin renseigné dans le csv pour identifier les images est relatif par rapport au dossier importé dans panoptic, ou absolu (depuis la racine du disque dur) ?"
             },
             "help": {

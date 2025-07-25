@@ -53,26 +53,25 @@ watch(changed, (val) => {
 
 <template>
     <div v-if="localSettings" class="main">
-
-        <SectionDivider class="">Thumbnail Storage</SectionDivider>
+        <SectionDivider class="">{{$t('modals.settings.thumbnailStorage')}}</SectionDivider>
         <table class="m-2">
             <tbody>
                 <tr>
                     <td class="pe-2">
                         <input type="checkbox" v-model="localSettings.saveImageSmall" class="me-3" />
-                        <span>Small</span>
+                        <span>{{$t('modals.settings.small')}}</span>
                     </td>
                     <td></td>
                     <td class="ps-2">
                         <input style="text-align: right; width: 50px;" type="number"
                             v-model="localSettings.imageSmallSize" />
-                        px
+                        {{$t('modals.settings.px')}}
                     </td>
                 </tr>
                 <tr>
                     <td class="pe-2">
                         <input type="checkbox" v-model="localSettings.saveImageMedium" class="me-3" />
-                        <span>Medium</span>
+                        <span>{{$t('modals.settings.medium')}}</span>
                     </td>
                     <td></td>
                     <td class="ps-2">
@@ -84,7 +83,7 @@ watch(changed, (val) => {
                 <tr>
                     <td class="pe-2">
                         <input type="checkbox" v-model="localSettings.saveImageLarge" class="me-3" />
-                        <span>Large</span>
+                        <span>{{$t('modals.settings.large')}}</span>
                     </td>
                     <td></td>
                     <td class="ps-2">
@@ -94,16 +93,14 @@ watch(changed, (val) => {
                     </td>
                 </tr>
             </tbody>
-
         </table>
-
-        <SectionDivider class="">Image Storage</SectionDivider>
+        <SectionDivider class="">{{$t('modals.settings.imageStorage')}}</SectionDivider>
         <table class="m-2">
             <tbody>
                 <tr>
                     <td class="pe-2">
                         <input type="checkbox" v-model="localSettings.saveFileRaw" class="me-3" />
-                        <span>Full Image</span>
+                        <span>{{$t('modals.settings.fullImage')}}</span>
                     </td>
                     <td></td>
                     <td></td>

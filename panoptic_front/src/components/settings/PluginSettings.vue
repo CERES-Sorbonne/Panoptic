@@ -62,17 +62,13 @@ watch(() => props.plugin, updateLocalDefaults)
 </script>
 
 <template>
-    <!-- <div>
-        {{ defaultsChanged }}
-    </div> -->
     <div v-if="props.plugin && localDefaults" class=p-3>
         <h3 class="text-center">{{ props.plugin.name }}</h3>
         <div class="">{{ props.plugin.description }}</div>
         <div class="custom-hr mt-2 mb-2"></div>
-        <h5>Base Settings</h5>
+        <h5>{{$t('modals.settings.baseSettings')}}</h5>
         <div class="function">
             <div v-for="param in localDefaults" class="param">
-                <!-- {{ param }} -->
                 <template v-if="localDefaults[param.name]">
                     <ParamInput :input="param" :source="plugin.name" />
                     <div class="text-secondary">{{ param.description }}</div>
@@ -80,11 +76,10 @@ watch(() => props.plugin, updateLocalDefaults)
             </div>
         </div>
 
-
         <div v-if="defaultsChanged" class="d-flex">
             <div class="flex-grow-1"></div>
-            <div class="base-btn me-3" @click="updateLocalDefaults">Reset</div>
-            <div class="base-btn" @click="applyLocalDefaults">Update</div>
+            <div class="base-btn me-3" @click="updateLocalDefaults">{{$t('modals.settings.reset')}}</div>
+            <div class="base-btn" @click="applyLocalDefaults">{{$t('modals.settings.update')}}</div>
         </div>
     </div>
 </template>

@@ -136,7 +136,7 @@ onMounted(loadAction)
         <table>
             <tbody>
                 <tr style="height: 50px;">
-                    <td>Function</td>
+                    <td>{{$t('modals.settings.function')}}</td>
                     <td>
                         <Dropdown>
                             <template #button>
@@ -168,8 +168,8 @@ onMounted(loadAction)
                 <template v-if="props.action == 'vector_type'">
                     <tr>
                         <td>
-                            <wTT message="Dont check if you want to start compute manualy later">
-                                <span class="me-1">Compute now</span>
+                            <wTT :message="$t('modals.settings.computeNowTooltip')">
+                                <span class="me-1">{{$t('modals.settings.computeNow')}}</span>
                             </wTT>
                         </td>
                         <td>
@@ -183,10 +183,10 @@ onMounted(loadAction)
         </table>
         <div class="ms-3 mt-3">
             <SectionDivider>
-                <span class="bbb me-2" @click="cancel">Cancel</span>
-                <span class="bbb" @click="call">Create</span>
+                <span class="bbb me-2" @click="cancel">{{$t('modals.settings.cancel')}}</span>
+                <span class="bbb" @click="call">{{$t('modals.settings.create')}}</span>
                 <div v-if="loading" class="ms-3 spinner-border spinner-border-sm text-primary me-1" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                    <span class="visually-hidden">{{$t('modals.settings.loading')}}</span>
                 </div>
             </SectionDivider>
         </div>
