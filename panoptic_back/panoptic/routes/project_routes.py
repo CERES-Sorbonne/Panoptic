@@ -268,6 +268,12 @@ async def get_vector_types():
     return types
 
 
+@project_router.get('/vector_stats')
+async def get_vector_stats():
+    stats = await project.db.get_vector_stats()
+    return stats
+
+
 @project_router.post('/delete_vector_type')
 async def post_delete_vector_type(req: DeleteVectorTypePayload):
     await project.delete_vector_type(req.id)
