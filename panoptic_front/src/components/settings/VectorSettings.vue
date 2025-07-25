@@ -7,6 +7,7 @@ import ActionSelectFlat from '../actions/ActionSelectFlat.vue';
 import { onMounted, ref } from 'vue';
 import { VectorType } from '@/data/models';
 import { useActionStore } from '@/data/actionStore';
+import ComputeVectorButton from './ComputeVectorButton.vue';
 
 const data = useDataStore()
 const actions = useActionStore()
@@ -29,19 +30,17 @@ onMounted(() => data.updateVectorStats())
 
 <template>
     <div class="main">
-
         <SectionDivider>
-            Registered Vector Types
+            {{$t('modals.settings.registeredVectorTypes')}}
         </SectionDivider>
-
         <table class="mb-3">
             <thead>
                 <tr>
                     <th></th>
-                    <th>ID</th>
-                    <th>Computed</th>
-                    <th>Source</th>
-                    <th>Params</th>
+                    <th>{{$t('modals.settings.id')}}</th>
+                    <th>{{$t('modals.settings.computed')}}</th>
+                    <th>{{$t('modals.settings.source')}}</th>
+                    <th>{{$t('modals.settings.params')}}</th>
                 </tr>
             </thead>
             <tbody>
@@ -50,9 +49,7 @@ onMounted(() => data.updateVectorStats())
                     <td>{{ vecType.id }}</td>
                     <td>
                         <div>
-                            <span v-if="data.vectorStats.count[vecType.id] != data.vectorStats.sha1Count">
-                                <i class="bb bi bi-database-add" @click="computeVectors(vecType)" />
-                            </span>
+                            <ComputeVectorButton v-if="data.vectorStats.count[vecType.id] != data.vectorStats.sha1Count" :vector-type="vecType" />
                             <span v-if="data.vectorStats.count[vecType.id] != undefined">{{ data.vectorStats.count[vecType.id] }} / {{ data.vectorStats.sha1Count }}</span>
                             <span v-else>0 / {{ data.vectorStats.sha1Count }}</span>
                         </div>
@@ -69,9 +66,9 @@ onMounted(() => data.updateVectorStats())
             </tbody>
         </table>
         <div v-if="!create">
-            <span class="bb" @click="create = true">Create New Type <i class="bi bi-plus" /></span>
+            <span class="bb" @click="create = true">{{$t('modals.settings.createNewType')}} <i class="bi bi-plus" /></span>
         </div>
-        <SectionDivider v-if="create"><span style="margin-left: 3px;">Create New Type</span></SectionDivider>
+        <SectionDivider v-if="create"><span style="margin-left: 3px;">{{$t('modals.settings.createNewType')}}</span></SectionDivider>
         <div v-if="create">
             <ActionSelectFlat :action="'vector_type'" :size="15" @cancel="create = false"
                 @added="data.updateVectorTypes()" />

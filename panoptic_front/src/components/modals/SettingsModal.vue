@@ -55,12 +55,12 @@ watch(selectedPage, () => changed.value = false)
         <template #title>{{ $t('modals.settings.title') }}</template>
         <template #content>
             <div class="h-100 overflow-hidden">
-                <PageWindow :options="options" v-model:page="selectedPage">
+                <PageWindow :options="options" v-model:page="selectedPage" lang-key="modals.settings">
                     <template #header>
                         <div v-if="changed" class="d-flex">
                             <div class="h-100 ms-2" style="border-left: 1px solid var(--border-color);"></div>
-                            <div class="bb ms-3 text-success" @click="applyChange">Apply</div>
-                            <div class="bb ms-3 text-danger" @click="cancelChange">Cancel</div>
+                            <div class="bb ms-3 text-success" @click="applyChange">{{$t('modals.settings.apply')}}</div>
+                            <div class="bb ms-3 text-danger" @click="cancelChange">{{$t('modals.settings.cancel')}}</div>
                         </div>
                     </template>
                     <template #default="{ page }">
@@ -70,7 +70,7 @@ watch(selectedPage, () => changed.value = false)
                                     @click="selectedPage = PAGE.Images">
                                     <div class="border rounded p-2 text-center">
                                         <div><i class="bi bi-images" style="font-size: 50px;" /></div>
-                                        <div>Images</div>
+                                        <div>{{$t('modals.settings.images')}}</div>
                                     </div>
                                 </div>
 
@@ -78,7 +78,7 @@ watch(selectedPage, () => changed.value = false)
                                     @click="selectedPage = PAGE.Vectors">
                                     <div class="border rounded p-2 text-center">
                                         <div><i class="bi bi-arrow-left-right" style="font-size: 50px;" /></div>
-                                        <div>Vectors</div>
+                                        <div>{{$t('modals.settings.vectors')}}</div>
                                     </div>
                                 </div>
 
@@ -86,7 +86,7 @@ watch(selectedPage, () => changed.value = false)
                                     @click="selectedPage = PAGE.Plugins">
                                     <div class="border rounded p-2 text-center">
                                         <div><i class="bi bi-plugin" style="font-size: 50px;" /></div>
-                                        <div>Plugins</div>
+                                        <div>{{$t('modals.settings.plugins')}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -96,23 +96,7 @@ watch(selectedPage, () => changed.value = false)
                         <PluginSettingsWindow v-if="page == PAGE.Plugins" v-model:changed="changed" ref="pageElem"/>
                     </template>
                 </PageWindow>
-                <!-- <div class="w-100">
-                    <TabMenu :options="categories" v-model="category" class="w-100" />
-                </div>
-                <div v-if="category == 'general'">
-                    <GeneralSettings />
-                    <div>
-                        <span class="bbb" @click="useDataStore().deleteEmptyClones()"> Delete Empty Clones</span>
-                    </div>
-                </div>
-                <div v-if="category == 'plugins' && selectedPlugin">
-                    <TabMenu :options="project.data.plugins.map(info => info.name)" v-model="selectedPlugin" />
-                    <div class="p-3" style="max-width: 700px; margin: auto;">
-                        <PluginSettings :plugin="project.data.plugins.find(info => info.name == selectedPlugin)" />
-                    </div>
-                </div> -->
             </div>
-
         </template>
     </Modal2>
 </template>

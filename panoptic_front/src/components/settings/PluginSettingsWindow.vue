@@ -26,12 +26,12 @@ function cancelChange() {
 </script>
 
 <template>
-    <PageWindow :options="options" v-model:page="selectedPage" >
+    <PageWindow :options="options" v-model:page="selectedPage">
         <template #header>
             <div v-if="changed" class="d-flex">
                 <div class="h-100 ms-2" style="border-left: 1px solid var(--border-color);"></div>
-                <div class="bb ms-3 text-success" @click="applyChange">Apply</div>
-                <div class="bb ms-3 text-danger" @click="cancelChange">Cancel</div>
+                <div class="bb ms-3 text-success" @click="applyChange">{{$t('modals.settings.apply')}}</div>
+                <div class="bb ms-3 text-danger" @click="cancelChange">{{$t('modals.settings.cancel')}}</div>
             </div>
         </template>
         <template #default="{ page }">
