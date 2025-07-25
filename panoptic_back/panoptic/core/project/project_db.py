@@ -8,7 +8,7 @@ from panoptic.core.project.project_events import ImportInstanceEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
     Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, \
-    ImagePropertyKey, InstancePropertyKey, ProjectSettings, VectorType
+    ImagePropertyKey, InstancePropertyKey, ProjectSettings, VectorType, VectorStats
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
@@ -624,3 +624,8 @@ class ProjectDb:
             if db_value:
                 setattr(settings, name, db_value)
         return settings
+
+    async def get_vector_stats(self):
+        count = await self._db.get_vector_stats()
+        sha1_count = await self._db.get_distinct_sha1_count()
+        return VectorStats(count, sha1_count)

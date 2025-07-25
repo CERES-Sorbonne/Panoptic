@@ -189,8 +189,9 @@ class ComputedValue:
     vector: numpy.ndarray
 
 
-class VectorType(BaseModel):
-    id: int = None
+@dataclass
+class VectorType:
+    id: int
     source: str
     params: Any
 
@@ -437,6 +438,12 @@ class DeleteFolderConfirm:
     deleted_folders: list[int]
     deleted_instances: list[int]
     deleted_sha1s: list[str]
+
+
+@dataclass
+class VectorStats:
+    count: dict[int, int]
+    sha1_count: int
 
 
 ImportOptions = dict[int, ColumnOption]

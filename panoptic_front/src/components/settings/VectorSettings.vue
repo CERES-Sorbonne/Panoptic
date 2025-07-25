@@ -4,9 +4,12 @@ import SectionDivider from '../utils/SectionDivider.vue';
 import ActionButton from '../actions/ActionButton.vue';
 import ActionSelect from '../actions/ActionSelect.vue';
 import ActionSelectFlat from '../actions/ActionSelectFlat.vue';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { VectorType } from '@/data/models';
+import { useActionStore } from '@/data/actionStore';
 
 const data = useDataStore()
+const actions = useActionStore()
 
 const create = ref(false)
 const compute = ref(false)
@@ -14,6 +17,13 @@ const compute = ref(false)
 async function deleteType(id: number) {
     await data.deleteVectorType(id)
 }
+
+async function computeVectors(vecType: VectorType) {
+    await actions.callComputeVector(vecType)
+}
+
+onMounted(() => data.updateVectorStats())
+
 
 </script>
 
@@ -29,14 +39,24 @@ async function deleteType(id: number) {
                 <tr>
                     <th></th>
                     <th>ID</th>
+                    <th>Computed</th>
                     <th>Source</th>
                     <th>Params</th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-for="vecType in data.vectorTypes" :key="vecType.id">
-                    <td><i class="bb bi bi-x" @click="deleteType(vecType.id)"/></td>
+                    <td><i class="bb bi bi-x" @click="deleteType(vecType.id)" /></td>
                     <td>{{ vecType.id }}</td>
+                    <td>
+                        <div>
+                            <span v-if="data.vectorStats.count[vecType.id] != data.vectorStats.sha1Count">
+                                <i class="bb bi bi-database-add" @click="computeVectors(vecType)" />
+                            </span>
+                            <span v-if="data.vectorStats.count[vecType.id] != undefined">{{ data.vectorStats.count[vecType.id] }} / {{ data.vectorStats.sha1Count }}</span>
+                            <span v-else>0 / {{ data.vectorStats.sha1Count }}</span>
+                        </div>
+                    </td>
                     <td>{{ vecType.source }}</td>
                     <td>
                         <div class="d-flex">
@@ -53,15 +73,16 @@ async function deleteType(id: number) {
         </div>
         <SectionDivider v-if="create"><span style="margin-left: 3px;">Create New Type</span></SectionDivider>
         <div v-if="create">
-            <ActionSelectFlat :action="'vector_type'" :size="15" @cancel="create = false" @added="data.updateVectorTypes()" />
+            <ActionSelectFlat :action="'vector_type'" :size="15" @cancel="create = false"
+                @added="data.updateVectorTypes()" />
         </div>
-         <div v-if="!compute">
+        <!-- <div v-if="!compute">
             <span class="bb" @click="compute = true">Compute Vectors <i class="bi bi-plus" /></span>
-        </div>
-        <SectionDivider v-if="compute"><span style="margin-left: 3px;">Compute Vectors</span></SectionDivider>
+        </div> -->
+        <!-- <SectionDivider v-if="compute"><span style="margin-left: 3px;">Compute Vectors</span></SectionDivider>
         <div v-if="compute">
-            <ActionSelectFlat :action="'vector'" :size="15" @cancel="compute = false"/>
-        </div>
+            <ActionSelectFlat :action="'vector'" :size="15" @cancel="compute = false" />
+        </div> -->
     </div>
 </template>
 

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
 import { ActionContext, ExecuteActionPayload, ParamDescription } from '@/data/models';
-import { objValues, sleep, sourceFromFunction } from '@/utils/utils';
+import { deepCopy, objValues, sleep, sourceFromFunction } from '@/utils/utils';
 import { computed, onMounted, ref } from 'vue'
 import Dropdown from '../dropdowns/Dropdown.vue';
-import ParamInput from '../inputs/ParamInput.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import ParamInputRow from '../inputs/ParamInputRow.vue';
 import SectionDivider from '../utils/SectionDivider.vue';
@@ -21,6 +20,15 @@ const props = defineProps<{
 }>()
 const emits = defineEmits(['cancel', 'added'])
 
+
+const options = ref(initOptions())
+
+
+function initOptions() {
+    return {
+        autoCompute: true
+    }
+}
 
 const loading = ref(false)
 
@@ -72,6 +80,13 @@ async function call() {
         const context: ActionContext = { uiInputs }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
+        const vecType = res.value
+
+        if (props.action == 'vector_type') {
+            if (res && options.value.autoCompute) {
+                await actions.callComputeVector(vecType)
+            }
+        }
 
     } catch (e) {
         console.error(e)
@@ -93,6 +108,10 @@ async function call() {
     loading.value = false
     emits('added')
     cancel()
+}
+
+function confirmInput() {
+    let inputs = deepCopy(localInputs.value)
 }
 
 
@@ -143,8 +162,22 @@ onMounted(loadAction)
                 </tr>
                 <template v-if="localInputs.length">
                     <template v-for="input in localInputs">
-                        <ParamInputRow :input="input" :source="sourceFromFunction(localFunction)"/>
+                        <ParamInputRow :input="input" :source="sourceFromFunction(localFunction)" />
                     </template>
+                </template>
+                <template v-if="props.action == 'vector_type'">
+                    <tr>
+                        <td>
+                            <wTT message="Dont check if you want to start compute manualy later">
+                                <span class="me-1">Compute now</span>
+                            </wTT>
+                        </td>
+                        <td>
+                            <span>
+                                <input type="checkbox" v-model="options.autoCompute" ref="elem" />
+                            </span>
+                        </td>
+                    </tr>
                 </template>
             </tbody>
         </table>

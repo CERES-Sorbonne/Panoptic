@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
-import { ActionContext, ActionFunctions } from "./models";
+import { ActionContext, ActionFunctions, ExecuteActionPayload, VectorType } from "./models";
 import { computed, reactive, ref, watch } from "vue";
 import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
@@ -103,7 +103,7 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getDefaultActions() {
         const res = await apiGetUIData('default_actions')
-        if(!res) {
+        if (!res) {
             return
         }
         for (let key of Object.keys(res)) {
@@ -135,12 +135,12 @@ export const useActionStore = defineStore('actionStore', () => {
                     const type_id = baseValue.id
                     const source = sourceFromFunction(funcName)
                     const index = data.vectorTypes.findIndex(v => v.id == type_id)
-                    if(index < 0 || data.vectorTypes[index].source != source) {
+                    if (index < 0 || data.vectorTypes[index].source != source) {
                         baseValue = undefined
                     }
                 }
                 if (param.type == 'property') {
-                    if(!data.properties[baseValue]) {
+                    if (!data.properties[baseValue]) {
                         baseValue = undefined
                     }
                 }
@@ -149,19 +149,19 @@ export const useActionStore = defineStore('actionStore', () => {
             // Find any value to set
             if (baseValue == undefined) {
                 if (param.type == 'vector_type') {
-                    if(data.vectorTypes.length) {
+                    if (data.vectorTypes.length) {
                         baseValue = data.vectorTypes[0]
                     }
                 }
                 if (param.type == 'own_vector_type') {
                     const source = sourceFromFunction(funcName)
                     let first = data.vectorTypes.find(v => v.source = source)
-                    if(first) {
+                    if (first) {
                         baseValue = first
                     }
                 }
                 if (param.type == 'property') {
-                    if(data.propertyList.length) {
+                    if (data.propertyList.length) {
                         baseValue = data.propertyList[0].id
                     }
                 }
@@ -171,6 +171,22 @@ export const useActionStore = defineStore('actionStore', () => {
 
         }
         return ctx
+    }
+
+    async function callComputeVector(vecType: VectorType) {
+        let functions = objValues(index.value).filter(f => sourceFromFunction(f.id) == vecType.source && f.hooks.includes('vector'))
+        if (functions.length) {
+            let fnc = functions[0]
+            let ctx = getContext(fnc.id)
+            let vec_param = fnc.params.find(p => p.type == 'own_vector_type')
+
+            if (vec_param) {
+                ctx.uiInputs[vec_param.name] = vecType
+                console.log(ctx)
+            }
+            const req2: ExecuteActionPayload = { function: fnc.id, context: ctx }
+            return await project.call(req2)
+        }
     }
 
     load()
@@ -184,6 +200,6 @@ export const useActionStore = defineStore('actionStore', () => {
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction,
         getSimilarImages, getContext,
-        clear, update, load
+        clear, update, load, callComputeVector
     }
 })

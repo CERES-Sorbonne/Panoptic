@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, ActionFunctions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult, UploadConfirm, ApiRequestDescription, VectorType } from './models'
+import { DirInfo, ExecuteActionPayload, PluginDescription, ProjectVectorDescription, Tag, VectorDescription, ActionFunctions, TabIndex, DbCommit, CommitHistory, ActionResult, Update, ProjectSettings, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, LoadResult, UploadConfirm, ApiRequestDescription, VectorType, VectorStats } from './models'
 import { PluginKey, SelectionStatus, usePanopticStore } from './panopticStore'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -234,6 +234,11 @@ export async function apiGetVectorInfo() {
 export async function apiGetVectorTypes() {
     let res = await axios.get('/vector_types')
     return res.data as VectorType[]
+}
+
+export async function apiGetVectorStats() {
+    let res = await axios.get('/vector_stats')
+    return keysToCamel(res.data) as VectorStats
 }
 
 export async function apiDeleteVectorType(id: number) {

@@ -571,6 +571,15 @@ class Db:
         query = "DELETE FROM instances WHERE id = ?"
         await self.conn.execute_query_many(query, [(id_,) for id_ in ids])
 
+    async def get_distinct_sha1_count(self):
+        query = "SELECT count(DISTINCT sha1) FROM instances"
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchall()
+        if res:
+            return res[0][0]
+        else:
+            return 0
+
     # =====================================================
     # ================== Folders ==========================
     # =====================================================
@@ -675,6 +684,14 @@ class Db:
         if rows:
             return True
         return False
+
+    async def get_vector_stats(self):
+        query = "SELECT type_id, count(sha1) FROM vectors GROUP BY type_id"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        if rows:
+            return {r[0]: r[1] for r in rows}
+        return {}
 
     # TODO: remove
     async def get_vector_descriptions(self):

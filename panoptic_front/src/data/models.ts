@@ -471,6 +471,7 @@ export interface ActionResult {
 
     notifs?: Notif[]
     errors?: string[]
+    value?: any
 }
 
 
@@ -490,6 +491,11 @@ export interface VectorType {
     id: number
     source: string
     params: any
+}
+
+export interface VectorStats {
+    count: {[id: number]: number}
+    sha1Count: number
 }
 
 // ========= Commit =================
