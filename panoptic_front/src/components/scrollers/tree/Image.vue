@@ -69,7 +69,6 @@ const inputKey = inject('inputKey') as string
 
 <template>
     <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
-        <div class="position-absolute" style="z-index: 900; color: black; background-color: white;">{{ props.image.getImageOrder() }}</div>
         <Zoomable v-if="!hideImg" :image="props.image.image">
             <div :style="imageContainerStyle" class="img-container"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
