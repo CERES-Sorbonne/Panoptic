@@ -13,6 +13,9 @@ import SelectionStamp from '../selection/SelectionStamp.vue';
 import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
+import { useInputStore } from '@/data/inputStore';
+
+const inputs = useInputStore()
 
 const props = defineProps<{
     tab: TabManager,
@@ -101,7 +104,8 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         </div>
         <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5"
             :selected-images-ids="selectedImageIds"
-            @remove:selected="props.tab.collection.groupManager.clearSelection()" @stamped="props.tab.collection.groupManager.clearSelection()" />
+            @remove:selected="props.tab.collection.groupManager.clearSelection()"
+            @stamped="props.tab.collection.groupManager.clearSelection()" />
         <div class="flex-grow-1"></div>
         <wTT message="main.menu.issue" class="bb ">
             <a href="https://github.com/CERES-Sorbonne/Panoptic/issues/new/choose" target="_blank"
@@ -113,6 +117,8 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <FilterForm :manager="props.tab.collection.filterManager" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
         <SortForm :manager="props.tab.collection.sortManager" />
+        <div>
+        </div>
     </div>
 </template>
 

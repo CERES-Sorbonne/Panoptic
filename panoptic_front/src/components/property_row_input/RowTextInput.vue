@@ -14,7 +14,9 @@ const props = withDefaults(defineProps<{
     offset: -24
 })
 
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'focus', 'tab'])
+
+defineExpose({focus})
 
 const previewElem = ref(null)
 const widthGoal = ref(0)
@@ -60,6 +62,10 @@ function cancel() {
     loadValue()
 }
 
+function focus() {
+    previewElem.value.click()
+}
+
 onMounted(loadValue)
 watch(() => props.modelValue, loadValue)
 
@@ -76,7 +82,7 @@ watch(() => props.modelValue, loadValue)
         <template #popup="{ hide }">
             <div class="bg-white" style="font-size: 14px; position: relative; top:0.5px; left:-2px" :style="{ width: widthGoal + 'px' }">
                 <TextInput v-model="localValue" :auto-focus="true" :min-height="26" @cancel="cancel(); hide();"
-                    @submit="hide()" @blur="hide" />
+                    @submit="hide()" @blur="hide" @tab="emits('tab')" @focus="emits('focus')"/>
             </div>
         </template>
     </Dropdown>

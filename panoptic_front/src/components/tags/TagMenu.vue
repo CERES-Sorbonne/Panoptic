@@ -26,7 +26,7 @@ const props = defineProps({
     autoFocus: Boolean
 })
 
-const emits = defineEmits(['select', 'create', 'delete'])
+const emits = defineEmits(['select', 'create', 'delete', 'tab'])
 
 defineExpose({
     focus
@@ -112,6 +112,9 @@ const selectOption = async function () {
     }
     tagFilter.value = ''
     focus()
+    if (props.property.type == PropertyType.tag) {
+        // emits('tab')
+    }
 }
 
 function endSelection(index) {
@@ -133,7 +136,8 @@ watch(filteredTagList, () => {
         <div class="w-100 mb-1">
             <input type="text" class="w-100" v-model="tagFilter" ref="searchElem"
                 style="font-size: 13px; min-width: 100px;" @keydown.down="moveSelected(1)"
-                @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture="" />
+                @keydown.up="moveSelected(-1)" @keydown.enter="selectOption" @keydown.escape.capture=""
+                @keydown.tab.stop.prevent="emits('tab')" />
         </div>
 
         <div class="pb-0" style="max-height: 300px; overflow-y: auto;">
@@ -154,7 +158,7 @@ watch(filteredTagList, () => {
                             :can-customize="props.canCustomize" @delete="id => emits('delete', id)" @hide="focus" />
                     </div>
                     <div class="text-secondary" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
-                        {{ tag.count + sum(tag.allChildren.map(c => data.tags[c].count)) }}
+                        {{tag.count + sum(tag.allChildren.map(c => data.tags[c].count))}}
                     </div>
 
                 </div>

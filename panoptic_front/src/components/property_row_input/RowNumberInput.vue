@@ -9,7 +9,7 @@ const props = defineProps<{
     height?: number
     inputOffset?: number
 }>()
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'tab', 'focus'])
 
 defineExpose({ focus })
 
@@ -52,7 +52,7 @@ watch(props, loadValue)
             style="font-size: inherit; cursor: pointer;" @click="edit" :width="props.width" />
         <div v-else :style="{ lineHeight: inputLineHeight + 'px', top: inputOffset + 'px', position: 'relative' }">
             <NumberInput :model-value="props.modelValue" @update:model-value="emitValue" :width="props.width"
-                @keydown.esc.stop @blur="loadValue" ref="inputElem" class="reduced" />
+                @keydown.esc.stop @blur="loadValue" ref="inputElem" class="reduced" @keydown.tab.stop.prevent="emits('tab')" @focus="emits('focus')"/>
         </div>
     </div>
 </template>
