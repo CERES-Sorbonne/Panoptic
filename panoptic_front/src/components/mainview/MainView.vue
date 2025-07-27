@@ -16,6 +16,7 @@ import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
 import DataLoad from '../loading/DataLoad.vue';
 import { TabManager } from '@/core/TabManager';
+import '@/data/socketApi'
 const project = useProjectStore()
 
 
@@ -82,6 +83,29 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('resize', updateScrollerWidth)
 })
+
+function generateAndCount(n, x) {
+  const startInit = performance.now()
+
+  // Initialize the array with n random integers between 0 and 999
+  const arr = []
+  for(let i = 0; i < n; i++) {
+    arr.push(Math.floor(Math.random() * 1000))
+  }
+
+  const endInit = performance.now()
+  console.log(`Array initialization took ${(endInit - startInit).toFixed(2)} ms`)
+
+  const startCount = performance.now()
+
+  const count = arr.reduce((acc, val) => acc + (val > x ? 1 : 0), 0)
+
+  const endCount = performance.now()
+  console.log(`Counting values > ${x} took ${(endCount - startCount).toFixed(2)} ms`)
+  console.log(`Count: ${count}`)
+}
+
+generateAndCount(1_000_000, 500)
 
 watch(() => props.tab.state.imageSize, () => nextTick(updateScrollerHeight))
 watch(() => props.filterOpen, () => nextTick(updateScrollerHeight))
