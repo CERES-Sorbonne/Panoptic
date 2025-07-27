@@ -1368,8 +1368,10 @@ export class ImageIterator extends GroupIterator {
 
         if (this.group.children.length > 0 && this.group.subGroupType != GroupType.Sha1) {
             const next = this.nextGroup()
-            this.groupId = next.groupId
-            this.group = next.group
+            if (next) {
+                this.groupId = next.groupId
+                this.group = next.group
+            }
         }
 
         this.images = this.getImages()
