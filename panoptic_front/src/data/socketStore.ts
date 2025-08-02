@@ -113,10 +113,15 @@ export const useSocketStore = defineStore('socketStore', () => {
         socket.emit('connect_user', userId)
     }
 
+    function disconnectUser() {
+        socket.emit('disconnect_user')
+    }
+
     return {
         init,
         close,
         on,
-        connectUser
+        connectUser,
+        disconnectUser
     }
 })

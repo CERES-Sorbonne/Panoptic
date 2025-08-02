@@ -7,6 +7,7 @@ import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useTabStore } from '@/data/tabStore';
 import TabButton from './TabButton.vue';
+import { useSocketStore } from '@/data/socketStore';
 
 const panoptic = usePanopticStore()
 const tabStore = useTabStore()
@@ -51,6 +52,7 @@ function onChangeLang(event) {
             <wTT message="main.menu.add_tab_tooltip"><button class="tab-icon hover-light ps-1 pe-1" @click="addTab"
                     id="add-tab-button"><span class="bi bi-plus"></span></button></wTT>
             <div class="flex-grow-1"></div>
+            <div style="margin: 2px;" class=" bb me-3 text-secondary" v-if="panoptic.clientState.user" @click="useSocketStore().disconnectUser()"> {{ panoptic.clientState.user.name }} </div>
             <div style="padding-top: 2px; margin-right: 2px;">
                 <wTT message="modals.notif.icon">
                     <span class="bb" @click="panoptic.showModal(ModalId.NOTIF)"><i class="bi bi-bell"></i></span>
