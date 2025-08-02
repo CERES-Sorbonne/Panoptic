@@ -106,6 +106,16 @@ class PanopticServer:
             if ok:
                 self.client_states[connection_id].user = self.users[data]
             await self._emit_client_state(connection_id)
+            await self._emit_server_state()
+
+        @self.sio.event
+        async def disconnect_user(sid):
+            connection_id = self.sid_to_connection_id[sid]
+            self.disconnect_user(connection_id)
+            await self._emit_client_state(connection_id)
+            await self._emit_server_state()
+
+
 
     async def connect_user(self, connection_id: str, user_id: int):
         if user_id not in self.users:
