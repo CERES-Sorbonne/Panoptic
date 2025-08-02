@@ -119,6 +119,7 @@ async function count() {
 
 onMounted(async () => {
     await updateInfo()
+    console.log(fastList)
     setOpenFolder(fastList.filter(d => d.name == 'Home')[0])
 });
 
