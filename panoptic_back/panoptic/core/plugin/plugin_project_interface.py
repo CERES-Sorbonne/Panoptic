@@ -36,25 +36,22 @@ class PluginProjectInterface:
         return await self._project.db.get_tags2(ids, property_ids)
 
     async def get_instance_property_values(self, property_ids: list[int] = None, instance_ids: list[int] = None):
-        return await self._project.db.get_raw_db().get_instance_property_values(property_ids, instance_ids)
+        return await self._project.db.get_instance_property_values(property_ids, instance_ids)
 
     async def get_instance_property_values_from_keys(self, keys: list[InstanceProperty]):
-        return await self._project.db.get_raw_db().get_instance_property_values_from_keys(keys)
+        return await self._project.db.get_instance_property_values_from_keys(keys)
 
     async def get_image_property_values(self, property_ids: list[int] = None, sha1s: list[str] = None):
-        return await self._project.db.get_raw_db().get_image_property_values(property_ids, sha1s)
+        return await self._project.db.get_image_property_values(property_ids, sha1s)
 
     async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]):
-        return await self._project.db.get_raw_db().get_image_property_values_from_keys(keys)
+        return await self._project.db.get_image_property_values_from_keys(keys)
 
     async def get_vectors(self, type_id: int, sha1s: list[str] = None):
         return await self._project.db.get_vectors(type_id, sha1s)
 
     async def get_vector_types(self, source: str = None):
         return await self._project.db.get_vector_types(source=source)
-
-    async def get_default_vectors(self, sha1s: list[str] = None):
-        return await self._project.db.get_default_vectors(sha1s)
 
     async def vector_exist(self, type_id: int, sha1: str) -> bool:
         return await self._project.db.vector_exist(type_id, sha1)

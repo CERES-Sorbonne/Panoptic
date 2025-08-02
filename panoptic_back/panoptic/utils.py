@@ -2,10 +2,13 @@ import asyncio
 import os
 import pathlib
 import sys
+import time
+from dataclasses import is_dataclass, asdict
 from enum import Enum
 from queue import Queue
-from typing import List, Any, Callable, Awaitable, Dict, TypeVar, Tuple
+from typing import List, Any, Callable, Awaitable, Dict, TypeVar, Tuple, Generic
 
+from orjson import orjson
 from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
@@ -59,6 +62,8 @@ class EventListener:
 
     def register(self, callback: AsyncCallable):
         # print('register')
+        if callback in self.callbacks:
+            return
         self.callbacks.append(callback)
         # print(self.callbacks)
 
@@ -341,3 +346,103 @@ def separate_ids(objs: List[T]) -> Tuple[List[T], List[T]]:
     valid = [o for o in objs if o.id >= 0]
     new = [o for o in objs if o.id < 0]
     return new, valid
+
+
+def serialize_payload(payload: Any) -> Any:
+    """
+    Serialize BaseModel, dataclass, or list of them into JSON-compatible format
+    for sending over Socket.IO.
+    """
+    if isinstance(payload, BaseModel):
+        return payload.model_dump(mode='json')
+
+    elif is_dataclass(payload):
+        return orjson.loads(orjson.dumps(asdict(payload)))
+
+    elif isinstance(payload, list):
+        return [serialize_payload(item) for item in payload]
+
+    else:
+        return payload
+
+
+T = TypeVar('T')
+
+
+class AsyncAdaptiveBuffer(Generic[T]):
+    def __init__(
+            self,
+            on_flush: Callable[[List[T]], Awaitable[None]],
+            *,
+            burst_window: float = 0.2,
+            max_items_in_window: int = 3,
+            flush_interval: float = 1.0,
+            idle_timeout: float = 1.5,
+    ):
+        self.on_flush = on_flush
+        self.burst_window = burst_window
+        self.max_items_in_window = max_items_in_window
+        self.flush_interval = flush_interval
+        self.idle_timeout = idle_timeout
+
+        self.buffer: List[T] = []
+        self.timestamps: List[float] = []
+        self.batching = False
+
+        self._flush_task: asyncio.Task | None = None
+        self._idle_timer_task: asyncio.Task | None = None
+        self._lock = asyncio.Lock()
+
+    async def push(self, item: T):
+        now = time.time()
+        self.timestamps = [t for t in self.timestamps if now - t < self.burst_window]
+        self.timestamps.append(now)
+
+        if not self.batching and len(self.timestamps) >= self.max_items_in_window:
+            await self._enter_batch_mode()
+
+        if self.batching:
+            async with self._lock:
+                self.buffer.append(item)
+            await self._reset_idle_timer()
+        else:
+            await self.on_flush([item])
+
+    async def _enter_batch_mode(self):
+        self.batching = True
+        self._flush_task = asyncio.create_task(self._flush_loop())
+
+    async def _exit_batch_mode(self):
+        self.batching = False
+        if self._flush_task:
+            self._flush_task.cancel()
+            self._flush_task = None
+        if self._idle_timer_task:
+            self._idle_timer_task.cancel()
+            self._idle_timer_task = None
+        await self._flush()
+        self.timestamps.clear()
+
+    async def _reset_idle_timer(self):
+        if self._idle_timer_task:
+            self._idle_timer_task.cancel()
+        self._idle_timer_task = asyncio.create_task(self._idle_timeout())
+
+    async def _idle_timeout(self):
+        await asyncio.sleep(self.idle_timeout)
+        await self._exit_batch_mode()
+
+    async def _flush_loop(self):
+        try:
+            while True:
+                await asyncio.sleep(self.flush_interval)
+                await self._flush()
+        except asyncio.CancelledError:
+            pass
+
+    async def _flush(self):
+        async with self._lock:
+            if self.buffer:
+                to_flush = self.buffer[:]
+                self.buffer.clear()
+                await self.on_flush(to_flush)

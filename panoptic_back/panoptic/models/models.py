@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict
 # from pydantic.dataclasses import dataclass
 
 class ProjectId(BaseModel):
+    id: int = -1
     name: str | None = None
     path: str | None = None
 
@@ -26,7 +27,6 @@ class PluginKey(BaseModel):
 
 class PanopticData(BaseModel):
     projects: list[ProjectId]
-    last_opened: ProjectId | None = None
     plugins: List[PluginKey] = []
     ignored_plugins: dict[str, list[str]] = {}
 
@@ -196,6 +196,7 @@ class VectorType:
     params: Any
 
 
+@dataclass
 class OwnVectorType(VectorType):
     pass
 
@@ -362,6 +363,13 @@ class SetMode(Enum):
     delete = 'delete'
 
 
+class UpdateType(Enum):
+    COMMIT = "commit"
+    FOLDERS = "folders"
+    VECTOR_TYPES = "vector_types"
+    PROJECT_SETTINGS = "project_settings"
+
+
 class ColumnOption(BaseModel):
     ignore: bool = False
     mode: PropertyMode | None = None
@@ -406,6 +414,7 @@ class CommitHistory:
 class PropertyId(int):
     pass
 
+
 class ProjectSettings(BaseModel):
     image_small_size: int = 128
     image_medium_size: int = 256
@@ -444,6 +453,54 @@ class DeleteFolderConfirm:
 class VectorStats:
     count: dict[int, int]
     sha1_count: int
+
+
+@dataclass
+class DbUpdate:
+    type_: UpdateType
+    data: Any
+
+
+class ProjectRef(ProjectId):
+    is_open: bool
+    ignored_plugins: list[str] = []
+
+
+class PanopticState(BaseModel):
+    server: PanopticServerState
+    client: PanopticClientState
+
+
+class PanopticServerState(BaseModel):
+    version: str
+    projects: list[ProjectRef] = []
+    plugins: list[PluginKey] = []
+
+
+class PanopticClientState(BaseModel):
+    connection_id: str
+    connected_project: int | None = None
+    connected_at: datetime
+
+
+class ProjectState(BaseModel):
+    id: int
+    name: str
+    path: str
+    tasks: list[TaskState] = []
+    plugins: list[PluginDescription] = []
+    settings: ProjectSettings
+
+
+class CloseProjectRequest(BaseModel):
+    project_id: int
+
+
+@dataclass
+class SyncData:
+    key: str
+    project_id: int
+    data: Any
 
 
 ImportOptions = dict[int, ColumnOption]

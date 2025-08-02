@@ -1,6 +1,7 @@
 import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
+import { PluginKey } from "./panopticStore"
 
 export interface Instance {
     id: number
@@ -246,14 +247,6 @@ export enum ModalId {
     TAG = "tag",
     FIRSTMODAL = "firstmodal",
     NOTIF = "notif"
-}
-
-export interface ImportState {
-    to_import: number
-    imported: number
-    computed: number
-    new_images?: Instance[],
-    done: boolean
 }
 
 export interface StatusUpdate {
@@ -691,4 +684,44 @@ export interface UploadConfirm {
 export enum UIDataKeys {
     STATE = 'uiState',
     PROPERTY_ORDER = 'propertyOrder'
+}
+
+// ========= Panoptic State =========
+
+export interface ProjectId {
+    id: number;
+    name?: string;
+    path?: string;
+}
+
+export interface ProjectRef extends ProjectId {
+    isOpen: boolean
+    ignoredPlugins: string[]
+}
+
+export interface PanopticServerState {
+    version: string
+    projects: ProjectRef[]
+    plugins: PluginKey[]
+}
+
+export interface PanopticClientState {
+    connectionId: string
+    connectedProject?: number
+    connectedAt: string; // datetime
+}
+
+
+export interface PanopticState {
+    server: PanopticServerState
+    client: PanopticClientState
+}
+
+export interface ProjectState {
+  id: number
+  name: string
+  path: string
+  tasks: TaskState[]
+  plugins: PluginDescription[]
+  settings: ProjectSettings
 }

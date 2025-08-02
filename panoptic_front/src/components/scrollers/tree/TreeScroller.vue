@@ -115,6 +115,7 @@ function computeLines() {
     // console.time('compute lines2')
     clear()
     let it = props.groupManager.getGroupIterator()
+    if(!it.group) return
     const lines = []
     while (it) {
         const group = it.group

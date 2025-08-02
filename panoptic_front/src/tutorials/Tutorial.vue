@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 
 import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
@@ -11,7 +11,7 @@ const { t } = useI18n({ useScope: 'global' })
 const panoptic = usePanopticStore()
 const project = useProjectStore()
 
-const tours = inject('tours')
+const tours: any = inject('tours')
 const props = defineProps({
     tutorial: {
         type: String,
@@ -213,8 +213,8 @@ const steps = props.tutorial === 'home' ? steps_home : step_projects
 
 let currentStep = parseInt(localStorage.getItem('currentStep') || '0')
 
-const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
-const showTutorial = computed(() => ((!hasProjects.value && panoptic.data.init) || project.showTutorial))
+const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) && panoptic.serverState.projects.length > 0)
+const showTutorial = computed(() => ((!hasProjects.value) || project.showTutorial))
 
 watch(showTutorial, async () => {
     start()

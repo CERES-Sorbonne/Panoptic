@@ -1,6 +1,5 @@
 <script setup lang="ts">
 
-import { apiConfirmImport, apiParseImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { computed, Ref, ref, watch } from 'vue';
@@ -10,6 +9,7 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import FusionModeDropdown from '../dropdowns/FusionModeDropdown.vue';
 import { objValues } from '@/utils/utils';
 import Modal2 from './Modal2.vue';
+import { apiParseImport, apiConfirmImport, apiUploadPropertyCsv } from '@/data/apiProjectRoutes';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()

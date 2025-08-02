@@ -406,7 +406,7 @@ function clearSelected() {
 }
 
 onMounted(computeGraph)
-watch(() => project.status.loaded, computeGraph)
+watch(() => project.loaded, computeGraph)
 watch(tagList, reDraw)
 
 </script>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
 
-import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/api';
+import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/apiPanopticRoutes';
 import { DirInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';

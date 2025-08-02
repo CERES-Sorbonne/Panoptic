@@ -24,7 +24,7 @@ const localSettings = reactive({} as ProjectSettings)
 
 const changed = computed(() => {
     for (let k in localSettings) {
-        if (localSettings[k] !== project.data.settings[k]) {
+        if (localSettings[k] !== project.state.settings[k]) {
             return true
         }
     }
@@ -40,11 +40,11 @@ function apply() {
 }
 
 function updateLocal() {
-    Object.assign(localSettings, project.data.settings)
+    Object.assign(localSettings, project.state.settings)
 }
 
 onMounted(updateLocal)
-watch(() => project.data.settings, updateLocal)
+watch(() => project.state.settings, updateLocal)
 watch(changed, (val) => {
     emits('update:changed', val)
 })
@@ -107,12 +107,6 @@ watch(changed, (val) => {
                 </tr>
             </tbody>
         </table>
-        <!-- 
-        <div v-if="changed" class="d-flex changed">
-            <div class="flex-grow-1"></div>
-            <div class="base-btn me-3" @click="updateLocal">Reset</div>
-            <div class="base-btn" @click="applyChange">Update</div>
-        </div> -->
     </div>
 </template>
 

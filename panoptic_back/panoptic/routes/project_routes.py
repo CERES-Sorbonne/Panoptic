@@ -1,15 +1,14 @@
 import asyncio
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from sys import platform
 from time import time
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile
-from fastapi.responses import ORJSONResponse
 import orjson
+from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from starlette.exceptions import HTTPException
 from starlette.responses import FileResponse, StreamingResponse
 
 from panoptic.core.project.project import Project
@@ -18,49 +17,54 @@ from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ProjectSettings, TagMergePayload, LoadState, DeleteVectorTypePayload
 from panoptic.models.results import LoadResult
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
+from panoptic.routes.panoptic_routes import get_panoptic
 
-project_router = APIRouter()
+project_router = APIRouter(
+    prefix="/projects/{project_id}",
+    tags=["project"],
+)
 
-project: Project | None = None
+
+async def get_project_from_id(project_id: str) -> Project:
+    try:
+        return get_panoptic().get_project(int(project_id))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Project not found")
 
 
-def set_project(p: Project | None):
-    global project
-    project = p
+@project_router.get('/project_state')
+async def get_project_state(project: Project = Depends(get_project_from_id)):
+    return project.get_state()
 
 
 @project_router.get("/db_state")
-async def get_db_state_route():
+async def get_db_state_route(project: Project = Depends(get_project_from_id)):
     now = time()
     instances = await project.db.get_instances()
     get_properties = project.db.get_properties(computed=True)
     get_tags = project.db.get_tags()
-    # get_values = project.db.get_property_values(instances, property_ids= no_computed=True)
     get_image_values = project.db.get_image_property_values()
     get_instance_values = project.db.get_instance_property_values()
     get_property_groups = project.db.get_property_groups()
 
     get_all = asyncio.gather(get_properties, get_tags, get_image_values, get_instance_values, get_property_groups)
     properties, tags, img_values, instance_values, property_groups = await get_all
-    # computed_values = project.db.get_computed_values(instances)
-    # instance_values.extend(computed_values)
 
     state = DbCommit(instances=instances, properties=properties, tags=tags, image_values=img_values,
                      instance_values=instance_values, property_groups=property_groups)
     print(time() - now)
     return ORJSONResponse(state)
-    # return state
 
 
 @project_router.get('/db_state_stream')
-async def stream_db_state():
+async def stream_db_state(project: Project = Depends(get_project_from_id)):
     async def load_routine():
         state = LoadState()
         chunk_size = 10000
 
-        state.max_instance_value = await project.db.get_raw_db().get_instance_values_count()
-        state.max_image_value = await project.db.get_raw_db().get_image_values_count()
-        state.max_instance = await project.db.get_raw_db().get_instances_count()
+        state.max_instance_value = await project.db.get_instance_values_count()
+        state.max_image_value = await project.db.get_image_values_count()
+        state.max_instance = await project.db.get_instances_count()
 
         while not state.finished():
             if not state.finished_property:
@@ -102,45 +106,37 @@ async def stream_db_state():
 
 
 @project_router.get("/property")
-async def get_properties_route() -> list[Property]:
+async def get_properties_route(project: Project = Depends(get_project_from_id)) -> list[Property]:
     return await project.db.get_properties(computed=True)
 
 
 @project_router.post('/import/upload')
-async def upload_file_route(file: UploadFile):
+async def upload_file_route(file: UploadFile, project: Project = Depends(get_project_from_id)):
     res = await project.importer.upload_csv(file.file)
     return res
-    # return await project.importer.analyse_file()
-
-
-# @project_router.post('/import/confirm')
-# async def import_parse_route(req: ImportPayload):
-#     await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative, fusion=req.fusion)
-#     res = await project.importer.confirm_import()
-#     return ORJSONResponse(res)
 
 
 @project_router.post('/import/parse')
-async def import_parse_file_route(req: ImportPayload):
+async def import_parse_file_route(req: ImportPayload, project: Project = Depends(get_project_from_id)):
     missing = await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative,
                                                 fusion=req.fusion)
     return missing
 
 
 @project_router.post('/import/confirm')
-async def import_confirm_route():
+async def import_confirm_route(project: Project = Depends(get_project_from_id)):
     res = await project.importer.confirm_import()
     return ORJSONResponse(res)
 
 
 @project_router.post('/export')
-async def export_properties_route(req: ExportPropertiesPayload):
+async def export_properties_route(req: ExportPropertiesPayload, project: Project = Depends(get_project_from_id)):
     await project.export_data(req.name, req.images, req.properties, req.export_images, req.key)
     return True
 
 
 @project_router.get('/images/{file_path:path}')
-async def get_image(file_path: str):
+async def get_image(file_path: str, project: Project = Depends(get_project_from_id)):
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         if not file_path.startswith('/'):
             file_path = '/' + file_path
@@ -148,32 +144,30 @@ async def get_image(file_path: str):
 
 
 @project_router.get("/history")
-async def get_history_route():
+async def get_history_route(project: Project = Depends(get_project_from_id)):
     undo, redo = project.db.undo_queue.stats()
     return CommitHistory(undo=undo, redo=redo)
 
 
 @project_router.get("/tags", response_class=ORJSONResponse)
-async def get_tags_route(prop: Optional[int] = None):
+async def get_tags_route(prop: Optional[int] = None, project: Project = Depends(get_project_from_id)):
     tags = await project.db.get_tags(prop)
     return ORJSONResponse(tags)
 
 
 @project_router.post("/tags/merge")
-async def post_tags_merge_route(req: TagMergePayload):
+async def post_tags_merge_route(req: TagMergePayload, project: Project = Depends(get_project_from_id)):
     return await project.db.merge_tags(req.tag_ids)
 
 
 @project_router.get("/folders")
-async def get_folders_route():
+async def get_folders_route(project: Project = Depends(get_project_from_id)):
     res = await project.db.get_folders()
     return res
 
 
 @project_router.get('/update')
-async def get_update_route():
-    if not project:
-        return None
+async def get_update_route(project: Project = Depends(get_project_from_id)):
     update = Update()
     if project.ui.commits:
         update.commits = [*project.ui.commits]
@@ -197,108 +191,110 @@ class IdRequest(BaseModel):
 
 
 @project_router.post("/folders")
-async def add_folder_route(path: PathRequest):
-    # TODO: safe guards do avoid adding folder inside already imported folder. Also inverse direction
-    nb_images = await project.import_folder(path.path)
-    return await get_folders_route()
+async def add_folder_route(path: PathRequest, project: Project = Depends(get_project_from_id)):
+    await project.import_folder(path.path)
+    return await project.db.get_folders()
 
 
 @project_router.post("/reimport_folder")
-async def reimport_folder_route(req: IdRequest):
-    folder = await project.db.get_folder(req.id)
-    if not folder:
-        raise Exception(f'Folder id does not exist [{req.id}]')
+async def reimport_folder_route(req: IdRequest, project: Project = Depends(get_project_from_id)):
+    try:
+        folder = await project.db.get_folder(req.id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f'Folder id does not exist [{req.id}]')
     await project.import_folder(folder.path)
-    return await get_folders_route()
+    return await project.db.get_folders()
 
 
 @project_router.delete('/folder')
-async def delete_folder(folder_id: int):
+async def delete_folder(folder_id: int, project: Project = Depends(get_project_from_id)):
     res = await project.delete_folder(folder_id)
     return res
 
 
 @project_router.post('/action_execute')
-async def execute_action_route(req: ExecuteActionPayload):
+async def execute_action_route(req: ExecuteActionPayload, project: Project = Depends(get_project_from_id)):
     res = await project.action.call(req.function, req.context)
-    return ORJSONResponse(res)
+    if is_dataclass(res):
+        return ORJSONResponse(res)
+    return res
 
 
 @project_router.get('/actions')
-async def get_action_descriptions():
+async def get_action_descriptions(project: Project = Depends(get_project_from_id)):
     actions = project.action.actions.values()
     return {a.id: a.description for a in actions}
 
 
 @project_router.get('/plugins_info')
-async def get_plugins():
+async def get_plugins(project: Project = Depends(get_project_from_id)):
     res = await project.plugins_info()
     return res
 
 
 @project_router.get('/ui_data/{key:path}')
-async def get_ui_data(key: str):
+async def get_ui_data(key: str, project: Project = Depends(get_project_from_id)):
     if key:
         return await project.db.get_ui_data(key=key)
     return await project.db.get_all_ui_data()
 
 
 @project_router.post('/ui_data')
-async def set_ui_data(req: UIDataPayload):
+async def set_ui_data(req: UIDataPayload, project: Project = Depends(get_project_from_id)):
     if not req.key:
-        raise Exception('set_ui_data UIDataPayload: no key given')
+        raise HTTPException(status_code=400, detail='set_ui_data UIDataPayload: no key given')
     return await project.db.set_ui_data(req.key, req.data)
 
 
 @project_router.post('/plugin_params')
-async def post_plugin_params_route(req: PluginParamsPayload):
+async def post_plugin_params_route(req: PluginParamsPayload, project: Project = Depends(get_project_from_id)):
     await project.set_plugin_params(req.plugin, req.params)
-    return await get_plugins()
+    return await get_plugins(project)
 
 
 @project_router.get('/vectors_info')
-async def get_vectors_info():
+async def get_vectors_info(project: Project = Depends(get_project_from_id)):
     vectors_description = await project.db.get_vectors_info()
     return vectors_description
 
 
 @project_router.get('/vector_types')
-async def get_vector_types():
+async def get_vector_types(project: Project = Depends(get_project_from_id)):
     types = await project.db.get_vector_types()
     return types
 
 
 @project_router.get('/vector_stats')
-async def get_vector_stats():
+async def get_vector_stats(project: Project = Depends(get_project_from_id)):
     stats = await project.db.get_vector_stats()
     return stats
 
 
 @project_router.post('/delete_vector_type')
-async def post_delete_vector_type(req: DeleteVectorTypePayload):
+async def post_delete_vector_type(req: DeleteVectorTypePayload, project: Project = Depends(get_project_from_id)):
     await project.delete_vector_type(req.id)
 
 
 @project_router.post('/default_vectors')
-async def set_default_vectors(vector_description: VectorDescription):
+async def set_default_vectors(vector_description: VectorDescription, project: Project = Depends(get_project_from_id)):
     await project.db.set_default_vectors(vector_description)
-    return await get_vectors_info()
+    return await get_vectors_info(project)
 
 
 @project_router.post('/undo')
-async def undo_route():
+async def undo_route(project: Project = Depends(get_project_from_id)):
     res = await project.db.undo_queue.undo()
     return ORJSONResponse(res)
 
 
 @project_router.post('/redo')
-async def undo_route():
+async def redo_route(project: Project = Depends(get_project_from_id)):
     res = await project.db.undo_queue.redo()
     return ORJSONResponse(res)
 
 
 @project_router.post('/commit')
-async def commit_route(commit: DbCommit):
+async def commit_route(commit: DbCommit, project: Project = Depends(get_project_from_id)):
     if commit.undo:
         await project.db.undo_queue.do(commit)
     else:
@@ -307,7 +303,7 @@ async def commit_route(commit: DbCommit):
 
 
 @project_router.get('/image/raw/{sha1:path}')
-async def get_image_raw_route(sha1: str):
+async def get_image_raw_route(sha1: str, project: Project = Depends(get_project_from_id)):
     order = raw_order
     for getter in order:
         res = await getter(project, sha1)
@@ -316,7 +312,7 @@ async def get_image_raw_route(sha1: str):
 
 
 @project_router.get('/image/large/{sha1:path}')
-async def get_image_large_route(sha1: str):
+async def get_image_large_route(sha1: str, project: Project = Depends(get_project_from_id)):
     order = large_order
     for getter in order:
         res = await getter(project, sha1)
@@ -325,7 +321,7 @@ async def get_image_large_route(sha1: str):
 
 
 @project_router.get('/image/medium/{sha1:path}')
-async def get_image_medium_route(sha1: str):
+async def get_image_medium_route(sha1: str, project: Project = Depends(get_project_from_id)):
     order = medium_order
     for getter in order:
         res = await getter(project, sha1)
@@ -334,7 +330,7 @@ async def get_image_medium_route(sha1: str):
 
 
 @project_router.get('/image/small/{sha1:path}')
-async def get_image_small_route(sha1: str):
+async def get_image_small_route(sha1: str, project: Project = Depends(get_project_from_id)):
     order = small_order
     for getter in order:
         res = await getter(project, sha1)
@@ -343,18 +339,18 @@ async def get_image_small_route(sha1: str):
 
 
 @project_router.get('/settings')
-async def get_settings_route():
+async def get_settings_route(project: Project = Depends(get_project_from_id)):
     return project.settings
 
 
 @project_router.post('/settings')
-async def post_settings_route(settings: ProjectSettings):
+async def post_settings_route(settings: ProjectSettings, project: Project = Depends(get_project_from_id)):
     await project.update_settings(settings)
     return project.settings
 
 
 @project_router.post('/delete_empty_clones')
-async def post_delete_empty_clones():
+async def post_delete_empty_clones(project: Project = Depends(get_project_from_id)):
     res = await project.delete_empty_instance_clones()
     return res
 

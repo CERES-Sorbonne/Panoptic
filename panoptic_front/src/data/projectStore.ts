@@ -6,9 +6,9 @@
 
 import { defineStore } from "pinia";
 import { computed, nextTick, reactive, ref, shallowRef } from "vue";
-import { ActionFunctions, ExecuteActionPayload, FunctionDescription, ImportState, PluginDescription, ProjectSettings, ProjectVectorDescription, ScoreInterval, StatusUpdate, TabIndex, UIDataKeys, UiState, VectorDescription } from "./models";
-import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiGetVectorInfo, apiSetDefaultVector, apiCallActions, apiGetUpdate, apiGetSettings, apiSetSettings, apiGetUIData, apiSetUIData } from "./api";
-import { deepCopy, sleep } from "@/utils/utils";
+import { ExecuteActionPayload, PluginDescription, ProjectSettings, ScoreInterval, StatusUpdate, UIDataKeys, UiState, ProjectState, TaskState } from "./models";
+import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiCallActions, apiSetSettings, apiGetUIData, apiSetUIData, apiGetProjectState } from "./apiProjectRoutes";
+import { deepCopy } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
 import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
@@ -20,40 +20,19 @@ export const test = shallowRef({ count: 0 })
 export const softwareUiVersion = 2
 
 export const useProjectStore = defineStore('projectStore', () => {
-
-    let routine = 0
-
     const dataStore = useDataStore()
+    const tabStore = useTabStore()
+    const actionStore = useActionStore()
     const { locale } = useI18n();
 
+    const loaded = ref(false)
     const showTutorial = ref(false)
-
-    const data = reactive({
-        tabs: {} as TabIndex,
-        selectedTabId: undefined as number,
-        plugins: [] as PluginDescription[],
-        vectors: {} as ProjectVectorDescription,
-        counter: 0,
-        settings: {} as ProjectSettings,
-        uiState: { similarityIntervals: {} } as UiState,
-    })
-
-    const status = reactive({
-        loaded: false,
-        projectNotOpen: false,
-        changed: false,
-        renderNb: 0,
-        onUndo: 0,
-        import: {} as ImportState,
-    })
-
-    const actions = ref({} as ActionFunctions)
-
-    const backendStatus = ref<StatusUpdate>(null)
+    const state = ref<ProjectState>()
+    const uiState = ref<UiState>()
 
     const isImportingImages = computed(() => {
-        if(!backendStatus.value?.tasks) return false
-        return backendStatus.value.tasks.some(t => t.id.includes('ImportImageTask'))
+        if (!state.value.tasks) return false
+        return state.value.tasks.some(t => t.id.includes('ImportImageTask'))
     })
 
     // =======================
@@ -61,130 +40,49 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======================
 
     async function init() {
+        if(loaded.value) return
         console.log('init')
-        // Execute all async functions here before setting any data into the store
-        // This avoids other UI elements to react to changes before the init function is finished
-        // let folders = await apiGetFolders()
-        // console.time('Request')
-        // let dbState = await apiGetDbState()
-        // console.timeEnd('Request')
-        let plugins = await apiGetPluginsInfo()
-        let apiActions = await apiGetActions()
-        let vectors = await apiGetVectorInfo()
-        // let tabs = await apiGetTabs()
-        let settings = await apiGetSettings()
 
-        backendStatus.value = (await apiGetUpdate()).status
+        const panoptic = usePanopticStore()
+        if (!panoptic.isProjectLoaded) return
+        const projectId = panoptic.clientState.connectedProject
+        if (projectId === undefined) return
 
-        // data.folders = buildFolderNodes(folders)
-        // console.time('commit')
-        // applyCommit(dbState)
-        // console.timeEnd('commit')
-
-
-        data.plugins = plugins
-        data.vectors = vectors
-        actions.value = apiActions
-        data.settings = settings
-
-        routine += 1
-        updateRoutine(routine)
-
-        // computeTagCount()
-
-        // TODO: put back
-        // countImagePerFolder(data.folders, imageList.value)
-
+        state.value = await apiGetProjectState()
         await loadUiState()
 
         if (localStorage.getItem('tutorialFinished') != 'true') {
             showTutorial.value = true
         }
+
+        loaded.value = true
         await dataStore.init()
+        await actionStore.init()
 
-        status.loaded = true
 
-
-        useActionStore().load()
         // usePanopticStore().showModal(ModalId.TAG, {})
     }
 
-    async function updateRoutine(i: number) {
-        while (routine == i) {
-            const update = await apiGetUpdate()
-            if (routine != i) return
-            // console.log(update)
-            if (update) {
-                if (update.status) {
-                    await applyStatusUpdate(update.status)
-                }
-                if (update.actions) {
-                    importActions(update.actions)
-                }
-                if (update.plugins) {
-                    importPlugins(update.plugins)
-                }
-                if (update.commits) {
-                    for (let commit of update.commits) {
-                        dataStore.applyCommit(commit)
-                    }
-                    useTabStore().getMainTab().update()
-                }
-            }
-            await sleep(1000)
-        }
-    }
-
-    function importActions(actionList: FunctionDescription[]) {
-        actions.value = {}
-        actionList.forEach(a => actions.value[a.id] = a)
-    }
-
-    function importPlugins(plugins: PluginDescription[]) {
-        data.plugins = plugins
+    function importState(st: ProjectState) {
+        state.value = st
+        actionStore.init()
     }
 
     function clear() {
-        Object.assign(data, {
-            tabs: {} as TabIndex,
-            selectedTabId: undefined as number,
-            plugins: [] as PluginDescription[],
-            vectors: {} as ProjectVectorDescription,
-            counter: 0,
-            settings: {} as ProjectSettings,
-            uiState: { similarityIntervals: {} } as UiState,
-        })
+        loaded.value = false
+        state.value = undefined
+        uiState.value = undefined
 
-        Object.assign(status, {
-            loaded: false,
-            projectNotOpen: false,
-            changed: false,
-            renderNb: 0,
-            onUndo: 0,
-            import: {} as ImportState
-        })
-        actions.value = {}
-        backendStatus.value = null
-        routine = 0
+
         dataStore.clear()
-        useTabStore().clear()
+        tabStore.clear()
+        actionStore.clear()
 
-    }
-
-    async function applyStatusUpdate(update: StatusUpdate) {
-        if(update.update.vectorType != backendStatus.value.update.vectorType) {
-            await useDataStore().updateVectorTypes()
-        }
-        backendStatus.value = update
     }
 
     async function reload() {
         await nextTick()
         init()
-    }
-
-    function rerender() {
-        status.renderNb += 1
     }
 
     async function uploadPropFile(file: any) {
@@ -193,22 +91,8 @@ export const useProjectStore = defineStore('projectStore', () => {
         return res
     }
 
-    function clearImport() {
-        status.import.to_import = undefined
-    }
-
-    async function updatePluginInfos() {
-        data.plugins = await apiGetPluginsInfo()
-        actions.value = await apiGetActions()
-    }
-
     async function setPluginParams(plugin: string, params: any) {
         const plugins = await apiSetPluginParams(plugin, params)
-        data.plugins = plugins
-    }
-
-    async function setDefaultVectors(vector: VectorDescription) {
-        data.vectors = await apiSetDefaultVector(vector)
     }
 
     async function call(req: ExecuteActionPayload) {
@@ -230,16 +114,15 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     async function updateSettings(settings: ProjectSettings) {
         const res = await apiSetSettings(settings)
-        data.settings = res
     }
 
     async function loadUiState() {
         const res = await apiGetUIData(UIDataKeys.STATE)
         if (res) {
-            data.uiState = res
+            uiState.value = res
 
-            if (data.uiState.lang) {
-                locale.value = data.uiState.lang
+            if (uiState.value.lang) {
+                locale.value = uiState.value.lang
             }
         }
 
@@ -248,45 +131,47 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function correctUiState() {
 
-        if (!data.uiState.similarityIntervals) {
-            data.uiState.similarityIntervals = {}
+        if (!uiState.value.similarityIntervals) {
+            uiState.value.similarityIntervals = {}
         }
-        if (!data.uiState.similarityImageSize) {
-            data.uiState.similarityImageSize = 70
+        if (!uiState.value.similarityImageSize) {
+            uiState.value.similarityImageSize = 70
         }
     }
 
     async function setLang(lang: string) {
-        data.uiState.lang = lang
+        uiState.value.lang = lang
         await saveUiState()
     }
 
     async function saveUiState() {
-        await apiSetUIData(UIDataKeys.STATE, data.uiState)
+        await apiSetUIData(UIDataKeys.STATE, uiState.value)
     }
 
     async function updateScoreInterval(funcId: string, interval: ScoreInterval) {
-        data.uiState.similarityIntervals[funcId] = deepCopy(interval)
+        uiState.value.similarityIntervals[funcId] = deepCopy(interval)
         await saveUiState()
+    }
+
+    function importTasks(tasks: TaskState[]) {
+        state.value.tasks = tasks
     }
 
     return {
         // variables
-        data, status,
+        state, uiState,
         // computed
         isImportingImages,
         // functions
-        init, clear, rerender,
+        init, clear, importState,
         updateSettings,
-        uploadPropFile, clearImport,
-        updatePluginInfos, setPluginParams, saveUiState,
-        call,
-        actions,
+        uploadPropFile,
+        setPluginParams, saveUiState,
+        call, importTasks,
         updateScoreInterval,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
-        setDefaultVectors,
-        backendStatus, reload,
-        showTutorial, setLang
+        reload,
+        showTutorial, setLang, loaded
     }
 
 })

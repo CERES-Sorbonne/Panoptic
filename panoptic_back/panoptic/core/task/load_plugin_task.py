@@ -51,12 +51,4 @@ class LoadPluginTask(Task):
         project_interface = PluginProjectInterface(self.project)
         plugin = plugin_module.plugin_class(project=project_interface, plugin_path=path, name=name)
         await plugin.start()
-        self.project.plugins.append(plugin)
-
-    async def run_if_last(self):
-        plugins = await self.project.plugins_info()
-
-        self.project.plugin_loaded = True
-        self.project.ui.update_counter.action += 1
-        self.project.ui.plugins = plugins
-        self.project.ui.actions = [a.description for a in self.project.action.actions.values()]
+        self.project.add_plugin(plugin)
