@@ -61,7 +61,9 @@ class Panoptic:
         if not os.path.exists(path):
             os.makedirs(path)
 
-        max_id = max([p.id for p in self.data.projects])
+        max_id = 0
+        if len(self.data.projects):
+            max_id = max([p.id for p in self.data.projects])
         project = ProjectId(name=name, path=path, id=max_id + 1)
         self.data.projects.append(project)
         await self.load_project(path)
