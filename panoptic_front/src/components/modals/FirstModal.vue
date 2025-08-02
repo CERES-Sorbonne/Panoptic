@@ -9,7 +9,7 @@ const panoptic = usePanopticStore()
 
 const isLoadingPlugin = ref(false)
 
-const hasPanopticMlPlugin = computed(() => panoptic.data.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
+const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
 
 
 async function installPlugin() {
