@@ -16,7 +16,7 @@ import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
 import DataLoad from '../loading/DataLoad.vue';
 import { TabManager } from '@/core/TabManager';
-import '@/data/apiSocket'
+import '@/data/socketStore'
 const project = useProjectStore()
 
 

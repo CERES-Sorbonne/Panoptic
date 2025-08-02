@@ -28,6 +28,11 @@ def get_panoptic():
     return server.panoptic
 
 
+def get_server():
+    global server
+    return server
+
+
 class ProjectRequest(BaseModel):
     path: str
     name: str

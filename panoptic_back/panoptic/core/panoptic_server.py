@@ -8,8 +8,21 @@ import socketio
 
 from panoptic.core.panoptic import Panoptic
 from panoptic.models import DbUpdate, IgnoredPluginPayload, DbCommit
-from panoptic.models.models import PanopticClientState, SyncData, TaskState
+from panoptic.models.models import PanopticClientState, SyncData, TaskState, User, UserState
 from panoptic.utils import serialize_payload, AsyncAdaptiveBuffer
+
+users = [
+    UserState(id=1, name="Annie Flaubert"),
+    UserState(id=2, name="Marcel Dumas"),
+    UserState(id=3, name="Alexandre Ernaux"),
+    UserState(id=4, name="Victor Baudelaire"),
+    UserState(id=5, name="Gustave Sartre"),
+    UserState(id=6, name="Jean-Paul Hugo"),
+    UserState(id=7, name="Honoré Molière"),
+    UserState(id=8, name="François-Marie Proust"),
+    UserState(id=9, name="Jean-Baptiste Voltaire"),
+    UserState(id=10, name="Charles Balzac"),
+]
 
 
 class PanopticServer:
@@ -29,6 +42,11 @@ class PanopticServer:
         # one buffer per project
         self._commit_buffers: dict[int, AsyncAdaptiveBuffer] = {}
         self._tasks_buffers: dict[int, AsyncAdaptiveBuffer] = {}
+
+        # users
+        self.users: dict[int, UserState] = {u.id: u for u in users}
+        self._connection_to_user: dict[str, UserState] = {}
+        self.ask_users: bool = False
 
         @self.sio.event
         async def connect(sid, environ, auth):
@@ -80,13 +98,36 @@ class PanopticServer:
             else:
                 print(f"Warning: Disconnected sid {sid} had no connection_id mapping.")
 
-        @self.sio.on("db_update")
-        async def on_db_update(sid, data):
-            pass
-            # TODO
-            # if self.panoptic.project and self.panoptic.project.ui:
-            #     update = DbUpdate(**data)
-            #     await self.panoptic.project.ui.on_db_update(update, sid)
+        @self.sio.event
+        async def connect_user(sid, data: int):
+            print(f'ask user {data}')
+            connection_id = self.sid_to_connection_id[sid]
+            ok = await self.connect_user(connection_id, data)
+            if ok:
+                self.client_states[connection_id].user = self.users[data]
+            await self._emit_client_state(connection_id)
+
+    async def connect_user(self, connection_id: str, user_id: int):
+        if user_id not in self.users:
+            return False
+        user = self.users[user_id]
+        if user.connected_to:
+            if user.connected_to == connection_id:
+                return user
+            return False
+        self._connection_to_user[connection_id] = user
+        user.connected_to = connection_id
+        return user
+
+    def disconnect_user(self, connection_id: str):
+        if connection_id not in self._connection_to_user:
+            return
+        user = self._connection_to_user[connection_id]
+        if user.connected_to != connection_id:
+            return
+        user.connected_to = None
+        del self._connection_to_user[connection_id]
+        self.client_states[connection_id].user = None
 
     async def broadcast_db_update(self, update: DbUpdate, sid=None):
         await self.sio.emit("db_update", asdict(update), skip_sid=sid)
@@ -138,6 +179,8 @@ class PanopticServer:
 
     async def _emit_server_state(self, sids: list[str] = None):
         state = await self.panoptic.get_state()
+        state.ask_user = self.ask_users
+        state.users = list(self.users.values())
         await self.sio.emit('server_state', state.model_dump(mode='json'), to=sids)
 
     async def load_project(self, path: str, connection_id: str = None):
@@ -167,6 +210,7 @@ class PanopticServer:
         await asyncio.sleep(2.0)
         for connection_id in self._connections_to_close:
             if connection_id not in self.connection_id_to_sids:
+                self.disconnect_user(connection_id)
                 del self.client_states[connection_id]
         self._close_connections_task = None
 

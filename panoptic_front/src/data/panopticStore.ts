@@ -17,7 +17,6 @@ import router from "@/router"
 import { useProjectStore } from "./projectStore"
 import { ModalId, Notif, PanopticClientState, PanopticServerState, PluginAddPayload } from "./models"
 import { useModalStore } from "./modalStore"
-import { socketAPI } from "./apiSocket"
 
 
 let idCounter = 0
@@ -36,7 +35,6 @@ export interface PluginKey {
 
 export const usePanopticStore = defineStore('panopticStore', () => {
     let _init = false
-    const sio = socketAPI
     const project = useProjectStore()
 
     const serverState = ref<PanopticServerState>()
@@ -52,6 +50,8 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         if(serverState.value == undefined || clientState.value == undefined) return false
         return true
     })
+
+    const isUserValid = computed(() => isConnected.value && (!serverState.value.askUser || clientState.value.user))
 
     const isProjectLoaded = computed(() => isConnected.value && clientState.value.connectedProject)
 
@@ -182,7 +182,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     return {
         init, isConnected, clientState, serverState,
-        modalData, hideModal, showModal, openModalId,
+        modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateIgnorePlugin,
         addPlugin, delPlugin, updatePlugin,

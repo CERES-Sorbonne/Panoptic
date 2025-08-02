@@ -8,7 +8,7 @@ from pathlib import Path
 
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
-from panoptic.models import PluginKey, PanopticData, ProjectId, PanopticServerState, ProjectRef
+from panoptic.models import PluginKey, PanopticData, ProjectId, PanopticState, ProjectRef
 from panoptic.utils import get_datadir
 from panoptic import __version__ as panoptic_version
 
@@ -197,7 +197,7 @@ class Panoptic:
             )
             project_states.append(state)
 
-        return PanopticServerState(
+        return PanopticState(
             version=self.version,
             projects=project_states,
             plugins=list(plugins)

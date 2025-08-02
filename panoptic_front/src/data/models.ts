@@ -52,7 +52,7 @@ export interface PropertyDescription extends Property {
 }
 
 export type PropertyIndex = { [propertyId: number]: Property }
-export type PropertyGroupIndex = {[groupId: number]: PropertyGroup}
+export type PropertyGroupIndex = { [groupId: number]: PropertyGroup }
 
 export enum PropertyType {
     multi_tags = "multi_tags",
@@ -217,7 +217,7 @@ export interface TabData {
     sortState: SortState,
     groupState: GroupState,
 
-    
+
 
 }
 
@@ -487,7 +487,7 @@ export interface VectorType {
 }
 
 export interface VectorStats {
-    count: {[id: number]: number}
+    count: { [id: number]: number }
     sha1Count: number
 }
 
@@ -497,7 +497,7 @@ export interface DbCommit {
     emptyPropertyGroups?: number[]
     emptyProperties?: number[]
     emptyTags?: number[]
-    emptyInstanceValues? : InstancePropertyValue[]
+    emptyInstanceValues?: InstancePropertyValue[]
     emptyImageValues?: ImagePropertyValue[]
 
     instances?: Instance[]
@@ -544,7 +544,7 @@ export interface ProjectSettings {
 export interface UiState {
     activeTab?: number
     lang?: string
-    similarityIntervals: {[key: string]: ScoreInterval},
+    similarityIntervals: { [key: string]: ScoreInterval },
     similarityImageSize: number
 }
 
@@ -639,8 +639,8 @@ export interface PropertyGroupNode {
 }
 
 export interface PropertyGroupOrder {
-    groups: {[groupId: number]: number}
-    properties: {[propertyId: number]: number}
+    groups: { [groupId: number]: number }
+    properties: { [propertyId: number]: number }
 }
 
 export enum PropertyGroupId {
@@ -699,16 +699,29 @@ export interface ProjectRef extends ProjectId {
     ignoredPlugins: string[]
 }
 
+
+export interface User {
+    id: number
+    name: string
+}
+
+export interface UserState extends User {
+  connectedTo?: string
+}
+
 export interface PanopticServerState {
     version: string
     projects: ProjectRef[]
     plugins: PluginKey[]
+    users: User[]
+    askUser: boolean
 }
 
 export interface PanopticClientState {
     connectionId: string
     connectedProject?: number
     connectedAt: string; // datetime
+    user: UserState
 }
 
 
@@ -718,10 +731,10 @@ export interface PanopticState {
 }
 
 export interface ProjectState {
-  id: number
-  name: string
-  path: string
-  tasks: TaskState[]
-  plugins: PluginDescription[]
-  settings: ProjectSettings
+    id: number
+    name: string
+    path: string
+    tasks: TaskState[]
+    plugins: PluginDescription[]
+    settings: ProjectSettings
 }
