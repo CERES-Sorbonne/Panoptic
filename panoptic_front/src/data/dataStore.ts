@@ -325,6 +325,7 @@ export const useDataStore = defineStore('dataStore', () => {
         instances.value = {}
         properties.value = {}
         propertyOrder.value = buildPropertyGroupOrder()
+        propertyGroups.value = {}
         tags.value = {}
         sha1Index.value = {}
         vectorTypes.value = []
