@@ -1,10 +1,14 @@
+from __future__ import annotations
 from random import randint
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from panoptic.core.project.project import Project
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
-from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEvent, ProjectEvents
+from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
     ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, ImagePropertyKey, \
@@ -15,13 +19,13 @@ from panoptic.utils import convert_to_instance_values, get_computed_values, clea
 
 
 class ProjectDb:
-    def __init__(self, conn: DbConnection, project_events: ProjectEvents):
+    def __init__(self, conn: DbConnection, project: Project):
         self._db = Db(conn)
         self._fake_id_counter = -100
         self.undo_queue = UndoQueue(self)
         self.on_import_instance = ImportInstanceEvent()
         self.on_db_update = DbUpdateEvent()
-        self.on = project_events
+        self._project = project
 
     async def close(self):
         await self._db.close()
@@ -365,7 +369,7 @@ class ProjectDb:
         res = DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids,
                                   deleted_sha1s=deleted_sha1s)
         self.on_db_update.emit(DbUpdate(type_=UpdateType.FOLDERS, data=res))
-        self.on.sync.emitFoldersDelete()
+        self._project.on.sync.emitFoldersDelete()
         return res
 
     # =========== Vectors ===========
@@ -377,12 +381,12 @@ class ProjectDb:
 
     async def delete_vector_type(self, id_: int):
         res = await self._db.delete_vector_type(id_)
-        self.on.sync.emitVectorTypes(await self.get_vector_types())
+        self._project.on.sync.emitVectorTypes(await self.get_vector_types())
         return res
 
     async def add_vector_type(self, vec: VectorType):
         res = await self._db.add_vector_type(vec)
-        self.on.sync.emitVectorTypes(await self.get_vector_types())
+        self._project.on.sync.emitVectorTypes(await self.get_vector_types())
         return res
 
     async def add_vector(self, vector: Vector):
@@ -413,12 +417,14 @@ class ProjectDb:
         return await self._db.get_plugin_data(key)
 
     async def set_plugin_data(self, key: str, value: Any):
-        return await self._db.set_plugin_data(key, value)
+        res = await self._db.set_plugin_data(key, value)
+        self._project.on.sync.emitProjectState(self._project.get_state())
+        return res
 
     async def apply_commit(self, commit: DbCommit):
         inverse = await self._apply_commit(commit)
         self.on_db_update.emit(DbUpdate(type_=UpdateType.COMMIT, data=commit))
-        self.on.sync.emitCommit(commit)
+        self._project.on.sync.emitCommit(commit)
         return inverse
 
     async def _apply_commit(self, commit: DbCommit):
@@ -649,12 +655,14 @@ class ProjectDb:
         await self._db.delete_instances(to_delete)
         return to_delete
 
-    async def save_project_settings(self, settings: ProjectSettings):
+    async def set_project_settings(self, settings: ProjectSettings):
         description = get_model_params_description(settings)
         for setting in description:
             name = setting.name
             new_value = getattr(settings, name)
             await self._db.set_project_param(name, new_value)
+
+        self._project.on.sync.emitSettings(settings)
 
     async def get_project_settings(self):
         settings = ProjectSettings()

@@ -156,6 +156,9 @@ export const useProjectStore = defineStore('projectStore', () => {
     function importTasks(tasks: TaskState[]) {
         state.value.tasks = tasks
     }
+    function importSettings(settings: ProjectSettings) {
+        state.value.settings = settings
+    }
 
     return {
         // variables
@@ -163,7 +166,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         // computed
         isImportingImages,
         // functions
-        init, clear, importState,
+        init, clear, importState, importSettings,
         updateSettings,
         uploadPropFile,
         setPluginParams, saveUiState,

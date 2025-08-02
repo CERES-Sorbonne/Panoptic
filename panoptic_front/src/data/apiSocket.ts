@@ -1,6 +1,6 @@
 import { usePanopticStore } from '@/data/panopticStore';
 import { io, Socket } from 'socket.io-client';
-import { DbCommit, Folder, PanopticClientState, PanopticServerState, PanopticState, ProjectState, TaskState, VectorType } from './models';
+import { DbCommit, Folder, PanopticClientState, PanopticServerState, PanopticState, ProjectSettings, ProjectState, TaskState, VectorType } from './models';
 import { keysToCamel } from '@/utils/utils';
 import { useProjectStore } from './projectStore';
 import { useDataStore } from './dataStore';
@@ -74,6 +74,12 @@ class SocketAPI {
             data = keysToCamel(data) as TaskState[]
             const project = useProjectStore()
             project.importTasks(data)
+        })
+
+        this._socket.on('project_settings', (data) => {
+            data = keysToCamel(data) as ProjectSettings
+            const project = useProjectStore()
+            project.importSettings(data)
         })
 
 

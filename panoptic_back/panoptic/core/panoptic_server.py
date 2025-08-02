@@ -144,7 +144,6 @@ class PanopticServer:
         project = await self.panoptic.load_project(path)
         if project:
             project.on.sync.register(self.broadcast_sync_event)
-            project.db.on.sync.register(self.broadcast_sync_event)
             self._create_commit_buffer(project.id)
             self._create_tasks_buffer(project.id)
         if connection_id:

@@ -1,7 +1,7 @@
 from typing import Callable, Awaitable
 
 from panoptic.models import Instance, DeleteFolderConfirm, DbUpdate, ProjectState, SyncData, DbCommit, Folder, \
-    PropertyGroup, VectorType, TaskState
+    PropertyGroup, VectorType, TaskState, ProjectSettings
 from panoptic.utils import EventListener
 
 
@@ -45,6 +45,9 @@ class SyncEvent(EventListener):
 
     def emitFoldersDelete(self):
         self._emit('folders_delete', True)
+
+    def emitSettings(self, settings: ProjectSettings):
+        self._emit('project_settings', settings)
 
     def emitVectorTypes(self, types: list[VectorType]):
         self._emit('vector_types', types)
