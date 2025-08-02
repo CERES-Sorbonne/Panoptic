@@ -17,11 +17,10 @@ const invisible = ref(false)
 const loadedImage = ref(null)
 
 const imageSize = computed(() => {
-    const image = loadedImage.value
-    if (!image) {
+    if (!props.image) {
         return { w: 0, h: 0 }
     }
-    let imgRatio = image.width / image.height
+    let imgRatio = props.image.width / props.image.height
     let divRatio = props.width / props.height
 
     if (divRatio > imgRatio) {
