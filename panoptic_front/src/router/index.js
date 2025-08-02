@@ -16,7 +16,7 @@ const router = createRouter({
     {
       path: '/view',
       name: 'view',
-      component: () => import('../views/PanopticView.vue')
+      component: () => import('../views/ProjectView.vue')
     }
   ]
 })

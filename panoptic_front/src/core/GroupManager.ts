@@ -577,7 +577,7 @@ export class GroupManager {
     computeImageOrder() {
         let it = this.getImageIterator()
         let count = 0
-        while (it) {
+        while (it && it.isValid) {
             if (!this.result.imageIteratorOrder[it.groupId]) {
                 this.result.imageIteratorOrder[it.groupId] = {}
             }
@@ -1290,6 +1290,8 @@ export class GroupIterator {
         }
 
         this.group = this.getGroup()
+
+        this.isValid = this.group !== undefined
     }
 
     clone(options?: GroupIteratorOptions): GroupIterator {
@@ -1366,17 +1368,19 @@ export class ImageIterator extends GroupIterator {
         super(manager, groupId, options)
         this.imageIdx = imageIdx ?? 0
 
-        if (this.group.children.length > 0 && this.group.subGroupType != GroupType.Sha1) {
-            const next = this.nextGroup()
-            if (next) {
-                this.groupId = next.groupId
-                this.group = next.group
-            }
+        // TODO: verify why this is here
+        // if (this.group.children.length > 0 && this.group.subGroupType != GroupType.Sha1) {
+        //     const next = this.nextGroup()
+        //     if (next) {
+        //         this.groupId = next.groupId
+        //         this.group = next.group
+        //     }
+        // }
+        if (this.isValid) {
+            this.images = this.getImages()
+            this.image = this.images[0]
+            this.sha1Group = this.getSha1Group()
         }
-
-        this.images = this.getImages()
-        this.image = this.images[0]
-        this.sha1Group = this.getSha1Group()
     }
 
     static fromGroupIterator(it: GroupIterator, options?: GroupIteratorOptions) {

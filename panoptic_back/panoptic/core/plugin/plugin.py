@@ -70,7 +70,7 @@ class APlugin(ABC):
             p.default_value = self.params.__dict__[p.id]
         return PluginBaseParamsDescription(description=description, params=params)
 
-    async def get_description(self):
+    def get_description(self):
         name = self.name
         description = self.__doc__
         path = self.path
@@ -97,3 +97,4 @@ class APlugin(ABC):
 
     async def load_vector_types(self):
         self.vector_types = await self.project.get_vector_types(self.name)
+

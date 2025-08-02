@@ -6,6 +6,8 @@ from collections import defaultdict
 from concurrent.futures import Executor
 from typing import Dict, List
 
+from panoptic.utils import EventListener
+
 from panoptic.core.task.task import Task
 from panoptic.models import TaskState
 
@@ -25,6 +27,8 @@ class TaskQueue:
         self.counters: dict[str, int] = defaultdict(int)
 
         self._task_states: Dict[str, TaskState] = {}
+
+        self.on_update = EventListener()
 
         for i in range(num_workers):
             worker = asyncio.create_task(self._worker(i))
@@ -92,6 +96,7 @@ class TaskQueue:
                     self.onFinish.set()
                 if self.counters[task.key] == 0:
                     await task.run_if_last()
+                self.on_update.emit(self.get_task_states())
 
             except Exception as e:
                 exc_type, exc_value, exc_traceback = sys.exc_info()

@@ -1,16 +1,14 @@
 <script setup lang="ts">
 
 import { ModalId } from '../../data/models';
-import { ref, watch, computed, openBlock } from 'vue';
-import PropertyOptions from './PropertyOptions.vue';
+import { ref, computed } from 'vue';
 import wTT from '../tooltips/withToolTip.vue';
 import FolderList2 from '../foldertree/FolderList2.vue';
 import { useProjectStore } from '@/data/projectStore';
 import { usePanopticStore } from '@/data/panopticStore';
-import { goNext, objValues } from '@/utils/utils';
+import { goNext } from '@/utils/utils';
 import TaskStatus from './TaskStatus.vue';
-import { deletedID, useDataStore } from '@/data/dataStore';
-import PropertyGroup from './PropertyGroup.vue';
+import { useDataStore } from '@/data/dataStore';
 import TabContainer from '../TabContainer.vue';
 import { useTabStore } from '@/data/tabStore';
 import DraggablePropertyList from './DraggablePropertyList.vue';
@@ -26,20 +24,18 @@ const tabStore = useTabStore()
 
 const emits = defineEmits(['export', 'toggle'])
 
-const showImport = ref(false)
 const isUploading = ref(false)
 
 
 const menuOpen = ref(true)
 const menuWidth = computed(() => menuOpen.value ? BASE_WIDTH : SMALL_WIDTH)
 
-const propertiesWithoutGroup = computed(() => data.propertyList.filter(p => p.id >= 0 && (p.propertyGroupId === undefined || !data.propertyGroups[p.propertyGroupId])))
 
-const handleInput = async (e: any) => {
+const handleInput = async () => {
     panoptic.showModal(ModalId.IMPORT)
 }
 
-const tasks = computed(() => project.backendStatus.tasks.filter(t => !(t.done)))
+const tasks = computed(() => project.state.tasks.filter(t => !(t.done)) ?? [])
 
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })
@@ -54,9 +50,6 @@ function toggleMenu() {
     menuOpen.value = !menuOpen.value
     emits('toggle')
 }
-
-watch(() => project.status.import.to_import, () => showImport.value = true)
-
 </script>
 
 <template>
@@ -69,10 +62,10 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                             <div class="d-flex align-items-center" style="font-size: 15px; line-height: 14px;">
                                 <template v-if="menuOpen">
                                     <div class="flex-grow-1 text-capitalize overflow-hidden">{{
-                                        panoptic.data.status.selectedProject?.name }}
+                                        project.state.name }}
                                     </div>
                                     <wTT message="main.menu.close_project">
-                                        <div class="base-hover p-1" @click="panoptic.closeProject()"><i
+                                        <div class="base-hover p-1" @click="panoptic.closeProject(project.state.id)"><i
                                                 class="bi bi-arrow-up-left-square red-hover"></i></div>
                                     </wTT>
                                     <div class="base-hover p-1" @click="panoptic.showModal(ModalId.SETTINGS)"><i
@@ -113,7 +106,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                                         <div><b>{{ $t('main.nav.tasks.title') }}</b></div>
                                     </div>
                                     <div class="custom-hr" />
-                                    <div v-if="project.backendStatus" class="ps-2 pe-2">
+                                    <div v-if="project.state.tasks" class="ps-2 pe-2">
                                         <div v-for="task, i in tasks" class="p-1">
                                             <div v-if="i" class="custom-hr" />
                                             <TaskStatus :task="task" />
@@ -150,15 +143,7 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                                     </span>
                                 </div>
                             </template>
-                            <div class="mt-2" v-if="project.status.loaded">
-                                <!-- <div v-for="group in objValues(data.propertyGroups)" style="padding-left: 0px;">
-                                    <PropertyGroup :tab="tab" :group="group" class="mb-1" :menu-open="menuOpen" />
-                                </div>
-                                <div v-for="property in propertiesWithoutGroup" class="ps-1 pe-1">
-                                    <div class="property-item" v-if="property.id >= 0">
-                                        <PropertyOptions :tab="tab" :property="property" :open="menuOpen" />
-                                    </div>
-                                </div> -->
+                            <div class="mt-2" v-if="project.loaded">
                                 <DraggablePropertyList :tab="tab" :menu-open="menuOpen"></DraggablePropertyList>
 
 
@@ -179,26 +164,6 @@ watch(() => project.status.import.to_import, () => showImport.value = true)
                                 </template>
                             </div>
                         </div>
-
-                        <!-- <div class="custom-hr" />
-
-                        <div class="p-2 mt-0">
-                            <template v-if="menuOpen">
-                                <wTT message="main.nav.computed.computed_tooltip" :icon="true"><b>{{
-                                    $t("main.nav.computed.title")
-                                        }}</b></wTT>
-                            </template>
-                            <div class="mt-2" v-if="project.status.loaded">
-                                <template v-for="property in data.properties">
-                                    <div class="property-item" v-if="property.id < 0 && property.id != deletedID">
-                                        <wTT pos="bottom"
-                                            :message="'main.nav.computed.' + Math.abs(property.id).toString() + '_tooltip'">
-                                            <PropertyOptions :tab="tab" :property="property" :open="menuOpen" />
-                                        </wTT>
-                                    </div>
-                                </template>
-                            </div>
-                        </div> -->
                     </div>
                 </div>
             </div>

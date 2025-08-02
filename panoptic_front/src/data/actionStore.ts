@@ -1,16 +1,16 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
-import { ActionContext, ActionFunctions, ExecuteActionPayload, VectorType } from "./models";
+import { ActionContext, ActionFunctions, ExecuteActionPayload, FunctionDescription, VectorType } from "./models";
 import { computed, reactive, ref, watch } from "vue";
-import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
 import { useDataStore } from "./dataStore";
 import { sourceFromFunction } from "@/utils/utils";
-
-const hooks = ['similar', 'group', 'execute', 'import', 'export', 'vector_type', 'vector']
+import { apiGetActions, apiGetUIData, apiSetUIData } from "./apiProjectRoutes";
 
 export const useActionStore = defineStore('actionStore', () => {
     const project = useProjectStore()
+
+    const loaded = ref(false)
 
     const index = ref({} as ActionFunctions)
     const defaultActions = reactive({
@@ -22,16 +22,20 @@ export const useActionStore = defineStore('actionStore', () => {
         vector_type: undefined,
         vector: undefined
     })
-    const update = ref(0)
 
     const hasSimilaryFunction = computed(() => defaultActions.similar != undefined)
 
-    async function load() {
-        if (!project.status.loaded) return
-        if (!Object.keys(project.actions).length) return
+    async function init() {
+        const actions = await apiGetActions()
+        await loadActions(actions)
+
+        loaded.value = true
+    }
+
+    async function loadActions(actions: ActionFunctions) {
         const defaults = await apiGetUIData('param_defaults')
 
-        let actionIndex = project.actions
+        let actionIndex = actions
         if (defaults) {
             for (let actionKey in actionIndex) {
                 const action = actionIndex[actionKey]
@@ -59,8 +63,6 @@ export const useActionStore = defineStore('actionStore', () => {
 
         await getDefaultActions()
         await getDefaultParams()
-
-        update.value += 1
     }
 
     async function getSimilarImages(ctx: ActionContext) {
@@ -69,6 +71,7 @@ export const useActionStore = defineStore('actionStore', () => {
     }
 
     function clear() {
+        loaded.value = false
         index.value = {}
         Object.keys(defaultActions).forEach(k => defaultActions[k] = undefined)
     }
@@ -189,17 +192,11 @@ export const useActionStore = defineStore('actionStore', () => {
         }
     }
 
-    load()
-    watch(() => project.status.loaded, (loaded) => {
-        if (!loaded) clear()
-    })
-    watch(() => project.actions, load)
-
     return {
         index, defaultActions,
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction,
         getSimilarImages, getContext,
-        clear, update, load, callComputeVector
+        clear, init, callComputeVector
     }
 })

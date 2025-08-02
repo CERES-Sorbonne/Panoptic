@@ -224,7 +224,7 @@ async def test_delete_empty_clones(instance_project: Project, import_csv: str):
 
     props = await instance_project.db.get_properties(computed=False)
     for prop in props:
-        await instance_project.db.get_raw_db().delete_property(prop.id)
+        await instance_project.db.delete_property(prop.id)
 
     props2 = await instance_project.db.get_properties(computed=False)
     assert len(props2) == 0

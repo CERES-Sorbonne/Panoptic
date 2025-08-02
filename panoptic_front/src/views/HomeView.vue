@@ -21,23 +21,21 @@ const pluginFormElem = ref(null)
 const show = ref(true)
 const langs = ['fr', 'en']
 
-const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) && panoptic.data.status.projects.length > 0)
+const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) && panoptic.serverState.projects.length > 0)
 
-const showFirstModal = computed(() => !hasProjects.value && panoptic.data.init)
-const showTutorial = computed(() => !hasProjects.value && panoptic.data.init && panoptic.openModalId !== ModalId.FIRSTMODAL)
+const showFirstModal = computed(() => !hasProjects.value)
+const showTutorial = computed(() => !hasProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.data.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
+const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
 
 const usePlugins = computed(() => {
     const res = {}
-    panoptic.data.status.projects.forEach(p => {
-        res[p.path] = {}
-        panoptic.data.plugins.forEach(pl => res[p.path][pl.name] = true)
-        if (panoptic.data.status.ignoredPlugins[p.path]) {
-            panoptic.data.status.ignoredPlugins[p.path].forEach(ig => {
-                res[p.path][ig] = false
-            })
-        }
+    const projects = panoptic.serverState.projects
+    const plugins = panoptic.serverState.plugins
+    projects.forEach(project => {
+        res[project.id] = {}
+        plugins.forEach(plugin => res[project.id][plugin.name] = true)
+        project.ignoredPlugins.forEach(pId => res[project.id][pId] = false)
     })
     return res
 })
@@ -113,7 +111,7 @@ onMounted(() => {
 
         <div class="window2 d-flex ">
             <div v-if="hasProjects" class="project-menu">
-                <div v-for="project in panoptic.data.status.projects" class="d-flex">
+                <div v-for="project in panoptic.serverState.projects" class="d-flex">
                     <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.path)">
                         <h5 class="m-0">{{ project.name }}</h5>
                         <div class="m-0 p-0 text-wrap text-break dimmed-2" style="font-size: 13px;">{{
@@ -132,8 +130,8 @@ onMounted(() => {
                                     </div>
                                     <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
                                     </div>
-                                    <div v-for="p in panoptic.data.plugins" class="mt-1">
-                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.path][p.name]"
+                                    <div v-for="p in panoptic.serverState.plugins" class="mt-1">
+                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.name]"
                                             @change="e => updateIgnorePlugin(project.path, p.name, (e.target as any).checked)" />{{
                                         p.name }}
                                     </div>
@@ -145,7 +143,7 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
-            <div v-if="panoptic.data.init" class="flex-grow-1">
+            <div class="flex-grow-1">
                 <div class="d-flex flex-column main-menu justify-content-center">
                     <div>
                         <div class="icon">
@@ -153,7 +151,7 @@ onMounted(() => {
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
                         <div class="d-flex justify-content-center gap-1">
-                          <h6 class="dimmed-2 mt-1">Version {{panoptic.data.version}} </h6>
+                          <h6 class="dimmed-2 mt-1">Version {{panoptic.serverState.version}} </h6>
                           <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem" @click="downloadPackagesInfos"></i></wTT>
                         </div>
                         <div class="lang">
@@ -185,16 +183,13 @@ onMounted(() => {
                     <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
                         <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem" />
                         <div v-else>
-                            <div v-for="plugin in panoptic.data.plugins" style="display: inline-block;">
+                            <div v-for="plugin in panoptic.serverState.plugins" style="display: inline-block;">
                                 <PluginOptionsDropdown :plugin="plugin"></PluginOptionsDropdown>
                             </div>
                         </div>
                     </div>
 
                 </div>
-            </div>
-            <div v-else class="text-center mt-5 w-100">
-                <p>Waiting for Server...</p>
             </div>
         </div>
     </div>

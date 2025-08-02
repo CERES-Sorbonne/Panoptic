@@ -11,10 +11,10 @@ const emits = defineEmits([])
 
 const project = useProjectStore()
 
-const selectedPage = ref(project.data.plugins[0]?.name ?? '')
+const selectedPage = ref(project.state.plugins[0]?.name ?? '')
 const changed = false
 
-const options = computed(() => project.data.plugins.map(p => p.name))
+const options = computed(() => project.state.plugins.map(p => p.name))
 
 function applyChange() {
 
@@ -36,7 +36,7 @@ function cancelChange() {
         </template>
         <template #default="{ page }">
             <div class="">
-                <PluginSettings v-if="page" :plugin="project.data.plugins.find(p => p.name == page)" />
+                <PluginSettings v-if="page" :plugin="project.state.plugins.find(p => p.name == page)" />
             </div>
         </template>
     </PageWindow>

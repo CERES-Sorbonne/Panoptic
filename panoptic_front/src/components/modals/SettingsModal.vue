@@ -25,10 +25,9 @@ const changed = ref(false)
 const selectedPlugin = ref('')
 
 async function updatePluginInfo() {
-    await project.updatePluginInfos()
-    if(project.data.plugins.length == 0) return
+    if(project.state.plugins.length == 0) return
     
-    selectedPlugin.value = project.data.plugins[0].name
+    selectedPlugin.value = project.state.plugins[0].name
     // delete browser Cache to update image routes
     // if not the browser will continue loading raw pictures after adding miniatures for example
     caches.keys().then((keyList) => Promise.all(keyList.map((key) => caches.delete(key))))

@@ -4,32 +4,64 @@ from typing import Any
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
-from panoptic.core.project.project_events import ImportInstanceEvent
+from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEvent, ProjectEvents
 from panoptic.core.project.undo_queue import UndoQueue
-from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
-    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, \
-    ImagePropertyKey, InstancePropertyKey, ProjectSettings, VectorType, VectorStats
+from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
+    ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, ImagePropertyKey, \
+    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
 
 
 class ProjectDb:
-    def __init__(self, conn: DbConnection):
+    def __init__(self, conn: DbConnection, project_events: ProjectEvents):
         self._db = Db(conn)
         self._fake_id_counter = -100
         self.undo_queue = UndoQueue(self)
         self.on_import_instance = ImportInstanceEvent()
+        self.on_db_update = DbUpdateEvent()
+        self.on = project_events
 
     async def close(self):
         await self._db.close()
 
-    def get_raw_db(self):
-        return self._db
-
     def _get_fake_id(self):
         self._fake_id_counter -= 1
         return self._fake_id_counter
+
+    async def get_instance_property_values_from_keys(self, keys: list[InstanceProperty]):
+        return await self._db.get_instance_property_values_from_keys(keys)
+
+    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]):
+        return await self._db.get_image_property_values_from_keys(keys)
+
+    async def get_instance_values_count(self):
+        return await self._db.get_instance_values_count()
+
+    async def get_image_values_count(self):
+        return await self._db.get_image_values_count()
+
+    async def get_instances_count(self):
+        return await self._db.get_instances_count()
+
+    async def has_file(self, folder_id: int, name: str, extension: str):
+        return await self._db.has_file(folder_id, name, extension)
+
+    async def delete_small_images(self):
+        return await self._db.delete_small_images()
+
+    async def delete_medium_images(self):
+        return await self._db.delete_medium_images()
+
+    async def delete_large_images(self):
+        return await self._db.delete_large_images()
+
+    async def delete_raw_images(self):
+        return await self._db.delete_raw_images()
+
+    async def delete_property(self, prop_id: int):
+        return await self._db.delete_property(prop_id)
 
     # =====================================================
     # =================== Properties ======================
@@ -301,7 +333,8 @@ class ProjectDb:
 
     # =========== Folders ===========
     async def add_folder(self, path: str, name: str, parent: int = None):
-        return await self._db.add_folder(path, name, parent)
+        res = await self._db.add_folder(path, name, parent)
+        return res
 
     async def get_folders(self):
         return await self._db.get_folders()
@@ -329,8 +362,11 @@ class ProjectDb:
         await self._db.delete_image_values(deleted_sha1s)
         await self._db.delete_vectors(deleted_sha1s)
 
-        return DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids,
-                                   deleted_sha1s=deleted_sha1s)
+        res = DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids,
+                                  deleted_sha1s=deleted_sha1s)
+        self.on_db_update.emit(DbUpdate(type_=UpdateType.FOLDERS, data=res))
+        self.on.sync.emitFoldersDelete()
+        return res
 
     # =========== Vectors ===========
     async def get_vectors(self, type_id: int, sha1s: list[str] = None):
@@ -340,17 +376,14 @@ class ProjectDb:
         return await self._db.get_vector_types(source=source)
 
     async def delete_vector_type(self, id_: int):
-        return await self._db.delete_vector_type(id_)
-
-    async def get_default_vectors(self, sha1s: list[str] = None):
-        default = await self._db.get_default_db_vector_id()
-        if not default:
-            raise Exception('No default vectors set. Make sure vectors are computed')
-        source, type_ = default.split('.')
-        return await self._db.get_vectors(source, type_, sha1s)
+        res = await self._db.delete_vector_type(id_)
+        self.on.sync.emitVectorTypes(await self.get_vector_types())
+        return res
 
     async def add_vector_type(self, vec: VectorType):
-        return await self._db.add_vector_type(vec)
+        res = await self._db.add_vector_type(vec)
+        self.on.sync.emitVectorTypes(await self.get_vector_types())
+        return res
 
     async def add_vector(self, vector: Vector):
         return await self._db.add_vector(vector)
@@ -360,6 +393,7 @@ class ProjectDb:
 
     async def set_default_vectors(self, vector: VectorDescription):
         await self._db.set_default_vector_id(vector_id=vector.id)
+        self.on_db_update.emit(DbUpdate(type_=UpdateType.VECTOR_TYPES, data=vector))
 
     async def get_vectors_info(self):
         vectors = await self._db.get_vector_descriptions()
@@ -382,6 +416,12 @@ class ProjectDb:
         return await self._db.set_plugin_data(key, value)
 
     async def apply_commit(self, commit: DbCommit):
+        inverse = await self._apply_commit(commit)
+        self.on_db_update.emit(DbUpdate(type_=UpdateType.COMMIT, data=commit))
+        self.on.sync.emitCommit(commit)
+        return inverse
+
+    async def _apply_commit(self, commit: DbCommit):
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
 
@@ -565,6 +605,7 @@ class ProjectDb:
             # TODO: or not to do ?
             # await self._db.delete_instance(ids=commit.empty_instances)
         return inverse
+
 
     async def stream_instance_sha1_and_url(self, chunk_size: int = 10000):
         position = 0

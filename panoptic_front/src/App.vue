@@ -16,6 +16,7 @@ import ImportModal from './components/modals/ImportModal.vue';
 import TagModal from './components/modals/TagModal.vue';
 import FirstModal from './components/modals/FirstModal.vue';
 import NotifModal from './components/modals/NotifModal.vue';
+import PanopticView2 from './views/PanopticView.vue';
 
 const panoptic = usePanopticStore()
 
@@ -31,19 +32,7 @@ function setMousePos(e) {
 
 <template>
     <body @mousemove="setMousePos">
-        <RouterView />
-        <PropertyModal :id="ModalId.PROPERTY" />
-        <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
-        <ExportModal2 />
-        <ImageModal />
-        <ImageZoomModal />
-        <SettingsModal />
-        <ImportModal />
-        <TagModal />
-        <FirstModal />
-        <NotifModal />
-        <div id="popup" style="position: fixed; top:0;left: 0; z-index: 9990;"></div>
-        <!-- <div v-if="panoptic.openModalId" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(250, 235, 215, 0.381); z-index: 9999;" ></div> -->
+        <PanopticView2 />
     </body>
 </template>
 

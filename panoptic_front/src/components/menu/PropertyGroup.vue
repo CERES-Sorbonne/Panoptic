@@ -76,7 +76,6 @@ async function log(e) {
         }
         await data.updateProperty(prop.id, prop.name, groupId)
         await data.triggerPropertyTreeChange()
-
     }
     if (e.moved) {
         await data.triggerPropertyTreeChange()
