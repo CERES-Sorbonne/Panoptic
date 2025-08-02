@@ -9,6 +9,7 @@ import orjson
 from fastapi import APIRouter, UploadFile, Depends, HTTPException
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
+from starlette.requests import Request
 from starlette.responses import FileResponse, StreamingResponse
 
 from panoptic.core.project.project import Project
@@ -17,7 +18,7 @@ from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ProjectSettings, TagMergePayload, LoadState, DeleteVectorTypePayload
 from panoptic.models.results import LoadResult
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
-from panoptic.routes.panoptic_routes import get_panoptic
+from panoptic.routes.panoptic_routes import get_panoptic, get_server
 
 project_router = APIRouter(
     prefix="/projects/{project_id}",
@@ -233,17 +234,30 @@ async def get_plugins(project: Project = Depends(get_project_from_id)):
 
 
 @project_router.get('/ui_data/{key:path}')
-async def get_ui_data(key: str, project: Project = Depends(get_project_from_id)):
+async def get_ui_data(key: str, request: Request, project: Project = Depends(get_project_from_id)):
+    connection_id = request.query_params.get('connection_id')
+    user = get_server().client_states[connection_id].user
+    user_id = 0
+    if user:
+        user_id = user.id
+
+    key = f"user:{user_id}.{key}"
     if key:
         return await project.db.get_ui_data(key=key)
     return await project.db.get_all_ui_data()
 
 
 @project_router.post('/ui_data')
-async def set_ui_data(req: UIDataPayload, project: Project = Depends(get_project_from_id)):
+async def set_ui_data(req: UIDataPayload, request: Request, project: Project = Depends(get_project_from_id)):
+    connection_id = request.query_params.get('connection_id')
+    user = get_server().client_states[connection_id].user
+    user_id = 0
+    if user:
+        user_id = user.id
     if not req.key:
         raise HTTPException(status_code=400, detail='set_ui_data UIDataPayload: no key given')
-    return await project.db.set_ui_data(req.key, req.data)
+    key = f"user:{user_id}.{req.key}"
+    return await project.db.set_ui_data(key, req.data)
 
 
 @project_router.post('/plugin_params')

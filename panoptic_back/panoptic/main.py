@@ -81,6 +81,8 @@ def start():
 
     if not os.environ.get('REMOTE'):
         webbrowser.open(front_url)
+    if os.environ.get('SERVER_MODE'):
+        server.ask_users = True
 
     # @app.on_event("shutdown")
     # async def shutdown_event():

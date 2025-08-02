@@ -13,12 +13,14 @@ import ImportModal from '@/components/modals/ImportModal.vue'
 import TagModal from '@/components/modals/TagModal.vue'
 import FirstModal from '@/components/modals/FirstModal.vue'
 import NotifModal from '@/components/modals/NotifModal.vue'
-import { socketAPI } from '@/data/apiSocket'
+import { useSocketStore } from '@/data/socketStore'
+import UserSelection from '@/components/UserSelection.vue'
 
+const socketStore = useSocketStore()
 const panoptic = usePanopticStore()
 
 onMounted(() => {
-    socketAPI.connect()
+    socketStore.init()
     panoptic.init()
 })
 </script>
@@ -28,20 +30,24 @@ onMounted(() => {
         <div class="above">Lost connection to backend. Verify that panoptic is running and
             reload page</div>
     </template>
-    <template v-if="panoptic.isConnected">
-        <RouterView />
-        <PropertyModal :id="ModalId.PROPERTY" />
-        <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
-        <ExportModal2 />
-        <ImageModal />
-        <ImageZoomModal />
-        <SettingsModal />
-        <ImportModal />
-        <TagModal />
-        <FirstModal />
-        <NotifModal />
+    <template v-else>
+        <template v-if="!panoptic.isUserValid">
+            <div><UserSelection :users="panoptic.serverState.users" @connect-user="u => socketStore.connectUser(u.id)"/></div>
+        </template>
+        <template v-else>
+            <RouterView />
+            <PropertyModal :id="ModalId.PROPERTY" />
+            <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+            <ExportModal2 />
+            <ImageModal />
+            <ImageZoomModal />
+            <SettingsModal />
+            <ImportModal />
+            <TagModal />
+            <FirstModal />
+            <NotifModal />
+        </template>
     </template>
-
     <div id="popup" style="position: fixed; top:0;left: 0; z-index: 9990;"></div>
 </template>
 

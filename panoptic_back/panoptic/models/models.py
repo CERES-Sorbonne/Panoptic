@@ -467,20 +467,27 @@ class ProjectRef(ProjectId):
 
 
 class PanopticState(BaseModel):
-    server: PanopticServerState
-    client: PanopticClientState
-
-
-class PanopticServerState(BaseModel):
     version: str
     projects: list[ProjectRef] = []
     plugins: list[PluginKey] = []
+    users: list[UserState] = []
+    ask_user: bool = False
+
+
+class User(BaseModel):
+    id: int
+    name: str
+
+
+class UserState(User):
+    connected_to: str | None = None
 
 
 class PanopticClientState(BaseModel):
     connection_id: str
     connected_project: int | None = None
     connected_at: datetime
+    user: UserState | None = None
 
 
 class ProjectState(BaseModel):

@@ -130,7 +130,9 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function correctUiState() {
-
+        if(!uiState.value) {
+            uiState.value = {similarityIntervals: {}, similarityImageSize: 0}
+        }
         if (!uiState.value.similarityIntervals) {
             uiState.value.similarityIntervals = {}
         }
