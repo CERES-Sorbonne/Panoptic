@@ -587,8 +587,6 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function deleteEmptyClones() {
         const commit = await apiPostDeleteEmptyClones()
-        console.log(commit)
-        console.log(folders)
         applyCommit(commit)
     }
 
