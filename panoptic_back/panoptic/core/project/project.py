@@ -62,7 +62,7 @@ class Project:
     async def start(self):
         conn = DbConnection(self.base_path)
         await conn.start()
-        self.db = ProjectDb(conn, self.on)
+        self.db = ProjectDb(conn, self)
         self.ui = ProjectUi(self.db)
 
         self.db.on_import_instance.redirect(self.on.import_instance)
@@ -106,7 +106,7 @@ class Project:
         return export_path
 
     async def plugins_info(self):
-        return [await p.get_description() for p in self.plugins]
+        return [p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
         folder = os.path.normpath(folder)
@@ -225,7 +225,7 @@ class Project:
         if delete_raw:
             await self.db.delete_raw_images()
 
-        await self.db.save_project_settings(settings)
+        await self.db.set_project_settings(settings)
         self.settings = settings
 
         if re_import_images:
