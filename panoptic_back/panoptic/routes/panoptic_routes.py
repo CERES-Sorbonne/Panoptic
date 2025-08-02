@@ -170,6 +170,8 @@ def images_in_folder(folder_path):
 
 
 def list_contents(full_path: str = '/'):
+    if not full_path.startswith('/'):
+        full_path = '/' + full_path
     paths = [full_path + '/' + p if full_path != '/' else full_path + p for p in os.listdir(full_path)]
     directories = [p for p in paths if os.path.isdir(p)]
     directories = [{
