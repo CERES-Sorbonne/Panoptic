@@ -204,6 +204,21 @@ class PanopticServer:
             state.connected_project = project.id
             await self._emit_client_state(connection_id)
 
+    async def create_project(self, name: str, path: str, connection_id: str = None):
+        project = self.panoptic.create_project(name, path)
+        await self.load_project(project.path, connection_id)
+        await self._emit_server_state()
+
+    async def import_project(self, path: str, connection_id: str = None):
+        project = self.panoptic.import_project(path)
+        if project:
+            await self.load_project(project.path, connection_id)
+            await self._emit_server_state()
+
+    async def remove_project(self, path: str):
+        self.panoptic.remove_project(path)
+        await self._emit_server_state()
+
     async def close_project(self, project_id: int, connection_id: str = None):
         count = len([s for s in self.client_states.values() if s.connected_project == project_id])
         if count == 1:

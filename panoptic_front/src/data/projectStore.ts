@@ -46,7 +46,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         const panoptic = usePanopticStore()
         if (!panoptic.isProjectLoaded) return
         const projectId = panoptic.clientState.connectedProject
-        if (projectId === undefined) return
+        if (isNaN(projectId) || projectId < 0) return
 
         state.value = await apiGetProjectState()
         await loadUiState()

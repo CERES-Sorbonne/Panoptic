@@ -30,7 +30,7 @@ class Panoptic:
                 data = json.load(file)
                 res = PanopticData(**data)
                 for i in range(len(res.projects)):
-                    res.projects[i].id = i+1
+                    res.projects[i].id = i + 1
                 return res
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Warning: Could not load projects.json. Error: {e}", file=sys.stderr)
@@ -54,7 +54,7 @@ class Panoptic:
         with open(self.global_file_path, 'w') as file:
             json.dump(self.data.dict(), file, indent=2)
 
-    async def create_project(self, name, path):
+    def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
             raise f"A project_id with path '{path}' already exists."
         # else:
@@ -66,19 +66,26 @@ class Panoptic:
             max_id = max([p.id for p in self.data.projects])
         project = ProjectId(name=name, path=path, id=max_id + 1)
         self.data.projects.append(project)
-        await self.load_project(path)
+        return project
 
-    async def import_project(self, path: str):
+    def import_project(self, path: str):
         p = Path(path)
         if not (p / 'panoptic.db').exists():
             raise ValueError('Folder is not a panoptic project_id (No panoptic.db file found)')
         if any(project.path == path for project in self.data.projects):
             raise f"ProjectId is already imported."
-        project = ProjectId(path=str(p), name=str(p.name))
+        max_id = 0
+        if len(self.data.projects):
+            max_id = max([p.id for p in self.data.projects])
+        project = ProjectId(path=str(p), name=str(p.name), id=max_id + 1)
+        
         self.data.projects.append(project)
-        # await self.load_project(path)
+        return project
 
     def remove_project(self, path):
+        to_remove = next(p for p in self.data.projects if p.path == path)
+        if to_remove and to_remove.id in self.open_projects:
+            return
         self.data.projects = [p for p in self.data.projects if p.path != path]
         self.save_data()
 

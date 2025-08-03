@@ -125,7 +125,7 @@ onMounted(() => {
                             </template>
                             <template #popup="{ hide }">
                                 <div class="text-start p-1">
-                                    <div @click="panoptic.deleteProject(project.path); hide();" class="bb">
+                                    <div @click="panoptic.deleteProject(project.path);" class="bb">
                                         <i class="bi bi-trash me-1"></i>delete
                                     </div>
                                     <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
