@@ -10,6 +10,9 @@ import TagInput from '@/components/property_inputs/TagInput.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Property, PropertyType } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
+
+const data = useDataStore()
 
 const props = defineProps<{
     property: Property
@@ -35,7 +38,7 @@ const heightElem = ref(null)
 const inputElem = ref(null)
 const dropdownElem = ref(null)
 const safeValue = computed(() => localValue.value ?? [])
-const tags = computed(() => safeValue.value.map(tId => props.property.tags[tId]))
+const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 
 const localValue = ref(undefined)
 
@@ -93,7 +96,7 @@ onMounted(updateLocal)
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'"
                 :style="{ width: props.width ? props.width + 'px' : '100%' }" ref="heightElem">
                 <span v-for="tag in tags">
-                    <TagBadge :id="tag.id" class="me-1" />
+                    <TagBadge v-if="tag" :id="tag.id" class="me-1" />
                 </span>
                 <span v-if="tags.length == 0" style="font-size: 14px;" class="text-secondary">{{ $t('none') }}</span>
             </div>

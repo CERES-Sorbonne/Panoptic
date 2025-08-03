@@ -9,8 +9,9 @@ import TagMenu from '@/components/tags/TagMenu.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { computed, ref } from 'vue';
 import { Property, Tag, PropertyType } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
 
-
+const data = useDataStore()
 
 const props = defineProps<{
     property: Property,
@@ -31,7 +32,7 @@ defineExpose({
 const tagMenuElem = ref(null)
 
 const safeValue = computed(() => props.modelValue ?? [])
-const tags = computed(() => safeValue.value.map(id => props.property.tags[id]))
+const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
 function onSelect(tag: Tag) {
@@ -68,11 +69,15 @@ function focus() {
 <template>
     <div>
         <div class="overflow-hidden mb-1 text-wrap">
-            <TagBadge @delete="removeTag(tag)" :show-delete="true" :id="tag.id" v-for="tag in tags" class="me-1" />
+            <template v-for="tag in tags">
+                <TagBadge v-if="tag" @delete="removeTag(tag)" :show-delete="true" :id="tag.id" class="me-1" />
+            </template>
+
         </div>
         <TagMenu :property="props.property" :excluded="allExcluded" :can-create="props.canCreate"
             :can-customize="props.canCustomize" :can-link="props.canLink" :can-delete="props.canDelete"
-            :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem" @tab="emits('tab')"/>
+            :auto-focus="props.autoFocus" @select="onSelect" @create="onCreate" @delete="onDelete" ref="tagMenuElem"
+            @tab="emits('tab')" />
 
     </div>
 </template>
