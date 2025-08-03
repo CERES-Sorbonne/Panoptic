@@ -98,7 +98,7 @@ onUnmounted(() => {
 
             <template #popper="{ hide }">
                 <!-- <div class="p-1"> -->
-                <div v-show="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'dropdown-input'"
+                <div v-if="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'dropdown-input'"
                     @keydown.escape.stop="onEscape(); hide()" @keydown.enter.stop="onEnter(hide)" style="z-index: 999;" tabindex="0" ref="popupElem">
                     <slot name="popup" :hide="hide" :focus="focus"></slot>
                 </div>
