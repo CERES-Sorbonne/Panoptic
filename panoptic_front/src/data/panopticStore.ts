@@ -84,11 +84,8 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function closeProject(projectId: number) {
-        project.clear()
         notifs.value = []
-        const state = await apiCloseProject(projectId)
-        // TODO: verify
-        router.push('/')
+        await apiCloseProject(projectId)
     }
 
     async function deleteProject(path: string) {

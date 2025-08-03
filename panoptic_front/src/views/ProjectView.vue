@@ -42,7 +42,6 @@ async function rerender() {
 }
 
 onMounted(async () => {
-    console.log(panoptic.isProjectLoaded)
     if (!panoptic.isProjectLoaded) {
         router.push('/')
         return
@@ -65,7 +64,7 @@ onMounted(async () => {
         }
         if (ev.key == 'Shift') keyState.shift = true;
         if (ev.key == 'ArrowLeft') keyState.left = true;
-        if (ev.key == 'ArrowRight') { keyState.right = true; console.log('keeeyy') }
+        if (ev.key == 'ArrowRight') { keyState.right = true; }
 
         if (ev.key == 'Z' && keyState.ctrl) data.redo()
         if (ev.key == 'z' && keyState.ctrl) data.undo()

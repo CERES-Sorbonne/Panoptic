@@ -314,7 +314,6 @@ export const useDataStore = defineStore('dataStore', () => {
         }
 
         if (disableTrigger) return
-        console.log('trigger refss')
 
         properties.value = props
         triggerRefs()
@@ -615,7 +614,6 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function computePropertyTree() {
-        console.log('compute prop tree')
         let save = await getPropertyOrderFromStorage()
         if (!save) {
             save = buildPropertyGroupOrder()

@@ -262,7 +262,6 @@ function toggleGroupSelect(groupId: number) {
 }
 
 function triggerUpdate() {
-    console.log('trigger update')
     computeLines()
 }
 
