@@ -75,19 +75,20 @@ async def close_project(req: CloseProjectRequest, request: Request):
 
 @selection_router.post("/delete_project")
 async def delete_project_route(req: AddPluginPayload):
-    server.panoptic.remove_project(req.path)
+    await server.remove_project(req.path)
     return await get_panoptic_state()
 
 
 @selection_router.post("/create_project")
-async def create_project_route(req: ProjectRequest):
-    await server.panoptic.create_project(req.name, req.path)
+async def create_project_route(req: ProjectRequest, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    await server.create_project(req.name, req.path, connection_id)
     return await get_panoptic_state()
 
 
 @selection_router.post("/import_project")
 async def import_project_route(req: AddPluginPayload):
-    await server.panoptic.import_project(req.path)
+    await server.import_project(req.path)
     return await get_panoptic_state()
 
 
