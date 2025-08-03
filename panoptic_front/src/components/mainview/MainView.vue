@@ -91,7 +91,6 @@ watch(() => props.height, async () => {
 })
 
 onMounted(updateScrollerHeight)
-onMounted(() => props.tab.update())
 
 </script>
 
