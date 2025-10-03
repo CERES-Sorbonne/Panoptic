@@ -18,10 +18,16 @@ class ProjectId(BaseModel):
     path: str | None = None
 
 
+class PluginType(Enum):
+    local = "local"
+    git = "git"
+    pip = "pip"
+
 class PluginKey(BaseModel):
     name: str
-    path: str
-    source_url: str | None = None
+    type: PluginType
+    path: str = None # will be none for pip packages
+    source: str | None = None
 
 
 class PanopticData(BaseModel):
@@ -242,8 +248,8 @@ class Tab(BaseModel):
 
 
 class AddPluginPayload(CamelModel):
-    path: str | None = None
-    git_url: str | None = None
+    type: PluginType
+    source: str
     plugin_name: str | None = None
 
 

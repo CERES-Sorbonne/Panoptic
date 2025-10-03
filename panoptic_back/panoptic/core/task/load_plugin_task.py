@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
-from panoptic.models import PluginKey
+from panoptic.models import PluginKey, PluginType
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
@@ -42,12 +42,18 @@ class LoadPluginTask(Task):
         self.plugin_key = plugin_key
 
     async def run(self):
+        plugin_type = self.plugin_key.type
         path = self.plugin_key.path
         name = self.plugin_key.name
-        file_path = path
-        if not path.endswith('__init__.py'):
-            file_path = str(Path(path) / '__init__.py')
-        plugin_module = await self._async(import_module_from_path, name, file_path)
+
+        if plugin_type == PluginType.pip:
+            plugin_module = self._async(importlib.import_module(self.plugin_key.source))
+            path = plugin_module.__path__
+        else:
+            file_path = path
+            if not path.endswith('__init__.py'):
+                file_path = str(Path(path) / '__init__.py')
+            plugin_module = await self._async(import_module_from_path, name, file_path)
         project_interface = PluginProjectInterface(self.project)
         plugin = plugin_module.plugin_class(project=project_interface, plugin_path=path, name=name)
         await plugin.start()
