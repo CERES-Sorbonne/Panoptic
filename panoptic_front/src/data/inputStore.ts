@@ -19,26 +19,26 @@ export interface InputHash {
 
 export const useInputStore = defineStore('inputStore', () => {
 
-    const inputIndex = ref<{ [key: string]: { [inputIdx: number]: InputHash } }>({})
+    let inputIndex: { [key: string]: { [inputIdx: number]: InputHash } } = {}
     const openInput = ref<InputKey>()
     const requestInput = ref<InputKey>()
 
     function clear() {
-        inputIndex.value = {}
+        inputIndex = {}
         openInput.value = undefined
         requestInput.value = undefined
     }
 
     function addInput(key: string, idx: number, groupId: number, instanceId: number) {
-        if (!inputIndex.value[key]) {
-            inputIndex.value[key] = {}
+        if (!inputIndex[key]) {
+            inputIndex[key] = {}
         }
-        inputIndex.value[key][idx] = { groupId, instanceId }
+        inputIndex[key][idx] = { groupId, instanceId }
     }
 
     function removeInput(key: string, idx: number) {
-        if (inputIndex.value[key]) {
-            delete inputIndex.value[key][idx]
+        if (inputIndex[key]) {
+            delete inputIndex[key][idx]
         }
     }
 
@@ -61,10 +61,10 @@ export const useInputStore = defineStore('inputStore', () => {
             return
         }
 
-        const inputs = Object.keys(inputIndex.value[openInput.value.key]).map(Number)
+        const inputs = Object.keys(inputIndex[openInput.value.key]).map(Number)
         inputs.sort((a, b) => a - b)
         const nextIdx = inputs.find(i => i > openInput.value.idx)
-        const nextHash = inputIndex.value[openInput.value.key][nextIdx]
+        const nextHash = inputIndex[openInput.value.key][nextIdx]
         requestInput.value = { key: openInput.value.key, idx: nextIdx, groupId: nextHash.groupId, instanceId: nextHash.instanceId }
     }
 
@@ -73,15 +73,15 @@ export const useInputStore = defineStore('inputStore', () => {
             return
         }
 
-        const inputs = Object.keys(inputIndex.value[openInput.value.key]).map(Number)
+        const inputs = Object.keys(inputIndex[openInput.value.key]).map(Number)
         inputs.sort((a, b) => a - b)
         const nextIdx = inputs.findLast(i => i < openInput.value.idx)
-        const nextHash = inputIndex.value[openInput.value.key][nextIdx]
+        const nextHash = inputIndex[openInput.value.key][nextIdx]
         requestInput.value = { key: openInput.value.key, idx: nextIdx, groupId: nextHash.groupId, instanceId: nextHash.instanceId }
     }
 
     return {
-        inputIndex, openInput, requestInput,
+        openInput, requestInput,
         clear,
         addInput, removeInput, confirmOpen, requestNextInput, requestPrevInput, requestInputNav
     }
