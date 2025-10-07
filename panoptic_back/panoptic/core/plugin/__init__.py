@@ -1,3 +1,4 @@
+import importlib
 import os
 import shutil
 import subprocess
@@ -54,8 +55,9 @@ def download_and_extract_zip(zip_url, plugin_name):
         return plugin_path
 
 
-def add_plugin_from_git(git_url, plugin_name=None):
+def clone_repo(git_url, plugin_name=None):
     zip_url = get_zip_url(git_url)
     name = git_url.split("/")[-1] if not plugin_name else plugin_name
     folder_name = download_and_extract_zip(zip_url, name)
     return folder_name
+
