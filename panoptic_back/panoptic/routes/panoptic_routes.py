@@ -10,8 +10,8 @@ from pydantic import BaseModel
 
 from panoptic import __version__ as panoptic_version
 from panoptic.core.panoptic import Panoptic
-from panoptic.core.plugin import add_plugin_from_git
-from panoptic.models import AddPluginPayload, IgnoredPluginPayload
+from panoptic.core.plugin import clone_repo
+from panoptic.models import AddPluginPayload, IgnoredPluginPayload, PluginType
 
 selection_router = APIRouter()
 
@@ -95,21 +95,27 @@ async def get_plugins_route():
     return panoptic.get_plugin_paths()
 
 
+
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    # TODO: add github parameter
-    path = payload.path
-    if payload.git_url:
-        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    return panoptic.add_plugin_path(path, payload.plugin_name, payload.git_url)
+    name = payload.name
+    source = payload.source
+    if payload.type == PluginType.pip:
+        return panoptic.add_plugin_from_pip(source, name)
+    else:
+        path = payload.source
+        if payload.type == PluginType.git:
+            path = clone_repo(source, name)
+        return panoptic.add_plugin_from_path(path, name, source, payload.type)
+
 
 
 @selection_router.post('/plugin/update')
 async def update_plugin_route(payload: AddPluginPayload):
     path = payload.path
     if payload.git_url:
-        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    panoptic.update_plugin(path)
+        path = clone_repo(payload.git_url, payload.plugin_name)
+    panoptic.update_plugin_from_path(path)
     return True
 
 

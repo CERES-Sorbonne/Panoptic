@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 import shutil
@@ -7,7 +8,7 @@ from pathlib import Path
 
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
-from panoptic.models import PluginKey, PanopticData, ProjectId
+from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
 from panoptic.utils import get_datadir
 
 
@@ -90,7 +91,7 @@ class Panoptic:
             await self.close_project()
             raise e
 
-    def add_plugin_path(self, path: str, name: str, source_url: str = None):
+    def add_plugin_from_path(self, path: str, name: str, source: str, plugin_type: PluginType):
         path = Path(path)
         if any(path == p.path for p in self.data.plugins):
             return
@@ -100,15 +101,27 @@ class Panoptic:
         init_path = Path(path) / '__init__.py'
         if not init_path.exists():
             raise Exception(f'No __init__.py file found at {path}')
-        self.data.plugins.append(PluginKey(name=name, path=str(path), source_url=source_url))
+        self.data.plugins.append(PluginKey(name=name, path=str(path), source=source, type=plugin_type))
         self.save_data()
 
-    def update_plugin(self, path: str):
+    def add_plugin_from_pip(self, source:str, name: str = None):
+        name = name or source
+        self.update_plugin_from_pip(source)
+        self.data.plugins.append(PluginKey(name=name, source=source, type=PluginType.pip))
+        self.save_data()
+        # module = importlib.import_module(source)
+        # return module.__path__
+
+    def update_plugin_from_path(self, path: str):
         path = Path(path)
-        if any(path == p.path for p in self.data.plugins):
+        # check that the plugin is registered
+        if not any(path == p.path for p in self.data.plugins):
             return
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-r", os.path.join(path, 'requirements.txt')])
+
+    def update_plugin_from_pip(self, source: str):
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", source])
 
     def del_plugin_path(self, path: str):
         removed = next(p for p in self.data.plugins if p.path == path)
@@ -118,7 +131,7 @@ class Panoptic:
                 shutil.rmtree(plugin_data_path)
             except Exception as e:
                 print(e)
-        if removed.source_url:
+        if removed.source:
             try:
                 shutil.rmtree(removed.path)
             except Exception as e:
