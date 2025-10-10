@@ -31,6 +31,7 @@ export interface PluginKey {
     name: string
     source: string
     type: PluginType
+    path?: string
 }
 
 export interface SelectionStatus {
@@ -67,7 +68,6 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.init = false
         try {
             data.status = await apiGetStatus()
-            console.log(data.status)
             data.plugins = await apiGetPlugins()
             data.version = await apiGetVersion()
 
@@ -146,17 +146,13 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.plugins = await apiGetPlugins()
     }
 
-    async function delPlugin(path) {
-        await apiDelPlugin(path)
+    async function delPlugin(name: string) {
+        await apiDelPlugin(name)
         data.plugins = await apiGetPlugins()
     }
 
-    async function updatePlugin(data: PluginKey) {
-       const res = await apiUpdatePlugin({
-        name: data.name,
-        source: data.source,
-        type: data.type
-       }) 
+    async function updatePlugin(name: string) {
+       const res = await apiUpdatePlugin(name) 
        return res
     }
 

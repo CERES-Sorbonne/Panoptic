@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
 import { usePanopticStore } from '@/data/panopticStore';
@@ -10,8 +9,9 @@ import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 import { ModalId } from '@/data/models';
-import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
 import wTT from "@/components/tooltips/withToolTip.vue";
+import Dropdown from '@/components/Dropdowns/Dropdown.vue';
+import PluginOptionsDropdown from '@/components/Dropdowns/PluginOptionsDropdown.vue';
 
 const panoptic = usePanopticStore()
 
@@ -26,7 +26,7 @@ const hasProjects = computed(() => Array.isArray(panoptic.data.status.projects) 
 const showFirstModal = computed(() => !hasProjects.value && panoptic.data.init)
 const showTutorial = computed(() => !hasProjects.value && panoptic.data.init && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.data.plugins.some(p => p.sourceUrl && p.sourceUrl.includes('https://github.com/CERES-Sorbonne/PanopticML')))
+const hasPanopticMlPlugin = computed(() => panoptic.data.plugins.some(p => p.source && p.source.includes('https://github.com/CERES-Sorbonne/PanopticML')))
 
 const usePlugins = computed(() => {
     const res = {}
@@ -57,10 +57,6 @@ function createProject(project: { path: string, name: string }) {
 
 function importProject(path: string) {
     panoptic.importProject(path)
-}
-
-function delPlugin(path: string) {
-    panoptic.delPlugin(path)
 }
 
 async function loadDefaultPlugin() {

@@ -396,6 +396,8 @@ export interface PluginDescription {
     name: string
     description: string
     path: string
+    source: string
+    type: string
     baseParams: PluginBaseParamsDescription
     registeredFunctions: FunctionDescription[]
     defaults: PluginDefaultParams

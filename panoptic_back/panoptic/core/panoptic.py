@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from panoptic.core.plugin import clone_repo
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
 from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
@@ -112,6 +113,17 @@ class Panoptic:
         # module = importlib.import_module(source)
         # return module.__path__
 
+    def update_plugin(self, name: str):
+        plugin = [p for p in self.data.plugins if p.name == name][0]
+        if plugin.type == PluginType.pip:
+            self.update_plugin_from_pip(plugin.source)
+            return True
+        path = plugin.path
+        if plugin.type == PluginType.git:
+            path = clone_repo(plugin.source, plugin.name)
+        self.update_plugin_from_path(path)
+        return True
+
     def update_plugin_from_path(self, path: str):
         path = Path(path)
         # check that the plugin is registered
@@ -123,8 +135,8 @@ class Panoptic:
     def update_plugin_from_pip(self, source: str):
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", source])
 
-    def del_plugin_path(self, path: str):
-        removed = next(p for p in self.data.plugins if p.path == path)
+    def del_plugin_path(self, name: str):
+        removed = next(p for p in self.data.plugins if p.name == name)
         for project in self.data.projects:
             plugin_data_path = Path(project.path) / "plugin_data" / removed.name.lower()
             try:
@@ -136,7 +148,7 @@ class Panoptic:
                 shutil.rmtree(removed.path)
             except Exception as e:
                 print(e)
-        self.data.plugins = [p for p in self.data.plugins if p.path != path]
+        self.data.plugins = [p for p in self.data.plugins if p.name != name]
         self.save_data()
 
     def get_plugin_paths(self):

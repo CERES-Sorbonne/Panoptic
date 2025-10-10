@@ -254,8 +254,8 @@ class AddPluginPayload(CamelModel):
     name: str | None = None
 
 
-class UpdatePluginPayload(BaseModel):
-    path: str | None = None
+class UpdatePluginPayload(CamelModel):
+    name: str
 
 
 class UpdateCounter(CamelModel):
