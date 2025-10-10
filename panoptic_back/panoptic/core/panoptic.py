@@ -10,7 +10,7 @@ from panoptic.core.plugin import clone_repo
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
 from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
-from panoptic.utils import get_datadir
+from panoptic.utils import get_datadir, convert_old_panoptic_json
 
 
 class Panoptic:
@@ -25,9 +25,15 @@ class Panoptic:
         try:
             with open(self.global_file_path, 'r') as file:
                 data = json.load(file)
-                return PanopticData(**data)
+                data, save = convert_old_panoptic_json(data)
+                loaded_data = PanopticData(**data)
         except (FileNotFoundError, json.JSONDecodeError):
-            return PanopticData(projects=[])
+            loaded_data = PanopticData(projects=[])
+
+        if save:
+            self.data = loaded_data
+            self.save_data()
+        return loaded_data
 
     def save_data(self):
         directory = os.path.dirname(self.global_file_path)
@@ -105,7 +111,7 @@ class Panoptic:
         self.data.plugins.append(PluginKey(name=name, path=str(path), source=source, type=plugin_type))
         self.save_data()
 
-    def add_plugin_from_pip(self, source:str, name: str = None):
+    def add_plugin_from_pip(self, source: str, name: str = None):
         name = name or source
         self.update_plugin_from_pip(source)
         self.data.plugins.append(PluginKey(name=name, source=source, type=PluginType.pip))
