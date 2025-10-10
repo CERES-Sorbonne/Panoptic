@@ -7,9 +7,9 @@ import { computed, Ref, ref, watch } from 'vue';
 import { ModalId, UploadConfirm } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import FusionModeDropdown from '../dropdowns/FusionModeDropdown.vue';
 import { objValues } from '@/utils/utils';
 import Modal2 from './Modal2.vue';
+import FusionModeDropdown from '../Dropdowns/FusionModeDropdown.vue';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
