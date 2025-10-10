@@ -76,7 +76,7 @@ async function load() {
         plugin.source = localPath.value
         plugin.type = PluginType.LOCAL
     }
-    else{
+    if (mode.value == 'pip') {
         plugin.source = pipPath.value
         plugin.type = PluginType.PIP
     }
