@@ -12,6 +12,7 @@ from panoptic import __version__ as panoptic_version
 from panoptic.core.panoptic import Panoptic
 from panoptic.core.plugin import clone_repo
 from panoptic.models import AddPluginPayload, IgnoredPluginPayload, PluginType
+from panoptic.routes.project_routes import PathRequest
 
 selection_router = APIRouter()
 
@@ -44,7 +45,7 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 
 
 @selection_router.post("/load")
-async def load_project_route(path: AddPluginPayload):
+async def load_project_route(path: PathRequest):
     res = await panoptic.load_project(path.path)
     if res:
         return await get_status_route()
@@ -58,7 +59,7 @@ async def close_project():
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: AddPluginPayload):
+async def delete_project_route(req: PathRequest):
     panoptic.remove_project(req.path)
     return await get_status_route()
 
@@ -70,7 +71,7 @@ async def create_project_route(req: ProjectRequest):
 
 
 @selection_router.post("/import_project")
-async def import_project_route(req: AddPluginPayload):
+async def import_project_route(req: PathRequest):
     await panoptic.import_project(req.path)
     return await get_status_route()
 
@@ -112,9 +113,13 @@ async def add_plugins_route(payload: AddPluginPayload):
 
 @selection_router.post('/plugin/update')
 async def update_plugin_route(payload: AddPluginPayload):
-    path = payload.path
-    if payload.git_url:
-        path = clone_repo(payload.git_url, payload.plugin_name)
+    plugin_type = payload.type
+    path = payload.source
+    if plugin_type == PluginType.pip:
+        panoptic.update_plugin_from_pip(path)
+        return True
+    if plugin_type == PluginType.git:
+        path = clone_repo(payload.source, payload.name)
     panoptic.update_plugin_from_path(path)
     return True
 

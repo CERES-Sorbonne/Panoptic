@@ -34,7 +34,7 @@ class Panoptic:
         if not os.path.exists(directory):
             os.makedirs(directory)
         with open(self.global_file_path, 'w') as file:
-            json.dump(self.data.dict(), file, indent=2)
+            json.dump(self.data.model_dump(), file, indent=2)
 
     async def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
