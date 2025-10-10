@@ -127,7 +127,7 @@ class Panoptic:
     def update_plugin_from_path(self, path: str):
         path = Path(path)
         # check that the plugin is registered
-        if not any(path == p.path for p in self.data.plugins):
+        if not any(str(path) == p.path for p in self.data.plugins):
             return
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-r", os.path.join(path, 'requirements.txt')])
