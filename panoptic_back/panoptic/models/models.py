@@ -32,6 +32,7 @@ class PluginKey(BaseModel):
 
 
 class PanopticData(BaseModel):
+    version: int = 1
     projects: list[ProjectId]
     last_opened: ProjectId | None = None
     plugins: List[PluginKey] = []
