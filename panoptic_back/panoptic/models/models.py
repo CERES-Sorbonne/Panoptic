@@ -23,10 +23,11 @@ class PluginType(str, Enum):
     git = "git"
     pip = "pip"
 
+
 class PluginKey(BaseModel):
     name: str
     type: PluginType = PluginType.git
-    path: str = None # will be none for pip packages
+    path: str | None = None  # will be none for pip packages
     source: str | None = None
 
 
