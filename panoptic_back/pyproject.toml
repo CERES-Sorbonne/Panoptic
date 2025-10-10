@@ -40,7 +40,7 @@ dependencies = [
     "fastapi-camelcase",
     "numpy",
     "orjson",
-    "pandas",
+    "polars",
     "psutil",
     "pydantic",
     "pypika",
@@ -53,6 +53,9 @@ dependencies = [
     "imagehash",
     "pillow"
 ]
+
+[project.optional-dependencies]
+vision = ["panopticml"]
 
 [project.urls]
 Repository = "https://github.com/CERES-Sorbonne/panoptic"

@@ -47,7 +47,7 @@ class LoadPluginTask(Task):
         name = self.plugin_key.name
 
         if plugin_type == PluginType.pip:
-            plugin_module = self._async(importlib.import_module(self.plugin_key.source))
+            plugin_module = await self._async(importlib.import_module, self.plugin_key.source)
             path = plugin_module.__path__
         else:
             file_path = path

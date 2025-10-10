@@ -407,10 +407,16 @@ export interface PluginDefaultParams {
     functions: { [func: string]: { [param: string]: any } }
 }
 
+export enum PluginType{
+    PIP = "pip",
+    GIT = "git",
+    LOCAL = "local"
+}
+
 export interface PluginAddPayload {
-    path?: string
-    gitUrl?: string
-    pluginName: string
+    source: string
+    name: string
+    type: PluginType
 }
 
 // ============= Actions ==============
