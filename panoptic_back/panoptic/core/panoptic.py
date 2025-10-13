@@ -98,6 +98,18 @@ class Panoptic:
             await self.close_project()
             raise e
 
+    def add_plugin(self, name: str, source: str, ptype: PluginType):
+        for installed_plugin in self.data.plugins:
+            if installed_plugin.type == ptype and installed_plugin.source == source:
+                return
+        if ptype == PluginType.pip:
+            return self.add_plugin_from_pip(source, name)
+        else:
+            path = source
+            if ptype == PluginType.git:
+                path = clone_repo(source, name)
+            return self.add_plugin_from_path(path, name, source, ptype)
+
     def add_plugin_from_path(self, path: str, name: str, source: str, plugin_type: PluginType):
         path = Path(path)
         if any(path == p.path for p in self.data.plugins):

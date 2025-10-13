@@ -1,4 +1,5 @@
 import os
+import tempfile
 import traceback
 import webbrowser
 from contextlib import asynccontextmanager
@@ -17,7 +18,7 @@ from panoptic.routes.panoptic_routes import selection_router, set_panoptic
 from panoptic.utils import get_base_path
 
 
-def start():
+def start_api():
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
@@ -74,12 +75,17 @@ def start():
     if not os.environ.get('REMOTE'):
         webbrowser.open(front_url)
 
-    # @app.on_event("shutdown")
-    # async def shutdown_event():
-    #     await panoptic.close()
 
     uvicorn.run(app, host=HOST, port=PORT)
 
+def start(test=False):
+    if test:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.environ['PANOPTIC_DATA_DIR'] = tmpdir
+            start_api()
+    start_api()
 
 if __name__ == '__main__':
-    start()
+    import sys
+    start(sys.argv[1]=="test")
+
