@@ -18,19 +18,21 @@ class ProjectId(BaseModel):
     path: str | None = None
 
 
-class PluginType(Enum):
+class PluginType(str, Enum):
     local = "local"
     git = "git"
     pip = "pip"
 
+
 class PluginKey(BaseModel):
     name: str
-    type: PluginType
-    path: str = None # will be none for pip packages
+    type: PluginType = PluginType.git
+    path: str | None = None  # will be none for pip packages
     source: str | None = None
 
 
 class PanopticData(BaseModel):
+    version: int = 1
     projects: list[ProjectId]
     last_opened: ProjectId | None = None
     plugins: List[PluginKey] = []
@@ -250,11 +252,11 @@ class Tab(BaseModel):
 class AddPluginPayload(CamelModel):
     type: PluginType
     source: str
-    plugin_name: str | None = None
+    name: str | None = None
 
 
-class UpdatePluginPayload(BaseModel):
-    path: str | None = None
+class UpdatePluginPayload(CamelModel):
+    name: str
 
 
 class UpdateCounter(CamelModel):

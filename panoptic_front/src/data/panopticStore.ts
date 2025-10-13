@@ -16,7 +16,7 @@ import {
 } from "./api"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { IgnoredPlugins, ModalId, Notif, NotifType, PluginAddPayload } from "./models"
+import { IgnoredPlugins, ModalId, Notif, NotifType, PluginAddPayload, PluginType } from "./models"
 import { useModalStore } from "./modalStore"
 import { deepCopy } from "@/utils/utils"
 
@@ -29,8 +29,9 @@ export interface Project {
 
 export interface PluginKey {
     name: string
-    path: string
-    sourceUrl?: string
+    source: string
+    type: PluginType
+    path?: string
 }
 
 export interface SelectionStatus {
@@ -67,7 +68,6 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.init = false
         try {
             data.status = await apiGetStatus()
-            console.log(data.status)
             data.plugins = await apiGetPlugins()
             data.version = await apiGetVersion()
 
@@ -146,17 +146,13 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         data.plugins = await apiGetPlugins()
     }
 
-    async function delPlugin(path) {
-        await apiDelPlugin(path)
+    async function delPlugin(name: string) {
+        await apiDelPlugin(name)
         data.plugins = await apiGetPlugins()
     }
 
-    async function updatePlugin(data: PluginKey) {
-       const res = await apiUpdatePlugin({
-        pluginName: data.name,
-        gitUrl: data.sourceUrl,
-        path: data.path
-       })
+    async function updatePlugin(name: string) {
+       const res = await apiUpdatePlugin(name) 
        return res
     }
 

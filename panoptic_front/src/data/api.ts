@@ -163,7 +163,7 @@ export async function apiCloseProject() {
 }
 
 export async function apiDeleteProject(path: string) {
-    let res = await axios.post('/delete_project', { path })
+    let res = await axios.post('/delete_project', { params: path })
     return res.data as SelectionStatus
 }
 
@@ -192,13 +192,13 @@ export async function apiAddPlugin(payload: PluginAddPayload) {
     return res.data as string[]
 }
 
-export async function apiDelPlugin(path: string) {
-    let res = await axios.delete('/plugins', { params: { path } })
+export async function apiDelPlugin(name: string) {
+    let res = await axios.delete('/plugins', { params: { name } })
     return res.data as string[]
 }
 
-export async function apiUpdatePlugin(data: PluginAddPayload) {
-    let res = await axios.post('/plugin/update', data)
+export async function apiUpdatePlugin(name: string) {
+    let res = await axios.post('/plugin/update', {name})
     return res.data as boolean
 }
 

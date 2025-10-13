@@ -6,10 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from panoptic.core.plugin import clone_repo
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
 from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
-from panoptic.utils import get_datadir
+from panoptic.utils import get_datadir, convert_old_panoptic_json
 
 
 class Panoptic:
@@ -24,9 +25,15 @@ class Panoptic:
         try:
             with open(self.global_file_path, 'r') as file:
                 data = json.load(file)
-                return PanopticData(**data)
+                data, save = convert_old_panoptic_json(data)
+                loaded_data = PanopticData(**data)
         except (FileNotFoundError, json.JSONDecodeError):
-            return PanopticData(projects=[])
+            loaded_data = PanopticData(projects=[])
+
+        if save:
+            self.data = loaded_data
+            self.save_data()
+        return loaded_data
 
     def save_data(self):
         directory = os.path.dirname(self.global_file_path)
@@ -34,7 +41,7 @@ class Panoptic:
         if not os.path.exists(directory):
             os.makedirs(directory)
         with open(self.global_file_path, 'w') as file:
-            json.dump(self.data.dict(), file, indent=2)
+            json.dump(self.data.model_dump(), file, indent=2)
 
     async def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
@@ -104,7 +111,7 @@ class Panoptic:
         self.data.plugins.append(PluginKey(name=name, path=str(path), source=source, type=plugin_type))
         self.save_data()
 
-    def add_plugin_from_pip(self, source:str, name: str = None):
+    def add_plugin_from_pip(self, source: str, name: str = None):
         name = name or source
         self.update_plugin_from_pip(source)
         self.data.plugins.append(PluginKey(name=name, source=source, type=PluginType.pip))
@@ -112,10 +119,21 @@ class Panoptic:
         # module = importlib.import_module(source)
         # return module.__path__
 
+    def update_plugin(self, name: str):
+        plugin = [p for p in self.data.plugins if p.name == name][0]
+        if plugin.type == PluginType.pip:
+            self.update_plugin_from_pip(plugin.source)
+            return True
+        path = plugin.path
+        if plugin.type == PluginType.git:
+            path = clone_repo(plugin.source, plugin.name)
+        self.update_plugin_from_path(path)
+        return True
+
     def update_plugin_from_path(self, path: str):
         path = Path(path)
         # check that the plugin is registered
-        if not any(path == p.path for p in self.data.plugins):
+        if not any(str(path) == p.path for p in self.data.plugins):
             return
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-r", os.path.join(path, 'requirements.txt')])
@@ -123,8 +141,8 @@ class Panoptic:
     def update_plugin_from_pip(self, source: str):
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", source])
 
-    def del_plugin_path(self, path: str):
-        removed = next(p for p in self.data.plugins if p.path == path)
+    def del_plugin_path(self, name: str):
+        removed = next(p for p in self.data.plugins if p.name == name)
         for project in self.data.projects:
             plugin_data_path = Path(project.path) / "plugin_data" / removed.name.lower()
             try:
@@ -136,7 +154,7 @@ class Panoptic:
                 shutil.rmtree(removed.path)
             except Exception as e:
                 print(e)
-        self.data.plugins = [p for p in self.data.plugins if p.path != path]
+        self.data.plugins = [p for p in self.data.plugins if p.name != name]
         self.save_data()
 
     def get_plugin_paths(self):

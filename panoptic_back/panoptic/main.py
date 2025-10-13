@@ -18,15 +18,12 @@ from panoptic.utils import get_base_path
 
 
 def start():
-
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
         await panoptic.close()
 
-
     panoptic = Panoptic()
-    panoptic.load_data()
 
     HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend is 8000
@@ -80,7 +77,6 @@ def start():
     # @app.on_event("shutdown")
     # async def shutdown_event():
     #     await panoptic.close()
-
 
     uvicorn.run(app, host=HOST, port=PORT)
 
