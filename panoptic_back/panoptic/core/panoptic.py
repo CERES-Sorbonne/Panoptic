@@ -27,6 +27,7 @@ class Panoptic:
         self.project: Project | None = None
 
     def load_data(self):
+        save = False
         try:
             with open(self.global_file_path, 'r') as file:
                 data = json.load(file)
