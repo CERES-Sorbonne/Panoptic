@@ -15,7 +15,7 @@ from panoptic.utils import get_datadir, convert_old_panoptic_json
 
 
 PANOPTICML_PLUGIN_PIP_NAME = 'panopticml'
-PANOPTICML_PLUGIN_RESERVED_NAME = 'panopticVision'
+PANOPTICML_PLUGIN_RESERVED_NAME = 'panopticml'
 
 class Panoptic:
     def __init__(self):
