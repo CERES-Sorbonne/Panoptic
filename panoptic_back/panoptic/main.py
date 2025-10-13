@@ -83,7 +83,8 @@ def start(test=False):
         with tempfile.TemporaryDirectory() as tmpdir:
             os.environ['PANOPTIC_DATA_DIR'] = tmpdir
             start_api()
-    start_api()
+    else:
+        start_api()
 
 if __name__ == '__main__':
     import sys
