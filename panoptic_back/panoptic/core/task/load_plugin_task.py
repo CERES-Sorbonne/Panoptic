@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,7 +14,6 @@ from panoptic.core.task.task import Task
 
 import importlib.util
 import sys
-
 
 def import_module_from_path(module_name, module_path):
     # Append the folder path to sys.path
@@ -53,6 +53,10 @@ class LoadPluginTask(Task):
             file_path = path
             if not path.endswith('__init__.py'):
                 file_path = str(Path(path) / '__init__.py')
+            module_dir = file_path if os.path.isdir(file_path) else os.path.dirname(file_path)
+            # parent_dir = os.path.dirname(module_dir)
+            # if parent_dir not in sys.path:
+            #     sys.path.insert(0, parent_dir)
             plugin_module = await self._async(import_module_from_path, name, file_path)
         project_interface = PluginProjectInterface(self.project)
         plugin = plugin_module.plugin_class(project=project_interface, plugin_path=path, name=name)

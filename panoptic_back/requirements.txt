@@ -3,7 +3,6 @@ aiosqlite
 fastapi-camelcase
 fastapi
 imagehash
-pandas
 pytesseract
 scikit-learn
 transformers
@@ -24,3 +23,4 @@ pendulum
 pytest
 torch
 faiss-cpu
+polars
