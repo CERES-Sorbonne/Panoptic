@@ -98,15 +98,7 @@ async def get_plugins_route():
 
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    name = payload.name
-    source = payload.source
-    if payload.type == PluginType.pip:
-        return panoptic.add_plugin_from_pip(source, name)
-    else:
-        path = payload.source
-        if payload.type == PluginType.git:
-            path = clone_repo(source, name)
-        return panoptic.add_plugin_from_path(path, name, source, payload.type)
+    return panoptic.add_plugin(payload.name, payload.source, payload.type)
 
 
 @selection_router.post('/plugin/update')
@@ -133,7 +125,7 @@ async def get_packages_route():
         'panoptic': panoptic_version,
         'platform': sys.platform
     }
-    base_packages = ['numpy', 'pandas', 'pydantic']
+    base_packages = ['numpy', 'polars', 'pydantic']
     plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn']
     base_package_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *base_packages])
     plugin_packages_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *plugin_packages])

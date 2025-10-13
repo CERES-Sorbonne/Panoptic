@@ -1,9 +1,10 @@
-import importlib
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
 import sys
+from importlib import metadata
 from pathlib import Path
 
 from panoptic.core.plugin import clone_repo
@@ -13,15 +14,20 @@ from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
 from panoptic.utils import get_datadir, convert_old_panoptic_json
 
 
+PANOPTICML_PLUGIN_PIP_NAME = 'panopticml'
+PANOPTICML_PLUGIN_RESERVED_NAME = 'panopticml'
+
 class Panoptic:
     def __init__(self):
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
         verify_panoptic_data()
-        self.data = self.load_data()
+        self.data = PanopticData(projects=[])
+        self.load_data()
         self.project_id = None
         self.project: Project | None = None
 
     def load_data(self):
+        save = False
         try:
             with open(self.global_file_path, 'r') as file:
                 data = json.load(file)
@@ -30,10 +36,28 @@ class Panoptic:
         except (FileNotFoundError, json.JSONDecodeError):
             loaded_data = PanopticData(projects=[])
 
+        self.data = loaded_data
         if save:
-            self.data = loaded_data
             self.save_data()
+
+        self.check_for_official_plugin()
         return loaded_data
+
+    def check_for_official_plugin(self):
+        if os.getenv("PANOPTIC_ENV", "PROD") == "DEV":
+            return
+        vision_plugin = [p for p in self.data.plugins if p.source == PANOPTICML_PLUGIN_PIP_NAME and p.type == PluginType.pip]
+        if vision_plugin:
+            return
+
+        # no ml plugin registered, check if it was already installed before
+        ml = importlib.util.find_spec(PANOPTICML_PLUGIN_PIP_NAME)
+        if ml:
+            self.data.plugins.append(PluginKey(
+                name=PANOPTICML_PLUGIN_RESERVED_NAME,
+                type=PluginType.pip,
+                path=ml.origin,
+                source=PANOPTICML_PLUGIN_PIP_NAME))
 
     def save_data(self):
         directory = os.path.dirname(self.global_file_path)
@@ -98,6 +122,18 @@ class Panoptic:
             await self.close_project()
             raise e
 
+    def add_plugin(self, name: str, source: str, ptype: PluginType):
+        for installed_plugin in self.data.plugins:
+            if installed_plugin.type == ptype and installed_plugin.source == source:
+                return
+        if ptype == PluginType.pip:
+            return self.add_plugin_from_pip(source, name)
+        else:
+            path = source
+            if ptype == PluginType.git:
+                path = clone_repo(source, name)
+            return self.add_plugin_from_path(path, name, source, ptype)
+
     def add_plugin_from_path(self, path: str, name: str, source: str, plugin_type: PluginType):
         path = Path(path)
         if any(path == p.path for p in self.data.plugins):
@@ -113,8 +149,8 @@ class Panoptic:
 
     def add_plugin_from_pip(self, source: str, name: str = None):
         name = name or source
-        self.update_plugin_from_pip(source)
-        self.data.plugins.append(PluginKey(name=name, source=source, type=PluginType.pip))
+        path = self.update_plugin_from_pip(source)
+        self.data.plugins.append(PluginKey(name=name, source=source, type=PluginType.pip, path=path))
         self.save_data()
         # module = importlib.import_module(source)
         # return module.__path__
@@ -140,6 +176,9 @@ class Panoptic:
 
     def update_plugin_from_pip(self, source: str):
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", source])
+        dist = metadata.distribution(source)
+        path = str(dist.locate_file("")) + '/' + source
+        return path
 
     def del_plugin_path(self, name: str):
         removed = next(p for p in self.data.plugins if p.name == name)
@@ -149,7 +188,7 @@ class Panoptic:
                 shutil.rmtree(plugin_data_path)
             except Exception as e:
                 print(e)
-        if removed.source:
+        if removed.type == PluginType.git:
             try:
                 shutil.rmtree(removed.path)
             except Exception as e:
