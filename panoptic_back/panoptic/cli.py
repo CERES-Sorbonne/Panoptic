@@ -12,9 +12,10 @@ PLUGIN_TYPE_CHOICES = [pt.value for pt in PluginType]
 
 
 @click.group(invoke_without_command=True)
-@click.option('--test', is_flag=True, help='Lancer en mode test')
+@click.option('--test', is_flag=True, help='Start with temp directory')
+@click.option('--install', is_flag=True, help='Install vision plugin')
 @click.pass_context
-def cli(ctx, test):
+def cli(ctx, test, install):
     """Panoptic CLI
 
     Sans arguments, lance l'API Panoptic.
@@ -25,6 +26,13 @@ def cli(ctx, test):
         click.echo("Lancement de Panoptic...")
         if test:
             click.echo("Lancement de l'API en mode test")
+        if install:
+            click.echo("Installation du plugin vision par défaut...")
+            panoptic.add_plugin(
+                name='PanopticVision',
+                source='panopticml',
+                ptype=PluginType.pip
+            )
         start_api(test=True if test else False)
 
 
