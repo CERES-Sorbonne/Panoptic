@@ -27,7 +27,7 @@ class PluginType(str, Enum):
 class PluginKey(BaseModel):
     name: str
     type: PluginType = PluginType.git
-    path: str | None = None  # will be none for pip packages
+    path: str | None = None
     source: str | None = None
 
 
