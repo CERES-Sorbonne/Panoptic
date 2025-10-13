@@ -3,7 +3,6 @@ aiosqlite
 fastapi-camelcase
 fastapi
 imagehash
-pandas
 pytesseract
 scikit-learn
 transformers
