@@ -55,7 +55,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-vision = ["panopticml"]
+vision = ["panopticml>=0.0.3"]
 
 [project.urls]
 Repository = "https://github.com/CERES-Sorbonne/panoptic"
