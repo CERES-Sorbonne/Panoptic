@@ -13,18 +13,26 @@ from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from panoptic.core.panoptic import Panoptic
+from panoptic.models import PluginType
 from panoptic.routes.project_routes import project_router
 from panoptic.routes.panoptic_routes import selection_router, set_panoptic
 from panoptic.utils import get_base_path
 
 
-def start_api():
+def start_api(install=False):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
         await panoptic.close()
 
     panoptic = Panoptic()
+
+    if install:
+        panoptic.add_plugin(
+            name='PanopticVision',
+            source='panopticml',
+            ptype=PluginType.pip
+        )
 
     HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend is 8000
@@ -78,11 +86,11 @@ def start_api():
 
     uvicorn.run(app, host=HOST, port=PORT)
 
-def start(test=False):
+def start(test=False, install=False):
     if test:
         with tempfile.TemporaryDirectory() as tmpdir:
             os.environ['PANOPTIC_DATA_DIR'] = tmpdir
-            start_api()
+            start_api(install)
     else:
         start_api()
 
