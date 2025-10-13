@@ -125,6 +125,7 @@ class Panoptic:
     def add_plugin(self, name: str, source: str, ptype: PluginType):
         for installed_plugin in self.data.plugins:
             if installed_plugin.type == ptype and installed_plugin.source == source:
+                print(f"Plugin {name} already installed", self.data.plugins)
                 return
         if ptype == PluginType.pip:
             return self.add_plugin_from_pip(source, name)

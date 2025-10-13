@@ -28,12 +28,7 @@ def cli(ctx, test, install):
             click.echo("Lancement de l'API en mode test")
         if install:
             click.echo("Installation du plugin vision par défaut...")
-            panoptic.add_plugin(
-                name='PanopticVision',
-                source='panopticml',
-                ptype=PluginType.pip
-            )
-        start_api(test=True if test else False)
+        start_api(test=True if test else False, install=True if install else False)
 
 
 @cli.group()
