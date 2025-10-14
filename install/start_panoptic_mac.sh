@@ -35,7 +35,7 @@ uv pip install pip
 # Vérifier si panoptic est installé
 if ! uv pip show panoptic &> /dev/null; then
     echo "Panoptic n'est pas installé. Installation en cours..."
-    uv pip install panoptic
+    uv pip install panoptic==0.5.5
 else
     echo "Panoptic est installé. Vérification des mises à jour..."
     LATEST_VERSION=$(uvx pip index versions panoptic | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
