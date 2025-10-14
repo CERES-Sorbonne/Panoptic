@@ -1,4 +1,5 @@
 import os
+import tempfile
 import traceback
 import webbrowser
 from contextlib import asynccontextmanager
@@ -12,21 +13,26 @@ from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from panoptic.core.panoptic import Panoptic
+from panoptic.models import PluginType
 from panoptic.routes.project_routes import project_router
 from panoptic.routes.panoptic_routes import selection_router, set_panoptic
 from panoptic.utils import get_base_path
 
 
-def start():
-
+def start_api(install=False):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
         await panoptic.close()
 
-
     panoptic = Panoptic()
-    panoptic.load_data()
+
+    if install:
+        panoptic.add_plugin(
+            name='PanopticVision',
+            source='panopticml',
+            ptype=PluginType.pip
+        )
 
     HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend is 8000
@@ -77,13 +83,18 @@ def start():
     if not os.environ.get('REMOTE'):
         webbrowser.open(front_url)
 
-    # @app.on_event("shutdown")
-    # async def shutdown_event():
-    #     await panoptic.close()
-
 
     uvicorn.run(app, host=HOST, port=PORT)
 
+def start(test=False, install=False):
+    if test:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.environ['PANOPTIC_DATA_DIR'] = tmpdir
+            start_api(install)
+    else:
+        start_api()
 
 if __name__ == '__main__':
-    start()
+    import sys
+    start(sys.argv[1]=="test")
+

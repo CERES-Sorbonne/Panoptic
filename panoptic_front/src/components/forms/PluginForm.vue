@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ModalId, PluginAddPayload } from '@/data/models';
+import { ModalId, PluginAddPayload, PluginType } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { computed, nextTick, ref } from 'vue';
 
@@ -14,6 +14,7 @@ defineExpose({
 const mode = ref('github')
 const gitUrl = ref('')
 const localPath = ref('')
+const pipPath = ref('')
 const pluginName = ref('')
 const isLoading = ref(false)
 
@@ -24,7 +25,7 @@ const isNameValid = computed(() => {
     return true
 })
 
-const showName = computed(() => (mode.value == "github" && gitUrl.value.length > 0) || (mode.value == "local" && localPath.value.length > 0))
+const showName = computed(() => (mode.value == "github" && gitUrl.value.length > 0) || (mode.value == "local" && localPath.value.length > 0) || (mode.value == "pip"))
 const showLoad = computed(() => showName.value && isNameValid.value)
 
 const helpMessage = computed(() => {
@@ -66,9 +67,19 @@ function onNameFocus() {
 async function load() {
     isLoading.value = true
     await nextTick()
-    const plugin: PluginAddPayload = { pluginName: pluginName.value }
-    if (mode.value == 'github') plugin.gitUrl = gitUrl.value
-    if (mode.value == 'local') plugin.path = localPath.value
+    const plugin: PluginAddPayload = { name: pluginName.value , source: "", type: PluginType.LOCAL}
+    if (mode.value == 'github'){
+        plugin.source = gitUrl.value
+        plugin.type = PluginType.GIT
+    }
+    if (mode.value == 'local'){
+        plugin.source = localPath.value
+        plugin.type = PluginType.LOCAL
+    }
+    if (mode.value == 'pip') {
+        plugin.source = pipPath.value
+        plugin.type = PluginType.PIP
+    }
     await panoptic.addPlugin(plugin)
     isLoading.value = false
     emits('cancel')
@@ -86,6 +97,7 @@ function setPanopticMl() {
     <div>
         <div style="font-size: 20px;" class="mb-1">
             <i class="bi bi-github rounded bbb me-1" :class="mode == 'github' ? 'selected' : ''" @click="mode = 'github'" />
+            <i class="bi bi-boxes rounded bbb me-1" :class="mode == 'pip' ? 'selected' : ''" @click="mode = 'pip'" />
             <i class="bi bi-folder rounded bbb me-1" :class="mode == 'local' ? 'selected' : ''"
                 @click="mode = 'local'" />
         </div>
@@ -105,6 +117,17 @@ function setPanopticMl() {
             <input type="url" v-model="localPath" placeholder="Folder path" style="width: 180px;" />
             <input v-if="showName" v-model="pluginName" type="text" placeholder="plugin unique name"
                 style="width: 150px;" class="ms-2" />
+            <div v-if="showLoad" class="bbb ms-2" @click="load">{{ $t('main.home.plugins.install') }}</div>
+            <div v-if="isLoading" style="position: relative; top: 7px"
+                class="spinner-border spinner-border-sm text-primary ms-1" role="status">
+                <span class="visually-hidden">{{ $t('main.home.plugins.load') }}</span>
+            </div>
+        </div>
+        <div v-if="mode == 'pip'" class="d-flex">
+            <i class="bi bi-boxes me-2 ms-1" style="font-size: 19px;" />
+            <input type="url" v-model="pipPath" placeholder="Enter name of the python package" style="width: 250px;" />
+            <input v-if="showName" v-model="pluginName" type="text" placeholder="plugin unique name"
+                style="width: 150px;" class="ms-2" @focus="onNameFocus" />
             <div v-if="showLoad" class="bbb ms-2" @click="load">{{ $t('main.home.plugins.install') }}</div>
             <div v-if="isLoading" style="position: relative; top: 7px"
                 class="spinner-border spinner-border-sm text-primary ms-1" role="status">

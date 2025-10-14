@@ -10,8 +10,9 @@ from pydantic import BaseModel
 
 from panoptic import __version__ as panoptic_version
 from panoptic.core.panoptic import Panoptic
-from panoptic.core.plugin import add_plugin_from_git
-from panoptic.models import AddPluginPayload, IgnoredPluginPayload
+from panoptic.core.plugin import clone_repo
+from panoptic.models import AddPluginPayload, IgnoredPluginPayload, PluginType, UpdatePluginPayload
+from panoptic.routes.project_routes import PathRequest
 
 selection_router = APIRouter()
 
@@ -44,7 +45,7 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 
 
 @selection_router.post("/load")
-async def load_project_route(path: AddPluginPayload):
+async def load_project_route(path: PathRequest):
     res = await panoptic.load_project(path.path)
     if res:
         return await get_status_route()
@@ -58,7 +59,7 @@ async def close_project():
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: AddPluginPayload):
+async def delete_project_route(req: PathRequest):
     panoptic.remove_project(req.path)
     return await get_status_route()
 
@@ -70,7 +71,7 @@ async def create_project_route(req: ProjectRequest):
 
 
 @selection_router.post("/import_project")
-async def import_project_route(req: AddPluginPayload):
+async def import_project_route(req: PathRequest):
     await panoptic.import_project(req.path)
     return await get_status_route()
 
@@ -97,30 +98,23 @@ async def get_plugins_route():
 
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    # TODO: add github parameter
-    path = payload.path
-    if payload.git_url:
-        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    return panoptic.add_plugin_path(path, payload.plugin_name, payload.git_url)
+    return panoptic.add_plugin(payload.name, payload.source, payload.type)
 
 
 @selection_router.post('/plugin/update')
-async def update_plugin_route(payload: AddPluginPayload):
-    path = payload.path
-    if payload.git_url:
-        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    panoptic.update_plugin(path)
-    return True
+async def update_plugin_route(payload: UpdatePluginPayload):
+    return panoptic.update_plugin(payload.name)
 
 
 @selection_router.delete('/plugins')
-async def del_plugins_route(path: str):
-    return panoptic.del_plugin_path(path)
+async def del_plugins_route(name: str):
+    return panoptic.del_plugin_path(name)
 
 
 @selection_router.get('/version')
 async def get_version_route():
     return panoptic_version
+
 
 @selection_router.get('/packages')
 async def get_packages_route():
@@ -131,12 +125,14 @@ async def get_packages_route():
         'panoptic': panoptic_version,
         'platform': sys.platform
     }
-    base_packages = ['numpy', 'pandas', 'pydantic']
+    base_packages = ['numpy', 'polars', 'pydantic']
     plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn']
     base_package_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *base_packages])
     plugin_packages_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *plugin_packages])
-    base_package_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in base_package_versions.split(b'Version:')[1:]]
-    plugin_packages_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in plugin_packages_versions.split(b'Version:')[1:]]
+    base_package_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in
+                             base_package_versions.split(b'Version:')[1:]]
+    plugin_packages_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in
+                                plugin_packages_versions.split(b'Version:')[1:]]
 
     for index, base_package in enumerate(base_packages):
         res['panopticPackages'][base_package] = base_package_versions[index]
@@ -144,6 +140,7 @@ async def get_packages_route():
         for index, plugin_package in enumerate(plugin_packages):
             res['pluginPackages'][plugin_package] = plugin_packages_versions[index]
     return res
+
 
 def images_in_folder(folder_path):
     types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types

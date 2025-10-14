@@ -5,7 +5,7 @@ import os
 import shutil
 from typing import List, TYPE_CHECKING
 
-import pandas as pd
+import polars as pl
 
 from panoptic.utils import get_local_paths
 
@@ -71,7 +71,7 @@ class Exporter:
         if properties:
             data_file_path = os.path.join(export_folder, 'data.csv')
             df = await self._build_export_data(instances, properties, key)
-            df.to_csv(data_file_path, index=False, sep=";")
+            df.write_csv(data_file_path, separator=";")
 
         if copy_images:
             # Create a folder for images and copy them
@@ -124,5 +124,5 @@ class Exporter:
                 else:
                     row.append('')
             rows.append(row)
-        df = pd.DataFrame.from_records(rows, columns=columns)
+        df = pl.from_records(rows, schema=columns)
         return df
