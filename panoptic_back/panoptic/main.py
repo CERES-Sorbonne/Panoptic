@@ -3,10 +3,8 @@ import tempfile
 import traceback
 import webbrowser
 from contextlib import asynccontextmanager
-
 import uvicorn
 from fastapi import FastAPI
-from starlette.exceptions import HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -14,8 +12,8 @@ from starlette.staticfiles import StaticFiles
 
 from panoptic.core.panoptic import Panoptic
 from panoptic.models import PluginType
-from panoptic.routes.project_routes import project_router
 from panoptic.routes.panoptic_routes import selection_router, set_panoptic
+from panoptic.routes.project_routes import project_router
 from panoptic.utils import get_base_path
 
 
@@ -95,6 +93,6 @@ def start(test=False, install=False):
         start_api()
 
 if __name__ == '__main__':
-    import sys
-    start(sys.argv[1]=="test")
+    # start(sys.argv[1]=="test")
+    start()
 
