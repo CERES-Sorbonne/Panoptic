@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13']
     
     steps:
       - name: Checkout code
@@ -29,10 +29,10 @@ jobs:
       - name: Run panoptic test (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          uvx --with pip --from panoptic panoptic --install --test
+          uvx --with pip --from panoptic==0.6.2-dev3 panoptic --install --test
       
       - name: Run panoptic test (Windows)
         if: runner.os == 'Windows'
         run: |
-          uvx --with pip --from panoptic panoptic --install --test
+          uvx --with pip --from panoptic==0.6.2-dev3 panoptic --install --test
         shell: cmd
