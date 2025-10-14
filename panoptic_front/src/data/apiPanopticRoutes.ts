@@ -19,6 +19,7 @@ panopticApi.interceptors.request.use(config => {
         config.params = config.params || {};
         config.params.connection_id = panoptic.clientState.connectionId;
     }
+    console.log(config)
     return config
 })
 
@@ -109,8 +110,8 @@ export async function apiDelPlugin(path: string) {
     return res.data as string[]
 }
 
-export async function apiUpdatePlugin(data: PluginAddPayload) {
-    let res = await panopticApi.post('/plugin/update', data)
+export async function apiUpdatePlugin(name: string) {
+    let res = await panopticApi.post('/plugin/update', {name})
     return res.data as boolean
 }
 

@@ -18,14 +18,13 @@ async function updatePlugin() {
     isUpdateSucess.value = false
     await nextTick()
     try {
-        let res = await panoptic.updatePlugin(props.plugin)
+        let res = await panoptic.updatePlugin(props.plugin.name)
         isUpdateSucess.value = res
     }
     catch {
     }
     isUpdating.value = false
 }
-
 </script>
 
 <template>
@@ -40,7 +39,7 @@ async function updatePlugin() {
         </template>
         <template #popup>
             <div class="p-2">
-                <div class="bb" @click="panoptic.delPlugin(props.plugin.path)">
+                <div class="bb" @click="panoptic.delPlugin(props.plugin.name)">
                     <i class="bi bi-trash me-1" /> {{ $t('plugin.remove') }}
                 </div>
                 <div class="bb" @click="updatePlugin">
@@ -50,21 +49,21 @@ async function updatePlugin() {
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <i v-if="isUpdateSucess" class="bi bi-check2 text-success me-1"></i>
-                    <span v-if="props.plugin.sourceUrl">{{ $t('plugin.update') }}</span>
+                    <span v-if="props.plugin.source">{{ $t('plugin.update') }}</span>
                     <span v-else>{{ $t('plugin.update_local') }}</span>
                 </div>
 
                 <div class="custom-hr mt-1 mb-1" />
                 <div style="max-width: 200px; word-break: break-all;">
-                    <div>
+                    <div v-if="plugin.path">
                         <span>{{ $t('plugin.path') }}</span>
                         <br />
                         <span class="text-secondary">{{ plugin.path }}</span>
                     </div>
-                    <div v-if="plugin.sourceUrl">
+                    <div v-if="plugin.source">
                         <span>{{ $t('plugin.source') }}</span>
                         <br />
-                        <span class="text-secondary">{{ plugin.sourceUrl }}</span>
+                        <span class="text-secondary">{{ plugin.type }} {{ plugin.source }}</span>
                     </div>
                 </div>
             </div>

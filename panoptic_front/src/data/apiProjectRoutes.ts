@@ -1,5 +1,9 @@
+/**
+ * Fichier servant à regrouper les fonctions permettant de communiquer avec le serveur
+ */
+
 import axios from 'axios'
-import { usePanopticStore } from './panopticStore'
+import { PluginKey, usePanopticStore } from './panopticStore'
 import {
     DbCommit,
     Tag,
@@ -17,7 +21,8 @@ import {
     LoadResult,
     VectorType,
     VectorStats,
-    ProjectState
+    ProjectState,
+    PluginAddPayload
 } from './models'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -145,6 +150,26 @@ export const apiExportProperties = async (name?: string, images?: number[], key?
 export async function apiReImportFolder(folderId: number) {
     let res = await projectApi.post('/reimport_folder', { id: folderId })
     return res.data
+}
+
+export async function apiGetPlugins() {
+    let res = await axios.get('/plugins')
+    return keysToCamel(res.data) as PluginKey[]
+}
+
+export async function apiAddPlugin(payload: PluginAddPayload) {
+    let res = await axios.post('/plugins', payload)
+    return res.data as string[]
+}
+
+export async function apiDelPlugin(name: string) {
+    let res = await axios.delete('/plugins', { params: { name } })
+    return res.data as string[]
+}
+
+export async function apiUpdatePlugin(name: string) {
+    let res = await axios.post('/plugin/update', {name})
+    return res.data as boolean
 }
 
 export async function apiGetPluginsInfo() {

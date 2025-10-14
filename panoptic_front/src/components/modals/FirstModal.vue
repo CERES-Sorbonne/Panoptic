@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ModalId, PluginAddPayload } from '@/data/models';
+import { ModalId, PluginAddPayload, PluginType } from '@/data/models';
 import Modal from './Modal.vue';
 import { computed, nextTick, ref } from 'vue';
 import { usePanopticStore } from '@/data/panopticStore';
@@ -15,7 +15,7 @@ const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p =
 async function installPlugin() {
     isLoadingPlugin.value = true
     await nextTick()
-    const plugin: PluginAddPayload = { pluginName: 'PanopticML', gitUrl: 'https://github.com/CERES-Sorbonne/PanopticML' }
+    const plugin: PluginAddPayload = { name: 'PanopticML', source: 'https://github.com/CERES-Sorbonne/PanopticML', type: PluginType.GIT }
     await panoptic.addPlugin(plugin)
     isLoadingPlugin.value = false
 }
