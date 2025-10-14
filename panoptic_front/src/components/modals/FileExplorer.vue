@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
 
-import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/apiPanopticRoutes';
+import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, SERVER_PREFIX } from '@/data/apiPanopticRoutes';
 import { DirInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';
@@ -159,7 +159,7 @@ onUpdated(() => {
                 </div>
                 <div class="image-list flex-shrink-0 bg-white">
                     <div v-for="img in imageList">
-                        <img :src="'http://localhost:8000/images/' + img" class="mini" />
+                        <img :src="SERVER_PREFIX + '/images/' + img" class="mini" />
                     </div>
                 </div>
             </div>
