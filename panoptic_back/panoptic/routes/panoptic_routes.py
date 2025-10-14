@@ -7,9 +7,13 @@ import sys
 import psutil
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+from sys import platform
+
+from starlette.responses import FileResponse
 
 from panoptic.core.panoptic_server import PanopticServer
-from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload
+from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload, \
+    DeleteProjectPayload
 from panoptic.models import CloseProjectRequest
 
 selection_router = APIRouter()
@@ -63,7 +67,7 @@ async def close_project(req: CloseProjectRequest, request: Request):
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: AddPluginPayload):
+async def delete_project_route(req: DeleteProjectPayload):
     await server.remove_project(req.path)
     return await get_panoptic_state()
 
@@ -76,7 +80,7 @@ async def create_project_route(req: ProjectRequest, request: Request):
 
 
 @selection_router.post("/import_project")
-async def import_project_route(req: AddPluginPayload):
+async def import_project_route(req: LoadProjectPayload):
     await server.import_project(req.path)
     return await get_panoptic_state()
 
@@ -115,6 +119,12 @@ async def update_plugin_route(payload: UpdatePluginPayload):
 async def del_plugins_route(name: str):
     return server.panoptic.del_plugin_path(name)
 
+@selection_router.get('/images/{file_path:path}')
+async def get_image(file_path: str):
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        if not file_path.startswith('/'):
+            file_path = '/' + file_path
+    return FileResponse(path=file_path)
 
 
 @selection_router.get('/packages')

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from dataclasses import asdict, is_dataclass
-from sys import platform
 from time import time
 from typing import Optional
 
@@ -134,15 +133,6 @@ async def import_confirm_route(project: Project = Depends(get_project_from_id)):
 async def export_properties_route(req: ExportPropertiesPayload, project: Project = Depends(get_project_from_id)):
     await project.export_data(req.name, req.images, req.properties, req.export_images, req.key)
     return True
-
-
-@project_router.get('/images/{file_path:path}')
-async def get_image(file_path: str, project: Project = Depends(get_project_from_id)):
-    if platform == "linux" or platform == "linux2" or platform == "darwin":
-        if not file_path.startswith('/'):
-            file_path = '/' + file_path
-    return FileResponse(path=file_path)
-
 
 @project_router.get("/history")
 async def get_history_route(project: Project = Depends(get_project_from_id)):

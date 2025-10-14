@@ -19,7 +19,6 @@ panopticApi.interceptors.request.use(config => {
         config.params = config.params || {};
         config.params.connection_id = panoptic.clientState.connectionId;
     }
-    console.log(config)
     return config
 })
 

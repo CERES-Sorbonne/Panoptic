@@ -263,6 +263,9 @@ class Tab(BaseModel):
 class LoadProjectPayload(CamelModel):
     path: str
 
+class DeleteProjectPayload(CamelModel):
+    path: str
+
 class AddPluginPayload(CamelModel):
     type: PluginType
     source: str
