@@ -1,0 +1,38 @@
+name: Test Panoptic Installation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-panoptic:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      
+      - name: Install uv
+        run: |
+          pip install uv
+      
+      - name: Run panoptic test (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          uvx --with pip --from panoptic panoptic --install --test
+      
+      - name: Run panoptic test (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          uvx --with pip --from panoptic panoptic --install --test
+        shell: cmd
