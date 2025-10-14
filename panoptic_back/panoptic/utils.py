@@ -341,3 +341,25 @@ def separate_ids(objs: List[T]) -> Tuple[List[T], List[T]]:
     valid = [o for o in objs if o.id >= 0]
     new = [o for o in objs if o.id < 0]
     return new, valid
+
+
+def convert_old_panoptic_json(data):
+    save = False
+    if 'version' not in data:
+        save = True
+        data['version'] = 1
+        if 'plugins' in data:
+            for i in range(len(data['plugins'])):
+                plugin = data['plugins'][i]
+                type_ = 'git'
+                if not plugin['source_url']:
+                    type_ = 'local'
+                p = {
+                    'name': plugin['name'],
+                    'source': plugin['source_url'],
+                    'path': plugin['path'],
+                    'type': type_
+                }
+                data['plugins'][i] = p
+    return data, save
+
