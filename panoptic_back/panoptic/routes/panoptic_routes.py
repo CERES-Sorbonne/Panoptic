@@ -8,10 +8,9 @@ import psutil
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from panoptic.core.panoptic import Panoptic
 from panoptic.core.panoptic_server import PanopticServer
-from panoptic.core.plugin import add_plugin_from_git
-from panoptic.models import AddPluginPayload, IgnoredPluginPayload, CloseProjectRequest
+from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload
+from panoptic.models import CloseProjectRequest
 
 selection_router = APIRouter()
 
@@ -37,16 +36,6 @@ class ProjectRequest(BaseModel):
     path: str
     name: str
 
-
-# @selection_router.get("/status")
-# async def get_status_route():
-#     return {
-#         'isLoaded': panoptic.is_loaded(),
-#         'selectedProject': panoptic.project_id,
-#         'projects': panoptic.data.projects,
-#         'ignoredPlugins': panoptic.data.ignored_plugins
-#     }
-
 @selection_router.get('/panoptic_state')
 async def get_panoptic_state():
     return await server.panoptic.get_state()
@@ -58,7 +47,7 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 
 
 @selection_router.post("/load")
-async def load_project_route(path: AddPluginPayload, request: Request):
+async def load_project_route(path: LoadProjectPayload, request: Request):
     connection_id = request.query_params.get('connection_id')
     print(connection_id)
     res = await server.load_project(path.path, connection_id)
@@ -114,25 +103,18 @@ async def get_plugins_route():
 
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    # TODO: add github parameter
-    path = payload.path
-    if payload.git_url:
-        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    return server.panoptic.add_plugin_path(path, payload.plugin_name, payload.git_url)
+    return server.panoptic.add_plugin(payload.name, payload.source, payload.type)
 
 
 @selection_router.post('/plugin/update')
-async def update_plugin_route(payload: AddPluginPayload):
-    path = payload.path
-    if payload.git_url:
-        path = add_plugin_from_git(payload.git_url, payload.plugin_name)
-    server.panoptic.update_plugin(path)
-    return True
+async def update_plugin_route(payload: UpdatePluginPayload):
+    return server.panoptic.update_plugin(payload.name)
 
 
 @selection_router.delete('/plugins')
-async def del_plugins_route(path: str):
-    return server.panoptic.del_plugin_path(path)
+async def del_plugins_route(name: str):
+    return server.panoptic.del_plugin_path(name)
+
 
 
 @selection_router.get('/packages')
@@ -144,7 +126,7 @@ async def get_packages_route():
         'panoptic': server.panoptic.version,
         'platform': sys.platform
     }
-    base_packages = ['numpy', 'pandas', 'pydantic']
+    base_packages = ['numpy', 'polars', 'pydantic']
     plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn']
     base_package_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *base_packages])
     plugin_packages_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *plugin_packages])

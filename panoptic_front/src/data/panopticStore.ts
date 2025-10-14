@@ -15,7 +15,7 @@ import {
 } from "./apiPanopticRoutes"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { ModalId, Notif, PanopticClientState, PanopticServerState, PluginAddPayload } from "./models"
+import { ModalId, Notif, PanopticClientState, PanopticServerState, PluginAddPayload, PluginType } from "./models"
 import { useModalStore } from "./modalStore"
 
 
@@ -28,8 +28,9 @@ export interface Project {
 
 export interface PluginKey {
     name: string
-    path: string
-    sourceUrl?: string
+    source: string
+    type: PluginType
+    path?: string
 }
 
 
@@ -124,23 +125,19 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modal.closeModal(id)
     }
 
-    async function addPlugin(plugin: PluginAddPayload) {
+async function addPlugin(plugin: PluginAddPayload) {
         if (!plugin) return
         await apiAddPlugin(plugin)
-        const state = await apiGetPanopticState()
+        // data.plugins = await apiGetPlugins()
     }
 
-    async function delPlugin(path) {
-        await apiDelPlugin(path)
-        const state = await apiGetPanopticState()
+    async function delPlugin(name: string) {
+        await apiDelPlugin(name)
+        // data.plugins = await apiGetPlugins()
     }
 
-    async function updatePlugin(data: PluginKey) {
-       const res = await apiUpdatePlugin({
-        pluginName: data.name,
-        gitUrl: data.sourceUrl,
-        path: data.path
-       })
+    async function updatePlugin(name: string) {
+       const res = await apiUpdatePlugin(name) 
        return res
     }
 

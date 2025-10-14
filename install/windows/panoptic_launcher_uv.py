@@ -42,7 +42,9 @@ if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
     with_cuda = input(
         "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme: (O/N").strip().lower()
     if with_cuda == 'o':
-        run_command("uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+        run_command("uv pip install torch torchvision --torch-backend=auto")
+    print("Installation du plugin de similarité panopticml")
+    run_command("uv run panoptic plugins add vision")
 
 # Vérifier si panoptic est obsolète
 outdated = run_command("uv pip list --outdated", capture_output=True).stdout

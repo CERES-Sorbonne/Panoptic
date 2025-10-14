@@ -4,7 +4,7 @@ from dataclasses import dataclass, field, replace
 from random import randint
 from typing import TYPE_CHECKING
 
-import pandas as pd
+import polars as pl
 
 from panoptic.core.importer.parsing import parser
 from panoptic.utils import RelativePathTrie
@@ -107,7 +107,7 @@ def extract_key(columns):
 class Importer:
     def __init__(self, project: Project):
         self.project = project
-        self._df: pd.DataFrame | None = None
+        self._df: pl.DataFrame | None = None
         self._data: ImportData | None = None
 
     async def upload_csv(self, file: str):
@@ -115,8 +115,8 @@ class Importer:
         col_to_prop: dict[int, Property] = {}
 
         try:
-            file_data = pd.read_csv(file, delimiter=';', encoding='utf-8', keep_default_na=False, dtype=str)
-        except pd.errors.ParserError:
+            file_data = pl.read_csv(file, separator=';', encoding='utf-8', null_values=[],infer_schema=False)
+        except pl.exceptions.PolarsError:
             errors[0] = UploadError.invalid_csv
             return UploadConfirm(key="", col_to_property=col_to_prop, errors=errors)
 

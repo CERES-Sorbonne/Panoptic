@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 
 from panoptic.models import PropertyType
 
@@ -14,13 +14,13 @@ def parse_number(value):
         value = float(value)
     else:
         value = int(value)
-    if pd.isna(value):
-        return None
+    # if pl(value):
+    #     return None
     return value
 
 
 def parse_tags(value):
-    if value is None or value == '' or pd.isnull(value):
+    if value is None or value == '': # or pl.isnull(value):
         return None
     return value.split(',')
 

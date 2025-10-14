@@ -1,8 +1,8 @@
 import os
+import tempfile
 import traceback
 import webbrowser
 from contextlib import asynccontextmanager
-
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -15,19 +15,26 @@ from panoptic.core.panoptic import Panoptic
 from panoptic.core.panoptic_server import PanopticServer
 from panoptic.routes.panoptic_routes import selection_router, set_server
 from panoptic.routes.project_routes import project_router
+from panoptic.models import PluginType
+from panoptic.routes.panoptic_routes import selection_router
+from panoptic.routes.project_routes import project_router
 from panoptic.utils import get_base_path
 
 
-def start():
-
+def start_api(install=False):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
         await panoptic.close()
 
-
     panoptic = Panoptic()
-    panoptic.load_data()
+
+    if install:
+        panoptic.add_plugin(
+            name='PanopticVision',
+            source='panopticml',
+            ptype=PluginType.pip
+        )
 
     HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend is 8000
@@ -35,7 +42,7 @@ def start():
 
     # FastAPI setup
     app = FastAPI(lifespan=lifespan)
-    
+
     server = PanopticServer(panoptic)
     sio_app = socketio.ASGIApp(server.sio)
     app.mount("/socket.io", sio_app)
@@ -84,13 +91,18 @@ def start():
     if os.environ.get('SERVER_MODE'):
         server.ask_users = True
 
-    # @app.on_event("shutdown")
-    # async def shutdown_event():
-    #     await panoptic.close()
-
 
     uvicorn.run(app, host=HOST, port=PORT)
 
+def start(test=False, install=False):
+    if test:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.environ['PANOPTIC_DATA_DIR'] = tmpdir
+            start_api(install)
+    else:
+        start_api()
 
 if __name__ == '__main__':
+    # start(sys.argv[1]=="test")
     start()
+

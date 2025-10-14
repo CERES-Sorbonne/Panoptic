@@ -446,3 +446,25 @@ class AsyncAdaptiveBuffer(Generic[T]):
                 to_flush = self.buffer[:]
                 self.buffer.clear()
                 await self.on_flush(to_flush)
+
+
+def convert_old_panoptic_json(data):
+    save = False
+    if 'version' not in data:
+        save = True
+        data['version'] = 1
+        if 'plugins' in data:
+            for i in range(len(data['plugins'])):
+                plugin = data['plugins'][i]
+                type_ = 'git'
+                if not plugin['source_url']:
+                    type_ = 'local'
+                p = {
+                    'name': plugin['name'],
+                    'source': plugin['source_url'],
+                    'path': plugin['path'],
+                    'type': type_
+                }
+                data['plugins'][i] = p
+    return data, save
+

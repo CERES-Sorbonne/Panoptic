@@ -7,7 +7,7 @@ name = "panoptic"
 dynamic = ["version"]
 description = 'Explore and analyze large datasets of images'
 readme = "../README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MPL-2.0"
 keywords = [
     "Data visualization",
@@ -40,7 +40,7 @@ dependencies = [
     "fastapi-camelcase",
     "numpy",
     "orjson",
-    "pandas",
+    "polars",
     "psutil",
     "pydantic",
     "pypika",
@@ -54,6 +54,9 @@ dependencies = [
     "pillow"
 ]
 
+[project.optional-dependencies]
+vision = ["panopticml>=0.0.3"]
+
 [project.urls]
 Repository = "https://github.com/CERES-Sorbonne/panoptic"
 Documentation = "https://github.com/CERES-Sorbonne/panoptic#readme"
@@ -61,7 +64,7 @@ Issues = "https://github.com/CERES-Sorbonne/panoptic/issues"
 "Lab's website" = "https://ceres.sorbonne-universite.fr/"
 
 [project.scripts]
-panoptic = "panoptic.main:start"
+panoptic = "panoptic.cli:cli"
 
 [tool.hatch.version]
 path = "panoptic/__init__.py"
