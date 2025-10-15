@@ -53,7 +53,7 @@ class Exporter:
     def __init__(self, project: Project):
         self.project = project
 
-    async def export_data(self, path, name: str = None, instance_ids: [int] = None, properties=None,
+    async def export_data(self, path, name: str = None, instance_ids: list[int] = None, properties=None,
                           copy_images: bool = False, key: str = 'id') -> str:
         if not name:
             name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -80,7 +80,7 @@ class Exporter:
 
         return export_folder
 
-    async def _build_export_data(self, images: [Instance], properties_list: list[int], key: str):
+    async def _build_export_data(self, images: list[Instance], properties_list: list[int], key: str):
         """
         Allow to export selected images and properties into a csv file
         """
@@ -120,9 +120,9 @@ class Exporter:
                     elif prop.type == PropertyType.folder:
                         row.append(folder_index[value].name)
                     else:
-                        row.append(value)
+                        row.append(str(value))
                 else:
-                    row.append('')
+                    row.append(None)
             rows.append(row)
         df = pl.from_records(rows, schema=columns)
         return df
