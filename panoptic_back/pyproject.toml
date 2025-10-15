@@ -51,7 +51,8 @@ dependencies = [
     "uvicorn",
     "pendulum",
     "imagehash",
-    "pillow"
+    "pillow",
+    "python-socketio"
 ]
 
 [project.optional-dependencies]
