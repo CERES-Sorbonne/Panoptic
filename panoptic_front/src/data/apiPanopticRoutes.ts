@@ -104,8 +104,8 @@ export async function apiAddPlugin(payload: PluginAddPayload) {
     return res.data as string[]
 }
 
-export async function apiDelPlugin(path: string) {
-    let res = await panopticApi.delete('/plugins', { params: { path } })
+export async function apiDelPlugin(name: string) {
+    let res = await panopticApi.delete('/plugins', { params: { name } })
     return res.data as string[]
 }
 
