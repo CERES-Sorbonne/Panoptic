@@ -158,7 +158,7 @@ export const useActionStore = defineStore('actionStore', () => {
                 }
                 if (param.type == 'own_vector_type') {
                     const source = sourceFromFunction(funcName)
-                    let first = data.vectorTypes.find(v => v.source = source)
+                    let first = data.vectorTypes.find(v => v.source == source)
                     if (first) {
                         baseValue = first
                     }
