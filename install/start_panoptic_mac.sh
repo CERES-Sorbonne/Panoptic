@@ -35,7 +35,8 @@ uv pip install pip
 # Vérifier si panoptic est installé
 if ! uv pip show panoptic &> /dev/null; then
     echo "Panoptic n'est pas installé. Installation en cours..."
-    uv pip install panoptic==0.5.5
+    uv pip install panoptic
+    uv pip install torch==2.1.0
 else
     echo "Panoptic est installé. Vérification des mises à jour..."
     LATEST_VERSION=$(uvx pip index versions panoptic | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
@@ -47,6 +48,6 @@ else
         fi
     fi
 fi
-
+uv run panoptic plugins add vision
 # Lancer Panoptic
 uv run panoptic
