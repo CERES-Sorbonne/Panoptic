@@ -140,7 +140,7 @@ class Panoptic:
         project = None
         self.save_data()
         try:
-            proj = next(p for p in self.data.projects if str(p.path) == str(path))
+            proj = next(p for p in self.data.projects if Path(p.path) == Path(path))
             project_id = proj.id
             if project_id is None:
                 raise ValueError(f'project path {path} not found')
