@@ -11,7 +11,8 @@ import {
     apiSetIgnoredPlugin,
     apiUpdatePlugin,
     apiGetPackagesInfo,
-    apiGetPanopticState
+    apiGetPanopticState,
+    apiGetPlugins
 } from "./apiPanopticRoutes"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
@@ -128,12 +129,12 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 async function addPlugin(plugin: PluginAddPayload) {
         if (!plugin) return
         await apiAddPlugin(plugin)
-        // data.plugins = await apiGetPlugins()
+        serverState.value.plugins = await apiGetPlugins()
     }
 
     async function delPlugin(name: string) {
         await apiDelPlugin(name)
-        // data.plugins = await apiGetPlugins()
+        serverState.value.plugins = await apiGetPlugins()
     }
 
     async function updatePlugin(name: string) {

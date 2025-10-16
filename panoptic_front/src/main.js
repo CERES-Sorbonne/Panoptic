@@ -10,7 +10,7 @@ import App from './App.vue'
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
 import "bootstrap"
-import '@/assets/customize.scss'
+// import '@/assets/customize.scss'
 import '@vueform/toggle/themes/default.css'
 import 'vue3-tour/dist/vue3-tour.css'
 // import './components/vuefinder/dist/style.css'

@@ -30,8 +30,8 @@ function initValues() {
     localValue.value = props.input.defaultValue
 }
 
-function vector_name(vectorType: VectorType) {
-    return '' + vectorType.id + ' ' + vectorType.source + '.' + Object.keys(vectorType.params).map(k => k + '_' + vectorType.params[k]).join('_')
+function vectorName(vectorType: VectorType) {
+    return '' + vectorType.id + ' ' + vectorType.source + '.' + Object.keys(vectorType.params).filter(k => vectorType.params[k]).map(k => k + '_' + vectorType.params[k]).join('_')
 }
 
 watch(() => props.input.defaultValue, () => localValue.value = props.input.defaultValue)
@@ -84,14 +84,14 @@ onMounted(initValues)
             </div>
             <div v-if="props.input.type == 'vector_type'">
                 <select v-model="localValue" style="max-width: 200px;">
-                    <option v-for="v in data.vectorTypes" :value="v">{{ vector_name(v) }}</option>
+                    <option v-for="v in data.vectorTypes" :value="v">{{ vectorName(v) }}</option>
                 </select>
             </div>
 
             <div v-if="props.input.type == 'own_vector_type'">
                 <select v-model="localValue" style="max-width: 200px;">
                     <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
-                        vector_name(v) }}</option>
+                        vectorName(v) }}</option>
                 </select>
             </div>
 
