@@ -17,7 +17,7 @@ class Task:
         self._executor = executor
 
     def get_id(self):
-        return str(self.__class__)
+        return self.key
 
     async def _async(self, function, *args):
         """

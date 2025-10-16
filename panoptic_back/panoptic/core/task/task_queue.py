@@ -55,6 +55,7 @@ class TaskQueue:
         state.remain += 1
 
         self.counters[task.key] += 1
+        self.on_update.emit(self.get_task_states())
 
     async def _worker(self, worker_id: int):
         while True:

@@ -35,6 +35,10 @@ export const useSocketStore = defineStore('socketStore', () => {
         const url = (import.meta as any).env.VITE_API_ROUTE || 'http://localhost:8000'
         socket = io(url, {
             path: '/socket.io/',
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            timeout: 60000,
             transports: ['websocket'],
             auth: {
                 connection_id: connectionId
