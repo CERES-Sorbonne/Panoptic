@@ -86,8 +86,8 @@ async function load() {
 }
 
 function setPanopticMl() {
-    mode.value = 'github'
-    gitUrl.value = 'https://github.com/CERES-Sorbonne/PanopticML'
+    mode.value = PluginType.PIP
+    pipPath.value = 'panopticml'
     pluginName.value = 'PanopticML'
 }
 

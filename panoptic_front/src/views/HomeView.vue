@@ -8,7 +8,7 @@ import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
-import { ModalId } from '@/data/models';
+import { ModalId, PluginType } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
 import Dropdown from '@/components/Dropdowns/Dropdown.vue';
 import PluginOptionsDropdown from '@/components/Dropdowns/PluginOptionsDropdown.vue';
@@ -26,7 +26,7 @@ const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) 
 const showFirstModal = computed(() => !hasProjects.value)
 const showTutorial = computed(() => !hasProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p => p.source && p.source.includes('https://github.com/CERES-Sorbonne/PanopticML')))
+const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p => p.type == PluginType.PIP && p.source == 'panopticml'))
 
 const usePlugins = computed(() => {
     const res = {}

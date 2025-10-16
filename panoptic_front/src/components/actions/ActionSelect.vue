@@ -3,7 +3,7 @@ import { useActionStore } from '@/data/actionStore';
 import { ParamDescription } from '@/data/models';
 import { objValues } from '@/utils/utils';
 import { computed, onMounted, ref } from 'vue'
-import Dropdown from '../dropdowns/Dropdown.vue';
+import Dropdown from '../Dropdowns/Dropdown.vue';
 import ParamInput from '../inputs/ParamInput.vue';
 import wTT from '../tooltips/withToolTip.vue';
 
