@@ -121,6 +121,7 @@ class Project:
                  for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
         self.on.sync.emitFolders(await self.db.get_folders())
+        self.on.sync.emitTasks(self.task_queue.get_task_states())
 
     async def delete_folder(self, folder_id: int):
         res = await self.db.delete_folder(folder_id)
