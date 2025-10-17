@@ -16,6 +16,7 @@ import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
 import DataLoad from '../loading/DataLoad.vue';
 import { TabManager } from '@/core/TabManager';
+import '@/data/socketStore'
 const project = useProjectStore()
 
 
@@ -90,7 +91,6 @@ watch(() => props.height, async () => {
 })
 
 onMounted(updateScrollerHeight)
-onMounted(() => props.tab.update())
 
 </script>
 
@@ -110,7 +110,7 @@ onMounted(() => props.tab.update())
     <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="props.tab.state.display == 'tree'">
-            <TreeScroller :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.imageSize"
+            <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.imageSize"
                 :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
                 :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList"
                 :width="scrollerWidth - 25" @recommend="setRecoImages" />

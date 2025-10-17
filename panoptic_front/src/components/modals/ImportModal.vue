@@ -1,15 +1,15 @@
 <script setup lang="ts">
 
-import { apiConfirmImport, apiParseImport, apiUploadPropertyCsv } from '@/data/api';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { computed, Ref, ref, watch } from 'vue';
 import { ModalId, UploadConfirm } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
+import FusionModeDropdown from '../Dropdowns/FusionModeDropdown.vue';
 import { objValues } from '@/utils/utils';
 import Modal2 from './Modal2.vue';
-import FusionModeDropdown from '../Dropdowns/FusionModeDropdown.vue';
+import { apiParseImport, apiConfirmImport, apiUploadPropertyCsv } from '@/data/apiProjectRoutes';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()

@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
-import { PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
+import { ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
 import { TabManager } from '@/core/TabManager';
 import draggableComponent from 'vuedraggable';
+import { usePanopticStore } from '@/data/panopticStore';
+import Dropdown from '../dropdowns/Dropdown.vue';
+import WithToolTip from '../tooltips/withToolTip.vue';
 
 const data = useDataStore()
-
+const panoptic = usePanopticStore()
 
 const props = defineProps<{
     tab: TabManager
@@ -52,6 +55,17 @@ function deleteGroup() {
     data.deletePropertyGroup(group.value.id)
 }
 
+async function deleteProperties() {
+    let properties = data.propertyList.filter(p => p.propertyGroupId == props.node.groupId)
+    for (let prop of properties) {
+        await data.deleteProperty(prop.id)
+    }
+    if (props.node.groupId >= 0) {
+        await data.deletePropertyGroup(props.node.groupId)
+    }
+
+}
+
 async function log(e) {
     if (e.added) {
         let id = e.added.element
@@ -62,7 +76,6 @@ async function log(e) {
         }
         await data.updateProperty(prop.id, prop.name, groupId)
         await data.triggerPropertyTreeChange()
-
     }
     if (e.moved) {
         await data.triggerPropertyTreeChange()
@@ -85,21 +98,37 @@ watch(props, updateLocalName)
                     <div v-if="!open"><i class="bi bi-caret-right-fill" /></div>
                     <template v-if="props.menuOpen">
                         <div v-if="!editName" class="ms-2 text-capitalize overflow-hidden">{{ group.name }}</div>
-                        <template v-if="isEditable">
-                            <div v-if="editName" class="ms-2">
-                                <TextInput :auto-focus="true" v-model="localName" style="background-color: white;"
-                                    :min-height="25" :width="135" @submit="updateName" @cancel="updateLocalName"
-                                    @blur="editName = false" />
-                            </div>
-                            <div class="flex-grow-1"></div>
-                            <div v-if="!editName" class="bb me-1" @click.stop="editName = true"><i
-                                    class="bi bi-pencil" />
-                            </div>
-                            <div class="bb me-1" @click.stop="deleteGroup"><i class="bi bi-x" /></div>
-                        </template>
-
+                        <div v-if="editName" class="ms-2">
+                            <TextInput :auto-focus="true" v-model="localName" style="background-color: white;"
+                                :min-height="25" :width="135" @submit="updateName" @cancel="updateLocalName"
+                                @blur="editName = false" />
+                        </div>
+                        <div class="flex-grow-1"></div>
+                        <Dropdown @click.prevent.stop="" v-if="props.node.groupId >= PropertyGroupId.DEFAULT">
+                            <template #button><i class="bb bi bi-three-dots" /></template>
+                            <template #popup="{ hide }">
+                                <div class="p-1">
+                                    <template v-if="isEditable">
+                                        <div class="bb" @click="editName = true; hide();">
+                                            {{ $t('main.menu.editName') }}
+                                        </div>
+                                        <div class="bb" @click="deleteGroup">
+                                            {{ $t('main.menu.removeGroup') }}
+                                        </div>
+                                    </template>
+                                    <div class="bb" @click="deleteProperties(); hide();">
+                                        {{ $t('main.menu.deleteGroupAndProperties') }}
+                                    </div>
+                                </div>
+                            </template>
+                        </Dropdown>
+                        <div v-if="props.node.groupId >= -1" class="bb me-2"
+                            @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, { group: props.node.groupId })">
+                            <WithToolTip :message="$t('main.menu.addNewPropertyToGroup')">
+                                <i class="bi bi-plus" />
+                            </WithToolTip>
+                        </div>
                     </template>
-
                 </div>
             </template>
             <template #item="{ element, index }">
@@ -112,6 +141,7 @@ watch(props, updateLocalName)
         </draggableComponent>
     </div>
 </template>
+
 
 <style scoped>
 .group-container {

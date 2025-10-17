@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
 from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription, PropertyType, \
-    PropertyMode
+    PropertyMode, VectorType
 from panoptic.utils import get_model_params_description, AsyncCallable
 
 if TYPE_CHECKING:
@@ -38,9 +38,12 @@ class APlugin(ABC):
         self.data_path = Path(self.project.base_path) / 'plugin_data' / self.slug
         self.data_path.mkdir(parents=True, exist_ok=True)
 
+        self.vector_types: list[VectorType] = []
+
     async def start(self):
         db_defaults = await self._project.db.get_plugin_data(self.base_key)
         self.params = assign_attributes(self.params, db_defaults)
+        await self.load_vector_types()
 
     async def update_params(self, params: Any):
         self.params = assign_attributes(self.params, params)
@@ -67,7 +70,7 @@ class APlugin(ABC):
             p.default_value = self.params.__dict__[p.id]
         return PluginBaseParamsDescription(description=description, params=params)
 
-    async def get_description(self):
+    def get_description(self):
         name = self.name
         description = self.__doc__
         path = self.path
@@ -91,3 +94,7 @@ class APlugin(ABC):
             else:
                 raise ValueError("No existing property found with this name and no property_type and mode provided to create one")
         return new_prop
+
+    async def load_vector_types(self):
+        self.vector_types = await self.project.get_vector_types(self.name)
+

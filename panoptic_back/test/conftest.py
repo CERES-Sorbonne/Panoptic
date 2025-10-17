@@ -39,7 +39,7 @@ async def empty_project(request, tmp_path):
     os.makedirs(project_path)
     shutil.copy(base_path, project_path / 'panoptic.db')
 
-    project = Project(str(project_path), [])
+    project = Project(str(project_path), [], name='test_project')
     await project.start()
     await project.wait_full_start()
     # Yield the connection object to the test
@@ -59,7 +59,7 @@ async def instance_project(request, tmp_path):
     os.makedirs(project_path)
     shutil.copy(base_path, project_path / 'panoptic.db')
 
-    project = Project(str(project_path), [])
+    project = Project(str(project_path), [], name='test_project')
     await project.start()
     await project.wait_full_start()
     # Yield the connection object to the test
@@ -79,7 +79,7 @@ async def data_project(request, tmp_path):
     os.makedirs(project_path)
     shutil.copy(base_path, project_path / 'panoptic.db')
 
-    project = Project(str(project_path), [])
+    project = Project(str(project_path), [], name='test_project')
     await project.start()
     await project.wait_full_start()
     # Yield the connection object to the test

@@ -22,9 +22,12 @@ const props = defineProps<{
     sha1Scores?: Sha1Scores,
     hideIfModal?: boolean
     preview?: SelectedImages
+    inputKey: string
 }>()
 
 const emits = defineEmits(['recommend'])
+
+provide('inputKey', props.inputKey)
 
 const groupIdx = {}
 const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
@@ -112,6 +115,7 @@ function computeLines() {
     // console.time('compute lines2')
     clear()
     let it = props.groupManager.getGroupIterator()
+    if(!it.group) return
     const lines = []
     while (it) {
         const group = it.group
@@ -258,7 +262,6 @@ function toggleGroupSelect(groupId: number) {
 }
 
 function triggerUpdate() {
-    console.log('trigger update')
     computeLines()
 }
 

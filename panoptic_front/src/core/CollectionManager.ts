@@ -68,7 +68,7 @@ export class CollectionManager {
 
     async setDirty(instanceIds?: Set<number>) {
         this.runState.isDirty = true
-        if(!this.runState.active) {
+        if (!this.runState.active) {
             return
         }
 
@@ -76,9 +76,13 @@ export class CollectionManager {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
-                console.log(this.sortManager.result)
                 this.groupManager.lastOrder = this.sortManager.result.order
-                this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
+                if (this.groupManager.result.root) {
+                    this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
+                } else {
+                    this.groupManager.group(this.sortManager.result.images, this.sortManager.result.order, true)
+                }
+
                 this.runState.isDirty = false
             } else {
                 this.update()
@@ -88,9 +92,8 @@ export class CollectionManager {
     }
 
     async update() {
-        // console.log('collection update')
         const data = useDataStore()
-        if(this.state.instances) {
+        if (this.state.instances) {
             this.images = {}
             this.state.instances.forEach(i => this.images[i] = data.instances[i])
         } else {
@@ -118,7 +121,6 @@ export class CollectionManager {
     }
 
     updateInstances(instanceIds: Set<number>) {
-        console.log('update instances', instanceIds)
         this.setDirty(instanceIds)
     }
 }

@@ -1,7 +1,7 @@
 import { buildGroup, Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
 import { deletedID, useDataStore } from "@/data/dataStore"
-import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState } from "@/data/models"
+import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, inject } from "vue"
 
@@ -402,4 +402,12 @@ export function isFinished(state: LoadState): boolean {
            state.finishedInstanceValues && 
            state.finishedImageValues && 
            state.finishedPropertyGroups
+}
+
+export function sourceFromFunction(func: string) {
+    return func.slice(0, func.indexOf('.'))
+}
+
+export function hasPropertyChanges(commit: DbCommit) {
+    return commit.properties?.length || commit.emptyProperties?.length || commit.propertyGroups?.length || commit.emptyPropertyGroups?.length
 }

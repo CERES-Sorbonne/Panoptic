@@ -4,6 +4,8 @@ from panoptic.models import PropertyType
 
 
 def parse_string(value):
+    if value is None:
+        return None
     return str(value)
 
 

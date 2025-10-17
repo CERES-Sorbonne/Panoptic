@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
 
-import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs } from '@/data/api';
+import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, SERVER_PREFIX } from '@/data/apiPanopticRoutes';
 import { DirInfo } from '@/data/models';
 import FolderItem from '../filesystem/FolderItem.vue';
 import { goNext } from '@/utils/utils';
@@ -119,6 +119,7 @@ async function count() {
 
 onMounted(async () => {
     await updateInfo()
+    console.log(fastList)
     setOpenFolder(fastList.filter(d => d.name == 'Home')[0])
 });
 
@@ -158,7 +159,7 @@ onUpdated(() => {
                 </div>
                 <div class="image-list flex-shrink-0 bg-white">
                     <div v-for="img in imageList">
-                        <img :src="'http://localhost:8000/images/' + img" class="mini" />
+                        <img :src="SERVER_PREFIX + '/images/' + img" class="mini" />
                     </div>
                 </div>
             </div>

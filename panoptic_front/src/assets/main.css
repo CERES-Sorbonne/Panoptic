@@ -526,3 +526,13 @@ input[type=number]::-webkit-inner-spin-button {
   -webkit-box-shadow: 0px 0px 3px 1px var(--border-color);
   -moz-box-shadow: 0px 0px 3px 1px var(--border-color);
 }
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance:textfield;
+}

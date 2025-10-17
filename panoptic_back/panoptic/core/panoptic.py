@@ -4,12 +4,16 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from importlib import metadata
 from pathlib import Path
 
 from panoptic.core.plugin import clone_repo
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
+from panoptic.models import PluginKey, PanopticData, ProjectId, PanopticState, ProjectRef
+from panoptic.utils import get_datadir
+from panoptic import __version__ as panoptic_version
 from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
 from panoptic.utils import get_datadir, convert_old_panoptic_json
 
@@ -25,16 +29,38 @@ class Panoptic:
         self.load_data()
         self.project_id = None
         self.project: Project | None = None
+        self.data = self.load_data()
+        self.open_projects: dict[int, Project] = {}
+        self.version = panoptic_version
 
     def load_data(self):
         save = False
+        loaded_data = PanopticData(plugins=[], projects=[])
+
         try:
+            if not os.path.exists(self.global_file_path):
+                raise FileNotFoundError
+
             with open(self.global_file_path, 'r') as file:
                 data = json.load(file)
-                data, save = convert_old_panoptic_json(data)
-                loaded_data = PanopticData(**data)
-        except (FileNotFoundError, json.JSONDecodeError):
-            loaded_data = PanopticData(projects=[])
+                res = PanopticData(**data)
+                for i in range(len(res.projects)):
+                    res.projects[i].id = i + 1
+                loaded_data = res
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Warning: Could not load projects.json. Error: {e}", file=sys.stderr)
+            if isinstance(e, json.JSONDecodeError):
+                # If the file is corrupted, back it up before starting fresh
+                corrupt_file_path = self.global_file_path
+                if os.path.exists(corrupt_file_path):
+                    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                    backup_path = f"{corrupt_file_path}.corrupt.{timestamp}.bak"
+                    shutil.copy(corrupt_file_path, backup_path)
+                    print(f"A backup of the corrupt file has been saved to: {backup_path}", file=sys.stderr)
+
+            print("Starting with a new empty project list.", file=sys.stderr)
+            data, save = convert_old_panoptic_json(data)
+            loaded_data = PanopticData(**data)
 
         self.data = loaded_data
         if save:
@@ -67,27 +93,38 @@ class Panoptic:
         with open(self.global_file_path, 'w') as file:
             json.dump(self.data.model_dump(), file, indent=2)
 
-    async def create_project(self, name, path):
+    def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
             raise f"A project_id with path '{path}' already exists."
         # else:
         if not os.path.exists(path):
             os.makedirs(path)
-        project = ProjectId(name=name, path=path)
-        self.data.projects.append(project)
-        await self.load_project(path)
 
-    async def import_project(self, path: str):
+        max_id = 0
+        if len(self.data.projects):
+            max_id = max([p.id for p in self.data.projects])
+        project = ProjectId(name=name, path=path, id=max_id + 1)
+        self.data.projects.append(project)
+        return project
+
+    def import_project(self, path: str):
         p = Path(path)
         if not (p / 'panoptic.db').exists():
             raise ValueError('Folder is not a panoptic project_id (No panoptic.db file found)')
         if any(project.path == path for project in self.data.projects):
             raise f"ProjectId is already imported."
-        project = ProjectId(path=str(p), name=str(p.name))
+        max_id = 0
+        if len(self.data.projects):
+            max_id = max([p.id for p in self.data.projects])
+        project = ProjectId(path=str(p), name=str(p.name), id=max_id + 1)
+
         self.data.projects.append(project)
-        # await self.load_project(path)
+        return project
 
     def remove_project(self, path):
+        to_remove = next(p for p in self.data.projects if p.path == path)
+        if to_remove and to_remove.id in self.open_projects:
+            return
         self.data.projects = [p for p in self.data.projects if p.path != path]
         self.save_data()
 
@@ -100,26 +137,29 @@ class Panoptic:
         self.save_data()
 
     async def load_project(self, path):
+        project = None
+        self.save_data()
         try:
-            for project in self.data.projects:
-                if str(project.path) == str(path):
-                    self.save_data()
-                    self.project_id = project
+            proj = next(p for p in self.data.projects if Path(p.path) == Path(path))
+            project_id = proj.id
+            if project_id is None:
+                raise ValueError(f'project path {path} not found')
+            if project_id in self.open_projects:
+                project = self.open_projects[project_id]
+            if not project:
+                plugins = self.data.plugins
+                if path in self.data.ignored_plugins:
+                    plugins = [p for p in plugins if p.name not in self.data.ignored_plugins[path]]
 
-                    if self.project:
-                        await self.project.close()
-                    plugins = self.data.plugins
-                    if path in self.data.ignored_plugins:
-                        plugins = [p for p in plugins if p.name not in self.data.ignored_plugins[path]]
-                    self.project = Project(path, plugins)
-                    await self.project.start()
+                project = Project(path, plugins, proj.name, project_id)
+                await project.start()
+                self.open_projects[project.id] = project
 
-                    from panoptic.routes.project_routes import set_project
-                    set_project(self.project)
-                    return True
+            return project
         except Exception as e:
             print('Failed to load project')
-            await self.close_project()
+            if project:
+                await self.close_project(project.id)
             raise e
 
     def add_plugin(self, name: str, source: str, ptype: PluginType):
@@ -200,15 +240,18 @@ class Panoptic:
     def get_plugin_paths(self):
         return self.data.plugins
 
-    async def close_project(self):
-        self.project_id = None
-        self.data.last_opened = None
-        self.save_data()
-        if self.project:
-            await self.project.close()
-        self.project = None
-        from panoptic.routes.project_routes import set_project
-        set_project(self.project)
+    def get_project(self, project_id: int):
+        if project_id in self.open_projects:
+            return self.open_projects[project_id]
+        return None
+
+    async def close_project(self, project_id: int):
+        project = self.get_project(project_id)
+        if not project:
+            return
+
+        await project.close()
+        del self.open_projects[project_id]
 
     async def set_ignored_plugin(self, project: str, plugin: str, value: bool):
         if project not in self.data.ignored_plugins:
@@ -221,7 +264,28 @@ class Panoptic:
         return self.data.ignored_plugins
 
     async def close(self):
-        await self.close_project()
+        for project in self.open_projects.values():
+            await project.close()
 
-    def is_loaded(self):
-        return self.project_id is not None
+    async def get_state(self):
+        project_states = []
+        plugins = self.data.plugins
+
+        for p_info in self.data.projects:
+            is_open = p_info.id in self.open_projects
+            ignored = self.data.ignored_plugins.get(p_info.path, [])
+
+            state = ProjectRef(
+                id=p_info.id,
+                name=p_info.name,
+                path=p_info.path,
+                is_open=is_open,
+                ignored_plugins=ignored
+            )
+            project_states.append(state)
+
+        return PanopticState(
+            version=self.version,
+            projects=project_states,
+            plugins=list(plugins)
+        )

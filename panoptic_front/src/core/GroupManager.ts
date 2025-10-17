@@ -77,6 +77,7 @@ export interface GroupTree {
     index: GroupIndex
     imageToGroups: { [imgId: number]: number[] }
     valueIndex: GroupValueIndex
+    imageIteratorOrder: { [groupId: number]: { [imgIdx: number]: number } }
 }
 
 export enum GroupSortType {
@@ -357,7 +358,7 @@ export class GroupManager {
         if (state) {
             Object.assign(this.state, state)
         }
-        this.result = { root: undefined, index: {}, imageToGroups: {}, valueIndex: new GroupValueIndex() }
+        this.result = { root: undefined, index: {}, imageToGroups: {}, valueIndex: new GroupValueIndex(), imageIteratorOrder: {} }
         this.customGroups = {}
         this.onResultChange = new EventEmitter()
         this.onStateChange = new EventEmitter()
@@ -407,7 +408,7 @@ export class GroupManager {
         // console.timeEnd('group order')
 
         console.timeEnd('Group Update')
-        if(emit) {
+        if (emit) {
             // // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
         }
@@ -569,8 +570,21 @@ export class GroupManager {
             // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
         }
-
+        this.computeImageOrder()
         return this.result
+    }
+
+    computeImageOrder() {
+        let it = this.getImageIterator()
+        let count = 0
+        while (it && it.isValid) {
+            if (!this.result.imageIteratorOrder[it.groupId]) {
+                this.result.imageIteratorOrder[it.groupId] = {}
+            }
+            this.result.imageIteratorOrder[it.groupId][it.imageIdx] =
+                count += 1
+            it = it.nextImages()
+        }
     }
 
     sortGroups(emit?: boolean) {
@@ -627,6 +641,7 @@ export class GroupManager {
         this.clearSelection()
         this.customGroups = {}
         this.lastOrder = {}
+        this.result.imageIteratorOrder = {}
         if (emit) {
             // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
@@ -646,6 +661,7 @@ export class GroupManager {
         if (this.state.sha1Mode) {
             this.groupBySha1(this.result.root)
         }
+        this.computeImageOrder()
         if (emit) {
             // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
@@ -761,6 +777,7 @@ export class GroupManager {
         }
 
         // console.log('Group Update Emit')
+        this.computeImageOrder()
         this.onResultChange.emit(this.result)
         return this.result
     }
@@ -782,6 +799,7 @@ export class GroupManager {
 
         if (emit) {
             // console.log('Group Update Emit')
+            this.computeImageOrder()
             this.onResultChange.emit(this.result)
         }
     }
@@ -798,6 +816,7 @@ export class GroupManager {
             this.state.groupBy.push(propertyId)
             this.customGroups = {}
         }
+        this.computeImageOrder()
         this.onStateChange.emit()
     }
 
@@ -806,6 +825,7 @@ export class GroupManager {
         if (index < 0) return
         this.state.groupBy.splice(index, 1)
         this.customGroups = {}
+        this.computeImageOrder()
         this.onStateChange.emit()
     }
 
@@ -824,8 +844,8 @@ export class GroupManager {
             })
         }
         setOrder(this.result.root)
+        this.computeImageOrder()
         if (emit) {
-            // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
         }
     }
@@ -834,12 +854,13 @@ export class GroupManager {
         delete this.customGroups[targetGroupId]
         this.removeChildren(this.result.index[targetGroupId])
 
-        if(this.state.sha1Mode) {
+        if (this.state.sha1Mode) {
             this.groupBySha1(this.result.index[targetGroupId])
         }
 
         if (emit) {
             // console.log('Group Update Emit')
+            this.computeImageOrder()
             this.onResultChange.emit(this.result)
         }
     }
@@ -1269,6 +1290,8 @@ export class GroupIterator {
         }
 
         this.group = this.getGroup()
+
+        this.isValid = this.group !== undefined
     }
 
     clone(options?: GroupIteratorOptions): GroupIterator {
@@ -1345,15 +1368,19 @@ export class ImageIterator extends GroupIterator {
         super(manager, groupId, options)
         this.imageIdx = imageIdx ?? 0
 
-        if (this.group.children.length > 0 && this.group.subGroupType != GroupType.Sha1) {
-            const next = this.nextGroup()
-            this.groupId = next.groupId
-            this.group = next.group
+        // TODO: verify why this is here
+        // if (this.group.children.length > 0 && this.group.subGroupType != GroupType.Sha1) {
+        //     const next = this.nextGroup()
+        //     if (next) {
+        //         this.groupId = next.groupId
+        //         this.group = next.group
+        //     }
+        // }
+        if (this.isValid) {
+            this.images = this.getImages()
+            this.image = this.images[0]
+            this.sha1Group = this.getSha1Group()
         }
-
-        this.images = this.getImages()
-        this.image = this.images[0]
-        this.sha1Group = this.getSha1Group()
     }
 
     static fromGroupIterator(it: GroupIterator, options?: GroupIteratorOptions) {
@@ -1471,6 +1498,10 @@ export class ImageIterator extends GroupIterator {
 
     clone(options?: GroupIteratorOptions): ImageIterator {
         return new ImageIterator(this.manager, this.groupId, this.imageIdx, options ?? this.options)
+    }
+
+    getImageOrder() {
+        return this.manager.result.imageIteratorOrder[this.groupId]?.[this.imageIdx]
     }
 
 }

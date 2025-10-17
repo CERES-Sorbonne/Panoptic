@@ -1,15 +1,16 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
-import { ActionContext, ActionFunctions } from "./models";
+import { ActionContext, ActionFunctions, ExecuteActionPayload, FunctionDescription, VectorType } from "./models";
 import { computed, reactive, ref, watch } from "vue";
-import { apiGetUIData, apiSetUIData } from "./api";
 import { objValues } from "./builder";
-import { Exception } from "sass";
-
-const hooks = ['similar', 'group', 'execute', 'import', 'export']
+import { useDataStore } from "./dataStore";
+import { sourceFromFunction } from "@/utils/utils";
+import { apiGetActions, apiGetUIData, apiSetUIData } from "./apiProjectRoutes";
 
 export const useActionStore = defineStore('actionStore', () => {
     const project = useProjectStore()
+
+    const loaded = ref(false)
 
     const index = ref({} as ActionFunctions)
     const defaultActions = reactive({
@@ -17,18 +18,24 @@ export const useActionStore = defineStore('actionStore', () => {
         group: undefined,
         execute: undefined,
         import: undefined,
-        export: undefined
+        export: undefined,
+        vector_type: undefined,
+        vector: undefined
     })
-    const update = ref(0)
 
     const hasSimilaryFunction = computed(() => defaultActions.similar != undefined)
 
-    async function load() {
-        if (!project.status.loaded) return
-        if (!Object.keys(project.actions).length) return
+    async function init() {
+        const actions = await apiGetActions()
+        await loadActions(actions)
+
+        loaded.value = true
+    }
+
+    async function loadActions(actions: ActionFunctions) {
         const defaults = await apiGetUIData('param_defaults')
 
-        let actionIndex = project.actions
+        let actionIndex = actions
         if (defaults) {
             for (let actionKey in actionIndex) {
                 const action = actionIndex[actionKey]
@@ -56,16 +63,15 @@ export const useActionStore = defineStore('actionStore', () => {
 
         await getDefaultActions()
         await getDefaultParams()
-
-        update.value += 1
     }
 
     async function getSimilarImages(ctx: ActionContext) {
-        const res = await project.call({function: defaultActions.similar, context: ctx})
+        const res = await project.call({ function: defaultActions.similar, context: ctx })
         return res
     }
 
     function clear() {
+        loaded.value = false
         index.value = {}
         Object.keys(defaultActions).forEach(k => defaultActions[k] = undefined)
     }
@@ -100,7 +106,10 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function getDefaultActions() {
         const res = await apiGetUIData('default_actions')
-        for(let key of Object.keys(res)) {
+        if (!res) {
+            return
+        }
+        for (let key of Object.keys(res)) {
             if (!index.value[res[key]]) {
                 delete res[key]
             }
@@ -109,25 +118,85 @@ export const useActionStore = defineStore('actionStore', () => {
     }
 
     function getContext(funcName: string) {
-        const ctx: ActionContext = {uiInputs: {}}
+        const data = useDataStore()
+        const ctx: ActionContext = { uiInputs: {} }
         const act = index.value[funcName]
-        for(let param of act.params) {
-            ctx.uiInputs[param.name] = param.defaultValue
+        for (let param of act.params) {
+            // ctx.uiInputs[param.name] = param.defaultValue
+            // Set default Value
+            let baseValue = param.defaultValue
+
+            // Verify value is valid
+            if (baseValue != undefined) {
+                if (param.type == 'vector_type') {
+                    const type_id = baseValue.id
+                    if (data.vectorTypes.findIndex(v => v.id == type_id) < 0) {
+                        baseValue = undefined
+                    }
+                }
+                if (param.type == 'own_vector_type') {
+                    const type_id = baseValue.id
+                    const source = sourceFromFunction(funcName)
+                    const index = data.vectorTypes.findIndex(v => v.id == type_id)
+                    if (index < 0 || data.vectorTypes[index].source != source) {
+                        baseValue = undefined
+                    }
+                }
+                if (param.type == 'property') {
+                    if (!data.properties[baseValue]) {
+                        baseValue = undefined
+                    }
+                }
+            }
+
+            // Find any value to set
+            if (baseValue == undefined) {
+                if (param.type == 'vector_type') {
+                    if (data.vectorTypes.length) {
+                        baseValue = data.vectorTypes[0]
+                    }
+                }
+                if (param.type == 'own_vector_type') {
+                    const source = sourceFromFunction(funcName)
+                    let first = data.vectorTypes.find(v => v.source == source)
+                    if (first) {
+                        baseValue = first
+                    }
+                }
+                if (param.type == 'property') {
+                    if (data.propertyList.length) {
+                        baseValue = data.propertyList[0].id
+                    }
+                }
+            }
+
+            ctx.uiInputs[param.name] = baseValue
+
         }
         return ctx
     }
 
-    load()
-    watch(() => project.status.loaded, (loaded) => {
-        if (!loaded) clear()
-    })
-    watch(() => project.actions, load)
+    async function callComputeVector(vecType: VectorType) {
+        let functions = objValues(index.value).filter(f => sourceFromFunction(f.id) == vecType.source && f.hooks.includes('vector'))
+        if (functions.length) {
+            let fnc = functions[0]
+            let ctx = getContext(fnc.id)
+            let vec_param = fnc.params.find(p => p.type == 'own_vector_type')
+
+            if (vec_param) {
+                ctx.uiInputs[vec_param.name] = vecType
+                console.log(ctx)
+            }
+            const req2: ExecuteActionPayload = { function: fnc.id, context: ctx }
+            return await project.call(req2)
+        }
+    }
 
     return {
         index, defaultActions,
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction,
         getSimilarImages, getContext,
-        clear, update, load
+        clear, init, callComputeVector
     }
 })

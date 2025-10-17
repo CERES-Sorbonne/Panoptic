@@ -8,8 +8,8 @@ import { ref } from "vue";
 import { TabState } from "./models";
 import { TabManager } from "@/core/TabManager";
 import { buildTabState, objValues } from "./builder";
-import { apiGetTabs, apiSetTabs } from "./api";
 import { useProjectStore } from "./projectStore";
+import { apiGetTabs, apiSetTabs } from "./apiProjectRoutes";
 
 const TAB_LIST_KEY = 'tab_list'
 const TAB_PREFIX = 'tab_id_'
@@ -18,7 +18,6 @@ export const TAB_MODEL_VERSION = 6
 let managers: { [tabId: number]: TabManager } = {}
 
 export const useTabStore = defineStore('tabStore', () => {
-
     const loaded = ref(false)
     const mainTab = ref(null)
 
@@ -73,7 +72,7 @@ export const useTabStore = defineStore('tabStore', () => {
             await addTab()
         }
 
-        const activeTab = useProjectStore().data.uiState?.activeTab
+        const activeTab = useProjectStore().uiState?.activeTab
         if (activeTab && loadedTabs.value.includes(activeTab)) {
             selectMainTab(activeTab)
         } else {
@@ -123,7 +122,7 @@ export const useTabStore = defineStore('tabStore', () => {
         managers[id].activate()
         managers[id].update()
 
-        useProjectStore().data.uiState.activeTab = id
+        useProjectStore().uiState.activeTab = id
         useProjectStore().saveUiState()
     }
 

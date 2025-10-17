@@ -15,6 +15,16 @@ if TYPE_CHECKING:
 
 from panoptic.core.task.task import Task
 
+# PIL format to MIME type mapping
+format_to_mime = {
+    'JPEG': 'image/jpeg',
+    'PNG': 'image/png',
+    'GIF': 'image/gif',
+    'WEBP': 'image/webp',
+    'BMP': 'image/bmp',
+    'TIFF': 'image/tiff',
+    'ICO': 'image/vnd.microsoft.icon'
+}
 
 class ImportInstanceTask(Task):
     def __init__(self, project: Project, file: str, folder_id: int):
@@ -30,17 +40,19 @@ class ImportInstanceTask(Task):
         extension = name.split('.')[-1]
         folder_id = self.folder_id
 
-        raw_db = self.db.get_raw_db()
-
-        db_image = await raw_db.has_file(folder_id, name, extension)
+        db_image = await self.db.has_file(folder_id, name, extension)
         if db_image:
             self.db.on_import_instance.emit(db_image)
             return db_image
 
-        sha1, width, height, ahash, large, medium, small = await self._async(self._import_image, self.file,
+        sha1, width, height, ahash, large, medium, small, raw_file, mime_type = await self._async(self._import_image, self.file,
                                                                              self.project.settings)
         if not await self.db.has_image(sha1):
             await self.db.import_image(sha1, small, medium, large)
+
+        if self.project.settings.save_file_raw:
+            await self.db.import_raw_image(sha1, mime_type, raw_file)
+
         instance = Instance(-1, folder_id, name, extension, sha1, self.file, height, width, str(ahash))
 
         commit = DbCommit(instances=[instance])
@@ -59,8 +71,17 @@ class ImportInstanceTask(Task):
         image = Image.open(file_path)
         width, height = image.size
 
+        format_ = image.format  # e.g., 'JPEG'
+        mime_type = format_to_mime[format_]
+
         medium_bytes = bytes()
         small_bytes = bytes()
+
+        raw_file = bytes()
+        raw_buffer = io.BytesIO()
+        if settings.save_file_raw:
+            image.save(raw_buffer, format=image.format)
+            raw_file = raw_buffer.getvalue()
 
         large_size = settings.image_large_size
         if width > large_size or height > large_size:
@@ -93,4 +114,4 @@ class ImportInstanceTask(Task):
 
         del image
 
-        return sha1_hash, width, height, ahash, large_bytes, medium_bytes, small_bytes
+        return sha1_hash, width, height, ahash, large_bytes, medium_bytes, small_bytes, raw_file, mime_type

@@ -1,24 +1,24 @@
 import { defineStore } from "pinia"
-import { computed, nextTick, reactive, ref } from "vue"
+import { computed, ref } from "vue"
 import {
     apiAddPlugin,
     apiCloseProject,
     apiCreateProject,
     apiDelPlugin,
     apiDeleteProject,
-    apiGetPlugins,
-    apiGetStatus,
     apiImportProject,
     apiLoadProject,
     apiSetIgnoredPlugin,
     apiUpdatePlugin,
-    apiGetVersion, apiGetPackagesInfo
-} from "./api"
+    apiGetPackagesInfo,
+    apiGetPanopticState,
+    apiGetPlugins
+} from "./apiPanopticRoutes"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { IgnoredPlugins, ModalId, Notif, NotifType, PluginAddPayload, PluginType } from "./models"
+import { ModalId, Notif, PanopticClientState, PanopticServerState, PluginAddPayload, PluginType } from "./models"
 import { useModalStore } from "./modalStore"
-import { deepCopy } from "@/utils/utils"
+
 
 let idCounter = 0
 
@@ -34,51 +34,46 @@ export interface PluginKey {
     path?: string
 }
 
-export interface SelectionStatus {
-    isLoaded: boolean
-    selectedProject: Project
-    projects: Project[]
-    ignoredPlugins: IgnoredPlugins
-}
 
 export const usePanopticStore = defineStore('panopticStore', () => {
+    let _init = false
     const project = useProjectStore()
 
-    const data = reactive({
-        status: {} as SelectionStatus,
-        plugins: [] as PluginKey[],
-        version: "",
-        init: false,
-    })
+    const serverState = ref<PanopticServerState>()
+    const clientState = ref<PanopticClientState>()
 
-    const state = reactive({
-        hasError: false,
-        error: '',
-        backendOff: false
-    })
-
+    // TODO: remove this
     const openModalId = ref(null)
     const modalData = ref(null)
 
     const notifs = ref<Notif[]>([])
 
-    const isProjectLoaded = computed(() => data.status.isLoaded)
+    const isConnected = computed(() => {
+        if(serverState.value == undefined || clientState.value == undefined) return false
+        return true
+    })
 
-    async function init() {
-        data.init = false
-        try {
-            data.status = await apiGetStatus()
-            data.plugins = await apiGetPlugins()
-            data.version = await apiGetVersion()
+    const isUserValid = computed(() => isConnected.value && (!serverState.value.askUser || clientState.value.user))
 
-            data.init = true
-            if (data.status.isLoaded) {
-                project.init()
-            }
+    const isProjectLoaded = computed(() => isConnected.value && clientState.value.connectedProject)
+
+
+    function init() {
+        _init = true
+    }
+
+    function updateClientState(state: PanopticClientState) {
+        clientState.value = state
+        if(state.connectedProject) {
+            router.push('/view')
         }
-        catch { 
-            setTimeout(() => init(), 1000)
+        else {
+            router.push('/')
         }
+    }
+
+    function updateServerState(state: PanopticServerState) {
+        serverState.value = state
     }
 
     async function getPackagesInfo(){
@@ -87,36 +82,27 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     async function loadProject(path: string, noCall?: boolean) {
         project.clear()
-        if (!noCall) {
-            data.status = await apiLoadProject(path)
-        }
-        await router.push('/view')
-        // setTimeout(() => project.init(), 10)
-        await nextTick()
-        project.init()
+        await apiLoadProject(path)
     }
 
-    async function closeProject() {
-        project.status.loaded = false
-        project.clear()
+    async function closeProject(projectId: number) {
         notifs.value = []
-        data.status = await apiCloseProject()
-        router.push('/')
+        await apiCloseProject(projectId)
     }
 
     async function deleteProject(path: string) {
-        data.status = await apiDeleteProject(path)
+        const state = await apiDeleteProject(path)
     }
 
     async function createProject(path: string, name: string) {
         path = path.endsWith('\\') ? path : path + '/'
         const projectPath = path + name
-        data.status = await apiCreateProject(projectPath, name)
+        const state = await apiCreateProject(projectPath, name)
         await loadProject(projectPath, true)
     }
 
     async function importProject(path: string) {
-        data.status = await apiImportProject(path)
+        const state = await apiImportProject(path)
         await loadProject(path)
     }
 
@@ -140,15 +126,15 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modal.closeModal(id)
     }
 
-    async function addPlugin(plugin: PluginAddPayload) {
+async function addPlugin(plugin: PluginAddPayload) {
         if (!plugin) return
         await apiAddPlugin(plugin)
-        data.plugins = await apiGetPlugins()
+        serverState.value.plugins = await apiGetPlugins()
     }
 
     async function delPlugin(name: string) {
         await apiDelPlugin(name)
-        data.plugins = await apiGetPlugins()
+        serverState.value.plugins = await apiGetPlugins()
     }
 
     async function updatePlugin(name: string) {
@@ -186,17 +172,17 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function updateIgnorePlugin(project, plugin, value) {
-        const res = await apiSetIgnoredPlugin({project, plugin, value})
-        data.status.ignoredPlugins = res
+        await apiSetIgnoredPlugin({project, plugin, value})
     }
 
     return {
-        init, data, state,
-        modalData, hideModal, showModal, openModalId,
+        init, isConnected, clientState, serverState,
+        modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateIgnorePlugin,
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,
-        getPackagesInfo
+        getPackagesInfo,
+        updateClientState, updateServerState
     }
 })

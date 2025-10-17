@@ -18,7 +18,7 @@ const pipPath = ref('')
 const pluginName = ref('')
 const isLoading = ref(false)
 
-const takenNames = computed(() => panoptic.data.plugins.map(p => p.name))
+const takenNames = computed(() => panoptic.serverState.plugins.map(p => p.name))
 const isNameValid = computed(() => {
     if (pluginName.value == '') return false
     if (takenNames.value.includes(pluginName.value)) return false
@@ -86,8 +86,8 @@ async function load() {
 }
 
 function setPanopticMl() {
-    mode.value = 'github'
-    gitUrl.value = 'https://github.com/CERES-Sorbonne/PanopticML'
+    mode.value = PluginType.PIP
+    pipPath.value = 'panopticml'
     pluginName.value = 'PanopticML'
 }
 

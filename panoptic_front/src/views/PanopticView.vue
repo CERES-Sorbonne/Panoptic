@@ -1,165 +1,54 @@
 <script setup lang="ts">
-import router from '@/router';
-import { ref, computed, onMounted, nextTick, onUnmounted, provide } from 'vue';
-import Menu from '../components/menu/Menu.vue';
+import { onMounted } from 'vue'
+import { usePanopticStore } from '@/data/panopticStore'
+import { RouterView } from 'vue-router'
+import { ModalId } from '@/data/models'
+import PropertyModal from '@/components/modals/PropertyModal.vue'
+import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue'
+import ExportModal2 from '@/components/modals/ExportModal2.vue'
+import ImageModal from '@/components/modals/ImageModal.vue'
+import ImageZoomModal from '@/components/modals/ImageZoomModal.vue'
+import SettingsModal from '@/components/modals/SettingsModal.vue'
+import ImportModal from '@/components/modals/ImportModal.vue'
+import TagModal from '@/components/modals/TagModal.vue'
+import FirstModal from '@/components/modals/FirstModal.vue'
+import NotifModal from '@/components/modals/NotifModal.vue'
+import { useSocketStore } from '@/data/socketStore'
+import UserSelection from '@/components/UserSelection.vue'
 
-import { keyState } from '@/data/keyState';
-import MainView from '@/components/mainview/MainView.vue';
-import TabNav from '@/components/mainview/TabNav.vue';
-import { ModalId, NotifType } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
-import { usePanopticStore } from '@/data/panopticStore';
-import Tutorial from '@/tutorials/Tutorial.vue';
-import { useDataStore } from '@/data/dataStore';
-import TabContainer from '@/components/TabContainer.vue';
-import { useTabStore } from '@/data/tabStore';
-import DataLoad from '@/components/loading/DataLoad.vue';
-
-let x = 0
-
-const project = useProjectStore()
-const data = useDataStore()
+const socketStore = useSocketStore()
 const panoptic = usePanopticStore()
-const tabStore = useTabStore()
 
-const mainViewRef = ref(null)
-const navElem = ref(null)
-const windowHeight = ref(window.innerHeight)
-const hasHeight = ref(false)
-const show = ref(true)
-
-const filterOpen = ref(true)
-
-const contentHeight = computed(() => windowHeight.value - (navElem.value?.clientHeight ?? 0))
-const filteredImages = computed(() => mainViewRef.value?.filteredImages.map(i => i.id))
-
-let isMac = navigator.userAgent.indexOf('Mac OS X') !== -1
-
-async function rerender() {
-    show.value = false
-    await nextTick()
-    show.value = true
-}
-
-onMounted(async () => {
-    console.log(panoptic.isProjectLoaded)
-    if (!panoptic.isProjectLoaded) {
-        // console.log('redirect')
-        router.push('/')
-    }
-
-    nextTick(() => {
-        window.addEventListener('resize', onResize);
-        onResize()
-    })
-
-    window.addEventListener('keydown', (ev) => {
-        if (ev.key == 'Control') keyState.ctrl = true;
-        if (ev.key == 'Alt') {
-            if (isMac) {
-                keyState.ctrl = true
-            }
-            keyState.alt = true;
-        }
-        if (ev.key == 'Shift') keyState.shift = true;
-        if (ev.key == 'ArrowLeft') keyState.left = true;
-        if (ev.key == 'ArrowRight') { keyState.right = true; console.log('keeeyy') }
-
-        if (ev.key == 'Z' && keyState.ctrl) data.redo()
-        if (ev.key == 'z' && keyState.ctrl) data.undo()
-    })
-    window.addEventListener('keyup', (ev) => {
-        if (ev.key == 'Control') keyState.ctrl = false;
-        if (ev.key == 'Alt') {
-            if (isMac) {
-                keyState.ctrl = false
-            }
-            keyState.alt = false;
-        }
-        if (ev.key == 'Shift') keyState.shift = false;
-        if (ev.key == 'ArrowLeft') keyState.left = false;
-        if (ev.key == 'ArrowRight') keyState.right = false;
-    })
-    window.addEventListener('mousemove', (ev) => {
-        keyState.ctrl = ev.ctrlKey
-        keyState.alt = ev.altKey
-        keyState.shift = ev.shiftKey
-        if (isMac) {
-            keyState.ctrl = keyState.ctrl || keyState.alt
-        }
-    })
+onMounted(() => {
+    socketStore.init()
+    panoptic.init()
 })
-
-onUnmounted(() => {
-    window.removeEventListener('resize', onResize);
-})
-
-function onResize() {
-    // console.log('resize', window.innerHeight)
-    windowHeight.value = window.innerHeight
-    hasHeight.value = true
-}
-
-function showModal() {
-    panoptic.showModal(ModalId.EXPORT, filteredImages)
-}
-
-function redirectHome() {
-    router.push('/')
-}
-
-function updateWidth() {
-    if (mainViewRef.value) {
-        mainViewRef.value.updateScrollerWidth()
-    }
-}
-
 </script>
 
 <template>
-    <div v-if="show && !panoptic.state.backendOff">
-        <Tutorial v-if="mainViewRef && !mainViewRef.imageList" tutorial="project" />
-        <!---</Tutorial>v-if="mainViewRef && !mainViewRef.imageList"/>-->
-        <div id="panoptic" :key="project.status.renderNb">
-            <!-- <div id="dropdown-target" style="position: relative; z-index: 99; left: 0; right: 0; top:0; bottom: 0;" class="overflow-hidden"></div> -->
-            <div class="d-flex flex-row m-0 p-0 overflow-hidden">
-                <div v-if="!data.isLoaded" class="d-flex flex-column w-100" :style="{ height: windowHeight + 'px' }">
-                    <DataLoad class="flex-grow-1" />
-                </div>
-                <template v-else-if="data.isLoaded">
-                    <div>
-                        <Menu @export="showModal()" @toggle="updateWidth" />
-                    </div>
-                    <div class="w-100">
-                        <div class="ms-1" ref="navElem">
-                            <TabNav :re-render="rerender" :filterOpen="filterOpen"
-                                @update:filterOpen="v => filterOpen = v" />
-                        </div>
-                        <div class="custom-hr" v-if="hasHeight" />
-                        <TabContainer :id="tabStore.mainTab">
-                            <template #default="{ tab }">
-                                <MainView :tab="tab" :height="contentHeight" ref="mainViewRef"
-                                    :filter-open="filterOpen" />
-                            </template>
-                        </TabContainer>
-                    </div>
-
-                </template>
-                <div v-else-if="!panoptic.isProjectLoaded" class="loading">
-                    <div class="text-center">
-                        <div>{{ $t('main.status.no_project') }}</div>
-                        <div class="bi bi-house p-3" @click="redirectHome" style="font-size: 50px; cursor: pointer;">
-                        </div>
-                    </div>
-                </div>
-                <div v-else class="loading">
-                    <i class="spinner-border" role="status"></i>
-                    <span class="ms-1">Loading...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div v-if="panoptic.state.backendOff" class="above">Lost connection to backend. Verify that panoptic is running and reload page</div>
+    <template v-if="!panoptic.isConnected">
+        <div class="above">Lost connection to backend. Verify that panoptic is running and
+            reload page</div>
+    </template>
+    <template v-else>
+        <template v-if="!panoptic.isUserValid">
+            <div><UserSelection :users="panoptic.serverState.users" @connect-user="u => socketStore.connectUser(u.id)"/></div>
+        </template>
+        <template v-else>
+            <RouterView />
+            <PropertyModal :id="ModalId.PROPERTY" />
+            <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+            <ExportModal2 />
+            <ImageModal />
+            <ImageZoomModal />
+            <SettingsModal />
+            <ImportModal />
+            <TagModal />
+            <FirstModal />
+            <NotifModal />
+        </template>
+    </template>
+    <div id="popup" style="position: fixed; top:0;left: 0; z-index: 9990;"></div>
 </template>
 
 <style scoped>
@@ -175,13 +64,5 @@ function updateWidth() {
     position: absolute;
     top: 500px;
     left: 500px;
-}
-
-.loading {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 </style>

@@ -1,10 +1,8 @@
 import asyncio
 import atexit
 import os
-import random
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from time import time
 from pathlib import Path
 from typing import List, Any
 
@@ -22,8 +20,7 @@ from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
 from panoptic.core.task.task_queue import TaskQueue
-from panoptic.models import StatusUpdate, ProjectSettings, PluginKey, DbCommit
-from panoptic.utils import get_model_params_description
+from panoptic.models import ProjectSettings, PluginKey, DbCommit, ProjectState, TaskState
 
 nb_workers = 8
 
@@ -35,14 +32,16 @@ def get_executor():
 
 
 class Project:
-    def __init__(self, folder_path: str, plugins: List[PluginKey]):
+    def __init__(self, folder_path: str, plugins: List[PluginKey], name: str, id_: int = 0):
+        self.id = id_
+        self.name = name
         self._load_task = None
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
         self.db: ProjectDb | None = None
         self.ui: ProjectUi | None = None
-        self.on = ProjectEvents()
+        self.on = ProjectEvents(self.id)
         self.action = ProjectActions()
         self.task_queue = TaskQueue(self.executor, num_workers=nb_workers * 2)
         self.importer = Importer(project=self)
@@ -55,11 +54,16 @@ class Project:
         self.plugins: List[APlugin] = []
         self.plugin_keys = plugins
 
+        self.task_queue.on_update.register(self._emit_tasks)
+
+    async def _emit_tasks(self, tasks: list[TaskState]):
+        self.on.sync.emitTasks(tasks)
+
     async def start(self):
         conn = DbConnection(self.base_path)
         await conn.start()
-        self.db = ProjectDb(conn)
-        self.ui = ProjectUi(self.db.get_raw_db())
+        self.db = ProjectDb(conn, self)
+        self.ui = ProjectUi(self.db)
 
         self.db.on_import_instance.redirect(self.on.import_instance)
 
@@ -84,12 +88,6 @@ class Project:
     async def redirect_on_import(self, x):
         self.on.import_instance.emit(x)
 
-    def get_status_update(self) -> StatusUpdate:
-        res = StatusUpdate(update=self.ui.update_counter)
-        res.tasks = self.task_queue.get_task_states()
-        res.plugin_loaded = self.plugin_loaded
-        return res
-
     async def close(self):
         self.is_loaded = False
         self.base_path = ''
@@ -108,7 +106,7 @@ class Project:
         return export_path
 
     async def plugins_info(self):
-        return [await p.get_description() for p in self.plugins]
+        return [p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
         folder = os.path.normpath(folder)
@@ -122,6 +120,7 @@ class Project:
         tasks = [ImportInstanceTask(project=self, file=file, folder_id=file_to_folder_id[file])
                  for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
+        self.on.sync.emitFolders(await self.db.get_folders())
 
     async def delete_folder(self, folder_id: int):
         res = await self.db.delete_folder(folder_id)
@@ -167,7 +166,6 @@ class Project:
             self.sha1_to_files[row[0]].append(row[1])
 
     async def update_settings(self, settings: ProjectSettings):
-        db = self.db.get_raw_db()
         re_import_images = False
 
         delete_small = False
@@ -219,15 +217,15 @@ class Project:
                 delete_raw = True
 
         if delete_small:
-            await db.delete_small_images()
+            await self.db.delete_small_images()
         if delete_medium:
-            await db.delete_medium_images()
+            await self.db.delete_medium_images()
         if delete_large:
-            await db.delete_large_images()
+            await self.db.delete_large_images()
         if delete_raw:
-            pass
+            await self.db.delete_raw_images()
 
-        await self.db.save_project_settings(settings)
+        await self.db.set_project_settings(settings)
         self.settings = settings
 
         if re_import_images:
@@ -239,3 +237,24 @@ class Project:
         commit = DbCommit()
         commit.empty_instances = ids
         return commit
+
+    async def delete_vector_type(self, id_: int):
+        res = await self.db.delete_vector_type(id_)
+        for p in self.plugins:
+            await p.load_vector_types()
+        return res
+
+    def get_state(self):
+        tasks = self.task_queue.get_task_states()
+        plugins = [p.get_description() for p in self.plugins]
+        return ProjectState(
+            id=self.id,
+            name=self.name,
+            path=self.base_path,
+            tasks=tasks,
+            plugins=plugins,
+            settings=self.settings)
+
+    def add_plugin(self, plugin: APlugin):
+        self.plugins.append(plugin)
+        self.on.sync.emitProjectState(self.get_state())

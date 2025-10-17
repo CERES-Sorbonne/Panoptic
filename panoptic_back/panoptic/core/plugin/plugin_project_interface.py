@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
 from panoptic.models import ImagePropertyKey, InstanceProperty, PropertyType, PropertyMode, Property, \
-    DbCommit, Vector, Instance, DeleteFolderConfirm
+    DbCommit, Vector, Instance, DeleteFolderConfirm, VectorType
 
 
 class PluginProjectInterface:
@@ -36,25 +36,25 @@ class PluginProjectInterface:
         return await self._project.db.get_tags2(ids, property_ids)
 
     async def get_instance_property_values(self, property_ids: list[int] = None, instance_ids: list[int] = None):
-        return await self._project.db.get_raw_db().get_instance_property_values(property_ids, instance_ids)
+        return await self._project.db.get_instance_property_values(property_ids, instance_ids)
 
     async def get_instance_property_values_from_keys(self, keys: list[InstanceProperty]):
-        return await self._project.db.get_raw_db().get_instance_property_values_from_keys(keys)
+        return await self._project.db.get_instance_property_values_from_keys(keys)
 
     async def get_image_property_values(self, property_ids: list[int] = None, sha1s: list[str] = None):
-        return await self._project.db.get_raw_db().get_image_property_values(property_ids, sha1s)
+        return await self._project.db.get_image_property_values(property_ids, sha1s)
 
     async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]):
-        return await self._project.db.get_raw_db().get_image_property_values_from_keys(keys)
+        return await self._project.db.get_image_property_values_from_keys(keys)
 
-    async def get_vectors(self, source: str, vector_type: str, sha1s: list[str] = None):
-        return await self._project.db.get_vectors(source, vector_type, sha1s)
+    async def get_vectors(self, type_id: int, sha1s: list[str] = None):
+        return await self._project.db.get_vectors(type_id, sha1s)
 
-    async def get_default_vectors(self, sha1s: list[str] = None):
-        return await self._project.db.get_default_vectors(sha1s)
+    async def get_vector_types(self, source: str = None):
+        return await self._project.db.get_vector_types(source=source)
 
-    async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
-        return await self._project.db.vector_exist(source, type_, sha1)
+    async def vector_exist(self, type_id: int, sha1: str) -> bool:
+        return await self._project.db.vector_exist(type_id, sha1)
 
     # CREATE
 
@@ -68,6 +68,12 @@ class PluginProjectInterface:
 
     def create_tag(self, property_id: int, value: str, parent_ids: list[int] = None, color=-1):
         return self._project.db.create_tag(property_id, value, parent_ids, color)
+
+    async def add_vector_type(self, vec: VectorType):
+        return await self._project.db.add_vector_type(vec)
+
+    async def add_vector(self, vector: Vector):
+        return await self._project.db.add_vector(vector)
 
     # COMMIT
 
@@ -96,3 +102,5 @@ class PluginProjectInterface:
 
     def on_folder_delete(self, callback: Callable[[DeleteFolderConfirm], Awaitable[None]]):
         return self._project.on.delete_folder.register(callback)
+
+

@@ -127,3 +127,7 @@ class IgnoredPluginPayload(CamelModel):
     project: str
     plugin: str
     value: bool
+
+
+class DeleteVectorTypePayload(CamelModel):
+    id: int

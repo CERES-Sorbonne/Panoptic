@@ -28,7 +28,9 @@ export class TabManager {
 
     async update() {
         this.verifyState()
+        if (useDataStore().isLoaded) {
             await this.collection.update()
+        }
     }
 
     async deactivate() {
@@ -54,6 +56,11 @@ export class TabManager {
 
     setVisibleProperty(propId: number, value: boolean) {
         this.state.visibleProperties[propId] = value
+        this.saveState()
+    }
+
+    setSelectedFolder(selectedFolders) {
+        this.state.selectedFolders = selectedFolders
         this.saveState()
     }
 
