@@ -47,20 +47,22 @@ class Panoptic:
                 for i in range(len(res.projects)):
                     res.projects[i].id = i + 1
                 loaded_data = res
-        except (FileNotFoundError, json.JSONDecodeError) as e:
+        except json.JSONDecodeError as e:
             print(f"Warning: Could not load projects.json. Error: {e}", file=sys.stderr)
-            if isinstance(e, json.JSONDecodeError):
-                # If the file is corrupted, back it up before starting fresh
-                corrupt_file_path = self.global_file_path
-                if os.path.exists(corrupt_file_path):
-                    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-                    backup_path = f"{corrupt_file_path}.corrupt.{timestamp}.bak"
-                    shutil.copy(corrupt_file_path, backup_path)
-                    print(f"A backup of the corrupt file has been saved to: {backup_path}", file=sys.stderr)
+            # If the file is corrupted, back it up before starting fresh
+            corrupt_file_path = self.global_file_path
+            if os.path.exists(corrupt_file_path):
+                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                backup_path = f"{corrupt_file_path}.corrupt.{timestamp}.bak"
+                shutil.copy(corrupt_file_path, backup_path)
+                print(f"A backup of the corrupt file has been saved to: {backup_path}", file=sys.stderr)
 
-            print("Starting with a new empty project list.", file=sys.stderr)
             data, save = convert_old_panoptic_json(data)
             loaded_data = PanopticData(**data)
+
+            print("Starting with a new empty project list.", file=sys.stderr)
+        except FileNotFoundError as e:
+            loaded_data = PanopticData(projects=[])
 
         self.data = loaded_data
         if save:
