@@ -11,7 +11,7 @@ from pypika import Table, PostgreSQLQuery, Order, functions
 from panoptic.core.db.db_connection import DbConnection, db_lock
 from panoptic.core.db.utils import auto_dict, decode_if_json
 from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
-    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup
+    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup, VectorType
 from panoptic.models import Tag, Property, Folder
 
 Query = PostgreSQLQuery
@@ -343,6 +343,10 @@ class Db:
         await self.conn.execute_query(query, (sha1, small, medium, large))
         return sha1, small, medium, large
 
+    async def import_raw_image(self, sha1: str, mime_type: str, data: bytes):
+        query = "INSERT OR REPLACE INTO raw_images (sha1, mime_type, data) VALUES (?, ?, ?)"
+        await self.conn.execute_query(query, (sha1, mime_type, data))
+
     async def get_small_image(self, sha1: str):
         query = "SELECT small FROM images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
@@ -368,15 +372,23 @@ class Db:
         return row[0]
 
     async def get_raw_image(self, sha1: str):
-        query = "SELECT raw FROM images WHERE sha1=?"
+        query = "SELECT mime_type, data FROM raw_images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
         row = await cursor.fetchone()
         if not row:
             return row
-        return row[0]
+        return row[0], row[1]
 
     async def has_image(self, sha1: str):
         query = "SELECT sha1 FROM images WHERE sha1=?"
+        cursor = await self.conn.execute_query(query, (sha1,))
+        row = await cursor.fetchone()
+        if not row:
+            return False
+        return True
+
+    async def has_raw_image(self, sha1: str):
+        query = "SELECT sha1 FROM raw_images WHERE sha1=?"
         cursor = await self.conn.execute_query(query, (sha1,))
         row = await cursor.fetchone()
         if not row:
@@ -398,6 +410,14 @@ class Db:
     async def delete_images(self, sha1s: list[str]):
         query = "DELETE FROM images WHERE sha1 = ?"
         await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
+
+    async def delete_raw_images(self, sha1s: list[str] = None):
+        if sha1s is None:
+            query = 'DELETE FROM raw_images'
+            await self.conn.execute_query(query)
+        else:
+            query = "DELETE FROM raw_images WHERE sha1 = ?"
+            await self.conn.execute_query_many(query, [(sha1,) for sha1 in sha1s])
 
     # =====================================================
     # ================= Instances =========================
@@ -551,6 +571,15 @@ class Db:
         query = "DELETE FROM instances WHERE id = ?"
         await self.conn.execute_query_many(query, [(id_,) for id_ in ids])
 
+    async def get_distinct_sha1_count(self):
+        query = "SELECT count(DISTINCT sha1) FROM instances"
+        cursor = await self.conn.execute_query(query)
+        res = await cursor.fetchall()
+        if res:
+            return res[0][0]
+        else:
+            return 0
+
     # =====================================================
     # ================== Folders ==========================
     # =====================================================
@@ -602,18 +631,26 @@ class Db:
     # ================== Vectors ==========================
     # =====================================================
 
+    async def add_vector_type(self, vector_type: VectorType):
+        query = """
+        INSERT INTO vector_type (source, params) VALUES (?, ?)
+        """
+        res = await self.conn.execute_query(query, (vector_type.source, json.dumps(vector_type.params)))
+        vector_type.id = res.lastrowid
+        return vector_type
+
     async def add_vector(self, vector: Vector):
         query = f"""
-            INSERT OR REPLACE INTO vectors (source, type, sha1, data)
-            VALUES (?, ?, ?, ?);
+            INSERT OR REPLACE INTO vectors (type_id, sha1, data)
+            VALUES (?, ?, ?);
         """
-        await self.conn.execute_query(query, (vector.source, vector.type, vector.sha1, vector.data))
+        await self.conn.execute_query(query, (vector.type_id, vector.sha1, vector.data))
         return vector
 
-    async def get_vectors(self, source: str, type_: str, sha1s: List[str] = None):
+    async def get_vectors(self, type_id: int, sha1s: List[str] = None):
         t = Table('vectors')
-        query = Query.from_(t).select('source', 'type', 'sha1', 'data')
-        query = query.where(t.source == source).where(t.type == type_)
+        query = Query.from_(t).select('type_id', 'sha1', 'data')
+        query = query.where(t.type_id == type_id)
         if sha1s:
             query = query.where(t.sha1.isin(sha1s))
         cursor = await self.conn.execute_query(query.get_sql())
@@ -621,10 +658,26 @@ class Db:
         res = [Vector(*row) for row in rows]
         return res
 
-    async def vector_exist(self, source: str, type_: str, sha1: str):
+    async def get_vector_types(self, source: str = None):
+        t = Table('vector_type')
+        query = Query.from_(t).select('*')
+        if source:
+            query = query.where(t.source == source)
+        cursor = await self.conn.execute_query(query.get_sql())
+        rows = await cursor.fetchall()
+        if rows:
+            return [VectorType(**auto_dict(r, cursor)) for r in rows]
+        return []
+
+    async def delete_vector_type(self, id_: int):
+        query = """DELETE FROM vector_type WHERE id = ?"""
+        await self.conn.execute_query(query, (id_,))
+        return True
+
+    async def vector_exist(self, type_id: int, sha1: str):
         t = Table('vectors')
-        query = Query.from_(t).select('source', 'type', 'sha1')
-        query = query.where(t.source == source).where(t.type == type_)
+        query = Query.from_(t).select('type_id', 'sha1')
+        query = query.where(t.type_id == type_id)
         query = query.where(t.sha1 == sha1)
         cursor = await self.conn.execute_query(query.get_sql())
         rows = await cursor.fetchall()
@@ -632,16 +685,25 @@ class Db:
             return True
         return False
 
-    async def get_vector_descriptions(self):
-        query = """ 
-        SELECT source, type, count(sha1) as count
-        FROM vectors
-        GROUP BY source, type;
-        """
+    async def get_vector_stats(self):
+        query = "SELECT type_id, count(sha1) FROM vectors GROUP BY type_id"
         cursor = await self.conn.execute_query(query)
         rows = await cursor.fetchall()
         if rows:
-            return [VectorDescription(**auto_dict(r, cursor)) for r in rows]
+            return {r[0]: r[1] for r in rows}
+        return {}
+
+    # TODO: remove
+    async def get_vector_descriptions(self):
+        # query = """
+        # SELECT source, type, count(sha1) as count
+        # FROM vectors
+        # GROUP BY source, type;
+        # """
+        # cursor = await self.conn.execute_query(query)
+        # rows = await cursor.fetchall()
+        # if rows:
+        #     return [VectorDescription(**auto_dict(r, cursor)) for r in rows]
         return []
 
     async def set_default_vector_id(self, vector_id: str):
@@ -732,7 +794,7 @@ class Db:
     async def delete_property_groups(self, groups: list[int]):
         query = "DELETE FROM property_group WHERE id=?;"
         await self.conn.execute_query_many(query, [(i,) for i in groups])
-        
+
     # =====================================================
     # ==================== ID COUNTERS ====================
     # =====================================================

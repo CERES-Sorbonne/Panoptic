@@ -10,6 +10,9 @@ import TagInput from '@/components/property_inputs/TagInput.vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import { Property, PropertyType } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
+
+const data = useDataStore()
 
 const props = defineProps<{
     property: Property
@@ -26,7 +29,7 @@ const props = defineProps<{
     width?: number
     forceMulti?: boolean
 }>()
-const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show'])
+const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show', 'tab'])
 defineExpose({
     getHeight,
     focus
@@ -35,7 +38,7 @@ const heightElem = ref(null)
 const inputElem = ref(null)
 const dropdownElem = ref(null)
 const safeValue = computed(() => localValue.value ?? [])
-const tags = computed(() => safeValue.value.map(tId => props.property.tags[tId]))
+const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 
 const localValue = ref(undefined)
 
@@ -75,6 +78,11 @@ function onShow() {
     emits('show')
 }
 
+function onTab(hide) {
+    emits('tab')
+    hide()
+}
+
 watch(() => props.width, updateHeight)
 watch(() => props.modelValue, updateLocal)
 onMounted(updateHeight)
@@ -88,7 +96,7 @@ onMounted(updateLocal)
             <div class="btn-class" :class="props.noWrap ? 'text-nowrap' : 'text-wrap'"
                 :style="{ width: props.width ? props.width + 'px' : '100%' }" ref="heightElem">
                 <span v-for="tag in tags">
-                    <TagBadge :id="tag.id" class="me-1" />
+                    <TagBadge v-if="tag" :id="tag.id" class="me-1" />
                 </span>
                 <span v-if="tags.length == 0" style="font-size: 14px;" class="text-secondary">{{ $t('none') }}</span>
             </div>
@@ -99,7 +107,7 @@ onMounted(updateLocal)
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
-                    :force-multi="props.forceMulti"
+                    :force-multi="props.forceMulti" @tab="onTab(hide)"
                     ref="inputElem" />
             </div>
         </template>

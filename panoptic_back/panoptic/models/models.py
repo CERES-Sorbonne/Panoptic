@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict
 # from pydantic.dataclasses import dataclass
 
 class ProjectId(BaseModel):
+    id: int = -1
     name: str | None = None
     path: str | None = None
 
@@ -34,7 +35,6 @@ class PluginKey(BaseModel):
 class PanopticData(BaseModel):
     version: int = 1
     projects: list[ProjectId]
-    last_opened: ProjectId | None = None
     plugins: List[PluginKey] = []
     ignored_plugins: dict[str, list[str]] = {}
 
@@ -197,10 +197,21 @@ class ComputedValue:
     vector: numpy.ndarray
 
 
+@dataclass
+class VectorType:
+    id: int
+    source: str
+    params: Any
+
+
+@dataclass
+class OwnVectorType(VectorType):
+    pass
+
+
 @dataclasses.dataclass
 class Vector:
-    source: str
-    type: str
+    type_id: int
     sha1: str
     data: numpy.ndarray
 
@@ -249,6 +260,12 @@ class Tab(BaseModel):
     data: dict | None = None
 
 
+class LoadProjectPayload(CamelModel):
+    path: str
+
+class DeleteProjectPayload(CamelModel):
+    path: str
+
 class AddPluginPayload(CamelModel):
     type: PluginType
     source: str
@@ -262,6 +279,7 @@ class UpdatePluginPayload(CamelModel):
 class UpdateCounter(CamelModel):
     action: int = 0
     image: int = 0
+    vector_type: int = 0
 
 
 class StatusUpdate(CamelModel):
@@ -359,6 +377,13 @@ class SetMode(Enum):
     delete = 'delete'
 
 
+class UpdateType(Enum):
+    COMMIT = "commit"
+    FOLDERS = "folders"
+    VECTOR_TYPES = "vector_types"
+    PROJECT_SETTINGS = "project_settings"
+
+
 class ColumnOption(BaseModel):
     ignore: bool = False
     mode: PropertyMode | None = None
@@ -404,14 +429,6 @@ class PropertyId(int):
     pass
 
 
-class VectorType(str):
-    pass
-
-
-class OwnVectorType(str):
-    pass
-
-
 class ProjectSettings(BaseModel):
     image_small_size: int = 128
     image_medium_size: int = 256
@@ -444,6 +461,67 @@ class DeleteFolderConfirm:
     deleted_folders: list[int]
     deleted_instances: list[int]
     deleted_sha1s: list[str]
+
+
+@dataclass
+class VectorStats:
+    count: dict[int, int]
+    sha1_count: int
+
+
+@dataclass
+class DbUpdate:
+    type_: UpdateType
+    data: Any
+
+
+class ProjectRef(ProjectId):
+    is_open: bool
+    ignored_plugins: list[str] = []
+
+
+class PanopticState(BaseModel):
+    version: str
+    projects: list[ProjectRef] = []
+    plugins: list[PluginKey] = []
+    users: list[UserState] = []
+    ask_user: bool = False
+
+
+class User(BaseModel):
+    id: int
+    name: str
+
+
+class UserState(User):
+    connected_to: str | None = None
+
+
+class PanopticClientState(BaseModel):
+    connection_id: str
+    connected_project: int | None = None
+    connected_at: datetime
+    user: UserState | None = None
+
+
+class ProjectState(BaseModel):
+    id: int
+    name: str
+    path: str
+    tasks: list[TaskState] = []
+    plugins: list[PluginDescription] = []
+    settings: ProjectSettings
+
+
+class CloseProjectRequest(BaseModel):
+    project_id: int
+
+
+@dataclass
+class SyncData:
+    key: str
+    project_id: int
+    data: Any
 
 
 ImportOptions = dict[int, ColumnOption]

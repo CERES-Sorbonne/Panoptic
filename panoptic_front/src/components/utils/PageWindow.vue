@@ -4,6 +4,7 @@ import { defineProps, defineEmits } from 'vue'
 const props = defineProps<{
     page?: string
     options: string[]
+    langKey?: string
 }>()
 const emits = defineEmits(['update:page'])
 
@@ -16,19 +17,34 @@ function changePage(page: string) {
 <template>
     <div class="d-flex h-100">
         <div class="option-list" style="min-width: 150px;">
-            <div v-for="option in props.options" class="border-bottom" :class="option == props.page ? 'active' : ''">
-                <div class="bb p-1 text-capitalize" style="border-radius: 0px;" @click="changePage(option)">{{ option }}
-                </div>
+            <div
+            v-for="option in props.options"
+            :key="option"
+            class="border-bottom bb p-1 text-capitalize"
+            :class="{ active: option === props.page }"
+            @click="changePage(option)"
+            style="border-radius: 0px;"
+            >
+            <span v-if="props.langKey">{{ $t(props.langKey + '.' + option) }}</span>
+            <span v-else>{{ option }}</span>
             </div>
         </div>
         <div class="flex-grow-1 h-100">
-            <div v-if="props.page != ''" class="d-flex upper mb-2">
-                <div class="bb" @click="changePage('')"><i class="bi bi-arrow-left" /></div>
-                <div class="text-capitalize text-secondary">{{ props.page }}</div>
-                <!-- <div class="me-5"></div> -->
-                <slot name="header" :page="props.page"></slot>
+            <div class="d-flex flex-column h-100">
+                <div v-if="props.page != ''" class="d-flex upper">
+                    <div class="bb" @click="changePage('')"><i class="bi bi-arrow-left" /></div>
+                    <div class="text-capitalize text-secondary">
+                        <span v-if="props.langKey">{{ $t(props.langKey + '.' + props.page) }}</span>
+                        <span v-else>{{ props.page }}</span>
+                    </div>
+                    <!-- <div class="me-5"></div> -->
+                    <slot name="header" :page="props.page"></slot>
+                </div>
+                <div class="flex-grow-1" style="overflow-y: auto; overflow-x: hidden;">
+                    <slot :page="props.page"></slot>
+                </div>
             </div>
-            <slot :page="props.page"></slot>
+
         </div>
     </div>
 </template>

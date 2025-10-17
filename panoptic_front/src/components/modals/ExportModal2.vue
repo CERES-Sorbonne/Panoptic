@@ -1,6 +1,5 @@
 <script setup lang="ts">
 
-import { apiExportProperties } from '@/data/api';
 import { ref, computed, reactive } from 'vue';
 import { ModalId } from '@/data/models';
 import { sleep } from '@/utils/utils';
@@ -105,6 +104,11 @@ async function buildRequest() {
     modalElem.value.hide()
 }
 
+
+
+function apiExportProperties(name: any, images: any, key: string, properties: any, exportImages: boolean) {
+    throw new Error('Function not implemented.');
+}
 </script>
 
 

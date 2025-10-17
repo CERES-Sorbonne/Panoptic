@@ -1,35 +1,71 @@
+from __future__ import annotations
 from random import randint
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from panoptic.core.project.project import Project
 
 from panoptic.core.db.db import Db
 from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
-from panoptic.core.project.project_events import ImportInstanceEvent
+from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEvent
 from panoptic.core.project.undo_queue import UndoQueue
-from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, \
-    Vector, VectorDescription, ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, \
-    ImagePropertyKey, InstancePropertyKey, ProjectSettings
+from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
+    ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, ImagePropertyKey, \
+    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
 
 
 class ProjectDb:
-    def __init__(self, conn: DbConnection):
+    def __init__(self, conn: DbConnection, project: Project):
         self._db = Db(conn)
         self._fake_id_counter = -100
         self.undo_queue = UndoQueue(self)
         self.on_import_instance = ImportInstanceEvent()
+        self.on_db_update = DbUpdateEvent()
+        self._project = project
 
     async def close(self):
         await self._db.close()
 
-    def get_raw_db(self):
-        return self._db
-
     def _get_fake_id(self):
         self._fake_id_counter -= 1
         return self._fake_id_counter
+
+    async def get_instance_property_values_from_keys(self, keys: list[InstanceProperty]):
+        return await self._db.get_instance_property_values_from_keys(keys)
+
+    async def get_image_property_values_from_keys(self, keys: list[ImagePropertyKey]):
+        return await self._db.get_image_property_values_from_keys(keys)
+
+    async def get_instance_values_count(self):
+        return await self._db.get_instance_values_count()
+
+    async def get_image_values_count(self):
+        return await self._db.get_image_values_count()
+
+    async def get_instances_count(self):
+        return await self._db.get_instances_count()
+
+    async def has_file(self, folder_id: int, name: str, extension: str):
+        return await self._db.has_file(folder_id, name, extension)
+
+    async def delete_small_images(self):
+        return await self._db.delete_small_images()
+
+    async def delete_medium_images(self):
+        return await self._db.delete_medium_images()
+
+    async def delete_large_images(self):
+        return await self._db.delete_large_images()
+
+    async def delete_raw_images(self):
+        return await self._db.delete_raw_images()
+
+    async def delete_property(self, prop_id: int):
+        return await self._db.delete_property(prop_id)
 
     # =====================================================
     # =================== Properties ======================
@@ -106,6 +142,9 @@ class ProjectDb:
     async def import_image(self, sha1: str, small: bytes, medium: bytes, large: bytes):
         return await self._db.import_image(sha1, small, medium, large)
 
+    async def import_raw_image(self, sha1: str, mime_type: str, data: bytes):
+        return await self._db.import_raw_image(sha1, mime_type, data)
+
     async def get_small_image(self, sha1: str):
         return await self._db.get_small_image(sha1)
 
@@ -117,6 +156,12 @@ class ProjectDb:
 
     async def has_image(self, sha1: str):
         return await self._db.has_image(sha1)
+
+    async def get_raw_image(self, sha1: str):
+        return await self._db.get_raw_image(sha1)
+
+    async def has_raw_image(self, sha1: str):
+        return await self._db.has_raw_image(sha1)
 
     # =====================================================
     # =================== Instances =======================
@@ -292,7 +337,8 @@ class ProjectDb:
 
     # =========== Folders ===========
     async def add_folder(self, path: str, name: str, parent: int = None):
-        return await self._db.add_folder(path, name, parent)
+        res = await self._db.add_folder(path, name, parent)
+        return res
 
     async def get_folders(self):
         return await self._db.get_folders()
@@ -316,30 +362,42 @@ class ProjectDb:
         deleted_sha1s = list(old_sha1s - now_sha1s)
 
         await self._db.delete_images(deleted_sha1s)
+        await self._db.delete_raw_images(deleted_sha1s)
         await self._db.delete_image_values(deleted_sha1s)
         await self._db.delete_vectors(deleted_sha1s)
 
-        return DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids, deleted_sha1s=deleted_sha1s)
+        res = DeleteFolderConfirm(deleted_folders=deleted_folders, deleted_instances=deleted_ids,
+                                  deleted_sha1s=deleted_sha1s)
+        self.on_db_update.emit(DbUpdate(type_=UpdateType.FOLDERS, data=res))
+        self._project.on.sync.emitFoldersDelete()
+        return res
 
     # =========== Vectors ===========
-    async def get_vectors(self, source: str, type_: str, sha1s: list[str] = None):
-        return await self._db.get_vectors(source, type_, sha1s)
+    async def get_vectors(self, type_id: int, sha1s: list[str] = None):
+        return await self._db.get_vectors(type_id, sha1s)
 
-    async def get_default_vectors(self, sha1s: list[str] = None):
-        default = await self._db.get_default_db_vector_id()
-        if not default:
-            raise Exception('No default vectors set. Make sure vectors are computed')
-        source, type_ = default.split('.')
-        return await self._db.get_vectors(source, type_, sha1s)
+    async def get_vector_types(self, source: str = None):
+        return await self._db.get_vector_types(source=source)
+
+    async def delete_vector_type(self, id_: int):
+        res = await self._db.delete_vector_type(id_)
+        self._project.on.sync.emitVectorTypes(await self.get_vector_types())
+        return res
+
+    async def add_vector_type(self, vec: VectorType):
+        res = await self._db.add_vector_type(vec)
+        self._project.on.sync.emitVectorTypes(await self.get_vector_types())
+        return res
 
     async def add_vector(self, vector: Vector):
         return await self._db.add_vector(vector)
 
-    async def vector_exist(self, source: str, type_: str, sha1: str) -> bool:
-        return await self._db.vector_exist(source, type_, sha1)
+    async def vector_exist(self, vec_id: int, sha1: str) -> bool:
+        return await self._db.vector_exist(vec_id, sha1)
 
     async def set_default_vectors(self, vector: VectorDescription):
         await self._db.set_default_vector_id(vector_id=vector.id)
+        self.on_db_update.emit(DbUpdate(type_=UpdateType.VECTOR_TYPES, data=vector))
 
     async def get_vectors_info(self):
         vectors = await self._db.get_vector_descriptions()
@@ -359,14 +417,23 @@ class ProjectDb:
         return await self._db.get_plugin_data(key)
 
     async def set_plugin_data(self, key: str, value: Any):
-        return await self._db.set_plugin_data(key, value)
+        res = await self._db.set_plugin_data(key, value)
+        self._project.on.sync.emitProjectState(self._project.get_state())
+        return res
 
     async def apply_commit(self, commit: DbCommit):
+        inverse = await self._apply_commit(commit)
+        self.on_db_update.emit(DbUpdate(type_=UpdateType.COMMIT, data=commit))
+        self._project.on.sync.emitCommit(commit)
+        return inverse
+
+    async def _apply_commit(self, commit: DbCommit):
         inverse = DbCommit()
         inverse.timestamp = commit.timestamp
 
         instance_id_map: dict[int, int] = {}
         property_id_map: dict[int, int] = {}
+        property_group_id_map: dict[int, int] = {}
         tag_id_map: dict[int, int] = {}
 
         properties = {p.id: p for p in await self._db.get_properties()}
@@ -412,19 +479,36 @@ class ProjectDb:
             inverse.empty_instances.extend([i.id for i in db_instances if i.id not in current_ids])
             inverse.instances.extend(current)
 
-        # TODO: correct ids for property
+        def correct_property_id(value: InstancePropertyKey | ImagePropertyKey):
+            if value.property_id in property_id_map:
+                value.property_id = property_id_map[value.property_id]
+
+        def correct_property_group_id(value: Property):
+            if value.property_group_id in property_group_id_map:
+                value.property_group_id = property_group_id_map[value.property_group_id]
+
+        def correct_instance_id(value: InstancePropertyKey):
+            if value.instance_id in instance_id_map:
+                value.instance_id = instance_id_map[value.instance_id]
+
+        def correct_tag_id(value: InstanceProperty | ImageProperty):
+            if isinstance(value.value, list):
+                value.value = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in value.value]
+
         if commit.property_groups:
             new, old = separate_ids(commit.property_groups)
             len_new = len(new)
             if len_new:
                 new_ids = await self._db.get_new_property_group_ids(len_new)
                 for pg, id_ in zip(new, new_ids):
+                    property_group_id_map[pg.id] = id_
                     pg.id = id_
             await self._db.import_property_groups(commit.property_groups)
 
         if commit.properties:
             ids = [p.id for p in commit.properties]
             current = await self._db.get_properties(ids=ids)
+            [correct_property_group_id(prop) for prop in commit.properties]
             db_properties = await self._db.import_properties(commit.properties)
             property_id_map = {old: new.id for old, new in zip(ids, db_properties)}
 
@@ -453,18 +537,6 @@ class ProjectDb:
             current_ids = {tt.id for tt in current}
             inverse.empty_tags.extend([t.id for t in db_tags if t.id not in current_ids])
             inverse.tags.extend(current)
-
-        def correct_property_id(value: InstancePropertyKey | ImagePropertyKey):
-            if value.property_id in property_id_map:
-                value.property_id = property_id_map[value.property_id]
-
-        def correct_instance_id(value: InstancePropertyKey):
-            if value.instance_id in instance_id_map:
-                value.instance_id = instance_id_map[value.instance_id]
-
-        def correct_tag_id(value: InstanceProperty | ImageProperty):
-            if isinstance(value.value, list):
-                value.value = [tId if tId not in tag_id_map else tag_id_map[tId] for tId in value.value]
 
         if commit.instance_values:
             [correct_property_id(v) for v in commit.instance_values]
@@ -540,6 +612,7 @@ class ProjectDb:
             # await self._db.delete_instance(ids=commit.empty_instances)
         return inverse
 
+
     async def stream_instance_sha1_and_url(self, chunk_size: int = 10000):
         position = 0
 
@@ -582,12 +655,14 @@ class ProjectDb:
         await self._db.delete_instances(to_delete)
         return to_delete
 
-    async def save_project_settings(self, settings: ProjectSettings):
+    async def set_project_settings(self, settings: ProjectSettings):
         description = get_model_params_description(settings)
         for setting in description:
             name = setting.name
             new_value = getattr(settings, name)
             await self._db.set_project_param(name, new_value)
+
+        self._project.on.sync.emitSettings(settings)
 
     async def get_project_settings(self):
         settings = ProjectSettings()
@@ -599,5 +674,7 @@ class ProjectDb:
                 setattr(settings, name, db_value)
         return settings
 
-
-
+    async def get_vector_stats(self):
+        count = await self._db.get_vector_stats()
+        sha1_count = await self._db.get_distinct_sha1_count()
+        return VectorStats(count, sha1_count)

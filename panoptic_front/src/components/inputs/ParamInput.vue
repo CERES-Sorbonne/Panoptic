@@ -3,12 +3,13 @@ import { ref, watch, onMounted } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
-import { ParamDescription } from '@/data/models';
+import { ParamDescription, VectorType } from '@/data/models';
 
 const data = useDataStore()
 
 const props = defineProps<{
     input: ParamDescription
+    source: string
 }>();
 
 defineExpose({ focus })
@@ -26,17 +27,11 @@ function focus() {
 }
 
 function initValues() {
-    if (props.input.type == 'property' && props.input.defaultValue == undefined) {
-        localValue.value = data.propertyList[0]?.id
-    }
-    if (props.input.type == 'property' && localValue.value in data.properties) {
-        defaultProperty.value = data.properties[localValue.value]
-    }
-    if (props.input.type == 'enum' && props.input.defaultValue == undefined) {
-        localValue.value = props.input.possibleValues[0]
-    } else if (props.input.type == 'enum' && props.input.possibleValues.indexOf(props.input.defaultValue) < 0) {
-        localValue.value = props.input.possibleValues[0]
-    }
+    localValue.value = props.input.defaultValue
+}
+
+function vectorName(vectorType: VectorType) {
+    return '' + vectorType.id + ' ' + vectorType.source + '.' + Object.keys(vectorType.params).filter(k => vectorType.params[k]).map(k => k + '_' + vectorType.params[k]).join('_')
 }
 
 watch(() => props.input.defaultValue, () => localValue.value = props.input.defaultValue)
@@ -85,6 +80,18 @@ onMounted(initValues)
             <div v-if="props.input.type == 'enum'">
                 <select v-model="localValue">
                     <option v-for="v in props.input.possibleValues" :value="v">{{ v }}</option>
+                </select>
+            </div>
+            <div v-if="props.input.type == 'vector_type'">
+                <select v-model="localValue" style="max-width: 200px;">
+                    <option v-for="v in data.vectorTypes" :value="v">{{ vectorName(v) }}</option>
+                </select>
+            </div>
+
+            <div v-if="props.input.type == 'own_vector_type'">
+                <select v-model="localValue" style="max-width: 200px;">
+                    <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
+                        vectorName(v) }}</option>
                 </select>
             </div>
 

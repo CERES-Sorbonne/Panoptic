@@ -9,10 +9,14 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
+import socketio
 
 from panoptic.core.panoptic import Panoptic
+from panoptic.core.panoptic_server import PanopticServer
+from panoptic.routes.panoptic_routes import selection_router, set_server
+from panoptic.routes.project_routes import project_router
 from panoptic.models import PluginType
-from panoptic.routes.panoptic_routes import selection_router, set_panoptic
+from panoptic.routes.panoptic_routes import selection_router
 from panoptic.routes.project_routes import project_router
 from panoptic.utils import get_base_path
 
@@ -38,6 +42,11 @@ def start_api(install=False):
 
     # FastAPI setup
     app = FastAPI(lifespan=lifespan)
+
+    server = PanopticServer(panoptic)
+    sio_app = socketio.ASGIApp(server.sio)
+    app.mount("/socket.io", sio_app)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -69,9 +78,8 @@ def start_api(install=False):
             content={"traceback": tb, "name": name, "message": message}
         )
 
-    set_panoptic(panoptic)
+    set_server(server)
 
-    # static directory route
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
     dev_url = 'http://localhost:5173/'
@@ -80,6 +88,8 @@ def start_api(install=False):
 
     if not os.environ.get('REMOTE'):
         webbrowser.open(front_url)
+    if os.environ.get('SERVER_MODE'):
+        server.ask_users = True
 
 
     uvicorn.run(app, host=HOST, port=PORT)

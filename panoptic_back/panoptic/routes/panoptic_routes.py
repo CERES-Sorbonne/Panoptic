@@ -5,75 +5,84 @@ import subprocess
 import sys
 
 import psutil
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
+from sys import platform
 
-from panoptic import __version__ as panoptic_version
-from panoptic.core.panoptic import Panoptic
-from panoptic.core.plugin import clone_repo
-from panoptic.models import AddPluginPayload, IgnoredPluginPayload, PluginType, UpdatePluginPayload
-from panoptic.routes.project_routes import PathRequest
+from starlette.responses import FileResponse
+
+from panoptic.core.panoptic_server import PanopticServer
+from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload, \
+    DeleteProjectPayload
+from panoptic.models import CloseProjectRequest
 
 selection_router = APIRouter()
 
-panoptic: Panoptic | None = None
+server: PanopticServer | None = None
 
 
-def set_panoptic(pano: Panoptic):
-    global panoptic
-    panoptic = pano
+def set_server(serv: PanopticServer):
+    global server
+    server = serv
+
+
+def get_panoptic():
+    global server
+    return server.panoptic
+
+
+def get_server():
+    global server
+    return server
 
 
 class ProjectRequest(BaseModel):
     path: str
     name: str
 
-
-@selection_router.get("/status")
-async def get_status_route():
-    return {
-        'isLoaded': panoptic.is_loaded(),
-        'selectedProject': panoptic.project_id,
-        'projects': panoptic.data.projects,
-        'ignoredPlugins': panoptic.data.ignored_plugins
-    }
+@selection_router.get('/panoptic_state')
+async def get_panoptic_state():
+    return await server.panoptic.get_state()
 
 
 @selection_router.post('/ignored_plugin')
 async def update_ignored_plugins(data: IgnoredPluginPayload):
-    return await panoptic.set_ignored_plugin(data.project, data.plugin, data.value)
+    return await server.set_ignored_plugin(data)
 
 
 @selection_router.post("/load")
-async def load_project_route(path: PathRequest):
-    res = await panoptic.load_project(path.path)
-    if res:
-        return await get_status_route()
-    return False
+async def load_project_route(path: LoadProjectPayload, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    print(connection_id)
+    res = await server.load_project(path.path, connection_id)
+    return res
 
 
 @selection_router.post("/close")
-async def close_project():
-    await panoptic.close_project()
-    return await get_status_route()
+async def close_project(req: CloseProjectRequest, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    await server.close_project(req.project_id, connection_id)
+
+    return await get_panoptic_state()
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: PathRequest):
-    panoptic.remove_project(req.path)
-    return await get_status_route()
+async def delete_project_route(req: DeleteProjectPayload):
+    await server.remove_project(req.path)
+    return await get_panoptic_state()
 
 
 @selection_router.post("/create_project")
-async def create_project_route(req: ProjectRequest):
-    await panoptic.create_project(req.name, req.path)
-    return await get_status_route()
+async def create_project_route(req: ProjectRequest, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    await server.create_project(req.name, req.path, connection_id)
+    return await get_panoptic_state()
 
 
 @selection_router.post("/import_project")
-async def import_project_route(req: PathRequest):
-    await panoptic.import_project(req.path)
-    return await get_status_route()
+async def import_project_route(req: LoadProjectPayload):
+    await server.import_project(req.path)
+    return await get_panoptic_state()
 
 
 @selection_router.get("/filesystem/ls/{path:path}")
@@ -93,27 +102,29 @@ def fs_count_route(path: str = ""):
 
 @selection_router.get('/plugins')
 async def get_plugins_route():
-    return panoptic.get_plugin_paths()
+    return server.panoptic.get_plugin_paths()
 
 
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    return panoptic.add_plugin(payload.name, payload.source, payload.type)
+    return server.panoptic.add_plugin(payload.name, payload.source, payload.type)
 
 
 @selection_router.post('/plugin/update')
 async def update_plugin_route(payload: UpdatePluginPayload):
-    return panoptic.update_plugin(payload.name)
+    return server.panoptic.update_plugin(payload.name)
 
 
 @selection_router.delete('/plugins')
 async def del_plugins_route(name: str):
-    return panoptic.del_plugin_path(name)
+    return server.panoptic.del_plugin_path(name)
 
-
-@selection_router.get('/version')
-async def get_version_route():
-    return panoptic_version
+@selection_router.get('/images/{file_path:path}')
+async def get_image(file_path: str):
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        if not file_path.startswith('/'):
+            file_path = '/' + file_path
+    return FileResponse(path=file_path)
 
 
 @selection_router.get('/packages')
@@ -122,7 +133,7 @@ async def get_packages_route():
         'python': sys.version.split(' ')[0],
         'panopticPackages': {},
         'pluginPackages': {},
-        'panoptic': panoptic_version,
+        'panoptic': server.panoptic.version,
         'platform': sys.platform
     }
     base_packages = ['numpy', 'polars', 'pydantic']

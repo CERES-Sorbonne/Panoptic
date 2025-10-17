@@ -1,4 +1,4 @@
-software_db_version = 6
+software_db_version = 7
 
 DB_VERSION = 'db_version'
 
@@ -120,15 +120,26 @@ def create_panoptic_table():
     return query
 
 
+def create_vector_type_table():
+    query = """
+    CREATE TABLE vector_type (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT,
+        params JSON
+    )
+    """
+    return query
+
+
 def create_vectors_table():
     query = f"""
     CREATE TABLE vectors (
-        source TEXT,
-        type TEXT,
+        type_id INTEGER,
         sha1 TEXT,
         data ARRAY,
         
-        PRIMARY KEY (source, type, sha1)
+        PRIMARY KEY (type_id, sha1),
+        FOREIGN KEY (type_id) REFERENCES vector_type(id) ON DELETE CASCADE
     );
     
     CREATE INDEX idx_vectors_sha1 ON vectors(sha1);
@@ -214,6 +225,17 @@ def create_images_table():
     return query
 
 
+def create_raw_images():
+    query = """
+    CREATE TABLE raw_images (
+        sha1 TEXT PRIMARY KEY,
+        mime_type TEXT,
+        data BLOB
+    );
+    """
+    return query
+
+
 def create_property_group_table():
     query = """
     CREATE TABLE property_group (
@@ -242,11 +264,13 @@ tables = {
     'panoptic': create_panoptic_table(),
     'folders': create_folders_table(),
     'images': create_images_table(),
+    'raw_images': create_raw_images(),
     'instances': create_instances_table(),
     'properties': create_properties_table(),
     'image_property_values': create_image_property_values_table(),
     'instance_property_values': create_instance_property_values_table(),
     'tags': create_tags_table(),
+    'vector_type': create_vector_type_table(),
     'vectors': create_vectors_table(),
     'ui_data': create_ui_data(),
     'plugin_data': create_plugin_data(),

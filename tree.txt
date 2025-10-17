@@ -1,0 +1,418 @@
+App
+└── PanopticView
+    ├── PropertyModal
+    │   ├── PropertyTypeDropdown
+    │   │   ├── PropertyIcon
+    │   │   ├── withToolTip
+    │   │   └── Dropdown
+    │   ├── PropertyModeDropdown
+    │   │   └── Dropdown
+    │   └── Modal2
+    ├── FolderSelectionModal
+    │   └── FileExplorer
+    │       └── FolderItem
+    ├── ExportModal2
+    │   ├── PropertyIcon
+    │   └── Modal2
+    ├── ImageModal
+    │   ├── CenteredImage
+    │   ├── ImagePropertyCol
+    │   │   ├── Zoomable
+    │   │   ├── CenteredImage
+    │   │   └── PropertyInputTable
+    │   │       ├── withToolTip
+    │   │       ├── PropertyIcon
+    │   │       ├── TagBadge
+    │   │       └── GridPropInput
+    │   │           ├── CellColorInput
+    │   │           │   └── Dropdown
+    │   │           ├── CellTagInput
+    │   │           │   ├── Dropdown
+    │   │           │   ├── TagInput
+    │   │           │   │   ├── TagMenu
+    │   │           │   │   │   ├── TagBadge
+    │   │           │   │   │   ├── TagOptionsDropdown
+    │   │           │   │   │   │   ├── Dropdown
+    │   │           │   │   │   │   └── ColorInput
+    │   │           │   │   │   └── TagChildSelectDropdown
+    │   │           │   │   │       ├── Dropdown
+    │   │           │   │   │       └── TagInput (circular)
+    │   │           │   │   └── TagBadge
+    │   │           │   └── TagBadge
+    │   │           ├── CellTextInput
+    │   │           │   ├── TextInput
+    │   │           │   │   └── ContentEditable
+    │   │           │   └── TextPreview
+    │   │           ├── CellUrlInput
+    │   │           │   ├── TextInput
+    │   │           │   │   └── ContentEditable
+    │   │           │   └── UrlPreview
+    │   │           ├── CheckboxInput
+    │   │           ├── DBInput
+    │   │           ├── TextInput
+    │   │           │   └── ContentEditable
+    │   │           ├── RowDateInput
+    │   │           │   ├── Dropdown
+    │   │           │   ├── DatePreview
+    │   │           │   └── DateInput
+    │   │           ├── RowNumberInput
+    │   │           │   ├── NumberPreview
+    │   │           │   └── NumberInput
+    │   │           └── TagBadge
+    │   ├── MiddleCol
+    │   │   ├── SelectionStamp
+    │   │   │   ├── StampDropdown
+    │   │   │   │   ├── StampForm
+    │   │   │   │   │   ├── PropertyIcon
+    │   │   │   │   │   ├── withToolTip
+    │   │   │   │   │   ├── CellTagInput
+    │   │   │   │   │   │   ├── Dropdown
+    │   │   │   │   │   │   ├── TagInput
+    │   │   │   │   │   │   │   ├── TagMenu
+    │   │   │   │   │   │   │   │   ├── TagBadge
+    │   │   │   │   │   │   │   │   ├── TagOptionsDropdown
+    │   │   │   │   │   │   │   │   │   ├── Dropdown
+    │   │   │   │   │   │   │   │   │   └── ColorInput
+    │   │   │   │   │   │   │   │   └── TagChildSelectDropdown
+    │   │   │   │   │   │   │   │       ├── Dropdown
+    │   │   │   │   │   │   │   │       └── TagInput (circular)
+    │   │   │   │   │   │   │   └── TagBadge
+    │   │   │   │   │   │   └── TagBadge
+    │   │   │   │   │   ├── CheckboxInput
+    │   │   │   │   │   ├── CellColorInput
+    │   │   │   │   │   │   └── Dropdown
+    │   │   │   │   │   ├── RowDateInput
+    │   │   │   │   │   │   ├── Dropdown
+    │   │   │   │   │   │   ├── DatePreview
+    │   │   │   │   │   │   └── DateInput
+    │   │   │   │   │   ├── RowNumberInput
+    │   │   │   │   │   │   ├── NumberPreview
+    │   │   │   │   │   │   └── NumberInput
+    │   │   │   │   │   ├── CellTextInput
+    │   │   │   │   │   │   ├── TextInput
+    │   │   │   │   │   │   │   └── ContentEditable
+    │   │   │   │   │   │   └── TextPreview
+    │   │   │   │   │   └── CellUrlInput
+    │   │   │   │   │       ├── TextInput
+    │   │   │   │   │       │   └── ContentEditable
+    │   │   │   │   │       └── UrlPreview
+    │   │   │   │   └── Dropdown
+    │   │   │   └── withToolTip
+    │   │   ├── Similarity
+    │   │   │   ├── withToolTip
+    │   │   │   ├── TreeScroller
+    │   │   │   │   ├── ImageLine
+    │   │   │   │   │   └── Image
+    │   │   │   │   │       ├── SelectCircle
+    │   │   │   │   │       ├── withToolTip
+    │   │   │   │   │       ├── Zoomable
+    │   │   │   │   │       ├── CenteredImage
+    │   │   │   │   │       └── TreePropertyInput
+    │   │   │   │   │           ├── PropertyIcon
+    │   │   │   │   │           ├── TagBadge
+    │   │   │   │   │           ├── DBInput
+    │   │   │   │   │           ├── CellTagInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── TagInput
+    │   │   │   │   │           │   │   ├── TagMenu
+    │   │   │   │   │           │   │   │   ├── TagBadge
+    │   │   │   │   │           │   │   │   ├── TagOptionsDropdown
+    │   │   │   │   │           │   │   │   │   ├── Dropdown
+    │   │   │   │   │           │   │   │   │   └── ColorInput
+    │   │   │   │   │           │   │   │   └── TagChildSelectDropdown
+    │   │   │   │   │           │   │   │       ├── Dropdown
+    │   │   │   │   │           │   │   │       └── TagInput (circular)
+    │   │   │   │   │           │   │   └── TagBadge
+    │   │   │   │   │           │   └── TagBadge
+    │   │   │   │   │           ├── CellColorInput
+    │   │   │   │   │           │   └── Dropdown
+    │   │   │   │   │           ├── RowTextInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── TextPreview
+    │   │   │   │   │           │   └── TextInput
+    │   │   │   │   │           │       └── ContentEditable
+    │   │   │   │   │           ├── CheckboxInput
+    │   │   │   │   │           ├── RowDateInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── DatePreview
+    │   │   │   │   │           │   └── DateInput
+    │   │   │   │   │           ├── RowUrlInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── TextInput
+    │   │   │   │   │           │   │   └── ContentEditable
+    │   │   │   │   │           │   └── UrlPreview
+    │   │   │   │   │           └── RowNumberInput
+    │   │   │   │   │               ├── NumberPreview
+    │   │   │   │   │               └── NumberInput
+    │   │   │   │   ├── PileLine
+    │   │   │   │   │   └── Image
+    │   │   │   │   │       ├── SelectCircle
+    │   │   │   │   │       ├── withToolTip
+    │   │   │   │   │       ├── Zoomable
+    │   │   │   │   │       ├── CenteredImage
+    │   │   │   │   │       └── TreePropertyInput
+    │   │   │   │   │           ├── PropertyIcon
+    │   │   │   │   │           ├── TagBadge
+    │   │   │   │   │           ├── DBInput
+    │   │   │   │   │           ├── CellTagInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── TagInput
+    │   │   │   │   │           │   │   ├── TagMenu
+    │   │   │   │   │           │   │   │   ├── TagBadge
+    │   │   │   │   │           │   │   │   ├── TagOptionsDropdown
+    │   │   │   │   │           │   │   │   │   ├── Dropdown
+    │   │   │   │   │           │   │   │   │   └── ColorInput
+    │   │   │   │   │           │   │   │   └── TagChildSelectDropdown
+    │   │   │   │   │           │   │   │       ├── Dropdown
+    │   │   │   │   │           │   │   │       └── TagInput (circular)
+    │   │   │   │   │           │   │   └── TagBadge
+    │   │   │   │   │           │   └── TagBadge
+    │   │   │   │   │           ├── CellColorInput
+    │   │   │   │   │           │   └── Dropdown
+    │   │   │   │   │           ├── RowTextInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── TextPreview
+    │   │   │   │   │           │   └── TextInput
+    │   │   │   │   │           │       └── ContentEditable
+    │   │   │   │   │           ├── CheckboxInput
+    │   │   │   │   │           ├── RowDateInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── DatePreview
+    │   │   │   │   │           │   └── DateInput
+    │   │   │   │   │           ├── RowUrlInput
+    │   │   │   │   │           │   ├── Dropdown
+    │   │   │   │   │           │   ├── TextInput
+    │   │   │   │   │           │   │   └── ContentEditable
+    │   │   │   │   │           │   └── UrlPreview
+    │   │   │   │   │           └── RowNumberInput
+    │   │   │   │   │               ├── NumberPreview
+    │   │   │   │   │               └── NumberInput
+    │   │   │   │   └── GroupLine
+    │   │   │   │       ├── SelectCircle
+    │   │   │   │       └── PropertyValue
+    │   │   │   │           └── TagBadge
+    │   │   │   ├── SelectCircle
+    │   │   │   ├── ActionSelect
+    │   │   │   │   ├── Dropdown
+    │   │   │   │   ├── ParamInput
+    │   │   │   │   │   ├── withToolTip
+    │   │   │   │   │   └── PropertyDropdown
+    │   │   │   │   │       ├── Dropdown
+    │   │   │   │   │       └── PropertySelection
+    │   │   │   │   │           └── PropertyIcon
+    │   │   │   │   └── withToolTip
+    │   │   │   └── RangeInput
+    │   │   ├── withToolTip
+    │   │   └── Instances
+    │   │       └── GridScroller
+    │   │           ├── RecycleScroller
+    │   │           ├── TableHeader
+    │   │           │   ├── Resizable
+    │   │           │   ├── PropertyIcon
+    │   │           │   └── PropertyValue
+    │   │           │       └── TagBadge
+    │   │           └── GridScrollerLine
+    │   │               ├── GroupLine
+    │   │               │   ├── SelectCircle
+    │   │               │   └── PropertyValue
+    │   │               │       └── TagBadge
+    │   │               └── RowLine
+    │   │                   ├── Zoomable
+    │   │                   ├── CenteredImage
+    │   │                   ├── SelectCircle
+    │   │                   └── GridPropInput
+    │   │                       ├── CellColorInput
+    │   │                       │   └── Dropdown
+    │   │                       ├── CellTagInput
+    │   │                       │   ├── Dropdown
+    │   │                       │   ├── TagInput
+    │   │                       │   │   ├── TagMenu
+    │   │                       │   │   │   ├── TagBadge
+    │   │                       │   │   │   ├── TagOptionsDropdown
+    │   │                       │   │   │   │   ├── Dropdown
+    │   │                       │   │   │   │   └── ColorInput
+    │   │                       │   │   │   └── TagChildSelectDropdown
+    │   │                       │   │   │       ├── Dropdown
+    │   │                       │   │   │       └── TagInput (circular)
+    │   │                       │   │   └── TagBadge
+    │   │                       │   └── TagBadge
+    │   │                       ├── CellTextInput
+    │   │                       │   ├── TextInput
+    │   │                       │   │   └── ContentEditable
+    │   │                       │   └── TextPreview
+    │   │                       ├── CellUrlInput
+    │   │                       │   ├── TextInput
+    │   │                       │   │   └── ContentEditable
+    │   │                       │   └── UrlPreview
+    │   │                       ├── CheckboxInput
+    │   │                       ├── DBInput
+    │   │                       ├── TextInput
+    │   │                       │   └── ContentEditable
+    │   │                       ├── RowDateInput
+    │   │                       │   ├── Dropdown
+    │   │                       │   ├── DatePreview
+    │   │                       │   └── DateInput
+    │   │                       ├── RowNumberInput
+    │   │                       │   ├── NumberPreview
+    │   │                       │   └── NumberInput
+    │   │                       └── TagBadge
+    │   └── Modal2
+    ├── ImageZoomModal
+    │   └── CenteredImage
+    ├── SettingsModal
+    │   ├── PageWindow
+    │   ├── Modal2
+    │   ├── VectorSettings
+    │   │   ├── SectionDivider
+    │   │   ├── ActionSelectFlat
+    │   │   │   ├── Dropdown
+    │   │   │   ├── withToolTip
+    │   │   │   ├── ParamInputRow
+    │   │   │   │   ├── withToolTip
+    │   │   │   │   └── PropertyDropdown
+    │   │   │   │       ├── Dropdown
+    │   │   │   │       └── PropertySelection
+    │   │   │   │           └── PropertyIcon
+    │   │   │   └── SectionDivider
+    │   │   └── ComputeVectorButton
+    │   ├── PluginSettingsWindow
+    │   │   ├── PageWindow
+    │   │   └── PluginSettings
+    │   │       └── ParamInput
+    │   │           ├── withToolTip
+    │   │           └── PropertyDropdown
+    │   │               ├── Dropdown
+    │   │               └── PropertySelection
+    │   │                   └── PropertyIcon
+    │   └── ImageSettings
+    │       └── SectionDivider
+    ├── ImportModal
+    │   ├── PropertyIcon
+    │   ├── withToolTip
+    │   ├── FusionModeDropdown
+    │   │   ├── withToolTip
+    │   │   └── Dropdown
+    │   └── Modal2
+    ├── TagModal
+    │   ├── PropertyIcon
+    │   ├── withToolTip
+    │   ├── TagColumn
+    │   │   ├── TagOptionsDropdown
+    │   │   │   ├── Dropdown
+    │   │   │   └── ColorInput
+    │   │   └── TagBadge
+    │   ├── TagTree
+    │   │   ├── TagBadge
+    │   │   └── withToolTip
+    │   ├── Modal2
+    │   └── TagImagesPreview
+    │       ├── ImagePreview
+    │       │   └── TreeScroller
+    │       │       ├── ImageLine
+    │       │       │   └── Image
+    │       │       │       ├── SelectCircle
+    │       │       │       ├── withToolTip
+    │       │       │       ├── Zoomable
+    │       │       │       ├── CenteredImage
+    │       │       │       └── TreePropertyInput
+    │       │       │           ├── PropertyIcon
+    │       │       │           ├── TagBadge
+    │       │       │           ├── DBInput
+    │       │       │           ├── CellTagInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── TagInput
+    │       │       │           │   │   ├── TagMenu
+    │       │       │           │   │   │   ├── TagBadge
+    │       │       │           │   │   │   ├── TagOptionsDropdown
+    │       │       │           │   │   │   │   ├── Dropdown
+    │       │       │           │   │   │   │   └── ColorInput
+    │       │       │           │   │   │   └── TagChildSelectDropdown
+    │       │       │           │   │   │       ├── Dropdown
+    │       │       │           │   │   │       └── TagInput (circular)
+    │       │       │           │   │   └── TagBadge
+    │       │       │           │   └── TagBadge
+    │       │       │           ├── CellColorInput
+    │       │       │           │   └── Dropdown
+    │       │       │           ├── RowTextInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── TextPreview
+    │       │       │           │   └── TextInput
+    │       │       │           │       └── ContentEditable
+    │       │       │           ├── CheckboxInput
+    │       │       │           ├── RowDateInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── DatePreview
+    │       │       │           │   └── DateInput
+    │       │       │           ├── RowUrlInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── TextInput
+    │       │       │           │   │   └── ContentEditable
+    │       │       │           │   └── UrlPreview
+    │       │       │           └── RowNumberInput
+    │       │       │               ├── NumberPreview
+    │       │       │               └── NumberInput
+    │       │       ├── PileLine
+    │       │       │   └── Image
+    │       │       │       ├── SelectCircle
+    │       │       │       ├── withToolTip
+    │       │       │       ├── Zoomable
+    │       │       │       ├── CenteredImage
+    │       │       │       └── TreePropertyInput
+    │       │       │           ├── PropertyIcon
+    │       │       │           ├── TagBadge
+    │       │       │           ├── DBInput
+    │       │       │           ├── CellTagInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── TagInput
+    │       │       │           │   │   ├── TagMenu
+    │       │       │           │   │   │   ├── TagBadge
+    │       │       │           │   │   │   ├── TagOptionsDropdown
+    │       │       │           │   │   │   │   ├── Dropdown
+    │       │       │           │   │   │   │   └── ColorInput
+    │       │       │           │   │   │   └── TagChildSelectDropdown
+    │       │       │           │   │   │       ├── Dropdown
+    │       │       │           │   │   │       └── TagInput (circular)
+    │       │       │           │   │   └── TagBadge
+    │       │       │           │   └── TagBadge
+    │       │       │           ├── CellColorInput
+    │       │       │           │   └── Dropdown
+    │       │       │           ├── RowTextInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── TextPreview
+    │       │       │           │   └── TextInput
+    │       │       │           │       └── ContentEditable
+    │       │       │           ├── CheckboxInput
+    │       │       │           ├── RowDateInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── DatePreview
+    │       │       │           │   └── DateInput
+    │       │       │           ├── RowUrlInput
+    │       │       │           │   ├── Dropdown
+    │       │       │           │   ├── TextInput
+    │       │       │           │   │   └── ContentEditable
+    │       │       │           │   └── UrlPreview
+    │       │       │           └── RowNumberInput
+    │       │       │               ├── NumberPreview
+    │       │       │               └── NumberInput
+    │       │       └── GroupLine
+    │       │           ├── SelectCircle
+    │       │           └── PropertyValue
+    │       │               └── TagBadge
+    │       └── EditableTag
+    │           └── ColorDropdown
+    │               ├── Dropdown
+    │               └── ColorInput
+    ├── FirstModal
+    │   ├── Modal
+    │   └── PanopticIcon
+    ├── NotifModal
+    │   ├── Modal2
+    │   ├── NotifPreview
+    │   │   └── NotifIcon
+    │   ├── NotifBody
+    │   │   ├── NotifIcon
+    │   │   ├── FunctionButton
+    │   │   └── Collapsable
+    │   ├── NotifIcon
+    │   └── withToolTip
+    └── UserSelection

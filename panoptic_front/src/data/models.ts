@@ -1,6 +1,7 @@
 import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
+import { PluginKey } from "./panopticStore"
 
 export interface Instance {
     id: number
@@ -51,7 +52,7 @@ export interface PropertyDescription extends Property {
 }
 
 export type PropertyIndex = { [propertyId: number]: Property }
-export type PropertyGroupIndex = {[groupId: number]: PropertyGroup}
+export type PropertyGroupIndex = { [groupId: number]: PropertyGroup }
 
 export enum PropertyType {
     multi_tags = "multi_tags",
@@ -216,7 +217,7 @@ export interface TabData {
     sortState: SortState,
     groupState: GroupState,
 
-    
+
 
 }
 
@@ -246,14 +247,6 @@ export enum ModalId {
     TAG = "tag",
     FIRSTMODAL = "firstmodal",
     NOTIF = "notif"
-}
-
-export interface ImportState {
-    to_import: number
-    imported: number
-    computed: number
-    new_images?: Instance[],
-    done: boolean
 }
 
 export interface StatusUpdate {
@@ -363,6 +356,7 @@ export const DateUnitFactor = {
 export interface UpdateCounter {
     action: number;
     image: number;
+    vectorType: number;
 }
 
 
@@ -478,6 +472,7 @@ export interface ActionResult {
 
     notifs?: Notif[]
     errors?: string[]
+    value?: any
 }
 
 
@@ -493,13 +488,24 @@ export interface ProjectVectorDescription {
     defaultVectors: VectorDescription
 }
 
+export interface VectorType {
+    id: number
+    source: string
+    params: any
+}
+
+export interface VectorStats {
+    count: { [id: number]: number }
+    sha1Count: number
+}
+
 // ========= Commit =================
 export interface DbCommit {
     emptyInstances?: number[]
     emptyPropertyGroups?: number[]
     emptyProperties?: number[]
     emptyTags?: number[]
-    emptyInstanceValues? : InstancePropertyValue[]
+    emptyInstanceValues?: InstancePropertyValue[]
     emptyImageValues?: ImagePropertyValue[]
 
     instances?: Instance[]
@@ -546,7 +552,7 @@ export interface ProjectSettings {
 export interface UiState {
     activeTab?: number
     lang?: string
-    similarityIntervals: {[key: string]: ScoreInterval},
+    similarityIntervals: { [key: string]: ScoreInterval },
     similarityImageSize: number
 }
 
@@ -641,8 +647,8 @@ export interface PropertyGroupNode {
 }
 
 export interface PropertyGroupOrder {
-    groups: {[groupId: number]: number}
-    properties: {[propertyId: number]: number}
+    groups: { [groupId: number]: number }
+    properties: { [propertyId: number]: number }
 }
 
 export enum PropertyGroupId {
@@ -686,4 +692,57 @@ export interface UploadConfirm {
 export enum UIDataKeys {
     STATE = 'uiState',
     PROPERTY_ORDER = 'propertyOrder'
+}
+
+// ========= Panoptic State =========
+
+export interface ProjectId {
+    id: number;
+    name?: string;
+    path?: string;
+}
+
+export interface ProjectRef extends ProjectId {
+    isOpen: boolean
+    ignoredPlugins: string[]
+}
+
+
+export interface User {
+    id: number
+    name: string
+}
+
+export interface UserState extends User {
+  connectedTo?: string
+}
+
+export interface PanopticServerState {
+    version: string
+    projects: ProjectRef[]
+    plugins: PluginKey[]
+    users: User[]
+    askUser: boolean
+}
+
+export interface PanopticClientState {
+    connectionId: string
+    connectedProject?: number
+    connectedAt: string; // datetime
+    user: UserState
+}
+
+
+export interface PanopticState {
+    server: PanopticServerState
+    client: PanopticClientState
+}
+
+export interface ProjectState {
+    id: number
+    name: string
+    path: string
+    tasks: TaskState[]
+    plugins: PluginDescription[]
+    settings: ProjectSettings
 }

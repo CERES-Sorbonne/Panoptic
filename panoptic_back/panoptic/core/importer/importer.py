@@ -12,7 +12,7 @@ from panoptic.utils import RelativePathTrie
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstanceProperty, \
-    ImageProperty, DbCommit, UploadError, UploadConfirm
+    ImageProperty, DbCommit, UploadError, UploadConfirm, PropertyGroup
 
 
 @dataclass
@@ -288,7 +288,12 @@ class Importer:
                     image_values.append(ImageProperty(property_id=import_values.property_id,
                                                       sha1=instance_index[id_].sha1, value=value))
 
+        group = PropertyGroup(id=-1, name='Imported')
+        for prop in data.properties:
+            prop.property_group_id = group.id
+
         commit = DbCommit()
+        commit.property_groups = [group]
         commit.instances = data.instances
         commit.properties = data.properties
         commit.tags = data.tags

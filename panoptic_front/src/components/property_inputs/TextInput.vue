@@ -26,7 +26,8 @@ const emits = defineEmits({
     'blur': undefined,
     'focus': undefined,
     'submit': undefined,
-    'cancel': undefined
+    'cancel': undefined,
+    'tab': undefined
 })
 const elem = ref(null)
 const isFocus = ref(false)
@@ -132,7 +133,7 @@ watch(() => props.modelValue, () => {
             :no-nl="props.urlMode || props.noNl" :contenteditable="props.editable && !urlMode"
             :style="{ width: (props.width - 5) + 'px' }" class="contenteditable" @keydown.escape="e => e.target.blur()"
             @focus="onFocus" @keydown.esc.stop="onCancel" @blur="onBlur" @click.stop="contentClick"
-            @keydown.enter="onEnter" />
+            @keydown.enter="onEnter" @keydown.tab.stop.prevent="emits('tab')"/>
     </div>
 </template>
 

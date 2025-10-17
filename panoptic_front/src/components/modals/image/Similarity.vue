@@ -47,6 +47,7 @@ async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
     const func = actions.defaultActions['similar']
     const ctx = actions.getContext(func)
+    console.log(ctx.uiInputs)
     ctx.instanceIds = [props.image.id]
     const res = await actions.getSimilarImages(ctx)
     if (!res || !res.groups) return
@@ -116,7 +117,7 @@ function updateInterval(score: GroupScoreList) {
 }
 
 function setDefaultInterval() {
-    const intervals = project.data.uiState.similarityIntervals
+    const intervals = project.uiState.similarityIntervals
     const func = actions.defaultActions['similar']
     if (!func || !intervals[func.id]) {
         return
@@ -168,7 +169,7 @@ watch(scoreInterval, () => {
                     <div class="bi bi-aspect-ratio me-1"></div>
                 </wTT>
                 <div>
-                    <RangeInput :min="60" :max="250" v-model="project.data.uiState.similarityImageSize" />
+                    <RangeInput :min="60" :max="250" v-model="project.uiState.similarityImageSize" />
                 </div>
             </div>
             <div class="d-flex mt-1 mb-1">
@@ -179,7 +180,7 @@ watch(scoreInterval, () => {
             </div>
 
 
-            <TreeScroller class="" :image-size="project.data.uiState.similarityImageSize" :height="props.height - 85" :width="props.width"
+            <TreeScroller input-key="similarity-tree" class="" :image-size="project.uiState.similarityImageSize" :height="props.height - 85" :width="props.width"
                 :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
                 ref="scrollerElem" :preview="props.preview" />
         </div>

@@ -31,6 +31,12 @@ async def get_image_large(project: Project, sha1: str):
 
 
 async def get_image_raw(project: Project, sha1: str):
+    if project.settings.save_file_raw:
+        res = await project.db.get_raw_image(sha1)
+        if res:
+            mime_type, image = res
+            return Response(image, media_type=mime_type)
+
     if not project.sha1_to_files[sha1]:
         return None
     file_path = project.sha1_to_files[sha1][0]

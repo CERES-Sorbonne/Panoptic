@@ -23,4 +23,5 @@ pendulum
 pytest
 torch
 faiss-cpu
+python-socketio
 polars

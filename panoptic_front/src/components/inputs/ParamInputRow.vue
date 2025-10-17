@@ -1,0 +1,113 @@
+<script setup lang="ts">
+import { ref, watch, onMounted } from 'vue';
+import wTT from '@/components/tooltips/withToolTip.vue'
+import PropertyDropdown from '../properties/PropertyDropdown.vue';
+import { useDataStore } from '@/data/dataStore';
+import { ParamDescription, VectorType } from '@/data/models';
+
+const data = useDataStore()
+
+const props = defineProps<{
+    input: ParamDescription
+    source: string
+}>();
+
+defineExpose({ focus })
+
+const emits = defineEmits(['update:modelValue']);
+
+const elem = ref(null)
+const localValue = ref(props.input.defaultValue)
+const defaultProperty = ref(data.propertyList[0])
+function focus() {
+    // console.log('focus', elem.value)
+    if (elem.value) {
+        elem.value.focus()
+    }
+}
+
+function initValues() {
+    localValue.value = props.input.defaultValue
+}
+
+function vector_name(vectorType: VectorType) {
+    return '' + vectorType.id + ' ' + vectorType.source + '.' + Object.keys(vectorType.params).map(k => k + '_' + vectorType.params[k]).join('_')
+}
+
+watch(() => props.input.defaultValue, () => localValue.value = props.input.defaultValue)
+watch(localValue, () => {
+    if (props.input.type == 'property' && localValue.value in data.properties) {
+        defaultProperty.value = data.properties[localValue.value]
+    }
+
+    if (localValue.value != props.input.defaultValue) {
+        let toSend = localValue.value
+        if (localValue.value == '' || localValue.value == false) {
+            toSend = undefined
+        }
+        props.input.defaultValue = localValue.value
+    }
+})
+
+watch(props, initValues)
+
+
+onMounted(initValues)
+</script>
+
+<template>
+    <tr>
+        <td>
+            <wTT :message="props.input.description">
+                <span v-if="props.input.name" class="me-1">{{ props.input.name }}</span>
+            </wTT>
+        </td>
+        <td>
+            <span v-if="props.input.type == 'str'">
+                <input type="text" v-model="localValue" ref="elem" />
+            </span>
+            <span v-if="props.input.type == 'int'">
+                <input type="number" step="1" v-model="localValue" ref="elem" />
+            </span>
+            <span v-if="props.input.type == 'float'">
+                <input type="number" v-model="localValue" ref="elem" />
+            </span>
+            <span v-if="props.input.type == 'bool'">
+                <input type="checkbox" v-model="localValue" ref="elem" />
+            </span>
+            <span v-if="props.input.type == 'property'">
+                <span v-if="!data.propertyList.length" class="disabled rounded ps-1 pe-1">Create Property First</span>
+                <PropertyDropdown v-else v-model="defaultProperty"
+                    @update:model-value="localValue = defaultProperty.id" />
+            </span>
+            <span v-if="props.input.type == 'enum'">
+                <select v-model="localValue">
+                    <option v-for="v in props.input.possibleValues" :value="v">{{ v }}</option>
+                </select>
+            </span>
+
+            <span v-if="props.input.type == 'vector_type'">
+                <select v-model="localValue" style="max-width: 200px;">
+                    <option v-for="v in data.vectorTypes" :value="v">{{ vector_name(v) }}</option>
+                </select>
+            </span>
+
+            <span v-if="props.input.type == 'own_vector_type'">
+                <select v-model="localValue" style="max-width: 200px;">
+                    <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
+                        vector_name(v) }}</option>
+                </select>
+            </span>
+        </td>
+    </tr>
+</template>
+
+<style scoped>
+input {
+    font-size: 14px;
+    line-height: 12px;
+    padding: 2px 4px !important;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+}
+</style>

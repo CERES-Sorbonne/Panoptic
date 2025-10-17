@@ -1,12 +1,13 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, TabState, Tag, TagIndex, UIDataKeys } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
-import { SERVER_PREFIX, apiAddFolder, apiCommit, apiDeleteFolder, apiGetDbState, apiGetFolders, apiGetHistory, apiGetUIData, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./api";
+import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
-import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, isFinished, isTag } from "@/utils/utils";
-import { useProjectStore } from "./projectStore";
+import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, hasPropertyChanges, isFinished, isTag } from "@/utils/utils";
 import { useTabStore } from "./tabStore";
+import { usePanopticStore } from "./panopticStore";
+import { SERVER_PREFIX } from "./apiPanopticRoutes";
 
 export const deletedID = -999999999
 const deletedName = 'Deleted'
@@ -24,6 +25,8 @@ export const useDataStore = defineStore('dataStore', () => {
     const propertyTree = ref<PropertyGroupNode[]>([])
     const propertyGroups = shallowRef<PropertyGroupIndex>({})
     const tags = shallowRef<TagIndex>({})
+    const vectorTypes = ref<VectorType[]>([])
+    const vectorStats = ref<VectorStats>({ count: {}, sha1Count: 0 })
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
@@ -35,7 +38,7 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======================
     // =======Computed=======
     // =======================
-    const isLoaded = computed(() => isFinished(loadState.value))
+    const isLoaded = ref(false)
     const folderRoots = computed(() => {
         return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
     })
@@ -50,20 +53,26 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======================
     async function init() {
         let dbFolders = await apiGetFolders()
-        const folderIndex = buildFolderNodes(dbFolders)
-        folders.value = folderIndex
+        importFolders(dbFolders)
         // console.time('Request')
         // // let dbState = await apiGetDbState()
         // console.timeEnd('Request')
 
+
+        const vecTypes = await apiGetVectorTypes()
+        importVectorTypes(vecTypes)
+
         apiStreamLoadState(async (v) => {
-            applyCommit(v.chunk, !isFinished(v.state))
+            applyCommit(v.chunk, true)
             loadState.value = v.state
 
             if (isFinished(v.state)) {
                 const tabStore = useTabStore()
                 await tabStore.init()
+                triggerRefs()
                 await computePropertyTree()
+
+                isLoaded.value = true
             }
         })
 
@@ -84,15 +93,22 @@ export const useDataStore = defineStore('dataStore', () => {
         dirtyInstances.clear()
     }
 
+    function importVectorTypes(types: VectorType[]) {
+        vectorTypes.value = types
+    }
+
 
     function importInstances(toImport: Instance[]) {
+        const panopticStore = usePanopticStore()
+        const projectId = panopticStore.clientState.connectedProject
+
         for (let img of toImport) {
             const values = getComputedValues(img)
 
-            img.urlSmall = SERVER_PREFIX + '/image/small/' + img.sha1
-            img.urlMedium = SERVER_PREFIX + '/image/medium/' + img.sha1
-            img.urlLarge = SERVER_PREFIX + '/image/large/' + img.sha1
-            img.urlRaw = SERVER_PREFIX + '/image/raw/' + img.sha1
+            img.urlSmall = `${SERVER_PREFIX}/projects/${projectId}/image/small/${img.sha1}`
+            img.urlMedium = `${SERVER_PREFIX}/projects/${projectId}/image/medium/${img.sha1}`
+            img.urlLarge = `${SERVER_PREFIX}/projects/${projectId}/image/large/${img.sha1}`
+            img.urlRaw = `${SERVER_PREFIX}/projects/${projectId}/image/raw/${img.sha1}`
 
             img.containerRatio = computeContainerRatio(img)
 
@@ -201,6 +217,20 @@ export const useDataStore = defineStore('dataStore', () => {
         }
     }
 
+    function applyMultipleCommits(commits: DbCommit[]) {
+        let reloadGroupProp = false
+        for(let commit of commits) {
+            if(hasPropertyChanges(commit)) {
+                reloadGroupProp = true
+            }
+            applyCommit(commit, true)
+        }
+        triggerRefs()
+        if(reloadGroupProp) {
+            computePropertyTree()
+        }
+    }
+
     function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
         updateFolderCount(commit.instances, commit.emptyInstances)
         const props = properties.value
@@ -279,21 +309,14 @@ export const useDataStore = defineStore('dataStore', () => {
             history.value = commit.history
         }
 
-        if (commit.properties || commit.emptyProperties || commit.propertyGroups || commit.emptyPropertyGroups) {
+        if (!disableTrigger && hasPropertyChanges(commit)) {
             computePropertyTree()
         }
 
         if (disableTrigger) return
-        console.log('trigger refss')
 
         properties.value = props
-        triggerRef(properties)
-        triggerRef(folders)
-        triggerRef(instances)
-        triggerRef(sha1Index)
-        triggerRef(tags)
-        triggerRef(propertyGroups)
-        emitOnChange()
+        triggerRefs()
     }
 
     function clear() {
@@ -301,24 +324,39 @@ export const useDataStore = defineStore('dataStore', () => {
         instances.value = {}
         properties.value = {}
         propertyOrder.value = buildPropertyGroupOrder()
+        propertyGroups.value = {}
         tags.value = {}
         sha1Index.value = {}
+        vectorTypes.value = []
+        vectorStats.value = { count: {}, sha1Count: 0 }
 
         onChange.clear()
         dirtyInstances.clear()
 
         history.value = { undo: [], redo: [] }
         onUndo.value = 0
+        isLoaded.value = false
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean, disableTrigger?: boolean) {
         // console.log('send commit', commit)
+        // TODO: verify. disable trigger need as is should now be handled by socket route this function has now no control over this
         if (undo) {
             commit.undo = true
         }
         const res = await apiCommit(commit)
-        applyCommit(res, disableTrigger)
+        // applyCommit(res, disableTrigger)
         return res
+    }
+
+    function triggerRefs() {
+        triggerRef(properties)
+        triggerRef(folders)
+        triggerRef(instances)
+        triggerRef(sha1Index)
+        triggerRef(tags)
+        triggerRef(propertyGroups)
+        emitOnChange()
     }
 
     async function addTag(propertyId: number, tagValue: string, parentIds: number[] = undefined, color = -1): Promise<Tag> {
@@ -379,7 +417,7 @@ export const useDataStore = defineStore('dataStore', () => {
         await sendCommit({ instanceValues: instanceValues, imageValues: imageValues }, true)
     }
 
-    async function setTagPropertyValue(propertyId: number, images: Instance[] | Instance, value: any, dontEmit?: boolean) {
+    async function setTagPropertyValue(propertyId: number, images: Instance[] | Instance, value: any) {
         if (!Array.isArray(images)) {
             images = [images]
         }
@@ -398,7 +436,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 sha1: v.img.sha1,
                 value: Array.from(new Set([...v.value, ...value]))
             }))
-            await sendCommit({ imageValues: values }, true)
+            await sendCommit({ imageValues: values })
         }
     }
 
@@ -415,8 +453,18 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function addFolder(folder: string) {
         await apiAddFolder(folder)
-        const updated = await apiGetFolders()
-        const updatedNodes = buildFolderNodes(updated)
+        // const updated = await apiGetFolders()
+        // const updatedNodes = buildFolderNodes(updated)
+        // for (let f of objValues(updatedNodes)) {
+        //     if (f.id in folders.value) {
+        //         f.count = folders.value[f.id].count
+        //     }
+        // }
+        // folders.value = updatedNodes
+    }
+
+    async function importFolders(folderList: Folder[]) {
+        const updatedNodes = buildFolderNodes(folderList)
         for (let f of objValues(updatedNodes)) {
             if (f.id in folders.value) {
                 f.count = folders.value[f.id].count
@@ -495,11 +543,8 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function deleteFolder(folderId: number) {
-        const res = await apiDeleteFolder(folderId)
-        location.reload()
-        // console.log(res)
-        // clear()
-        // await init()
+        await apiDeleteFolder(folderId)
+        // location.reload()
     }
 
     function updateFolderCount(updatedInstances: Instance[], deletedInstances: number[]) {
@@ -542,8 +587,6 @@ export const useDataStore = defineStore('dataStore', () => {
 
     async function deleteEmptyClones() {
         const commit = await apiPostDeleteEmptyClones()
-        console.log(commit)
-        console.log(folders)
         applyCommit(commit)
     }
 
@@ -576,7 +619,7 @@ export const useDataStore = defineStore('dataStore', () => {
             save = buildPropertyGroupOrder()
         }
 
-        const props = objValues(properties.value)
+        const props = objValues(properties.value).filter(p => p.id != deletedID)
         const groups = objValues(propertyGroups.value)
 
         const groupOrder = mergeOrder(groups, save.groups)
@@ -641,10 +684,23 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(properties)
     }
 
+    async function updateVectorTypes() {
+        vectorTypes.value = await apiGetVectorTypes()
+    }
+
+    async function deleteVectorType(id: number) {
+        await apiDeleteVectorType(id)
+        await updateVectorTypes()
+    }
+
+    async function updateVectorStats() {
+        vectorStats.value = await apiGetVectorStats()
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
-        folders, instances, properties, tags, history,
+        folders, instances, properties, tags, history, vectorTypes, vectorStats,
         folderRoots, sha1Index, instanceList, propertyList, tagList,
         propertyTree, triggerPropertyTreeChange,
         addFolder, reImportFolder, deleteFolder,
@@ -652,7 +708,9 @@ export const useDataStore = defineStore('dataStore', () => {
         addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags, deleteEmptyClones,
         applyCommit, sendCommit, undo, redo, onUndo,
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
-        clear
+        updateVectorTypes, deleteVectorType, updateVectorStats,
+        clear,
+        importFolders, importVectorTypes, applyMultipleCommits
     }
 
 })

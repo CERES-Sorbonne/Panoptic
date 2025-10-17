@@ -16,7 +16,7 @@ CHECKBOX_ID = 8
 
 
 async def test_create_project(tmp_path: str):
-    project = Project(tmp_path, [])
+    project = Project(tmp_path, [], name='test_project')
     await project.start()
     await project.wait_full_start()
 
@@ -224,7 +224,7 @@ async def test_delete_empty_clones(instance_project: Project, import_csv: str):
 
     props = await instance_project.db.get_properties(computed=False)
     for prop in props:
-        await instance_project.db.get_raw_db().delete_property(prop.id)
+        await instance_project.db.delete_property(prop.id)
 
     props2 = await instance_project.db.get_properties(computed=False)
     assert len(props2) == 0
@@ -432,7 +432,6 @@ async def test_import_export_equal_mode_image(instance_project: Project, import_
         import_data = f.read()
     with open(res_csv) as f:
         export_data = f.read()
-
     assert import_data == export_data
 
 
