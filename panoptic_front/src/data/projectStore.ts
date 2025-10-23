@@ -155,6 +155,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importTasks(tasks: TaskState[]) {
+        if(!state.value) return
         state.value.tasks = tasks
     }
     function importSettings(settings: ProjectSettings) {

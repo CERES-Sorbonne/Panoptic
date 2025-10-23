@@ -27,6 +27,7 @@ const isNameValid = computed(() => {
 
 const showName = computed(() => (mode.value == "github" && gitUrl.value.length > 0) || (mode.value == "local" && localPath.value.length > 0) || (mode.value == "pip"))
 const showLoad = computed(() => showName.value && isNameValid.value)
+const showWarning = computed(() => pipPath.value !== 'panopticml' || mode.value !== 'pip')
 
 const helpMessage = computed(() => {
     if (showName.value && takenNames.value.includes(pluginName.value)) {
@@ -137,7 +138,7 @@ function setPanopticMl() {
         <div class="mt-2 mb-2" :class="helpMessage.includes('.error') ? 'text-danger' : ''">
             {{ $t(helpMessage) }}
         </div>
-        <div v-if="mode != 'github' || (mode == 'github' && !gitUrl.includes('github.com/CERES-Sorbonne'))" class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
+        <div v-if="showWarning" class="text-warning">{{ $t('main.home.plugins.warning') }}</div>
         <div>
             <div class="bbb mt-2 text-center" style="width: 70px;" @click="emits('cancel')">Cancel</div>
         </div>

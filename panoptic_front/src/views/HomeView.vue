@@ -73,20 +73,20 @@ async function updateIgnorePlugin(a, b, c) {
     await panoptic.updateIgnorePlugin(a, b, !c)
 }
 
-async function downloadPackagesInfos(){
-  try {
-    const data = await panoptic.getPackagesInfo();
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'panoptic_infos.json';
-    link.click();
-    URL.revokeObjectURL(url);
-  } catch (error) {
-      console.error('Erreur lors de la récupération ou du téléchargement des données :', error);
-  }
+async function downloadPackagesInfos() {
+    try {
+        const data = await panoptic.getPackagesInfo();
+        const jsonData = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'panoptic_infos.json';
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Erreur lors de la récupération ou du téléchargement des données :', error);
+    }
 }
 
 onMounted(() => {
@@ -97,6 +97,10 @@ onMounted(() => {
         panoptic.showModal(ModalId.FIRSTMODAL)
     }
 })
+
+function createTestProject() {
+    panoptic.createProject('/Users/david/panoptic-projects', 'test-' + Math.floor(performance.now() / 1000))
+}
 
 </script>
 
@@ -129,7 +133,7 @@ onMounted(() => {
                                     <div v-for="p in panoptic.serverState.plugins" class="mt-1">
                                         <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.name]"
                                             @change="e => updateIgnorePlugin(project.path, p.name, (e.target as any).checked)" />{{
-                                        p.name }}
+                                                p.name }}
                                     </div>
                                     <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
                                 </div>
@@ -147,8 +151,9 @@ onMounted(() => {
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
                         <div class="d-flex justify-content-center gap-1">
-                          <h6 class="dimmed-2 mt-1">Version {{panoptic.serverState.version}} </h6>
-                          <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem" @click="downloadPackagesInfos"></i></wTT>
+                            <h6 class="dimmed-2 mt-1">Version {{ panoptic.serverState.version }} </h6>
+                            <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
+                                    @click="downloadPackagesInfos"></i></wTT>
                         </div>
                         <div class="lang">
                             <i class="bi bi-translate" style="margin-right:0.5rem"></i>
@@ -159,6 +164,7 @@ onMounted(() => {
                             </select>
                         </div>
                     </div>
+                    <!-- <div class="bb" @click="createTestProject">Test-Project</div> -->
                     <div id="main-menu" class="create-menu mt-5 pt-5">
                         <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
                         <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
