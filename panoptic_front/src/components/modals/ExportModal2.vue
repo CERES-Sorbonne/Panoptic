@@ -7,6 +7,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import { useDataStore } from '@/data/dataStore';
 import { useTabStore } from '@/data/tabStore';
 import Modal2 from './Modal2.vue';
+import { apiExportProperties } from '@/data/apiProjectRoutes';
 
 const data = useDataStore()
 const tabStore = useTabStore()
@@ -104,11 +105,6 @@ async function buildRequest() {
     modalElem.value.hide()
 }
 
-
-
-function apiExportProperties(name: any, images: any, key: string, properties: any, exportImages: boolean) {
-    throw new Error('Function not implemented.');
-}
 </script>
 
 

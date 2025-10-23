@@ -37,15 +37,8 @@ panopticApi.interceptors.response.use(response => response, (error) => {
         method, baseURL, url, data
     }
 
-    // if (url == '/update' || url == '/status') {
-    //     if (error.code == 'ERR_NETWORK') {
-    //         const panoptic = usePanopticStore()
-    //         panoptic.updatePanopticState(undefined)
-    //     }
-    // } else {
     const notif: Notif = { type: NotifType.ERROR, name: 'BackendError: ' + errorName, message: message, request: req, unexpected: true, traceback: traceback }
     panoptic.notify(notif)
-    // }
 })
 
 export async function apiGetFilesystemInfo() {
