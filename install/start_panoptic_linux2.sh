@@ -42,6 +42,9 @@ if ! uv pip show panoptic &> /dev/null; then
     if [ "$with_cuda" = "o" ]; then
         echo "Installation de torch avec support CUDA..."
         uv pip install torch torchvision --torch-backend=auto
+    else
+        echo "Installation de torch en mode CPU..."
+        uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     fi
     
     echo "Installation du plugin de similarité panopticml"
