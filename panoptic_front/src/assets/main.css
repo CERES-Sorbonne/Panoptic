@@ -536,3 +536,12 @@ input[type=number]::-webkit-inner-spin-button {
 input[type=number] {
     -moz-appearance:textfield;
 }
+
+.bg-selected, .bg-medium {
+    background-color: #e5e3e3;
+    border-radius: 3px;
+}
+
+.bg-light {
+  background-color: #fbfbfb;
+}

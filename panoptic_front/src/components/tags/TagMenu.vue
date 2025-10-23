@@ -8,8 +8,8 @@
  */
 import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
-import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
-import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
+import TagOptionsDropdown from '../Dropdowns/TagOptionsDropdown.vue';
+import TagChildSelectDropdown from '../Dropdowns/TagChildSelectDropdown.vue';
 import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
 import { deletedID, useDataStore } from '@/data/dataStore';
 import { objValues, sum } from '@/utils/utils';
