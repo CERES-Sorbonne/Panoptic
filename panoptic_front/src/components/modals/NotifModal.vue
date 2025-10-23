@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ModalId, NotifType } from '@/data/models';
+import { ModalId, Notif, NotifType } from '@/data/models';
 import Modal2 from './Modal2.vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import NotifPreview from '../notif/NotifPreview.vue';
@@ -85,10 +85,14 @@ function delNotif() {
     }
 }
 
-watch(() => modal.getData(ModalId.NOTIF), (newValue, oldValue) => {
-    // readNotif(newValue)
+watch(filteredNotifs, () => {
+    const notif = filteredNotifs.value[filteredNotifs.value.length - 1]
+    if (notif == undefined) return
+    if (notif.read) return
+    if (notif.type == NotifType.INFO) {
+        readNotif(notif.id, true)
+    }
 })
-
 </script>
 
 <template>

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 
 import { computed } from 'vue';
-import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
+import PropertyDropdown from '../Dropdowns/PropertyDropdown.vue';
 import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
 import { PropertyType } from '@/data/models';
-import GroupOptionDropdown from '../dropdowns/GroupOptionDropdown.vue';
+import GroupOptionDropdown from '../Dropdowns/GroupOptionDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 
 const data = useDataStore()
@@ -58,7 +58,7 @@ const groups = computed(() => {
 <template>
     <div class="d-flex flex-row group-form">
         <div class="pt-1 pb-1">{{ $t('main.menu.groupby') }}: </div>
-        <div class="bg-medium bg d-flex flex-row m-0 ms-1 p-0  align-items-center" v-if="selectedProperties.length">
+        <div class="bg-selected  bg d-flex flex-row m-0 ms-1 p-0  align-items-center" v-if="selectedProperties.length">
             <template v-for="group, index in groups">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
                 <div class="base-hover m-1 ps-1 pe-1" @click="del(group.property.id)" id="remove-group-button">

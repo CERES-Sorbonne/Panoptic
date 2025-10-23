@@ -164,7 +164,7 @@ function createTestProject() {
                             </select>
                         </div>
                     </div>
-                    <!-- <div class="bb" @click="createTestProject">Test-Project</div> -->
+                    <div class="bb" @click="createTestProject">Test-Project</div>
                     <div id="main-menu" class="create-menu mt-5 pt-5">
                         <Options v-if="menuMode == 0" @create="menuMode = 1" @import="importProject" />
                         <Create v-if="menuMode == 1" @cancel="menuMode = 0" @create="createProject" />
