@@ -23,7 +23,7 @@ from panoptic.core.task.task_queue import TaskQueue
 from panoptic.models import ProjectSettings, PluginKey, DbCommit, ProjectState, TaskState
 
 nb_workers = 8
-
+folder_import_seq = 1
 
 def get_executor():
     executor = ThreadPoolExecutor(max_workers=nb_workers)
@@ -109,6 +109,7 @@ class Project:
         return [p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
+        global folder_import_seq
         folder = os.path.normpath(folder)
         all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
         all_images = [i for i in all_files if
@@ -116,8 +117,9 @@ class Project:
                           '.jpeg') or i.lower().endswith('.gif') or i.lower().endswith('.webp')]
 
         folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
-
-        tasks = [ImportInstanceTask(project=self, file=file, folder_id=file_to_folder_id[file])
+        seq = folder_import_seq
+        folder_import_seq +=1
+        tasks = [ImportInstanceTask(seq=seq, project=self, file=file, folder_id=file_to_folder_id[file])
                  for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
         self.on.sync.emitFolders(await self.db.get_folders())
