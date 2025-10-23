@@ -56,13 +56,23 @@ if ! command -v uv &> /dev/null; then
 fi
 
 # Vérifier si le dossier ~/panoptic existe
-if [ ! -d "$HOME/panoptic" ]; then
-    echo "Création du dossier ~/panoptic"
-    mkdir -p "$HOME/panoptic"
+# Demander à l'utilisateur le nom du dossier d'installation (par défaut : panoptic)
+read -p "Nom du dossier d'installation (par défaut: panoptic) : " INSTALL_NAME
+if [ -z "$INSTALL_NAME" ]; then
+    INSTALL_NAME="panoptic"
 fi
 
-# Se déplacer dans le dossier
-cd "$HOME/panoptic" || exit
+# Chemin complet du dossier d'installation
+INSTALL_DIR="$HOME/$INSTALL_NAME"
+
+# Vérifier si le dossier d'installation existe
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo "Création du dossier $INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+fi
+
+# Se déplacer dans le dossier d'installation
+cd "$INSTALL_DIR" || exit
 
 # Choisir la version de Python en fonction des erreurs libomp
 if [ "$LIBOMP_ERROR" = true ]; then
@@ -100,7 +110,7 @@ else
         fi
     fi
 fi
-
+source .venv/bin/activate
 # Installer la dernière version de pip
 uv pip install pip
 
@@ -119,7 +129,6 @@ else
         fi
     fi
 fi
-
 uv run panoptic plugins add vision
 
 # Lancer Panoptic
