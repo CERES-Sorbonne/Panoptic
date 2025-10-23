@@ -27,13 +27,14 @@ format_to_mime = {
 }
 
 class ImportInstanceTask(Task):
-    def __init__(self, project: Project, file: str, folder_id: int):
+    def __init__(self, seq: int, project: Project, file: str, folder_id: int):
         super().__init__(priority=True)
         self.project = project
         self.db = project.db
         self.file = file
         self.folder_id = folder_id
         self.name = 'Import Instance'
+        self.key += '-' + str(seq)
 
     async def run(self):
         name = self.file.split(os.sep)[-1]
