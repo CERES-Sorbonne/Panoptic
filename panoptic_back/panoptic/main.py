@@ -28,6 +28,7 @@ def start_api(install=False):
         await panoptic.close()
 
     panoptic = Panoptic()
+    panoptic.start()
 
     if install:
         panoptic.add_plugin(

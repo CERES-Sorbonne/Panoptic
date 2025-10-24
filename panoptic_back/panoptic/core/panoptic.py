@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import json
 import os
@@ -8,10 +9,12 @@ from datetime import datetime
 from importlib import metadata
 from pathlib import Path
 
+from panoptic.core.panoptic_db.db_connection import DbConnection
+from panoptic.core.panoptic_db.panoptic_db import PanopticDb
 from panoptic.core.plugin import clone_repo
 from panoptic.core.project import verify_panoptic_data
 from panoptic.core.project.project import Project
-from panoptic.models import PluginKey, PanopticData, ProjectId, PanopticState, ProjectRef
+from panoptic.models import PluginKey, PanopticData, ProjectId, PanopticState, ProjectRef, ProjectRef2
 from panoptic.utils import get_datadir
 from panoptic import __version__ as panoptic_version
 from panoptic.models import PluginKey, PanopticData, ProjectId, PluginType
@@ -22,18 +25,32 @@ PANOPTICML_PLUGIN_PIP_NAME = 'panopticml'
 PANOPTICML_PLUGIN_RESERVED_NAME = 'panopticml'
 
 class Panoptic:
-    def __init__(self):
+    def __init__(self, data_path: str = None):
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
+        self.sqlite_file_path = get_datadir() / 'panoptic' / 'panoptic.db'
+        if data_path:
+            self.sqlite_file_path = Path(data_path)
+
         verify_panoptic_data()
         self.data = PanopticData(projects=[])
-        self.load_data()
         self.project_id = None
         self.project: Project | None = None
-        self.data = self.load_data()
         self.open_projects: dict[int, Project] = {}
         self.version = panoptic_version
 
-    def load_data(self):
+        self.db: PanopticDb | None = None
+
+    def start(self):
+        """Synchronous wrapper - runs all async operations in one event loop"""
+        async def _start():
+            conn = DbConnection(self.sqlite_file_path)
+            await conn.start()
+            self.db = PanopticDb(conn)
+            self.data = await self.db.get_data()
+            self.check_for_official_plugin()
+
+        asyncio.run(_start())
+        return
         save = False
         loaded_data = PanopticData(plugins=[], projects=[])
 
@@ -95,32 +112,29 @@ class Panoptic:
         with open(self.global_file_path, 'w') as file:
             json.dump(self.data.model_dump(), file, indent=2)
 
-    def create_project(self, name, path):
+    async def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
-            raise f"A project_id with path '{path}' already exists."
+            raise f"A Project with path '{path}' is already imported into panoptic."
         # else:
         if not os.path.exists(path):
             os.makedirs(path)
 
-        max_id = 0
-        if len(self.data.projects):
-            max_id = max([p.id for p in self.data.projects])
-        project = ProjectId(name=name, path=path, id=max_id + 1)
-        self.data.projects.append(project)
+        project = ProjectRef2(name=name, path=path)
+        project = await self.db.import_project(project)
+        self.data = await self.db.get_data()
         return project
 
-    def import_project(self, path: str):
+    async def import_project(self, path: str):
         p = Path(path)
         if not (p / 'panoptic.db').exists():
-            raise ValueError('Folder is not a panoptic project_id (No panoptic.db file found)')
+            raise ValueError(f'Folder [{p}] is not a panoptic Project (No panoptic.db file found)')
         if any(project.path == path for project in self.data.projects):
-            raise f"ProjectId is already imported."
-        max_id = 0
-        if len(self.data.projects):
-            max_id = max([p.id for p in self.data.projects])
-        project = ProjectId(path=str(p), name=str(p.name), id=max_id + 1)
+            raise f"A Project with path '{path}' is already imported into panoptic."
 
-        self.data.projects.append(project)
+        project = ProjectRef2(name=p.name, path=path)
+        project = await self.db.import_project(project)
+        self.data = await self.db.get_data()
+
         return project
 
     def remove_project(self, path):
@@ -140,7 +154,7 @@ class Panoptic:
 
     async def load_project(self, path):
         project = None
-        self.save_data()
+        # self.save_data()
         try:
             proj = next(p for p in self.data.projects if Path(p.path) == Path(path))
             project_id = proj.id
@@ -150,8 +164,9 @@ class Panoptic:
                 project = self.open_projects[project_id]
             if not project:
                 plugins = self.data.plugins
-                if path in self.data.ignored_plugins:
-                    plugins = [p for p in plugins if p.name not in self.data.ignored_plugins[path]]
+                # if path in self.data.ignored_plugins:
+                #     plugins = [p for p in plugins if p.name not in self.data.ignored_plugins[path]]
+                plugins = [p for p in plugins if p.path not in proj.ignored_plugins]
 
                 project = Project(path, plugins, proj.name, project_id)
                 await project.start()
@@ -275,14 +290,14 @@ class Panoptic:
 
         for p_info in self.data.projects:
             is_open = p_info.id in self.open_projects
-            ignored = self.data.ignored_plugins.get(p_info.path, [])
+            # ignored = self.data.ignored_plugins.get(p_info.path, [])
 
             state = ProjectRef(
                 id=p_info.id,
                 name=p_info.name,
                 path=p_info.path,
                 is_open=is_open,
-                ignored_plugins=ignored
+                # ignored_plugins=ignored
             )
             project_states.append(state)
 
