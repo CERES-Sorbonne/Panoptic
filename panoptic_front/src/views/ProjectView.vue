@@ -68,6 +68,8 @@ onMounted(async () => {
 
         if (ev.key == 'Z' && keyState.ctrl) data.redo()
         if (ev.key == 'z' && keyState.ctrl) data.undo()
+
+        if (ev.key == 'f' && keyState.ctrl) keyState.ctrlF.emit()
     })
     window.addEventListener('keyup', (ev) => {
         if (ev.key == 'Control') keyState.ctrl = false;

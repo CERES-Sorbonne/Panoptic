@@ -14,6 +14,7 @@ import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import { useInputStore } from '@/data/inputStore';
+import { keyState } from '@/data/keyState';
 
 const inputs = useInputStore()
 
@@ -25,6 +26,7 @@ const props = defineProps<{
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
 const localQuery = ref('')
+const textInput = ref<HTMLElement>()
 
 const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number))
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
@@ -53,6 +55,8 @@ function deleteQuery() {
 onMounted(getLocalQuery)
 watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
+keyState.ctrlF.on(() => textInput.value.focus())
+
 </script>
 
 <template>
@@ -61,7 +65,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             <div class="d-flex flex-row search-input me-5" :class="localQuery ? 'border-primary' : ''">
                 <div class="bi bi-search float-start bi-sm"></div>
                 <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery"
-                    @change="setQuery" />
+                    @change="setQuery" ref="textInput"/>
                 <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
             </div>
         </wTT>

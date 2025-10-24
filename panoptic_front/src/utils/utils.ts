@@ -3,7 +3,7 @@ import { TabManager } from "@/core/TabManager"
 import { deletedID, useDataStore } from "@/data/dataStore"
 import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
-import { Ref, computed, inject } from "vue"
+import { Ref, computed, inject, ref, watch } from "vue"
 
 
 export function hasProperty(image: Instance, propertyId: number) {
@@ -410,4 +410,21 @@ export function sourceFromFunction(func: string) {
 
 export function hasPropertyChanges(commit: DbCommit) {
     return commit.properties?.length || commit.emptyProperties?.length || commit.propertyGroups?.length || commit.emptyPropertyGroups?.length
+}
+
+export function useEventSignal() {
+  const signal = ref(0)
+  let data = null
+  
+  const emit = (payload?: any) => {
+    data = payload
+    signal.value++
+  }
+  
+  const on = (callback) => {
+    // watch auto-cleans up when component unmounts
+    watch(signal, () => callback(data), { flush: 'sync' })
+  }
+  
+  return { emit, on }
 }
