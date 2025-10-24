@@ -3,7 +3,7 @@ import { FilterManager } from '@/core/FilterManager';
 import { Folder } from '@/data/models';
 import { getFolderChildren, getFolderAndParents } from '@/utils/utils';
 import { computed, ref } from 'vue';
-import FolderOptionDropdown from '../Dropdowns/FolderOptionDropdown.vue';
+import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 import { TabManager } from '@/core/TabManager';
 

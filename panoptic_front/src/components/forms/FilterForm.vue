@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import GlobalFilterInputDropdown from '../Dropdowns/MainFilterDropdown.vue';
+import GlobalFilterInputDropdown from '../dropdowns/MainFilterDropdown.vue';
 import { FilterManager } from '@/core/FilterManager';
 import AddFilterBtn from '../filter/AddFilterBtn.vue';
 

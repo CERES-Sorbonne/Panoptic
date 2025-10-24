@@ -1,12 +1,12 @@
 <script setup lang="ts">
 
 import { computed } from 'vue';
-import PropertyDropdown from '../Dropdowns/PropertyDropdown.vue';
+import PropertyDropdown from '../dropdowns/PropertyDropdown.vue';
 import { GroupManager, GroupOption, GroupSortType } from '@/core/GroupManager';
 import { SortDirection } from '@/core/SortManager';
 import wTT from '../tooltips/withToolTip.vue';
 import { PropertyType } from '@/data/models';
-import GroupOptionDropdown from '../Dropdowns/GroupOptionDropdown.vue';
+import GroupOptionDropdown from '../dropdowns/GroupOptionDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 
 const data = useDataStore()

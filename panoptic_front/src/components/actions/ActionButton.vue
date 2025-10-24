@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
-import Dropdown from '../Dropdowns/Dropdown.vue';
+import Dropdown from '../dropdowns/Dropdown.vue';
 import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
