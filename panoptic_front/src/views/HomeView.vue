@@ -10,8 +10,8 @@ import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 import { ModalId, PluginType } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
-import Dropdown from '@/components/Dropdowns/Dropdown.vue';
-import PluginOptionsDropdown from '@/components/Dropdowns/PluginOptionsDropdown.vue';
+import Dropdown from '@/components/dropdowns/Dropdown.vue';
+import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
 
 const panoptic = usePanopticStore()
 

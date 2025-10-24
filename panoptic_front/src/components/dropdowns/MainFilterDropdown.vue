@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch, computed, ref, onMounted, nextTick } from 'vue';
-import Dropdown from '../Dropdowns/Dropdown.vue';
+import Dropdown from '../dropdowns/Dropdown.vue';
 import { Filter, FilterGroup, FilterManager } from '@/core/FilterManager';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { PropertyID } from '@/data/models';
