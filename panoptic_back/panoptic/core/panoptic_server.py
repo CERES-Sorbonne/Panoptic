@@ -205,12 +205,12 @@ class PanopticServer:
             await self._emit_client_state(connection_id)
 
     async def create_project(self, name: str, path: str, connection_id: str = None):
-        project = self.panoptic.create_project(name, path)
+        project = await self.panoptic.create_project(name, path)
         await self.load_project(project.path, connection_id)
         await self._emit_server_state()
 
     async def import_project(self, path: str, connection_id: str = None):
-        project = self.panoptic.import_project(path)
+        project = await self.panoptic.import_project(path)
         if project:
             await self.load_project(project.path, connection_id)
             await self._emit_server_state()
