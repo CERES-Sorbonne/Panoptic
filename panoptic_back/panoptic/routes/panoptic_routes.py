@@ -137,7 +137,7 @@ async def get_packages_route():
         'platform': sys.platform
     }
     base_packages = ['numpy', 'polars', 'pydantic']
-    plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn']
+    plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn', 'transformers', 'panopticml']
     base_package_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *base_packages])
     plugin_packages_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *plugin_packages])
     base_package_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in
