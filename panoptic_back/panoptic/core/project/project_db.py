@@ -380,12 +380,20 @@ class ProjectDb:
         return await self._db.get_vector_types(source=source)
 
     async def delete_vector_type(self, id_: int):
+        types = await self._db.get_vector_types()
+        vec = next(v for v in types if v.id == id_)
+        if not vec:
+            return False
         res = await self._db.delete_vector_type(id_)
+        plugin = next(p for p in self._project.plugins if p.name == vec.source)
+        await plugin.load_vector_types()
         self._project.on.sync.emitVectorTypes(await self.get_vector_types())
         return res
 
     async def add_vector_type(self, vec: VectorType):
         res = await self._db.add_vector_type(vec)
+        plugin = next(p for p in self._project.plugins if p.name == vec.source)
+        await plugin.load_vector_types()
         self._project.on.sync.emitVectorTypes(await self.get_vector_types())
         return res
 

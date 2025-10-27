@@ -6,16 +6,17 @@ from panoptic.core.task.task import Task
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
+    from panoptic.core.plugin.plugin import APlugin
 
 from panoptic.models import ImagePropertyKey, InstanceProperty, PropertyType, PropertyMode, Property, \
     DbCommit, Vector, Instance, DeleteFolderConfirm, VectorType
 
 
 class PluginProjectInterface:
-    def __init__(self, project: Project):
+    def __init__(self, project: Project, plugin: APlugin):
         self._project = project
         self.ui = project.ui
-
+        self._plugin = plugin
         self.base_path = project.base_path
 
     # GETTERS
@@ -70,10 +71,9 @@ class PluginProjectInterface:
         return self._project.db.create_tag(property_id, value, parent_ids, color)
 
     async def add_vector_type(self, vec: VectorType):
-        return await self._project.db.add_vector_type(vec)
+        res = await self._project.db.add_vector_type(vec)
+        return res
 
-    async def add_vector(self, vector: Vector):
-        return await self._project.db.add_vector(vector)
 
     # COMMIT
 
@@ -90,7 +90,8 @@ class PluginProjectInterface:
         return await self._project.db.undo_queue.redo()
 
     async def add_vector(self, vector: Vector):
-        return await self._project.db.add_vector(vector)
+        res = await self._project.db.add_vector(vector)
+
 
     # TASKS
     def add_task(self, task: Task):

@@ -26,16 +26,16 @@ def assign_attributes(target: BaseModel, source):
 
 
 class APlugin(ABC):
-    def __init__(self, name: str, project: PluginProjectInterface, plugin_path: str):
+    def __init__(self, name: str, project: Project, plugin_path: str):
         self.params: Any | None = None
         self.name: str = name
-        self._project = project.get_project()
-        self.project = project
+        self._project = project
+        self.project = PluginProjectInterface(project, self)
         self.registered_functions: List[FunctionDescription] = []
         self.path = plugin_path
         self.base_key = f'{self.name}.base'
-        self.slug = "_".join(self.name.split(' ')).lower()
-        self.data_path = Path(self.project.base_path) / 'plugin_data' / self.slug
+        slug = "_".join(self.name.split(' ')).lower()
+        self.data_path = Path(self.project.base_path) / 'plugin_data' / slug
         self.data_path.mkdir(parents=True, exist_ok=True)
 
         self.vector_types: list[VectorType] = []
@@ -52,10 +52,12 @@ class APlugin(ABC):
 
     def add_action(self, function: AsyncCallable, description: FunctionDescription):
         self._project.action.add(function, description)
+        self.registered_functions.append(description)
 
     def add_action_easy(self, function: AsyncCallable, hooks: list[str] = None):
         source = self
-        return self._project.action.easy_add(source, function, hooks)
+        description = self._project.action.easy_add(source, function, hooks)
+        self.registered_functions.append(description)
 
     def _get_param_description(self):
         if not self.params:
