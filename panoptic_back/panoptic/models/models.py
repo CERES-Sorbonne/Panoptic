@@ -37,6 +37,11 @@ class PanopticData(BaseModel):
     projects: list[ProjectRef2]
     plugins: List[PluginKey] = []
 
+class ProjectUpdatePayload(CamelModel):
+    id: int
+    name: str
+    ignored_plugins: list[str]
+
 
 class PanopticDataOld(BaseModel):
     projects: list[ProjectId]
@@ -268,6 +273,12 @@ class Tab(BaseModel):
 
 class LoadProjectPayload(CamelModel):
     path: str
+
+class IntPayload(BaseModel):
+    value: int
+
+class StringPayload(BaseModel):
+    value: str
 
 class DeleteProjectPayload(CamelModel):
     path: str
@@ -525,7 +536,7 @@ class ProjectState(BaseModel):
     settings: ProjectSettings
 
 
-class CloseProjectRequest(BaseModel):
+class ProjectIdPayload(BaseModel):
     project_id: int
 
 

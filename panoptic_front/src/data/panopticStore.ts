@@ -8,15 +8,15 @@ import {
     apiDeleteProject,
     apiImportProject,
     apiLoadProject,
-    apiSetIgnoredPlugin,
     apiUpdatePlugin,
     apiGetPackagesInfo,
     apiGetPanopticState,
-    apiGetPlugins
+    apiGetPlugins,
+    apiUpdateProject
 } from "./apiPanopticRoutes"
 import router from "@/router"
 import { useProjectStore } from "./projectStore"
-import { ModalId, Notif, PanopticClientState, PanopticServerState, PluginAddPayload, PluginType } from "./models"
+import { ModalId, Notif, PanopticClientState, PanopticServerState, PluginAddPayload, PluginType, ProjectRef } from "./models"
 import { useModalStore } from "./modalStore"
 
 
@@ -80,9 +80,9 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         return apiGetPackagesInfo()
     }
 
-    async function loadProject(path: string, noCall?: boolean) {
+    async function loadProject(projectId: number, noCall?: boolean) {
         project.clear()
-        await apiLoadProject(path)
+        await apiLoadProject(projectId)
     }
 
     async function closeProject(projectId: number) {
@@ -90,20 +90,20 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         await apiCloseProject(projectId)
     }
 
-    async function deleteProject(path: string) {
-        const state = await apiDeleteProject(path)
+    async function deleteProject(projectId: number) {
+        const state = await apiDeleteProject(projectId)
     }
 
     async function createProject(path: string, name: string) {
         path = path.endsWith('\\') ? path : path + '/'
         const projectPath = path + name
         const state = await apiCreateProject(projectPath, name)
-        await loadProject(projectPath, true)
+        // await loadProject(projectPath, true)
     }
 
     async function importProject(path: string) {
         const state = await apiImportProject(path)
-        await loadProject(path)
+        // await loadProject(path)
     }
 
     function showModal(modalId: ModalId, data?: any) {
@@ -171,15 +171,16 @@ async function addPlugin(plugin: PluginAddPayload) {
         return idCounter
     }
 
-    async function updateIgnorePlugin(project, plugin, value) {
-        await apiSetIgnoredPlugin({project, plugin, value})
+    async function updateProject(project: ProjectRef) {
+        const state = await apiUpdateProject(project)
+        
     }
 
     return {
         init, isConnected, clientState, serverState,
         modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
-        loadProject, closeProject, deleteProject, createProject, importProject, updateIgnorePlugin,
+        loadProject, closeProject, deleteProject, createProject, importProject, updateProject,
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,
         getPackagesInfo,

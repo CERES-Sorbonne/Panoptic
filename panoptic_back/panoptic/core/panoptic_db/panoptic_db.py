@@ -30,6 +30,11 @@ class PanopticDb:
         await self.conn.execute_query(query, (project.id, project.name, project.path, json.dumps(project.ignored_plugins)))
         return project
 
+    async def delete_project(self, project_id: int):
+        query = "DELETE FROM projects WHERE id = ?"
+        await self.conn.execute_query(query, (project_id,))
+        return project_id
+
     async def get_plugins(self):
         query = "SELECT * FROM plugins"
         cursor = await self.conn.execute_query(query)
@@ -40,6 +45,11 @@ class PanopticDb:
         query = "INSERT OR REPLACE INTO plugins (name, path, type, source) VALUES (?, ?, ?, ?)"
         await self.conn.execute_query(query, (plugin.name, plugin.path, plugin.type.value, plugin.source))
         return plugin
+
+    async def delete_plugin(self, name: str):
+        query = "DELETE FROM plugins WHERE name = ?"
+        await self.conn.execute_query(query, (name,))
+        return name
 
 
     @panoptic_db_lock
