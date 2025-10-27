@@ -27,7 +27,10 @@ PANOPTICML_PLUGIN_RESERVED_NAME = 'panopticml'
 class Panoptic:
     def __init__(self, data_path: str = None):
         self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
-        self.sqlite_file_path = get_datadir() / 'panoptic' / 'panoptic.db'
+
+        db_name = os.getenv("PANOPTIC_DB_NAME", "panoptic.db")
+        self.sqlite_file_path = get_datadir() / 'panoptic' / db_name
+
         if data_path:
             self.sqlite_file_path = Path(data_path)
 
