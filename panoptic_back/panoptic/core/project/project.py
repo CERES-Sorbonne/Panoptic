@@ -259,4 +259,4 @@ class Project:
 
     def add_plugin(self, plugin: APlugin):
         self.plugins.append(plugin)
-        self.on.sync.emitProjectState(self.get_state())
+        # self.on.sync.emitProjectState(self.get_state())

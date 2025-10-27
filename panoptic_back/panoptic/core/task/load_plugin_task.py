@@ -58,7 +58,7 @@ class LoadPluginTask(Task):
             # if parent_dir not in sys.path:
             #     sys.path.insert(0, parent_dir)
             plugin_module = await self._async(import_module_from_path, name, file_path)
-        project_interface = PluginProjectInterface(self.project)
-        plugin = plugin_module.plugin_class(project=project_interface, plugin_path=path, name=name)
-        await plugin.start()
+        plugin = plugin_module.plugin_class(project=self.project, plugin_path=path, name=name)
         self.project.add_plugin(plugin)
+        await plugin.start()
+        self.project.on.sync.emitProjectState(self.project.get_state())
