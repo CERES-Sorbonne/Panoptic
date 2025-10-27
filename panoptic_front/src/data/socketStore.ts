@@ -51,7 +51,6 @@ export const useSocketStore = defineStore('socketStore', () => {
 
         socket.on('server_state', (data) => {
             const state = keysToCamel(data) as PanopticServerState
-            console.log(state)
             usePanopticStore().updateServerState(state)
         })
 

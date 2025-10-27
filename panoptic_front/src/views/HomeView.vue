@@ -8,7 +8,7 @@ import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
-import { ModalId, PluginType } from '@/data/models';
+import { ModalId, PluginType, ProjectRef } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
 import Dropdown from '@/components/dropdowns/Dropdown.vue';
 import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
@@ -69,8 +69,15 @@ async function rerender() {
     show.value = true
 }
 
-async function updateIgnorePlugin(a, b, c) {
-    await panoptic.updateIgnorePlugin(a, b, !c)
+async function updateIgnorePlugin(project: ProjectRef, pluginName: string, value: boolean) {
+    console.log(project.id, pluginName, value)
+    if(!value && !project.ignoredPlugins.includes(pluginName)) {
+        project.ignoredPlugins.push(pluginName)
+    } else if (value && project.ignoredPlugins.includes(pluginName)) {
+        project.ignoredPlugins = project.ignoredPlugins.filter(n => n !== pluginName)
+    }
+    console.log(project.ignoredPlugins)
+    await panoptic.updateProject(project)
 }
 
 async function downloadPackagesInfos() {
@@ -112,7 +119,7 @@ function createTestProject() {
         <div class="window2 d-flex ">
             <div v-if="hasProjects" class="project-menu">
                 <div v-for="project in panoptic.serverState.projects" class="d-flex">
-                    <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.path)">
+                    <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.id)">
                         <h5 class="m-0">{{ project.name }}</h5>
                         <div class="m-0 p-0 text-wrap text-break dimmed-2" style="font-size: 13px;">{{
                             correctHyphen(project.path) }}</div>
@@ -125,14 +132,14 @@ function createTestProject() {
                             </template>
                             <template #popup="{ hide }">
                                 <div class="text-start p-1">
-                                    <div @click="panoptic.deleteProject(project.path);" class="bb">
+                                    <div @click="panoptic.deleteProject(project.id);" class="bb">
                                         <i class="bi bi-trash me-1"></i>delete
                                     </div>
                                     <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
                                     </div>
                                     <div v-for="p in panoptic.serverState.plugins" class="mt-1">
                                         <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.name]"
-                                            @change="e => updateIgnorePlugin(project.path, p.name, (e.target as any).checked)" />{{
+                                            @change="e => updateIgnorePlugin(project, p.name, (e.target as any).checked)" />{{
                                                 p.name }}
                                     </div>
                                     <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
