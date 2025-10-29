@@ -55,8 +55,8 @@ class MacOCR(APlugin):
         return ActionResult(notifs=[error2])
 
         commit = DbCommit()
-        prop = self.project.create_property('OCR', PropertyType.string, PropertyMode.sha1)
-        instances = await self.project.get_instances(ids=context.instance_ids)
+        prop = self._project.create_property('OCR', PropertyType.string, PropertyMode.sha1)
+        instances = await self._project.get_instances(ids=context.instance_ids)
         unique_sha1 = list({i.sha1: i for i in instances}.values())
         tasks = [await ocr(i, prop) for i in unique_sha1]
         # values = await asyncio.gather(*tasks)
@@ -64,7 +64,7 @@ class MacOCR(APlugin):
         commit.properties.append(prop)
         commit.image_values.extend(values)
 
-        res = await self.project.do(commit)
+        res = await self._project.do(commit)
         return ActionResult(commit=res)
 
     async def find_close_id(self, context: ActionContext):

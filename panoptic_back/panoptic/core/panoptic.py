@@ -80,7 +80,7 @@ class Panoptic:
             data, save = convert_old_panoptic_json(data)
             loaded_data = PanopticData(**data)
 
-            print("Starting with a new empty project list.", file=sys.stderr)
+            print("Starting with a new empty _project list.", file=sys.stderr)
         except FileNotFoundError as e:
             loaded_data = PanopticData(projects=[])
 
@@ -173,9 +173,9 @@ class Panoptic:
 
             return project
         except StopIteration:
-            raise ValueError(f'project id {project_id} not found')
+            raise ValueError(f'_project id {project_id} not found')
         except Exception as e:
-            print('Failed to load project')
+            print('Failed to load _project')
             if project:
                 await self.close_project(project_id)
             raise e

@@ -1,33 +1,26 @@
-from __future__ import annotations
-
 import io
-from typing import TYPE_CHECKING
 
 from PIL import Image
 
 from panoptic.core.task.import_instance_task import format_to_mime
 from panoptic.models import ProjectSettings
 
-if TYPE_CHECKING:
-    from panoptic.core.project.project import Project
-
 from panoptic.core.task.task import Task
 
 
 class ImportImageTask(Task):
-    def __init__(self, project: Project, sha1: str):
+    def __init__(self, sha1: str):
         super().__init__(priority=True)
-        self.project = project
-        self.db = project.db
         self.sha1 = sha1
         self.name = 'Import Image Miniature'
 
     async def run(self):
-        image_file = self.project.sha1_to_files[self.sha1][0]
-        large, medium, small, raw, mime_type = await self._async(self._import_image, image_file, self.project.settings)
-        await self.project.db.import_image(self.sha1, small, medium, large)
+        image_file = self._project.sha1_to_files[self.sha1][0]
+        large, medium, small, raw, mime_type = await self.run_async(self._import_image, image_file,
+                                                                    self._project.settings)
+        await self._project.db.import_image(self.sha1, small, medium, large)
         if raw:
-            await self.project.db.import_raw_image(self.sha1, mime_type, raw)
+            await self._project.db.import_raw_image(self.sha1, mime_type, raw)
 
     async def run_if_last(self):
         pass

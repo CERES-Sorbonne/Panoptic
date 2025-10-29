@@ -192,7 +192,7 @@ def create_plugin_data():
 
 def create_project_params():
     query = """
-    CREATE TABLE project (
+    CREATE TABLE _project (
         key TEXT PRIMARY KEY,
         value JSON
     );
@@ -274,7 +274,7 @@ tables = {
     'vectors': create_vectors_table(),
     'ui_data': create_ui_data(),
     'plugin_data': create_plugin_data(),
-    'project': create_project_params(),
+    '_project': create_project_params(),
     'property_group': create_property_group_table(),
     'id_counter': create_id_counter_table()
 }

@@ -39,7 +39,7 @@ class PanopticServer:
         self._connections_to_close: list[str] = []
         self._close_connections_task: asyncio.Task | None = None
 
-        # one buffer per project
+        # one buffer per _project
         self._commit_buffers: dict[int, AsyncAdaptiveBuffer] = {}
         self._tasks_buffers: dict[int, AsyncAdaptiveBuffer] = {}
 

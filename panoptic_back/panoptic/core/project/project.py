@@ -43,7 +43,7 @@ class Project:
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents(self.id)
         self.action = ProjectActions()
-        self.task_queue = TaskQueue(self.executor, num_workers=nb_workers * 2)
+        self.task_queue = TaskQueue(self, num_workers=nb_workers * 2)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
         self.sha1_to_files: dict[str, list[str]] = defaultdict(list)
@@ -73,7 +73,7 @@ class Project:
         # from panoptic.plugins import DefaultPlugin
         # paths = [DefaultPlugin.__file__, *self.plugin_paths]
         for key in self.plugin_keys:
-            task = LoadPluginTask(self, key)
+            task = LoadPluginTask(key)
             self.task_queue.add_task(task)
 
         self.is_loaded = True
@@ -119,7 +119,7 @@ class Project:
         folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
         seq = folder_import_seq
         folder_import_seq +=1
-        tasks = [ImportInstanceTask(seq=seq, project=self, file=file, folder_id=file_to_folder_id[file])
+        tasks = [ImportInstanceTask(seq=seq, file=file, folder_id=file_to_folder_id[file])
                  for file in all_images]
         [self.task_queue.add_task(t) for t in tasks]
         self.on.sync.emitFolders(await self.db.get_folders())
@@ -232,7 +232,7 @@ class Project:
 
         if re_import_images:
             sha1s = list(self.sha1_to_files.keys())
-            [self.task_queue.add_task(ImportImageTask(self, sha1)) for sha1 in sha1s]
+            [self.task_queue.add_task(ImportImageTask(sha1)) for sha1 in sha1s]
 
     async def delete_empty_instance_clones(self):
         ids = await self.db.delete_empty_instance_clones()
@@ -260,3 +260,9 @@ class Project:
     def add_plugin(self, plugin: APlugin):
         self.plugins.append(plugin)
         # self.on.sync.emitProjectState(self.get_state())
+
+    async def run_async(self, function, *args):
+        """
+        Make function awaitable and execute in Executor
+        """
+        return await asyncio.wrap_future(self.executor.submit(function, *args))
