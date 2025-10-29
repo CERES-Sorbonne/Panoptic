@@ -44,8 +44,6 @@ class ActionResult:
     datas: list[dict] = None
     urls: list[str] = None
 
-    commit: DbCommit = None
-
     notifs: list[Notif] = None
     value: Any = None
 

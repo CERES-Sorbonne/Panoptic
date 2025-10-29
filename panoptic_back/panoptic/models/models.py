@@ -331,9 +331,9 @@ class Clusters:
 @dataclass
 class ActionContext:
     instance_ids: List[int] | None = None
-    property_ids: List[int] | None = None
-    file: str | None = None
-    text: str | None = None
+    # property_ids: List[int] | None = None
+    # file: str | None = None
+    # text: str | None = None
     ui_inputs: Dict[str, Any] = field(default_factory=dict)
 
 

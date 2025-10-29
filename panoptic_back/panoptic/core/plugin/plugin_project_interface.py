@@ -67,6 +67,38 @@ class PluginProjectInterface:
     def create_property(self, name: str, type_: PropertyType, mode: PropertyMode) -> Property:
         return self._project.db.create_property(name, type_, mode)
 
+    async def get_or_create_property(self, property_name: str, property_type: PropertyType = None,
+                                     property_mode: PropertyMode = None):
+        """
+        Get an existing property or create a new one if it doesn't exist.
+
+        @property_name: Name of the property to find or create
+        @property_type: Type of property (required if creating new)
+        @property_mode: Mode of property (required if creating new)
+        @return: The existing or newly created Property
+        """
+        properties = await self.get_properties()
+
+        # Search for existing property
+        for prop in properties:
+            if prop.name == property_name:
+                # If type and mode are specified, ensure they match
+                if property_type is not None and prop.type != property_type:
+                    continue
+                if property_mode is not None and prop.mode != property_mode:
+                    continue
+                return prop
+
+        # Property not found, create new one
+        if property_type is None or property_mode is None:
+            raise ValueError(
+                f"No existing property found with name '{property_name}' and no property_type "
+                "and property_mode provided to create one"
+            )
+
+        new_prop = self.create_property(property_name, property_type, property_mode)
+        return new_prop
+
     def create_tag(self, property_id: int, value: str, parent_ids: list[int] = None, color=-1):
         return self._project.db.create_tag(property_id, value, parent_ids, color)
 

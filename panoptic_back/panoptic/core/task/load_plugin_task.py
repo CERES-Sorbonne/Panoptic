@@ -1,19 +1,11 @@
-from __future__ import annotations
-
+import importlib.util
 import os
-from concurrent.futures import ProcessPoolExecutor
+import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
+from panoptic.core.task.task import Task
 from panoptic.models import PluginKey, PluginType
 
-if TYPE_CHECKING:
-    from panoptic.core.project.project import Project
-from panoptic.core.task.task import Task
-
-import importlib.util
-import sys
 
 def import_module_from_path(module_name, module_path):
     # Append the folder path to sys.path
@@ -35,10 +27,9 @@ def import_module_from_path(module_name, module_path):
 
 
 class LoadPluginTask(Task):
-    def __init__(self, project: Project, plugin_key: PluginKey):
+    def __init__(self, plugin_key: PluginKey):
         super().__init__()
         self.name = 'Load Plugin'
-        self.project = project
         self.plugin_key = plugin_key
 
     async def run(self):
@@ -47,7 +38,7 @@ class LoadPluginTask(Task):
         name = self.plugin_key.name
 
         if plugin_type == PluginType.pip:
-            plugin_module = await self._async(importlib.import_module, self.plugin_key.source)
+            plugin_module = await self.run_async(importlib.import_module, self.plugin_key.source)
             path = plugin_module.__path__[0]
         else:
             file_path = path
@@ -57,8 +48,8 @@ class LoadPluginTask(Task):
             # parent_dir = os.path.dirname(module_dir)
             # if parent_dir not in sys.path:
             #     sys.path.insert(0, parent_dir)
-            plugin_module = await self._async(import_module_from_path, name, file_path)
-        plugin = plugin_module.plugin_class(project=self.project, plugin_path=path, name=name)
-        self.project.add_plugin(plugin)
+            plugin_module = await self.run_async(import_module_from_path, name, file_path)
+        plugin = plugin_module.plugin_class(project=self._project, plugin_path=path, name=name)
+        self._project.add_plugin(plugin)
         await plugin.start()
-        self.project.on.sync.emitProjectState(self.project.get_state())
+        self._project.on.sync.emitProjectState(self._project.get_state())
