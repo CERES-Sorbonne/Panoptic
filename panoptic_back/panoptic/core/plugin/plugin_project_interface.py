@@ -129,6 +129,9 @@ class PluginProjectInterface:
     def add_task(self, task: Task):
         self._project.task_queue.add_task(task)
 
+    async def run_async(self, function, *args):
+        return await self._project.run_async(function, *args)
+
     # EVENTS
     def on_instance_import(self, callback: Callable[[Instance], Awaitable[None]]):
         return self._project.on.import_instance.register(callback)
