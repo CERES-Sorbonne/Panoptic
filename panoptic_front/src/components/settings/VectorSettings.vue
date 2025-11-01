@@ -4,7 +4,7 @@ import SectionDivider from '../utils/SectionDivider.vue';
 import ActionButton from '../actions/ActionButton.vue';
 import ActionSelect from '../actions/ActionSelect.vue';
 import ActionSelectFlat from '../actions/ActionSelectFlat.vue';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { VectorType } from '@/data/models';
 import { useActionStore } from '@/data/actionStore';
 import ComputeVectorButton from './ComputeVectorButton.vue';
@@ -14,7 +14,6 @@ const actions = useActionStore()
 
 const create = ref(false)
 const compute = ref(false)
-
 async function deleteType(id: number) {
     await data.deleteVectorType(id)
 }
@@ -49,7 +48,7 @@ onMounted(() => data.updateVectorStats())
                     <td>{{ vecType.id }}</td>
                     <td>
                         <div>
-                            <ComputeVectorButton v-if="data.vectorStats.count[vecType.id] != data.vectorStats.sha1Count" :vector-type="vecType" />
+                            <ComputeVectorButton v-if="data.vectorStats.count[vecType.id] != data.vectorStats.sha1Count" :vector-type="vecType" class="me-2" />
                             <span v-if="data.vectorStats.count[vecType.id] != undefined">{{ data.vectorStats.count[vecType.id] }} / {{ data.vectorStats.sha1Count }}</span>
                             <span v-else>0 / {{ data.vectorStats.sha1Count }}</span>
                         </div>
@@ -65,7 +64,7 @@ onMounted(() => data.updateVectorStats())
                 </tr>
             </tbody>
         </table>
-        <div v-if="!create">
+        <div v-if="!create && actions.hasVectorFunction">
             <span class="bb" @click="create = true">{{$t('modals.settings.createNewType')}} <i class="bi bi-plus" /></span>
         </div>
         <SectionDivider v-if="create"><span style="margin-left: 3px;">{{$t('modals.settings.createNewType')}}</span></SectionDivider>

@@ -24,6 +24,7 @@ export const useActionStore = defineStore('actionStore', () => {
     })
 
     const hasSimilaryFunction = computed(() => defaultActions.similar != undefined)
+    const hasVectorFunction = computed(() => defaultActions.vector_type != undefined)
 
     async function init() {
         const actions = await apiGetActions()
@@ -195,7 +196,7 @@ export const useActionStore = defineStore('actionStore', () => {
     return {
         index, defaultActions,
         updateDefaultParams, updateDefaultActions,
-        hasSimilaryFunction,
+        hasSimilaryFunction, hasVectorFunction,
         getSimilarImages, getContext,
         clear, init, callComputeVector
     }

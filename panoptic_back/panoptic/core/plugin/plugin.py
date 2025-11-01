@@ -44,6 +44,10 @@ class APlugin(ABC):
         db_defaults = await self._project.db.get_plugin_data(self.base_key)
         self.params = assign_attributes(self.params, db_defaults)
         await self.load_vector_types()
+        await self._start()
+
+    async def _start(self):
+        pass
 
     async def update_params(self, params: Any):
         self.params = assign_attributes(self.params, params)
@@ -53,11 +57,13 @@ class APlugin(ABC):
     def add_action(self, function: AsyncCallable, description: FunctionDescription):
         self._project.action.add(function, description)
         self.registered_functions.append(description)
+        return description
 
     def add_action_easy(self, function: AsyncCallable, hooks: list[str] = None):
         source = self
         description = self._project.action.easy_add(source, function, hooks)
         self.registered_functions.append(description)
+        return description
 
     def _get_param_description(self):
         if not self.params:

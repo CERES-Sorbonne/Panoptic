@@ -397,6 +397,9 @@ class ProjectDb:
         self._project.on.sync.emitVectorTypes(await self.get_vector_types())
         return res
 
+    def create_vector_type(self, source: str, params: dict ):
+        return VectorType(id=self._get_fake_id(), source=source, params=params)
+
     async def add_vector(self, vector: Vector):
         return await self._db.add_vector(vector)
 

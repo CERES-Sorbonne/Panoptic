@@ -94,15 +94,15 @@ class NotifFunction(ExecuteActionPayload):
 
 @dataclass
 class Notif:
-    type: NotifType = None
-    id: int = None
-    created_at: datetime = None
-    received_at: datetime = None
+    type: NotifType
+    # id: int = None
+    # created_at: datetime = None
+    # received_at: datetime = None
     name: str = None
     message: str = None
     data: Any = None
     functions: list[NotifFunction] = None
-    read: bool = None
+    # read: bool = None
 
 
 @dataclass
