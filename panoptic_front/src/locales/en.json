@@ -280,7 +280,8 @@
             "large": "Large",
             "px": "px",
             "imageStorage": "Image Storage",
-            "fullImage": "Full Image"
+            "fullImage": "Full Image",
+            "calc": "compute"
         },
         "import": {
             "title": "Import File",

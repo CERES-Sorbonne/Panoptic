@@ -22,7 +22,10 @@ import {
     VectorType,
     VectorStats,
     ProjectState,
-    PluginAddPayload
+    PluginAddPayload,
+    ApiRequestDescription,
+    Notif,
+    NotifType
 } from './models'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -57,6 +60,25 @@ async function uploadFile(route: string, file) {
     })
     return res
 }
+
+projectApi.interceptors.response.use(response => response, (error) => {
+    const panoptic = usePanopticStore()
+
+    const baseURL: string = error.config.baseURL
+    const method = error.config.method
+    const url = error.config.url
+    const data = error.config.data
+    const traceback = error.response?.data?.traceback
+    const message = error.response?.data?.message
+    const errorName = error.response?.data?.name
+
+    const req: ApiRequestDescription = {
+        method, baseURL, url, data
+    }
+
+    const notif: Notif = { type: NotifType.ERROR, name: 'BackendError: ' + errorName, message: message, request: req, unexpected: true, traceback: traceback }
+    panoptic.notify(notif)
+})
 
 export async function apiGetProjectState() {
     const res = await projectApi.get('/project_state')
