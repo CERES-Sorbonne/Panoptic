@@ -209,10 +209,11 @@ async function mergeTags() {
 
 
 watch(tags, () => {
-    data.tagList.forEach(t => {
-        if (tagToInstance.value[t.id]) return
-        tagToInstance.value[t.id] = []
-    })
+    updateTagToInstance()
+    // data.tagList.forEach(t => {
+    //     if (tagToInstance.value[t.id]) return
+    //     tagToInstance.value[t.id] = []
+    // })
 })
 
 </script>
