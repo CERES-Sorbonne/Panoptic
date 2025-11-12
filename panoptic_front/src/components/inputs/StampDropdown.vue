@@ -19,6 +19,7 @@ const emits = defineEmits(['stamped'])
 
 const stamp = reactive({}) as any
 const erase = reactive(new Set()) as Set<number>
+const modes = reactive({})
 const dropdownElem = ref(null)
 
 function close() {
@@ -47,8 +48,19 @@ async function apply() {
     for (let propId of Object.keys(stamp).map(Number)) {
         for (let img of props.images) {
             let stampValue = stamp[propId]
-            if (data.properties[propId].type == PropertyType.multi_tags && img.properties[propId] && stampValue) {
-                stampValue = Array.from(new Set([...img.properties[propId], ...stampValue]))
+            if (data.properties[propId].type == PropertyType.multi_tags && stampValue) {
+                const oldTags = img.properties[propId] ?? []
+                if (!modes[propId]) {
+                    stampValue = Array.from(new Set([...oldTags, ...stampValue]))
+                }
+                if(modes[propId] === 1) {
+                    // do nothing, set values
+                }
+                if(modes[propId] === 2) {
+                    const remove = new Set(stampValue)
+                    stampValue = oldTags.filter(t => !remove.has(t))
+                }
+
             }
             if (data.properties[propId].mode == PropertyMode.id) {
                 const value: InstancePropertyValue = { propertyId: propId, instanceId: img.id, value: stampValue }
@@ -68,16 +80,17 @@ async function apply() {
 <template>
     <Dropdown ref="dropdownElem" :teleport="true">
         <template #button>
-            <div :class="props.noBorder ? '' : 'button'" style="font-size: 10px; color: rgb(33, 37, 41); padding-bottom: 0.5px;padding-top: 0.5px;">
+            <div :class="props.noBorder ? '' : 'button'"
+                style="font-size: 10px; color: rgb(33, 37, 41); padding-bottom: 0.5px;padding-top: 0.5px;">
                 <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
-        $t('main.menu.selected_images') }}</span>
+                    $t('main.menu.selected_images') }}</span>
                 <span v-else>{{ $t('modals.tagging.button') }}</span>
             </div>
         </template>
         <template #popup>
             <div @keydown.escape.prevent.stop="">
-                <div class="m-2" style="width: 300px; max-height: 400px; overflow-y: auto;">
-                    <StampForm :values="stamp" :erase="erase" @blur="dropdownElem.focus" />
+                <div class="m-2" style="width: 400px; max-height: 400px; overflow-y: auto;">
+                    <StampForm :values="stamp" :modes="modes" :erase="erase" @blur="dropdownElem.focus" />
                 </div>
 
                 <div class="d-flex pe-2 pb-2">
