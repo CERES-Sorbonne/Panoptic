@@ -6,7 +6,7 @@ import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { Group, GroupManager, GroupTree, GroupType, buildGroup } from '@/core/GroupManager'
-import { DbCommit, GroupLine, GroupResult, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Sha1ToInstances, Tag, buildTag } from '@/data/models'
+import { DbCommit, GroupLine, GroupResult, ImagePropertyValue, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Sha1ToInstances, Tag, buildTag } from '@/data/models'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 import { allChildrenSha1Groups } from '@/utils/utils'
@@ -49,7 +49,7 @@ const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v
 
 const instancesForExecute = computed(() => {
     const selected = images.value.filter(i => props.manager.selectedImages.value[i.id])
-    if(selected.length) {
+    if (selected.length) {
         return selected
     }
     return images.value
@@ -99,17 +99,23 @@ async function saveHirachy() {
     const children = group.value.children
     const mode = allChildrenSha1Groups(group.value) ? PropertyMode.sha1 : PropertyMode.id
     console.log(mode)
-    const property: Property = {id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: mode}
+    const property: Property = { id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: mode }
     let id = 0
     const idFunc = () => { id -= 1; return id }
     const tagToImages: { [tagId: number]: Instance[] } = {}
     const tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
 
     const instanceValues: InstancePropertyValue[] = []
+    const imageValues: ImagePropertyValue[] = []
     for (let tagId in tagToImages) {
         const images = tagToImages[tagId]
         for (let img of images) {
-            instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [Number(tagId)] })
+            if (mode == PropertyMode.id) {
+                instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [Number(tagId)] })
+            } else {
+                imageValues.push({ propertyId: property.id, sha1: img.sha1, value: [Number(tagId)] })
+            }
+
         }
     }
 
@@ -118,7 +124,8 @@ async function saveHirachy() {
     const commit: DbCommit = {
         properties: [property],
         tags: tags,
-        instanceValues: instanceValues
+        instanceValues: instanceValues,
+        imageValues: imageValues
     }
 
     await data.sendCommit(commit)
@@ -130,7 +137,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
     const res: Tag[] = []
     const prefix = parentTag?.value ?? ('Clustering_' + children.length)
     const parents = []
-    if(parentTag) {
+    if (parentTag) {
         // parents.push(...parentTag.parents, parentTag.id)
         parents.push(parentTag.id)
     }
@@ -165,8 +172,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             <i v-else class="bi bi-caret-down-fill" style="margin-left: 1px;"></i>
         </div>
         <div class="me-1">
-            <SelectCircle :small="true" :model-value="selected"
-                @update:model-value="emits('select', group.id)" />
+            <SelectCircle :small="true" :model-value="selected" @update:model-value="emits('select', group.id)" />
         </div>
         <div v-if="hasSubgroups && hasOpenChildren"
             class="text-secondary align-self-center bi bi-dash-square-dotted me-1" @click="closeChildren">
@@ -188,7 +194,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.images.length }} Images
         </div>
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
-        subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
+            subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-2">
@@ -196,16 +202,14 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" style="font-size: 10px;"
-                    @groups="addClusters" />
+                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" />
             </div>
             <div class="ms-2">
                 <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
                     @groups="addClusters" />
             </div>
 
-            <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
-                class="ms-2">
+            <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
                 <wTT message="main.recommand.tooltip">
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>

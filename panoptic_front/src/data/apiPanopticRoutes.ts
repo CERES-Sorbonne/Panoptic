@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, ApiRequestDescription, PanopticState } from './models'
+import { DirInfo, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, ApiRequestDescription, PanopticState, ProjectRef } from './models'
 import { PluginKey, usePanopticStore } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -62,8 +62,8 @@ export async function apiGetPanopticState() {
     return res.data as PanopticState
 }
 
-export async function apiLoadProject(path: string) {
-    let res = await panopticApi.post('/load', { path })
+export async function apiLoadProject(projectId: number) {
+    let res = await panopticApi.post('/load', { project_id: projectId })
     return res.data as PanopticState
 }
 
@@ -72,8 +72,13 @@ export async function apiCloseProject(projectId: number) {
     return res.data as PanopticState
 }
 
-export async function apiDeleteProject(path: string) {
-    let res = await panopticApi.post('/delete_project', { path })
+export async function apiDeleteProject(projectId: number) {
+    let res = await panopticApi.post('/delete_project', { project_id: projectId })
+    return res.data as PanopticState
+}
+
+export async function apiUpdateProject(project: ProjectRef) {
+    let res = await panopticApi.post('/update_project', {id: project.id, name: project.name, ignored_plugins: project.ignoredPlugins})
     return res.data as PanopticState
 }
 
@@ -105,11 +110,6 @@ export async function apiDelPlugin(name: string) {
 export async function apiUpdatePlugin(name: string) {
     let res = await panopticApi.post('/plugin/update', {name})
     return res.data as boolean
-}
-
-export async function apiSetIgnoredPlugin(data: IngoredPluginPayload) {
-    const res = await panopticApi.post('/ignored_plugin', keysToSnake(data))
-    return keysToCamel(res.data)
 }
 
 export async function apiGetVersion() {

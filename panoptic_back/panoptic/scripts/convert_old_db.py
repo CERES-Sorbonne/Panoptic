@@ -3,7 +3,7 @@
 #
 # import aiosqlite
 #
-# from panoptic.core.project.project import Project
+# from panoptic.core._project._project import Project
 # from panoptic.utils import clean_value
 #
 # source_db_file = '/Users/david/Downloads/panoptic-edouard.db'
@@ -53,23 +53,23 @@
 #                 row[4] = 0
 #                 tags.append(row)
 #
-#         project = Project(target_folder, [])
-#         await project.start()
+#         _project = Project(target_folder, [])
+#         await _project.start()
 #
 #         sha1_to_ahash = {v[0]: v[1] for v in computed_values}
 #
 #         for folder in folders:
-#             await project.db.get_raw_db().import_folder(*folder)
+#             await _project.db.get_raw_db().import_folder(*folder)
 #         for instance in instances:
 #             ahash = sha1_to_ahash[instance[4]] if instance[4] in sha1_to_ahash else 'none'
-#             await project.db.get_raw_db().import_instance(*instance, ahash)
+#             await _project.db.get_raw_db().import_instance(*instance, ahash)
 #         for prop in properties:
-#             await project.db.get_raw_db().import_property(*prop)
-#         prop_index = {p.id: p for p in await project.db.get_properties(computed=True)}
+#             await _project.db.get_raw_db().import_property(*prop)
+#         prop_index = {p.id: p for p in await _project.db.get_properties(computed=True)}
 #
 #         for tag in tags:
 #             if tag[1] in prop_index:
-#                 await project.db.get_raw_db().import_tag(*tag)
+#                 await _project.db.get_raw_db().import_tag(*tag)
 #
 #         for val in image_values:
 #             if val[0] not in prop_index:
@@ -80,7 +80,7 @@
 #             if v:
 #                 val[2] = v
 #                 val[1] = [val[1]]
-#                 await project.db.get_raw_db().set_image_property_value(*val)
+#                 await _project.db.get_raw_db().set_image_property_value(*val)
 #         for val in instance_values:
 #             v = clean_value(prop_index[val[0]], val[2])
 #             if type(v) is not int:
@@ -88,8 +88,8 @@
 #             if v:
 #                 val[2] = v
 #                 val[1] = [val[1]]
-#                 await project.db.get_raw_db().set_instance_property_value(*val)
-#         await project.close()
+#                 await _project.db.get_raw_db().set_instance_property_value(*val)
+#         await _project.close()
 #
 #
 # asyncio.run(run())

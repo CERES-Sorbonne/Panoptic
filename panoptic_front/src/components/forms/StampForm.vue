@@ -18,7 +18,8 @@ const data = useDataStore()
 
 const props = defineProps({
     values: Object as () => { [propertyId: number]: any },
-    erase: Set<number>
+    erase: Set<number>,
+    modes: Object as () => {[pId: number]: number}
 })
 const emits = defineEmits(['blur'])
 
@@ -41,6 +42,10 @@ const propertyColor = computed(() => {
     })
     return res
 })
+
+function setMode(propId: number, mode: number) {
+    props.modes[propId] = mode
+}
 
 </script>
 
@@ -78,6 +83,13 @@ const propertyColor = computed(() => {
                             <RowNumberInput v-else-if="property.type == PropertyType.number"
                                 v-model="props.values[property.id]" :height="30"/>
                         </td>
+                        <td>
+                            <div v-if="property.type == PropertyType.multi_tags && props.values[property.id]" class="d-flex border rounded">
+                                <div class="mode-option" :class="{selected: !props.modes[property.id]}" @click="setMode(property.id, 0)">{{ $t('dropdown.stamp.add') }}</div>
+                                <div class="mode-option" :class="{selected: props.modes[property.id] == 1}" @click="setMode(property.id, 1)">{{ $t('dropdown.stamp.set') }}</div>
+                                <div class="mode-option" :class="{selected: props.modes[property.id] == 2}" @click="setMode(property.id, 2)" style="border: none;">{{ $t('dropdown.stamp.del') }}</div>
+                            </div>
+                        </td>
                         <td v-if="props.values[property.id] == undefined">
                             <wTT message="modals.tagging.erase_tooltip">
                                 <i class="bi bi-trash base-btn" @click="erase.add(property.id)" />
@@ -91,7 +103,8 @@ const propertyColor = computed(() => {
                         </td>
                     </template>
                     <template v-else>
-                        <td class="text-warning">{{ $t("modals.tagging.erase") }}</td>
+                        <td></td>
+                        <td class="text-warning" style="text-align: end;">{{ $t("modals.tagging.erase") }}</td>
                         <td>
                             <wTT message="modals.tagging.cancel_tooltip">
                                 <i class="bi bi-arrow-counterclockwise base-btn" @click="erase.delete(property.id)"></i>
@@ -104,3 +117,19 @@ const propertyColor = computed(() => {
         </tbody>
     </table>
 </template>
+
+<style scoped>
+.mode-option {
+    border-right: 1px solid var(--border-color);
+    padding: 0px 3px;
+    cursor: pointer;
+}
+
+.selected {
+    background-color: var(--selected-grey);
+}
+
+.mode-option:hover {
+    background-color: var(--light-grey);
+}
+</style>

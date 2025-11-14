@@ -1,19 +1,12 @@
-from __future__ import annotations
-
 import hashlib
 import io
 import os
-from typing import TYPE_CHECKING
 
 from PIL import Image
 from imagehash import average_hash
 
-from panoptic.models import DbCommit, Instance, ProjectSettings
-
-if TYPE_CHECKING:
-    from panoptic.core.project.project import Project
-
 from panoptic.core.task.task import Task
+from panoptic.models import DbCommit, Instance, ProjectSettings
 
 # PIL format to MIME type mapping
 format_to_mime = {
@@ -27,45 +20,46 @@ format_to_mime = {
 }
 
 class ImportInstanceTask(Task):
-    def __init__(self, seq: int, project: Project, file: str, folder_id: int):
+    def __init__(self, seq: int, file: str, folder_id: int):
         super().__init__(priority=True)
-        self.project = project
-        self.db = project.db
         self.file = file
         self.folder_id = folder_id
         self.name = 'Import Instance'
         self.key += '-' + str(seq)
 
     async def run(self):
+        db = self._project.db
+
         name = self.file.split(os.sep)[-1]
         extension = name.split('.')[-1]
         folder_id = self.folder_id
 
-        db_image = await self.db.has_file(folder_id, name, extension)
+        db_image = await db.has_file(folder_id, name, extension)
         if db_image:
-            self.db.on_import_instance.emit(db_image)
+            db.on_import_instance.emit(db_image)
             return db_image
 
-        sha1, width, height, ahash, large, medium, small, raw_file, mime_type = await self._async(self._import_image, self.file,
-                                                                             self.project.settings)
-        if not await self.db.has_image(sha1):
-            await self.db.import_image(sha1, small, medium, large)
+        sha1, width, height, ahash, large, medium, small, raw_file, mime_type = await self.run_async(self._import_image,
+                                                                                                     self.file,
+                                                                                                     self._project.settings)
+        if not await db.has_image(sha1):
+            await db.import_image(sha1, small, medium, large)
 
-        if self.project.settings.save_file_raw:
-            await self.db.import_raw_image(sha1, mime_type, raw_file)
+        if self._project.settings.save_file_raw:
+            await db.import_raw_image(sha1, mime_type, raw_file)
 
         instance = Instance(-1, folder_id, name, extension, sha1, self.file, height, width, str(ahash))
 
         commit = DbCommit(instances=[instance])
-        await self.project.db.apply_commit(commit)
-        self.project.sha1_to_files[sha1].append(self.file)
-        self.project.ui.commits.append(commit)
-        self.db.on_import_instance.emit(commit.instances[0])
+        await self._project.db.apply_commit(commit)
+        self._project.sha1_to_files[sha1].append(self.file)
+        self._project.ui.commits.append(commit)
+        db.on_import_instance.emit(commit.instances[0])
         return commit.instances[0]
 
     async def run_if_last(self):
         pass
-        # self.project.ui.update_counter.image += 1
+        # self._project.ui.update_counter.image += 1
 
     @staticmethod
     def _import_image(file_path, settings: ProjectSettings):

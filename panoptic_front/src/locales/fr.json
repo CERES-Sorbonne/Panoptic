@@ -387,6 +387,11 @@
         "action": {
             "execute": "Execute une fonction plugin sur les instances",
             "group": "Execute une fonction de clustering sur les instances"
+        },
+        "stamp": {
+            "add": "ajouter",
+            "set": "remplacer",
+            "del": "retirer"
         }
     },
     "btn": {

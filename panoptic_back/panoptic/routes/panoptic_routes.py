@@ -13,8 +13,8 @@ from starlette.responses import FileResponse
 
 from panoptic.core.panoptic_server import PanopticServer
 from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload, \
-    DeleteProjectPayload
-from panoptic.models import CloseProjectRequest
+    DeleteProjectPayload, IntPayload, ProjectUpdatePayload
+from panoptic.models import ProjectIdPayload
 
 selection_router = APIRouter()
 
@@ -51,15 +51,20 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 
 
 @selection_router.post("/load")
-async def load_project_route(path: LoadProjectPayload, request: Request):
+async def load_project_route(req: ProjectIdPayload, request: Request):
     connection_id = request.query_params.get('connection_id')
     print(connection_id)
-    res = await server.load_project(path.path, connection_id)
+    res = await server.load_project(req.project_id, connection_id)
     return res
+
+@selection_router.post('/update_project')
+async def update_project_route(req: ProjectUpdatePayload, request: Request):
+    await server.update_project(req)
+    return await server.panoptic.get_state()
 
 
 @selection_router.post("/close")
-async def close_project(req: CloseProjectRequest, request: Request):
+async def close_project(req: ProjectIdPayload, request: Request):
     connection_id = request.query_params.get('connection_id')
     await server.close_project(req.project_id, connection_id)
 
@@ -67,8 +72,8 @@ async def close_project(req: CloseProjectRequest, request: Request):
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: DeleteProjectPayload):
-    await server.remove_project(req.path)
+async def delete_project_route(req: ProjectIdPayload):
+    await server.remove_project(req.project_id)
     return await get_panoptic_state()
 
 
@@ -107,7 +112,7 @@ async def get_plugins_route():
 
 @selection_router.post('/plugins')
 async def add_plugins_route(payload: AddPluginPayload):
-    return server.panoptic.add_plugin(payload.name, payload.source, payload.type)
+    return await server.panoptic.add_plugin(payload.name, payload.source, payload.type)
 
 
 @selection_router.post('/plugin/update')
@@ -117,7 +122,7 @@ async def update_plugin_route(payload: UpdatePluginPayload):
 
 @selection_router.delete('/plugins')
 async def del_plugins_route(name: str):
-    return server.panoptic.del_plugin_path(name)
+    return await server.panoptic.del_plugin_path(name)
 
 @selection_router.get('/images/{file_path:path}')
 async def get_image(file_path: str):

@@ -34,15 +34,26 @@ class PluginKey(BaseModel):
 
 class PanopticData(BaseModel):
     version: int = 1
-    projects: list[ProjectId]
+    projects: list[ProjectRef2]
     plugins: List[PluginKey] = []
-    ignored_plugins: dict[str, list[str]] = {}
+
+class ProjectUpdatePayload(CamelModel):
+    id: int
+    name: str
+    ignored_plugins: list[str]
 
 
 class PanopticDataOld(BaseModel):
     projects: list[ProjectId]
     last_opened: ProjectId | None = None
     plugins: List[str] = []
+
+
+class PanopticDataOld2(BaseModel):
+    version: int = 1
+    projects: list[ProjectId]
+    plugins: List[PluginKey] = []
+    ignored_plugins: dict[str, list[str]] = {}
 
 
 class PropertyType(Enum):
@@ -263,6 +274,12 @@ class Tab(BaseModel):
 class LoadProjectPayload(CamelModel):
     path: str
 
+class IntPayload(BaseModel):
+    value: int
+
+class StringPayload(BaseModel):
+    value: str
+
 class DeleteProjectPayload(CamelModel):
     path: str
 
@@ -314,9 +331,9 @@ class Clusters:
 @dataclass
 class ActionContext:
     instance_ids: List[int] | None = None
-    property_ids: List[int] | None = None
-    file: str | None = None
-    text: str | None = None
+    # property_ids: List[int] | None = None
+    # file: str | None = None
+    # text: str | None = None
     ui_inputs: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -479,6 +496,12 @@ class ProjectRef(ProjectId):
     is_open: bool
     ignored_plugins: list[str] = []
 
+class ProjectRef2(CamelModel):
+    id: int = -1
+    name: str | None = None
+    path: str | None = None
+    ignored_plugins: list[str] = []
+
 
 class PanopticState(BaseModel):
     version: str
@@ -513,7 +536,7 @@ class ProjectState(BaseModel):
     settings: ProjectSettings
 
 
-class CloseProjectRequest(BaseModel):
+class ProjectIdPayload(BaseModel):
     project_id: int
 
 
