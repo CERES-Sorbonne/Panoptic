@@ -47,8 +47,8 @@ if ! uv pip show panoptic &> /dev/null; then
         uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
     fi
     
-    echo "Installation du plugin de similarité panopticml"
-    uv run panoptic plugins add vision
+    # echo "Installation du plugin de similarité panopticml"
+    # uv run panoptic plugins add vision
 fi
 
 # Vérifier si panoptic est obsolète
