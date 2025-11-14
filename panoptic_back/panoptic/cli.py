@@ -43,7 +43,7 @@ def plugins():
 @click.option('--type', '-t', 'plugin_type',
               type=click.Choice(PLUGIN_TYPE_CHOICES, case_sensitive=False),
               help='Type de plugin')
-def add(name: str, source: Optional[str], plugin_type: Optional[str]):
+async def add(name: str, source: Optional[str], plugin_type: Optional[str]):
     """Ajouter un plugin
 
     Exemples:
@@ -53,7 +53,7 @@ def add(name: str, source: Optional[str], plugin_type: Optional[str]):
     # Cas spécial : plugin vision par défaut
     if name.lower() == 'vision' and not source and not plugin_type:
         click.echo("Installation du plugin vision par défaut...")
-        panoptic.add_plugin(
+        await panoptic.add_plugin(
             name='PanopticVision',
             source='panopticml',
             ptype=PluginType.pip
@@ -74,7 +74,7 @@ def add(name: str, source: Optional[str], plugin_type: Optional[str]):
     except ValueError:
         raise click.BadParameter(f"Type invalide. Choix: {', '.join(PLUGIN_TYPE_CHOICES)}")
 
-    panoptic.add_plugin(name, source, plugin_type_enum)
+    await panoptic.add_plugin(name, source, plugin_type_enum)
     click.secho(f"✓ Plugin {name} ajouté avec succès!", fg='green')
 
 
