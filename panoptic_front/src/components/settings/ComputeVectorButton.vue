@@ -20,7 +20,7 @@ async function computeVectors() {
 <template>
     <span @click="computeVectors" class="bb">
         <span v-if="loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        <i v-else class="bi bi-database-add" />
+        <i v-else class="bi bi-cpu" /> {{ $t('modals.settings.calc') }}
     </span>
 </template>
 

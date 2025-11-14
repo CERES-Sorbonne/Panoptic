@@ -6,16 +6,17 @@ from panoptic.core.task.task import Task
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
+    from panoptic.core.plugin.plugin import APlugin
 
 from panoptic.models import ImagePropertyKey, InstanceProperty, PropertyType, PropertyMode, Property, \
     DbCommit, Vector, Instance, DeleteFolderConfirm, VectorType
 
 
 class PluginProjectInterface:
-    def __init__(self, project: Project):
+    def __init__(self, project: Project, plugin: APlugin):
         self._project = project
         self.ui = project.ui
-
+        self._plugin = plugin
         self.base_path = project.base_path
 
     # GETTERS
@@ -66,14 +67,48 @@ class PluginProjectInterface:
     def create_property(self, name: str, type_: PropertyType, mode: PropertyMode) -> Property:
         return self._project.db.create_property(name, type_, mode)
 
+    async def get_or_create_property(self, property_name: str, property_type: PropertyType = None,
+                                     property_mode: PropertyMode = None):
+        """
+        Get an existing property or create a new one if it doesn't exist.
+
+        @property_name: Name of the property to find or create
+        @property_type: Type of property (required if creating new)
+        @property_mode: Mode of property (required if creating new)
+        @return: The existing or newly created Property
+        """
+        properties = await self.get_properties()
+
+        # Search for existing property
+        for prop in properties:
+            if prop.name == property_name:
+                # If type and mode are specified, ensure they match
+                if property_type is not None and prop.type != property_type:
+                    continue
+                if property_mode is not None and prop.mode != property_mode:
+                    continue
+                return prop
+
+        # Property not found, create new one
+        if property_type is None or property_mode is None:
+            raise ValueError(
+                f"No existing property found with name '{property_name}' and no property_type "
+                "and property_mode provided to create one"
+            )
+
+        new_prop = self.create_property(property_name, property_type, property_mode)
+        return new_prop
+
     def create_tag(self, property_id: int, value: str, parent_ids: list[int] = None, color=-1):
         return self._project.db.create_tag(property_id, value, parent_ids, color)
 
-    async def add_vector_type(self, vec: VectorType):
-        return await self._project.db.add_vector_type(vec)
+    def create_vector_type(self, params: dict):
+        return self._project.db.create_vector_type(self._plugin.name, params)
 
-    async def add_vector(self, vector: Vector):
-        return await self._project.db.add_vector(vector)
+    async def add_vector_type(self, vec: VectorType):
+        res = await self._project.db.add_vector_type(vec)
+        return res
+
 
     # COMMIT
 
@@ -90,11 +125,15 @@ class PluginProjectInterface:
         return await self._project.db.undo_queue.redo()
 
     async def add_vector(self, vector: Vector):
-        return await self._project.db.add_vector(vector)
+        res = await self._project.db.add_vector(vector)
+
 
     # TASKS
     def add_task(self, task: Task):
         self._project.task_queue.add_task(task)
+
+    async def run_async(self, function, *args):
+        return await self._project.run_async(function, *args)
 
     # EVENTS
     def on_instance_import(self, callback: Callable[[Instance], Awaitable[None]]):

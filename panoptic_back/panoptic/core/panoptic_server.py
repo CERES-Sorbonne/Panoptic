@@ -8,7 +8,7 @@ import socketio
 
 from panoptic.core.panoptic import Panoptic
 from panoptic.models import DbUpdate, IgnoredPluginPayload, DbCommit
-from panoptic.models.models import PanopticClientState, SyncData, TaskState, User, UserState
+from panoptic.models.models import PanopticClientState, SyncData, TaskState, User, UserState, ProjectUpdatePayload
 from panoptic.utils import serialize_payload, AsyncAdaptiveBuffer
 
 users = [
@@ -39,7 +39,7 @@ class PanopticServer:
         self._connections_to_close: list[str] = []
         self._close_connections_task: asyncio.Task | None = None
 
-        # one buffer per project
+        # one buffer per _project
         self._commit_buffers: dict[int, AsyncAdaptiveBuffer] = {}
         self._tasks_buffers: dict[int, AsyncAdaptiveBuffer] = {}
 
@@ -193,8 +193,8 @@ class PanopticServer:
         state.users = list(self.users.values())
         await self.sio.emit('server_state', state.model_dump(mode='json'), to=sids)
 
-    async def load_project(self, path: str, connection_id: str = None):
-        project = await self.panoptic.load_project(path)
+    async def load_project(self, project_id: int, connection_id: str = None):
+        project = await self.panoptic.load_project(project_id)
         if project:
             project.on.sync.register(self.broadcast_sync_event)
             self._create_commit_buffer(project.id)
@@ -205,18 +205,22 @@ class PanopticServer:
             await self._emit_client_state(connection_id)
 
     async def create_project(self, name: str, path: str, connection_id: str = None):
-        project = self.panoptic.create_project(name, path)
-        await self.load_project(project.path, connection_id)
+        project = await self.panoptic.create_project(name, path)
+        await self.load_project(project.id, connection_id)
         await self._emit_server_state()
 
     async def import_project(self, path: str, connection_id: str = None):
-        project = self.panoptic.import_project(path)
+        project = await self.panoptic.import_project(path)
         if project:
-            await self.load_project(project.path, connection_id)
+            await self.load_project(project.id, connection_id)
             await self._emit_server_state()
 
-    async def remove_project(self, path: str):
-        self.panoptic.remove_project(path)
+    async def update_project(self, req: ProjectUpdatePayload):
+        await self.panoptic.update_project(req.id, req.name, req.ignored_plugins)
+        await self._emit_server_state()
+
+    async def remove_project(self, project_id: int):
+        await self.panoptic.remove_project(project_id)
         await self._emit_server_state()
 
     async def close_project(self, project_id: int, connection_id: str = None):

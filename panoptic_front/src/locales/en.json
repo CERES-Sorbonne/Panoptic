@@ -280,7 +280,8 @@
             "large": "Large",
             "px": "px",
             "imageStorage": "Image Storage",
-            "fullImage": "Full Image"
+            "fullImage": "Full Image",
+            "calc": "compute"
         },
         "import": {
             "title": "Import File",
@@ -382,6 +383,11 @@
         "action": {
             "execute": "Run a plugin function",
             "group": "Run a clustering function"
+        },
+        "stamp": {
+            "add": "add",
+            "set": "set",
+            "del": "remove"
         }
     },
     "btn": {

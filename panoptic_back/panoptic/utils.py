@@ -52,7 +52,7 @@ def get_base_path():
         return os.path.dirname(__file__)
 
 
-AsyncCallable = Callable[[Any, Any, Any], Awaitable[Any]]
+AsyncCallable = Callable[..., Awaitable[Any]]
 
 
 class EventListener:

@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+from typing import Dict, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from panoptic.core.project.project import Project
+
 import asyncio
 import logging
 import sys
 import traceback
 from collections import defaultdict
-from concurrent.futures import Executor
-from typing import Dict, List
 
 from panoptic.utils import EventListener
 
@@ -15,8 +20,9 @@ logger = logging.getLogger('TaskQueue')
 
 
 class TaskQueue:
-    def __init__(self, executor: Executor, num_workers: int = 1):
-        self._executor = executor
+    def __init__(self, project: Project, num_workers: int = 1):
+        self.project = project
+        self._priority_tasks = project
         self._priority_tasks = asyncio.Queue()
         self._tasks = asyncio.Queue()
         self._num_workers = num_workers
@@ -80,7 +86,7 @@ class TaskQueue:
 
                 # set working Flag and execute task
                 self._working[worker_id] = True
-                task.set_executor(self._executor)
+                task.set_project(self.project)
                 try:
                     state.computing += 1
                     self.onFinish.clear()

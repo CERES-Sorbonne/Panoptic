@@ -21,7 +21,7 @@ from panoptic.routes.panoptic_routes import get_panoptic, get_server
 
 project_router = APIRouter(
     prefix="/projects/{project_id}",
-    tags=["project"],
+    tags=["_project"],
 )
 
 

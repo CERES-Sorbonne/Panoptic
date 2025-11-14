@@ -26,16 +26,16 @@ def assign_attributes(target: BaseModel, source):
 
 
 class APlugin(ABC):
-    def __init__(self, name: str, project: PluginProjectInterface, plugin_path: str):
+    def __init__(self, name: str, project: Project, plugin_path: str):
         self.params: Any | None = None
         self.name: str = name
-        self._project = project.get_project()
-        self.project = project
+        self._project = project
+        self.project = PluginProjectInterface(project, self)
         self.registered_functions: List[FunctionDescription] = []
         self.path = plugin_path
         self.base_key = f'{self.name}.base'
-        self.slug = "_".join(self.name.split(' ')).lower()
-        self.data_path = Path(self.project.base_path) / 'plugin_data' / self.slug
+        slug = "_".join(self.name.split(' ')).lower()
+        self.data_path = Path(self.project.base_path) / 'plugin_data' / slug
         self.data_path.mkdir(parents=True, exist_ok=True)
 
         self.vector_types: list[VectorType] = []
@@ -44,6 +44,10 @@ class APlugin(ABC):
         db_defaults = await self._project.db.get_plugin_data(self.base_key)
         self.params = assign_attributes(self.params, db_defaults)
         await self.load_vector_types()
+        await self._start()
+
+    async def _start(self):
+        pass
 
     async def update_params(self, params: Any):
         self.params = assign_attributes(self.params, params)
@@ -52,10 +56,14 @@ class APlugin(ABC):
 
     def add_action(self, function: AsyncCallable, description: FunctionDescription):
         self._project.action.add(function, description)
+        self.registered_functions.append(description)
+        return description
 
     def add_action_easy(self, function: AsyncCallable, hooks: list[str] = None):
         source = self
-        return self._project.action.easy_add(source, function, hooks)
+        description = self._project.action.easy_add(source, function, hooks)
+        self.registered_functions.append(description)
+        return description
 
     def _get_param_description(self):
         if not self.params:
@@ -80,20 +88,6 @@ class APlugin(ABC):
         res = PluginDescription(name=name, description=description, path=path, base_params=base_params,
                                 registered_functions=self.registered_functions)
         return res
-
-    async def get_or_create_property(self, property_name, property_type: PropertyType, property_mode: PropertyMode):
-        properties = await self.project.get_properties()
-        new_prop = None
-        for prop in properties:
-            if prop.name == property_name and prop.type == property_type and prop.mode == property_mode:
-                new_prop = prop
-                break
-        if not new_prop:
-            if property_type is not None and property_mode is not None:
-                new_prop = self.project.create_property(property_name, property_type, property_mode)
-            else:
-                raise ValueError("No existing property found with this name and no property_type and mode provided to create one")
-        return new_prop
 
     async def load_vector_types(self):
         self.vector_types = await self.project.get_vector_types(self.name)
