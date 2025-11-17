@@ -27,10 +27,11 @@ def import_module_from_path(module_name, module_path):
 
 
 class LoadPluginTask(Task):
-    def __init__(self, plugin_key: PluginKey):
+    def __init__(self, plugin_key: PluginKey, enable_watch: bool = True):
         super().__init__()
         self.name = 'Load Plugin'
         self.plugin_key = plugin_key
+        self.enable_watch = enable_watch
 
     async def run(self):
         plugin_type = self.plugin_key.type
@@ -44,12 +45,12 @@ class LoadPluginTask(Task):
             file_path = path
             if not path.endswith('__init__.py'):
                 file_path = str(Path(path) / '__init__.py')
-            module_dir = file_path if os.path.isdir(file_path) else os.path.dirname(file_path)
-            # parent_dir = os.path.dirname(module_dir)
-            # if parent_dir not in sys.path:
-            #     sys.path.insert(0, parent_dir)
             plugin_module = await self.run_async(import_module_from_path, name, file_path)
         plugin = plugin_module.plugin_class(project=self._project, plugin_path=path, name=name)
         self._project.add_plugin(plugin)
         await plugin.start()
+
+        if self.enable_watch and hasattr(self._project, 'plugin_watcher'):
+            self._project.plugin_watcher.add_plugin_watch(self.plugin_key, path)
+
         self._project.on.sync.emitProjectState(self._project.get_state())

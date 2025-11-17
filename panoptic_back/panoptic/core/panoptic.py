@@ -54,42 +54,7 @@ class Panoptic:
 
         asyncio.run(_start())
         return
-        save = False
-        loaded_data = PanopticData(plugins=[], projects=[])
 
-        try:
-            if not os.path.exists(self.global_file_path):
-                raise FileNotFoundError
-
-            with open(self.global_file_path, 'r') as file:
-                data = json.load(file)
-                res = PanopticData(**data)
-                for i in range(len(res.projects)):
-                    res.projects[i].id = i + 1
-                loaded_data = res
-        except json.JSONDecodeError as e:
-            print(f"Warning: Could not load projects.json. Error: {e}", file=sys.stderr)
-            # If the file is corrupted, back it up before starting fresh
-            corrupt_file_path = self.global_file_path
-            if os.path.exists(corrupt_file_path):
-                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-                backup_path = f"{corrupt_file_path}.corrupt.{timestamp}.bak"
-                shutil.copy(corrupt_file_path, backup_path)
-                print(f"A backup of the corrupt file has been saved to: {backup_path}", file=sys.stderr)
-
-            data, save = convert_old_panoptic_json(data)
-            loaded_data = PanopticData(**data)
-
-            print("Starting with a new empty _project list.", file=sys.stderr)
-        except FileNotFoundError as e:
-            loaded_data = PanopticData(projects=[])
-
-        self.data = loaded_data
-        if save:
-            self.save_data()
-
-        self.check_for_official_plugin()
-        return loaded_data
 
     def check_for_official_plugin(self):
         if os.getenv("PANOPTIC_ENV", "PROD") == "DEV":
@@ -107,13 +72,6 @@ class Panoptic:
                 path=ml.origin,
                 source=PANOPTICML_PLUGIN_PIP_NAME))
 
-    # def save_data(self):
-    #     directory = os.path.dirname(self.global_file_path)
-    #     # Create the directory if it doesn't exist
-    #     if not os.path.exists(directory):
-    #         os.makedirs(directory)
-    #     with open(self.global_file_path, 'w') as file:
-    #         json.dump(self.data.model_dump(), file, indent=2)
 
     async def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):

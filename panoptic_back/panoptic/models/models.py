@@ -31,6 +31,8 @@ class PluginKey(BaseModel):
     path: str | None = None
     source: str | None = None
 
+    def __hash__(self):
+        return hash(self.name)
 
 class PanopticData(BaseModel):
     version: int = 1
