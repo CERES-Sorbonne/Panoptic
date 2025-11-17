@@ -12,6 +12,7 @@ from panoptic.core.db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer.importer import Importer
 from panoptic.core.plugin.plugin import APlugin
+from panoptic.core.project.plugin_watcher import PluginWatcher
 from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
@@ -44,6 +45,7 @@ class Project:
         self.on = ProjectEvents(self.id)
         self.action = ProjectActions()
         self.task_queue = TaskQueue(self, num_workers=nb_workers * 2)
+        self.plugin_watcher = PluginWatcher(self)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
         self.sha1_to_files: dict[str, list[str]] = defaultdict(list)
@@ -70,12 +72,15 @@ class Project:
         # avoid blocking response for UI on longer loads
         self._load_task = asyncio.create_task(self._parallel_load())
 
-        # from panoptic.plugins import DefaultPlugin
-        # paths = [DefaultPlugin.__file__, *self.plugin_paths]
+
         for key in self.plugin_keys:
-            task = LoadPluginTask(key)
+            should_watch = self.plugin_watcher.watching
+            task = LoadPluginTask(key, should_watch)
+            if should_watch:
+                task.run_if_last = self.plugin_watcher.start
             self.task_queue.add_task(task)
 
+        # await self.plugin_watcher.start()
         self.is_loaded = True
 
     async def wait_full_start(self):
@@ -94,6 +99,7 @@ class Project:
         try:
             await self.db.close()
             await self.task_queue.close()
+            await self.plugin_watcher.stop()
         except Exception:
             pass
 
