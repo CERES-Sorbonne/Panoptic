@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sqlite3
+from pathlib import Path
 
 import aiosqlite
 
@@ -19,7 +20,7 @@ def panoptic_db_lock(func):
 
 
 class DbConnection:
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.db_path = path
         self.is_loaded = False
         self.conn: aiosqlite.Connection | None = None
@@ -30,6 +31,9 @@ class DbConnection:
         Cannot be done in __init__ because of async
         """
         # create connection
+        if not self.db_path.parent.exists():
+            print('Create folder for panoptic db')
+            os.makedirs(self.db_path.parent)
         self.conn = await aiosqlite.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         # use foreign_keys checks
         async with self.conn.executescript('PRAGMA foreign_keys = 1') as cursor:
@@ -50,6 +54,9 @@ class DbConnection:
             logging.warning(f'Panoptic DB Version ({db_version}) doesnt match Panoptic Software DB Version ({panoptic_db_version})')
             await self.update_version(int(db_version), panoptic_db_version)
         self.is_loaded = True
+
+    async def close(self):
+        await self.conn.close()
 
     async def update_version(self, db_version: int, target_version: int):
         # No migration for now

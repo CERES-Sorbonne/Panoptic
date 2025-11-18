@@ -1,3 +1,5 @@
+import asyncio
+
 import click
 from typing import Optional
 
@@ -43,7 +45,8 @@ def plugins():
 @click.option('--type', '-t', 'plugin_type',
               type=click.Choice(PLUGIN_TYPE_CHOICES, case_sensitive=False),
               help='Type de plugin')
-async def add(name: str, source: Optional[str], plugin_type: Optional[str]):
+def add(name: str, source: Optional[str], plugin_type: Optional[str]):
+    panoptic.start()
     """Ajouter un plugin
 
     Exemples:
@@ -53,12 +56,13 @@ async def add(name: str, source: Optional[str], plugin_type: Optional[str]):
     # Cas spécial : plugin vision par défaut
     if name.lower() == 'vision' and not source and not plugin_type:
         click.echo("Installation du plugin vision par défaut...")
-        await panoptic.add_plugin(
+        asyncio.run(panoptic.add_plugin(
             name='PanopticVision',
             source='panopticml',
             ptype=PluginType.pip
-        )
+        ))
         click.secho("✓ Plugin vision installé avec succès!", fg='green')
+        panoptic.close()
         return
 
     # Validation pour les autres cas
@@ -74,17 +78,20 @@ async def add(name: str, source: Optional[str], plugin_type: Optional[str]):
     except ValueError:
         raise click.BadParameter(f"Type invalide. Choix: {', '.join(PLUGIN_TYPE_CHOICES)}")
 
-    await panoptic.add_plugin(name, source, plugin_type_enum)
+    asyncio.run(panoptic.add_plugin(name, source, plugin_type_enum))
     click.secho(f"✓ Plugin {name} ajouté avec succès!", fg='green')
+    panoptic.close()
 
 
 @plugins.command()
 def list():
+    panoptic.start()
     for plugin in panoptic.get_plugin_paths():
         click.secho(f"Name: {plugin.name}", fg='green')
         click.secho(f"Type: {plugin.type}", fg='green')
         click.secho(f"Source: {plugin.source}", fg='green')
         click.secho("==================")
+    panoptic.close()
 
 if __name__ == '__main__':
     cli()

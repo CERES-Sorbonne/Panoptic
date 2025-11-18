@@ -12,6 +12,9 @@ class PanopticDb:
             raise Exception('DbConnection is not started. Execute await conn.start() before')
         self.conn = conn
 
+    async def close(self):
+        await self.conn.close()
+
     async def get_data(self) -> PanopticData:
         version = await self.conn.get_param(DB_VERSION)
         projects = await self.get_projects()
