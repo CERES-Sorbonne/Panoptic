@@ -1277,8 +1277,6 @@ export class GroupIterator {
     groupId: number
     options: GroupIteratorOptions
 
-
-
     constructor(manager: GroupManager, groupId?: number, options?: GroupIteratorOptions) {
         this.isValid = true
         this.manager = manager
@@ -1317,7 +1315,7 @@ export class GroupIterator {
         }
         return undefined
     }
-    // prevGroup(): GroupIterator { }
+
     prevGroup(): GroupIterator {
         let current = this.group;
 
@@ -1346,14 +1344,13 @@ export class GroupIterator {
         return undefined;
     }
 
-
     isGroupBefore(it: GroupIterator): boolean {
         return this.group.order < it.group.order
     }
+    
     isGroupEqual(it: GroupIterator): boolean {
         return this.group.order == it.group.order
     }
-
 }
 
 export class ImageIterator extends GroupIterator {
@@ -1368,14 +1365,18 @@ export class ImageIterator extends GroupIterator {
         super(manager, groupId, options)
         this.imageIdx = imageIdx ?? 0
 
-        // TODO: verify why this is here
-        // if (this.group.children.length > 0 && this.group.subGroupType != GroupType.Sha1) {
-        //     const next = this.nextGroup()
-        //     if (next) {
-        //         this.groupId = next.groupId
-        //         this.group = next.group
-        //     }
-        // }
+        // Skip to first valid group with images to iterate
+        if (this.isValid && this.shouldSkipGroup(this.group)) {
+            const next = this.nextGroup()
+            if (next) {
+                this.groupId = next.groupId
+                Object.defineProperty(this, 'group', { value: next.group, writable: false })
+                this.imageIdx = 0
+            } else {
+                this.isValid = false
+            }
+        }
+        
         if (this.isValid) {
             this.images = this.getImages()
             this.image = this.images[0]
@@ -1383,11 +1384,23 @@ export class ImageIterator extends GroupIterator {
         }
     }
 
+    private shouldSkipGroup(group: Group): boolean {
+        // Don't skip if no children
+        if (group.children.length === 0) return false
+        
+        // Don't skip sha1 groups - they need to iterate their children as sha1 groups
+        if (group.subGroupType === GroupType.Sha1) return false
+        
+        // Skip groups that have non-sha1 children (property groups, etc.)
+        return true
+    }
+
     static fromGroupIterator(it: GroupIterator, options?: GroupIteratorOptions) {
-        if (it.group.images.length == 0) {
+        const imageIt = new ImageIterator(it['manager'], it.group.id, 0, options)
+        if (!imageIt.isValid) {
             return undefined
         }
-        return new ImageIterator(it['manager'], it.group.id, 0, options)
+        return imageIt
     }
 
     private getImages(): Instance[] {
@@ -1405,8 +1418,15 @@ export class ImageIterator extends GroupIterator {
         let next = super.nextGroup()
         while (next) {
             const group = next.group
-            if ((!group.view.closed || this.options.ignoreClosed) && (group.subGroupType == GroupType.Sha1 || group.children.length == 0)) {
-                const lastIndex = group.subGroupType == GroupType.Sha1 ? group.children.length - 1 : group.images.length - 1
+            
+            // Check if we should iterate this group's images
+            const shouldIterate = (!group.view.closed || this.options.ignoreClosed) 
+                && !this.shouldSkipGroup(group)
+            
+            if (shouldIterate) {
+                const lastIndex = group.subGroupType == GroupType.Sha1 
+                    ? group.children.length - 1 
+                    : group.images.length - 1
                 return new ImageIterator(this.manager, next.group.id, lastIndex, this.options)
             }
             next = next.nextGroup()
@@ -1420,13 +1440,14 @@ export class ImageIterator extends GroupIterator {
         while (prev) {
             const group = prev.group;
 
-            // Check conditions for selecting the previous group
-            if ((!group.view.closed || this.options.ignoreClosed) && (group.type == GroupType.Sha1 || group.children.length == 0)) {
-                // If conditions are met, return an ImageIterator for the previous group
+            // Check if we should iterate this group's images
+            const shouldIterate = (!group.view.closed || this.options.ignoreClosed)
+                && !this.shouldSkipGroup(group)
+
+            if (shouldIterate) {
                 return new ImageIterator(this.manager, prev.group.id, 0, this.options);
             }
 
-            // Move to the previous group and continue the loop
             prev = prev.prevGroup();
         }
 
@@ -1484,7 +1505,6 @@ export class ImageIterator extends GroupIterator {
         return undefined;
     }
 
-
     isImageBefore(it: ImageIterator) {
         if (this.isGroupEqual(it)) {
             return this.imageIdx < it.imageIdx
@@ -1503,5 +1523,4 @@ export class ImageIterator extends GroupIterator {
     getImageOrder() {
         return this.manager.result.imageIteratorOrder[this.groupId]?.[this.imageIdx]
     }
-
 }
