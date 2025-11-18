@@ -239,9 +239,15 @@ class Panoptic:
         self.save_data()
         return self.data.ignored_plugins
 
-    async def close(self):
+    def close(self):
+        asyncio.run(self._close())
+
+    async def _close(self):
         for project in self.open_projects.values():
             await project.close()
+
+        await self.db.close()
+
 
     async def get_state(self):
         project_states = []

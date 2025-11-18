@@ -25,7 +25,7 @@ def start_api(install=False):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
-        await panoptic.close()
+        await panoptic._close()
 
     panoptic = Panoptic()
     panoptic.start()
