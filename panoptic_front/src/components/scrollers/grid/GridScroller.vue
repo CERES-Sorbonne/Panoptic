@@ -75,11 +75,12 @@ function computeLines() {
     // lines.push({ id: '__filler__', type: 'fillter', size: 0, index: lines.length })
     while (current) {
         const group = current.group
-        if (lastGroupId != group.id && group.id != 0) {
+        if (lastGroupId != group.id && group.id !== 0) {
             lines.push(computeGroupLine(group))
             lastGroupId = group.id
         }
         if (!group.view.closed && group.images.length) {
+            // console.log(group)
             const images = current.images
             if (group.subGroupType != GroupType.Sha1) {
                 lines.push(computeImageLine(current, group.id, current.imageIdx))
@@ -94,6 +95,7 @@ function computeLines() {
 
     dataLines = lines
     setLines(lines, oldScroll)
+    console.log(lines[0])
     scroller.value.updateVisibleItems(true)
     console.timeEnd('Table compute lines')
 }
