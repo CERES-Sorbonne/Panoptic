@@ -48,7 +48,7 @@ if ! uv pip show panoptic &> /dev/null; then
     fi
     
     # echo "Installation du plugin de similarité panopticml"
-    # uv run panoptic plugins add vision
+    uv run panoptic plugins add vision
 fi
 
 # Vérifier si panoptic est obsolète
