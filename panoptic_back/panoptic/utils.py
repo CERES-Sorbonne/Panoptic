@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pathlib
+import shutil
 import sys
 import time
 from dataclasses import is_dataclass, asdict
@@ -8,6 +9,7 @@ from enum import Enum
 from queue import Queue
 from typing import List, Any, Callable, Awaitable, Dict, TypeVar, Tuple, Generic
 
+from fastapi import UploadFile
 from orjson import orjson
 from pydantic import BaseModel
 
@@ -357,6 +359,7 @@ def serialize_payload(payload: Any) -> Any:
         return payload.model_dump(mode='json')
 
     elif is_dataclass(payload):
+        print(payload)
         return orjson.loads(orjson.dumps(asdict(payload)))
 
     elif isinstance(payload, list):
@@ -468,3 +471,9 @@ def convert_old_panoptic_json(data):
                 data['plugins'][i] = p
     return data, save
 
+
+async def save_upload_file(upload_file: UploadFile, destination: pathlib.Path) -> pathlib.Path:
+    """Save an UploadFile to a destination path."""
+    with destination.open("wb") as buffer:
+        shutil.copyfileobj(upload_file.file, buffer) # type: ignore
+    return destination
