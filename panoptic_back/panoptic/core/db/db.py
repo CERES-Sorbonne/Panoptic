@@ -83,7 +83,7 @@ class Db:
     # =====================================================
 
     async def import_properties(self, properties: list[Property]) -> list[Property]:
-        fake_ids = [i for i in properties if i.id < 0]
+        fake_ids = [p for p in properties if p.id < 0]
         if fake_ids:
             real_ids = await self.get_new_property_ids(len(fake_ids))
             for prop, id_ in zip(fake_ids, real_ids):

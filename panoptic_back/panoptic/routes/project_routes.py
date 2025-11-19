@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from dataclasses import asdict, is_dataclass
+from pathlib import Path
 from time import time
 from typing import Optional
 
@@ -18,6 +19,7 @@ from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
 from panoptic.models.results import LoadResult
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 from panoptic.routes.panoptic_routes import get_panoptic, get_server
+from panoptic.utils import save_upload_file
 
 project_router = APIRouter(
     prefix="/projects/{project_id}",
@@ -112,20 +114,21 @@ async def get_properties_route(project: Project = Depends(get_project_from_id)) 
 
 @project_router.post('/import/upload')
 async def upload_file_route(file: UploadFile, project: Project = Depends(get_project_from_id)):
-    res = await project.importer.upload_csv(file.file)
+    csv_path = Path(project.base_path) / file.filename
+    await save_upload_file(file, csv_path)
+    res = await project.importer.parse_headers(csv_path)
     return res
 
 
 @project_router.post('/import/parse')
 async def import_parse_file_route(req: ImportPayload, project: Project = Depends(get_project_from_id)):
-    missing = await project.importer.parse_file(req.exclude, properties=req.properties, relative=req.relative,
-                                                fusion=req.fusion)
+    missing = await project.importer.determine_mapping_stats(relative=req.relative, fusion=req.fusion)
     return missing
 
 
 @project_router.post('/import/confirm')
 async def import_confirm_route(project: Project = Depends(get_project_from_id)):
-    res = await project.importer.confirm_import()
+    res = await project.importer.parse_data()
     return ORJSONResponse(res)
 
 
