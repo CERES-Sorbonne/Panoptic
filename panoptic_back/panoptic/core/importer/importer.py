@@ -12,7 +12,7 @@ from panoptic.utils import RelativePathTrie
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, PropertyMode, Tag, Property, Instance, InstanceProperty, \
-    ImageProperty, DbCommit, UploadError, UploadConfirm, PropertyGroup
+    ImageProperty, DbCommit, UploadError, UploadConfirm, PropertyGroup, ImportVerify
 
 
 @dataclass
@@ -112,9 +112,9 @@ class Importer:
         self._row_to_ids: list[list[int]] = []
         self.file_key: str | None = None
         self.col_to_prop: dict[int, Property] = {}
-        self._data: ImportData | None = None
+        self._new_instances: list[Instance] = []
         self.exclude = []
-        self.properties = []
+        self.properties = {}
 
     async def _read_csv(self, columns: list[str] | None = None,
                         stop_after_n_rows: int | None = None) -> pl.DataFrame | None:
@@ -136,6 +136,7 @@ class Importer:
         """
         Reads only the header to detect the key column and properties.
         """
+        self.clear()
         self.file_path = file_path
         errors: dict[int, UploadError] = {}
 
@@ -179,9 +180,10 @@ class Importer:
                     prop.id = db_prop.id
                     prop.mode = db_prop.mode
 
+        self.properties = self.col_to_prop
         return UploadConfirm(key=self.file_key, col_to_property=self.col_to_prop, errors=errors)
 
-    async def determine_mapping_stats(self, relative: bool = False, fusion: str = 'new') -> dict[str, int]:
+    async def verify_mapping(self, relative: bool = False, fusion: str = 'new') -> ImportVerify:
         """
         Determines the final instance mapping (including new instances via fusion),
         stores the finalized self._row_to_ids, and returns statistics on the outcome.
@@ -192,7 +194,6 @@ class Importer:
             raise ValueError("Headers must be parsed first with parse_headers.")
 
         # Initialize ImportData and new instance list
-        self._data = ImportData()
         new_instances: list[Instance] = []
 
         # 1. Read ONLY the key column data
@@ -273,7 +274,7 @@ class Importer:
                 self._row_to_ids.append([current_mapping[i][0]] if current_mapping[i] else [])
 
         # Save new instances to data object
-        self._data.instances = new_instances
+        self._new_instances = new_instances
 
         # 4. Find Missing rows
         missing_rows = []
@@ -281,71 +282,166 @@ class Importer:
             if not self._row_to_ids[i]:
                 missing_rows.append(i)
 
-        print(self._row_to_ids)
-        print(missing_rows)
+        return ImportVerify(missing_rows=missing_rows, new_instances_count=len(new_instances))
 
 
-        return {
-            "missing_rows": missing_rows,
-            "new_instances": len(new_instances)
-        }
-
-    async def parse_data(self, exclude: list[int] | None = None, properties: dict[int, Property] | None = None):
+    async def import_data_and_commit(self, exclude: list[int] | None = None,
+                                     properties: dict[int, Property] | None = None):
         """
-        Reads ONLY the necessary data columns from the CSV and builds the ImportData object.
+        Executes the import process in sequential database commits.
+
+        Optimized approach:
+        1. Single-pass loop over data columns (load & clear).
+        2. Creates Tags "just-in-time".
+        3. Unified Batching: Sends new Tags AND Values in the same commit.
+           The backend resolves the temporary negative IDs within the commit.
+        4. Updates local cache with permanent Tag IDs after every batch.
         """
         if self._row_to_ids is None or not self.col_to_prop or not self.columns:
-            raise ValueError("Headers and Rows must be parsed first with parse_headers and parse_rows.")
+            raise ValueError("Mapping must be determined first.")
 
-        data = self._data
+        if not properties:
+            properties = self.properties
+
+        # Configuration
+        BATCH_SIZE = 25_000
         exclude = set(exclude) if exclude else set()
 
-        # Determine which columns need to be read from the file
+        # Mappings (Temp ID -> Permanent ID)
+        temp_prop_id_map: dict[int, int] = {}
+        temp_instance_id_map: dict[int, int] = {}
+
+        # executed_commits: list[DbCommit] = []
+
+        # --- 1. PREPARE COLUMN MAPPING ---
+
         col_to_import_prop: dict[int, Property] = {}
-        cols_to_read: list[str] = []  # List of column names to pass to pl.read_csv()
+        cols_to_read: list[str] = []
 
         for i, prop in self.col_to_prop.items():
             if i not in exclude:
-                # Use the property from overrides, or the one parsed from the header
                 final_prop = properties.get(i, prop)
                 col_to_import_prop[i] = final_prop
-                cols_to_read.append(self.columns[i])  # The index i corresponds to the column index in self.columns
+                cols_to_read.append(self.columns[i])
 
-        # Read ONLY the required data columns (and the key column if needed for indexing, though not needed here)
         if not cols_to_read:
-            return  # Nothing to import
+            return
 
-        # We must read columns by name, NOT by index, as Polars is expecting names.
-        df_data = await self._read_csv(columns=cols_to_read)
-        if df_data is None:
-            raise IOError("Could not read data columns from CSV file.")
+        # --- 2. COMMIT NEW PROPERTIES ---
 
-        # Add new properties to the data object
-        data.properties.extend([p for p in col_to_import_prop.values() if p.id < 0])
+        new_properties = [p for p in col_to_import_prop.values() if p.id < 0]
+        if new_properties:
+            old_prop_ids = [p.id for p in new_properties]
+            prop_commit = DbCommit(properties=new_properties)
 
-        to_import: list[ImportValues] = []
+            group = PropertyGroup(id=-1, name='Imported Data')
+            prop_commit.property_groups = [group]
+            for prop in new_properties:
+                prop.property_group_id = group.id
 
-        # Iterate over columns to import (using the names from the read DataFrame)
+            await self.project.db.apply_commit(prop_commit)
+            # executed_commits.append(prop_commit)
+
+            new_prop_ids = [p.id for p in prop_commit.properties]
+            temp_prop_id_map = {old_id: new_id for old_id, new_id in zip(old_prop_ids, new_prop_ids)}
+
+        # Update working properties with permanent IDs
+        for prop in col_to_import_prop.values():
+            if prop.id in temp_prop_id_map:
+                prop.id = temp_prop_id_map[prop.id]
+
+        # --- 3. COMMIT NEW INSTANCES ---
+
+        if self._new_instances:
+            old_instance_ids = [i.id for i in self._new_instances]
+            instance_commit = DbCommit(instances=self._new_instances)
+            await self.project.db.apply_commit(instance_commit)
+            # executed_commits.append(instance_commit)
+
+            new_instance_ids = [i.id for i in instance_commit.instances]
+            temp_instance_id_map = {old_id: new_id for old_id, new_id in zip(old_instance_ids, new_instance_ids)}
+
+        # --- 4. MAIN DATA IMPORT LOOP ---
+
+        # State containers for the loop
+        pending_tags: list[Tag] = []
+        # Map to ensure we don't create the same temp tag twice inside one batch
+        pending_tag_map: dict[tuple[int, str], int] = {}  # (prop_id, name) -> temp_id
+
+        pending_instance_values: list[InstanceProperty] = []
+        pending_image_values: list[ImageProperty] = []
+
+        # Cache existing DB tags (Permanent IDs)
+        # Structure: { prop_id: { tag_name: tag_id } }
+        tag_lookup_cache: dict[int, dict[str, int]] = {}
+
+        # Pre-fill cache for existing properties
+        for prop in col_to_import_prop.values():
+            if prop.type in {PropertyType.tag, PropertyType.multi_tags} and prop.id > 0:
+                db_tags = await self.project.db.get_tags(prop.id)
+                tag_lookup_cache[prop.id] = {t.value: t.id for t in db_tags}
+
+        # Helper: SHA1 Map
+        all_instances_sha1_map: dict[int, str] = {}
+        if any(p.mode != PropertyMode.id for p in col_to_import_prop.values()):
+            all_db_instances = await self.project.db.get_instances()
+            all_instances_sha1_map = {i.id: i.sha1 for i in all_db_instances}
+
+        # --- INTERNAL FLUSH FUNCTION ---
+        async def flush_batch():
+            """
+            Sends Tags and Values in a single commit.
+            Updates the tag_lookup_cache with the newly created permanent IDs.
+            """
+            nonlocal pending_tags, pending_instance_values, pending_image_values
+
+            if not (pending_tags or pending_instance_values or pending_image_values):
+                return
+
+            # 1. Create Unified Commit
+            # Backend automatically maps negative tag IDs in 'values' to the new tags in 'tags'
+            commit = DbCommit(
+                tags=list(pending_tags),
+                instance_values=list(pending_instance_values),
+                image_values=list(pending_image_values)
+            )
+
+            # 2. Apply Commit
+            await self.project.db.apply_commit(commit)
+            # executed_commits.append(commit)
+
+            # 3. Post-Commit: Update Cache with Real IDs
+            # We must iterate the committed tags to get their new permanent IDs
+            # so future batches (and iterations) use the real ID.
+            if commit.tags:
+                # commit.tags contains the updated objects with positive IDs
+                for tag_obj in commit.tags:
+                    if tag_obj.property_id not in tag_lookup_cache:
+                        tag_lookup_cache[tag_obj.property_id] = {}
+
+                    # Map Name -> New Permanent ID
+                    tag_lookup_cache[tag_obj.property_id][tag_obj.value] = tag_obj.id
+
+            # 4. Clear buffers
+            pending_tags.clear()
+            pending_tag_map.clear()
+            pending_instance_values.clear()
+            pending_image_values.clear()
+
+        # --- ITERATE COLUMNS ---
         for col_name in cols_to_read:
-            # Find the original index 'i' (1-based) for this column name
-            try:
-                col_i = self.columns.index(col_name)
-            except ValueError:
-                continue  # Should not happen if logic is correct
-
+            col_i = self.columns.index(col_name)
             prop = col_to_import_prop[col_i]
+            is_tag_prop = prop.type in {PropertyType.tag, PropertyType.multi_tags}
 
-            ids: list[int] = []
-            values: list[Any] = []
-            csv_values = df_data[col_name].to_list()
+            # Load ONE column
+            df_col = await self._read_csv(columns=[col_name])
+            if df_col is None:
+                continue
 
-            tag_map: dict[str, Tag] = {}
-            if prop.type in {PropertyType.tag, PropertyType.multi_tags}:
-                if prop.id > 0:
-                    db_tags = await self.project.db.get_tags(prop.id)
-                    tag_map = {t.value: t for t in db_tags}
+            csv_values = df_col[col_name].to_list()
 
-            # Iterate over rows
+            # Iterate Rows
             for row_i, value in enumerate(csv_values):
                 instance_ids_for_row = self._row_to_ids[row_i]
                 if not instance_ids_for_row:
@@ -355,69 +451,75 @@ class Importer:
                 if parsed_value is None:
                     continue
 
-                if tag_map is not None:
+                final_value = parsed_value
+
+                # --- TAG HANDLING ---
+                if is_tag_prop:
                     if not parsed_value:
                         continue
 
-                    parsed_value = [v.strip() for v in parsed_value]
-                    for tag_name in parsed_value:
-                        tag_name = tag_name.strip()
-                        if tag_name not in tag_map:
-                            new_tag = Tag(id=gen_tag_id(), property_id=prop.id, value=tag_name, parents=[],
-                                          color=randint(0, 11))
-                            tag_map[tag_name] = new_tag
-                            data.tags.append(new_tag)
+                    parsed_names = [v.strip() for v in parser[prop.type](value)]
+                    tag_ids = []
 
-                    parsed_value = [tag_map[tag_name].id for tag_name in parsed_value]
+                    for name in parsed_names:
+                        # 1. Check Permanent Cache (Already in DB or committed in prev batch)
+                        if prop.id in tag_lookup_cache and name in tag_lookup_cache[prop.id]:
+                            tag_ids.append(tag_lookup_cache[prop.id][name])
 
-                ids.extend(instance_ids_for_row)
-                values.extend([parsed_value for _ in instance_ids_for_row])
+                        # 2. Check Pending Queue (Created in this current batch)
+                        elif (prop.id, name) in pending_tag_map:
+                            tag_ids.append(pending_tag_map[(prop.id, name)])
 
-            to_import.append(ImportValues(property_id=prop.id, instance_ids=ids, values=values))
+                        # 3. Create New Tag (Assign Temp ID)
+                        else:
+                            new_temp_id = gen_tag_id()
+                            new_tag = Tag(
+                                id=new_temp_id,
+                                property_id=prop.id,
+                                value=name,
+                                parents=[],
+                                color=randint(0, 11)
+                            )
 
-        data.values = to_import
-        self._data = data
+                            pending_tags.append(new_tag)
+                            pending_tag_map[(prop.id, name)] = new_temp_id
+                            tag_ids.append(new_temp_id)
 
-    async def confirm_import(self) -> DbCommit:
-        """
-        Commits the parsed data to the database. (Identical to previous implementation)
-        """
-        if self._data is None:
-            raise ValueError("Data must be parsed first with parse_data.")
+                    final_value = tag_ids
 
-        data = self._data
-        instance_values: list[InstanceProperty] = []
-        image_values: list[ImageProperty] = []
+                # --- CREATE VALUE OBJECTS ---
 
-        properties = await self.project.db.get_properties()
-        property_index = {p.id: p for p in [*data.properties, *properties]}
-        instance_ids = {id_ for v in data.values for id_ in v.instance_ids}
-        instances = await self.project.db.get_instances(ids=list(instance_ids))
-        instance_index: dict[int, Instance] = {i.id: i for i in [*instances, *data.instances]}
+                # Map Instance IDs (Temp -> Perm)
+                final_instance_ids = [
+                    temp_instance_id_map.get(id_, id_) for id_ in instance_ids_for_row
+                ]
 
-        for import_values in data.values:
-            prop_mode = property_index[import_values.property_id].mode
-            for id_, value in zip(import_values.instance_ids, import_values.values):
-                if prop_mode == PropertyMode.id:
-                    instance_values.append(InstanceProperty(
-                        property_id=import_values.property_id, instance_id=id_, value=value
-                    ))
-                else:
-                    image_values.append(ImageProperty(
-                        property_id=import_values.property_id, sha1=instance_index[id_].sha1, value=value
-                    ))
+                for instance_id in final_instance_ids:
+                    if prop.mode == PropertyMode.id:
+                        pending_instance_values.append(InstanceProperty(
+                            property_id=prop.id, instance_id=instance_id, value=final_value
+                        ))
+                    else:
+                        instance_sha1 = all_instances_sha1_map.get(instance_id)
+                        if instance_sha1:
+                            pending_image_values.append(ImageProperty(
+                                property_id=prop.id, sha1=instance_sha1, value=final_value
+                            ))
 
-        group = PropertyGroup(id=-1, name='Imported')
-        for prop in data.properties:
-            prop.property_group_id = group.id
+                # --- BATCH CHECK ---
+                if len(pending_instance_values) + len(pending_image_values) >= BATCH_SIZE:
+                    await flush_batch()
 
-        commit = DbCommit()
-        commit.property_groups = [group]
-        commit.instances = data.instances
-        commit.properties = data.properties
-        commit.tags = data.tags
-        commit.instance_values = instance_values
-        commit.image_values = image_values
+            # Clear memory immediately
+            del df_col
 
-        await self.project.db.apply_commit(commit)
-        return commit
+        # Final Flush
+        await flush_batch()
+        self.clear()
+
+    def clear(self):
+        self._new_instances = []
+        self._row_to_ids = None
+        self.col_to_prop = {}
+        self.columns = []
+        self.properties = []
