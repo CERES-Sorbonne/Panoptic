@@ -689,6 +689,11 @@ export interface UploadConfirm {
     errors: { [key: number]: UploadError }
 }
 
+export interface ImportVerify {
+    missingRows: number[]
+    newInstancesCount: number[]
+}
+
 export enum UIDataKeys {
     STATE = 'uiState',
     PROPERTY_ORDER = 'propertyOrder'

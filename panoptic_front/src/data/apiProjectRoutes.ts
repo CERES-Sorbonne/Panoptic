@@ -25,7 +25,8 @@ import {
     PluginAddPayload,
     ApiRequestDescription,
     Notif,
-    NotifType
+    NotifType,
+    ImportVerify
 } from './models'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -157,11 +158,11 @@ export async function apiUploadPropertyCsv(file) {
 
 export async function apiParseImport(options) {
     const res = await projectApi.post('/import/parse', options)
-    return keysToCamel(res.data)
+    return keysToCamel(res.data) as ImportVerify
 }
 
-export async function apiConfirmImport() {
-    const res = await projectApi.post('/import/confirm')
+export async function apiConfirmImport(params) {
+    const res = await projectApi.post('/import/confirm', params)
     return keysToCamel(res.data) as DbCommit
 }
 

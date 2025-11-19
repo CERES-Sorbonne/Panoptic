@@ -474,6 +474,10 @@ class UploadConfirm:
     col_to_property: dict[int, Property]
     errors: dict[int, UploadError]
 
+@dataclass
+class ImportVerify:
+    missing_rows: list[int]
+    new_instances_count: int
 
 @dataclass
 class DeleteFolderConfirm:

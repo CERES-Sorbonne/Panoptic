@@ -112,9 +112,10 @@ async def test_import_images(empty_project: Project, image_dir: str):
 
 
 async def test_import_data_mode_instance(instance_project: Project, import_csv: str):
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
+
 
     db = instance_project.db
     instances = await db.get_instances()
@@ -198,26 +199,30 @@ async def test_import_data_mode_instance(instance_project: Project, import_csv: 
 
 
 async def test_import_data_mode_instance_twice(instance_project: Project, import_csv: str):
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    # First Import
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
 
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    # Second Import
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
 
     instances = await instance_project.db.get_instances()
     assert len(instances) == 20
 
 
 async def test_delete_empty_clones(instance_project: Project, import_csv: str):
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    # First Import
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
 
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    # Second Import
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
 
     instances = await instance_project.db.get_instances()
     assert len(instances) == 20
@@ -249,9 +254,10 @@ async def test_import_data_mode_image(instance_project: Project, import_csv):
         8: Property(id=-8, name="checkbox", type=PropertyType.checkbox, mode=PropertyMode.sha1)
     }
 
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new', properties=prop_definitions)
-    await instance_project.importer.confirm_import()
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    # Pass property definitions to the commit function now
+    await instance_project.importer.import_data_and_commit(properties=prop_definitions)
 
     db = instance_project.db
     instances = await db.get_instances()
@@ -347,9 +353,9 @@ async def test_import_data_mode_mix(instance_project: Project, import_csv):
         CHECKBOX_ID: Property(id=-CHECKBOX_ID, name="checkbox", type=PropertyType.checkbox, mode=PropertyMode.id)
     }
 
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new', properties=prop_definitions)
-    await instance_project.importer.confirm_import()
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit(properties=prop_definitions)
 
     db = instance_project.db
     instances = await db.get_instances()
@@ -369,9 +375,9 @@ async def test_import_data_mode_mix(instance_project: Project, import_csv):
 
 
 async def test_import_export_equal(instance_project: Project, import_csv: str, tmp_path: Path):
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
 
     res_dir = await instance_project.exporter.export_data(str(tmp_path), "tmp", None, [1, 2, 3, 4, 5, 6, 7, 8],
                                                           False, key='local_path')
@@ -386,9 +392,9 @@ async def test_import_export_equal(instance_project: Project, import_csv: str, t
 
 
 async def test_import_export_equal_with_empty(instance_project: Project, import_with_empty_csv: str, tmp_path: Path):
-    await instance_project.importer.upload_csv(import_with_empty_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new')
-    await instance_project.importer.confirm_import()
+    await instance_project.importer.parse_headers(import_with_empty_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit()
 
     res_dir = await instance_project.exporter.export_data(str(tmp_path), "tmp", None, [1, 2, 3, 4, 5, 6, 7, 8],
                                                           False, key='local_path')
@@ -403,10 +409,11 @@ async def test_import_export_equal_with_empty(instance_project: Project, import_
 
 
 async def test_import_missing_detection(instance_project: Project, import_with_missing_csv: str, tmp_path: Path):
-    await instance_project.importer.upload_csv(import_with_missing_csv)
-    missing = await instance_project.importer.parse_file(relative=True, fusion='new')
+    await instance_project.importer.parse_headers(import_with_missing_csv)
+    # verify_mapping returns the missing entries
+    res = await instance_project.importer.verify_mapping(relative=True, fusion='new')
 
-    assert len(missing) == 2
+    assert len(res.missing_rows) == 2
 
 
 async def test_import_export_equal_mode_image(instance_project: Project, import_csv: str, tmp_path: Path):
@@ -420,9 +427,10 @@ async def test_import_export_equal_mode_image(instance_project: Project, import_
         7: Property(id=-7, name="url", type=PropertyType.url, mode=PropertyMode.sha1),
         8: Property(id=-8, name="checkbox", type=PropertyType.checkbox, mode=PropertyMode.sha1)
     }
-    await instance_project.importer.upload_csv(import_csv)
-    await instance_project.importer.parse_file(relative=True, fusion='new', properties=prop_definitions)
-    await instance_project.importer.confirm_import()
+
+    await instance_project.importer.parse_headers(import_csv)
+    await instance_project.importer.verify_mapping(relative=True, fusion='new')
+    await instance_project.importer.import_data_and_commit(properties=prop_definitions)
 
     res_dir = await instance_project.exporter.export_data(str(tmp_path), "tmp", None, [1, 2, 3, 4, 5, 6, 7, 8],
                                                           False, key='local_path')
@@ -433,7 +441,6 @@ async def test_import_export_equal_mode_image(instance_project: Project, import_
     with open(res_csv) as f:
         export_data = f.read()
     assert import_data == export_data
-
 
 async def test_update_tag_value(data_project: Project):
     prop_id = TAG_ID

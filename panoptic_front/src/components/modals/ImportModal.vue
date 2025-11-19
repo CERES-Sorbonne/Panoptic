@@ -39,9 +39,7 @@ const uploadHasKeyError = computed(() => {
     return false
 })
 
-async function importFile() {
-    // console.log(importOptions.value)
-    loading.value = true
+const params = computed(() => {
     const properties = uploadConfirm.value.colToProperty
     const exclude = Object.keys(properties).filter(i => !take.value[i]).map(Number)
     const params = {
@@ -50,7 +48,16 @@ async function importFile() {
         exclude: exclude,
         relative: relative.value
     }
-    missing.value = await apiParseImport(params)
+    return params
+})
+
+async function importFile() {
+    // console.log(importOptions.value)
+    loading.value = true
+    const properties = uploadConfirm.value.colToProperty
+    const exclude = Object.keys(properties).filter(i => !take.value[i]).map(Number)
+    const res = await apiParseImport(params.value)
+    missing.value = res.missingRows
     loading.value = false
     if (!missing.value.length) {
         confirmImport()
@@ -69,8 +76,7 @@ async function reParse() {
 
 async function confirmImport() {
     loading.value = true
-    const res = await apiConfirmImport()
-    data.applyCommit(res)
+    await apiConfirmImport(params.value)
     loading.value = false
     clear()
     panoptic.hideModal(ModalId.IMPORT)
@@ -198,7 +204,7 @@ watch(relative, () => proposeReparse.value = true)
                     </div>
                 </div>
 
-                <div v-if="missing">
+                <div v-if="missing?.length">
                     <div class="text-warning mb-2">
                         {{ missing.length }} {{ $t('modals.import.not_found') }}
                     </div>
@@ -206,13 +212,9 @@ watch(relative, () => proposeReparse.value = true)
                         <div v-if="!loading" style="width: 300px;" class="bbb text-center" @click="confirmImport">{{
                             $t('confirm') }}
                         </div>
-                        <div v-if="!loading && proposeReparse" style="width: 300px;" class="bbb text-center ms-4" @click="reParse">{{
-                            $t('modals.import.reparse') }}
-                        </div>
-                    </div>
-                    <div v-if="loading" class="text-center w-100 border rounded">
-                        <div class="spinner-border spinner-border-sm" style="position: relative; top: -1px"
-                            role="status">
+                        <div v-if="!loading && proposeReparse" style="width: 300px;" class="bbb text-center ms-4"
+                            @click="reParse">{{
+                                $t('modals.import.reparse') }}
                         </div>
                     </div>
 
@@ -222,6 +224,11 @@ watch(relative, () => proposeReparse.value = true)
                             {{ $t('modals.import.row') }}: {{ lines[0] + 1 }} {{ $t('modals.import.key') }}: {{ lines[1]
                             }}
                         </div>
+                    </div>
+                </div>
+
+                <div v-if="loading" class="text-center w-100 border rounded">
+                    <div class="spinner-border spinner-border-sm" style="position: relative; top: -1px" role="status">
                     </div>
                 </div>
 

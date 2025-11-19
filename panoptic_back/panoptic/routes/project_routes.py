@@ -122,14 +122,13 @@ async def upload_file_route(file: UploadFile, project: Project = Depends(get_pro
 
 @project_router.post('/import/parse')
 async def import_parse_file_route(req: ImportPayload, project: Project = Depends(get_project_from_id)):
-    missing = await project.importer.determine_mapping_stats(relative=req.relative, fusion=req.fusion)
-    return missing
+    res = await project.importer.verify_mapping(relative=req.relative, fusion=req.fusion)
+    return res
 
 
 @project_router.post('/import/confirm')
-async def import_confirm_route(project: Project = Depends(get_project_from_id)):
-    res = await project.importer.parse_data()
-    return ORJSONResponse(res)
+async def import_confirm_route(req: ImportPayload, project: Project = Depends(get_project_from_id)):
+    await project.importer.import_data_and_commit(exclude=req.exclude, properties=req.properties)
 
 
 @project_router.post('/export')

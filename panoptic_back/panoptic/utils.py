@@ -359,7 +359,6 @@ def serialize_payload(payload: Any) -> Any:
         return payload.model_dump(mode='json')
 
     elif is_dataclass(payload):
-        print(payload)
         return orjson.loads(orjson.dumps(asdict(payload)))
 
     elif isinstance(payload, list):
