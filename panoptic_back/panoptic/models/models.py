@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 from dataclasses import field, dataclass
 from datetime import datetime
 from enum import Enum
@@ -83,7 +82,7 @@ class PropertyMode(Enum):
     sha1 = 'sha1'
 
 
-@dataclass
+@dataclass(slots=True)
 class Property:
     id: int
     name: str
@@ -93,13 +92,13 @@ class Property:
     computed: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class PropertyGroup:
     id: int
     name: str
 
 
-@dataclass
+@dataclass(slots=True)
 class LoadState:
     finished_property: bool = False
     finished_instance: bool = False
@@ -132,29 +131,29 @@ class PropertyUpdate(BaseModel):
     name: str
 
 
-@dataclass
+@dataclass(slots=True)
 class InstancePropertyKey:
     property_id: int
     instance_id: int
 
 
-@dataclass
+@dataclass(slots=True)
 class ImagePropertyKey:
     property_id: int
     sha1: str
 
 
-@dataclass
+@dataclass(slots=True)
 class InstanceProperty(InstancePropertyKey):
     value: Any | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class ImageProperty(ImagePropertyKey):
     value: Any | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class Tag:
     id: int
     property_id: int
@@ -173,7 +172,7 @@ class TagUpdate(CamelModel):
     color: int | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class Instance:
     # Should be equal order to SQL
     id: int
@@ -190,39 +189,39 @@ class Instance:
     properties: dict[int, InstanceProperty] = field(default_factory=dict)
 
 
-# @dataclass
+# @dataclass(slots=True)
 # class Image:
 #     sha1: str
 #     path: str
 #     properties: dict[int, PropertyValue] = field(default_factory=dict)
 
 
-@dataclass
+@dataclass(slots=True)
 class ImageImportTask:
     image_path: str
     folder_id: int
 
 
-@dataclasses.dataclass
+@dataclass(slots=True)
 class ComputedValue:
     sha1: str
     ahash: str
     vector: numpy.ndarray
 
 
-@dataclass
+@dataclass(slots=True)
 class VectorType:
     id: int
     source: str
     params: Any
 
 
-@dataclass
+@dataclass(slots=True)
 class OwnVectorType(VectorType):
     pass
 
 
-@dataclasses.dataclass
+@dataclass(slots=True)
 class Vector:
     type_id: int
     sha1: str
@@ -240,7 +239,7 @@ class VectorDescription(CamelModel):
         self.id = f"{self.source}:{self.type}"
 
 
-# @dataclass
+# @dataclass(slots=True)
 # class VectorPack:
 #     id: str
 #     source: str
@@ -307,7 +306,7 @@ class StatusUpdate(CamelModel):
     update: UpdateCounter = UpdateCounter()
 
 
-@dataclass
+@dataclass(slots=True)
 class Update:
     commits: list[DbCommit] = None
     plugins: list[PluginDescription] = None
@@ -324,13 +323,13 @@ class TaskState(BaseModel):
     done: bool = True
 
 
-@dataclass
+@dataclass(slots=True)
 class Clusters:
     clusters: list[list[str]]
     distances: list[int]
 
 
-@dataclass
+@dataclass(slots=True)
 class ActionContext:
     instance_ids: List[int] | None = None
     # property_ids: List[int] | None = None
@@ -408,7 +407,7 @@ class ColumnOption(BaseModel):
     mode: PropertyMode | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class DbCommit:
     empty_instances: list[int] = field(default_factory=list)
     empty_property_groups: list[int] = field(default_factory=list)
@@ -431,14 +430,14 @@ class DbCommit:
     history: CommitHistory | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class CommitStat:
     timestamp: datetime
     tags: int = 0
     values: int = 0
 
 
-@dataclass
+@dataclass(slots=True)
 class CommitHistory:
     undo: list[CommitStat] = field(default_factory=list)
     redo: list[CommitStat] = field(default_factory=list)
@@ -468,31 +467,31 @@ class UploadError(Enum):
     missing_bracket = "Missing bracket: A column that is not a key should always be in the form name[type]"
 
 
-@dataclass
+@dataclass(slots=True)
 class UploadConfirm:
     key: str
     col_to_property: dict[int, Property]
     errors: dict[int, UploadError]
 
-@dataclass
+@dataclass(slots=True)
 class ImportVerify:
     missing_rows: list[int]
     new_instances_count: int
 
-@dataclass
+@dataclass(slots=True)
 class DeleteFolderConfirm:
     deleted_folders: list[int]
     deleted_instances: list[int]
     deleted_sha1s: list[str]
 
 
-@dataclass
+@dataclass(slots=True)
 class VectorStats:
     count: dict[int, int]
     sha1_count: int
 
 
-@dataclass
+@dataclass(slots=True)
 class DbUpdate:
     type_: UpdateType
     data: Any
@@ -546,7 +545,7 @@ class ProjectIdPayload(BaseModel):
     project_id: int
 
 
-@dataclass
+@dataclass(slots=True)
 class SyncData:
     key: str
     project_id: int

@@ -47,7 +47,7 @@ function onResize() {
 
 function onHover() {
     preview.value = {}
-    if(Object.keys(groupManager.selectedImages.value).length) {
+    if (Object.keys(groupManager.selectedImages.value).length) {
         Object.keys(groupManager.selectedImages.value).forEach(i => preview.value[i] = true)
     } else {
         groupManager.result.root.images.forEach(i => preview.value[i.id] = true)
@@ -62,7 +62,7 @@ function paint(propRef: { propertyId: number, instanceId: number }) {
     if (viewMode.value != 0) return
     const property = data.properties[propRef.propertyId]
     const value = data.instances[propRef.instanceId].properties[property.id]
-    if(value === undefined) return
+    if (value === undefined) return
 
     let images = groupManager.result.root.images
     if (Object.keys(groupManager.selectedImages.value).length) {
@@ -130,7 +130,11 @@ function rollback(index) {
 
 watch(showHistory, () => nextTick(onResize))
 watch(colElem, onResize)
-watch(() => modal.layerOpen[ModalId.IMAGE], onModalDataChange)
+watch(() => modal.getData(ModalId.IMAGE), (data) => {
+    if (iterator.value) {
+        onModalDataChange(data)
+    }
+})
 watch(() => keyState.left, (state) => {
     if (!active.value) return
     if (state && !showHistory.value) {
@@ -148,16 +152,17 @@ watch(() => keyState.right, (state) => {
 <template>
     <Modal2 :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
         <template #title><b>ID: {{ image.id }}</b> | {{ image.width }} x {{ image.height }} | {{ image.name
-            }}</template>
+        }}</template>
         <template #content="{ data }">
             <div class="h-100" v-if="image">
                 <div class="d-flex h-100">
                     <ImagePropertyCol :image="iterator" :width="500" :image-height="200" :groupManager="groupManager"
-                        :visible-properties="visibleProperties" @paint="paint"  @hover="onHover" @hoverEnd="onHoverEnd"/>
+                        :visible-properties="visibleProperties" @paint="paint" @hover="onHover"
+                        @hoverEnd="onHoverEnd" />
                     <div class="flex-grow-1 bg-white h-100 overflow-hidden" ref="colElem">
                         <MiddleCol :group-manager="groupManager" :height="colHeight" :width="colWidth" :image="image"
                             :mode="viewMode" :visible-properties="visibleProperties" @update:mode="e => viewMode = e"
-                            :preview="preview"/>
+                            :preview="preview" />
                     </div>
                     <div class="history text-center" v-if="navigationHistory.length > 0" ref="historyElem">
                         <b>{{ $t('modals.image.history') }}</b>
