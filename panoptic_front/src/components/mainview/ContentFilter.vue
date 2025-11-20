@@ -15,6 +15,8 @@ import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import { useInputStore } from '@/data/inputStore';
 import { keyState } from '@/data/keyState';
+import TextSearchInput from '../inputs/TextSearchInput.vue';
+import { TextQuery } from '@/data/models';
 
 const inputs = useInputStore()
 
@@ -25,8 +27,7 @@ const props = defineProps<{
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
-const localQuery = ref('')
-const textInput = ref<HTMLElement>()
+const localQuery = ref<TextQuery>()
 
 const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number))
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
@@ -38,16 +39,19 @@ function updateSha1Mode(event) {
 }
 
 function getLocalQuery() {
+    console.log('get local', props.tab.state.filterState.query)
     localQuery.value = props.tab.state.filterState.query
 }
 
-function setQuery() {
+function setQuery(query) {
+    localQuery.value = query
     props.tab.collection.filterManager.setQuery(localQuery.value)
     props.tab.collection.filterManager.update(true)
+    props.tab.saveState()
 }
 
 function deleteQuery() {
-    props.tab.collection.filterManager.setQuery('')
+    props.tab.collection.filterManager.setQuery({type: 'text', text: ''})
     props.tab.collection.filterManager.update(true)
 }
 
@@ -55,20 +59,22 @@ function deleteQuery() {
 onMounted(getLocalQuery)
 watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
-keyState.ctrlF.on(() => textInput.value.focus())
+// keyState.ctrlF.on(() => textInput.value.focus())
 
 </script>
 
 <template>
-    <div class="d-flex flex-row p-2">
-        <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
+    <div class="d-flex flex-row p-2 align-items-center">
+        <!-- <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
             <div class="d-flex flex-row search-input me-5" :class="localQuery ? 'border-primary' : ''">
                 <div class="bi bi-search float-start bi-sm"></div>
                 <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery"
                     @change="setQuery" ref="textInput"/>
                 <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
             </div>
-        </wTT>
+        </wTT> -->
+
+        <TextSearchInput class="me-1" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery"/>
 
         <div class="me-5 d-flex">
             <wTT message="main.menu.grid_tooltip">

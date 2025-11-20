@@ -5,9 +5,11 @@
  * Images are first filtered by folders then by properties
  */
 
+import { useActionStore } from "@/data/actionStore";
+import { apiCallActions } from "@/data/apiProjectRoutes";
 import { propertyDefault } from "@/data/builder";
 import { deletedID, useDataStore } from "@/data/dataStore";
-import { FolderIndex, Instance, PropertyIndex, PropertyType, TagIndex } from "@/data/models";
+import { ActionContext, ExecuteActionPayload, FolderIndex, Instance, PropertyIndex, PropertyType, TagIndex, TextQuery } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 
 import { EventEmitter, getTagChildren, isTag, objValues } from "@/utils/utils";
@@ -98,7 +100,7 @@ export interface CollectionState {
 export interface FilterState {
     folders: number[]
     filter: FilterGroup
-    query: string
+    query: TextQuery
 }
 
 export interface FilterResult {
@@ -251,7 +253,7 @@ export function createFilterState(): FilterState {
     const state = reactive({
         folders: [],
         filter: group,
-        query: ''
+        query: { type: 'text', text: '' }
     })
     return state
 }
@@ -338,10 +340,10 @@ function applyGroupFilter(group: FilterGroup, instances: Instance[], properties:
         } else {
             res = applyFilter(filter as Filter, test, properties, tags)
         }
-        for(let v of res.valid) {
+        for (let v of res.valid) {
             valid.push(v)
         }
-        for(let r of res.reject) {
+        for (let r of res.reject) {
             reject.push(r)
         }
 
@@ -406,7 +408,7 @@ export class FilterManager {
         console.time('Filter')
         images = images.filter(i => i.id != deletedID)
         this.lastImages = images
-        const res = this.filterInstances(images)
+        const res = await this.filterInstances(images)
         // this.result.images = filtered.filter(img => computeGroupFilter(img, this.state.filter, data.properties, data.tags))
         this.result.images = res.valid
         console.timeEnd('Filter')
@@ -430,50 +432,51 @@ export class FilterManager {
         const valid = []
         const deleted = ids.filter(id => data.instances[id].id == deletedID)
 
-        for(let instance of this.result.images) {
-            if(instanceIds.has(instance.id) || instance.id == deletedID) continue
+        for (let instance of this.result.images) {
+            if (instanceIds.has(instance.id) || instance.id == deletedID) continue
             valid.push(instance.id)
         }
-        const updated = this.filterInstances(instances)
-        for(let instance of updated.valid) {
+        const updated = await this.filterInstances(instances)
+        for (let instance of updated.valid) {
             valid.push(instance.id)
         }
         this.result.images = valid.map(id => data.instances[id])
         console.timeEnd('UpdateFilter')
 
-        const res = {updated: new Set(updated.valid.map(i => i.id)), removed: new Set(updated.reject.map(i => i.id))}
+        const res = { updated: new Set(updated.valid.map(i => i.id)), removed: new Set(updated.reject.map(i => i.id)) }
         deleted.forEach(id => res.removed.add(id))
         return res
     }
 
-    private filterInstances(instances: Instance[]) {
+    private async filterInstances(instances: Instance[]) {
         const data = useDataStore()
         let filtered = instances.filter(i => i.id != deletedID)
 
-        if (this.state.query) {
-            const query = this.state.query.toLocaleLowerCase()
-            const project = useProjectStore()
-            const props = objValues(data.properties)
-            const textProps = props.filter(p => fullTextTypes.has(p.type))
-            const tagProps = props.filter(p => isTag(p.type))
-            filtered = filtered.filter(img => {
-                for (let p of textProps) {
-                    if (img.properties[p.id] && img.properties[p.id] && img.properties[p.id].toLocaleLowerCase().includes(query)) {
-                        return true
-                    }
-                }
-                for (let p of tagProps) {
-                    const value = img.properties[p.id]
-                    if (!value) continue
-                    const tagNames = value.map(tId => data.tags[tId].value.toLocaleLowerCase())
-                    for (let name of tagNames) {
-                        if (name.includes(query)) {
-                            return true
-                        }
-                    }
-                }
-                return false
-            })
+        if (this.state.query?.text) {
+            // const query = this.state.query.toLocaleLowerCase()
+            // const project = useProjectStore()
+            // const props = objValues(data.properties)
+            // const textProps = props.filter(p => fullTextTypes.has(p.type))
+            // const tagProps = props.filter(p => isTag(p.type))
+            // filtered = filtered.filter(img => {
+            //     for (let p of textProps) {
+            //         if (img.properties[p.id] && img.properties[p.id] && img.properties[p.id].toLocaleLowerCase().includes(query)) {
+            //             return true
+            //         }
+            //     }
+            //     for (let p of tagProps) {
+            //         const value = img.properties[p.id]
+            //         if (!value) continue
+            //         const tagNames = value.map(tId => data.tags[tId].value.toLocaleLowerCase())
+            //         for (let name of tagNames) {
+            //             if (name.includes(query)) {
+            //                 return true
+            //             }
+            //         }
+            //     }
+            //     return false
+            // })
+            filtered = await filterQuery(instances, this.state.query)
         }
 
         if (this.state.folders.length > 0) {
@@ -488,7 +491,7 @@ export class FilterManager {
         this.state.folders = folderIds
     }
 
-    setQuery(query: string) {
+    setQuery(query: TextQuery) {
         this.state.query = query
     }
 
@@ -661,4 +664,113 @@ export class FilterManager {
         const group = filter as FilterGroup
         group.filters.forEach(g => this.recursiveRegister(g))
     }
+}
+
+async function filterQuery(instances: Instance[], query: TextQuery): Promise<Instance[]> {
+    console.log('filterQuery', query.text)
+    if (!query || !query.text) {
+        return instances
+    }
+
+    const data = useDataStore()
+    const actions = useActionStore()
+    const props = objValues(data.properties)
+    const textProps = props.filter(p => fullTextTypes.has(p.type))
+    const tagProps = props.filter(p => isTag(p.type))
+
+
+    if (query.type === 'text') {
+        return filterByText(instances, query.text, textProps, tagProps, data)
+    } else if (query.type === 'regex') {
+        return filterByRegex(instances, query.text, textProps, tagProps, data)
+    } else if (query.ctx) {
+        if(!actions.index[query.type]) {
+            return instances
+        }
+        return await filterByPlugin(instances, query.type, query.ctx)
+    }
+
+    return instances
+}
+
+function filterByText(
+    instances: Instance[],
+    queryText: string,
+    textProps: any[],
+    tagProps: any[],
+    data: any
+): Instance[] {
+    const query = queryText.toLocaleLowerCase()
+
+    return instances.filter(img => {
+        for (let p of textProps) {
+            if (img.properties[p.id] && img.properties[p.id].toLocaleLowerCase().includes(query)) {
+                return true
+            }
+        }
+        for (let p of tagProps) {
+            const value = img.properties[p.id]
+            if (!value) continue
+            const tagNames = value.map(tId => data.tags[tId].value.toLocaleLowerCase())
+            for (let name of tagNames) {
+                if (name.includes(query)) {
+                    return true
+                }
+            }
+        }
+        return false
+    })
+}
+
+function filterByRegex(
+    instances: Instance[],
+    queryText: string,
+    textProps: any[],
+    tagProps: any[],
+    data: any
+): Instance[] {
+    let regex: RegExp
+    try {
+        regex = new RegExp(queryText, 'i')
+    } catch (e) {
+        console.error('Invalid regex pattern:', e)
+        return instances
+    }
+
+    return instances.filter(img => {
+        for (let p of textProps) {
+            if (img.properties[p.id] && regex.test(img.properties[p.id])) {
+                return true
+            }
+        }
+        for (let p of tagProps) {
+            const value = img.properties[p.id]
+            if (!value) continue
+            const tagNames = value.map(tId => data.tags[tId].value)
+            for (let name of tagNames) {
+                if (regex.test(name)) {
+                    return true
+                }
+            }
+        }
+        return false
+    })
+}
+
+async function filterByPlugin(instances: Instance[], fnc: string, ctx: ActionContext): Promise<Instance[]> {
+    const instanceIds = instances.map(i => i.id)
+    ctx.instanceIds = instanceIds
+
+    const req: ExecuteActionPayload = {
+        function: fnc,
+        context: ctx
+    }
+    const result = await apiCallActions(req)
+
+    if (!result || !result.groups?.length) {
+        return instances
+    }
+
+    const filteredSet = new Set(result.groups[0].sha1s)
+    return instances.filter(i => filteredSet.has(i.sha1))
 }

@@ -54,9 +54,9 @@ onMounted(async() => {
     <Dropdown ref="dropdownElem" placement="top-start">
         <template #button>
             <div>
-                <div v-if="selectedFilterSet.length || props.manager.state.query" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
+                <div v-if="selectedFilterSet.length || props.manager.state.query?.text" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
                     style="cursor:pointer;">
-                    <div v-if="props.manager.state.query">
+                    <div v-if="props.manager.state.query?.text">
                         <span class="text-primary">Text Query</span>
                         <span v-if="selectedFilterSet.length" class="or-separator">|</span>
                     </div>
