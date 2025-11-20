@@ -3,6 +3,7 @@ import { reactive } from "vue";
 
 export const keyState = reactive({
     ctrl: false,
+    cmd: false,
     alt: false,
     shift: false,
     left: false,
