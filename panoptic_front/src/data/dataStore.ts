@@ -61,12 +61,13 @@ export const useDataStore = defineStore('dataStore', () => {
 
         const vecTypes = await apiGetVectorTypes()
         importVectorTypes(vecTypes)
-
+        console.log('start stream')
         apiStreamLoadState(async (v) => {
             applyCommit(v.chunk, true)
             loadState.value = v.state
 
             if (isFinished(v.state)) {
+                console.log('stop stream')
                 const tabStore = useTabStore()
                 await tabStore.init()
                 triggerRefs()

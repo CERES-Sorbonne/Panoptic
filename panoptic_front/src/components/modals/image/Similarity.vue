@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
 import { GroupScoreList, Instance, ScoreInterval } from '@/data/models';
-import { computed, onMounted, Reactive, reactive, ref, watch } from 'vue';
+import { computed, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
@@ -32,7 +32,7 @@ similarGroup.setSha1Mode(true)
 const useFilter = ref(true)
 const scrollerElem = ref(null)
 
-const searchResult = ref<Group>(null)
+const searchResult = shallowRef<Group>(null)
 const scoreInterval: Reactive<ScoreInterval> = reactive({
     min: 0,
     max: 100,
@@ -64,7 +64,8 @@ async function setSimilar() {
 
 function updateSimilarGroup() {
     if (!searchResult.value) return
-    let group = deepCopy(searchResult.value)
+    console.log('update')
+    let group = {...searchResult.value}
     if (useFilter.value) {
         let valid = {}
         tabStore.getMainTab().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
@@ -125,8 +126,9 @@ function setDefaultInterval() {
     Object.assign(scoreInterval, intervals[func.id])
 }
 
+setDefaultInterval()
+
 onMounted(setSimilar)
-onMounted(setDefaultInterval)
 watch(() => props.image, setSimilar)
 watch(() => scoreInterval.values, updateSimilarGroup)
 watch(() => props.width, updateSimilarGroup)

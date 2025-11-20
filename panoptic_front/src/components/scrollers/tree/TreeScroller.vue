@@ -151,7 +151,7 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
     }
 
     let imgIt = ImageIterator.fromGroupIterator(it)
-    while (imgIt && imgIt.groupId == it.groupId && lines.length) {
+    while (imgIt?.image && imgIt.groupId == it.groupId && lines.length) {
 
         let img = imgIt.image
         let imgWidth = (imageHeight * img.containerRatio) + 10

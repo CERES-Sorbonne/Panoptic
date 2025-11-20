@@ -109,7 +109,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     function showModal(modalId: ModalId, data?: any) {
         openModalId.value = modalId
         // openModal.data = data
-        modalData.value = data
+        // modalData.value = data
         const modal = useModalStore()
         modal.openModal(modalId, data)
     }
