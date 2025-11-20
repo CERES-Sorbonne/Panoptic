@@ -655,7 +655,8 @@ export class GroupManager {
 
     setAsRoot(group: Group, emit?: boolean) {
         this.emptyRoot()
-        let copy = deepCopy(group)
+        let copy = {...group}
+        copy.images = [...group.images]
         delete copy.id
         Object.assign(this.result.root, copy)
         if (this.state.sha1Mode) {

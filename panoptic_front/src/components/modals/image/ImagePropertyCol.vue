@@ -34,28 +34,10 @@ const showHistory: Ref<boolean> = inject('showHistory')
 const closed = reactive({})
 
 
-
-const properties = computed(() => {
-    const res = []
-    if (mode.value == 0) {
-        res.push(...data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed))
-    }
-    if (mode.value == 1) {
-        res.push(...data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed))
-    }
-    if (mode.value == 2) {
-        res.push(...data.propertyList.filter(p => p.computed))
-    }
-    return res.filter(p => p.id != deletedID)
-})
-
 const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed && p.id != deletedID))
 const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed && p.id != deletedID))
 const metaProperties = computed(() => data.propertyList.filter(p => p.id < 0 && p.id != deletedID))
 
-function setMode(value) {
-    mode.value = value
-}
 
 function toggleClosed(index: number) {
     if (closed[index]) {

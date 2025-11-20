@@ -1,17 +1,19 @@
 import { defineStore } from "pinia";
 import { ModalId } from "./models";
-import { computed, reactive } from "vue";
+import { computed, reactive, shallowRef } from "vue";
 
 export const useModalStore = defineStore('modalStore', () => {
     
     const idIndex: {[id: string]: number} = reactive({})
-    const layerOpen: {[layer: number]: {id: ModalId, data: any}} = reactive({})
+    const layerOpen = shallowRef<{[layer: number]: {id: ModalId, data: any}}>({})
 
     const openIndex = computed<{[id: string]: Boolean}>(() => {
         const res = {}
-        for(let modal of Object.values(layerOpen)) {
+        const open = layerOpen.value
+        for(let modal of Object.values(open)) {
             res[modal.id] = true
         }
+        console.log('update computed')
         return res
     })
 
@@ -23,18 +25,23 @@ export const useModalStore = defineStore('modalStore', () => {
         data = data ?? {}
         const layer = idIndex[id]
         if(layer === undefined) return
-        layerOpen[layer] = {id, data}
+        const open = {...layerOpen.value}
+        open[layer] = {id, data}
+        layerOpen.value = open
+        console.log('set data', data)
     }
 
     function closeModal(id: ModalId) {
         const layer = idIndex[id]
         if(layer === undefined) return
-        delete layerOpen[layer]
+        const open = {...layerOpen.value}
+        delete open[layer]
+        layerOpen.value = open
     }
 
     function getData(id: ModalId) {
         const layer = idIndex[id]
-        const data = layerOpen[layer]?.data
+        const data = layerOpen.value[layer]?.data
         if(layer === undefined) return
         if(!openIndex.value[id]) return
         return data

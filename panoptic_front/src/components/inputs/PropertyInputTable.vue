@@ -5,7 +5,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
 import GridPropInput from '../scrollers/grid/GridPropInput.vue';
-import { ref } from 'vue';
+import { ref, shallowRef } from 'vue';
 
 const data = useDataStore()
 
@@ -22,7 +22,7 @@ const emits = defineEmits<{
     toggleFilter: [e: number]
 }>()
 
-const inputElem = ref([])
+const inputElem = shallowRef([])
 
 function toggleProperty(property: Property) {
     if (!props.visibleProperties) return
@@ -53,7 +53,7 @@ async function paint(index: number, propertyId: number) {
                     </td>
                     <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
                         <GridPropInput v-if="property.id > 0" :property="data.properties[property.id]" :instance="image"
-                            :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20" ref="inputElem"/>
+                            :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20" />
                     </td>
                     <td v-else class="border-left" colspan="2" style="">
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{
