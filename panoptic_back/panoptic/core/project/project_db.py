@@ -12,7 +12,7 @@ from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEv
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
     ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, ImagePropertyKey, \
-    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate
+    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate, PropertyGroup
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
@@ -73,6 +73,9 @@ class ProjectDb:
 
     def create_property(self, name: str, type_: PropertyType, mode: PropertyMode) -> Property:
         return Property(id=self._get_fake_id(), name=name, type=type_, mode=mode)
+
+    def create_property_group(self, name: str) -> PropertyGroup:
+        return PropertyGroup(id=self._get_fake_id(), name=name)
 
     async def get_properties(self, ids: list[int] = None, computed=False) -> list[Property]:
         properties = await self._db.get_properties(ids)
