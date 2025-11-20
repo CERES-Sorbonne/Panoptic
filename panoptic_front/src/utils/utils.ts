@@ -143,26 +143,52 @@ export function goNext() {
     }
 }
 
-// https://stackoverflow.com/questions/54242239/how-to-convert-snake-case-to-camelcase-in-typescripts
 export function keysToCamel(o) {
-    if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function') {
-        const n = {};
-        Object.keys(o).forEach((k) => {
-            n[toCamel(k)] = keysToCamel(o[k]);
-        });
-        return n;
-    } else if (Array.isArray(o)) {
-        return o.map((i) => {
-            return keysToCamel(i);
-        });
+    // 1. Base Case: If the value is null, undefined, or a primitive (string, number, boolean)
+    if (typeof o !== 'object' || o === null) {
+        return o;
     }
+    
+    // 2. Array Case
+    if (Array.isArray(o)) {
+        // Use map, as in your original code
+        return o.map(i => keysToCamel(i));
+    }
+    
+    // 3. Object Case (using a more specific check for plain objects)
+    // We check constructor to exclude Dates, custom classes, etc., which might pass the 'Object(o)' test.
+    if (o.constructor === Object) { 
+        const n = {};
+        for (const k in o) {
+            if (Object.prototype.hasOwnProperty.call(o, k)) {
+                // Use the memoized 'toCamel' function
+                n[toCamel(k)] = keysToCamel(o[k]); 
+            }
+        }
+        return n;
+    } 
+
+    // Return other complex types (like Date, Map, custom classes) unprocessed
     return o;
 }
 
-function toCamel(s: string): string {
-    return s.replace(/([-_][a-z])/gi, ($1) => {
-        return $1.toUpperCase().replace('-', '').replace('_', '');
+// A simple cache outside the main function scope
+const camelCaseCache = {};
+
+function toCamel(s) {
+    if (camelCaseCache[s]) {
+        return camelCaseCache[s];
+    }
+    
+    // Assuming 's' is 'snake_case' or 'kebab-case'
+    const result = s.replace(/([-_][a-z])/ig, ($1) => {
+        return $1.toUpperCase()
+                 .replace('-', '')
+                 .replace('_', '');
     });
+    
+    camelCaseCache[s] = result; // Store result
+    return result;
 }
 
 export function keysToSnake(o: unknown): unknown {

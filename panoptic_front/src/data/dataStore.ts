@@ -187,10 +187,12 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function importInstanceValues(instanceValues: InstancePropertyValue[]) {
+        const props = properties.value
+        const insts = instances.value
         for (let v of instanceValues) {
             if (v.value == undefined) continue
-            if (isTag(properties.value[v.propertyId].type)) {
-                updateTagCount(instances.value[v.instanceId].properties[v.propertyId], v.value)
+            if (isTag(props[v.propertyId].type)) {
+                updateTagCount(insts[v.instanceId].properties[v.propertyId], v.value)
             }
             instances.value[v.instanceId].properties[v.propertyId] = v.value
             dirtyInstances.add(v.instanceId)
