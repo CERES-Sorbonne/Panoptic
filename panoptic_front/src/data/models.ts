@@ -454,7 +454,7 @@ export interface ExecuteActionPayload {
 
 export interface GroupResult {
     ids?: number[]
-    sha1s?: number[]
+    sha1s?: string[]
     scores?: ScoreList
 
     score?: Score
@@ -750,4 +750,10 @@ export interface ProjectState {
     tasks: TaskState[]
     plugins: PluginDescription[]
     settings: ProjectSettings
+}
+
+export interface TextQuery {
+    type: string
+    text?: string
+    ctx?: ActionContext
 }

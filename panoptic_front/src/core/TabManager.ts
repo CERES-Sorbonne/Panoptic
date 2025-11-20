@@ -111,6 +111,7 @@ export class TabManager {
     }
 
     async saveState() {
+        console.log('save state')
         const tabStore = useTabStore()
         tabStore.saveTabsToStorage()
     }

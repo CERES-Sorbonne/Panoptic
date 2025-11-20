@@ -4,25 +4,27 @@ import * as bootstrap from 'bootstrap';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import FileExplorer from './FileExplorer.vue';
 import { usePanopticStore } from '@/data/panopticStore';
+import { ModalId } from '@/data/models';
+import { useModalStore } from '@/data/modalStore';
 
+const modalStore = useModalStore()
 const panoptic = usePanopticStore()
-const mode = computed(() => panoptic.modalData.mode)
+const mode = computed(() => modalStore.getData(props.id).mode)
+const data = computed(() => modalStore.getData(props.id))
 
 const modalElem = ref(null)
 let modal: bootstrap.Modal = null
 
-const props = defineProps({
-    id: { type: String, required: true },
-})
+const props = defineProps<{id: ModalId}>()
 
-const isActive = computed(() => panoptic.openModalId == props.id)
+const isActive = computed(() => modalStore.isOpen(props.id))
 
 function onHide() {
-    if (panoptic.modalData?.callback) {
-        panoptic.modalData.callback(undefined)
+    if (data.value?.callback) {
+        data.value.callback(undefined)
     }
     if (panoptic.openModalId == props.id) {
-        panoptic.hideModal()
+        panoptic.hideModal(ModalId.FOLDERSELECTION)
     }
 }
 
@@ -31,14 +33,15 @@ function hide() {
 }
 
 function show() {
+    console.log('show file explorer', isActive.value)
     modal.show()
 }
 
 function select(path) {
-    if (panoptic.modalData?.callback) {
-        panoptic.modalData.callback(path)
-        if (panoptic.modalData.callback) {
-            panoptic.modalData.callback = undefined
+    if (data.value?.callback) {
+        data.value.callback(path)
+        if (data.value.callback) {
+            data.value.callback = undefined
 
         }
     }
@@ -58,6 +61,8 @@ onMounted(() => {
     modal = bootstrap.Modal.getOrCreateInstance(modalElem.value)
     modalElem.value.addEventListener('hide.bs.modal', onHide)
 })
+
+modalStore.registerModal(props.id, 2)
 
 </script>
 

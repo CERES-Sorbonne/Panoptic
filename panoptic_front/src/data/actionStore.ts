@@ -26,6 +26,8 @@ export const useActionStore = defineStore('actionStore', () => {
     const hasSimilaryFunction = computed(() => defaultActions.similar != undefined)
     const hasVectorFunction = computed(() => defaultActions.vector_type != undefined)
 
+    const textSearchFunctions = computed(() => objValues(index.value).filter(f => f.hooks.includes('text_search')))
+
     async function init() {
         const actions = await apiGetActions()
         await loadActions(actions)
@@ -64,6 +66,8 @@ export const useActionStore = defineStore('actionStore', () => {
 
         await getDefaultActions()
         await getDefaultParams()
+
+        console.log(index.value)
     }
 
     async function getSimilarImages(ctx: ActionContext) {
@@ -198,6 +202,7 @@ export const useActionStore = defineStore('actionStore', () => {
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction, hasVectorFunction,
         getSimilarImages, getContext,
-        clear, init, callComputeVector
+        clear, init, callComputeVector,
+        textSearchFunctions
     }
 })
