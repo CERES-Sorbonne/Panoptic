@@ -55,6 +55,7 @@ onMounted(async () => {
     })
 
     window.addEventListener('keydown', (ev) => {
+        if (ev.key == 'Meta') keyState.cmd = true;
         if (ev.key == 'Control') keyState.ctrl = true;
         if (ev.key == 'Alt') {
             if (isMac) {
@@ -69,9 +70,14 @@ onMounted(async () => {
         if (ev.key == 'Z' && keyState.ctrl) data.redo()
         if (ev.key == 'z' && keyState.ctrl) data.undo()
 
-        if (ev.key == 'f' && keyState.ctrl) keyState.ctrlF.emit()
+        if (ev.key == 'f' && (keyState.ctrl || keyState.cmd)) {
+            ev.preventDefault()
+            // ev.stopImmediatePropagation()
+            keyState.ctrlF.emit()
+        }
     })
     window.addEventListener('keyup', (ev) => {
+        if (ev.key == 'Meta') keyState.cmd = false; //
         if (ev.key == 'Control') keyState.ctrl = false;
         if (ev.key == 'Alt') {
             if (isMac) {
@@ -87,6 +93,7 @@ onMounted(async () => {
         keyState.ctrl = ev.ctrlKey
         keyState.alt = ev.altKey
         keyState.shift = ev.shiftKey
+        keyState.cmd = ev.metaKey
         if (isMac) {
             keyState.ctrl = keyState.ctrl || keyState.alt
         }
