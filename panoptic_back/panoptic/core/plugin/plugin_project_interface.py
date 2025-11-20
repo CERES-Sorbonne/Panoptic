@@ -102,6 +102,9 @@ class PluginProjectInterface:
     def create_tag(self, property_id: int, value: str, parent_ids: list[int] = None, color=-1):
         return self._project.db.create_tag(property_id, value, parent_ids, color)
 
+    def create_property_group(self, name: str):
+        return self._project.db.create_property_group(name)
+
     def create_vector_type(self, params: dict):
         return self._project.db.create_vector_type(self._plugin.name, params)
 
