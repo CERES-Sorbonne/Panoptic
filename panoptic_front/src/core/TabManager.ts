@@ -59,6 +59,13 @@ export class TabManager {
         this.saveState()
     }
 
+    setVisibleProperties(propIds: number[], value: boolean) {
+        propIds.forEach(p => {
+            this.state.visibleProperties[p] = value
+        })
+        this.saveState()
+    }
+
     setSelectedFolder(selectedFolders) {
         this.state.selectedFolders = selectedFolders
         this.saveState()

@@ -36,12 +36,13 @@ async function saveProperty(hide) {
         message.value = "modals.properties.no_type"
     }
 
-    const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode)
+    const prop = await data.addProperty(newProperty.name, newProperty.type, newProperty.mode, group.value ?? null)
     tabStore.getMainTab().setVisibleProperty(prop.id, true)
 
-    if (group.value != undefined && group.value >= 0) {
-        await data.updateProperty(prop.id, prop.name, group.value)
-    }
+    // if (group.value != undefined && group.value >= 0) {
+    //     console.log(prop)
+    //     await data.updateProperty(prop.id, prop.name, group.value)
+    // }
     hide()
 }
 

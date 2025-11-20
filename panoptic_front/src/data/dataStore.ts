@@ -392,8 +392,8 @@ export const useDataStore = defineStore('dataStore', () => {
 
     }
 
-    async function addProperty(name: string, type: PropertyType, mode: PropertyMode) {
-        const prop: Property = { id: -1, name: name, type: type, mode: mode }
+    async function addProperty(name: string, type: PropertyType, mode: PropertyMode, group?: number) {
+        const prop: Property = { id: -1, name: name, type: type, mode: mode, propertyGroupId: group ?? null }
         const res = await sendCommit({ properties: [prop] })
         return res.properties[0]
     }

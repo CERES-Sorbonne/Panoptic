@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
-import { ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
+import { DbCommit, ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
 import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
@@ -24,6 +24,8 @@ const editName = ref(false)
 const localName = ref('')
 
 const properties = computed(() => props.node.propertyIds.map(i => data.properties[i]))
+
+const allVisible = computed(() => props.node.propertyIds.map(id => props.tab.isVisibleProperty(id)).filter(v => !v).length == 0)
 
 const group = computed(() => {
     if (props.node.groupId >= 0) {
@@ -57,12 +59,14 @@ function deleteGroup() {
 
 async function deleteProperties() {
     let properties = data.propertyList.filter(p => p.propertyGroupId == props.node.groupId)
-    for (let prop of properties) {
-        await data.deleteProperty(prop.id)
-    }
-    if (props.node.groupId >= 0) {
-        await data.deletePropertyGroup(props.node.groupId)
-    }
+    const commit: DbCommit = { emptyProperties: properties.map(p => p.id)}
+    await data.sendCommit(commit)
+
+    const commit2: DbCommit = { emptyPropertyGroups: [props.node.groupId] }
+    await data.sendCommit(commit2)
+    // if (props.node.groupId >= 0) {
+    //     await data.deletePropertyGroup(props.node.groupId)
+    // }
 
 }
 
@@ -82,6 +86,14 @@ async function log(e) {
     }
 }
 
+function toggleVisible() {
+    if (allVisible.value) {
+        props.tab.setVisibleProperties(props.node.propertyIds, false)
+    } else {
+        props.tab.setVisibleProperties(props.node.propertyIds, true)
+    }
+}
+
 onMounted(updateLocalName)
 watch(props, updateLocalName)
 
@@ -96,6 +108,7 @@ watch(props, updateLocalName)
                 <div class="d-flex group-container" @click="toggle">
                     <div v-if="open"><i class="bi bi-caret-down-fill" /></div>
                     <div v-if="!open"><i class="bi bi-caret-right-fill" /></div>
+                    
                     <template v-if="props.menuOpen">
                         <div v-if="!editName" class="ms-2 text-capitalize overflow-hidden">{{ group.name }}</div>
                         <div v-if="editName" class="ms-2">
@@ -122,13 +135,17 @@ watch(props, updateLocalName)
                                 </div>
                             </template>
                         </Dropdown>
-                        <div v-if="props.node.groupId >= -1" class="bb me-2"
+                        <div v-if="props.node.groupId >= -1" class="bb me-1"
                             @click.stop.prevent="panoptic.showModal(ModalId.PROPERTY, { group: props.node.groupId })">
                             <WithToolTip :message="$t('main.menu.addNewPropertyToGroup')">
                                 <i class="bi bi-plus" />
                             </WithToolTip>
                         </div>
                     </template>
+                    <div v-if="props.node.propertyIds.length" style="cursor: pointer; flex-shrink: 0; margin-right: 11px;"
+                        @click.stop="toggleVisible"> <span
+                            :class="'bi bi-eye text-' + (allVisible ? 'primary' : 'secondary')"></span></div>
+
                 </div>
             </template>
             <template #item="{ element, index }">
