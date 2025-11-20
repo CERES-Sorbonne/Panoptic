@@ -139,6 +139,7 @@ watch(() => props.property, () => {
                     <span>{{ props.property.name }}</span>
                 </div>
             </template>
+            
             <template v-else>
                 <PropertyIcon :type="props.property.type" class="me-2" style="position: relative; top: 2px;" />
             </template>
@@ -162,14 +163,26 @@ watch(() => props.property, () => {
                         <i class="bi bi-arrows-fullscreen"></i>
                     </wTT>
                 </div>
-                <div style="width: 20px; margin-top: 2px;" class="text-center">
+            </template>
+            <template v-if="props.open">
+                <div class="text-center" style="width: 24px; margin-top: 2px;">
+                    <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
+                        @click="toggleValuesMenu" style="cursor: pointer;">
+                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
+                                class="bi bi-chevron-down"></i></wTT>
+                        <wTT v-else message="main.nav.properties.expand_property_tooltip"><i
+                                class="bi bi-chevron-right ms-1"></i>
+                        </wTT>
+                    </div>
+                </div>
+                <div style="width: 20px; margin-top: 2px; flex-shrink: 0;" class="text-center">
                     <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
                         message="main.nav.properties.linked_property_tooltip">
                         <i class="bi bi-link-45deg"></i>
                     </wTT>
                 </div>
             </template>
-            <div style="width: 20px; margin-top: 2px;" @click="toggleVisible" class="btn-icon text-center">
+            <div style="width: 20px; margin-top: 2px; flex-shrink: 0;" @click="toggleVisible" class="btn-icon text-center">
                 <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"
                     message="main.nav.properties.hidden_property_tooltip">
                     <span class="bi bi-eye-slash" @click.stop=""></span>
@@ -178,18 +191,6 @@ watch(() => props.property, () => {
                     <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
                 </wTT>
             </div>
-            <template v-if="props.open">
-                <div class="text-center" style="width: 20px; margin-top: 2px;">
-                    <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
-                        @click="toggleValuesMenu" style="cursor: pointer;">
-                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
-                                class="bi bi-chevron-down"></i></wTT>
-                        <wTT v-else message="main.nav.properties.expand_property_tooltip"><i
-                                class="bi bi-chevron-right"></i>
-                        </wTT>
-                    </div>
-                </div>
-            </template>
         </div>
         <div v-if="props.open">
             <div v-if="optionsOpen" class="ms-3 pt-1">
