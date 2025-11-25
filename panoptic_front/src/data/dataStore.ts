@@ -27,6 +27,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const tags = shallowRef<TagIndex>({})
     const vectorTypes = ref<VectorType[]>([])
     const vectorStats = ref<VectorStats>({ count: {}, sha1Count: 0 })
+    const baseImgUrl = shallowRef('')
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
@@ -52,6 +53,9 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======Functions=======
     // =======================
     async function init() {
+        const panopticStore = usePanopticStore()
+        const projectId = panopticStore.clientState.connectedProject
+        baseImgUrl.value = `${SERVER_PREFIX}/projects/${projectId}/image/`
         let dbFolders = await apiGetFolders()
         importFolders(dbFolders)
         // console.time('Request')
@@ -80,7 +84,6 @@ export const useDataStore = defineStore('dataStore', () => {
         // console.time('commit')
         // // applyCommit(dbState)
         // console.timeEnd('commit')
-
         await getHistory()
     }
 
@@ -713,7 +716,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         updateVectorTypes, deleteVectorType, updateVectorStats,
         clear,
-        importFolders, importVectorTypes, applyMultipleCommits
+        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl
     }
 
 })

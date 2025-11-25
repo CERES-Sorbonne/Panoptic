@@ -11,6 +11,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as THREE from 'three'
+import KDBush from 'kdbush'
+import { useDataStore } from '@/data/dataStore'
+
+const data = useDataStore()
 
 // ----------------------------------------------------------------------
 // TYPES
@@ -21,8 +25,8 @@ export interface PointData {
     y: number
     color: string
     sha1: string
-    url: string
-    ratio: number
+    ratio: number,
+    id?: number
 }
 
 interface Props {
@@ -30,12 +34,14 @@ interface Props {
     // imagePrefix?: string
     pointSize?: number
     backgroundColor?: number | string
+    showImages: boolean
+    showPoints: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
     points: () => [],
     // imagePrefix: 'https://via.placeholder.com/128?text=',
-    pointSize: 0.15,
+    pointSize: 0.10,
     backgroundColor: 0x1a1a1a
 })
 
@@ -45,8 +51,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const canvasContainer = ref<HTMLDivElement | null>(null)
 const isLoading = ref(false)
-const showPoints = ref(true)
-const showImages = ref(true)
 
 // ----------------------------------------------------------------------
 // RAW THREE.JS VARIABLES (Non-Reactive for Max Performance)
@@ -62,7 +66,10 @@ let triggerRender = true
 
 // Data Caches (Raw JS Maps)
 const idMap = new Map<string, number>()
-const textureCache = new Map<number, THREE.Texture>()
+const textureCache = {
+    small: new Map<number, THREE.Texture>(),
+    raw: new Map<number, THREE.Texture>()
+}
 
 let animationFrameId: number
 let resizeObserver: ResizeObserver | null = null
@@ -75,13 +82,17 @@ let currentlyHoveredPlane: THREE.Mesh | null = null;
 const originalZ = 0.01; // Base Z position for all images
 const popZ = 0.1;      // Elevated Z position for the hovered image
 
+// KDtree
+let tree: KDBush = null // KDTree for optimal point query
+let treeToPointMap: Map<number, PointData> = new Map()
+
 // ----------------------------------------------------------------------
 // LIFECYCLE
 // ----------------------------------------------------------------------
 
 onMounted(() => {
     initThree()
-    processPoints(props.points)
+    processPoints()
     animate()
 
     if (canvasContainer.value) {
@@ -97,7 +108,7 @@ onUnmounted(() => {
 })
 
 watch(() => props.points, (newPoints) => {
-    processPoints(newPoints)
+    processPoints()
 })
 
 watch(() => props.backgroundColor, (newColor) => {
@@ -164,8 +175,8 @@ const cleanupThree = () => {
     }
 
     // Dispose textures to free GPU memory
-    textureCache.forEach(t => t.dispose())
-    textureCache.clear()
+    Object.values(textureCache).forEach(t => t.forEach(tc => tc.dispose()))
+    Object.values(textureCache).forEach(t => t.clear())
     idMap.clear()
 
     // Nullify to help GC
@@ -180,9 +191,11 @@ const cleanupThree = () => {
 // POINT CLOUD LOGIC
 // ----------------------------------------------------------------------
 
-const processPoints = (points: PointData[]) => {
+const processPoints = () => {
     if (!scene) return
     isLoading.value = true
+
+    const points = props.points
 
     // Cleanup old mesh
     if (instancedMesh) {
@@ -223,13 +236,31 @@ const processPoints = (points: PointData[]) => {
     instancedMesh = mesh
     scene.add(mesh)
 
+    createKDTree(points)
+
     // Restore visibility state
-    if (showImages.value) {
+    if (props.showImages) {
         updateVisibleImages()
     }
 
     isLoading.value = false
     updateView()
+}
+
+function createKDTree(points: PointData[]) {
+    treeToPointMap = new Map()
+    tree = new KDBush(points.length)
+    for (let point of points) {
+        const id = tree.add(point.x, point.y)
+        treeToPointMap.set(id, point)
+        point.id = id
+    }
+    tree.finish()
+}
+
+function getPointsInRect(minX, minY, maxX, maxY) {
+    const ids = tree.range(minX, minY, maxX, maxY)
+    return ids.map(id => treeToPointMap.get(id))
 }
 
 // ----------------------------------------------------------------------
@@ -249,8 +280,9 @@ const setPointColor = (sha1: string, color: string) => {
     }
 }
 
-const setShowImages = (active: boolean) => {
-    showImages.value = active
+
+
+const updateShowImages = (active: boolean) => {
     if (active) {
         imageGroup.visible = true
         updateVisibleImages()
@@ -259,8 +291,7 @@ const setShowImages = (active: boolean) => {
     }
 }
 
-const setShowPoints = (active: boolean) => {
-    showPoints.value = active
+const updateShowPoints = (active: boolean) => {
     if (active) {
         instancedMesh.visible = true
         updateVisibleImages()
@@ -269,12 +300,15 @@ const setShowPoints = (active: boolean) => {
     }
 }
 
+watch(() => props.showImages, updateShowImages)
+watch(() => props.showPoints, updateShowPoints)
+
 // ----------------------------------------------------------------------
 // IMAGE LAZY LOADING (Frustum Culling)
 // ----------------------------------------------------------------------
 
 const updateVisibleImages = () => {
-    if (!showImages.value || !camera || !imageGroup) return
+    if (!props.showImages || !camera || !imageGroup || !props.points.length) return
     const group = imageGroup
 
     // Clear current planes
@@ -282,7 +316,6 @@ const updateVisibleImages = () => {
     while (group.children.length > 0) {
         group.remove(group.children[0])
     }
-
     // Calc View Bounds
     const zoom = camera.zoom
     const left = (camera.left / zoom) + camera.position.x
@@ -292,44 +325,49 @@ const updateVisibleImages = () => {
 
     let imageSize = (1 / zoom) * 10
     imageSize = Math.min(100, imageSize)
-    imageSize = Math.max(2, imageSize)
+    imageSize = Math.max(4, imageSize)
 
+    let imgQuality = 'small'
+    if (zoom > 5) {
+        imgQuality = 'raw'
+    }
 
     const loader = new THREE.TextureLoader()
-    // console.log("update images", props.points.length)
-    // Iterate points
-    props.points.forEach((p, index) => {
+    const gridSize = getGridStepSize(zoom)
+    let visiblePoints = getPointsInRect(left, bottom, right, top)
+    if (gridSize > 1.25) {
+        visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
+    }
+
+
+    visiblePoints.forEach((p) => {
         const planeGeom = new THREE.PlaneGeometry(props.pointSize * imageSize * p.ratio, props.pointSize * imageSize)
-        // Simple AABB check
-        if (p.x >= left && p.x <= right && p.y >= bottom && p.y <= top) {
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true
+        })
 
-            const material = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                transparent: true
-            })
-
-            if (textureCache.has(index)) {
-                material.map = textureCache.get(index)!
-            } else {
-                const url = p.url
-                loader.load(
-                    url,
-                    (tex) => {
-                        tex.colorSpace = THREE.SRGBColorSpace
-                        textureCache.set(index, tex)
-                        material.map = tex
-                        material.needsUpdate = true
-                        updateView()
-                    },
-                    undefined,
-                    () => material.color.setHex(0xff0000) // Error
-                )
-            }
-
-            const plane = new THREE.Mesh(planeGeom, material)
-            plane.position.set(p.x, p.y, 0)
-            group.add(plane)
+        if (textureCache[imgQuality].has(p.id)) {
+            material.map = textureCache[imgQuality].get(p.id)!
+        } else {
+            const url = data.baseImgUrl + imgQuality + '/' + p.sha1
+            loader.load(
+                url,
+                (tex) => {
+                    tex.colorSpace = THREE.SRGBColorSpace
+                    textureCache[imgQuality].set(p.id, tex)
+                    material.map = tex
+                    material.needsUpdate = true
+                    updateView()
+                },
+                undefined,
+                () => material.color.setHex(0xff0000) // Error
+            )
         }
+
+        const plane = new THREE.Mesh(planeGeom, material)
+        plane.position.set(p.x, p.y, 0)
+        group.add(plane)
     })
 }
 
@@ -347,7 +385,7 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
         cam.updateProjectionMatrix()
         updateView()
         // Use debounce for image update logic (if needed)
-        if (showImages.value) debounceImageUpdate()
+        if (props.showImages) debounceImageUpdate()
     }, { passive: false })
 
     // --- PAN (Updated Logic) ---
@@ -363,6 +401,7 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
         prevPos = { x: e.clientX, y: e.clientY }
         // Prevent the default cursor behavior (e.g., text selection)
         dom.style.cursor = 'grabbing'
+        updateView()
     })
 
     window.addEventListener('mousemove', (e) => {
@@ -386,15 +425,19 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
         cam.position.y += dy * worldScaleY // Y axis is typically inverted between screen (top=0) and world (bottom=0)
 
         prevPos = { x: e.clientX, y: e.clientY }
-
+        cam.updateProjectionMatrix()
         updateView()
 
-        if (showImages.value) debounceImageUpdate()
+        if (props.showImages) debounceImageUpdate()
     })
 
     window.addEventListener('mouseup', () => {
         isDragging = false
         dom.style.cursor = 'grab'
+        cam.updateProjectionMatrix()
+        updateView()
+
+        if (props.showImages) debounceImageUpdate()
     })
 
     // Also handle mouse leaving the window
@@ -409,9 +452,11 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
 
     function onMouseMove(event: MouseEvent) {
         // Convert mouse position to normalized device coordinates (-1 to +1)
-        const rect = renderer!.domElement.getBoundingClientRect();
+        const rect = renderer!.domElement.getBoundingClientRect()
+        // console.log(rect)
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        // console.log(mouse)
     }
 }
 
@@ -431,22 +476,20 @@ const handleResize = () => {
 
     renderer.setSize(w, h)
 
-    if (showImages.value) updateVisibleImages()
+    if (props.showImages) updateVisibleImages()
 }
 
 const debounceImageUpdate = () => {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-        updateVisibleImages()
-    }, 100)
+    // no debounce for now as it seems to make it bug.
+    updateVisibleImages()
 }
 
 const animate = () => {
     animationFrameId = requestAnimationFrame(animate)
-    if (showImages.value) {
+    if (props.showImages) {
         handleHover();
     }
-    // Direct variable access - Fastest possible render loop
+
     if (renderer && scene && camera && triggerRender) {
         triggerRender = false
         renderer.render(scene, camera)
@@ -458,7 +501,7 @@ function updateView() {
 }
 
 const handleHover = () => {
-    if (!camera || !imageGroup || !showImages.value) return;
+    if (!camera || !imageGroup || !props.showImages) return;
 
     raycaster.setFromCamera(mouse, camera);
 
@@ -508,6 +551,7 @@ const handleHover = () => {
 
         currentlyHoveredPlane = newHoveredPlane;
     }
+
 }
 
 const applyHoverEffect = (plane: THREE.Mesh, isHovering: boolean) => {
@@ -515,10 +559,83 @@ const applyHoverEffect = (plane: THREE.Mesh, isHovering: boolean) => {
     plane.position.z = isHovering ? popZ : originalZ;
 
     // 2. Scale (The "Pop Out" effect)
-    const scaleFactor = isHovering ? 1.2 : 1.0; // 20% larger on hover
+    const scaleFactor = isHovering ? 2 : 1.0;
     plane.scale.set(scaleFactor, scaleFactor, 1);
 
     updateView()
+}
+
+
+// grid utils
+
+/**
+ * Calculate the current grid step size based on zoom level.
+ * Grid size doubles at each level, ensuring grid lines always align.
+ * 
+ * @param zoom - Current camera zoom level
+ * @param baseGridSize - Base grid size at zoom = 1 (default: 1.0)
+ * @param zoomThresholds - Zoom levels where grid doubles (default: [0.5, 1, 2, 4, 8, 16])
+ * @returns The grid step size for current zoom
+ */
+function getGridStepSize(
+    zoom: number,
+    baseGridSize: number = 4.0,
+    zoomThresholds: number[] = [0.25, 0.5, 1, 2, 4, 8, 16]
+): number {
+    // Find which threshold we're above
+    // Higher zoom = more zoomed in = smaller grid cells
+    // Lower zoom = more zoomed out = larger grid cells
+
+    for (let i = zoomThresholds.length - 1; i >= 0; i--) {
+        if (zoom >= zoomThresholds[i]) {
+            // At this zoom level, divide base size by 2^i
+            return baseGridSize / Math.pow(2, i)
+        }
+    }
+
+    // If zoom is below minimum threshold, use largest grid
+    return baseGridSize * 2
+}
+
+/**
+ * Select one image per grid cell - the one closest to the cell's center.
+ * 
+ * @param points - All points to consider
+ * @param gridStepSize - Size of each grid cell (from getGridStepSize)
+ * @returns Array of selected points (one per occupied grid cell)
+ */
+function selectImagesForGrid(
+    points: PointData[],
+    gridStepSize: number
+): PointData[] {
+    // Map to store best point per grid cell
+    // Key: "cellX,cellY", Value: { point, distanceSquared }
+    const gridCells = new Map<string, { point: PointData; distSq: number }>()
+
+    for (const point of points) {
+        // Determine which grid cell this point belongs to
+        const cellX = Math.floor(point.x / gridStepSize)
+        const cellY = Math.floor(point.y / gridStepSize)
+        const cellKey = `${cellX},${cellY}`
+
+        // Calculate upper-left corner of this grid cell (grid origin point)
+        const gridPointX = cellX * gridStepSize
+        const gridPointY = (cellY + 1) * gridStepSize  // +1 because "upper" means higher Y
+
+        // Calculate squared distance to grid corner (avoid sqrt for performance)
+        const dx = point.x - gridPointX
+        const dy = point.y - gridPointY
+        const distSq = dx * dx + dy * dy
+
+        // Check if this point is closer to grid corner than current best
+        const existing = gridCells.get(cellKey)
+        if (!existing || distSq < existing.distSq) {
+            gridCells.set(cellKey, { point, distSq })
+        }
+    }
+
+    // Extract just the points
+    return Array.from(gridCells.values()).map(entry => entry.point)
 }
 
 // ----------------------------------------------------------------------
@@ -527,8 +644,6 @@ const applyHoverEffect = (plane: THREE.Mesh, isHovering: boolean) => {
 
 defineExpose({
     setPointColor,
-    setShowImages,
-    setShowPoints,
     updatePoints: processPoints
 })
 </script>

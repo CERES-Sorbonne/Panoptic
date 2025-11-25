@@ -9,6 +9,8 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@types/kd-tree-javascript": "^1.0.3",
+    "@types/kdbush": "^3.0.5",
     "@types/three": "^0.181.0",
     "@vuepic/vue-datepicker": "^7.2.2",
     "@vueuse/core": "^10.2.1",
@@ -17,6 +19,7 @@
     "bootstrap-icons": "^1.11.3",
     "floating-vue": "^2.0.0-beta.24",
     "kd-tree-javascript": "^1.0.3",
+    "kdbush": "^4.0.2",
     "sass": "^1.60.0",
     "sass-loader": "^13.2.2",
     "socket.io-client": "^4.8.1",

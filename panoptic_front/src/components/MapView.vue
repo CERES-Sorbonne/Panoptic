@@ -14,6 +14,9 @@ const emits = defineEmits([])
 let points = shallowRef<PointData[]>([
 ])
 
+const showImages = ref(true)
+const showPoints = ref(true)
+
 const mapElem = ref(null)
 const spatialFunction = ref({
     function: '',
@@ -31,7 +34,6 @@ function showResult(res: ActionResult) {
             y: pos[1],
             color: '#FF00FF',
             sha1: sha1,
-            url: img.urlSmall,
             ratio: img.containerRatio
         }
         points.value.push(p)
@@ -44,12 +46,13 @@ function showResult(res: ActionResult) {
 
 <template>
     <div class="d-flex flex-column">
-        <div class="d-flex pt-1" style="column-gap: 4px;">
+        <div class="d-flex pt-1" style="column-gap: 4px; align-items: center;">
             <div>Select Maping Function</div>
             <ActionSelectButton :size="15" :action="'map'" @changed="e => spatialFunction = e" @result="showResult" />
+            <div><input type="checkbox" v-model="showImages" /> show Images</div>
         </div>
         <div class="flex-grow-1" style="margin-right: 10px; margin-top: 8px;">
-            <ImageMap :points="points" :point-size="0.1" ref="mapElem"/>
+            <ImageMap :points="points" :point-size="0.05" :show-images="showImages" :show-points="showPoints" background-color="#FFFFFF" ref="mapElem"/>
         </div>
     </div>
 </template>
