@@ -74,9 +74,9 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             </div>
         </wTT> -->
 
-        <TextSearchInput class="me-1" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery"/>
+        <TextSearchInput class="me-3" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery"/>
 
-        <div class="me-5 d-flex">
+        <div class="me-3 d-flex">
             <wTT message="main.menu.grid_tooltip">
                 <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.state.display == 'tree' ? '' : ' text-secondary')"
                     @click="props.tab.setViewMode('tree')"></i>
@@ -89,8 +89,14 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             </wTT>
             <wTT message="main.menu.graph_tooltip">
                 <i id="toot"
-                    :class="'bi bi-bar-chart btn-icon' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
+                    :class="'bi bi-bar-chart btn-icon me-2' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
                     @click="props.tab.setViewMode('graph')">
+                </i>
+            </wTT>
+            <wTT message="main.menu.map_tooltip">
+                <i id="toot"
+                    :class="'bi bi-map btn-icon' + (props.tab.state.display == 'map' ? '' : ' text-secondary')"
+                    @click="props.tab.setViewMode('map')">
                 </i>
             </wTT>
         </div>
