@@ -20,7 +20,8 @@ export const useActionStore = defineStore('actionStore', () => {
         import: undefined,
         export: undefined,
         vector_type: undefined,
-        vector: undefined
+        vector: undefined,
+        map: undefined
     })
 
     const hasSimilaryFunction = computed(() => defaultActions.similar != undefined)

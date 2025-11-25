@@ -17,8 +17,9 @@ import { useDataStore } from '@/data/dataStore';
 import DataLoad from '../loading/DataLoad.vue';
 import { TabManager } from '@/core/TabManager';
 import '@/data/socketStore'
+import ActionSelect from '../actions/ActionSelect.vue';
+import MapView from '../MapView.vue';
 const project = useProjectStore()
-
 
 const data = useDataStore()
 
@@ -125,6 +126,9 @@ onMounted(updateScrollerHeight)
         </template>
         <template v-if="props.tab.state.display == 'graph'">
             <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15" />
+        </template>
+        <template v-if="props.tab.state.display == 'map'">
+           <MapView :style="{height: scrollerHeight - 10 + 'px'}" /> 
         </template>
 
     </div>

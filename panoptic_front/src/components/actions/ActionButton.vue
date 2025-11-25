@@ -146,7 +146,7 @@ watch(localFunction, loadInput)
 
 <style scoped>
 .main {
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     border-radius: 3px;
     padding: 1px 0px 1px 3px;
     cursor: pointer;
