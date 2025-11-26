@@ -39,7 +39,7 @@ def start_api(install=False):
 
     HOST = os.getenv("PANOPTIC_HOST", None)
     # default port for Panoptic backend is 8000
-    PORT = int(os.getenv("PANOPTIC_PORT", 8000))
+    PORT = int(os.getenv("PANOPTIC_PORT", 8006))
 
     # FastAPI setup
     app = FastAPI(lifespan=lifespan)
