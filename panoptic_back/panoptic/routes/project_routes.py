@@ -3,10 +3,10 @@ import logging
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from time import time
-from typing import Optional
+from typing import Optional, Annotated
 
 import orjson
-from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, Depends, HTTPException, Form
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -130,6 +130,10 @@ async def import_parse_file_route(req: ImportPayload, project: Project = Depends
 async def import_confirm_route(req: ImportPayload, project: Project = Depends(get_project_from_id)):
     await project.importer.import_data_and_commit(exclude=req.exclude, properties=req.properties)
 
+@project_router.post('/import/tags')
+async def upload_file_tag_route(file: UploadFile, property_id: Annotated[int, Form()], project: Project = Depends(get_project_from_id)):
+    res = await project.importer.import_tags(file.file, property_id=property_id)
+    return res
 
 @project_router.post('/export')
 async def export_properties_route(req: ExportPropertiesPayload, project: Project = Depends(get_project_from_id)):
