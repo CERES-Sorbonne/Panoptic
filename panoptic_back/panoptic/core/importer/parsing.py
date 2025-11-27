@@ -34,7 +34,7 @@ def parse_checkbox(value):
 
 
 parser = {
-    PropertyType.tag: parse_tags,
+    PropertyType.tag: parse_string,
     PropertyType.multi_tags: parse_tags,
     PropertyType.string: parse_string,
     PropertyType.number: parse_number,
