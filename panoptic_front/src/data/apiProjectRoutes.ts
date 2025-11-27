@@ -62,6 +62,39 @@ async function uploadFile(route: string, file) {
     return res
 }
 
+// Define an interface for optional extra data fields
+interface AdditionalData {
+    [key: string]: string | number | boolean
+}
+
+async function uploadFileWithData(route: string, file: File, data: AdditionalData = {}) {
+    let formData = new FormData()
+
+    // 1. Append the file
+    formData.append('file', file)
+
+    // 2. Append additional data fields
+    for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            // Convert numbers/booleans to string before appending to FormData
+            formData.append(key, String(data[key]))
+        }
+    }
+    
+    // Note: When using modern JS libraries (like Axios or Fetch) and FormData,
+    // the browser usually sets the 'Content-Type': 'multipart/form-data' 
+    // including the boundary automatically. While explicitly setting it often works, 
+    // removing it often simplifies things and prevents boundary errors. 
+    // I'll keep it simple here, assuming projectApi handles the multipart request.
+
+    const res = await projectApi.post(route, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+    return res
+}
+
 projectApi.interceptors.response.use(response => response, (error) => {
     const panoptic = usePanopticStore()
 
@@ -152,6 +185,12 @@ export const apiUploadPropFile = async (file: any) => {
 
 export async function apiUploadPropertyCsv(file) {
     const res = await uploadFile('/import/upload', file)
+    console.log(res.data)
+    return keysToCamel(res.data) as UploadConfirm
+}
+
+export async function apiUploadTagsCsv(file, propId) {
+    const res = await uploadFileWithData('/import/tags', file, {property_id: propId })
     console.log(res.data)
     return keysToCamel(res.data) as UploadConfirm
 }

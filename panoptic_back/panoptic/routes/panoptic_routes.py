@@ -92,6 +92,9 @@ async def import_project_route(req: LoadProjectPayload):
 
 @selection_router.get("/filesystem/ls/{path:path}")
 def api(path: str = ""):
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        if not path.startswith('/'):
+            path = '/' + path
     return list_contents(path)
 
 
@@ -182,6 +185,9 @@ def list_contents(full_path: str = '/'):
 
 
 def count_contents(full_path: str):
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        if not full_path.startswith('/'):
+            full_path = '/' + full_path
     folder = os.path.normpath(full_path)
     all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
     all_images = [i for i in all_files if

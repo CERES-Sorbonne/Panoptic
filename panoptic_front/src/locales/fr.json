@@ -287,6 +287,11 @@
             "fullImage": "Image complète"
         },
         "import": {
+            "data": "Données",
+            "upload_file": "Selectionez un Fichier",
+            "target_property": "Propriété",
+            "import_tags": "Importer les Tags",
+            "tags": "Tags",
             "title": "Importer Fichier",
             "fusion": {
                 "title": "Mode de fusion: ",
@@ -392,6 +397,9 @@
             "add": "ajouter",
             "set": "remplacer",
             "del": "retirer"
+        },
+        "property": {
+            "select": "Selectionez une propriété"
         }
     },
     "btn": {
