@@ -63,7 +63,7 @@ async def get_db_state_route(project: Project = Depends(get_project_from_id)):
 async def stream_db_state(project: Project = Depends(get_project_from_id)):
     async def load_routine():
         state = LoadState()
-        chunk_size = 10000
+        chunk_size = 10_000
 
         state.max_instance_value = await project.db.get_instance_values_count()
         state.max_image_value = await project.db.get_image_values_count()
