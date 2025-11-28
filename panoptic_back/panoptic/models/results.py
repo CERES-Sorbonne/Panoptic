@@ -67,12 +67,6 @@ class SearchResult:
 
 
 @dataclass
-class ActionError:
-    type: str
-    data: Any
-
-
-@dataclass
 class DeleteTagResult:
     tag_id: int
     updated_values: list[InstanceProperty]
