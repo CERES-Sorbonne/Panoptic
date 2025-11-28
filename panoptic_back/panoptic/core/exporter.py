@@ -124,5 +124,5 @@ class Exporter:
                 else:
                     row.append(None)
             rows.append(row)
-        df = pl.from_records(rows, schema=columns)
+        df = pl.from_records(rows, schema=[(c, str) for c in columns])
         return df
