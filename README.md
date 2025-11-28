@@ -198,17 +198,17 @@ If you want to contribute to Panoptic's development or test the latest unpublish
 #### 2.4.1 Backend Development Only
 
 To test and modify the backend, we provide a pre-built frontend in the backend's `html` folder.
-* Navigate to the `panoptic-back` folder.
+* Navigate to the `panoptic_back` folder.
 * To install dependencies:
     - `python3 setup.py install` to simply use Panoptic.
     - `pip3 install -e .` for development.
-    - `pip3 install -r requirements.txt` and add `panoptic-back` to `PYTHON_PATH` for development as well.
+    - `pip3 install -r requirements.txt` and add `panoptic_back` to `PYTHON_PATH` for development as well.
 * Run the backend with `python panoptic/main.py`.
 
 #### 2.4.2 Frontend and Backend Development
 
 1. First, complete the backend installation steps.
-2. Navigate to the `panoptic-front` folder.
+2. Navigate to the `panoptic_front` folder.
 3. Run `npm install`.
 4. Start the frontend server with `npm run dev`.
 5. Before starting the backend, set the environment variable `PANOPTIC_ENV` to `DEV` to use the development frontend.
