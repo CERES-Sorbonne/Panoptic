@@ -10,6 +10,7 @@ import TagColumn from '@/components/tags/TagColumn.vue';
 import TagTree from '@/components/tags/TagTree.vue';
 import Modal2 from './Modal2.vue';
 import TagImagesPreview from '../images/TagImagesPreview.vue';
+import { useModalStore } from '@/data/modalStore';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
@@ -78,7 +79,7 @@ const parentTags = computed(() => {
 })
 
 function show() {
-    const init = panoptic.modalData
+    const init = useModalStore().getData(ModalId.TAG)
     if (init.propId != undefined) {
         propId.value = init.propId
     }

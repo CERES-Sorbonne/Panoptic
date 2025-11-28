@@ -14,7 +14,6 @@ import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import { useInputStore } from '@/data/inputStore';
-import { keyState } from '@/data/keyState';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
 
