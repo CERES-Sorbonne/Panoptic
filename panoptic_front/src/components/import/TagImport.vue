@@ -108,8 +108,10 @@ onMounted(initValues)
         <div v-if="selectedFile" class="mb-4">
             <label class="form-label fw-bold">{{ $t('modals.import.target_property') }}</label>
 
-
+            Choisissez une propriété sur laquelle les tags seront importés: 
+                <br/>
             <div class="d-flex">
+
                 <PropertyDropdown v-model="selectedProperty"
                     :acceptable-types="[PropertyType.tag, PropertyType.multi_tags]" />
 
