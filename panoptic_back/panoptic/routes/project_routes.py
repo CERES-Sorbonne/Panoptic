@@ -3,19 +3,20 @@ import logging
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from time import time
-from typing import Optional
+from typing import Optional, Annotated
 
 import orjson
-from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, Depends, HTTPException, Form
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import FileResponse, StreamingResponse
 
 from panoptic.core.project.project import Project
+from panoptic.core.project_db.utils import group_property_stream
 from panoptic.models import Property, VectorDescription, ExecuteActionPayload, \
     ExportPropertiesPayload, UIDataPayload, PluginParamsPayload, ImportPayload, DbCommit, CommitHistory, Update, \
-    ProjectSettings, TagMergePayload, LoadState, DeleteVectorTypePayload
+    ProjectSettings, TagMergePayload, LoadState, DeleteVectorTypePayload, InstanceValuesArray, ImageValuesArray
 from panoptic.models.results import LoadResult
 from panoptic.routes.image_utils import medium_order, large_order, small_order, raw_order
 from panoptic.routes.panoptic_routes import get_panoptic, get_server
@@ -73,38 +74,56 @@ async def stream_db_state(project: Project = Depends(get_project_from_id)):
                 props = await project.db.get_properties(computed=True)
                 chunk = DbCommit(properties=props)
                 state.finished_property = True
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
+
             if not state.finished_property_groups:
                 groups = await project.db.get_property_groups()
                 chunk = DbCommit(property_groups=groups)
                 state.finished_property_groups = True
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
+
             if not state.finished_tags:
                 tags = await project.db.get_tags()
                 chunk = DbCommit(tags=tags)
                 state.finished_tags = True
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
 
             if not state.finished_instance:
                 instances, end = await project.db.stream_instances(state.counter_instance, chunk_size)
                 chunk = DbCommit(instances=instances)
                 state.counter_instance += len(instances)
                 state.finished_instance = end
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
-            elif not state.finished_instance_values:
-                values, end = await project.db.stream_instance_property_values(state.counter_instance_value, chunk_size)
-                chunk = DbCommit(instance_values=values)
-                state.counter_instance_value += len(values)
-                state.finished_instance_values = end
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
-            elif not state.finished_image_values:
-                values, end = await project.db.stream_image_property_values(state.counter_image_value, chunk_size)
-                chunk = DbCommit(image_values=values)
-                state.counter_image_value += len(values)
-                state.finished_image_values = end
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state)))
+                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
 
-    return StreamingResponse(load_routine(), media_type="application/json")
+
+
+            elif not state.finished_instance_values:
+                async for groups in group_property_stream(project.db.stream_instance_property_values_raw(chunk_size)):
+                    arr_list = [
+                        InstanceValuesArray(property_id=pid, ids=ids, values=vals)
+                        for pid, ids, vals in groups
+                    ]
+                    state.counter_instance_value += sum(len(a.values) for a in arr_list)
+                    yield orjson.dumps(asdict(LoadResult(state=state, instance_values=arr_list))) + b'\n'
+                state.finished_instance_values = True
+
+
+            elif not state.finished_image_values:
+                async for groups in group_property_stream(project.db.stream_image_property_values_raw(chunk_size)):
+                    arr_list = [
+                        ImageValuesArray(property_id=pid, sha1s=sha1s, values=vals)
+                        for pid, sha1s, vals in groups
+                    ]
+                    state.counter_image_value += sum(len(a.values) for a in arr_list)
+                    yield orjson.dumps(asdict(LoadResult(state=state, image_values=arr_list))) + b'\n'
+                state.finished_image_values = True
+
+            yield orjson.dumps(asdict(LoadResult(state=state))) + b'\n'
+
+    return StreamingResponse(
+        load_routine(),
+        media_type="application/x-ndjson"  # or "text/event-stream"
+    )
 
 
 @project_router.get("/property")
@@ -130,6 +149,10 @@ async def import_parse_file_route(req: ImportPayload, project: Project = Depends
 async def import_confirm_route(req: ImportPayload, project: Project = Depends(get_project_from_id)):
     await project.importer.import_data_and_commit(exclude=req.exclude, properties=req.properties)
 
+@project_router.post('/import/tags')
+async def upload_file_tag_route(file: UploadFile, property_id: Annotated[int, Form()], project: Project = Depends(get_project_from_id)):
+    res = await project.importer.import_tags(file.file, property_id=property_id)
+    return res
 
 @project_router.post('/export')
 async def export_properties_route(req: ExportPropertiesPayload, project: Project = Depends(get_project_from_id)):
@@ -359,6 +382,15 @@ async def post_settings_route(settings: ProjectSettings, project: Project = Depe
 async def post_delete_empty_clones(project: Project = Depends(get_project_from_id)):
     res = await project.delete_empty_instance_clones()
     return res
+
+@project_router.get('/benchmark')
+async def benchmark(project: Project = Depends(get_project_from_id)):
+    old = time()
+    instances = await project.db.get_instances()
+    values = await project.db.get_property_values_raw()
+    print(time() - old)
+
+    return ORJSONResponse({'instances': instances, 'values': values})
 
 
 class EndpointFilter(logging.Filter):

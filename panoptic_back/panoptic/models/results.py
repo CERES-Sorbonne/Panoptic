@@ -5,7 +5,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from panoptic.models import InstanceProperty, Tag, DbCommit, ExecuteActionPayload, ActionContext, LoadState
+from panoptic.models import InstanceProperty, Tag, DbCommit, ExecuteActionPayload, ActionContext, LoadState, \
+    InstanceValuesArray, ImageValuesArray
 
 
 @dataclass
@@ -67,12 +68,6 @@ class SearchResult:
 
 
 @dataclass
-class ActionError:
-    type: str
-    data: Any
-
-
-@dataclass
 class DeleteTagResult:
     tag_id: int
     updated_values: list[InstanceProperty]
@@ -107,5 +102,7 @@ class Notif:
 
 @dataclass
 class LoadResult:
-    chunk: DbCommit
     state: LoadState
+    chunk: DbCommit | None = None
+    instance_values: list[InstanceValuesArray] | None = None
+    image_values: list[ImageValuesArray] | None = None

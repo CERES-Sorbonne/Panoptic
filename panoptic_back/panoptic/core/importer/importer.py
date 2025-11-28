@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from random import randint
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 import polars as pl
 
@@ -516,6 +516,92 @@ class Importer:
         # Final Flush
         await flush_batch()
         self.clear()
+
+    async def import_tags(self, file: BinaryIO, property_id: int):
+        """
+        Import tags from a CSV file with format: name, color, parents
+        """
+
+        try:
+            # Read CSV using polars
+            df = pl.read_csv(
+                file,
+                separator=';',
+                encoding='utf-8',
+                has_header=False,
+                new_columns=['name', 'color', 'parents'],
+                infer_schema=False
+            )
+
+            tags_to_create = []
+            tag_name_to_temp_id = {}
+
+            # First pass: Create all tags with temporary IDs
+            for row in df.iter_rows(named=True):
+                tag_name = row['name'].strip() if row['name'] else None
+                tag_color = row['color'].strip() if row['color'] else None
+
+                if not tag_name:
+                    continue
+
+                # Parse color (default to random if invalid)
+                try:
+                    color = int(tag_color) if tag_color else randint(1, 12)
+                    # Clamp color to valid range (0-11)
+                    color = max(0, min(11, color))
+                except (ValueError, TypeError):
+                    color = randint(1, 12)
+
+                # Generate temporary ID
+                temp_id = gen_tag_id()
+                tag_name_to_temp_id[tag_name] = temp_id
+
+                # Create tag (parents will be resolved in second pass)
+                tag = Tag(
+                    id=temp_id,
+                    property_id=property_id,  # Will need to be set based on context
+                    value=tag_name,
+                    parents=[],
+                    color=color
+                )
+                tags_to_create.append(tag)
+
+            # Second pass: Resolve parent relationships
+            for i, row in enumerate(df.iter_rows(named=True)):
+                tag_parents = row['parents'].strip() if row['parents'] else ''
+
+                if tag_parents:
+                    # Parse parent names (comma-separated)
+                    parent_names = [p.strip() for p in tag_parents.split(',') if p.strip()]
+
+                    # Map parent names to their temp IDs
+                    parent_ids = []
+                    for parent_name in parent_names:
+                        if parent_name in tag_name_to_temp_id:
+                            parent_ids.append(tag_name_to_temp_id[parent_name])
+
+                    tags_to_create[i].parents = parent_ids
+            print(tags_to_create)
+
+        except Exception as e:
+            # Handle errors gracefully
+            raise ValueError(f"Failed to parse tags CSV: {str(e)}")
+
+        db_tags = await self.project.db.get_tags(prop=property_id)
+        name_to_tag = {tag.value: tag for tag in db_tags}
+
+        to_import = []
+        for tag in tags_to_create:
+            if tag.value not in name_to_tag:
+                to_import.append(tag)
+            else:
+                db_tag = name_to_tag[tag.value]
+                db_tag.parents = list({p for p in db_tag.parents} and {p for p in tag.parents})
+                to_import.append(db_tag)
+        commit = DbCommit(tags=to_import)
+        await self.project.db.apply_commit(commit)
+
+
 
     def clear(self):
         self._new_instances = []

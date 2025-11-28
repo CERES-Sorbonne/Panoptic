@@ -1,6 +1,6 @@
 import json
 
-from panoptic.core.db.utils import auto_dict
+from panoptic.core.project_db.utils import auto_dict
 from panoptic.core.panoptic_db.create import DB_VERSION
 from panoptic.core.panoptic_db.db_connection import DbConnection, panoptic_db_lock
 from panoptic.models import PanopticData, ProjectRef, PluginKey, PluginType, ProjectRef2

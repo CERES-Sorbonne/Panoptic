@@ -8,7 +8,7 @@ from typing import List, Any
 
 from showinfm import show_in_file_manager
 
-from panoptic.core.db.db_connection import DbConnection
+from panoptic.core.project_db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer.importer import Importer
 from panoptic.core.plugin.plugin import APlugin
@@ -267,8 +267,8 @@ class Project:
         self.plugins.append(plugin)
         # self.on.sync.emitProjectState(self.get_state())
 
-    async def run_async(self, function, *args):
+    async def run_async(self, function, *args, **kwargs):
         """
         Make function awaitable and execute in Executor
         """
-        return await asyncio.wrap_future(self.executor.submit(function, *args))
+        return await asyncio.wrap_future(self.executor.submit(function, *args, **kwargs))

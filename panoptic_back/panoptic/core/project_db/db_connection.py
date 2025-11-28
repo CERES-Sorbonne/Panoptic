@@ -6,12 +6,12 @@ import sqlite3
 import aiosqlite
 import numpy as np
 
-from panoptic.core.db.create import tables, DB_VERSION, software_db_version
-from panoptic.core.db.migrations.v3 import v3_sql
-from panoptic.core.db.migrations.v4 import v4_sql
-from panoptic.core.db.migrations.v5 import v5_sql
-from panoptic.core.db.migrations.v6 import v6_sql
-from panoptic.core.db.migrations.v7 import v7_sql
+from panoptic.core.project_db.create import tables, DB_VERSION, software_db_version
+from panoptic.core.project_db.migrations.v3 import v3_sql
+from panoptic.core.project_db.migrations.v4 import v4_sql
+from panoptic.core.project_db.migrations.v5 import v5_sql
+from panoptic.core.project_db.migrations.v6 import v6_sql
+from panoptic.core.project_db.migrations.v7 import v7_sql
 
 aiosqlite.register_adapter(np.array, lambda arr: arr.tobytes())
 aiosqlite.register_converter("array", lambda arr: np.frombuffer(arr, dtype='float32'))

@@ -66,3 +66,35 @@ def verify_tag_color(tags: list[Tag]):
             tag.parents = []
         if tag.color < 0 or tag.color is None:
             tag.color = randint(0, 11)
+
+async def group_property_stream(chunked_stream):
+    """
+    chunked_stream yields (rows, finished)
+    Yields lists of packages:
+    [
+      (property_id, [keys], [values]),
+    ]
+    """
+    packages = []
+    current_property = None
+    keys = []
+    values = []
+
+    async for rows, finished in chunked_stream:
+        for property_id, key, value in rows:
+            if current_property is None:
+                current_property = property_id
+            if property_id != current_property:
+                packages.append((current_property, keys, values))
+                current_property = property_id
+                keys = []
+                values = []
+            keys.append(key)
+            values.append(value)
+        if packages:
+            yield packages
+            packages = []
+        if finished:
+            break
+    if current_property is not None:
+        yield [(current_property, keys, values)]
