@@ -36,13 +36,21 @@ interface Props {
     backgroundColor?: number | string
     showImages: boolean
     showPoints: boolean
+
+    baseImageSize: number
+    maxImageSize: number
+    minImageSize: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
     points: () => [],
     // imagePrefix: 'https://via.placeholder.com/128?text=',
     pointSize: 0.10,
-    backgroundColor: 0x1a1a1a
+    backgroundColor: 0x1a1a1a,
+
+    baseImageSize: 5,
+    maxImageSize: 200,
+    minImageSize: 20
 })
 
 // ----------------------------------------------------------------------
@@ -70,10 +78,17 @@ const textureCache = {
     small: new Map<number, THREE.Texture>(),
     raw: new Map<number, THREE.Texture>()
 }
-
+// FIX: Tracking pending requests to prevent network flooding
+const pendingTextures = {
+    small: new Set<number>(),
+    raw: new Set<number>()
+}
 let animationFrameId: number
 let resizeObserver: ResizeObserver | null = null
 let debounceTimer: ReturnType<typeof setTimeout>
+
+const sharedPlaneGeo = new THREE.PlaneGeometry(1, 1)
+const textureLoader = new THREE.TextureLoader() // FIX: Reusable loader instance
 
 // Mouse Interactivity
 let raycaster: THREE.Raycaster = new THREE.Raycaster();
@@ -308,85 +323,141 @@ watch(() => props.showPoints, updateShowPoints)
 // IMAGE LAZY LOADING (Frustum Culling)
 // ----------------------------------------------------------------------
 
+const getAdaptiveWorldSize = (baseSize, zoom) => {
+    const k = 0.5 
+    let targetVisualSize = baseSize * Math.pow(zoom, k)
+
+    const minPixelSize = props.minImageSize // Use props
+    const maxPixelSize = props.maxImageSize // Use props
+    targetVisualSize = Math.max(minPixelSize, Math.min(targetVisualSize, maxPixelSize))
+
+    return targetVisualSize / zoom
+}
+
+const getTexture = (quality, point) => {
+    // 1. Check if loaded
+    if (textureCache[quality].has(point.id)) {
+        return textureCache[quality].get(point.id)
+    }
+    
+    // 2. Check if already loading (FIX: prevents network flooding)
+    if (pendingTextures[quality].has(point.id)) {
+        // Fallback: If 'raw' is pending, use 'small' if available
+        if (quality === 'raw' && textureCache['small'].has(point.id)) {
+            return textureCache['small'].get(point.id)
+        }
+        return null 
+    }
+    
+    // 3. Start Load
+    pendingTextures[quality].add(point.id)
+    const url = data.baseImgUrl + quality + '/' + point.sha1
+    
+    textureLoader.load( // Use the reusable textureLoader instance
+        url,
+        (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace
+            textureCache[quality].set(point.id, tex)
+            pendingTextures[quality].delete(point.id)
+            
+            // FIX: Rebuild the scene to add the mesh with the new texture
+            debounceImageUpdate() 
+        },
+        undefined,
+        (err) => {
+            console.error('Texture loading failed:', err)
+            pendingTextures[quality].delete(point.id)
+            debounceImageUpdate() // Rebuild to remove placeholder/handle error state
+        }
+    )
+    
+    // 4. Fallback while loading
+    if (quality === 'raw' && textureCache['small'].has(point.id)) {
+        return textureCache['small'].get(point.id)
+    }
+    return null // Return null if not cached and not loading, or if small is also missing
+}
+
 const updateVisibleImages = () => {
     if (!props.showImages || !camera || !imageGroup || !props.points.length) return
-    const group = imageGroup
 
-    // Clear current planes
-    while (group.children.length > 0) {
-        group.remove(group.children[0])
-    }
+    imageGroup.children.forEach((object) => {
+        if (object instanceof THREE.Mesh) {
+            if (Array.isArray(object.material)) {
+                object.material.forEach(m => m.dispose())
+            } else {
+                object.material.dispose()
+            }
+        }
+    })
+
+    imageGroup.clear() 
+    
     ignore_hover_once = true
     
-    // Calc View Bounds
+    // 2. Calculate View Bounds
     const zoom = camera.zoom
     const left = (camera.left / zoom) + camera.position.x
     const right = (camera.right / zoom) + camera.position.x
     const top = (camera.top / zoom) + camera.position.y
     const bottom = (camera.bottom / zoom) + camera.position.y
 
-    let imageSize = (1 / zoom) * 20
-    imageSize = Math.min(200, imageSize)
-    imageSize = Math.max(4, imageSize)
-
+    // 3. Grid / Culling Logic
     let imgQuality = 'small'
-    if (zoom > 5) {
-        imgQuality = 'raw'
-    }
+    if (zoom > 5) imgQuality = 'raw'
 
-    const loader = new THREE.TextureLoader()
     const gridSize = getGridStepSize(zoom) * 1.5
-    let visiblePoints = getPointsInRect(left-gridSize, bottom-gridSize, right+gridSize, top+gridSize)
+    let visiblePoints = getPointsInRect(left - gridSize, bottom - gridSize, right + gridSize, top + gridSize)
+    
     if (gridSize > 1.25) {
         visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
     }
 
+    // 4. Calculate Shared Size
+    const worldSize = getAdaptiveWorldSize(props.baseImageSize, zoom)
+
+    // 5. Render
     visiblePoints.forEach((p) => {
-        // Check if this point is hovered
         const isHovered = hoveredPointId.value === p.id
         const scaleFactor = isHovered ? 2 : 1
         const zPosition = isHovered ? popZ : originalZ
 
-        let quality = isHovered ? 'raw' : imgQuality
+        let quality = (isHovered || imgQuality === 'raw') ? 'raw' : 'small'
+
+        const texture = getTexture(quality, p)
+
+        // FIX: Only render the plane if the texture is ready
+        if (!texture) return 
+
+        const finalWidth = 0.05 * worldSize * p.ratio * scaleFactor
+        const finalHeight = 0.05 * worldSize * scaleFactor
         
-        const planeGeom = new THREE.PlaneGeometry(
-            props.pointSize * imageSize * p.ratio * scaleFactor, 
-            props.pointSize * imageSize * scaleFactor
-        )
+        // Material is now only created when texture is available
         const material = new THREE.MeshBasicMaterial({
+            map: texture,
             color: 0xffffff,
             transparent: true
         })
 
-        if (textureCache[quality].has(p.id)) {
-            material.map = textureCache[quality].get(p.id)!
-        } else {
-            const url = data.baseImgUrl + quality + '/' + p.sha1
-            loader.load(
-                url,
-                (tex) => {
-                    tex.colorSpace = THREE.SRGBColorSpace
-                    textureCache[quality].set(p.id, tex)
-                    material.map = tex
-                    material.needsUpdate = true
-                    
-                    updateView()
-                },
-                undefined,
-                () => material.color.setHex(0xff0000) // Error
-            )
-        }
-
-        const plane = new THREE.Mesh(planeGeom, material)
-        plane.position.set(p.x, p.y, zPosition)
+        const plane = new THREE.Mesh(sharedPlaneGeo, material)
         
-        // Store only the point ID
+        plane.scale.set(finalWidth, finalHeight, 1)
+        plane.position.set(p.x, p.y, zPosition)
         plane.userData.pointId = p.id
         
-        group.add(plane)
+        if (isHovered) plane.renderOrder = 999 
+
+        imageGroup!.add(plane)
     })
 
+    // CRITICAL FIX: Trigger render after all meshes are added/updated
+    updateView() 
 }
+
+watch(props, () => {
+    // Changing the size requires rebuilding the meshes
+    updateVisibleImages()
+})
 
 // ----------------------------------------------------------------------
 // EVENT HANDLERS
@@ -514,6 +585,7 @@ const handleResize = () => {
 const debounceImageUpdate = () => {
     // no debounce for now as it seems to make it bug.
     updateVisibleImages()
+    // updateView()
 }
 
 const animate = () => {
@@ -595,8 +667,8 @@ const handleHover = () => {
  */
 function getGridStepSize(
     zoom: number,
-    baseGridSize: number = 4.0,
-    zoomThresholds: number[] = [0.25, 0.5, 1, 2, 4, 8, 16]
+    baseGridSize: number = 5.0,
+    zoomThresholds: number[] = [0.25, 0.5, 1, 2, 4, 8, 16, 32]
 ): number {
     // Find which threshold we're above
     // Higher zoom = more zoomed in = smaller grid cells
