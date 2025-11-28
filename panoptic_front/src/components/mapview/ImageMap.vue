@@ -78,7 +78,8 @@ let debounceTimer: ReturnType<typeof setTimeout>
 // Mouse Interactivity
 let raycaster: THREE.Raycaster = new THREE.Raycaster();
 let mouse: THREE.Vector2 = new THREE.Vector2();
-let currentlyHoveredPlane: THREE.Mesh | null = null;
+let ignore_hover_once = false
+const hoveredPointId = ref<number | null>(null) // Track which point is hovered
 const originalZ = 0.01; // Base Z position for all images
 const popZ = 0.1;      // Elevated Z position for the hovered image
 
@@ -312,10 +313,11 @@ const updateVisibleImages = () => {
     const group = imageGroup
 
     // Clear current planes
-    // Optimization: In a real app, use an Object Pool here instead of dispose/new
     while (group.children.length > 0) {
         group.remove(group.children[0])
     }
+    ignore_hover_once = true
+    
     // Calc View Bounds
     const zoom = camera.zoom
     const left = (camera.left / zoom) + camera.position.x
@@ -323,8 +325,8 @@ const updateVisibleImages = () => {
     const top = (camera.top / zoom) + camera.position.y
     const bottom = (camera.bottom / zoom) + camera.position.y
 
-    let imageSize = (1 / zoom) * 10
-    imageSize = Math.min(100, imageSize)
+    let imageSize = (1 / zoom) * 20
+    imageSize = Math.min(200, imageSize)
     imageSize = Math.max(4, imageSize)
 
     let imgQuality = 'small'
@@ -333,31 +335,41 @@ const updateVisibleImages = () => {
     }
 
     const loader = new THREE.TextureLoader()
-    const gridSize = getGridStepSize(zoom)
-    let visiblePoints = getPointsInRect(left, bottom, right, top)
+    const gridSize = getGridStepSize(zoom) * 1.5
+    let visiblePoints = getPointsInRect(left-gridSize, bottom-gridSize, right+gridSize, top+gridSize)
     if (gridSize > 1.25) {
         visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
     }
 
-
     visiblePoints.forEach((p) => {
-        const planeGeom = new THREE.PlaneGeometry(props.pointSize * imageSize * p.ratio, props.pointSize * imageSize)
+        // Check if this point is hovered
+        const isHovered = hoveredPointId.value === p.id
+        const scaleFactor = isHovered ? 2 : 1
+        const zPosition = isHovered ? popZ : originalZ
+
+        let quality = isHovered ? 'raw' : imgQuality
+        
+        const planeGeom = new THREE.PlaneGeometry(
+            props.pointSize * imageSize * p.ratio * scaleFactor, 
+            props.pointSize * imageSize * scaleFactor
+        )
         const material = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             transparent: true
         })
 
-        if (textureCache[imgQuality].has(p.id)) {
-            material.map = textureCache[imgQuality].get(p.id)!
+        if (textureCache[quality].has(p.id)) {
+            material.map = textureCache[quality].get(p.id)!
         } else {
-            const url = data.baseImgUrl + imgQuality + '/' + p.sha1
+            const url = data.baseImgUrl + quality + '/' + p.sha1
             loader.load(
                 url,
                 (tex) => {
                     tex.colorSpace = THREE.SRGBColorSpace
-                    textureCache[imgQuality].set(p.id, tex)
+                    textureCache[quality].set(p.id, tex)
                     material.map = tex
                     material.needsUpdate = true
+                    
                     updateView()
                 },
                 undefined,
@@ -366,40 +378,70 @@ const updateVisibleImages = () => {
         }
 
         const plane = new THREE.Mesh(planeGeom, material)
-        plane.position.set(p.x, p.y, 0)
+        plane.position.set(p.x, p.y, zPosition)
+        
+        // Store only the point ID
+        plane.userData.pointId = p.id
+        
         group.add(plane)
     })
+
 }
 
 // ----------------------------------------------------------------------
 // EVENT HANDLERS
 // ----------------------------------------------------------------------
-
 const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera) => {
-    // --- ZOOM ---
+    // --- ZOOM with Pan-to-Mouse ---
     dom.addEventListener('wheel', (e) => {
         e.preventDefault()
+        
+        // Get mouse position in normalized device coordinates (-1 to +1)
+        const rect = dom.getBoundingClientRect()
+        const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1
+        
+        // Convert mouse position to world coordinates BEFORE zoom
+        const worldWidth = (cam.right - cam.left) / cam.zoom
+        const worldHeight = (cam.top - cam.bottom) / cam.zoom
+        const mouseWorldX = cam.position.x + mouseX * worldWidth / 2
+        const mouseWorldY = cam.position.y + mouseY * worldHeight / 2
+        
+        // Apply zoom
+        const oldZoom = cam.zoom
         const zoomSpeed = 0.001 * cam.zoom
         cam.zoom += e.deltaY * -zoomSpeed
         cam.zoom = Math.max(0.01, Math.min(20, cam.zoom))
+        
+        // Calculate new world dimensions after zoom
+        const newWorldWidth = (cam.right - cam.left) / cam.zoom
+        const newWorldHeight = (cam.top - cam.bottom) / cam.zoom
+        
+        // Calculate where the mouse now points in world coordinates
+        const newMouseWorldX = cam.position.x + mouseX * newWorldWidth / 2
+        const newMouseWorldY = cam.position.y + mouseY * newWorldHeight / 2
+        
+        // Adjust camera position so mouse stays over the same world point
+        cam.position.x += mouseWorldX - newMouseWorldX
+        cam.position.y += mouseWorldY - newMouseWorldY
+        
         cam.updateProjectionMatrix()
         updateView()
+        
         // Use debounce for image update logic (if needed)
         if (props.showImages) debounceImageUpdate()
     }, { passive: false })
 
-    // --- PAN (Updated Logic) ---
+    // --- PAN ---
     let isDragging = false
     let prevPos = { x: 0, y: 0 }
 
-    // Get the width/height of the canvas in CSS pixels
     const canvasWidth = dom.clientWidth
     const canvasHeight = dom.clientHeight
 
     dom.addEventListener('mousedown', (e) => {
         isDragging = true
         prevPos = { x: e.clientX, y: e.clientY }
-        // Prevent the default cursor behavior (e.g., text selection)
         dom.style.cursor = 'grabbing'
         updateView()
     })
@@ -409,20 +451,14 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
         const dx = e.clientX - prevPos.x
         const dy = e.clientY - prevPos.y
 
-        // 1. Calculate the current world size visible to the camera.
-        // The total width of the view frustum in world units (WorldSize = FrustumSize / Zoom).
         const worldWidth = (cam.right - cam.left) / cam.zoom
         const worldHeight = (cam.top - cam.bottom) / cam.zoom
 
-        // 2. Calculate the World Scale Factor: World Units per Screen Pixel.
-        // This is the direct proportion you requested!
         const worldScaleX = worldWidth / canvasWidth
         const worldScaleY = worldHeight / canvasHeight
 
-        // 3. Apply the movement. Mouse drag distance (dx, dy) is converted to world units.
-        // dx is inverted because moving the mouse right (positive dx) should move the camera LEFT (negative position change).
         cam.position.x -= dx * worldScaleX
-        cam.position.y += dy * worldScaleY // Y axis is typically inverted between screen (top=0) and world (bottom=0)
+        cam.position.y += dy * worldScaleY
 
         prevPos = { x: e.clientX, y: e.clientY }
         cam.updateProjectionMatrix()
@@ -440,7 +476,6 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
         if (props.showImages) debounceImageUpdate()
     })
 
-    // Also handle mouse leaving the window
     window.addEventListener('mouseleave', () => {
         isDragging = false
         dom.style.cursor = 'default'
@@ -448,15 +483,12 @@ const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera)
 
     dom.style.cursor = 'grab'
 
-    renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+    renderer.domElement.addEventListener('mousemove', onMouseMove, false)
 
     function onMouseMove(event: MouseEvent) {
-        // Convert mouse position to normalized device coordinates (-1 to +1)
         const rect = renderer!.domElement.getBoundingClientRect()
-        // console.log(rect)
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        // console.log(mouse)
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
     }
 }
 
@@ -501,70 +533,54 @@ function updateView() {
 }
 
 const handleHover = () => {
-    if (!camera || !imageGroup || !props.showImages) return;
+    if (!camera || !imageGroup || !props.showImages) return
+    if(ignore_hover_once) {
+        ignore_hover_once = false
+        return
+    }
 
-    raycaster.setFromCamera(mouse, camera);
+    raycaster.setFromCamera(mouse, camera)
 
     // Check intersection with all meshes in the imageGroup
-    const intersects = raycaster.intersectObjects(imageGroup.children);
+    const intersects = raycaster.intersectObjects(imageGroup.children)
 
-    let newHoveredPlane: THREE.Mesh | null = null;
-    let minDistanceSquared = Infinity; // We use squared distance for performance
+    let newHoveredPointId: number | null = null
+    let minDistanceSquared = Infinity
 
     if (intersects.length > 0) {
-        // Find the intersection whose projected center is closest to the mouse (mouse.x, mouse.y)
-
+        // Find the intersection whose projected center is closest to the mouse
         for (const intersect of intersects) {
-            const object = intersect.object as THREE.Mesh;
+            const object = intersect.object as THREE.Mesh
 
-            // 1. Get the object's center in World Coordinates
-            const worldPosition = new THREE.Vector3();
-            object.getWorldPosition(worldPosition);
+            // Get the object's center in World Coordinates
+            const worldPosition = new THREE.Vector3()
+            object.getWorldPosition(worldPosition)
 
-            // 2. Project the World Coordinates onto the Screen (Normalized Device Coordinates: -1 to 1)
-            // Note: We use the camera's current state to perform the projection
-            worldPosition.project(camera);
+            // Project the World Coordinates onto the Screen
+            worldPosition.project(camera)
 
-            // 3. Calculate the 2D distance between the mouse position and the projected center
-            const dx = worldPosition.x - mouse.x;
-            const dy = worldPosition.y - mouse.y;
-            const distanceSquared = dx * dx + dy * dy;
+            // Calculate the 2D distance between the mouse position and the projected center
+            const dx = worldPosition.x - mouse.x
+            const dy = worldPosition.y - mouse.y
+            const distanceSquared = dx * dx + dy * dy
 
-            // 4. Update the closest object
+            // Update the closest object
             if (distanceSquared < minDistanceSquared) {
-                minDistanceSquared = distanceSquared;
-                newHoveredPlane = object;
+                minDistanceSquared = distanceSquared
+                newHoveredPointId = object.userData.pointId
             }
         }
     }
 
-    if (newHoveredPlane !== currentlyHoveredPlane) {
-        // 1. DE-HOVER the old plane
-        if (currentlyHoveredPlane) {
-            applyHoverEffect(currentlyHoveredPlane, false);
-        }
-
-        // 2. HOVER the new plane
-        if (newHoveredPlane) {
-            applyHoverEffect(newHoveredPlane, true);
-        }
-
-        currentlyHoveredPlane = newHoveredPlane;
+    // If hovered point changed, rebuild the images
+    if (newHoveredPointId !== hoveredPointId.value) {
+        hoveredPointId.value = newHoveredPointId
+        updateVisibleImages()
+        updateView()
     }
 
+    // console.log(newHoveredPointId)
 }
-
-const applyHoverEffect = (plane: THREE.Mesh, isHovering: boolean) => {
-    // 1. Z-Position (The "Go Over" effect)
-    plane.position.z = isHovering ? popZ : originalZ;
-
-    // 2. Scale (The "Pop Out" effect)
-    const scaleFactor = isHovering ? 2 : 1.0;
-    plane.scale.set(scaleFactor, scaleFactor, 1);
-
-    updateView()
-}
-
 
 // grid utils
 
