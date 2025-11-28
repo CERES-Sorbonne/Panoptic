@@ -14,10 +14,8 @@ import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import { useInputStore } from '@/data/inputStore';
-import { keyState } from '@/data/keyState';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
-import { apiBenchmark } from '@/data/apiProjectRoutes';
 
 const inputs = useInputStore()
 
@@ -65,7 +63,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 </script>
 
 <template>
-    <div class="d-flex flex-row p-2 align-items-center" @click="apiBenchmark">
+    <div class="d-flex flex-row p-2 align-items-center">
         <!-- <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
             <div class="d-flex flex-row search-input me-5" :class="localQuery ? 'border-primary' : ''">
                 <div class="bi bi-search float-start bi-sm"></div>
