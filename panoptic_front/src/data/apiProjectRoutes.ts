@@ -80,7 +80,7 @@ async function uploadFileWithData(route: string, file: File, data: AdditionalDat
             formData.append(key, String(data[key]))
         }
     }
-    
+
     // Note: When using modern JS libraries (like Axios or Fetch) and FormData,
     // the browser usually sets the 'Content-Type': 'multipart/form-data' 
     // including the boundary automatically. While explicitly setting it often works, 
@@ -190,7 +190,7 @@ export async function apiUploadPropertyCsv(file) {
 }
 
 export async function apiUploadTagsCsv(file, propId) {
-    const res = await uploadFileWithData('/import/tags', file, {property_id: propId })
+    const res = await uploadFileWithData('/import/tags', file, { property_id: propId })
     console.log(res.data)
     return keysToCamel(res.data) as UploadConfirm
 }
@@ -230,7 +230,7 @@ export async function apiDelPlugin(name: string) {
 }
 
 export async function apiUpdatePlugin(name: string) {
-    let res = await axios.post('/plugin/update', {name})
+    let res = await axios.post('/plugin/update', { name })
     return res.data as boolean
 }
 
@@ -343,53 +343,69 @@ export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
     }
 
     const reader = response.body?.getReader()
+    if (!reader) {
+        throw new Error('No reader available')
+    }
+
     const decoder = new TextDecoder()
     let buffer = ''
 
-    // Read the stream chunk by chunk
-    while (true) {
-        const { done, value } = await reader?.read() ?? {}
+    try {
+        while (true) {
+            const { done, value } = await reader.read()
 
-        if (done && buffer) {
-            // If the stream is done and there's data left in the buffer, process it
-            try {
-                const data = JSON.parse(buffer)
-                let res = keysToCamel(data)
-                await callback(res)
-            } catch (e) {
-                console.error('Failed to parse final chunk', e)
-            }
-            break
-        }
-
-        if (done) {
-            break
-        }
-
-        // Decode the chunk and append it to the buffer
-        buffer += decoder.decode(value, { stream: true })
-
-        // Try to parse the JSON objects from the buffer
-        let boundary = buffer.indexOf('}{')  // Look for end of one JSON object and start of the next
-        while (boundary !== -1) {
-            const chunk = buffer.slice(0, boundary + 1)  // Include the complete JSON object
-            buffer = buffer.slice(boundary + 1)  // Remainder to be processed next
-
-            try {
-                const data = JSON.parse(chunk)
-                let res = keysToCamel(data)
-                await callback(res)
-            } catch (e) {
-                console.error('Failed to parse chunk', e)
+            if (done) {
+                // Process any remaining data in buffer
+                if (buffer.trim()) {
+                    try {
+                        const data = JSON.parse(buffer)
+                        const res = keysToCamel(data)
+                        await callback(res)
+                    } catch (e) {
+                        console.error('Failed to parse final chunk:', buffer, e)
+                    }
+                }
+                break
             }
 
-            // Look for another boundary
-            boundary = buffer.indexOf('}{')
+            // Decode the chunk and append to buffer
+            buffer += decoder.decode(value, { stream: true })
+
+            // Split by newlines and process complete lines
+            const lines = buffer.split('\n')
+            
+            // Keep the last incomplete line in the buffer
+            buffer = lines.pop() || ''
+
+            // Process all complete lines
+            for (const line of lines) {
+                const trimmed = line.trim()
+                if (!trimmed) continue // Skip empty lines
+
+                try {
+                    const data = JSON.parse(trimmed)
+                    const res = keysToCamel(data)
+                    await callback(res)
+                } catch (e) {
+                    console.error('Failed to parse line:', trimmed, e)
+                }
+            }
         }
+    } finally {
+        reader.releaseLock()
     }
 }
 
 export async function apiPostDeleteEmptyClones() {
     const res = await projectApi.post('/delete_empty_clones')
     return keysToCamel(res.data)
+}
+
+export async function apiBenchmark() {
+    console.log('start bench')
+    let old = performance.now()
+    const res = await projectApi.get('/benchmark')
+    console.log((performance.now()-old) / 1000)
+    console.log(res.data)
+    return res.data
 }

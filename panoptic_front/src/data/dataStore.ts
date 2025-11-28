@@ -61,13 +61,17 @@ export const useDataStore = defineStore('dataStore', () => {
 
         const vecTypes = await apiGetVectorTypes()
         importVectorTypes(vecTypes)
-        console.log('start stream')
+        // console.log('start stream')
         apiStreamLoadState(async (v) => {
-            applyCommit(v.chunk, true)
+            // console.log('apply')
+            if (v.chunk) {
+                applyCommit(v.chunk, true)
+            }
+            // console.log(v.state)
             loadState.value = v.state
 
             if (isFinished(v.state)) {
-                console.log('stop stream')
+                // console.log('stop stream')
                 const tabStore = useTabStore()
                 await tabStore.init()
                 triggerRefs()
@@ -222,14 +226,14 @@ export const useDataStore = defineStore('dataStore', () => {
 
     function applyMultipleCommits(commits: DbCommit[]) {
         let reloadGroupProp = false
-        for(let commit of commits) {
-            if(hasPropertyChanges(commit)) {
+        for (let commit of commits) {
+            if (hasPropertyChanges(commit)) {
                 reloadGroupProp = true
             }
             applyCommit(commit, true)
         }
         triggerRefs()
-        if(reloadGroupProp) {
+        if (reloadGroupProp) {
             computePropertyTree()
         }
     }
