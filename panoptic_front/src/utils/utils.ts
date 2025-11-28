@@ -454,3 +454,80 @@ export function useEventSignal() {
   
   return { emit, on }
 }
+
+/**
+ * Generates an array of visually distinct colors by distributing them equally around the HSL color wheel.
+ *
+ * @param nb_groups The number of distinct colors to generate.
+ * @returns An array of color strings in Hexadecimal format (e.g., '#FF0000').
+ */
+export function generateColors(nb_groups: number): string[] {
+    if (nb_groups <= 0) {
+        return [];
+    }
+
+    const colors: string[] = [];
+    const step = 360 / nb_groups; // The angle between each color on the wheel
+
+    // Fix Saturation (S) and Lightness (L) for vivid, clear colors:
+    // S=100% (fully saturated)
+    // L=50% (mid-range, avoids being too dark or too light)
+    const saturation = 100;
+    const lightness = 50;
+
+    for (let i = 0; i < nb_groups; i++) {
+        const hue = Math.floor(i * step); // Calculate the hue angle (0 to 359)
+        const hslColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        
+        // Convert the HSL string to Hex for broad compatibility
+        colors.push(hslToHex(hue, saturation, lightness));
+    }
+
+    return colors;
+}
+
+// ----------------------------------------------------------------------
+// HELPER: HSL to HEX Conversion (Required for standard web output)
+// ----------------------------------------------------------------------
+
+/**
+ * Converts HSL values to a standard Hexadecimal color string.
+ * This helper function ensures the output is in the widely used #RRGGBB format.
+ * * @param h Hue (0-360)
+ * @param s Saturation (0-100)
+ * @param l Lightness (0-100)
+ * @returns Hexadecimal color string (e.g., '#FF0000')
+ */
+function hslToHex(h: number, s: number, l: number): string {
+    // Convert S and L from percentage to decimal (0-1)
+    s /= 100;
+    l /= 100;
+
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+
+    if (h >= 0 && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (h >= 60 && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (h >= 120 && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (h >= 180 && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (h >= 240 && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (h >= 300 && h < 360) {
+        r = c; g = 0; b = x;
+    }
+    
+    // Convert R, G, B from (0-1) + m to (0-255)
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    const toHex = (c: number) => c.toString(16).padStart(2, '0');
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
