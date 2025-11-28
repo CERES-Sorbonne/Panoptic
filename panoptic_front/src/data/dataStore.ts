@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, Instance, InstanceIndex, InstancePropertyValue, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
 import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
@@ -64,6 +64,12 @@ export const useDataStore = defineStore('dataStore', () => {
         // console.log('start stream')
         apiStreamLoadState(async (v) => {
             // console.log('apply')
+            if(v.instanceValues) {
+                importInstanceValuesArray(v.instanceValues)
+            }
+            if(v.imageValues) {
+                importImageValuesArray(v.imageValues)
+            }
             if (v.chunk) {
                 applyCommit(v.chunk, true)
             }
@@ -214,6 +220,57 @@ export const useDataStore = defineStore('dataStore', () => {
                 }
                 instances.value[img.id].properties[v.propertyId] = v.value
                 dirtyInstances.add(img.id)
+            }
+        }
+    }
+
+    function importInstanceValuesArray(instanceValuesArrays: InstanceValuesArray[]) {
+        const props = properties.value
+        const insts = instances.value
+
+        for (let arr of instanceValuesArrays) {
+            const propertyId = arr.propertyId
+            const isTagProperty = isTag(props[propertyId].type)
+
+            for (let i = 0; i < arr.ids.length; i++) {
+                const instanceId = arr.ids[i]
+                const value = arr.values[i]
+
+                if (value == undefined) continue
+
+                if (isTagProperty) {
+                    updateTagCount(insts[instanceId].properties[propertyId], value)
+                }
+
+                instances.value[instanceId].properties[propertyId] = value
+                dirtyInstances.add(instanceId)
+            }
+        }
+    }
+
+    function importImageValuesArray(imageValuesArrays: ImageValuesArray[]) {
+        const props = properties.value
+        const insts = instances.value
+
+        for (let arr of imageValuesArrays) {
+            const propertyId = arr.propertyId
+            const isTagProperty = isTag(props[propertyId].type)
+
+            for (let i = 0; i < arr.sha1s.length; i++) {
+                const sha1 = arr.sha1s[i]
+                const value = arr.values[i]
+
+                if (value == undefined) continue
+                if (sha1Index.value[sha1] == undefined) continue
+
+                for (let img of sha1Index.value[sha1]) {
+                    if (isTagProperty) {
+                        updateTagCount(insts[img.id].properties[propertyId], value)
+                    }
+
+                    instances.value[img.id].properties[propertyId] = value
+                    dirtyInstances.add(img.id)
+                }
             }
         }
     }
