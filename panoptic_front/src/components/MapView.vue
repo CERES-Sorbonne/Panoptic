@@ -7,8 +7,14 @@ import { ActionResult } from '@/data/models'
 // Assuming ImageMap is the component you provided in the previous turn
 import ImageMap, { PointData } from './mapview/ImageMap.vue' 
 import { useDataStore } from '@/data/dataStore'
+import { TabManager } from '@/core/TabManager'
+import { generateColors } from '@/utils/utils'
 
 const data = useDataStore()
+
+const props = defineProps<{
+    tab: TabManager
+}>()
 
 const emits = defineEmits([])
 
@@ -49,6 +55,31 @@ function showResult(res: ActionResult) {
     }
     
     // mapElem.value.updatePoints(points) // Use the exposed function if needed, but watch on props handles it
+}
+
+function colorGroups() {
+    let groupManager = props.tab.collection.groupManager
+    let groups = groupManager.result.root.children
+
+    if(groups.length == 0) return
+
+    let colors = generateColors(groups.length)
+    const groupToColor = {}
+    const idToGroupId = {}
+    groups.forEach((g, index) => groupToColor[g.id] = index)
+    for(let group of groups) {
+        for(let img of group.images) {
+            idToGroupId[img.sha1] = group.id
+        }
+    }
+
+    for(let point of points.value) {
+        let groupId = idToGroupId[point.sha1]
+        let colorIndex = groupToColor[groupId]
+        point.color = colors[colorIndex]
+    }
+
+    mapElem.value.updatePoints()
 }
 
 </script>
@@ -103,6 +134,8 @@ function showResult(res: ActionResult) {
                 />
                 <span>{{ maxImageSize }}</span>
             </div>
+
+            <div class="bbb" @click="colorGroups()"> Color Groups</div>
         </div>
         
         <hr>
