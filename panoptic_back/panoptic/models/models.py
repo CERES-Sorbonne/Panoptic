@@ -99,6 +99,19 @@ class PropertyGroup:
 
 
 @dataclass(slots=True)
+class ImageValuesArray:
+    property_id: int
+    sha1s: list[str]
+    values: list[Any]
+
+@dataclass(slots=True)
+class InstanceValuesArray:
+    property_id: int
+    ids: list[str]
+    values: list[Any]
+
+
+@dataclass(slots=True)
 class LoadState:
     finished_property: bool = False
     finished_instance: bool = False

@@ -8,8 +8,8 @@ from typing import List
 
 from pypika import Table, PostgreSQLQuery, Order, functions
 
-from panoptic.core.db.db_connection import DbConnection, db_lock
-from panoptic.core.db.utils import auto_dict, decode_if_json
+from panoptic.core.project_db.db_connection import DbConnection, db_lock
+from panoptic.core.project_db.utils import auto_dict, decode_if_json
 from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
     InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup, VectorType
 from panoptic.models import Tag, Property, Folder
@@ -180,6 +180,48 @@ class Db:
             cursor = await self.conn.execute_query(full_query, tuple(params))
             res.extend([InstanceProperty(**auto_dict(value, cursor)) for value in await cursor.fetchall()])
         return res
+
+    async def stream_instance_property_values_raw(self, chunk_size: int):
+        query = """
+            SELECT property_id, instance_id, value
+            FROM instance_property_values
+            ORDER BY property_id, instance_id
+        """
+
+        cursor = await self.conn.execute_query(query)
+
+        while True:
+            rows = await cursor.fetchmany(chunk_size)
+            if not rows:
+                break
+            yield rows
+
+    async def stream_image_property_values_raw(self, chunk_size: int):
+        query = """
+            SELECT property_id, sha1, value
+            FROM image_property_values
+            ORDER BY property_id, sha1
+        """
+
+        cursor = await self.conn.execute_query(query)
+
+        while True:
+            rows = await cursor.fetchmany(chunk_size)
+            if not rows:
+                break
+            yield rows
+
+    async def get_image_values_raw(self):
+        query = "SELECT property_id, sha1, value FROM image_property_values;"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        return rows
+
+    async def get_instance_values_raw(self):
+        query = "SELECT property_id, instance_id, value FROM instance_property_values;"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        return rows
 
     async def get_image_property_values(self, property_ids: List[int] = None, sha1s: list[str] = None) \
             -> list[ImageProperty]:

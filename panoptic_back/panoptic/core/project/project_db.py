@@ -1,13 +1,15 @@
 from __future__ import annotations
+
+import asyncio
 from random import randint
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
 
-from panoptic.core.db.db import Db
-from panoptic.core.db.db_connection import DbConnection
-from panoptic.core.db.utils import safe_update_tag_parents, verify_tag_color
+from panoptic.core.project_db.db import Db
+from panoptic.core.project_db.db_connection import DbConnection
+from panoptic.core.project_db.utils import safe_update_tag_parents, verify_tag_color
 from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEvent
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
@@ -94,6 +96,10 @@ class ProjectDb:
     # =============== Property Values =====================
     # =====================================================
 
+    async def get_property_values_raw(self):
+        image_values, instance_values = await asyncio.gather(self._db.get_image_values_raw(), self._db.get_instance_values_raw())
+        return image_values, instance_values
+
     async def get_property_values(self, instances: list[Instance], property_ids: list[int] = None, no_computed=False) \
             -> list[InstanceProperty]:
         instance_ids = [i.id for i in instances]
@@ -132,6 +138,33 @@ class ProjectDb:
     async def stream_image_property_values(self, position: int, chunk_size: int):
         res = await self._db.stream_image_property_values(position, chunk_size)
         return res, len(res) < chunk_size
+
+    async def stream_instance_property_values_raw(self, chunk_size: int):
+        """
+        Streams instance_property_values in chunks using the raw SQLite cursor.
+        Returns: (rows, finished)
+        """
+        # Get the async generator from the new raw function
+        raw_gen = self._db.stream_instance_property_values_raw(chunk_size)
+
+        async for rows in raw_gen:
+            # rows is already a raw list of tuples
+            yield rows, False
+
+        # After the generator is exhausted → last "finished" signal
+        yield [], True
+
+    async def stream_image_property_values_raw(self, chunk_size: int):
+        """
+        Streams image_property_values in chunks using the raw SQLite cursor.
+        Returns: (rows, finished)
+        """
+        raw_gen = self._db.stream_image_property_values_raw(chunk_size)
+
+        async for rows in raw_gen:
+            yield rows, False
+
+        yield [], True
 
     @staticmethod
     def get_computed_values(instances: list[Instance]):
