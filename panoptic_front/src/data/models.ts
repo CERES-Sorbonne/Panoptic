@@ -101,6 +101,18 @@ export interface ImagePropertyValue {
     value: any
 }
 
+export interface ImageValuesArray {
+    propertyId: number
+    sha1s: string[]
+    values: any[]
+}
+
+export interface InstanceValuesArray {
+    propertyId: number
+    ids: string[]
+    values: any[]
+}
+
 export interface PropertyRef extends PropertyValue {
     type: PropertyType
     imageId: number
@@ -657,8 +669,10 @@ export enum PropertyGroupId {
 }
 
 export interface LoadResult {
-    chunk: DbCommit
+    chunk?: DbCommit
     state: LoadState
+    instanceValues?: InstanceValuesArray[]
+    imageValues?: ImageValuesArray[]
 }
 
 export interface LoadState {
