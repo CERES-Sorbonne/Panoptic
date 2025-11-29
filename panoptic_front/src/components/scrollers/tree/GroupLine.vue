@@ -202,11 +202,11 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" />
+                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" class="bbb"/>
             </div>
             <div class="ms-2">
                 <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
-                    @groups="addClusters" />
+                    @groups="addClusters" class="bbb"/>
             </div>
 
             <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
@@ -215,11 +215,11 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                 </wTT>
             </div>
             <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.close-clusters">
-                <div class="sbb cluster-close" @click="clear">X Clusters</div>
+                <div class="bbb cluster-close" @click="clear">X Clusters</div>
             </wTT>
 
             <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.save-clusters">
-                <div class="sbb cluster-close" @click="saveHirachy">
+                <div class="bbb cluster-close" @click="saveHirachy">
                     <span style="position: relative; top: 1px">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
                         <i v-if="!saving" class="bi bi-diagram-3"></i>
@@ -259,9 +259,9 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 
 .cluster-close {
     font-size: 10px;
-    padding: 0px 3px;
-    line-height: 16px;
+    padding: 1.5px 3px;
+    /* line-height: 16px; */
     /* color: grey; */
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
 }
 </style>

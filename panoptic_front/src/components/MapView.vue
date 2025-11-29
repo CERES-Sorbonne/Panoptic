@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, shallowRef } from 'vue'
-import ActionSelect from './actions/ActionSelect.vue'
-import FunctionButton from './actions/FunctionButton.vue'
 import ActionSelectButton from './actions/ActionSelectButton.vue'
 import { ActionResult } from '@/data/models'
 // Assuming ImageMap is the component you provided in the previous turn
-import ImageMap, { PointData } from './mapview/ImageMap.vue' 
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors } from '@/utils/utils'
+import { PointData } from '@/mixins/useMapLogic'
+import ImageMap from './mapview/ImageMap.vue'
 
 const data = useDataStore()
 
@@ -78,7 +77,6 @@ function colorGroups() {
         let colorIndex = groupToColor[groupId]
         point.color = colors[colorIndex]
     }
-
     mapElem.value.updatePoints()
 }
 
@@ -143,7 +141,7 @@ function colorGroups() {
         <div class="flex-grow-1" style="margin-right: 10px; margin-top: 8px;">
             <ImageMap 
                 :points="points" 
-                :point-size="0.3" 
+                :point-size="5" 
                 :show-images="showImages" 
                 :show-points="showPoints" 
                 background-color="#FFFFFF" 

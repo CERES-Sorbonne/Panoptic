@@ -80,8 +80,8 @@ async function apply() {
 <template>
     <Dropdown ref="dropdownElem" :teleport="true">
         <template #button>
-            <div :class="props.noBorder ? '' : 'button'"
-                style="font-size: 10px; color: rgb(33, 37, 41); padding-bottom: 0.5px;padding-top: 0.5px;">
+            <div :class="props.noBorder ? '' : 'bbb'"
+                style="font-size: 10px; color: rgb(33, 37, 41);">
                 <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
                     $t('main.menu.selected_images') }}</span>
                 <span v-else>{{ $t('modals.tagging.button') }}</span>
