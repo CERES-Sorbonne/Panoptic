@@ -182,20 +182,20 @@ async def get_folders_route(project: Project = Depends(get_project_from_id)):
     return res
 
 
-@project_router.get('/update')
-async def get_update_route(project: Project = Depends(get_project_from_id)):
-    update = Update()
-    if project.ui.commits:
-        update.commits = [*project.ui.commits]
-    if project.ui.plugins:
-        update.plugins = [*project.ui.plugins]
-    if project.ui.actions:
-        update.actions = [*project.ui.actions]
-    project.ui.clear()
-
-    update.status = project.get_status_update()
-
-    return update
+# @project_router.get('/update')
+# async def get_update_route(project: Project = Depends(get_project_from_id)):
+#     update = Update()
+#     if project.ui.commits:
+#         update.commits = [*project.ui.commits]
+#     if project.ui.plugins:
+#         update.plugins = [*project.ui.plugins]
+#     if project.ui.actions:
+#         update.actions = [*project.ui.actions]
+#     project.ui.clear()
+#
+#     update.status = project.get_status_update()
+#
+#     return update
 
 
 class PathRequest(BaseModel):

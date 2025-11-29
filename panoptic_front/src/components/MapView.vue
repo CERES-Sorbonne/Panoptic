@@ -143,7 +143,7 @@ function colorGroups() {
         <div class="flex-grow-1" style="margin-right: 10px; margin-top: 8px;">
             <ImageMap 
                 :points="points" 
-                :point-size="0.2" 
+                :point-size="0.3" 
                 :show-images="showImages" 
                 :show-points="showPoints" 
                 background-color="#FFFFFF" 
