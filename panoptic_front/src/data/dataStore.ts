@@ -234,7 +234,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
             for (let i = 0; i < arr.ids.length; i++) {
                 const instanceId = arr.ids[i]
-                const value = arr.values[i]
+                const value = JSON.parse(arr.values[i])
 
                 if (value == undefined) continue
 
@@ -258,7 +258,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
             for (let i = 0; i < arr.sha1s.length; i++) {
                 const sha1 = arr.sha1s[i]
-                const value = arr.values[i]
+                const value = JSON.parse(arr.values[i])
 
                 if (value == undefined) continue
                 if (sha1Index.value[sha1] == undefined) continue
