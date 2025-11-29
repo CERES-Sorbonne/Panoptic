@@ -45,7 +45,7 @@ function loadInput() {
     const params = actions.index[funcId].params
     const defaults = actions.getContext(funcId).uiInputs
 
-    for(let param of params) {
+    for (let param of params) {
         param.defaultValue = defaults[param.name]
     }
 
@@ -103,44 +103,47 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div id="group-action-button" class="main d-flex flex-center" v-if="localFunction">
+    <div class="main d-flex flex-center" v-if="localFunction">
         <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <wTT :message="'dropdown.action.' + props.action">
-            <div @click="call">{{ $t('action.' + props.action) }}</div>
+        <wTT :message="'dropdown.action.' + props.action" @click="call" class="">
+            <div style="padding: 2px 4px;">{{ $t('action.' + props.action) }}</div>
         </wTT>
-        <div class="sep ms-1"></div>
-        <Dropdown :teleport="true" @show="loadAction">
-            <template #button>
-                <div class="bb" style="margin: 0 1px; font-size: 8px;"><i class="bi bi-chevron-down"></i></div>
-            </template>
-            <template #popup="{ hide }">
-                <Autofocus @keydown.enter="call(); hide();">
-                    <div style="min-width: 200px;" class="p-1">
-                        <div class="">
-                            <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true" :size="12" />
-                        </div>
-                        <div class="ps-1 pt-1 pb-1">
-                            <form @submit.prevent="" class="">
-                                <div v-for="input, i in localInputs" class="mb-1">
-                                    <ParamInput :input="input" :source="source"/>
-                                </div>
-                                <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
-                                    <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                            style="position: relative; top: 2px" /></div>
-                                    <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}
+        <div class="options">
+            <Dropdown :teleport="true" @show="loadAction">
+                <template #button>
+                    <div><i class="bi bi-gear"></i></div>
+                </template>
+                <template #popup="{ hide }">
+                    <Autofocus @keydown.enter="call(); hide();">
+                        <div style="min-width: 200px;" class="p-1">
+                            <div class="">
+                                <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true"
+                                    :size="12" />
+                            </div>
+                            <div class="ps-1 pt-1 pb-1">
+                                <form @submit.prevent="" class="">
+                                    <div v-for="input, i in localInputs" class="mb-1">
+                                        <ParamInput :input="input" :source="source" />
                                     </div>
-                                    <div class="ms-2 flex-grow-1"></div>
-                                    <div class="bb" @click="hide">{{ $t('cancel') }}</div>
-                                    <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
-                                </div>
-                            </form>
+                                    <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
+                                        <div class="me-1"><input type="checkbox" v-model="setDefault"
+                                                style="position: relative; top: 2px" /></div>
+                                        <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default')
+                                        }}
+                                        </div>
+                                        <div class="ms-2 flex-grow-1"></div>
+                                        <div class="bb" @click="hide">{{ $t('cancel') }}</div>
+                                        <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                </Autofocus>
-            </template>
-        </Dropdown>
+                    </Autofocus>
+                </template>
+            </Dropdown>
+        </div>
     </div>
 </template>
 
@@ -148,7 +151,7 @@ watch(localFunction, loadInput)
 .main {
     border: 1px solid var(--border-color);
     border-radius: 3px;
-    padding: 1px 0px 1px 3px;
+    /* padding: 1px 0px 1px 3px; */
     cursor: pointer;
     height: 20px;
 }
@@ -157,4 +160,13 @@ watch(localFunction, loadInput)
     padding-left: 2px;
     padding-right: 2px;
 } */
+
+.options {
+    border-radius: 2px;
+    padding: 0px 2px;
+}
+
+.options:hover {
+    background-color: white;
+}
 </style>
