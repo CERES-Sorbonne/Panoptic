@@ -5,7 +5,7 @@ import PropertyIcon from '../properties/PropertyIcon.vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import { useDataStore } from '@/data/dataStore';
 import GridPropInput from '../scrollers/grid/GridPropInput.vue';
-import { ref, shallowRef } from 'vue';
+import { nextTick, ref, shallowRef } from 'vue';
 
 const data = useDataStore()
 
@@ -35,8 +35,11 @@ function toggleProperty(property: Property) {
 }
 
 async function paint(index: number, propertyId: number) {
-    await inputElem.value[index].waitForDbAction()
-    emits('paint', { instanceId: props.image.id, propertyId: propertyId })
+    setTimeout(async () => {
+        await inputElem.value[propertyId].waitForDbAction()
+        emits('paint', { instanceId: props.image.id, propertyId: propertyId })
+    }, 100)
+
 }
 </script>
 
@@ -53,7 +56,8 @@ async function paint(index: number, propertyId: number) {
                     </td>
                     <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
                         <GridPropInput v-if="property.id > 0" :property="data.properties[property.id]" :instance="image"
-                            :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20" />
+                            :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20"
+                            :ref="e => inputElem[property.id] = e" />
                     </td>
                     <td v-else class="border-left" colspan="2" style="">
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{
@@ -64,8 +68,7 @@ async function paint(index: number, propertyId: number) {
                     </td>
 
                     <td v-if="!property.computed" class="text-center btn-icon border-left"
-                        style="padding: 4px 3px 0px 5px; width: 24px;"
-                        @click="paint(index, property.id)"
+                        style="padding: 4px 3px 0px 5px; width: 24px;" @mouseup="paint(index, property.id)"
                         @mouseenter="emits('hover')" @mouseleave="emits('hoverEnd')">
                         <wTT message="modals.image.fill_property_tooltip">
                             <i class="bi bi-paint-bucket"></i>
