@@ -196,17 +196,16 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
-        <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
+        <template v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-2">
-                <StampDropdown :images="images" />
+                <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 12px;" />
             </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" class="bbb"/>
+                <ActionButton action="group" :images="group.images" @groups="addClusters" class="bbb" />
             </div>
             <div class="ms-2">
-                <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
-                    @groups="addClusters" class="bbb"/>
+                <ActionButton action="execute" :images="instancesForExecute" @groups="addClusters" class="bbb" />
             </div>
 
             <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
@@ -230,7 +229,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                 </div>
             </wTT>
             <!-- <span v-if="group.isSha1Group">lala</span> -->
-        </div>
+        </template>
 
     </div>
 </template>
@@ -245,6 +244,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
     /* position: relative; */
     height: 30px;
     /* line-height: 25px; */
+    align-items: center;
 }
 
 .group-line-border {

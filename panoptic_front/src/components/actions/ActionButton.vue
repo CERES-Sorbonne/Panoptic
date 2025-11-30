@@ -108,7 +108,7 @@ watch(localFunction, loadInput)
             <span class="visually-hidden">Loading...</span>
         </div>
         <wTT :message="'dropdown.action.' + props.action" @click="call" class="">
-            <div style="padding: 2px 4px;">{{ $t('action.' + props.action) }}</div>
+            <div style="padding: 0px 4px;">{{ $t('action.' + props.action) }}</div>
         </wTT>
         <div class="options">
             <Dropdown :teleport="true" @show="loadAction">
@@ -153,7 +153,8 @@ watch(localFunction, loadInput)
     border-radius: 3px;
     /* padding: 1px 0px 1px 3px; */
     cursor: pointer;
-    height: 20px;
+    /* height: 20px; */
+    font-size: 12px;
 }
 
 /* .sep {
@@ -163,7 +164,8 @@ watch(localFunction, loadInput)
 
 .options {
     border-radius: 2px;
-    padding: 0px 2px;
+    padding: 0px 2px 0 2px;
+    margin-right: -2px;
 }
 
 .options:hover {

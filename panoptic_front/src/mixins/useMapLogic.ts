@@ -13,7 +13,8 @@ export interface PointData {
     color: string
     sha1: string
     ratio: number,
-    id?: number
+    id?: number,
+    border?: boolean
 }
 
 interface PointCloudVizParams {
@@ -295,23 +296,6 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
     }
 
     /**
-     * Updates the color of a single point in the point cloud.
-     */
-    const setPointColor = (sha1: string, color: string) => {
-        if (!instancedMesh) return
-
-        const index = idMap.get(sha1)
-        if (index === undefined) return
-
-        const colors = instancedMesh.geometry.getAttribute("color") as THREE.BufferAttribute
-
-        const c = new THREE.Color(color)
-        colors.setXYZ(index, c.r, c.g, c.b)
-        colors.needsUpdate = true
-        updateView()
-    }
-
-    /**
      * Toggles the visibility of the image group.
      */
     const updateShowImages = (active: boolean) => {
@@ -566,7 +550,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         updateVisibleImages()
     }
 
-    
+
 
     const updateVisibleImages = () => {
         if (!props.showImages || !camera || !imageGroup || !props.points.length) return
@@ -599,8 +583,8 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         const gridSize = getGridStepSize(zoom) * 1.5
         let visiblePoints = getPointsInRect(left - gridSize, bottom - gridSize, right + gridSize, top + gridSize)
 
-        if (gridSize > 4) {
-            visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
+        if (gridSize > 2) {
+            visiblePoints = selectImagesForGrid(visiblePoints, gridSize).map(p => treeToPointMap.get(p.id))
         }
 
         // 4. Calculate Shared Size
@@ -609,6 +593,93 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         // Clear state map for points no longer visible, but retain scale for points still visible
         const nextAnimationStateMap = new Map<number, ImageAnimationState>()
 
+
+const sharedMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        map: { value: null },
+        borderColor: { value: new THREE.Color(0x000000) },
+        borderWidth: { value: 0.02 },
+        borderRadius: { value: 0.1 },
+        showBorder: { value: 1.0 },
+        applyRadius: { value: 1.0 },
+        textureSize: { value: new THREE.Vector2(1, 1) }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D map;
+        uniform vec3 borderColor;
+        uniform float borderWidth;
+        uniform float borderRadius;
+        uniform float showBorder;
+        uniform float applyRadius;
+        uniform vec2 textureSize;
+        varying vec2 vUv;
+        
+        vec3 linearToSRGB(vec3 color) {
+            return pow(color, vec3(1.0 / 2.2));
+        }
+        
+        float roundedBoxSDF(vec2 centerPos, vec2 size, float radius) {
+            return length(max(abs(centerPos) - size + radius, 0.0)) - radius;
+        }
+        
+        void main() {
+            vec4 texColor = texture2D(map, vUv);
+            
+            // Calculate aspect ratio
+            float aspectRatio = textureSize.x / textureSize.y;
+            
+            // Center position (-0.5 to 0.5)
+            vec2 pos = vUv - 0.5;
+            
+            // Adjust for aspect ratio
+            if (aspectRatio > 1.0) {
+                pos.x *= aspectRatio;
+            } else {
+                pos.y /= aspectRatio;
+            }
+            
+            // Box size
+            vec2 size = vec2(aspectRatio > 1.0 ? aspectRatio : 1.0, aspectRatio > 1.0 ? 1.0 : 1.0 / aspectRatio) * 0.5;
+            
+            // Use border radius only if applyRadius is enabled
+            float radius = borderRadius * applyRadius;
+            
+            // Distance from rounded box edge
+            float dist = roundedBoxSDF(pos, size, radius);
+            
+            // Border is the region between the outer edge and inner edge
+            float outerEdge = 0.0;
+            float innerEdge = -borderWidth;
+            
+            // Is this pixel in the border region?
+            float inBorder = step(innerEdge, dist) * step(dist, outerEdge);
+            
+            // Apply showBorder toggle
+            float borderMask = inBorder * showBorder;
+            
+            // Mix between texture color and border color
+            vec3 finalColor = mix(texColor.rgb, borderColor, borderMask);
+            
+            // Apply color space conversion
+            vec3 color = linearToSRGB(finalColor);
+            
+            // Apply rounded corners (clip outside) only if applyRadius is enabled
+            float alpha = texColor.a * mix(1.0, step(dist, 0.0), applyRadius);
+            
+            gl_FragColor = vec4(color, alpha);
+        }
+    `,
+    transparent: true
+});
+        // console.log('update visible')
         // 5. Render and Update Animation Targets
         visiblePoints.forEach((p) => {
             const isHovered = hoveredPointId.value === p.id
@@ -630,18 +701,35 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
             if (!state) {
                 state = {
                     targetScale: targetScaleFactor,
-                    currentScale: targetScaleFactor === maxHoverScale ? ((1+maxHoverScale)/2) : 1, // Start a little offset to ensure it scales if new
+                    currentScale: targetScaleFactor === maxHoverScale ? ((1 + maxHoverScale) / 2) : 1, // Start a little offset to ensure it scales if new
                     mesh: null! // Will be set below
                 }
             }
             state.targetScale = targetScaleFactor // Update target
 
             // 2. Create Mesh
-            const material = new THREE.MeshBasicMaterial({
-                map: texture,
-                color: 0xffffff,
-                transparent: true
-            })
+            // const material = new THREE.MeshBasicMaterial({
+            //     map: texture,
+            //     color: 0xffffff,
+            //     transparent: true
+            // })
+
+            const material = sharedMaterial.clone()
+            texture.colorSpace = THREE.SRGBColorSpace
+            material.uniforms.map.value = texture;
+            if (texture.image) {
+                material.uniforms.textureSize.value.set(
+                    (texture.image as any).width,
+                    (texture.image as any).height
+                );
+            }
+            if (p.border) {
+                material.uniforms.showBorder.value = true
+                // material.uniforms.borderWidth.value = 0.04
+                material.uniforms.borderColor.value = new THREE.Color(p.color)
+            } else {
+                material.uniforms.showBorder.value = false
+            }
 
             const plane = new THREE.Mesh(sharedPlaneGeo, material)
 
@@ -755,7 +843,6 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         processPoints,
         updateShowImages,
         updateShowPoints,
-        setPointColor,
         updateView, // Exposed for external render trigger if needed
     }
 }

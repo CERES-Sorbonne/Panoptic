@@ -50,7 +50,7 @@ function setQuery(query) {
 }
 
 function deleteQuery() {
-    props.tab.collection.filterManager.setQuery({type: 'text', text: ''})
+    props.tab.collection.filterManager.setQuery({ type: 'text', text: '' })
     props.tab.collection.filterManager.update(true)
 }
 
@@ -73,7 +73,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             </div>
         </wTT> -->
 
-        <TextSearchInput class="me-3" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery"/>
+        <TextSearchInput class="me-3" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery" />
 
         <div class="me-3 d-flex">
             <wTT message="main.menu.grid_tooltip">
@@ -93,8 +93,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                 </i>
             </wTT>
             <wTT message="main.menu.map_tooltip">
-                <i id="toot"
-                    :class="'bi bi-map btn-icon' + (props.tab.state.display == 'map' ? '' : ' text-secondary')"
+                <i id="toot" :class="'bi bi-map btn-icon' + (props.tab.state.display == 'map' ? '' : ' text-secondary')"
                     @click="props.tab.setViewMode('map')">
                 </i>
             </wTT>
@@ -117,10 +116,12 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div class="ms-4">
             <HistoryDropdown />
         </div>
-        <SelectionStamp id="selection-stamp" v-if="hasSelectedImages" class="ms-5"
-            :selected-images-ids="selectedImageIds"
-            @remove:selected="props.tab.collection.groupManager.clearSelection()"
-            @stamped="props.tab.collection.groupManager.clearSelection()" />
+        <div>
+            <SelectionStamp v-if="hasSelectedImages" class="ms-5" style="font-size: 14px;"
+                :selected-images-ids="selectedImageIds"
+                @remove:selected="props.tab.collection.groupManager.clearSelection()"
+                @stamped="props.tab.collection.groupManager.clearSelection()" />
+        </div>
         <div class="flex-grow-1"></div>
         <wTT message="main.menu.issue" class="bb ">
             <a href="https://github.com/CERES-Sorbonne/Panoptic/issues/new/choose" target="_blank"
