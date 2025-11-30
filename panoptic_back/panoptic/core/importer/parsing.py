@@ -27,6 +27,12 @@ def parse_tags(value):
     return value.split(',')
 
 
+def parse_tag(value):
+    if value is None:
+        return None
+    return [str(value)]
+
+
 def parse_checkbox(value):
     if value is None or value == '':
         return None
@@ -34,7 +40,7 @@ def parse_checkbox(value):
 
 
 parser = {
-    PropertyType.tag: parse_string,
+    PropertyType.tag: parse_tag,
     PropertyType.multi_tags: parse_tags,
     PropertyType.string: parse_string,
     PropertyType.number: parse_number,
