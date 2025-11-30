@@ -19,7 +19,7 @@ const data = useDataStore()
 const props = defineProps({
     values: Object as () => { [propertyId: number]: any },
     erase: Set<number>,
-    modes: Object as () => {[pId: number]: number}
+    modes: Object as () => { [pId: number]: number }
 })
 const emits = defineEmits(['blur'])
 
@@ -51,22 +51,22 @@ function setMode(propId: number, mode: number) {
 
 <template>
     <div class="p-1"><b>{{ $t('modals.tagging.title') }}</b></div>
-    <table class="table table-sm">
+    <table class="">
         <tbody style="border-top: 1px solid var(--border-color)">
-            <tr v-for="property in properties" style="min-height: 26px;">
+            <tr v-for="property in properties" class="">
                 <template v-if="property.id >= 0">
-                    <td style="line-height: 20px;" :class="propertyColor[property.id]" class="text-nowrap">
+                    <td :class="propertyColor[property.id]" class="text-nowrap" style="padding-top: 4px;">
                         <PropertyIcon :type="property.type" />
                         {{ property.name }}
                     </td>
                     <template v-if="!props.erase.has(property.id)">
-                        <td class="w-100">
+                        <td class="w-100" style="padding-top: 4px;">
                             <CellTagInput v-if="isTag(property.type)" :property="property"
-                                v-model="props.values[property.id]" :teleport="true" :auto-focus="true" :can-create="true"
-                                ref="inputElem" />
+                                v-model="props.values[property.id]" :teleport="true" :auto-focus="true"
+                                :can-create="true" ref="inputElem" />
 
                             <CellTextInput v-else-if="property.type == PropertyType.string"
-                                v-model="props.values[property.id]" ref="inputElem" />
+                                v-model="props.values[property.id]" ref="inputElem" :min-height="20" />
 
                             <CellUrlInput v-else-if="property.type == PropertyType.url"
                                 v-model="props.values[property.id]" :url-mode="true" ref="inputElem" />
@@ -81,33 +81,45 @@ function setMode(propId: number, mode: number) {
                                 v-model="props.values[property.id]" />
 
                             <RowNumberInput v-else-if="property.type == PropertyType.number"
-                                v-model="props.values[property.id]" :height="30"/>
+                                v-model="props.values[property.id]" :height="30" />
                         </td>
-                        <td>
-                            <div v-if="property.type == PropertyType.multi_tags && props.values[property.id]" class="d-flex border rounded">
-                                <div class="mode-option" :class="{selected: !props.modes[property.id]}" @click="setMode(property.id, 0)">{{ $t('dropdown.stamp.add') }}</div>
-                                <div class="mode-option" :class="{selected: props.modes[property.id] == 1}" @click="setMode(property.id, 1)">{{ $t('dropdown.stamp.set') }}</div>
-                                <div class="mode-option" :class="{selected: props.modes[property.id] == 2}" @click="setMode(property.id, 2)" style="border: none;">{{ $t('dropdown.stamp.del') }}</div>
+                        <td class="pt1" style="padding-right: 2px;">
+                            <div v-if="property.type == PropertyType.multi_tags && props.values[property.id]"
+                                class="d-flex border rounded overflow-hidden">
+                                <div class="mode-option" :class="{ selected: !props.modes[property.id] }"
+                                    @click="setMode(property.id, 0)">{{ $t('dropdown.stamp.add') }}</div>
+                                <div class="mode-option" :class="{ selected: props.modes[property.id] == 1 }"
+                                    @click="setMode(property.id, 1)">{{ $t('dropdown.stamp.set') }}</div>
+                                <div class="mode-option" :class="{ selected: props.modes[property.id] == 2 }"
+                                    @click="setMode(property.id, 2)" style="border: none;">{{ $t('dropdown.stamp.del')
+                                    }}</div>
                             </div>
                         </td>
-                        <td v-if="props.values[property.id] == undefined">
+                    </template>
+
+                    <template v-if="!props.erase.has(property.id)">
+                        <td v-if="props.values[property.id] == undefined" class="action-col">
                             <wTT message="modals.tagging.erase_tooltip">
-                                <i class="bi bi-trash base-btn" @click="erase.add(property.id)" />
+                                <i class="bi bi-trash sb" @click="erase.add(property.id)" />
                             </wTT>
                         </td>
-                        <td v-else>
+
+                        <td v-else class="action-col">
                             <wTT message="modals.tagging.erase_tooltip">
-                                <i class="bi bi-arrow-counterclockwise base-btn"
+                                <i class="bi bi-arrow-counterclockwise sb"
                                     @click="delete props.values[property.id]"></i>
                             </wTT>
                         </td>
                     </template>
+
                     <template v-else>
-                        <td></td>
-                        <td class="text-warning" style="text-align: end;">{{ $t("modals.tagging.erase") }}</td>
-                        <td>
+                        <td class="w-100"></td>
+                        <td class="text-warning" style="text-align: end; padding: 2px 2px;">{{
+                            $t("modals.tagging.erase") }}</td>
+
+                        <td class="action-col">
                             <wTT message="modals.tagging.cancel_tooltip">
-                                <i class="bi bi-arrow-counterclockwise base-btn" @click="erase.delete(property.id)"></i>
+                                <i class="bi bi-arrow-counterclockwise sb" @click="erase.delete(property.id)"></i>
                             </wTT>
                         </td>
                     </template>
@@ -131,5 +143,30 @@ function setMode(propId: number, mode: number) {
 
 .mode-option:hover {
     background-color: var(--light-grey);
+}
+
+table {
+    border-top: 1px solid var(--border-color);
+    border-collapse: separate;
+    border-spacing: 0px;
+}
+
+tr td {
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+    margin: 0;
+    padding: 2px;
+}
+
+.pt1 {
+    padding-top: 2.5px;
+}
+
+/* Add this to your <style scoped> block */
+.action-col {
+    width: 30px;          /* Forces a fixed width so it never moves */
+    text-align: center;   /* Keeps the icon centered in that space */
+    padding: 4px 0;       /* Consistent padding */
+    vertical-align: top; /* Optional: centers icon vertically if row height grows */
 }
 </style>

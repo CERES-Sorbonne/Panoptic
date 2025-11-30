@@ -53,10 +53,10 @@ async function apply() {
                 if (!modes[propId]) {
                     stampValue = Array.from(new Set([...oldTags, ...stampValue]))
                 }
-                if(modes[propId] === 1) {
+                if (modes[propId] === 1) {
                     // do nothing, set values
                 }
-                if(modes[propId] === 2) {
+                if (modes[propId] === 2) {
                     const remove = new Set(stampValue)
                     stampValue = oldTags.filter(t => !remove.has(t))
                 }
@@ -78,35 +78,37 @@ async function apply() {
 </script>
 
 <template>
-    <Dropdown ref="dropdownElem" :teleport="true">
-        <template #button>
-            <div :class="props.noBorder ? '' : 'bbb'"
-                style="font-size: 10px; color: rgb(33, 37, 41);">
-                <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
-                    $t('main.menu.selected_images') }}</span>
-                <span v-else>{{ $t('modals.tagging.button') }}</span>
-            </div>
-        </template>
-        <template #popup>
-            <div @keydown.escape.prevent.stop="">
-                <div class="m-2" style="width: 400px; max-height: 400px; overflow-y: auto;">
-                    <StampForm :values="stamp" :modes="modes" :erase="erase" @blur="dropdownElem.focus" />
+    <div>
+        <Dropdown ref="dropdownElem" :teleport="true">
+            <template #button>
+                <div :class="props.noBorder ? '' : 'bbb'" style="color: rgb(33, 37, 41);">
+                    <!-- <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
+                        $t('main.menu.selected_images') }}</span> -->
+                        <span v-if="props.showNumber">{{ images.length }} <i class="bi bi-image"/> <i class="bi bi-brush"></i></span>
+                    <span v-else>{{ $t('modals.tagging.button') }}</span>
                 </div>
+            </template>
+            <template #popup>
+                <div @keydown.escape.prevent.stop="">
+                    <div class="m-2" style="width: 400px; max-height: 400px; overflow-y: auto;">
+                        <StampForm :values="stamp" :modes="modes" :erase="erase" @blur="dropdownElem.focus" />
+                    </div>
 
-                <div class="d-flex pe-2 pb-2">
-                    <div class="flex-grow-1"></div>
-                    <button class="me-2" @click="close">
-                        {{ $t('modals.tagging.cancel') }}
-                    </button>
-                    <button class="me-2" @click="clear">
-                        {{ $t('modals.tagging.clear') }}
-                    </button>
-                    <button class="me" @click="apply">
-                        {{ $t('modals.tagging.apply') }}
-                    </button>
+                    <div class="d-flex pe-2 pb-2">
+                        <div class="flex-grow-1"></div>
+                        <div class="bbb me-2" @click="close">
+                            {{ $t('modals.tagging.cancel') }}
+                        </div>
+                        <div class="bbb me-2" @click="clear">
+                            {{ $t('modals.tagging.clear') }}
+                        </div>
+                        <div class="bbb me" @click="apply">
+                            {{ $t('modals.tagging.apply') }}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </template>
+            </template>
 
-    </Dropdown>
+        </Dropdown>
+    </div>
 </template>

@@ -58,7 +58,6 @@ const {
     processPoints,
     updateShowImages,
     updateShowPoints,
-    setPointColor,
     updateView
 } = useMapLogic({
     dataStore: data,
@@ -117,7 +116,6 @@ watch(() => [props.baseImageSize, props.maxImageSize, props.minImageSize], () =>
 // ----------------------------------------------------------------------
 
 defineExpose({
-    setPointColor,
     updatePoints: () => processPoints(props.points)
 })
 </script>

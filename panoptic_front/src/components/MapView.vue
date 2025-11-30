@@ -76,6 +76,7 @@ function colorGroups() {
         let groupId = idToGroupId[point.sha1]
         let colorIndex = groupToColor[groupId]
         point.color = colors[colorIndex]
+        point.border = true
     }
     mapElem.value.updatePoints()
 }

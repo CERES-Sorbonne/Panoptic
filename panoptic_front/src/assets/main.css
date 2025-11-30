@@ -159,7 +159,11 @@ body {
 .sb:hover,
 .sbc:hover,
 .sbb:hover {
-  background-color: hsl(0, 0%, 90%) !important;
+  background-color: hsl(0, 0%, 90%);
+}
+
+.bw:hover {
+  background-color: white;
 }
 
 .base-btn:hover {

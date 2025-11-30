@@ -18,31 +18,21 @@ const emits = defineEmits(['remove:selected', 'stamped'])
 </script>
 
 <template>
-    <div class="d-flex border rounded p-0 m-0">
-        <wTT message="main.menu.remove_selection_tooltip">
-            <div class="btn-cls" @click="emits('remove:selected')"><i class="bi bi-x"></i></div>
-        </wTT>
-        <div class="selection-counter"><StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')"/></div>
+    <div class="d-flex b-border">
+        <div class="sb" @click="emits('remove:selected')"><i class="bi bi-x"/></div>
+        <div class="sb"><StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')"/></div>
     </div>
 </template>
 
 <style scoped>
-.border {
-    border: 2px solid #007bff !important;
+.b-border {
+    border: 1px solid var(--blue);
     overflow: hidden;
     white-space: nowrap;
+    border-radius: 3px; 
+    align-items: center;
+    column-gap: 1px;
+    padding: 1px 1px;
 }
 
-.btn-cls {
-    padding: 1px 3px;
-    border-right: 2px solid #007bff !important;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.selection-counter {
-    cursor: pointer;
-    padding: 1px 4px;
-    font-size: 12px;
-}
 </style>
