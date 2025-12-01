@@ -198,14 +198,14 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
-            <div v-if="!hasSubgroups" class="ms-2">
+            <div v-if="!hasSubgroups" class="ms-1">
                 <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 14px;" :show-number="true" />
             </div>
 
-            <div class="ms-2" v-if="!hasSubgroups">
+            <div class="ms-1" v-if="!hasSubgroups">
                 <ActionButton action="group" :images="group.images" @groups="addClusters" class="bbb" />
             </div>
-            <div class="ms-2">
+            <div class="ms-1">
                 <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters" class="bbb">
                     <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;" ></div>
                 </ActionButton2>
