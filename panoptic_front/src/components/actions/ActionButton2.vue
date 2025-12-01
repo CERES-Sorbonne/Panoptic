@@ -22,7 +22,7 @@ const props = defineProps<{
     propertyIds?: number[],
     autoCall?: boolean
 }>()
-const emits = defineEmits(['instances', 'groups'])
+const emits = defineEmits(['instances', 'groups', 'call'])
 
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
@@ -75,11 +75,11 @@ async function call() {
         const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
-
-        if (res.groups) {
+        if (res.groups && props.action == 'group') {
             const groups = convertClusterGroupResult(res.groups, context)
             emits('groups', groups)
         }
+        emits('call', res)
     } catch (e) {
         console.error(e)
     }
@@ -198,7 +198,8 @@ watch(localFunction, loadInput)
 <style scoped>
 .main2 {
     cursor: pointer;
-    font-size: 14px;
+    /* font-size: 14px; */
+    align-items: center;
 }
 
 .params-grid {

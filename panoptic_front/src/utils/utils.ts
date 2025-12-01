@@ -357,7 +357,7 @@ export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionCont
     })
 }
 
-export function convertSearchGroupResult(groups: GroupResult[], ctx: ActionContext) {
+export function convertSearchGroupResult(groups: GroupResult[]) {
     const data = useDataStore()
 
     return groups.map((group) => {
