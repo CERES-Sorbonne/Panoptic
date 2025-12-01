@@ -182,7 +182,7 @@ watch(scoreInterval, () => {
             </div>
 
 
-            <TreeScroller input-key="similarity-tree" class="" :image-size="project.uiState.similarityImageSize" :height="props.height - 85" :width="props.width"
+            <TreeScroller input-key="similarity-tree" class="" :image-size="project.uiState.similarityImageSize" :height="props.height - 85" :width="props.width - 45"
                 :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
                 ref="scrollerElem" :preview="props.preview" />
         </div>
