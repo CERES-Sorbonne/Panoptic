@@ -39,7 +39,7 @@ function updateVectorOptions() {
 }
 
 watch(() => data.vectorTypes, () => updateVectorOptions())
-watch(selectedVector, (val) => emits('update:modelValue', data.properties[val]))
+watch(selectedVector, (val) => emits('update:modelValue', data.vectorTypes.find(v => v.id == val)))
 watch(() => props.modelValue, (val) => selectedVector.value = val.id)
 watch(() => props.source, () => updateVectorOptions())
 
