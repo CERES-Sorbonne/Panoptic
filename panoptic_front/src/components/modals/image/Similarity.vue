@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
-import { GroupScoreList, Instance, ScoreInterval } from '@/data/models';
+import { ActionResult, GroupScoreList, Instance, ScoreInterval } from '@/data/models';
 import { computed, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
@@ -13,6 +13,7 @@ import Slider from '@vueform/slider'
 import { useProjectStore } from '@/data/projectStore';
 import { useTabStore } from '@/data/tabStore';
 import RangeInput from '@/components/inputs/RangeInput.vue';
+import ActionButton2 from '@/components/actions/ActionButton2.vue';
 const actions = useActionStore()
 const data = useDataStore()
 const project = useProjectStore()
@@ -51,7 +52,20 @@ async function setSimilar() {
     ctx.instanceIds = [props.image.id]
     const res = await actions.getSimilarImages(ctx)
     if (!res || !res.groups) return
-    let groups = convertSearchGroupResult(res.groups, ctx)
+    let groups = convertSearchGroupResult(res.groups)
+    let group = groups[0]
+    if (group.scores) {
+        sortGroupByScore(group)
+    }
+    searchResult.value = group
+    setDefaultInterval()
+    updateInterval(group.scores)
+    updateSimilarGroup()
+}
+
+async function importSimilar(res: ActionResult) {
+    if (!res || !res.groups) return
+    let groups = convertSearchGroupResult(res.groups)
     let group = groups[0]
     if (group.scores) {
         sortGroupByScore(group)
@@ -65,7 +79,7 @@ async function setSimilar() {
 function updateSimilarGroup() {
     if (!searchResult.value) return
     console.log('update')
-    let group = {...searchResult.value}
+    let group = { ...searchResult.value }
     if (useFilter.value) {
         let valid = {}
         tabStore.getMainTab().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
@@ -153,7 +167,13 @@ watch(scoreInterval, () => {
                     </div>
                 </wTT>
                 <div class="sep ms-1 me-1"></div>
-                <div style="margin-left: 6px;" class="me-3">Images Similaires</div>
+                <div style="margin-left: 6px;" class="me-3 sbb">
+                    <ActionButton2 action="similar" @call="importSimilar" :images="[props.image]">
+                        <span>
+                            <i class="bi bi-plugin" />Images similaire
+                        </span>
+                    </ActionButton2>
+                </div>
                 <div style="width: 100px;" class="me-3">
                     <Slider v-model=scoreInterval.values :min="scoreInterval.min" :max="scoreInterval.max" :step="-1"
                         direction="ltr" :merge="0.4" showTooltip="drag" />
@@ -165,26 +185,21 @@ watch(scoreInterval, () => {
                 <div v-if="similarGroup.hasResult()" class="ms-2 text-secondary">
                     ({{ similarGroup.result.root.children.length }} images)
                 </div>
-            </div>
-            <div class="d-flex" style="height: 25px; margin-left: 1px;">
-                <wTT message="main.menu.image_size_tooltip" :click="false">
-                    <div class="bi bi-aspect-ratio me-1"></div>
-                </wTT>
-                <div>
-                    <RangeInput :min="60" :max="250" v-model="project.uiState.similarityImageSize" />
-                </div>
-            </div>
-            <div class="d-flex mt-1 mb-1">
-                <div class="me-2" style="margin-left: 2px;">Search function</div>
-                <div>
-                    <ActionSelect :size="15" :action="'similar'" @changed="setSimilar" />
+                <div class="d-flex ms-3">
+                    <wTT message="main.menu.image_size_tooltip" :click="false">
+                        <div class="bi bi-aspect-ratio me-1"></div>
+                    </wTT>
+                    <div>
+                        <RangeInput :min="60" :max="250" v-model="project.uiState.similarityImageSize" />
+                    </div>
                 </div>
             </div>
 
 
-            <TreeScroller input-key="similarity-tree" class="" :image-size="project.uiState.similarityImageSize" :height="props.height - 85" :width="props.width - 45"
-                :group-manager="similarGroup" :properties="properties" :hide-options="false" :hide-group="true"
-                ref="scrollerElem" :preview="props.preview" />
+            <TreeScroller input-key="similarity-tree" class="" :image-size="project.uiState.similarityImageSize"
+                :height="props.height - 45" :width="props.width - 45" :group-manager="similarGroup"
+                :properties="properties" :hide-options="false" :hide-group="true" ref="scrollerElem"
+                :preview="props.preview" />
         </div>
     </template>
 </template>
