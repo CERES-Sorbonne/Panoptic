@@ -28,9 +28,9 @@ def parse_tags(value):
 
 
 def parse_tag(value):
-    if value is None:
+    if value is None or value == '':
         return None
-    return [str(value)]
+    return [value]
 
 
 def parse_checkbox(value):
