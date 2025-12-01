@@ -5,7 +5,9 @@ import webbrowser
 from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
+
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
@@ -56,11 +58,15 @@ def start_api(install=False):
         allow_headers=["*"],
     )
 
+    if os.environ.get('SERVER_MODE'):
+        app.add_middleware(GZipMiddleware, minimum_size=100000, compresslevel=4)
+
     BASE_PATH = get_base_path()
     # base path for the static folder
 
     app.include_router(selection_router)
     app.include_router(project_router)
+
 
     @app.exception_handler(Exception)
     async def unicorn_exception_handler(request: Request, exc: BaseException):
