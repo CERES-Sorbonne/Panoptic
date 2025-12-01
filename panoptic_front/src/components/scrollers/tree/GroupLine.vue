@@ -199,7 +199,8 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 
         <template v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-1">
-                <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 14px;" :show-number="true" />
+                <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 14px;"
+                    :show-number="true" />
             </div>
 
             <div class="ms-1" v-if="!hasSubgroups">
@@ -207,7 +208,8 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
             <div class="ms-1">
                 <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters" class="bbb">
-                    <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;" ></div>
+                    <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
+                    </div>
                 </ActionButton2>
             </div>
 
@@ -216,11 +218,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>
             </div>
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2 bbb" message="btn.close-clusters" style="font-size: 12px;">
-                <div class="cluster-close" @click="clear">X Clusters</div>
-            </wTT>
-
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.save-clusters">
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
                 <div class="sbb cluster-close" @click="saveHirachy">
                     <span style="">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
@@ -230,6 +228,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                         </div>
                     </span>
                 </div>
+            </wTT>
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1 bbb" message="btn.close-clusters"
+                style="font-size: 14px;">
+                <div class="cluster-close" @click="clear"><i class="bi bi-x-lg" /></div>
             </wTT>
             <!-- <span v-if="group.isSha1Group">lala</span> -->
         </template>
