@@ -21,7 +21,8 @@ const panoptic = usePanopticStore()
 const props = defineProps<{
     action: string
     images?: Instance[]
-    propertyIds?: number[]
+    propertyIds?: number[],
+    autoCall?: boolean
 }>()
 const emits = defineEmits(['instances', 'groups'])
 
@@ -30,6 +31,7 @@ const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref<string>(null)
 const setDefault = ref(false)
 const loading = ref(false)
+const dropdownElem = ref(null)
 
 const source = computed(() => sourceFromFunction(localFunction.value))
 
@@ -96,6 +98,15 @@ async function call() {
     loading.value = false
 }
 
+function handleMainClick() {
+    if (props.autoCall) {
+        call()
+        return
+    }
+
+    dropdownElem.value.show()
+}
+
 onMounted(loadAction)
 watch(() => actions.index, loadAction)
 watch(defaultFunction, loadAction)
@@ -104,69 +115,51 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div class="b-box d-flex flex-center" v-if="localFunction">
-        <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-        <wTT :message="'dropdown.action.' + props.action" @click="call" class="">
-            <div style="padding: 0px 4px;">{{ $t('action.' + props.action) }}</div>
-        </wTT>
-        <div class="options">
-            <Dropdown :teleport="true" @show="loadAction" ref="dropdownElem">
-                <template #button>
-                    <div class="d-flex">
-                        <wTT :message="'dropdown.action.' + props.action" style="font-size: 12px;">
-                            <div class="bi bi-gear" style="position: relative; top:0.5px">
-                            </div>
-                        </wTT>
+    <Dropdown :teleport="true" @show="loadAction" ref="dropdownElem">
+        <template #button>
+            <div class="d-flex main2">
+                <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <wTT :message="'dropdown.action.' + props.action" class="">
+                    <div class="">
+                        <slot></slot>
                     </div>
-                </template>
-                <template #popup="{ hide }">
-                    <Autofocus @keydown.enter="call(); hide();">
-                        <div style="min-width: 200px; overflow: hidden;" class="d-flex flex-column">
-                            <ActionSelect2 v-model="localFunction" :action="props.action" :hide-gear="true"
-                                :size="14" />
-                            <div v-if="localInputs.length"
-                                style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
-                                <form @submit.prevent="" class="params-grid mt-1">
-                                    <template v-for="input, i in localInputs">
-                                        <ParamInput :input="input" :source="source" :max-width="200" />
-                                    </template>
-                                </form>
-                            </div>
-                            <div class="d-flex flex-center p-1 bar" :class="{ 'no-shadow': localInputs.length == 0 }">
-                                <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                        style="position: relative; top: 2px" /></div>
-                                <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default')
-                                    }}
-                                </div>
-                                <div class="ms-2 flex-grow-1"></div>
-                                <div class="bb" @click="hide">{{ $t('cancel') }}</div>
-                                <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
-                            </div>
+                </wTT>
+            </div>
+        </template>
+        <template #popup="{ hide }">
+            <Autofocus @keydown.enter="call(); hide();">
+                <div style="min-width: 200px; overflow: hidden;" class="d-flex flex-column">
+                    <ActionSelect2 v-model="localFunction" :action="props.action" :hide-gear="true" :size="14" />
+                    <div v-if="localInputs.length" style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
+                        <form  @submit.prevent="" class="params-grid mt-1">
+                            <template v-for="input, i in localInputs">
+                                <ParamInput :input="input" :source="source" :max-width="200" />
+                            </template>
+                        </form>
+                    </div>
+                    <div class="d-flex flex-center p-1 bar" :class="{'no-shadow': localInputs.length == 0}">
+                        <div class="me-1"><input type="checkbox" v-model="setDefault"
+                                style="position: relative; top: 2px" /></div>
+                        <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default')
+                        }}
                         </div>
-                    </Autofocus>
-                </template>
-            </Dropdown>
-        </div>
-    </div>
+                        <div class="ms-2 flex-grow-1"></div>
+                        <div class="bb" @click="hide">{{ $t('cancel') }}</div>
+                        <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
+                    </div>
+                </div>
+            </Autofocus>
+        </template>
+    </Dropdown>
 </template>
 
 <style scoped>
-.b-box {
+.main2 {
+    cursor: pointer;
+    /* padding: 0.5px; */
     font-size: 14px;
-    margin: 0;
-    padding: 0px 3px;
-}
-
-.options {
-    border-radius: 2px;
-    padding: 0px 2px 0 2px;
-    margin-right: -2px;
-}
-
-.options:hover {
-    background-color: white;
 }
 
 .params-grid {

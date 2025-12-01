@@ -771,3 +771,16 @@ export interface TextQuery {
     text?: string
     ctx?: ActionContext
 }
+
+export interface PointMap {
+    id: number
+    source: string
+    name: string
+    key: string
+    count: number
+    data?: any[]
+}
+
+export interface MapIndex {
+    [mapId: number]: PointMap
+}

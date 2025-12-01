@@ -6,6 +6,7 @@ import {
     Folder,
     PanopticClientState,
     PanopticServerState,
+    PointMap,
     ProjectSettings,
     ProjectState,
     TaskState,
@@ -96,6 +97,10 @@ export const useSocketStore = defineStore('socketStore', () => {
 
         socket.on('vector_types', (data: VectorType[]) => {
             useDataStore().importVectorTypes(keysToCamel(data))
+        })
+
+        socket.on('maps', (mapList: PointMap[]) => {
+            useDataStore().loadMaps(mapList)
         })
     }
 

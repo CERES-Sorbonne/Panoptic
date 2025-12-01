@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
-import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
+import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, hasPropertyChanges, isFinished, isTag } from "@/utils/utils";
 import { useTabStore } from "./tabStore";
@@ -28,6 +28,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const vectorTypes = ref<VectorType[]>([])
     const vectorStats = ref<VectorStats>({ count: {}, sha1Count: 0 })
     const baseImgUrl = shallowRef('')
+    const maps = shallowRef<MapIndex>({})
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
@@ -68,10 +69,10 @@ export const useDataStore = defineStore('dataStore', () => {
         // console.log('start stream')
         apiStreamLoadState(async (v) => {
             // console.log('apply')
-            if(v.instanceValues) {
+            if (v.instanceValues) {
                 importInstanceValuesArray(v.instanceValues)
             }
-            if(v.imageValues) {
+            if (v.imageValues) {
                 importImageValuesArray(v.imageValues)
             }
             if (v.chunk) {
@@ -764,6 +765,28 @@ export const useDataStore = defineStore('dataStore', () => {
         vectorStats.value = await apiGetVectorStats()
     }
 
+    async function loadMaps(mapList?: PointMap[]) {
+        const idx = {...maps.value}
+        if(!mapList){
+            mapList = await apiListMaps()
+        }
+        if (!mapList) {
+            return
+        }
+        for (let m of mapList) {
+            if (!idx[m.id]) {
+                idx[m.id] = m
+            }
+        }
+        maps.value = idx
+    }
+
+    async function loadMapData(mapId: number) {
+        const map = await apiGetMap(mapId)
+        maps.value[map.id] = map
+        triggerRef(maps)
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
@@ -777,7 +800,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         updateVectorTypes, deleteVectorType, updateVectorStats,
         clear,
-        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl
+        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, loadMaps, maps, loadMapData
     }
 
 })

@@ -110,6 +110,15 @@ class InstanceValuesArray:
     ids: list[str]
     values: list[Any]
 
+@dataclass(slots=True)
+class Map:
+    id: int
+    source: str
+    name: str
+    key: str
+    count: int
+    data: list[Any] | None = None
+
 
 @dataclass(slots=True)
 class LoadState:

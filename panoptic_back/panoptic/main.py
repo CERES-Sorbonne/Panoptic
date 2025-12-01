@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
@@ -55,6 +56,8 @@ def start_api(install=False):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     BASE_PATH = get_base_path()
     # base path for the static folder

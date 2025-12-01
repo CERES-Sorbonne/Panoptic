@@ -11,7 +11,7 @@ from pypika import Table, PostgreSQLQuery, Order, functions
 from panoptic.core.project_db.db_connection import DbConnection, db_lock
 from panoptic.core.project_db.utils import auto_dict, decode_if_json
 from panoptic.models import Instance, Vector, VectorDescription, InstanceProperty, ImageProperty, \
-    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup, VectorType
+    InstancePropertyKey, ImagePropertyKey, PropertyType, PropertyMode, PropertyGroup, VectorType, Map
 from panoptic.models import Tag, Property, Folder
 
 Query = PostgreSQLQuery
@@ -836,6 +836,36 @@ class Db:
     async def delete_property_groups(self, groups: list[int]):
         query = "DELETE FROM property_group WHERE id=?;"
         await self.conn.execute_query_many(query, [(i,) for i in groups])
+
+    # =====================================================
+    # ======================= MAPS ========================
+    # =====================================================
+
+    async def get_map(self, map_id: int):
+        query = "SELECT * FROM maps WHERE id=?"
+        cursor = await self.conn.execute_query(query, (map_id,))
+        row = await cursor.fetchone()
+        if row:
+            return Map(row[0], row[1], row[2], row[3], row[4], json.loads(row[5]))
+        return None
+
+    async def list_maps(self):
+        query = "SELECT id, source, name, key, count FROM maps"
+        cursor = await self.conn.execute_query(query)
+        rows = await cursor.fetchall()
+        if rows:
+            return [Map(r[0], r[1], r[2], r[3], r[4]) for r in rows]
+        return []
+
+    async def add_map(self, point_map: Map):
+        query = "INSERT INTO maps (source, name, key, count, data) VALUES (?, ?, ?, ?, ?)"
+        res = await self.conn.execute_query(query, (point_map.source, point_map.name, point_map.key, point_map.count, json.dumps(point_map.data)))
+        point_map.id = res.lastrowid
+        return point_map
+
+    async def delete_map(self, map_id: int):
+        query = "DELETE FROM maps WHERE id=?"
+        await self.conn.execute_query_many(query, [map_id])
 
     # =====================================================
     # ==================== ID COUNTERS ====================

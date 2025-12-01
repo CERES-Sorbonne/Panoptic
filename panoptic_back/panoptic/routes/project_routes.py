@@ -377,6 +377,20 @@ async def post_settings_route(settings: ProjectSettings, project: Project = Depe
     await project.update_settings(settings)
     return project.settings
 
+@project_router.get('/list_maps')
+async def get_list_maps_route(project: Project = Depends(get_project_from_id)):
+    res = await project.db.list_maps()
+    return res
+
+@project_router.get('/map/{map_id:int}')
+async def get_map_route(map_id: int, project: Project = Depends(get_project_from_id)):
+    res = await project.db.get_map(map_id)
+    return res
+
+@project_router.delete('/map')
+async def delete_map(map_id: int, project: Project = Depends(get_project_from_id)):
+    res = await project.db.delete_map(map_id)
+    return res
 
 @project_router.post('/delete_empty_clones')
 async def post_delete_empty_clones(project: Project = Depends(get_project_from_id)):
@@ -390,7 +404,7 @@ async def benchmark(project: Project = Depends(get_project_from_id)):
     values = await project.db.get_property_values_raw()
     print(time() - old)
 
-    return ORJSONResponse({'instances': instances, 'values': values})
+    return ORJSONResponse({'instances': instances, 'data': values})
 
 
 class EndpointFilter(logging.Filter):
