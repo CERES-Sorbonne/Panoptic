@@ -149,7 +149,7 @@ watch(localFunction, loadInput)
                                 <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]" class="option"
                                     @click="selectFunction(func)">
                                     <wTT :message="actions.index[func].description">
-                                        {{ actions.index[func].id }}
+                                        <i class="bi bi-boxes me-1" />{{ actions.index[func].id }}
                                     </wTT>
                                 </div>
                                 <div v-if="available.length === 0" class="text-gray-500 p-2 text-sm">
@@ -161,7 +161,7 @@ watch(localFunction, loadInput)
                             <div v-else>
                                 <div class="function-header" @click="openFunctionSelect">
                                     <wTT v-if="localFunction" :message="actions.index[localFunction].description">
-                                        <span>{{ localFunction }}</span>
+                                        <i class="bi bi-boxes me-1" /><span>{{ localFunction }}</span>
                                     </wTT>
                                     <div class="flex-grow-1"></div>
                                     <i class="ms-1 bi bi-chevron-down" />

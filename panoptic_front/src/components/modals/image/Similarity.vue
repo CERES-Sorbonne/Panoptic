@@ -170,7 +170,7 @@ watch(scoreInterval, () => {
                 <div style="margin-left: 6px;" class="me-3 sbb">
                     <ActionButton2 action="similar" @call="importSimilar" :images="[props.image]">
                         <span>
-                            <i class="bi bi-plugin" />Images similaire
+                            <i class="bi bi-boxes me-1" />Images similaire
                         </span>
                     </ActionButton2>
                 </div>
