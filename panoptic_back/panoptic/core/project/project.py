@@ -14,7 +14,7 @@ from panoptic.core.importer.importer import Importer
 from panoptic.core.plugin.plugin import APlugin
 from panoptic.core.project.plugin_watcher import PluginWatcher
 from panoptic.core.project.project_actions import ProjectActions
-from panoptic.core.project.project_db import ProjectDb
+from panoptic.core.project_db.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
 from panoptic.core.task.import_image_task import ImportImageTask

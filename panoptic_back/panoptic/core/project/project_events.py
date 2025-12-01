@@ -1,7 +1,7 @@
 from typing import Callable, Awaitable
 
 from panoptic.models import Instance, DeleteFolderConfirm, DbUpdate, ProjectState, SyncData, DbCommit, Folder, \
-    PropertyGroup, VectorType, TaskState, ProjectSettings
+    PropertyGroup, VectorType, TaskState, ProjectSettings, Map
 from panoptic.utils import EventListener
 
 
@@ -54,6 +54,9 @@ class SyncEvent(EventListener):
 
     def emitTasks(self, tasks: list[TaskState]):
         self._emit('tasks', tasks)
+
+    def emitMaps(self, maps: list[Map]):
+        self._emit('maps', maps)
 
     def emit(self, data: SyncData):
         super().emit(data)

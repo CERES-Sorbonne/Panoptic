@@ -4,6 +4,7 @@ import StampDropdown from '../inputs/StampDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
+import ActionButton2 from '../actions/ActionButton2.vue';
 
 const data = useDataStore()
 
@@ -19,8 +20,16 @@ const emits = defineEmits(['remove:selected', 'stamped'])
 
 <template>
     <div class="d-flex b-border">
-        <div class="sb" @click="emits('remove:selected')"><i class="bi bi-x"/></div>
-        <div class="sb"><StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')"/></div>
+        <div class="sb no-radius m-0" style="padding: 0px 4px 0 0;" @click="emits('remove:selected')"><i
+                class="bi bi-x" />{{ images.length }} <i class="bi bi-image" /> </div>
+        <div class="sb no-radius left-border">
+            <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
+        </div>
+        <div class="sb no-radius left-border">
+        <ActionButton2 action="execute" :images="images">
+            <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
+        </ActionButton2>
+        </div>
     </div>
 </template>
 
@@ -29,10 +38,17 @@ const emits = defineEmits(['remove:selected', 'stamped'])
     border: 1px solid var(--blue);
     overflow: hidden;
     white-space: nowrap;
-    border-radius: 3px; 
+    border-radius: 3px;
     align-items: center;
-    column-gap: 1px;
-    padding: 1px 1px;
+    column-gap: 0px;
+    /* padding: 1px 1px; */
 }
 
+.no-radius {
+    border-radius: 0;
+}
+
+.left-border {
+    border-left: 1px solid var(--blue);
+}
 </style>

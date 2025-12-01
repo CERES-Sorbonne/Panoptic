@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, shallowRef } from 'vue'
+import { defineProps, defineEmits, ref, shallowRef, onMounted, watch } from 'vue'
 import ActionSelectButton from './actions/ActionSelectButton.vue'
-import { ActionResult } from '@/data/models'
+import { ActionResult, PointMap } from '@/data/models'
 // Assuming ImageMap is the component you provided in the previous turn
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors } from '@/utils/utils'
 import { PointData } from '@/mixins/useMapLogic'
 import ImageMap from './mapview/ImageMap.vue'
+import PointMapSelection from './mapview/PointMapSelection.vue'
 
 const data = useDataStore()
 
@@ -36,7 +37,10 @@ const spatialFunction = ref({
     context: undefined
 })
 
+const selectedMap = ref<number>(null)
+
 function showResult(res: ActionResult) {
+    return
     points.value = []
     const positions = res.value
     for (let sha1 in res.value) {
@@ -81,11 +85,54 @@ function colorGroups() {
     mapElem.value.updatePoints()
 }
 
+async function showMap(mapId: number) {
+    if(!data.maps[mapId]) {
+        return
+    }
+    if(!data.maps[mapId].data) {
+        await data.loadMapData(mapId)
+    }
+    console.log('show map')
+    const res = []
+    const values = data.maps[mapId].data
+    for(let i = 0; i < values.length; i+=3) {
+        const sha1 = values[i]
+        const x = values[i+1]
+        const y = values[i+2]
+
+        const img = data.sha1Index[sha1][0] 
+        const p: PointData = {
+            x: x,
+            y: y,
+            color: '#FF00FF',
+            sha1: sha1,
+            ratio: img.containerRatio
+        }
+        res.push(p)
+    }
+    points.value = res
+}
+
+watch(selectedMap, (mapId) => {
+    if(mapId == null) {
+        return
+    }
+
+    showMap(mapId)
+
+})
+
+onMounted(() => {
+    data.loadMaps()
+    showMap(selectedMap.value)
+})
+
 </script>
 
 <template>
     <div class="d-flex flex-column">
         <div class="d-flex pt-1 flex-wrap" style="column-gap: 8px; row-gap: 4px; align-items: center;">
+            <PointMapSelection v-model="selectedMap"/>
             <div class="fw-bold">Map Function:</div>
             <ActionSelectButton :size="15" :action="'map'" @changed="e => spatialFunction = e" @result="showResult" />
             
@@ -142,7 +189,7 @@ function colorGroups() {
         <div class="flex-grow-1" style="margin-right: 10px; margin-top: 8px;">
             <ImageMap 
                 :points="points" 
-                :point-size="5" 
+                :point-size="10" 
                 :show-images="showImages" 
                 :show-points="showPoints" 
                 background-color="#FFFFFF" 

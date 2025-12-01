@@ -72,7 +72,7 @@ async def group_property_stream(chunked_stream):
     chunked_stream yields (rows, finished)
     Yields lists of packages:
     [
-      (property_id, [keys], [values]),
+      (property_id, [keys], [data]),
     ]
     """
     packages = []

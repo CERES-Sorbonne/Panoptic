@@ -26,7 +26,8 @@ import {
     ApiRequestDescription,
     Notif,
     NotifType,
-    ImportVerify
+    ImportVerify,
+    PointMap
 } from './models'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -290,6 +291,25 @@ export async function apiGetUIData(key: string) {
 export async function apiSetUIData(key: string, data: any) {
     let res = await projectApi.post('/ui_data', { key, data })
     return res.data as any
+}
+
+export async function apiListMaps() {
+    const res = await projectApi.get('/list_maps');
+    return keysToCamel(res.data) as PointMap[]
+}
+
+export async function apiGetMap(mapId: number) {
+    const res = await projectApi.get(`/map/${mapId}`);
+    return keysToCamel(res.data) as PointMap;
+}
+
+export async function apiDeleteMap(mapId: number) {
+    const res = await projectApi.delete('/map', {
+        params: {
+            map_id: mapId
+        }
+    });
+    return keysToCamel(res.data);
 }
 
 export async function apiUndo() {

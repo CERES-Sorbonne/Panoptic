@@ -259,6 +259,19 @@ def create_id_counter_table():
     """
     return query
 
+def create_map_table():
+    query = """
+    CREATE TABLE maps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        name TEXT NOT NULL,
+        key TEXT NOT NULL,
+        count INTEGER NOT NULL,
+        data JSON NOT NULL
+    );
+    """
+    return query
+
 
 tables = {
     'panoptic': create_panoptic_table(),
@@ -276,5 +289,6 @@ tables = {
     'plugin_data': create_plugin_data(),
     'project': create_project_params(),
     'property_group': create_property_group_table(),
+    'maps': create_map_table(),
     'id_counter': create_id_counter_table()
 }

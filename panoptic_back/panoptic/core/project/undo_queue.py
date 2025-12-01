@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from panoptic.core.project.project_db import ProjectDb
+    from panoptic.core.project_db.project_db import ProjectDb
 
 from panoptic.models import DbCommit, CommitStat, CommitHistory
 

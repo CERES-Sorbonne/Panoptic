@@ -80,7 +80,7 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 <template>
     <div class="cont3">
         <div class="select-wrapper">
-            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" class="bg-white" />
+            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" class="bg-white" :size="16" />
         </div>
         <div class="input-field d-flex items-align-center" :class="{ focus: isFocus }">
             <input class="text-input2" type="text" v-model="searchText" :placeholder="$t('main.menu.search')"

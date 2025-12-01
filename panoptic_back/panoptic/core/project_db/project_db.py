@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from math import floor
 from random import randint
 from typing import Any, TYPE_CHECKING
 
@@ -14,7 +15,7 @@ from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEv
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
     ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, ImagePropertyKey, \
-    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate, PropertyGroup
+    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate, PropertyGroup, Map
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
@@ -725,3 +726,26 @@ class ProjectDb:
         count = await self._db.get_vector_stats()
         sha1_count = await self._db.get_distinct_sha1_count()
         return VectorStats(count, sha1_count)
+
+    # =====================================================
+    # ======================= MAPS ========================
+    # =====================================================
+
+    async def get_map(self, map_id: int):
+        return await self._db.get_map(map_id)
+
+    async def list_maps(self):
+        return await self._db.list_maps()
+
+    def create_map(self, source: str, name: str, key: str, data: list):
+        count = floor(len(data) / 3)
+        return Map(id=self._get_fake_id(), source=source, name=name, key=key, count=count, data=data)
+
+    async def add_map(self, point_map: Map):
+        res = await self._db.add_map(point_map)
+        maps = await self.list_maps()
+        self._project.on.sync.emitMaps(maps)
+        return res
+
+    async def delete_map(self, map_id: int):
+        return await self._db.delete_map(map_id)

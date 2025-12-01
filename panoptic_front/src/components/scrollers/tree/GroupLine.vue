@@ -10,6 +10,7 @@ import { DbCommit, GroupLine, GroupResult, ImagePropertyValue, Instance, Instanc
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 import { allChildrenSha1Groups } from '@/utils/utils'
+import ActionButton2 from '@/components/actions/ActionButton2.vue'
 
 const data = useDataStore()
 
@@ -198,14 +199,16 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 
         <template v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-2">
-                <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 12px;" />
+                <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 14px;" :show-number="true" />
             </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
                 <ActionButton action="group" :images="group.images" @groups="addClusters" class="bbb" />
             </div>
             <div class="ms-2">
-                <ActionButton action="execute" :images="instancesForExecute" @groups="addClusters" class="bbb" />
+                <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters" class="bbb">
+                    <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;" ></div>
+                </ActionButton2>
             </div>
 
             <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
@@ -213,13 +216,13 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>
             </div>
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.close-clusters">
-                <div class="bbb cluster-close" @click="clear">X Clusters</div>
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2 bbb" message="btn.close-clusters" style="font-size: 12px;">
+                <div class="cluster-close" @click="clear">X Clusters</div>
             </wTT>
 
             <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.save-clusters">
-                <div class="bbb cluster-close" @click="saveHirachy">
-                    <span style="position: relative; top: 1px">
+                <div class="sbb cluster-close" @click="saveHirachy">
+                    <span style="">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
                         <i v-if="!saving" class="bi bi-diagram-3"></i>
                         <div v-else class="spinner-border spinner-border-sm text-primary" role="status">
@@ -258,10 +261,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 }
 
 .cluster-close {
-    font-size: 10px;
-    padding: 1.5px 3px;
+    font-size: 14px;
+    padding: 0px 3px;
     /* line-height: 16px; */
     /* color: grey; */
-    border: 1px solid var(--border-color);
+    /* border: 1px solid var(--border-color); */
 }
 </style>

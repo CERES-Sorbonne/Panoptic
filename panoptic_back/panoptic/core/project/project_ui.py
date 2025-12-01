@@ -1,4 +1,4 @@
-from panoptic.core.project.project_db import ProjectDb
+from panoptic.core.project_db.project_db import ProjectDb
 from panoptic.models import UpdateCounter, DbCommit, PluginDescription, ActionDescription, DbUpdate
 
 

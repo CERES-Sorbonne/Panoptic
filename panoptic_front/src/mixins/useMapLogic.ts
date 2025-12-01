@@ -3,6 +3,56 @@ import * as THREE from 'three'
 import KDBush from 'kdbush'
 import { Props } from '@/components/mapview/ImageMap.vue'
 
+
+// --- 1. SHADER DEFINITIONS ---
+
+const vertexShader = `
+    uniform float pointSize;
+    attribute vec3 color;
+    varying vec3 vColor;
+    varying float vPointSize; // <--- ADDED: Declare varying for size
+
+    void main() {
+        // Set the size of the point in screen pixels
+        gl_PointSize = pointSize; 
+        
+        // Pass the size value to the fragment shader
+        vPointSize = pointSize; // <--- ADDED: Assign uniform to varying
+
+        // Pass color to the fragment shader
+        vColor = color; 
+
+        // Standard vertex projection
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`
+
+const fragmentShader = `
+    varying vec3 vColor;
+    varying float vPointSize; // <--- ADDED: Declare varying for size
+    
+    void main() {
+        // 1. Calculate the distance from the center (0.5, 0.5)
+        vec2 pointCenter = gl_PointCoord - vec2(0.5);
+        float distanceToCenter = length(pointCenter);
+        
+        // 2. Define the radius of the circle (0.5 max)
+        float radius = 0.5;
+        
+        // 3. Define the antialiasing smoothness factor 
+        // Use the passed value vPointSize instead of the inaccessible gl_PointSize
+        float smoothness = 2.0 / vPointSize; // <--- FIXED: Use vPointSize here
+        
+        // 4. Use smoothstep to create a perfect, antialiased edge.
+        float alpha = smoothstep(radius, radius - smoothness, distanceToCenter);
+
+        // Final output color
+        gl_FragColor = vec4(vColor, alpha);
+
+        // Discard fragments that are fully outside the circle (performance boost)
+        if (alpha < 0.01) discard;
+    }
+`
 // ----------------------------------------------------------------------
 // TYPES
 // ----------------------------------------------------------------------
@@ -239,7 +289,12 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         if (instancedMesh) {
             scene.remove(instancedMesh)
             instancedMesh.geometry.dispose();
-            (instancedMesh.material as THREE.PointsMaterial).dispose()
+            // Dispose of the material used by instancedMesh
+            if (Array.isArray(instancedMesh.material)) {
+                instancedMesh.material.forEach(m => m.dispose());
+            } else {
+                instancedMesh.material.dispose();
+            }
             instancedMesh = null
         }
 
@@ -272,25 +327,34 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
 
         const geometry = new THREE.BufferGeometry()
         geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3))
+        // We must register 'color' as an attribute for the shader
         geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3))
 
-        const sprite = drawCircleSprite()
-
-        const material = new THREE.PointsMaterial({
-            size: props.pointSize * window.devicePixelRatio,
-            sizeAttenuation: false,
-            vertexColors: true,
-            map: sprite,
-            alphaTest: 0.5,
+        // --- NEW SHADER MATERIAL SETUP ---
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                // Send the desired point size (pixels) as a uniform
+                pointSize: { value: props.pointSize * window.devicePixelRatio },
+            },
+            // REMOVE THE 'attributes' BLOCK ENTIRELY:
+            /*
+            attributes: { 
+                color: { value: new THREE.BufferAttribute(colors, 3) } // <-- DELETE THIS BLOCK
+            },
+            */
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
             transparent: true,
+            depthTest: true,
             visible: props.showPoints
-        })
+        });
+        // ----------------------------------
 
         instancedMesh = new THREE.Points(geometry, material)
         scene.add(instancedMesh)
 
         createKDTree(points)
-        updateVisibleImages() // Trigger image update for new points
+        updateVisibleImages()
         updateView()
         isLoadingRef.value = false
     }
@@ -594,17 +658,17 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         const nextAnimationStateMap = new Map<number, ImageAnimationState>()
 
 
-const sharedMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        map: { value: null },
-        borderColor: { value: new THREE.Color(0x000000) },
-        borderWidth: { value: 0.02 },
-        borderRadius: { value: 0.1 },
-        showBorder: { value: 1.0 },
-        applyRadius: { value: 1.0 },
-        textureSize: { value: new THREE.Vector2(1, 1) }
-    },
-    vertexShader: `
+        const sharedMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                map: { value: null },
+                borderColor: { value: new THREE.Color(0x000000) },
+                borderWidth: { value: 0.02 },
+                borderRadius: { value: 0.1 },
+                showBorder: { value: 1.0 },
+                applyRadius: { value: 1.0 },
+                textureSize: { value: new THREE.Vector2(1, 1) }
+            },
+            vertexShader: `
         varying vec2 vUv;
         
         void main() {
@@ -612,7 +676,7 @@ const sharedMaterial = new THREE.ShaderMaterial({
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
-    fragmentShader: `
+            fragmentShader: `
         uniform sampler2D map;
         uniform vec3 borderColor;
         uniform float borderWidth;
@@ -677,8 +741,8 @@ const sharedMaterial = new THREE.ShaderMaterial({
             gl_FragColor = vec4(color, alpha);
         }
     `,
-    transparent: true
-});
+            transparent: true
+        });
         // console.log('update visible')
         // 5. Render and Update Animation Targets
         visiblePoints.forEach((p) => {

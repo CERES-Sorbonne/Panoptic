@@ -434,6 +434,9 @@
         "path": "Chemin",
         "source": "Source"
     },
+    "map": {
+        "select_map": "Selectionez vos points"
+    },
     "none": "Vide...",
     "installing": "Installation...",
     "installed": "Installé",

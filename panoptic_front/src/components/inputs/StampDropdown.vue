@@ -78,13 +78,13 @@ async function apply() {
 </script>
 
 <template>
-    <div>
+    <div class="m-0 p-0 ps-1 pe-1">
         <Dropdown ref="dropdownElem" :teleport="true">
             <template #button>
                 <div :class="props.noBorder ? '' : 'bbb'" style="color: rgb(33, 37, 41);">
                     <!-- <span v-if="props.showNumber">{{ $t('main.menu.tag_selection') + ' ' + props.images.length + ' ' +
                         $t('main.menu.selected_images') }}</span> -->
-                        <span v-if="props.showNumber">{{ images.length }} <i class="bi bi-image"/> <i class="bi bi-brush"></i></span>
+                        <span v-if="props.showNumber"><i class="bi bi-paint-bucket" style="position: relative; left: 1px"></i></span>
                     <span v-else>{{ $t('modals.tagging.button') }}</span>
                 </div>
             </template>
