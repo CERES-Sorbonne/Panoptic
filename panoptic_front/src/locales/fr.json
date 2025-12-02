@@ -435,7 +435,14 @@
         "source": "Source"
     },
     "map": {
-        "select_map": "Selectionez vos points"
+        "select_map": "Selectionez vos points",
+        "create": "Creer une nouvelle carte",
+        "no_map": "Aucune carte disponible",
+        "no_map_help": "Veuillez creer une carte a visualiser pour pouvoir utiliser cette vue. Les fonctions de creation de carte sont mise a disposition par les plugins",
+        "no_action": "Aucune fonction de creation de carte a été trouvé.",
+        "color_prop": "Grouper par propriété",
+        "color_cluster": "Grouper par clustering",
+        "action_cluster": "Creer des clusters"
     },
     "none": "Vide...",
     "installing": "Installation...",

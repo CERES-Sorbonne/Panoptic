@@ -27,7 +27,7 @@ function updateModes() {
         icon: 'geo'
     }))
 
-    if(!mode.value && modeOptions.value.length) {
+    if (!mode.value && modeOptions.value.length) {
         mode.value = (modeOptions.value[0].value) as number
     }
     console.log(mode.value)
@@ -49,10 +49,9 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 
 <template>
     <div class="cont3">
-        <div class="">
-            <SelectDropdown :options="modeOptions" v-model="mode" :placeholder="$t('map.select_map')" class="bg-white" />
-        </div>
+        <SelectDropdown :options="modeOptions" v-model="mode" :placeholder="$t('map.select_map')" :no-border="true"/>
     </div>
+    <!-- <div class="nofound">No Point Maps found</div> -->
 </template>
 
 <style scoped>
@@ -61,6 +60,15 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     gap: 4px;
     align-items: center;
     border-radius: 3px;
+    width: 100%;
     /* overflow: hidden; */
+}
+
+.nofound {
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 0 4px;
+    font-size: 14px;
+    color: #999;
 }
 </style>

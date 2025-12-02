@@ -18,7 +18,7 @@ import DataLoad from '../loading/DataLoad.vue';
 import { TabManager } from '@/core/TabManager';
 import '@/data/socketStore'
 import ActionSelect from '../actions/ActionSelect.vue';
-import MapView from '../MapView.vue';
+import MapView from '../mapview/MapView.vue';
 const project = useProjectStore()
 
 const data = useDataStore()
@@ -108,24 +108,24 @@ onMounted(updateScrollerHeight)
                 @update="nextTick(() => updateScrollerHeight())" />
         </div>
     </div>
-    <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid" style="margin-left: 10px;">
+    <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid">
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="props.tab.state.display == 'tree'">
             <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.imageSize"
                 :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
                 :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList"
-                :width="scrollerWidth - 30" @recommend="setRecoImages" />
+                :width="scrollerWidth - 30" @recommend="setRecoImages"  style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.display == 'grid'">
-            <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="p-0 m-0 grid-container">
+            <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="grid-container" style="margin-left: 10px;">
                 <GridScroller :tab="tab" :manager="props.tab.collection.groupManager" :height="scrollerHeight - 15"
-                    :width="scrollerWidth - 40" :selected-properties="visibleProperties" class="p-0 m-0"
+                    :width="scrollerWidth -12" :selected-properties="visibleProperties" class="p-0 m-0"
                     :show-images="true" :selected-images="props.tab.collection.groupManager.selectedImages"
-                    ref="imageList" :hide-if-modal="true" />
+                    ref="imageList" :hide-if-modal="true"  />
             </div>
         </template>
         <template v-if="props.tab.state.display == 'graph'">
-            <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15" />
+            <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15"  style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.display == 'map'">
            <MapView :style="{height: scrollerHeight - 10 + 'px'}" :tab="props.tab" /> 
