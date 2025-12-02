@@ -784,3 +784,10 @@ export interface PointMap {
 export interface MapIndex {
     [mapId: number]: PointMap
 }
+
+export interface MapGroup {
+    id: number
+    name: string
+    color: string
+    count: number
+}

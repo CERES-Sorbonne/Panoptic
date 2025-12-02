@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { defineProps, ref, shallowRef, onMounted, watch } from 'vue'
-import { ActionResult } from '@/data/models'
+import { defineProps, ref, shallowRef, onMounted, watch, onUnmounted } from 'vue'
+import { ActionResult, MapGroup } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors } from '@/utils/utils'
 import { PointData } from '@/mixins/useMapLogic'
 import MapMenu from './MapMenu.vue'
 import ImageMap from './ImageMap.vue'
+import { Group } from '@/core/GroupManager'
+import * as THREE from 'three'
 
 const data = useDataStore()
 
@@ -25,7 +27,10 @@ const spatialFunction = ref({
     function: '',
     context: undefined
 })
-const colorOption = ref('property')
+const groupOption = ref('property')
+const groups = ref<MapGroup[]>([])
+const defaultColor = '#4A90E2'
+let clusters = []
 // ------------------------------------------
 
 let points = shallowRef<PointData[]>([])
@@ -49,17 +54,11 @@ function showResult(res: ActionResult) {
     }
 }
 
-function colorGroups() {
-    let groupManager = props.tab.collection.groupManager
-    let groups = groupManager.result.root.children
-
-    if (groups.length == 0) return
-
-    let colors = generateColors(groups.length)
+function colorGroups(groupList, colors) {
     const groupToColor = {}
     const idToGroupId = {}
-    groups.forEach((g, index) => groupToColor[g.id] = index)
-    for (let group of groups) {
+    groupList.forEach((g, index) => groupToColor[g.id] = index)
+    for (let group of groupList) {
         for (let img of group.images) {
             idToGroupId[img.sha1] = group.id
         }
@@ -71,6 +70,15 @@ function colorGroups() {
         point.color = colors[colorIndex]
         point.border = true
     }
+    mapElem.value.updatePoints()
+}
+
+function clearColors() {
+    const ps = points.value
+    ps.forEach(p => {
+        p.color = defaultColor
+        p.border = false
+    })
     mapElem.value.updatePoints()
 }
 
@@ -93,13 +101,46 @@ async function showMap(mapId: number) {
         const p: PointData = {
             x: x,
             y: y,
-            color: '#FF00FF',
+            color: defaultColor,
             sha1: sha1,
             ratio: img.containerRatio
         }
         res.push(p)
     }
     points.value = res
+    generateGroups()
+}
+
+function generateGroups() {
+    let groupList: Group[] = []
+    if(groupOption.value == 'property') {
+        groupList = props.tab.collection.groupManager.result.root.children
+    } else {
+        groupList = clusters
+    }
+
+    if(!groupList.length && groups.value.length) {
+        groups.value = []
+        clearColors()
+        return
+    }
+
+    const nb = groupList.length
+    const colors = generateColors(nb)
+
+    groups.value = groupList.map((g, i) => ({
+        id: g.id,
+        name: g.name,
+        count: g.images.length,
+        color: colors[i]
+    }))
+
+    colorGroups(groupList, colors)
+}
+
+function showClusters(cc) {
+    clusters = cc
+    generateGroups()
 }
 
 watch(selectedMap, (mapId) => {
@@ -109,9 +150,21 @@ watch(selectedMap, (mapId) => {
     showMap(mapId)
 })
 
+watch(groupOption, (val) => {
+    // if(val == 'property') {
+    //     clusters = []
+    // }
+    generateGroups()
+})
+
 onMounted(() => {
     data.loadMaps()
     showMap(selectedMap.value)
+    props.tab.collection.groupManager.onResultChange.addListener(generateGroups)
+})
+
+onUnmounted(() => {
+    props.tab.collection.groupManager.onResultChange.removeListener(generateGroups)
 })
 
 </script>
@@ -124,10 +177,10 @@ onMounted(() => {
                 :min-image-size="minImageSize" ref="mapElem" />
         </div>
         <div class="menu">
-            <MapMenu v-model:selected-map="selectedMap" v-model:show-images="showImages" v-model:color-option="colorOption"
-                v-model:show-points="showPoints" v-model:base-image-size="baseImageSize"
+            <MapMenu v-model:selected-map="selectedMap" v-model:show-images="showImages" v-model:color-option="groupOption"
+                v-model:show-points="showPoints" v-model:base-image-size="baseImageSize" :groups="groups"
                 v-model:max-image-size="maxImageSize" v-model:min-image-size="minImageSize"
-                v-model:spatial-function="spatialFunction" @result="showResult" @color-groups="colorGroups" />
+                v-model:spatial-function="spatialFunction" @result="showResult" @clusters="showClusters" :images="tab.collection.groupManager.result.root.images"/>
         </div>
     </div>
 </template>
@@ -150,5 +203,6 @@ onMounted(() => {
     position: absolute;
     top: 10px;
     left: 10px;
+    bottom: 0px;
 }
 </style>

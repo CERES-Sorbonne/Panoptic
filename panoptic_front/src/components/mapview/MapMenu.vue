@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, nextTick, computed } from 'vue'
-import ActionSelectButton from '../actions/ActionSelectButton.vue';
 import PointMapSelection from './PointMapSelection.vue';
 import ActionButton2 from '../actions/ActionButton2.vue';
 import { useDataStore } from '@/data/dataStore';
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { useI18n } from 'vue-i18n';
+import { Instance, MapGroup } from '@/data/models';
 const { t } = useI18n()
 const data = useDataStore()
 
@@ -21,6 +21,8 @@ const props = defineProps<{
         context: any
     }
     colorOption: string
+    groups: MapGroup[]
+    images: Instance[]
 }>()
 
 const emits = defineEmits([
@@ -33,7 +35,8 @@ const emits = defineEmits([
     'update:spatialFunction',
     'update:colorOption',
     'result',
-    'colorGroups'
+    'colorGroups',
+    'clusters'
 ])
 
 const isCollapsed = ref(false)
@@ -45,25 +48,6 @@ const colorOptions = computed<SelectOption[]>(() => {
         { value: 'cluster', label: t('map.color_cluster'), icon: 'stack' }
     ]
 })
-
-// Fake data for demonstration
-const fakeGroups = ref([
-    { id: 1, name: 'Landscapes', color: '#FF6B6B', count: 45 },
-    { id: 2, name: 'Portraits', color: '#4ECDC4', count: 32 },
-    { id: 3, name: 'Architecture', color: '#45B7D1', count: 28 },
-    { id: 4, name: 'Nature', color: '#96CEB4', count: 67 },
-    { id: 5, name: 'Urban', color: '#FFEAA7', count: 19 },
-    { id: 6, name: 'Abstract', color: '#DFE6E9', count: 54 },
-    { id: 7, name: 'Wildlife', color: '#00B894', count: 41 },
-    { id: 8, name: 'Street Photography', color: '#FDCB6E', count: 23 },
-    { id: 9, name: 'Macro', color: '#E17055', count: 38 },
-    { id: 10, name: 'Black & White', color: '#2D3436', count: 56 },
-    { id: 11, name: 'Food', color: '#FD79A8', count: 15 },
-    { id: 12, name: 'Travel', color: '#A29BFE', count: 72 },
-    { id: 13, name: 'Sports', color: '#74B9FF', count: 29 },
-    { id: 14, name: 'Events', color: '#FAB1A0', count: 33 },
-    { id: 15, name: 'Experimental', color: '#6C5CE7', count: 18 },
-])
 
 function toggleCollapse() {
     if (isCollapsed.value) {
@@ -143,35 +127,26 @@ function handleColorGroups() {
                         <label for="showPoints" class="w-100">Show Points</label>
                     </div>
                     <div class="">
-                        <SelectDropdown :options="colorOptions" :model-value="props.colorOption" @update:model-value="e => emits('update:colorOption', e)" :no-border="true"/>
+                        <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption" @update:model-value="e => emits('update:colorOption', e)" :no-border="true"/>
                     </div>
                     <div v-if="props.colorOption == 'cluster'" class="sb">
-                        <ActionButton2 action="group"><i class="bi bi-boxes me-1" />{{ $t('map.action_cluster') }}</ActionButton2>
+                        <ActionButton2 :images="props.images" action="group" @groups="clusters => emits('clusters', clusters)"><i class="bi bi-boxes me-1" />{{ $t('map.action_cluster') }}</ActionButton2>
                     </div>
                 </div>
             </div>
 
-            <!-- Groups Section (Scrollable) - ALWAYS VISIBLE -->
-            <div class="menu-section-card scrollable-section">
+            <div v-if="props.groups.length" class="menu-section-card scrollable-section">
                 <div class="section-title">
                     <span>Groups</span>
-                    <span class="badge">{{ fakeGroups.length }}</span>
+                    <span class="badge">{{ props.groups.length }}</span>
                 </div>
                 <div class="groups-list">
-                    <div v-for="group in fakeGroups" :key="group.id" class="group-item">
+                    <div v-for="group in props.groups" :key="group.id" class="group-item">
                         <div class="group-color" :style="{ backgroundColor: group.color }"></div>
                         <span class="group-name">{{ group.name }}</span>
                         <span class="group-count">{{ group.count }}</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Actions Section (only when map selected) -->
-            <div class="menu-section-card" v-if="selectedMap">
-                <button class="color-groups-btn" @click="handleColorGroups">
-                    <i class="bi bi-palette"></i>
-                    Color Groups
-                </button>
             </div>
         </div>
     </div>
@@ -201,6 +176,8 @@ function handleColorGroups() {
     white-space: nowrap;
 
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 200px;
+    max-height: 100%;
 }
 
 .map-menu.collapsed {
@@ -209,6 +186,8 @@ function handleColorGroups() {
     width: 30px;
     border: none;
     padding: 0;
+    height: inherit;
+    min-height: 0;
 }
 
 .btn-small {

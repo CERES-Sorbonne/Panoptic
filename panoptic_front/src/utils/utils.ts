@@ -468,25 +468,6 @@ export function generateColors(nb_groups: number): string[] {
         return PALETTE_20.slice(0, nb_groups);
     }
     return generateChromaColors(nb_groups)
-
-    const colors: string[] = [];
-    const step = 360 / nb_groups; // The angle between each color on the wheel
-
-    // Fix Saturation (S) and Lightness (L) for vivid, clear colors:
-    // S=100% (fully saturated)
-    // L=50% (mid-range, avoids being too dark or too light)
-    const saturation = 100;
-    const lightness = 50;
-
-    for (let i = 0; i < nb_groups; i++) {
-        const hue = Math.floor(i * step); // Calculate the hue angle (0 to 359)
-        const hslColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-
-        // Convert the HSL string to Hex for broad compatibility
-        colors.push(hslToHex(hue, saturation, lightness));
-    }
-
-    return colors;
 }
 
 const PALETTE_20 = [
