@@ -61,7 +61,7 @@ function loadInput() {
 
 async function call() {
     if (loading.value) return
-
+    const imgs = props.images ?? []
     loading.value = true
     try {
         const uiInputs = {}
@@ -71,7 +71,7 @@ async function call() {
             }
             uiInputs[input.name] = input.defaultValue
         }
-        const imageIds = props.images.map(i => i.id)
+        const imageIds = imgs.map(i => i.id)
         const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)

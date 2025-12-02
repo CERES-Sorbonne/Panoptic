@@ -18,6 +18,7 @@ const props = defineProps<{
     placeholder?: string
     size?: number
     width?: number
+    noBorder?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -39,35 +40,43 @@ const selectOption = (option: SelectOption, hide: () => void) => {
     
     hide()
 }
+
+const capitalizeFirst = (text: any) => {
+    return text.charAt(0).toUpperCase() + text.slice(1)
+}
 </script>
 
 <template>
-    <Dropdown placement="bottom-start">
+    <Dropdown placement="bottom-start" class="w-100" :teleport="true">
         
         <template #button>
-            <div :style="{ fontSize: fontSize + 'px' }" style="white-space: nowrap;" class="sbb">
+            <div :style="{ fontSize: fontSize + 'px' }" style="white-space: nowrap;" class="w-100" :class="{'sbb': !props.noBorder, 'sb': props.noBorder}">
                 
                 <!-- Case 1: Nothing selected OR no options available -->
-                <span v-if="!selectedOption" class="display placeholder-display">
-                    {{ placeholder ?? 'Select Option' }}
+                <div v-if="!selectedOption" class="display placeholder-display display-flex">
+                    <span class="display-text">{{ capitalizeFirst(placeholder ?? 'Select Option') }}</span>
                     <!-- Only show chevron if there are options to open -->
-                    <i v-if="options.length > 0" class="ms-1 bi bi-chevron-down" />
-                </span>
+                    <i v-if="options.length > 0" class="bi bi-chevron-down" />
+                </div>
                 
                 <!-- Case 2: An option is selected and has a description (uses ToolTip) -->
-                <wTT v-else-if="selectedOption.description" :message="selectedOption.description" :style="{width:props.width+'px'}" style="overflow: hidden; text-overflow: ellipsis;">
-                    <span class="display">
-                        <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-1"></span>
-                        <span class="display-label">{{ selectedOption.label ?? selectedOption.value }}</span>
-                        <i class="ms-1 bi bi-chevron-down" />
-                    </span>
+                <wTT v-else-if="selectedOption.description" :message="selectedOption.description" :style="{width:props.width+'px'}" class="display-container">
+                    <div class="display display-flex">
+                        <span class="display-text">
+                            <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-1"></span>
+                            <span class="display-label">{{ capitalizeFirst(selectedOption.label ?? selectedOption.value) }}</span>
+                        </span>
+                        <i class="bi bi-chevron-down" />
+                    </div>
                 </wTT>
 
                 <!-- Case 3: An option is selected but no description (simple span) -->
-                <div v-else class="display" style="overflow: hidden; text-overflow: ellipsis;" :style="{width:props.width+'px'}">
-                    <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-1"></span>
-                    <span class="display-label">{{ selectedOption.label ?? selectedOption.value }}</span>
-                    <i class="ms-1 bi bi-chevron-down" />
+                <div v-else class="display display-flex display-container" :style="{width:props.width+'px'}">
+                    <span class="display-text">
+                        <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-1"></span>
+                        <span class="display-label">{{ capitalizeFirst(selectedOption.label ?? selectedOption.value) }}</span>
+                    </span>
+                    <i class="bi bi-chevron-down" />
                 </div>
 
             </div>
@@ -80,9 +89,9 @@ const selectOption = (option: SelectOption, hide: () => void) => {
                     @click="selectOption(option, hide)">
                     <span v-if="option.icon" :class="'bi bi-' + option.icon" class="me-2"></span>
                     <wTT v-if="option.description" :message="option.description">
-                        {{ option.label ?? option.value}}
+                        {{ capitalizeFirst(option.label ?? option.value)}}
                     </wTT>
-                    <span v-else>{{ option.label ?? option.value }}</span>
+                    <span v-else>{{ capitalizeFirst(option.label ?? option.value) }}</span>
                 </div>
                 
                 <div v-if="options.length === 0" class="text-gray-500 p-2 text-sm">
@@ -109,7 +118,7 @@ const selectOption = (option: SelectOption, hide: () => void) => {
 }
 
 .bb {
-    text-transform: capitalize;
+    /* text-transform: capitalize; */
     padding: 2px 4px;
     cursor: pointer;
     transition: background-color 0.1s;
@@ -119,7 +128,26 @@ const selectOption = (option: SelectOption, hide: () => void) => {
     background-color: #f0f0f0;
 }
 
-.display {
-    text-transform: capitalize;
+.display-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.display-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.display-container {
+    overflow: hidden;
+}
+
+.bi-chevron-down {
+    flex-shrink: 0;
 }
 </style>

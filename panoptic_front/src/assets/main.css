@@ -159,7 +159,7 @@ body {
 .sb:hover,
 .sbc:hover,
 .sbb:hover {
-  background-color: hsl(0, 0%, 90%);
+  background-color: hsl(0, 0%, 90%) !important;
 }
 
 .bw:hover {

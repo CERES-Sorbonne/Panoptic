@@ -49,6 +49,8 @@ export const useDataStore = defineStore('dataStore', () => {
     const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
 
+    const hasMaps = computed(() => objValues(maps.value).length > 0)
+
 
     // =======================
     // =======Functions=======
@@ -800,7 +802,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         updateVectorTypes, deleteVectorType, updateVectorStats,
         clear,
-        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, loadMaps, maps, loadMapData
+        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, loadMaps, maps, loadMapData, hasMaps
     }
 
 })
