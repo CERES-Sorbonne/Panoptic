@@ -29,8 +29,10 @@ function updateModes() {
 
     if (!mode.value && modeOptions.value.length) {
         mode.value = (modeOptions.value[0].value) as number
+        console.log('chose mode', mode.value)
     }
-    console.log(mode.value)
+    
+    emits('update:modelValue', mode.value)
 }
 
 // updateModes()

@@ -21,15 +21,11 @@ const props = defineProps<{
 const baseImageSize = ref(10)
 const maxImageSize = ref(250)
 const minImageSize = ref(20)
-const showImages = ref(true)
-const showPoints = ref(true)
-const showBoxes = ref(true)
-const selectedMap = ref<number>(null)
+
 const spatialFunction = ref({
     function: '',
     context: undefined
 })
-const groupOption = ref('property')
 const groups = ref<MapGroup[]>([])
 const defaultColor = '#4A90E2'
 let clusters = []
@@ -113,7 +109,7 @@ async function showMap(mapId: number) {
 
 function generateGroups() {
     let groupList: Group[] = []
-    if (groupOption.value == 'property') {
+    if (props.tab.state.mapOptions.groupOption == 'property') {
         groupList = props.tab.collection.groupManager.result.root.children
     } else {
         groupList = clusters
@@ -223,26 +219,28 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
     }
 }
 
-watch(selectedMap, (mapId) => {
+watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => {
     if (mapId == null) {
         return
     }
     showMap(mapId)
 })
 
-watch(groupOption, (val) => {
+watch(() => props.tab.state.mapOptions.groupOption, (val) => {
     // if(val == 'property') {
     //     clusters = []
     // }
     generateGroups()
 })
 
-watch(showBoxes, (val) => mapElem.value.updateShowBoxes(val))
+watch(() => props.tab.state.mapOptions.showBoxes, (val) => mapElem.value.updateShowBoxes(val))
 
-onMounted(() => {
-    data.loadMaps()
-    showMap(selectedMap.value)
+watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), {deep: true})
+
+onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(generateGroups)
+    await data.loadMaps()
+    showMap(props.tab.state.mapOptions.selectedMap)
 })
 
 onUnmounted(() => {
@@ -254,14 +252,14 @@ onUnmounted(() => {
 <template>
     <div class="map-view-container">
         <div class="map-container">
-            <ImageMap :points="points" :point-size="10" :show-images="showImages" :show-points="showPoints"
-                :show-boxes="showBoxes" background-color="#FFFFFF" :base-image-size="baseImageSize"
+            <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages" :show-points="props.tab.state.mapOptions.showPoints"
+                :show-boxes="props.tab.state.mapOptions.showBoxes" background-color="#FFFFFF" :base-image-size="baseImageSize"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
                 :groups="groups" :selectedGroups="selectedGroups" ref="mapElem" />
         </div>
         <div class="menu">
-            <MapMenu v-model:selected-map="selectedMap" v-model:show-images="showImages"
-                v-model:color-option="groupOption" v-model:show-boxes="showBoxes" v-model:show-points="showPoints"
+            <MapMenu v-model:selected-map="props.tab.state.mapOptions.selectedMap" v-model:show-images="props.tab.state.mapOptions.showImages"
+                v-model:color-option="props.tab.state.mapOptions.groupOption" v-model:show-boxes="props.tab.state.mapOptions.showBoxes" v-model:show-points="props.tab.state.mapOptions.showPoints"
                 v-model:base-image-size="baseImageSize" :groups="groups" v-model:max-image-size="maxImageSize"
                 v-model:min-image-size="minImageSize" v-model:spatial-function="spatialFunction"
                 @clusters="showClusters" @hover-group="onGroupHover"
@@ -282,6 +280,7 @@ onUnmounted(() => {
 .map-container {
     flex-grow: 1;
     /* margin-top: 8px; */
+    z-index: 1;
 }
 
 .menu {
@@ -289,6 +288,6 @@ onUnmounted(() => {
     top: 10px;
     left: 10px;
     bottom: 0px;
-    z-index: 100;
+    z-index: 10;
 }
 </style>

@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { PropertyGroupOrder, PropertyOption, PropertyType, TabState } from "./models";
+import { MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, TabState } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
@@ -16,6 +16,7 @@ export function buildTabState(): TabState {
         sortState: createSortState(),
         groupState: createGroupState(),
         collectionState: createCollectionState(),
+        mapOptions: createMapOptions(),
         imageSize: 100,
         visibleProperties: {},
         visibleFolders: {},
@@ -25,6 +26,16 @@ export function buildTabState(): TabState {
         sha1Mode: true,
         autoReload: true
     })
+}
+
+export function createMapOptions(): MapOptions {
+    return {
+        showImages: false,
+        showBoxes: true,
+        showPoints: true,
+        groupOption: 'cluster',
+        selectedMap: 0
+    }
 }
 
 export function propertyDefault(type: PropertyType): any {
@@ -59,12 +70,12 @@ export function defaultPropertyOption() {
 }
 
 export function buildPropertyGroupOrder(): PropertyGroupOrder {
-    return {groups: {}, properties: {}}
+    return { groups: {}, properties: {} }
 }
 
 type ObjectValues<T> = T[keyof T][];
 
 export function objValues<T>(obj: T): ObjectValues<T> {
-  return Object.keys(obj).map(key => obj[key as keyof T]);
+    return Object.keys(obj).map(key => obj[key as keyof T]);
 }
 

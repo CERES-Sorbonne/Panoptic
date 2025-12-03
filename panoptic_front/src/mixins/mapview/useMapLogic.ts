@@ -56,7 +56,7 @@ let ignore_hover_once = false
 const hoveredPointId = ref<number | null>(null) // Track which point is hovered
 
 // KDtree
-let tree: {t: KDBush | null} = {t: null} // KDTree for optimal point query
+const tree: {t: KDBush | null} = {t: null} // KDTree for optimal point query
 
 // Rendering State
 let triggerRender = true
@@ -192,7 +192,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         camera = null
         renderer = null
         labelRenderer = null
-        tree = null
+        tree.t = null
         pointLogic = null
         imageLogic = null
         boxLogic = null
