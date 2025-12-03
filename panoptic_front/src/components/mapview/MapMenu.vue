@@ -13,6 +13,7 @@ const props = defineProps<{
     selectedMap: number | null
     showImages: boolean
     showPoints: boolean
+    showBoxes: boolean
     baseImageSize: number
     maxImageSize: number
     minImageSize: number
@@ -29,6 +30,7 @@ const emits = defineEmits([
     'update:selectedMap',
     'update:showImages',
     'update:showPoints',
+    'update:showBoxes',
     'update:baseImageSize',
     'update:maxImageSize',
     'update:minImageSize',
@@ -36,7 +38,8 @@ const emits = defineEmits([
     'update:colorOption',
     'result',
     'colorGroups',
-    'clusters'
+    'clusters',
+    'hoverGroup'
 ])
 
 const isCollapsed = ref(false)
@@ -76,6 +79,10 @@ function handleResult(res: any) {
 function handleColorGroups() {
     emits('colorGroups')
 }
+
+function hoverGroup(groupId: number, value) {
+    emits('hoverGroup', {groupId, value})
+}
 </script>
 
 <template>
@@ -106,7 +113,7 @@ function handleColorGroups() {
                 </div>
 
                 <template v-if="!selectedMap">
-                    <span class="text-secondary help-text">{{ $t('map.no_map_help') }}</span>
+                    <div class="text-secondary help-text text-wrap ps-1" >{{ $t('map.no_map_help') }}</div>
                 </template>
             </div>
 
@@ -132,16 +139,25 @@ function handleColorGroups() {
                     <div v-if="props.colorOption == 'cluster'" class="sb">
                         <ActionButton2 :images="props.images" action="group" @groups="clusters => emits('clusters', clusters)"><i class="bi bi-boxes me-1" />{{ $t('map.action_cluster') }}</ActionButton2>
                     </div>
+                    <div class="checkbox-item sb">
+                        <input type="checkbox" :checked="showBoxes"
+                            @change="$emit('update:showBoxes', ($event.target as HTMLInputElement).checked)"
+                            id="showBoxes" />
+                        <label for="showBoxes" class="w-100">Show Boxes</label>
+                    </div>
                 </div>
             </div>
 
             <div v-if="props.groups.length" class="menu-section-card scrollable-section">
                 <div class="section-title">
-                    <span>Groups</span>
-                    <span class="badge">{{ props.groups.length }}</span>
+                    <span v-if="props.colorOption == 'property'"></span>
+                    <span v-if="props.colorOption == 'cluster'">Clusters</span>
+                    <span class="">{{ props.groups.length }}
+                        <span class="bb"> <i class="bi bi-trash" /></span>
+                    </span>
                 </div>
                 <div class="groups-list">
-                    <div v-for="group in props.groups" :key="group.id" class="group-item">
+                    <div v-for="group in props.groups" :key="group.id" class="group-item" @mouseover="hoverGroup(group.id, true)" @mouseleave="hoverGroup(group.id, false)">
                         <div class="group-color" :style="{ backgroundColor: group.color }"></div>
                         <span class="group-name">{{ group.name }}</span>
                         <span class="group-count">{{ group.count }}</span>
@@ -176,7 +192,7 @@ function handleColorGroups() {
     white-space: nowrap;
 
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 200px;
+    min-height: 100px;
     max-height: 100%;
 }
 
@@ -235,7 +251,7 @@ function handleColorGroups() {
 
 /* Card-style sections with glass effect */
 .menu-section-card {
-    background: rgba(255, 255, 255, 0.911);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.8);
@@ -251,7 +267,8 @@ function handleColorGroups() {
 }
 
 .section-title {
-    font-weight: 600;
+    /* background-color: red; */
+    font-weight: 400;
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -281,7 +298,7 @@ function handleColorGroups() {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    /* gap: 4px; */
     padding-right: 4px;
 }
 
@@ -312,6 +329,7 @@ function handleColorGroups() {
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s;
+    /* background-color: red; */
 }
 
 .group-item:hover {

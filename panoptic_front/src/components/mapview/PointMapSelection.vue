@@ -4,7 +4,7 @@ import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/keyState';
 import { useDataStore } from '@/data/dataStore';
 import { objValues } from '@/utils/utils';
-import { PointData } from '@/mixins/useMapLogic';
+import { PointData } from '@/mixins/mapview/useMapLogic';
 
 const data = useDataStore()
 const props = defineProps<{
@@ -49,7 +49,7 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 
 <template>
     <div class="cont3">
-        <SelectDropdown :options="modeOptions" v-model="mode" :placeholder="$t('map.select_map')" :no-border="true"/>
+        <SelectDropdown :options="modeOptions" v-model="mode" :placeholder="$t('map.select_map')" :no-border="true" :teleport="true"/>
     </div>
     <!-- <div class="nofound">No Point Maps found</div> -->
 </template>

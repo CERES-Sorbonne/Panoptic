@@ -12,7 +12,8 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 // Assume useDataStore is available and correctly imported
 import { useDataStore } from '@/data/dataStore'
-import { PointData, useMapLogic } from '@/mixins/useMapLogic'
+import { BoundingBox, PointData, useMapLogic } from '@/mixins/mapview/useMapLogic'
+import { MapGroup } from '@/data/models'
 
 const data = useDataStore()
 
@@ -26,9 +27,13 @@ export interface Props {
     backgroundColor?: number | string
     showImages: boolean
     showPoints: boolean
+    showBoxes: boolean
     baseImageSize: number
     maxImageSize: number
-    minImageSize: number
+    minImageSize: number,
+    groups: MapGroup[],
+    selectedGroups: { [groupId: number]: boolean }
+    selectedPoints: {[sha1: string]: boolean}
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -37,7 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
     backgroundColor: 0x1a1a1a,
     baseImageSize: 5,
     maxImageSize: 200,
-    minImageSize: 20
+    minImageSize: 20,
 })
 
 // ----------------------------------------------------------------------
@@ -51,14 +56,17 @@ const isLoading = ref(false)
 // LOGIC HOOK (External)
 // ----------------------------------------------------------------------
 
-// Initialize the core visualization logic
 const {
     init,
     cleanup,
     processPoints,
     updateShowImages,
     updateShowPoints,
-    updateView
+    updateView,
+    renderBoundingBoxesInstanced,
+    updateShowBoxes,
+    // ASSUME the composable now exposes a function to toggle label visibility
+    updateShowLabels
 } = useMapLogic({
     dataStore: data,
     isLoadingRef: isLoading,
@@ -110,13 +118,36 @@ watch(() => [props.baseImageSize, props.maxImageSize, props.minImageSize], () =>
     // The logic to rebuild images should be handled inside usePointCloudViz on prop change
 })
 
+watch(() => props.groups, () => {
+    renderBoundingBoxesInstanced()
+    // processPoints(props.points)
+})
+
+watch(() => props.showBoxes, (active) => {
+    // 1. Re-render the boxes (if needed, which renderBoundingBoxesInstanced likely does)
+    renderBoundingBoxesInstanced();
+
+    // 2. Toggle the visibility of the HTML/CSS labels
+    updateShowLabels(active); // NEW WATCHER CALL
+
+    updateView()
+})
+
+watch(() => props.groups, () => renderBoundingBoxesInstanced())
 
 // ----------------------------------------------------------------------
 // EXPORTS
 // ----------------------------------------------------------------------
 
 defineExpose({
-    updatePoints: () => processPoints(props.points)
+    render: () => {
+        processPoints(props.points)
+    },
+    updatePoints: () => {
+        processPoints(props.points)
+    },
+    updateShowBoxes
+
 })
 </script>
 

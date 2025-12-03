@@ -555,3 +555,8 @@ input[type=number] {
 }
 
 /* .bi { vertical-align: -1px; } */
+
+.bid {
+  position: relative; 
+  top:0.5px;
+}
