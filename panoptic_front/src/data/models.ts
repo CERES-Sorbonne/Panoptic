@@ -2,6 +2,7 @@ import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 import { PluginKey } from "./panopticStore"
+import { BoundingBox } from "@/mixins/mapview/useMapLogic"
 
 export interface Instance {
     id: number
@@ -790,4 +791,5 @@ export interface MapGroup {
     name: string
     color: string
     count: number
+    box: BoundingBox
 }
