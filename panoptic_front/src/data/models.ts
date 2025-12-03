@@ -218,6 +218,15 @@ export interface TabState {
     visibleFolders: { [key: number]: boolean }
     selectedFolders: { [key: number]: boolean }
     propertyOptions: { [key: number]: PropertyOption }
+    mapOptions: MapOptions
+}
+
+export interface MapOptions {
+    showImages: boolean
+    showPoints: boolean
+    showBoxes: boolean
+    selectedMap: number
+    groupOption: string
 }
 
 export interface TabData {

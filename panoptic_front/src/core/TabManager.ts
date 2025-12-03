@@ -4,7 +4,7 @@ import { useProjectStore } from "@/data/projectStore"
 import { reactive, toRefs } from "vue"
 import { EventEmitter } from "@/utils/utils"
 import { useDataStore } from "@/data/dataStore"
-import { defaultPropertyOption } from "@/data/builder"
+import { createMapOptions, defaultPropertyOption } from "@/data/builder"
 import { useTabStore } from "@/data/tabStore"
 
 export class TabManager {
@@ -50,7 +50,9 @@ export class TabManager {
         for (let propId in data.properties) {
             this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
         }
-
+        if(!this.state.mapOptions) {
+            this.state.mapOptions = createMapOptions()
+        }
         this.updatePropertyOptions()
     }
 
