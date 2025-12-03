@@ -81,26 +81,26 @@ function handleColorGroups() {
 }
 
 function hoverGroup(groupId: number, value) {
-    emits('hoverGroup', {groupId, value})
+    emits('hoverGroup', { groupId, value })
 }
 </script>
 
 <template>
     <div class="map-menu" :class="{ 'collapsed': isCollapsed }">
         <!-- Collapse/Expand Button -->
-        <div class="collapse-btn bb text-center d-flex" @click="toggleCollapse"
+        <div v-if="!isCollapsed" class="collapse-btn text-center d-flex" @click="toggleCollapse"
             :title="isCollapsed ? 'Expand Menu' : 'Collapse Menu'">
-            <div class="text-center" :class="{ 'btn-small': isCollapsed }">
-                <i class="bi" :class="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-            </div>
-            <div v-if="!isCollapsed" class="ms-2"></div>
+            <div class="flex-grow-1" style="font-size: 16px;">{{ $t('map.main_menu') }}</div>
         </div>
-
+        <div v-if="!isCollapsed" style="position: absolute; right: 6px; top: 6px"><i @click="toggleCollapse"
+                class="bi bi-arrow-left-circle bb m-0" style="border-radius: 50%;"></i></div>
+        <div v-else class="bb" @click="toggleCollapse"><i class="bi bi-three-dots m-0"
+                style="position: relative; top: -1px" /></div>
         <!-- Menu Content -->
         <div class="menu-content" v-if="showContent">
             <!-- Map Selection Section -->
             <div class="menu-section-card">
-                <div class="section-title">Visualisation</div>
+                <div class="section-title">{{ $t("map.data") }}</div>
                 <div v-if="data.hasMaps" class="menu-section-full" style="">
                     <PointMapSelection :model-value="selectedMap"
                         @update:model-value="$emit('update:selectedMap', $event)" />
@@ -113,51 +113,57 @@ function hoverGroup(groupId: number, value) {
                 </div>
 
                 <template v-if="!selectedMap">
-                    <div class="text-secondary help-text text-wrap ps-1" >{{ $t('map.no_map_help') }}</div>
+                    <div class="text-secondary help-text text-wrap ps-1">{{ $t('map.no_map_help') }}</div>
                 </template>
             </div>
 
             <!-- Display Options Section (only when map selected) -->
             <div class="menu-section-card" v-if="selectedMap">
-                <div class="section-title">Display Options</div>
+                <div class="section-title">{{ $t("map.display") }}</div>
                 <div class="menu-section">
                     <div class="checkbox-item sb">
                         <input type="checkbox" :checked="showImages"
                             @change="$emit('update:showImages', ($event.target as HTMLInputElement).checked)"
                             id="showImages" />
-                        <label for="showImages" class="w-100">Show Images</label>
+                        <label for="showImages" class="w-100">{{ $t('map.show_image') }}</label>
                     </div>
                     <div class="checkbox-item sb">
                         <input type="checkbox" :checked="showPoints"
                             @change="$emit('update:showPoints', ($event.target as HTMLInputElement).checked)"
                             id="showPoints" />
-                        <label for="showPoints" class="w-100">Show Points</label>
-                    </div>
-                    <div class="">
-                        <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption" @update:model-value="e => emits('update:colorOption', e)" :no-border="true"/>
-                    </div>
-                    <div v-if="props.colorOption == 'cluster'" class="sb">
-                        <ActionButton2 :images="props.images" action="group" @groups="clusters => emits('clusters', clusters)"><i class="bi bi-boxes me-1" />{{ $t('map.action_cluster') }}</ActionButton2>
+                        <label for="showPoints" class="w-100">{{ $t('map.show_points') }}</label>
                     </div>
                     <div class="checkbox-item sb">
                         <input type="checkbox" :checked="showBoxes"
                             @change="$emit('update:showBoxes', ($event.target as HTMLInputElement).checked)"
                             id="showBoxes" />
-                        <label for="showBoxes" class="w-100">Show Boxes</label>
+                        <label for="showBoxes" class="w-100">{{ $t('map.show_boxes') }}</label>
                     </div>
+                    <div class="">
+                        <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption"
+                            @update:model-value="e => emits('update:colorOption', e)" :no-border="true" />
+                    </div>
+
+                    <div v-if="props.colorOption == 'cluster'" class="sb">
+                        <ActionButton2 :images="props.images" action="group"
+                            @groups="clusters => emits('clusters', clusters)"><i class="bi bi-boxes me-1" />{{
+                                $t('map.action_cluster') }}</ActionButton2>
+                    </div>
+
                 </div>
             </div>
 
             <div v-if="props.groups.length" class="menu-section-card scrollable-section">
                 <div class="section-title">
-                    <span v-if="props.colorOption == 'property'"></span>
-                    <span v-if="props.colorOption == 'cluster'">Clusters</span>
+                    <span v-if="props.colorOption == 'property'">{{ $t("map.group_property") }}</span>
+                    <span v-if="props.colorOption == 'cluster'">{{ $t("map.group_cluster") }}</span>
                     <span class="">{{ props.groups.length }}
                         <span class="bb"> <i class="bi bi-trash" /></span>
                     </span>
                 </div>
                 <div class="groups-list">
-                    <div v-for="group in props.groups" :key="group.id" class="group-item" @mouseover="hoverGroup(group.id, true)" @mouseleave="hoverGroup(group.id, false)">
+                    <div v-for="group in props.groups" :key="group.id" class="group-item"
+                        @mouseover="hoverGroup(group.id, true)" @mouseleave="hoverGroup(group.id, false)">
                         <div class="group-color" :style="{ backgroundColor: group.color }"></div>
                         <span class="group-name">{{ group.name }}</span>
                         <span class="group-count">{{ group.count }}</span>
@@ -174,7 +180,7 @@ function hoverGroup(groupId: number, value) {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 6px;
+    padding: 8px;
     background: rgba(195, 207, 217, 0.219);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -197,13 +203,15 @@ function hoverGroup(groupId: number, value) {
 }
 
 .map-menu.collapsed {
-    min-width: 30px;
-    max-width: 30px;
-    width: 30px;
+    min-width: 20px;
+    max-width: 20px;
+    width: 20px;
     border: none;
     padding: 0;
-    height: inherit;
-    min-height: 0;
+    height: 20px;
+    min-height: 20px;
+    margin: 0;
+
 }
 
 .btn-small {
@@ -256,10 +264,10 @@ function hoverGroup(groupId: number, value) {
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 4px 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transition: all 0.2s;
-    
+
 }
 
 .menu-section-card:hover {
@@ -268,10 +276,10 @@ function hoverGroup(groupId: number, value) {
 
 .section-title {
     /* background-color: red; */
-    font-weight: 400;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 500;
+    font-size: 14px;
+    /* text-transform: uppercase; */
+    /* letter-spacing: 0.5px; */
     color: #495057;
     margin-bottom: 2px;
     display: flex;
@@ -323,8 +331,8 @@ function hoverGroup(groupId: number, value) {
 .group-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 4px;
+    padding: 4px 4px;
     background: rgba(255, 255, 255, 0.5);
     border-radius: 6px;
     cursor: pointer;
@@ -342,7 +350,7 @@ function hoverGroup(groupId: number, value) {
     height: 16px;
     border-radius: 4px;
     flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .group-name {
