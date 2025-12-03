@@ -135,7 +135,7 @@ watch(localFunction, loadInput)
 <template>
     <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
         <template #button>
-            <div class="d-flex main2">
+            <div class="d-flex main2 sbb">
                 <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
