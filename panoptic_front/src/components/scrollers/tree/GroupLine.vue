@@ -199,15 +199,15 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 
         <template v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-1">
-                <StampDropdown :images="images" class="bbb" :no-border="true" style="font-size: 14px;"
+                <StampDropdown :images="images" :no-border="true" style="font-size: 14px;"
                     :show-number="true" />
             </div>
 
             <div class="ms-1" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" @groups="addClusters" class="bbb" />
+                <ActionButton action="group" :images="group.images" @groups="addClusters"/>
             </div>
             <div class="ms-1">
-                <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters" class="bbb">
+                <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
                     <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
                     </div>
                 </ActionButton2>

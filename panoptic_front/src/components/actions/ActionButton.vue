@@ -125,19 +125,19 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div class="b-box" v-if="localFunction">
+    <div class="b-box sbb" v-if="localFunction" @click="call">
         <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <wTT :message="'dropdown.action.' + props.action" @click="call" class="">
+        <wTT :message="'dropdown.action.' + props.action" class="">
             <div style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
         </wTT>
-        <div class="options">
+        <div class="options" @click.stop.prevent="">
             <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
                 <template #button>
                     <wTT :message="'dropdown.action.' + props.action" style="font-size: 12px;">
-                        <div class="sb bw" style="">
-                            <i class="bi bi-gear" style="position: relative; top: 0.5px"/>
+                        <div class="sb bw">
+                            <i class="bi bi-gear"  style="position: relative; top: 1px"/>
                         </div>
                     </wTT>
                 </template>

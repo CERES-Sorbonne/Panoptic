@@ -8,7 +8,7 @@
   --text-color: rgb(33, 37, 41);
 
   --grey: rgb(246, 246, 247);
-  --blue : #007bff;
+  --blue: #007bff;
   --tab-grey: rgb(226, 226, 226);
   --selected-grey: #e5e3e3;
 
@@ -144,12 +144,14 @@ body {
 
 .bbb {
   border: 1px solid var(--border-color);
-  top: -2px;
+  /* top: -2px; */
+  box-sizing: border-box;
 }
 
 .sbb {
   border: 1px solid var(--border-color);
   top: -1px;
+  box-sizing: border-box;
 }
 
 .bnr:hover,
@@ -163,7 +165,19 @@ body {
 }
 
 .bw:hover {
-  background-color: white;
+  background-color: white !important;
+}
+
+.btn-icon-hover:hover {
+  color: black
+}
+
+.btn-i {
+  width: 20px;
+  height: 18px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9);
+  background-color: red;
 }
 
 .base-btn:hover {
@@ -537,17 +551,18 @@ input[type=number]::-webkit-inner-spin-button {
 
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 input[type=number] {
-    -moz-appearance:textfield;
+  -moz-appearance: textfield;
 }
 
-.bg-selected, .bg-medium {
-    background-color: #e5e3e3;
-    border-radius: 3px;
+.bg-selected,
+.bg-medium {
+  background-color: #e5e3e3;
+  border-radius: 3px;
 }
 
 .bg-light {
@@ -557,6 +572,6 @@ input[type=number] {
 /* .bi { vertical-align: -1px; } */
 
 .bid {
-  position: relative; 
-  top:0.5px;
+  position: relative;
+  top: 0.5px;
 }
