@@ -11,6 +11,7 @@ import { Group } from '@/core/GroupManager'
 import * as THREE from 'three'
 import { objValues } from '@/data/builder'
 import Toolbar from './Toolbar.vue'
+import ImagePreview from './ImagePreview.vue'
 
 const data = useDataStore()
 
@@ -48,6 +49,8 @@ const selectedPoints = computed(() => {
     console.log(res)
     return res
 })
+
+const selectedPointsList = computed(() => Object.keys(selectedPoints.value))
 // ------------------------------------------
 
 let points = shallowRef<PointData[]>([])
@@ -328,8 +331,8 @@ onUnmounted(() => {
                 v-model:spatial-function="spatialFunction" @clusters="showClusters" @hover-group="onGroupHover"
                 :images="tab.collection.groupManager.result.root.images" />
         </div>
-        <div class="preview">
-            
+        <div v-if="selectedPointsList.length" class="preview">
+            <ImagePreview :sha1s="selectedPointsList"/>
         </div>
 
     </div>
@@ -370,6 +373,9 @@ onUnmounted(() => {
     top: 10px;
     right: 10px;
     z-index: 10;
+    bottom: 10px;
+    overflow: hidden;
+    padding: 10px;
 }
 
 .toolbar {
