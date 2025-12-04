@@ -13,7 +13,8 @@ function changeTool(tool: string) {
 <template>
     <div class="glass-box d-flex">
         <div class="tool" :class="{selected: props.mouseMode == 'pan'}" @click="changeTool('pan')"><i class="bi bi-hand-index-thumb"></i></div>
-        <div class="tool" :class="{selected: props.mouseMode == 'lasso'}" @click="changeTool('lasso')"><i class="bi bi-plus-circle-dotted"></i></div>
+        <div class="tool" :class="{selected: props.mouseMode == 'lasso-plus'}" @click="changeTool('lasso-plus')"><i class="bi bi-plus-circle-dotted"></i></div>
+        <div class="tool" :class="{selected: props.mouseMode == 'lasso-minus'}" @click="changeTool('lasso-minus')"><i class="bi bi-dash-circle-dotted"></i></div>
     </div>
 </template>
 

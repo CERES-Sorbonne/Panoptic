@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { defineProps, ref, shallowRef, onMounted, watch, onUnmounted, nextTick } from 'vue'
-import { ActionResult, Instance, MapGroup } from '@/data/models'
+import { defineProps, ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed } from 'vue'
+import { ActionResult, Colors, Instance, MapGroup } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors, isTag } from '@/utils/utils'
@@ -36,8 +36,18 @@ let clusters = []
 let sha1ToPoint: { [sha1: string]: PointData } = {}
 
 const selectedGroups = ref<{ [groupId: number]: boolean }>({})
-const selectedPoints = ref<{ [sha1: string]: boolean }>({})
 let groupToPoints: { [groupId: number]: string[] } = {}
+
+const selectedPoints = computed(() => {
+    let ids = Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number)
+    let instances = ids.map(i => data.instances[i])
+    const res: { [sha1: string]: boolean } = {}
+    for (let inst of instances) {
+        res[inst.sha1] = true
+    }
+    console.log(res)
+    return res
+})
 // ------------------------------------------
 
 let points = shallowRef<PointData[]>([])
@@ -124,11 +134,28 @@ function generateGroups() {
         return
     }
 
+
+
     const nb = groupList.length
     const colors = generateColors(nb)
 
     const groupToColor = {}
     groupList.forEach((g, index) => groupToColor[g.id] = colors[index])
+
+    const propId = groupList[0]?.meta?.propertyValues[0].propertyId
+    if (propId) {
+        const property = data.properties[propId]
+        if (isTag(property.type)) {
+            for (let group of groupList) {
+                const value = group.meta.propertyValues[0].value
+                if (value != undefined) {
+                    groupToColor[group.id] = Colors[data.tags[value].color].color
+                } else {
+                    groupToColor[group.id] = '#777'
+                }
+            }
+        }
+    }
 
     const res: MapGroup[] = []
     groupToPoints = {}
@@ -189,48 +216,64 @@ function showClusters(cc) {
     generateGroups()
 }
 
-function getSelectedPoints() {
-    const selectedGroupKeys = Object.keys(selectedGroups.value).map(Number)
-    selectedPoints.value = {} // Clear selected points if no group is selected
-    // Check if any group is currently selected
-    if (selectedGroupKeys.length === 0) {
-        return
-    }
-    // Get the first selected group ID
-    let group = selectedGroupKeys[0]
+// function getSelectedPoints() {
+//     const selectedGroupKeys = Object.keys(selectedGroups.value).map(Number)
+//     selectedPoints.value = {} // Clear selected points if no group is selected
+//     // Check if any group is currently selected
+//     if (selectedGroupKeys.length === 0) {
+//         return
+//     }
+//     // Get the first selected group ID
+//     let group = selectedGroupKeys[0]
 
-    // Check if the group ID has an entry in groupToPoints before iterating
-    if (groupToPoints[group]) {
-        groupToPoints[group].forEach(sha1 => {
-            selectedPoints.value[sha1] = true
-        })
-    }
+//     // Check if the group ID has an entry in groupToPoints before iterating
+//     if (groupToPoints[group]) {
+//         groupToPoints[group].forEach(sha1 => {
+//             selectedPoints.value[sha1] = true
+//         })
+//     }
 
-}
+// }
 
 function onGroupHover(ev: { groupId: number, value: boolean }) {
     if (ev.value) {
         selectedGroups.value[ev.groupId] = true
-        groups.value = [...groups.value]
-        getSelectedPoints()
+        // let ids = []
+        // for(let sha1 of groupToPoints[ev.groupId]) {
+        //     ids.push(...data.sha1Index[sha1].map(i => i.id))
+        // }
+        // props.tab.collection.groupManager.selectImages(ids)
+        // groups.value = [...groups.value]
+        // getSelectedPoints()
         nextTick(() => mapElem.value.render())
     } else {
         delete selectedGroups.value[ev.groupId]
-        groups.value = [...groups.value]
-        getSelectedPoints()
+        let ids = []
+        // for(let sha1 of groupToPoints[ev.groupId]) {
+        //     ids.push(...data.sha1Index[sha1].map(i => i.id))
+        // }
+        // props.tab.collection.groupManager.unselectImages(ids)
+        // groups.value = [...groups.value]
+        // getSelectedPoints()
         nextTick(() => mapElem.value.render())
         mapElem.value.render()
     }
 }
 
 const handleLasso = (points: PointData[]) => {
-    const selection = selectedPoints.value
-    for(let p of points) {
-        selection[p.sha1] = true
+    let ids = []
+    for (let point of points) {
+        ids.push(...data.sha1Index[point.sha1].map(i => i.id))
     }
-    selectedPoints.value = selection
-    mapElem.value.render()
+    if (mouseMode.value == 'lasso-plus') {
+        props.tab.collection.groupManager.selectImages(ids)
+    }
+    if (mouseMode.value == 'lasso-minus') {
+        props.tab.collection.groupManager.unselectImages(ids)
+    }
 }
+
+watch(selectedPoints, () => nextTick(() => mapElem.value.render()))
 
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => {
     if (mapId == null) {
@@ -264,12 +307,16 @@ onUnmounted(() => {
 
 <template>
     <div class="map-view-container">
-        <div class="map-container">
+        <div class="map-container"
+            :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
             <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages"
                 :show-points="props.tab.state.mapOptions.showPoints" :show-boxes="props.tab.state.mapOptions.showBoxes"
                 background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
                 :groups="groups" :selectedGroups="selectedGroups" ref="mapElem" @lasso="handleLasso" />
+        </div>
+        <div class="toolbar">
+            <Toolbar v-model:mouse-mode="mouseMode" />
         </div>
         <div class="menu">
             <MapMenu v-model:selected-map="props.tab.state.mapOptions.selectedMap"
@@ -281,9 +328,10 @@ onUnmounted(() => {
                 v-model:spatial-function="spatialFunction" @clusters="showClusters" @hover-group="onGroupHover"
                 :images="tab.collection.groupManager.result.root.images" />
         </div>
-        <div class="toolbar">
-            <Toolbar v-model:mouse-mode="mouseMode" />
+        <div class="preview">
+            
         </div>
+
     </div>
 </template>
 
@@ -302,23 +350,35 @@ onUnmounted(() => {
     z-index: 1;
 }
 
+.cursor-grab {
+    cursor: grab;
+}
+
+.cursor-lasso {
+    cursor: crosshair;
+}
+
 .menu {
     position: absolute;
     top: 10px;
     left: 10px;
-    bottom: 0px;
+    z-index: 10;
+}
+
+.preview {
+    position: absolute;
+    top: 10px;
+    right: 10px;
     z-index: 10;
 }
 
 .toolbar {
     position: absolute;
     top: 10px;
-    left: 0;
-    right: 0;
+    left: 50%;
     z-index: 10;
-    display: flex;
-    justify-content: center;
-    width: 100%;
+    /* background-color: red; */
+    transform: translate(-50%, 0);
     /* background-color: blue; */
 }
 </style>

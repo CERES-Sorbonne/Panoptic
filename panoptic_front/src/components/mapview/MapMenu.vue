@@ -56,9 +56,7 @@ function toggleCollapse() {
     if (isCollapsed.value) {
         // === EXPANDING ===
         isCollapsed.value = false
-        setTimeout(() => {
-            showContent.value = true
-        }, 300)
+        showContent.value = true
     } else {
         // === COLLAPSING ===
         showContent.value = false
@@ -90,10 +88,11 @@ function hoverGroup(groupId: number, value) {
         <!-- Collapse/Expand Button -->
         <div v-if="!isCollapsed" class="collapse-btn text-center d-flex"
             :title="isCollapsed ? 'Expand Menu' : 'Collapse Menu'">
-            <div class="flex-grow-1 " style="font-size: 16px; font-weight: 500; color: #555;">{{ $t('map.main_menu') }}</div>
+            <div class="flex-grow-1 " style="font-size: 16px; color: #384955;">{{ $t('map.main_menu') }}</div>
         </div>
-        <div v-if="!isCollapsed" style="position: absolute; right: 6px; top: 6px"><i @click="toggleCollapse"
-                class="bi bi-arrow-left-circle bb m-0" style="border-radius: 50%;"></i></div>
+        <div v-if="!isCollapsed" style="position: absolute; right: 6px; top: 6px">
+            <i @click="toggleCollapse" class="bi bi-arrow-left-circle bb m-0" style="border-radius: 50%;"></i>
+        </div>
         <div v-else class="bb" @click="toggleCollapse"><i class="bi bi-three-dots m-0"
                 style="position: relative; top: -1px" /></div>
         <!-- Menu Content -->
@@ -183,7 +182,7 @@ function hoverGroup(groupId: number, value) {
     padding: 8px;
     padding-top: 4px;
     background: rgba(195, 207, 217, 0.219);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(11px);
     -webkit-backdrop-filter: blur(10px);
     border-right: 1px solid rgba(195, 207, 217, 0.117);
     box-shadow: 0 0 2px 2px rgb(195, 207, 217);
@@ -198,7 +197,7 @@ function hoverGroup(groupId: number, value) {
     overflow: hidden;
     white-space: nowrap;
 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 100px;
     max-height: 100%;
 }

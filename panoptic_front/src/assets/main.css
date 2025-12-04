@@ -575,3 +575,14 @@ input[type=number] {
   position: relative;
   top: 0.5px;
 }
+
+.glass-box {
+    padding: 4px;
+    /* background: rgba(195, 207, 217, 0.384); */
+    background-color: transparent;
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(195, 207, 217, 0.117);
+    box-shadow: 0 0 2px 2px rgb(195, 207, 217);
+    border-radius: 5px;
+}
