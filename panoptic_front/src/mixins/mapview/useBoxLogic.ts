@@ -239,6 +239,7 @@ export function useBoxLogic({ scene, camera, props, labelRenderer, updateView }:
 
                 // Create label for the box
                 const labelDiv = createAndMeasureLabelDiv(group, boxColor)
+                labelDiv.style.zIndex = "2";
                 const labelObject = new CSS2DObject(labelDiv)
                 // Label visibility depends on both 'showBoxes' and 'showLabels' props
                 labelObject.visible = props.showBoxes
@@ -278,19 +279,19 @@ export function useBoxLogic({ scene, camera, props, labelRenderer, updateView }:
                 const box = group.box
 
                 // Create label for the unselected box
-                const boxColorForLabel = box.color ? new THREE.Color(box.color) : defaultColor
-                const labelDiv = createAndMeasureLabelDiv(group, boxColorForLabel)
-                const labelObject = new CSS2DObject(labelDiv)
-                labelObject.visible = props.showBoxes
+                // const boxColorForLabel = box.color ? new THREE.Color(box.color) : defaultColor
+                // const labelDiv = createAndMeasureLabelDiv(group, boxColorForLabel)
+                // const labelObject = new CSS2DObject(labelDiv)
+                // labelObject.visible = props.showBoxes
 
                 // Draw boxes and create label object. Pass UNSELECTED_LABEL_OPACITY
                 applyBoxInstanceData(
                     box, i, worldThickness, halfThickness, Z_POS - 0.1, lowOpacityBorderColor, matrix,
-                    hMesh, vMesh, labelObject, false, UNSELECTED_LABEL_OPACITY
+                    hMesh, vMesh, null, false, UNSELECTED_LABEL_OPACITY
                 )
 
-                labelObjects.push(labelObject)
-                scene.add(labelObject)
+                // labelObjects.push(labelObject)
+                // scene.add(labelObject)
             })
 
             hMesh.instanceMatrix.needsUpdate = true

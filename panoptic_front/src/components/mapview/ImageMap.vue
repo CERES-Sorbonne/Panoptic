@@ -33,7 +33,8 @@ export interface Props {
     minImageSize: number,
     groups: MapGroup[],
     selectedGroups: { [groupId: number]: boolean }
-    selectedPoints: {[sha1: string]: boolean}
+    selectedPoints: {[sha1: string]: boolean},
+    mouseMode: string,
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -44,6 +45,8 @@ const props = withDefaults(defineProps<Props>(), {
     maxImageSize: 200,
     minImageSize: 20,
 })
+
+const emits = defineEmits(['lasso'])
 
 // ----------------------------------------------------------------------
 // STATE (UI / DOM Only)
@@ -70,7 +73,8 @@ const {
 } = useMapLogic({
     dataStore: data,
     isLoadingRef: isLoading,
-    props: props
+    props: props,
+    lassoCalback: (points) => emits('lasso', points)
 })
 
 // ----------------------------------------------------------------------

@@ -1,21 +1,22 @@
 // useMapLogic.ts (Refactored)
-import { ref, type Ref, watch } from 'vue'
+import { ref, type Ref } from 'vue' // Removed watch if unused
 import * as THREE from 'three'
 import KDBush from 'kdbush'
 import { Props } from '@/components/mapview/ImageMap.vue'
-import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js' // NEW IMPORT
-import { usePointLogic } from './usePointLogic' // NEW IMPORT
-import { useImageLogic } from './useImageLogic' // NEW IMPORT
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
+import { usePointLogic } from './usePointLogic'
+import { useImageLogic } from './useImageLogic'
 import { useBoxLogic } from './useBoxLogic'
+import { useLassoLogic } from './useLassoLogic' // NEW IMPORT
 
-// --- Types (from original file) ---
+// --- Types (Same as before) ---
 export interface BoundingBox {
     minX: number
     minY: number
     maxX: number
     maxY: number
     color?: string
-    label?: string // Added label property for the new logic
+    label?: string
 }
 
 export interface PointData {
@@ -32,6 +33,7 @@ interface PointCloudVizParams {
     dataStore: any
     isLoadingRef: Ref<boolean>
     props: Props
+    lassoCalback
 }
 
 // ----------------------------------------------------------------------
@@ -41,45 +43,43 @@ interface PointCloudVizParams {
 let scene: THREE.Scene | null = null
 let camera: THREE.OrthographicCamera | null = null
 let renderer: THREE.WebGLRenderer | null = null
-let labelRenderer: CSS2DRenderer | null = null // NEW: CSS2DRenderer instance
+let labelRenderer: CSS2DRenderer | null = null
 
 let animationFrameId: number
 
 // Data Caches
-const idMap = new Map<string, number>() // Used by PointLogic
-const treeToPointMap: Map<number, PointData> = new Map() // Used by ImageLogic
+const idMap = new Map<string, number>()
+const treeToPointMap: Map<number, PointData> = new Map()
 
 // Mouse Interactivity
 let raycaster: THREE.Raycaster = new THREE.Raycaster();
 let mouse: THREE.Vector2 = new THREE.Vector2();
 let ignore_hover_once = false
-const hoveredPointId = ref<number | null>(null) // Track which point is hovered
+const hoveredPointId = ref<number | null>(null)
 
 // KDtree
-const tree: {t: KDBush | null} = {t: null} // KDTree for optimal point query
+const tree: { t: KDBush | null } = { t: null }
 
 // Rendering State
 let triggerRender = true
 let resizeObserver: ResizeObserver | null = null
 let dataStore: any
 
-// Module Hooks (references to the logic functions)
+// Module Hooks
 let pointLogic: ReturnType<typeof usePointLogic> | null = null
 let imageLogic: ReturnType<typeof useImageLogic> | null = null
 let boxLogic: ReturnType<typeof useBoxLogic> | null = null
+let lassoLogic: ReturnType<typeof useLassoLogic> | null = null // NEW HOOK
 
 // ----------------------------------------------------------------------
 // CORE COMPOSABLE
 // ----------------------------------------------------------------------
 
-export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointCloudVizParams) {
+export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalback }: PointCloudVizParams) {
     dataStore = store
 
     // --- Utility Functions ---
 
-    /**
-     * Flags the scene for re-render in the next animation frame.
-     */
     function updateView() {
         triggerRender = true
     }
@@ -88,23 +88,20 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         animationFrameId = requestAnimationFrame(animate)
         if (props.showImages && camera && imageLogic) {
             handleHover();
-            imageLogic.updateAnimations(); 
+            imageLogic.updateAnimations();
         }
 
         if (renderer && scene && camera && triggerRender) {
             triggerRender = false
             renderer.render(scene, camera)
             if (labelRenderer) {
-                labelRenderer.render(scene, camera) // RENDER LABELS
+                labelRenderer.render(scene, camera)
             }
         }
     }
 
     // --- THREE.JS SETUP ---
 
-    /**
-     * Initializes the THREE.js scene, camera, renderer, and event listeners.
-     */
     const init = (domElement: HTMLDivElement) => {
         const width = domElement.clientWidth
         const height = domElement.clientHeight
@@ -130,25 +127,25 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
 
         // 3. Renderers
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-        // renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.setSize(width, height)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
         renderer.setClearColor(new THREE.Color(props.backgroundColor))
         domElement.appendChild(renderer.domElement)
 
-        // NEW: CSS2D Renderer setup
         labelRenderer = new CSS2DRenderer()
         labelRenderer.setSize(width, height)
         labelRenderer.domElement.style.position = 'absolute'
         labelRenderer.domElement.style.top = '0px'
-        labelRenderer.domElement.style.pointerEvents = 'none' // Crucial: Allows click through
+        labelRenderer.domElement.style.pointerEvents = 'none'
         domElement.appendChild(labelRenderer.domElement)
 
-        // 4. Initialize Logic Modules (NOW REQUIRES `camera` and `labelRenderer` to be set)
+        // 4. Initialize Logic Modules
         if (scene && camera && labelRenderer) {
             pointLogic = usePointLogic({ scene, props, isLoadingRef, idMap, updateView })
             imageLogic = useImageLogic({ scene, camera, props, dataStore, tree, treeToPointMap, hoveredPointId, updateView })
             boxLogic = useBoxLogic({ scene, camera, props, labelRenderer, updateView })
+            lassoLogic = useLassoLogic({ scene, props, tree, updateView, onLassoComplete: lassoCalback }) // NEW INIT
+
             imageLogic.initImageGroup()
         }
 
@@ -163,9 +160,6 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         resizeObserver.observe(domElement)
     }
 
-    /**
-     * Cleans up THREE.js resources and event listeners.
-     */
     const cleanup = () => {
         if (animationFrameId) cancelAnimationFrame(animationFrameId)
         if (resizeObserver) resizeObserver.disconnect()
@@ -177,17 +171,14 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         if (labelRenderer && labelRenderer.domElement.parentNode) {
             labelRenderer.domElement.parentNode.removeChild(labelRenderer.domElement)
         }
-        
-        // Cleanup resources from modules
+
         if (imageLogic) imageLogic.disposeTextures()
         if (boxLogic) boxLogic.cleanupBoxes()
+        if (lassoLogic) lassoLogic.cleanup() // NEW CLEANUP
 
-
-        // Clear maps
         idMap.clear()
         treeToPointMap.clear()
 
-        // Nullify to help GC
         scene = null
         camera = null
         renderer = null
@@ -196,12 +187,11 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         pointLogic = null
         imageLogic = null
         boxLogic = null
+        lassoLogic = null
     }
 
-    // --- Data Processing ---
-
+    // --- Data Processing (Same as before) ---
     function createKDTree(points: PointData[]) {
-        console.log('createKDTree')
         treeToPointMap.clear()
         tree.t = new KDBush(points.length)
         for (let point of points) {
@@ -210,171 +200,201 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
             point.id = id
         }
         tree.t.finish()
-
     }
-    
+
     function processPoints(points: PointData[]) {
         if (!pointLogic || !imageLogic) return
-        
-        pointLogic.processPoints(points) // Handles instanced point mesh
+        pointLogic.processPoints(points)
         createKDTree(points)
-        imageLogic.updateVisibleImages() // Trigger image update (uses new KD tree)
+        imageLogic.updateVisibleImages()
     }
 
     // --- INTERACTION / RESIZE ---
 
     const handleResize = (domElement: HTMLDivElement) => {
         if (!camera || !renderer) return
-
         const w = domElement.clientWidth
         const h = domElement.clientHeight
         const aspect = w / h
         const frustumSize = 10
-
         camera.left = (frustumSize * aspect) / -2
         camera.right = (frustumSize * aspect) / 2
         camera.top = frustumSize / 2
         camera.bottom = frustumSize / -2
         camera.updateProjectionMatrix()
-
         renderer.setSize(w, h)
-        if (labelRenderer) labelRenderer.setSize(w, h) // Resize label renderer
-
+        if (labelRenderer) labelRenderer.setSize(w, h)
         if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
-        if (boxLogic) boxLogic.updateBoundingBoxesOnZoom() // Re-render boxes on resize
+        if (boxLogic) boxLogic.updateBoundingBoxesOnZoom()
         updateView()
     }
 
     const handleHover = () => {
+        // Skip hover effects if we are drawing a lasso
+        if (props.mouseMode === 'lasso') return;
+
         if (!camera || !imageLogic || !props.showImages) return
         if (ignore_hover_once) {
             ignore_hover_once = false
             return
         }
-        
+
         const imageGroup = imageLogic.getImageGroup()
         if (!imageGroup) return
-
         raycaster.setFromCamera(mouse, camera)
-
         const intersects = raycaster.intersectObjects(imageGroup.children)
-
         let newHoveredPointId: number | null = null
         let minDistanceSquared = Infinity
-
         if (intersects.length > 0) {
             for (const intersect of intersects) {
                 const object = intersect.object as THREE.Mesh
-
                 const worldPosition = new THREE.Vector3()
                 object.getWorldPosition(worldPosition)
-
                 worldPosition.project(camera)
-
                 const dx = worldPosition.x - mouse.x
                 const dy = worldPosition.y - mouse.y
                 const distanceSquared = dx * dx + dy * dy
-
                 if (distanceSquared < minDistanceSquared) {
                     minDistanceSquared = distanceSquared
                     newHoveredPointId = object.userData.pointId
                 }
             }
         }
-
         if (newHoveredPointId !== hoveredPointId.value) {
             hoveredPointId.value = newHoveredPointId
-            imageLogic.updateVisibleImages() // Rebuild images to apply hover effect
+            imageLogic.updateVisibleImages()
             updateView()
         }
     }
 
+    /**
+     * Helper to get World Coordinates from Mouse Event
+     */
+    const getWorldPosition = (e: MouseEvent, cam: THREE.OrthographicCamera, dom: HTMLCanvasElement): THREE.Vector3 => {
+        const rect = dom.getBoundingClientRect()
+        const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+        // Unproject the mouse coordinates to get a point in 3D space
+        // We set Z to 0 because our map is on the Z=0 plane
+        const vec = new THREE.Vector3(mouseX, mouseY, 0)
+        vec.unproject(cam)
+        vec.z = 0 // Enforce Z=0 flatness
+        return vec
+    }
 
     const setupInteraction = (dom: HTMLCanvasElement, cam: THREE.OrthographicCamera) => {
-        // --- ZOOM with Pan-to-Mouse ---
+        // --- ZOOM with Pan-to-Mouse (Same as before) ---
         dom.addEventListener('wheel', (e) => {
             e.preventDefault()
-
             const rect = dom.getBoundingClientRect()
             const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1
             const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1
-
             const worldWidth = (cam.right - cam.left) / cam.zoom
             const worldHeight = (cam.top - cam.bottom) / cam.zoom
             const mouseWorldX = cam.position.x + mouseX * worldWidth / 2
             const mouseWorldY = cam.position.y + mouseY * worldHeight / 2
-
             const zoomSpeed = 0.001 * cam.zoom
             cam.zoom += e.deltaY * -zoomSpeed
             cam.zoom = Math.max(0.01, Math.min(20, cam.zoom))
-
             const newWorldWidth = (cam.right - cam.left) / cam.zoom
             const newWorldHeight = (cam.top - cam.bottom) / cam.zoom
-
             const newMouseWorldX = cam.position.x + mouseX * newWorldWidth / 2
             const newMouseWorldY = cam.position.y + mouseY * newWorldHeight / 2
-
             cam.position.x += mouseWorldX - newMouseWorldX
             cam.position.y += mouseWorldY - newMouseWorldY
-
             cam.updateProjectionMatrix()
-            
-            if (boxLogic) boxLogic.updateBoundingBoxesOnZoom() // Update boxes on zoom
+            if (boxLogic) boxLogic.updateBoundingBoxesOnZoom()
             updateView()
-
             if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
         }, { passive: false })
 
-        // --- PAN (remains the same as original) ---
+        // --- INTERACTION LOGIC ---
         let isDragging = false
+        let isLassoing = false // Track lasso state
         let prevPos = { x: 0, y: 0 }
         const canvasWidth = dom.clientWidth
         const canvasHeight = dom.clientHeight
 
         dom.addEventListener('mousedown', (e) => {
-            isDragging = true
-            prevPos = { x: e.clientX, y: e.clientY }
-            dom.style.cursor = 'grabbing'
-            updateView()
+            // Check for Lasso Mode
+            if (props.mouseMode === 'lasso') {
+                isLassoing = true
+                const worldPos = getWorldPosition(e, cam, dom)
+
+                // PASS SCREEN COORDS
+                lassoLogic?.start(worldPos, { x: e.clientX, y: e.clientY })
+
+                return
+            }
+
+            // Check for Pan Mode
+            if (props.mouseMode === 'pan') {
+                isDragging = true
+                prevPos = { x: e.clientX, y: e.clientY }
+                dom.style.cursor = 'grabbing'
+                updateView()
+            }
         })
 
         window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return
-            const dx = e.clientX - prevPos.x
-            const dy = e.clientY - prevPos.y
+            // HANDLE LASSO
+            if (isLassoing && props.mouseMode === 'lasso') {
+                const worldPos = getWorldPosition(e, cam, dom)
 
-            const worldWidth = (cam.right - cam.left) / cam.zoom
-            const worldHeight = (cam.top - cam.bottom) / cam.zoom
+                // PASS SCREEN COORDS
+                lassoLogic?.move(worldPos, { x: e.clientX, y: e.clientY })
 
-            const worldScaleX = worldWidth / canvasWidth
-            const worldScaleY = worldHeight / canvasHeight
+                return
+            }
 
-            cam.position.x -= dx * worldScaleX
-            cam.position.y += dy * worldScaleY
-
-            prevPos = { x: e.clientX, y: e.clientY }
-            cam.updateProjectionMatrix()
-            updateView()
-
-            if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
+            // HANDLE PAN
+            if (isDragging && props.mouseMode === 'pan') {
+                const dx = e.clientX - prevPos.x
+                const dy = e.clientY - prevPos.y
+                const worldWidth = (cam.right - cam.left) / cam.zoom
+                const worldHeight = (cam.top - cam.bottom) / cam.zoom
+                const worldScaleX = worldWidth / canvasWidth
+                const worldScaleY = worldHeight / canvasHeight
+                cam.position.x -= dx * worldScaleX
+                cam.position.y += dy * worldScaleY
+                prevPos = { x: e.clientX, y: e.clientY }
+                cam.updateProjectionMatrix()
+                updateView()
+                if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
+            }
         })
 
         window.addEventListener('mouseup', () => {
-            isDragging = false
-            dom.style.cursor = 'grab'
-            cam.updateProjectionMatrix()
-            updateView()
+            // END LASSO
+            if (isLassoing) {
+                isLassoing = false
+                lassoLogic?.end()
+                return
+            }
 
-            if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
+            // END PAN
+            if (isDragging) {
+                isDragging = false
+                dom.style.cursor = 'grab'
+                cam.updateProjectionMatrix()
+                updateView()
+                if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
+            }
         })
 
         window.addEventListener('mouseleave', () => {
             isDragging = false
+            if (isLassoing) {
+                isLassoing = false
+                lassoLogic?.end() // Auto-finish lasso on leave
+            }
             dom.style.cursor = 'default'
         })
 
         dom.style.cursor = 'grab'
 
+        // Standard mouse move tracking for Hover effects
         renderer!.domElement.addEventListener('mousemove', onMouseMove, false)
 
         function onMouseMove(event: MouseEvent) {
@@ -384,24 +404,15 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props }: PointClou
         }
     }
 
-
-    // --- Exposed Functions ---
-
     return {
         init,
         cleanup,
         processPoints,
         updateView,
-
-        // Point Logic
         updateShowPoints: (active: boolean) => pointLogic?.updateShowPoints(active),
-
-        // Image Logic
         updateShowImages: (active: boolean) => imageLogic?.updateShowImages(active),
-        
-        // Box Logic
         renderBoundingBoxesInstanced: () => boxLogic?.renderBoundingBoxesInstanced(props.groups),
-        updateShowLabels: (visible: boolean) => boxLogic?.updateShowLabels(visible), // Controls both boxes and labels
+        updateShowLabels: (visible: boolean) => boxLogic?.updateShowLabels(visible),
         updateShowBoxes: (visible: boolean) => boxLogic?.updateShowBoxes(visible)
     }
 }

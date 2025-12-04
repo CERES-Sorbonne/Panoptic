@@ -20,7 +20,8 @@ const props = defineProps<{
     action: string
     images?: Instance[]
     propertyIds?: number[],
-    autoCall?: boolean
+    autoCall?: boolean,
+    noBorder?: boolean
 }>()
 const emits = defineEmits(['instances', 'groups', 'call'])
 
@@ -135,7 +136,7 @@ watch(localFunction, loadInput)
 <template>
     <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
         <template #button>
-            <div class="d-flex main2 sbb">
+            <div class="d-flex main2" :class="{sbb: !props.noBorder}">
                 <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
