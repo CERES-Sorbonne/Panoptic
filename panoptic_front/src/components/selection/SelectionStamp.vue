@@ -22,13 +22,13 @@ const emits = defineEmits(['remove:selected', 'stamped'])
     <div class="d-flex b-border">
         <div class="sb no-radius m-0" style="padding: 0px 4px 0 0;" @click="emits('remove:selected')"><i
                 class="bi bi-x" />{{ images.length }} <i class="bi bi-image" /> </div>
-        <div class="sb no-radius left-border">
+        <div class="no-radius left-border">
             <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
         </div>
-        <div class="sb no-radius left-border">
-        <ActionButton2 action="execute" :images="images">
-            <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
-        </ActionButton2>
+        <div class="no-radius left-border">
+            <ActionButton2 action="execute" :images="images" :no-border="true">
+                <div class="sb bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
+            </ActionButton2>
         </div>
     </div>
 </template>

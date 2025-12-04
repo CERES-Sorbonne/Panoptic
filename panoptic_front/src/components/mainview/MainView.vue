@@ -110,7 +110,7 @@ onMounted(updateScrollerHeight)
     </div>
     <div v-if="data.isLoaded && scrollerWidth > 0 && scrollerHeight > 0 && valid">
         <!-- <button @click="imageList.computeLines()">test</button> -->
-        <template v-if="props.tab.state.display == 'tree'">
+        <template v-if="props.tab.state.display == 'tree'" >
             <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.imageSize"
                 :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
                 :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList"

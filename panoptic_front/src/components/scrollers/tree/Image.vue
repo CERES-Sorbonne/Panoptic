@@ -131,6 +131,7 @@ const inputKey = inject('inputKey') as string
 
 .full-container {
     position: relative;
+    background-color: white;
 }
 
 .img-border {

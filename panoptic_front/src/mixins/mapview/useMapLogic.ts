@@ -231,7 +231,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
 
     const handleHover = () => {
         // Skip hover effects if we are drawing a lasso
-        if (props.mouseMode === 'lasso') return;
+        if (props.mouseMode.startsWith('lasso')) return;
 
         if (!camera || !imageLogic || !props.showImages) return
         if (ignore_hover_once) {
@@ -318,7 +318,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
 
         dom.addEventListener('mousedown', (e) => {
             // Check for Lasso Mode
-            if (props.mouseMode === 'lasso') {
+            if (props.mouseMode.startsWith('lasso')) {
                 isLassoing = true
                 const worldPos = getWorldPosition(e, cam, dom)
 
@@ -339,7 +339,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
 
         window.addEventListener('mousemove', (e) => {
             // HANDLE LASSO
-            if (isLassoing && props.mouseMode === 'lasso') {
+            if (isLassoing && props.mouseMode.startsWith('lasso')) {
                 const worldPos = getWorldPosition(e, cam, dom)
 
                 // PASS SCREEN COORDS
@@ -376,7 +376,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
             // END PAN
             if (isDragging) {
                 isDragging = false
-                dom.style.cursor = 'grab'
+                dom.style.cursor = 'inherit'
                 cam.updateProjectionMatrix()
                 updateView()
                 if (props.showImages && imageLogic) imageLogic.updateVisibleImages()
@@ -389,10 +389,10 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
                 isLassoing = false
                 lassoLogic?.end() // Auto-finish lasso on leave
             }
-            dom.style.cursor = 'default'
+            dom.style.cursor = 'inherit'
         })
 
-        dom.style.cursor = 'grab'
+        dom.style.cursor = 'inherit'
 
         // Standard mouse move tracking for Hover effects
         renderer!.domElement.addEventListener('mousemove', onMouseMove, false)
