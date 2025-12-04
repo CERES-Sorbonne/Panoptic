@@ -226,7 +226,7 @@ export interface MapOptions {
     showPoints: boolean
     showBoxes: boolean
     selectedMap: number
-    groupOption: string
+    groupOption: string,
 }
 
 export interface TabData {

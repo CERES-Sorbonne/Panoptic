@@ -10,6 +10,7 @@ import ImageMap from './ImageMap.vue'
 import { Group } from '@/core/GroupManager'
 import * as THREE from 'three'
 import { objValues } from '@/data/builder'
+import Toolbar from './Toolbar.vue'
 
 const data = useDataStore()
 
@@ -21,6 +22,8 @@ const props = defineProps<{
 const baseImageSize = ref(10)
 const maxImageSize = ref(250)
 const minImageSize = ref(20)
+
+const mouseMode = ref('pan')
 
 const spatialFunction = ref({
     function: '',
@@ -148,6 +151,7 @@ function computeBox(images: Instance[], color) {
     for (let i = 0; i < images.length; i++) {
         let img = images[i]
         let p = sha1ToPoint[img.sha1]
+        if (!p) continue
         if (i == 0) {
             minX = p.x
             minY = p.y
@@ -219,6 +223,15 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
     }
 }
 
+const handleLasso = (points: PointData[]) => {
+    const selection = selectedPoints.value
+    for(let p of points) {
+        selection[p.sha1] = true
+    }
+    selectedPoints.value = selection
+    mapElem.value.render()
+}
+
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => {
     if (mapId == null) {
         return
@@ -235,7 +248,7 @@ watch(() => props.tab.state.mapOptions.groupOption, (val) => {
 
 watch(() => props.tab.state.mapOptions.showBoxes, (val) => mapElem.value.updateShowBoxes(val))
 
-watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), {deep: true})
+watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), { deep: true })
 
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(generateGroups)
@@ -252,18 +265,24 @@ onUnmounted(() => {
 <template>
     <div class="map-view-container">
         <div class="map-container">
-            <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages" :show-points="props.tab.state.mapOptions.showPoints"
-                :show-boxes="props.tab.state.mapOptions.showBoxes" background-color="#FFFFFF" :base-image-size="baseImageSize"
+            <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages"
+                :show-points="props.tab.state.mapOptions.showPoints" :show-boxes="props.tab.state.mapOptions.showBoxes"
+                background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
-                :groups="groups" :selectedGroups="selectedGroups" ref="mapElem" />
+                :groups="groups" :selectedGroups="selectedGroups" ref="mapElem" @lasso="handleLasso" />
         </div>
         <div class="menu">
-            <MapMenu v-model:selected-map="props.tab.state.mapOptions.selectedMap" v-model:show-images="props.tab.state.mapOptions.showImages"
-                v-model:color-option="props.tab.state.mapOptions.groupOption" v-model:show-boxes="props.tab.state.mapOptions.showBoxes" v-model:show-points="props.tab.state.mapOptions.showPoints"
-                v-model:base-image-size="baseImageSize" :groups="groups" v-model:max-image-size="maxImageSize"
-                v-model:min-image-size="minImageSize" v-model:spatial-function="spatialFunction"
-                @clusters="showClusters" @hover-group="onGroupHover"
+            <MapMenu v-model:selected-map="props.tab.state.mapOptions.selectedMap"
+                v-model:show-images="props.tab.state.mapOptions.showImages"
+                v-model:color-option="props.tab.state.mapOptions.groupOption"
+                v-model:show-boxes="props.tab.state.mapOptions.showBoxes"
+                v-model:show-points="props.tab.state.mapOptions.showPoints" v-model:base-image-size="baseImageSize"
+                :groups="groups" v-model:max-image-size="maxImageSize" v-model:min-image-size="minImageSize"
+                v-model:spatial-function="spatialFunction" @clusters="showClusters" @hover-group="onGroupHover"
                 :images="tab.collection.groupManager.result.root.images" />
+        </div>
+        <div class="toolbar">
+            <Toolbar v-model:mouse-mode="mouseMode" />
         </div>
     </div>
 </template>
@@ -289,5 +308,17 @@ onUnmounted(() => {
     left: 10px;
     bottom: 0px;
     z-index: 10;
+}
+
+.toolbar {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    /* background-color: blue; */
 }
 </style>

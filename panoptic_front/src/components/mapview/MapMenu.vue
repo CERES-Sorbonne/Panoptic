@@ -88,9 +88,9 @@ function hoverGroup(groupId: number, value) {
 <template>
     <div class="map-menu" :class="{ 'collapsed': isCollapsed }">
         <!-- Collapse/Expand Button -->
-        <div v-if="!isCollapsed" class="collapse-btn text-center d-flex" @click="toggleCollapse"
+        <div v-if="!isCollapsed" class="collapse-btn text-center d-flex"
             :title="isCollapsed ? 'Expand Menu' : 'Collapse Menu'">
-            <div class="flex-grow-1" style="font-size: 16px;">{{ $t('map.main_menu') }}</div>
+            <div class="flex-grow-1 " style="font-size: 16px; font-weight: 500; color: #555;">{{ $t('map.main_menu') }}</div>
         </div>
         <div v-if="!isCollapsed" style="position: absolute; right: 6px; top: 6px"><i @click="toggleCollapse"
                 class="bi bi-arrow-left-circle bb m-0" style="border-radius: 50%;"></i></div>
@@ -107,7 +107,7 @@ function hoverGroup(groupId: number, value) {
                 </div>
 
                 <div class="menu-section m-0 p-0">
-                    <ActionButton2 action="map" class="bb ps-1" style="font-size: 14px;">
+                    <ActionButton2 action="map" class="bb ps-1" style="font-size: 14px;" :no-border="true">
                         <i class="bi bi-boxes" /> {{ $t('map.create') }}
                     </ActionButton2>
                 </div>
@@ -145,7 +145,7 @@ function hoverGroup(groupId: number, value) {
                     </div>
 
                     <div v-if="props.colorOption == 'cluster'" class="sb">
-                        <ActionButton2 :images="props.images" action="group"
+                        <ActionButton2 :images="props.images" action="group" :no-border="true"
                             @groups="clusters => emits('clusters', clusters)"><i class="bi bi-boxes me-1" />{{
                                 $t('map.action_cluster') }}</ActionButton2>
                     </div>
@@ -181,6 +181,7 @@ function hoverGroup(groupId: number, value) {
     flex-direction: column;
     gap: 4px;
     padding: 8px;
+    padding-top: 4px;
     background: rgba(195, 207, 217, 0.219);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);

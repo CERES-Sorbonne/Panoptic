@@ -592,3 +592,53 @@ function hslToHex(h: number, s: number, l: number): string {
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
+
+export function getBoundingRect(points: {x: number, y: number}[]) {
+    if (!points || points.length === 0) {
+        return null;
+    }
+
+    // Initialize min/max values using the coordinates of the first point.
+    let minX = points[0].x;
+    let minY = points[0].y;
+    let maxX = points[0].x;
+    let maxY = points[0].y;
+
+    // Iterate over the rest of the points to find the true extremes.
+    for (let i = 1; i < points.length; i++) {
+        const point = points[i];
+
+        // Find the overall minimum X
+        if (point.x < minX) {
+            minX = point.x;
+        }
+
+        // Find the overall maximum X
+        if (point.x > maxX) {
+            maxX = point.x;
+        }
+
+        // Find the overall minimum Y
+        if (point.y < minY) {
+            minY = point.y;
+        }
+
+        // Find the overall maximum Y
+        if (point.y > maxY) {
+            maxY = point.y;
+        }
+    }
+
+    // Calculate dimensions
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    return {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        width,
+        height
+    };
+}
