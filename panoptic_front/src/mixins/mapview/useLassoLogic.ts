@@ -219,7 +219,7 @@ export function useLassoLogic({ scene, props, tree, updateView, onLassoComplete 
     }
 
     function computeSelectedPoints(polygon) {
-        polygon = simplify(polygon, 0.5)
+        polygon = simplify(polygon, 0.1)
 
         const rect = getBoundingRect(polygon)
         const pointIdsToTest = tree.t.range(rect.minX, rect.minY, rect.maxX, rect.maxY)
