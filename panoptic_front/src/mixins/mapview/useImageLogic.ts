@@ -294,6 +294,11 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
             visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
         }
 
+        console.log(zoom)
+        if(zoom < 0.1) {
+            visiblePoints = []
+        }
+
         const worldSize = getAdaptiveWorldSize(props.baseImageSize, zoom)
         const visiblePointIds = new Set(visiblePoints.map(p => p.id!))
 
