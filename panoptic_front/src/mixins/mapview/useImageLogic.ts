@@ -294,7 +294,7 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
             visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
         }
 
-        console.log(zoom)
+        // console.log(zoom)
         if(zoom < 0.1) {
             visiblePoints = []
         }
@@ -421,7 +421,7 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
             }
         })
 
-        console.log("update images")
+        // console.log("update images")
         updateView()
     }
 
