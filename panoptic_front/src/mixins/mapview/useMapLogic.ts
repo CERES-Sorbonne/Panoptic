@@ -1,5 +1,5 @@
 // useMapLogic.ts (Refactored)
-import { ref, type Ref } from 'vue' // Removed watch if unused
+import { ref, watch, type Ref } from 'vue' // Removed watch if unused
 import * as THREE from 'three'
 import KDBush from 'kdbush'
 import { Props } from '@/components/mapview/ImageMap.vue'
@@ -142,7 +142,7 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
         // 4. Initialize Logic Modules
         if (scene && camera && labelRenderer) {
             pointLogic = usePointLogic({ scene, props, isLoadingRef, idMap, updateView })
-            imageLogic = useImageLogic({ scene, camera, props, dataStore, tree, treeToPointMap, hoveredPointId, updateView })
+            imageLogic = useImageLogic({ scene, camera, props, dataStore, tree, treeToPointMap, hoveredPointId, updateView, renderer })
             boxLogic = useBoxLogic({ scene, camera, props, labelRenderer, updateView })
             lassoLogic = useLassoLogic({ scene, props, tree, updateView, onLassoComplete: lassoCalback }) // NEW INIT
 
