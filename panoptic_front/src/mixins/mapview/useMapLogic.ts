@@ -8,6 +8,10 @@ import { usePointLogic } from './usePointLogic'
 import { useImageLogic } from './useImageLogic'
 import { useBoxLogic } from './useBoxLogic'
 import { useLassoLogic } from './useLassoLogic' // NEW IMPORT
+import { useModalStore } from '@/data/modalStore'
+import { ModalId } from '@/data/models'
+import { keyState } from '@/data/keyState'
+import { zoomModal } from '@/components/modals/zoomModal'
 
 // --- Types (Same as before) ---
 export interface BoundingBox {
@@ -77,6 +81,8 @@ let lassoLogic: ReturnType<typeof useLassoLogic> | null = null // NEW HOOK
 
 export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalback }: PointCloudVizParams) {
     dataStore = store
+
+
 
     // --- Utility Functions ---
 
@@ -403,6 +409,21 @@ export function useMapLogic({ dataStore: store, isLoadingRef, props, lassoCalbac
             mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
         }
     }
+
+    function updateZoom() {
+        if (keyState.ctrl && hoveredPointId.value) {
+            const point = treeToPointMap.get(hoveredPointId.value)
+            const img = dataStore.sha1Index[point.sha1][0]
+            zoomModal.show(img)
+        }
+        if (!keyState.ctrl && zoomModal.open) {
+            zoomModal.hide()
+        }
+    }
+
+    watch(() => keyState.ctrl, updateZoom)
+    watch(hoveredPointId, updateZoom)
+
 
     return {
         init,
