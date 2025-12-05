@@ -20,9 +20,9 @@ const props = defineProps<{
 }>()
 
 // --- Image Map Configuration Parameters ---
-const baseImageSize = ref(10)
-const maxImageSize = ref(250)
-const minImageSize = ref(20)
+const baseImageSize = ref(3)
+const maxImageSize = ref(6)
+const minImageSize = ref(0.1)
 
 const mouseMode = ref('pan')
 

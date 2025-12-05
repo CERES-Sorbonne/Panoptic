@@ -20,10 +20,38 @@ const images = computed(() => {
     return slice.map(sha1 => data.sha1Index[sha1][0])
 })
 
+function test() {
+    let nb = () => Math.random()*10000
+    let arr = Array(1_000_000)
+    
+    let map = new Map()
+    
+    for(let i = 0; i < arr.length; i++) {
+        arr[i] = nb()
+    }
+    // let subset = new Set(arr.slice(1, 500_000))
+    arr.forEach((a,i) => map.set(i, a))
+    let now = performance.now()
+    let arr2 = Array.from(map.values())
+    console.log(map[3])
+    // console.log(arr2.slice(0, 100))
+//     // arr.sort((a, b) => a - b)
+//     let set = new Set(arr)
+//     // arr.slice(1, 500_000).forEach(n => set.delete(n))
+ 
+//     set = set.difference(subset)
+//     // let arr2 = Array.from(new Set(arr))
+//    let arr2 = Array.from(set)
+
+
+
+    console.log(performance.now() - now)
+}
+
 </script>
 
 <template>
-    <div class="glass-box" style="overflow: auto; height: 100%;">
+    <div class="glass-box" style="overflow: auto; height: 100%;" @click="test">
         <CenteredImage :image="i" v-for="i in images" :width="100" :height="100" />
     </div>
 </template>

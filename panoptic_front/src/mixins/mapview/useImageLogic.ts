@@ -9,10 +9,10 @@ import { objValues } from '@/data/builder'
 // --- CONSTANTS ---
 const sharedPlaneGeo = new THREE.PlaneGeometry(1, 1)
 const textureLoader = new THREE.TextureLoader()
-const originalZ = 0.01 // Base Z position for all images
-const popZ = 0.1      // Elevated Z position for the hovered image
-const maxHoverScale = 2
-const ANIMATION_SPEED = 0.15 // Controls the smoothness/speed of interpolation
+const originalZ = 0.01
+const popZ = 0.1
+const maxHoverScale = 1.25
+const ANIMATION_SPEED = 0.15
 
 interface TextureCache {
     small: Map<number, THREE.Texture>
@@ -23,6 +23,7 @@ interface ImageAnimationState {
     targetScale: number
     currentScale: number
     mesh: THREE.Mesh
+    lastQuality: 'small' | 'raw'
 }
 
 interface ImageLogicParams {
@@ -34,12 +35,12 @@ interface ImageLogicParams {
     treeToPointMap: Map<number, PointData>
     hoveredPointId: Ref<number | null>
     updateView: () => void
+    renderer?: THREE.WebGLRenderer
 }
 
 export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPointMap, hoveredPointId, updateView }: ImageLogicParams) {
     let imageGroup: THREE.Group | null = null
     
-    // Data Caches
     const textureCache: TextureCache = {
         small: new Map<number, THREE.Texture>(),
         raw: new Map<number, THREE.Texture>()
@@ -48,7 +49,7 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
         small: new Set<number>(),
         raw: new Set<number>()
     }
-    const animationStateMap = new Map<number, ImageAnimationState>() // Key: pointId
+    const animationStateMap = new Map<number, ImageAnimationState>()
 
     // --- UTILS ---
 
@@ -60,7 +61,7 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
         const maxPixelSize = props.maxImageSize
         targetVisualSize = Math.max(minPixelSize, Math.min(targetVisualSize, maxPixelSize))
 
-        return targetVisualSize / zoom
+        return targetVisualSize
     }
 
     function getPointsInRect(minX: number, minY: number, maxX: number, maxY: number): PointData[] {
@@ -150,7 +151,6 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
 
         animationStateMap.forEach((state, pointId) => {
             const mesh = state.mesh
-
             const delta = state.targetScale - state.currentScale
 
             if (Math.abs(delta) < 0.001) {
@@ -163,7 +163,6 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
 
             state.currentScale += delta * ANIMATION_SPEED
 
-            // Recalculate base dimensions based on current world size and ratio
             const zoom = camera.zoom
             const worldSize = getAdaptiveWorldSize(props.baseImageSize, zoom)
             const p = treeToPointMap.get(pointId)!
@@ -182,65 +181,16 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
         }
     }
 
-
     // --- RENDERING ---
 
-    /**
-     * Initializes the image group.
-     */
     const initImageGroup = () => {
         imageGroup = new THREE.Group()
         imageGroup.visible = props.showImages
         scene.add(imageGroup)
     }
 
-
-    const updateVisibleImages = () => {
-        if (!props.showImages || !camera || !imageGroup || !treeToPointMap.size) return
-
-        // Dispose existing materials/geometries before clearing
-        imageGroup.children.forEach((object) => {
-            if (object instanceof THREE.Mesh) {
-                if (Array.isArray(object.material)) {
-                    object.material.forEach(m => m.dispose())
-                } else {
-                    (object.material as THREE.Material).dispose()
-                }
-            }
-        })
-        imageGroup.clear()
-
-        // 2. Calculate View Bounds
-        const zoom = camera.zoom
-        const left = (camera.left / zoom) + camera.position.x
-        const right = (camera.right / zoom) + camera.position.x
-        const top = (camera.top / zoom) + camera.position.y
-        const bottom = (camera.bottom / zoom) + camera.position.y
-
-        // 3. Culling Logic
-        let imgQuality: 'small' | 'raw' = 'small'
-        if (zoom > 5) imgQuality = 'raw'
-
-        const gridSize = getGridStepSize(zoom) * 1.5
-        let visiblePoints = getPointsInRect(left - gridSize, bottom - gridSize, right + gridSize, top + gridSize)
-
-        if (gridSize > 2) {
-            visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
-        }
-
-        const selected = Object.keys(props.selectedPoints)
-        if(selected.length) {
-            const valid = new Set(selected)
-            visiblePoints = visiblePoints.filter(p => valid.has(p.sha1))
-        }
-
-        // 4. Calculate Shared Size
-        const worldSize = getAdaptiveWorldSize(props.baseImageSize, zoom)
-
-        const nextAnimationStateMap = new Map<number, ImageAnimationState>()
-
-        // Shared Shader Material for Image Planes (Fragment shader is for aspect/border/radius)
-        const sharedMaterial = new THREE.ShaderMaterial({
+    const createSharedMaterial = () => {
+        return new THREE.ShaderMaterial({
             uniforms: {
                 map: { value: null },
                 borderColor: { value: new THREE.Color(0x000000) },
@@ -248,73 +198,128 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
                 borderRadius: { value: 0.1 },
                 showBorder: { value: 1.0 },
                 applyRadius: { value: 1.0 },
-                textureSize: { value: new THREE.Vector2(1, 1) }
+                textureSize: { value: new THREE.Vector2(1, 1) },
+                imageScale: { value: 1.0 },
+                selected: { value: 0.0 },
+                selectionColor: { value: new THREE.Color(0x3b82f6) }, // Blue selection
+                selectionIntensity: { value: 0.4 }
             },
-            // ... (Vertex and Fragment Shaders for image planes - same as original)
             vertexShader: `
-        varying vec2 vUv;
-        void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }`,
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`,
             fragmentShader: `
-        uniform sampler2D map;
-        uniform vec3 borderColor;
-        uniform float borderWidth;
-        uniform float borderRadius;
-        uniform float showBorder;
-        uniform float applyRadius;
-        uniform vec2 textureSize;
-        varying vec2 vUv;
-        
-        vec3 linearToSRGB(vec3 color) {
-            return pow(color, vec3(1.0 / 2.2));
-        }
-        
-        float roundedBoxSDF(vec2 centerPos, vec2 size, float radius) {
-            return length(max(abs(centerPos) - size + radius, 0.0)) - radius;
-        }
-        
-        void main() {
-            vec4 texColor = texture2D(map, vUv);
-            
-            float aspectRatio = textureSize.x / textureSize.y;
-            vec2 pos = vUv - 0.5;
-            
-            if (aspectRatio > 1.0) {
-                pos.x *= aspectRatio;
-            } else {
-                pos.y /= aspectRatio;
-            }
-            
-            vec2 size = vec2(aspectRatio > 1.0 ? aspectRatio : 1.0, aspectRatio > 1.0 ? 1.0 : 1.0 / aspectRatio) * 0.5;
-            float radius = borderRadius * applyRadius;
-            float dist = roundedBoxSDF(pos, size, radius);
-            float outerEdge = 0.0;
-            float innerEdge = -borderWidth;
-            
-            float inBorder = step(innerEdge, dist) * step(dist, outerEdge);
-            float borderMask = inBorder * showBorder;
-            
-            vec3 finalColor = mix(texColor.rgb, borderColor, borderMask);
-            vec3 color = linearToSRGB(finalColor);
-            
-            float alpha = texColor.a * mix(1.0, step(dist, 0.0), applyRadius);
-            
-            gl_FragColor = vec4(color, alpha);
-        }`
-            ,
+                uniform sampler2D map;
+                uniform vec3 borderColor;
+                uniform float borderWidth;
+                uniform float borderRadius;
+                uniform float showBorder;
+                uniform float applyRadius;
+                uniform vec2 textureSize;
+                uniform float imageScale;
+                uniform float selected;
+                uniform vec3 selectionColor;
+                uniform float selectionIntensity;
+                varying vec2 vUv;
+                
+                vec3 linearToSRGB(vec3 color) {
+                    return pow(color, vec3(1.0 / 2.2));
+                }
+                
+                float roundedBoxSDF(vec2 centerPos, vec2 size, float radius) {
+                    return length(max(abs(centerPos) - size + radius, 0.0)) - radius;
+                }
+                
+                void main() {
+                    vec4 texColor = texture2D(map, vUv);
+                    
+                    float aspectRatio = textureSize.x / textureSize.y;
+                    vec2 pos = vUv - 0.5;
+                    
+                    if (aspectRatio > 1.0) {
+                        pos.x *= aspectRatio;
+                    } else {
+                        pos.y /= aspectRatio;
+                    }
+                    
+                    vec2 size = vec2(aspectRatio > 1.0 ? aspectRatio : 1.0, aspectRatio > 1.0 ? 1.0 : 1.0 / aspectRatio) * 0.5;
+                    float radius = borderRadius * applyRadius;
+                    
+                    // Scale border width inversely with image scale to maintain constant pixel width
+                    float scaledBorderWidth = borderWidth / imageScale;
+                    // Clamp border width to prevent it from being larger than the image
+                    scaledBorderWidth = min(scaledBorderWidth, 0.45);
+                    
+                    float dist = roundedBoxSDF(pos, size, radius);
+                    float outerEdge = 0.0;
+                    float innerEdge = -scaledBorderWidth;
+                    
+                    float inBorder = step(innerEdge, dist) * step(dist, outerEdge);
+                    float borderMask = inBorder * showBorder;
+                    
+                    vec3 finalColor = mix(texColor.rgb, borderColor, borderMask);
+                    
+                    // Apply selection tint
+                    finalColor = mix(finalColor, selectionColor, selected * selectionIntensity);
+                    
+                    vec3 color = linearToSRGB(finalColor);
+                    
+                    // Only show pixels inside the rounded box (including border area)
+                    float alpha = texColor.a * step(dist, 0.0);
+                    
+                    gl_FragColor = vec4(color, alpha);
+                }`,
             transparent: true
-        });
+        })
+    }
 
-        // 5. Render and Update Animation Targets
+    const updateVisibleImages = () => {
+        if (!props.showImages || !camera || !imageGroup || !treeToPointMap.size) return
+
+        const zoom = camera.zoom
+        const left = (camera.left / zoom) + camera.position.x
+        const right = (camera.right / zoom) + camera.position.x
+        const top = (camera.top / zoom) + camera.position.y
+        const bottom = (camera.bottom / zoom) + camera.position.y
+
+        let imgQuality: 'small' | 'raw' = 'small'
+        if (zoom > 5) imgQuality = 'raw'
+
+        const gridSize = getGridStepSize(zoom) * 1
+        let visiblePoints = getPointsInRect(left - gridSize, bottom - gridSize, right + gridSize, top + gridSize)
+
+        if (gridSize > 2) {
+            visiblePoints = selectImagesForGrid(visiblePoints, gridSize)
+        }
+
+        const worldSize = getAdaptiveWorldSize(props.baseImageSize, zoom)
+        const visiblePointIds = new Set(visiblePoints.map(p => p.id!))
+
+        // Remove images that are no longer visible
+        const toRemove: number[] = []
+        animationStateMap.forEach((state, pointId) => {
+            if (!visiblePointIds.has(pointId)) {
+                imageGroup!.remove(state.mesh)
+                const material = state.mesh.material
+                if (Array.isArray(material)) {
+                    material.forEach(m => m.dispose())
+                } else {
+                    material.dispose()
+                }
+                toRemove.push(pointId)
+            }
+        })
+        toRemove.forEach(id => animationStateMap.delete(id))
+
+        // Update or create images
         visiblePoints.forEach((p) => {
             const isHovered = hoveredPointId.value === p.id
             const targetScaleFactor = isHovered ? maxHoverScale : 1
             const zPosition = isHovered ? popZ : originalZ
 
             let quality: 'small' | 'raw' = (isHovered || imgQuality === 'raw') ? 'raw' : 'small'
-
             const texture = getTexture(quality, p)
 
             if (!texture) return
@@ -322,68 +327,105 @@ export function useImageLogic({ scene, camera, props, dataStore, tree, treeToPoi
             const finalWidth = 0.05 * worldSize * p.ratio
             const finalHeight = 0.05 * worldSize
 
+            const finalBorderWidth = 0.01
+
             let state = animationStateMap.get(p.id!)
-            if (!state) {
-                state = {
-                    targetScale: targetScaleFactor,
-                    currentScale: targetScaleFactor === maxHoverScale ? ((1 + maxHoverScale) / 2) : 1,
-                    mesh: null!
+            
+            // Update existing mesh
+            if (state) {
+                state.targetScale = targetScaleFactor
+                state.mesh.position.z = zPosition
+                state.mesh.renderOrder = isHovered ? 999 : 0
+
+                const material = state.mesh.material as THREE.ShaderMaterial
+                
+                // Update border width for current scale (clamped)
+                material.uniforms.borderWidth.value = finalBorderWidth
+                material.uniforms.imageScale.value = finalHeight
+
+                // Update texture if quality changed
+                if (state.lastQuality !== quality) {
+                    material.uniforms.map.value = texture
+                    if (texture.image) {
+                        material.uniforms.textureSize.value.set(
+                            (texture.image as any).width,
+                            (texture.image as any).height
+                        )
+                    }
+                    state.lastQuality = quality
                 }
+
+                // Update scale based on current animation state
+                state.mesh.scale.set(
+                    finalWidth * state.currentScale,
+                    finalHeight * state.currentScale,
+                    1
+                )
+
+                // Update border color if needed
+                if (props.selectedPoints[p.sha1]) {
+                    material.uniforms.showBorder.value = 1.0
+                    material.uniforms.borderColor.value = new THREE.Color(p.color)
+                    material.uniforms.selected.value = 1.0
+                } else {
+                    material.uniforms.showBorder.value = 0.0
+                    material.uniforms.selected.value = 0.0
+                }
+            } 
+            // Create new mesh
+            else {
+                const material = createSharedMaterial()
+                material.uniforms.map.value = texture
+                material.uniforms.borderWidth.value = finalBorderWidth
+                material.uniforms.imageScale.value = finalHeight
+                
+                if (texture.image) {
+                    material.uniforms.textureSize.value.set(
+                        (texture.image as any).width,
+                        (texture.image as any).height
+                    )
+                }
+                if (props.selectedPoints[p.sha1]) {
+                    material.uniforms.showBorder.value = 1.0
+                    material.uniforms.borderColor.value = new THREE.Color(p.color)
+                    material.uniforms.selected.value = 1.0
+                } else {
+                    material.uniforms.showBorder.value = 0
+                }
+
+                const plane = new THREE.Mesh(sharedPlaneGeo, material)
+                const initialScale = targetScaleFactor === maxHoverScale ? ((1 + maxHoverScale) / 2) : 1
+                
+                plane.scale.set(
+                    finalWidth * initialScale,
+                    finalHeight * initialScale,
+                    1
+                )
+                plane.position.set(p.x, p.y, zPosition)
+                plane.userData.pointId = p.id
+                plane.renderOrder = isHovered ? 999 : 0
+
+                imageGroup!.add(plane)
+
+                animationStateMap.set(p.id!, {
+                    targetScale: targetScaleFactor,
+                    currentScale: initialScale,
+                    mesh: plane,
+                    lastQuality: quality
+                })
             }
-            state.targetScale = targetScaleFactor
-
-            const material = sharedMaterial.clone()
-            texture.colorSpace = THREE.SRGBColorSpace
-            material.uniforms.map.value = texture;
-            if (texture.image) {
-                material.uniforms.textureSize.value.set(
-                    (texture.image as any).width,
-                    (texture.image as any).height
-                );
-            }
-            if (p.border) {
-                material.uniforms.showBorder.value = true
-                material.uniforms.borderColor.value = new THREE.Color(p.color)
-            } else {
-                material.uniforms.showBorder.value = false
-            }
-
-            const plane = new THREE.Mesh(sharedPlaneGeo, material)
-
-            plane.scale.set(
-                finalWidth * state.currentScale,
-                finalHeight * state.currentScale,
-                1
-            )
-
-            plane.position.set(p.x, p.y, zPosition)
-            plane.userData.pointId = p.id
-
-            if (isHovered) plane.renderOrder = 999
-
-            imageGroup!.add(plane)
-
-            state.mesh = plane
-            nextAnimationStateMap.set(p.id!, state)
         })
 
-        animationStateMap.clear()
-        nextAnimationStateMap.forEach((v, k) => animationStateMap.set(k, v))
         console.log("update images")
-
         updateView()
     }
 
-    /**
-     * Toggles the visibility of the image group.
-     */
     const updateShowImages = (active: boolean) => {
         if (imageGroup) {
             imageGroup.visible = active
             if (active) updateVisibleImages()
         }
     }
-
 
     return {
         initImageGroup,

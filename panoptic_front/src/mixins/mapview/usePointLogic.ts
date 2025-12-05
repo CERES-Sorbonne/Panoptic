@@ -59,8 +59,8 @@ export function usePointLogic({ scene, props, isLoadingRef, idMap, updateView }:
 
     // Constants for the two planes
     const SELECTED_OPACITY = 1.0
-    const UNSELECTED_OPACITY = 0.2
-    const UNSELECTED_COLOR = new THREE.Color('#e9e9e9') // Dark gray for dimmed points
+    const UNSELECTED_OPACITY = 1.0
+    const UNSELECTED_COLOR = new THREE.Color('#dddddd') // Dark gray for dimmed points
     const DEFAULT_POINT_COLOR = new THREE.Color(0x1E90FF) // Sky Blue fallback
 
     /**
