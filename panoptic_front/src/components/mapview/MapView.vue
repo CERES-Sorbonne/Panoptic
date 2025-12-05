@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed } from 'vue'
+import { defineProps, ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed, triggerRef } from 'vue'
 import { ActionResult, Colors, Instance, MapGroup } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
@@ -46,7 +46,12 @@ const selectedPoints = computed(() => {
     for (let inst of instances) {
         res[inst.sha1] = true
     }
-    console.log(res)
+
+    for(let groupId of Object.keys(selectedGroups.value).map(Number)) {
+        for(let sha1 of groupToPoints[groupId]) {
+            res[sha1] = true
+        }
+    }
     return res
 })
 
@@ -145,7 +150,7 @@ function generateGroups() {
     const groupToColor = {}
     groupList.forEach((g, index) => groupToColor[g.id] = colors[index])
 
-    const propId = groupList[0]?.meta?.propertyValues[0].propertyId
+    const propId = groupList[0]?.meta?.propertyValues[0]?.propertyId
     if (propId) {
         const property = data.properties[propId]
         if (isTag(property.type)) {
@@ -246,7 +251,7 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
         //     ids.push(...data.sha1Index[sha1].map(i => i.id))
         // }
         // props.tab.collection.groupManager.selectImages(ids)
-        // groups.value = [...groups.value]
+        groups.value = [...groups.value]
         // getSelectedPoints()
         nextTick(() => mapElem.value.render())
     } else {
@@ -256,7 +261,7 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
         //     ids.push(...data.sha1Index[sha1].map(i => i.id))
         // }
         // props.tab.collection.groupManager.unselectImages(ids)
-        // groups.value = [...groups.value]
+        groups.value = [...groups.value]
         // getSelectedPoints()
         nextTick(() => mapElem.value.render())
         mapElem.value.render()
@@ -316,7 +321,7 @@ onUnmounted(() => {
                 :show-points="props.tab.state.mapOptions.showPoints" :show-boxes="props.tab.state.mapOptions.showBoxes"
                 background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
-                :groups="groups" :selectedGroups="selectedGroups" ref="mapElem" @lasso="handleLasso" />
+                :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" />
         </div>
         <div class="toolbar">
             <Toolbar v-model:mouse-mode="mouseMode" />

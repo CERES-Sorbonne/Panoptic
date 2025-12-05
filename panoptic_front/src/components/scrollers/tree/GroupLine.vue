@@ -93,7 +93,7 @@ function openChildren() {
 }
 
 const saving = ref(false)
-async function saveHirachy() {
+async function saveHirachy(ignoreParents?: boolean) {
     if (saving.value) return
 
     saving.value = true
@@ -104,7 +104,22 @@ async function saveHirachy() {
     let id = 0
     const idFunc = () => { id -= 1; return id }
     const tagToImages: { [tagId: number]: Instance[] } = {}
-    const tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
+    let tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
+
+    if(ignoreParents) {
+        const hasChildren = {}
+        for(let tag of tags) {
+            if(tag.parents) {
+                tag.parents.forEach(p => hasChildren[p] = true)
+            }
+        }
+
+        for(let tagId of Object.keys(hasChildren).map(Number)) {
+            delete tagToImages[tagId]
+        }
+        tags = tags.filter(t => !hasChildren[t.id])
+        tags.forEach(t => t.parents = [])
+    }
 
     const instanceValues: InstancePropertyValue[] = []
     const imageValues: ImagePropertyValue[] = []
@@ -219,11 +234,22 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                 </wTT>
             </div>
             <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
-                <div class="sbb cluster-close" @click="saveHirachy">
+                <div class="sbb cluster-close" @click="saveHirachy()">
                     <span style="">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
                         <i v-if="!saving" class="bi bi-diagram-3"></i>
                         <div v-else class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </span>
+                </div>
+            </wTT>
+                        <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
+                <div class="sbb cluster-close" @click="saveHirachy(true)">
+                    <span style="">
+                        <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
+                        <!-- <i v-if="!saving" class="bi bi-diagram-3"></i> -->
+                        <div v-if="saving" class="spinner-border spinner-border-sm text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </span>
