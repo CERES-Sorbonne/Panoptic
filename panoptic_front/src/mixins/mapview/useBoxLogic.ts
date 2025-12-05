@@ -5,6 +5,7 @@ import { BoundingBox } from './useMapLogic'
 import { Props } from '@/components/mapview/ImageMap.vue'
 import { objValues } from '@/data/builder'
 import { MapGroup } from '@/data/models'
+import { watch } from 'vue'
 
 
 interface BoxLogicParams {
@@ -184,7 +185,6 @@ export function useBoxLogic({ scene, camera, props, labelRenderer, updateView }:
         currentBoundingBoxThickness = pixelThickness
 
         const hasSelected = objValues(props.selectedGroups).length > 0
-
         const selectedGroupData: MapGroup[] = []
         const unselectedGroupData: MapGroup[] = []
 
