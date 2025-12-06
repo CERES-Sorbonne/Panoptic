@@ -3,7 +3,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/panoptic.svg)](https://pypi.org/project/panoptic)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/panoptic.svg)](https://pypi.org/project/panoptic)
 
-This documentation also exist in [French](https://github.com/CERES-Sorbonne/Panoptic/blob/main/README-FR.md)
+This documentation is also available in [French](https://github.com/CERES-Sorbonne/Panoptic/blob/main/README-FR.md)
 
 ![Preview](https://github.com/CERES-Sorbonne/Panoptic/assets/10096711/8e6389c7-ee80-4e0f-95d8-790602bd028e)
 
@@ -21,7 +21,7 @@ This documentation also exist in [French](https://github.com/CERES-Sorbonne/Pano
 3. [Documentation](https://panopticorg.github.io)
 4. [License](#license)
 
-## 1. Description
+## 1. Description <a id="description"></a>
 
 Panoptic is a tool for exploring and annotating large image corpora, utilizing image analysis and machine learning tools to facilitate these tasks.
 
@@ -29,10 +29,10 @@ Since it requires deep learning libraries, it is recommended to use it on a comp
 
 > Warning: Panoptic is still in active development and currently only a prototype. You may encounter bugs, so we recommend using this tool only for testing and not relying on it for significant academic work.
 
-## 2. Installation
-### 2.1 Via pip:
-Recommended way if you already have python !
-We also recommended creating a virtualenv to avoid any existing conflicts. 
+## 2. Installation <a id="installation"></a>
+### 2.1 Via pip <a id="via-pip"></a>
+Recommended way if you already have Python!
+We also recommend creating a virtualenv to avoid any existing conflicts. 
 <p style="color: red;">
 Regardless of your OS, you will need Python 3.10 or higher; we recommend using version 3.12.
 </p>
@@ -48,18 +48,18 @@ Generally, you just need to open a terminal and run the following commands to in
 - `pip3 install panoptic`
 - `panoptic`
 
-### 2.2 Automatic Installation and Launch Scripts (recommended)
+### 2.2 Automatic Installation and Launch Scripts (recommended) <a id="automatic-installation-and-launch-scripts-recommended"></a>
 <p style="color: red;">
 The script may ask for your password to install dependencies. This is necessary if you are missing system dependencies to install Panoptic (python, pip, and/or venv).
 </p>
 
-#### 2.2.1 Windows
+#### 2.2.1 Windows <a id="windows"></a>
 
-We have a prebuild [launcher hosted here: ](https://github.com/CERES-Sorbonne/Panoptic/blob/main/install/windows/panoptic.exe) you can use it to install and then launch panoptic.
-Note that you might have a warning message from windows but if you're here we guess you trust us, if you don't you can still use the python installer !
+We have a prebuilt [launcher hosted here: ](https://github.com/CERES-Sorbonne/Panoptic/blob/main/install/windows/panoptic.exe) you can use it to install and then launch Panoptic.
+Note that you might have a warning message from windows but if you're here, we assume you trust us, if you don't you can still use the python installer!
 
 
-#### 2.2.2 Linux
+#### 2.2.2 Linux <a id="linux"></a>
 Here are the three commands to run to install Panoptic on Linux:
 ```bash
 wget https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_linux.sh -O start_panoptic_linux.sh
@@ -115,8 +115,8 @@ Available options are:
 - `-h` or `--help`: Use this option to display help.
 
 
-#### 2.2.3 MacOS
-Here are the three commands to run to install Panoptic on MacOS:
+#### 2.2.3 MacOS <a id="macos"></a>
+Here are the three commands to run to install Panoptic on macOS:
 ```bash
 curl -O https://raw.githubusercontent.com/CERES-Sorbonne/Panoptic/refs/heads/main/install/start_panoptic_mac.sh
 chmod +x start_panoptic_mac.sh
@@ -141,7 +141,7 @@ After installation, you can launch Panoptic by going back to the folder where yo
 ```
 
 
-### 2.3 Docker Installation
+### 2.3 Docker Installation <a id="docker-installation"></a>
 
 If you encountered issues with the standard installation, or prefer using Docker, an image is available. First, you need to:
 
@@ -154,7 +154,7 @@ If you encountered issues with the standard installation, or prefer using Docker
 
 In the Docker version, there is no small interface for adding folders or managing projects; you need to directly specify the folders to Docker to work with:
 
-#### 2.3.2 Option 1: One folder for images and Panoptic data:
+#### 2.3.2 Option 1: One folder for images and Panoptic data
 
 This requires creating a special folder named "images" within the folder you provide to Panoptic as input. In the following example, you would need a folder named `images` inside `/path/to/your/folder`, resulting in `/path/to/your/folder/images`.
 
@@ -164,7 +164,7 @@ Then run the following command (with Docker already running):
 docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceressorbonne/panoptic
 ```
 
-#### 2.3.3 Option 2: Separate folders for images and Panoptic data:
+#### 2.3.3 Option 2: Separate folders for images and Panoptic data
 
 ```console
 docker run -it -p 8000:8000 \
@@ -191,7 +191,7 @@ docker run -it -p 8000:8000 -v /path/to/your/folder:/data --name panoptic ceress
 
 Available options are the same as for the Linux installation.
 
-### 2.4 Development Installation
+### 2.4 Development Installation <a id="installation-development"></a>
 
 If you want to contribute to Panoptic's development or test the latest unpublished features, you can clone the GitHub repository and install Panoptic in development mode.
 
@@ -215,5 +215,5 @@ To test and modify the backend, we provide a pre-built frontend in the backend's
 
 
 
-## License
+## License <a id="license"></a>
 This project is licensed under the GNU-GPL3 - see the [LICENSE](https://github.com/CERES-Sorbonne/Panoptic/blob/main/LICENSE) file for details.
