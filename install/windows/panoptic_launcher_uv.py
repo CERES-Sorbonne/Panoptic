@@ -40,7 +40,7 @@ run_command("uv pip install pip")
 if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
     run_command("uv pip install panoptic")
     with_cuda = input(
-        "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme: (O/N").strip().lower()
+        "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme : (o/n) : ").strip().lower()
     if with_cuda == 'o':
         run_command("uv pip install torch torchvision --torch-backend=auto")
     print("Installation du plugin de similarité panopticml")
@@ -49,7 +49,7 @@ if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
 # Vérifier si panoptic est obsolète
 outdated = run_command("uv pip list --outdated", capture_output=True).stdout
 if "panoptic" in outdated:
-    user_input = input("Mise à jour trouvée, voulez-vous l'installer ? (O/N) ").strip().lower()
+    user_input = input("Mise à jour trouvée, voulez-vous l'installer ? (o/n) ").strip().lower()
     if user_input == "o":
         run_command("uv pip install -U panoptic")
 else:
