@@ -10,7 +10,7 @@ from queue import Queue
 from typing import List, Any, Callable, Awaitable, Dict, TypeVar, Tuple, Generic
 
 from fastapi import UploadFile
-from orjson import orjson
+import orjson
 from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
