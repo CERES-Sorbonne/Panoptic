@@ -4,17 +4,17 @@
             "label": {
                 "folder": "Dossier",
                 "name": "Nom du projet",
-                "path_placeholder": "Selectionez un dossier",
-                "create": "Creer",
+                "path_placeholder": "Sélectionnez un dossier",
+                "create": "Créer",
                 "cancel": "Annuler"
             },
-            "create_title": "Creation de projet",
+            "create_title": "Création de projet",
             "plugins": {
-                "warning": "Attention: nous ne contrôlons pas le contenu des plugins développés par des tierces",
+                "warning": "Attention: nous ne contrôlons pas le contenu des plugins développés par des tierces parties",
                 "require_url": "Url requise",
                 "require_unique_name": "Choisir un nom de plugin unique",
                 "require_folder": "Choisir un dossier",
-                "error_name_not_unique": "Le nom de plugin est deja utilisé",
+                "error_name_not_unique": "Le nom de plugin est déjà utilisé",
                 "install_panoptic_ml": "Installer le plugin de similarité",
                 "install": "Installer",
                 "load": "Installation..."
@@ -40,7 +40,7 @@
                 "del_alert": "Retirer le dossier supprimera toutes les instances associées aux images contenues dans le dossier."
             },
             "tasks": {
-                "title": "Tache de fond",
+                "title": "Tâche de fond",
                 "done": "Fini"
             },
             "properties": {
@@ -76,7 +76,7 @@
             "rename_tab_tooltip": "Renommer l'onglet",
             "delete_tab_tooltip": "Supprimer l'onglet",
             "search": "Chercher par texte",
-            "search_tooltip": "Chercher des images ayant le texte cherché dans l'une de leurs propriétés.",
+            "search_tooltip": "Chercher des images ayant le texte recherché dans l'une de leurs propriétés.",
             "grid_tooltip": "Passer en vue grille d'images",
             "table_tooltip": "Passer en vue tableau",
             "graph_tooltip": "Passer en vue graphique",
@@ -84,9 +84,9 @@
             "all_images": "Images",
             "sha1_images": "Instances",
             "image_mode": "Mode images uniques",
-            "image_mode_tooltip": "Altérner entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
+            "image_mode_tooltip": "Alterner entre les modes instance et image, en mode image, seules les propriétés communes à toutes les instances d'une image seront affichées.",
             "selected_images": "images sélectionnées",
-            "tag_selection": "Tagger les ",
+            "tag_selection": "Taguer les ",
             "remove_selection_tooltip": "Annuler la sélection",
             "filters": "Filtrer",
             "groupby": "Grouper",
@@ -98,8 +98,8 @@
                 "order_asc": "Tri par ordre croissant"
             },
             "import_status_title": "Import",
-            "issue": "Signaler un probleme",
-            "close_project": "Retour a la liste des projets",
+            "issue": "Signaler un problème",
+            "close_project": "Retour à la liste des projets",
             "editName": "Modifier le nom",
             "removeGroup": "Supprimer le groupe",
             "deleteGroupAndProperties": "Supprimer le groupe et les propriétés",
@@ -111,7 +111,7 @@
             "accept": "Ajouter au groupe sélectionné",
             "refuse": "Retirer des images similaires",
             "group": "Aller au groupe",
-            "close": "Fermer les propsitions",
+            "close": "Fermer les propositions",
             "scroll": "Retrouver le groupe dans la vue",
             "filter": "Activer/Désactiver le filtre global d'image dans les propositions",
             "reload": "Recharger les propositions"
@@ -151,7 +151,7 @@
             "similarity_filter_tooltip": "Le pourcentage de similarité minimal que doivent avoir les images affichées ici. Pour plus d'information, voir la documentation sur le score de similarité.",
             "toggle_property_tooltip": "Afficher / Masquer cette propriété dans la vue 'Images similaires'",
             "main_filter_tooltip": "Activer / Désactiver le filtre global",
-            "fill_property_tooltip": "Tagger toutes les images similaires avec la valeur de cette propriété",
+            "fill_property_tooltip": "Taguer toutes les images similaires avec la valeur de cette propriété",
             "history": "Historique"
         },
         "properties": {
@@ -162,9 +162,9 @@
             "image": "Propriété d'image",
             "cancel": "Annuler",
             "confirm": "Confirmer",
-            "text": "Text",
+            "text": "Texte",
             "text_tooltip": "Du texte, ex: le contenu d'un tweet, la description d'une image",
-            "number": "Number",
+            "number": "Nombre",
             "number_tooltip": "Des nombres, ex: le nombre de likes sur twitter, la largeur d'un tableau",
             "tag": "Tag",
             "tag_tooltip": "Un tag unique choisi parmi une liste, ex: une catégorie d'image, un lieu, une source",
@@ -429,7 +429,7 @@
     },
     "plugin": {
         "remove": "Supprimer le Plugin",
-        "update": "Mettre a jour le plugin",
+        "update": "Mettre à jour le plugin",
         "update_local": "Réinstaller le plugin",
         "path": "Chemin",
         "source": "Source"
