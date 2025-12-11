@@ -9,13 +9,12 @@ import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult, sourceFromFunction } from '@/utils/utils';
+import { convertClusterGroupResult, sourceFromFunction, fileToBase64 } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
 const project = useProjectStore()
 const data = useDataStore()
 const actions = useActionStore()
-const panoptic = usePanopticStore()
 
 const props = defineProps<{
     action: string
@@ -61,6 +60,9 @@ async function call() {
         for (let input of localInputs.value) {
             if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
                 input.defaultValue = data.propertyList[0].id
+            }
+            if (input.type == 'input_file' && input.defaultValue){
+                input.defaultValue = await fileToBase64(input.defaultValue)
             }
             uiInputs[input.name] = input.defaultValue
         }

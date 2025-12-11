@@ -192,7 +192,7 @@ function toCamel(s) {
 }
 
 export function keysToSnake(o: unknown): unknown {
-    if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function') {
+    if (o === Object(o) && !Array.isArray(o) && typeof o !== 'function' && !(o instanceof File)) {
         const n = {};
         Object.keys(o).forEach((k) => {
             n[toSnake(k)] = keysToSnake(o[k]);
@@ -251,6 +251,15 @@ export function deepCopy<T>(source: T): T {
     }
 
     return copy as T;
+}
+
+export async function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]); // Enlève le préfixe "data:image/jpeg;base64,"
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 export function getComputedValues(instance: Instance) {

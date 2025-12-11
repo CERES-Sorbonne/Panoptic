@@ -34,6 +34,10 @@ function vectorName(vectorType: VectorType) {
     return '' + vectorType.id + ' ' + vectorType.source + '.' + Object.keys(vectorType.params).filter(k => vectorType.params[k]).map(k => k + '_' + vectorType.params[k]).join('_')
 }
 
+function setFile(event: Event){
+    localValue.value = (<HTMLInputElement>event.target).files[0]
+}
+
 watch(() => props.input.defaultValue, () => localValue.value = props.input.defaultValue)
 watch(localValue, () => {
     if (props.input.type == 'property' && localValue.value in data.properties) {
@@ -93,6 +97,10 @@ onMounted(initValues)
                     <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
                         vectorName(v) }}</option>
                 </select>
+            </div>
+
+            <div v-if="props.input.type == 'input_file'">
+                <input type="file" @change="setFile" ref="elem" />
             </div>
 
         </div>
