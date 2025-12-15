@@ -58,8 +58,8 @@ def start_api(install=False):
         allow_headers=["*"],
     )
 
-    if os.environ.get('SERVER_MODE'):
-        app.add_middleware(GZipMiddleware, minimum_size=100000, compresslevel=4)
+    if os.environ.get('PANOPTIC_REMOTE'):
+        app.add_middleware(GZipMiddleware, minimum_size=1000000, compresslevel=4)
 
     BASE_PATH = get_base_path()
     # base path for the static folder
@@ -93,7 +93,7 @@ def start_api(install=False):
     prod_url = 'http://localhost:' + str(PORT) + '/'
     front_url = dev_url if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else prod_url
 
-    if not os.environ.get('REMOTE'):
+    if not os.environ.get('PANOPTIC_REMOTE'):
         webbrowser.open(front_url)
     if os.environ.get('SERVER_MODE'):
         server.ask_users = True
