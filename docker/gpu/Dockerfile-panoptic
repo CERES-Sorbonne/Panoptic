@@ -8,7 +8,7 @@ WORKDIR ./app/panoptic_back/
 
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install -U pip
 # RUN pip3 install --force-reinstall typing-extensions
-RUN --mount=type=cache,target=/root/.cache/pip pip3 install --force-reinstall fastapi==0.99.1 fastapi-camelcase==1.0.5
+RUN --mount=type=cache,target=/root/.cache/pip pip3 install --force-reinstall
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install .
 
 RUN rm -rf /root/.cache/pip \
