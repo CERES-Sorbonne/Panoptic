@@ -32,7 +32,7 @@ export const useSocketStore = defineStore('socketStore', () => {
 
     function init() {
         const connectionId = getConnectionId()
-        const url = (import.meta as any).env.VITE_API_ROUTE || 'http://localhost:8000'
+        const url = (import.meta as any).env.VITE_API_ROUTE
         socket = io(url, {
             path: '/socket.io/',
             reconnection: true,

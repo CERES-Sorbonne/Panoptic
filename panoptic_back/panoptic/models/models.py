@@ -6,6 +6,7 @@ from enum import Enum
 from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
+from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, ConfigDict
 
@@ -348,7 +349,7 @@ class ActionContext:
     # property_ids: List[int] | None = None
     # file: str | None = None
     # text: str | None = None
-    ui_inputs: Dict[str, Any] = field(default_factory=dict)
+    ui_inputs: Dict[str, Any ] = field(default_factory=dict)
 
 
 class ParamDescription(CamelModel):
@@ -369,6 +370,10 @@ class FunctionDescription(CamelModel):
     params: List[ParamDescription] | None = []
     hooks: list[str] = []
 
+
+@dataclass(slots=True)
+class InputFile(str):
+    pass
 
 class PluginBaseParamsDescription(BaseModel):
     description: str | None = None

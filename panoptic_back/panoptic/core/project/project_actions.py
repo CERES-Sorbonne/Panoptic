@@ -1,9 +1,11 @@
 import inspect
+import logging
 from enum import Enum
 from pathlib import Path
 from typing import List
 
-from panoptic.models import ActionContext, FunctionDescription, ParamDescription, PropertyId, VectorType, OwnVectorType
+from panoptic.models import ActionContext, FunctionDescription, ParamDescription, PropertyId, VectorType, OwnVectorType, \
+    InputFile
 from panoptic.core.plugin.plugin import APlugin
 from panoptic.utils import AsyncCallable, to_str_type
 
@@ -23,7 +25,7 @@ def get_params(f):
     return res
 
 
-possible_inputs = [to_str_type(t) for t in [int, float, str, bool, Path, PropertyId, Enum, VectorType, OwnVectorType]]
+possible_inputs = [to_str_type(t) for t in [int, float, str, bool, Path, PropertyId, Enum, VectorType, OwnVectorType, InputFile]]
 
 
 def get_param_description(f: AsyncCallable, param_name: str):
@@ -47,6 +49,7 @@ def get_params_description(f: AsyncCallable) -> List[ParamDescription]:
         tt = types[t]
         str_type = to_str_type(tt[0])
         if str_type not in possible_inputs:
+            logging.warning(f'Unknown type {str_type} in {t}')
             continue
 
         desc = ParamDescription(name=t,

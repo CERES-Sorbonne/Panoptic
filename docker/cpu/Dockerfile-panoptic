@@ -8,7 +8,7 @@ WORKDIR ./app/panoptic_back/
 
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install -U pip
 # RUN pip3 install --force-reinstall typing-extensions
-RUN --mount=type=cache,target=/root/.cache/pip pip3 install --force-reinstall fastapi==0.99.1 fastapi-camelcase==1.0.5
+#RUN --mount=type=cache,target=/root/.cache/pip pip3 install --force-reinstall fastapi==0.99.1 fastapi-camelcase==1.0.5
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install .
 
 RUN rm -rf /root/.cache/pip \
@@ -20,9 +20,6 @@ RUN rm -rf /root/.cache/pip \
     && rm -rf /root/.cache/huggingface/accelerate  \
     && rm -rf /root/.cache/huggingface/omniscient
 
-#RUN mkdir -p /data/ \
-#    && chown -R 1000:1000 /data/ \
-#    && chmod -R 777 /data/ \
 
 RUN mkdir -p /data/ \
     && chown -R 1000:1000 /data/ \
@@ -31,7 +28,13 @@ RUN mkdir -p /data/ \
 ENV PANOPTIC_HOST="0.0.0.0"
 ENV IS_DOCKER="True"
 ENV PANOPTIC_DATA_DIR="/data/"
+ENV PANOPTIC_REMOTE="True"
+ENV UPGRADE_PANOPTIC="false"
 
 EXPOSE 8000
 
-CMD ["panoptic"]
+# Script d'entrée qui vérifie la variable d'environnement
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
