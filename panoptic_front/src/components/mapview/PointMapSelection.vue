@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/keyState';
 import { useDataStore } from '@/data/dataStore';

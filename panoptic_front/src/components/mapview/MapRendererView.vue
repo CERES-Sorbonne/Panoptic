@@ -12,9 +12,7 @@ const props = defineProps<{
 
 const canvasContainer = ref<HTMLElement>(null)
 
-let atlas: ImageAtlas = null
-
-const renderer = useMapRenderer(canvasContainer).renderer
+useMapRenderer(canvasContainer, props.points).renderer
 
 </script>
 
