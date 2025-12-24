@@ -8,6 +8,7 @@ from typing import List, Any
 
 from showinfm import show_in_file_manager
 
+from panoptic.core.project.project_paths import ProjectPaths
 from panoptic.core.project_db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer.importer import Importer
@@ -26,6 +27,9 @@ from panoptic.models import ProjectSettings, PluginKey, DbCommit, ProjectState, 
 nb_workers = 8
 folder_import_seq = 1
 
+image_data_folder = 'image_data'
+atlas_folder = 'atlas'
+
 def get_executor():
     executor = ThreadPoolExecutor(max_workers=nb_workers)
     atexit.register(executor.shutdown)
@@ -40,6 +44,7 @@ class Project:
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
+        self.paths = ProjectPaths(Path(folder_path))
         self.db: ProjectDb | None = None
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents(self.id)
@@ -62,6 +67,7 @@ class Project:
         self.on.sync.emitTasks(tasks)
 
     async def start(self):
+        self.paths.create_paths()
         conn = DbConnection(self.base_path)
         await conn.start()
         self.db = ProjectDb(conn, self)
@@ -272,3 +278,4 @@ class Project:
         Make function awaitable and execute in Executor
         """
         return await asyncio.wrap_future(self.executor.submit(function, *args, **kwargs))
+

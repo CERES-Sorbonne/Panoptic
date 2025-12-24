@@ -573,6 +573,16 @@ class SyncData:
     project_id: int
     data: Any
 
+@dataclass(slots=True)
+class ImageAtlas:
+    id: int # needed if we want to have optimized atlas for big maps where each atlas covers a space region.
+    atlas_nb: int # how many atlas files there are
+    width: int # in px
+    height: int # in px
+    cell_width: int # in px
+    cell_height: int # in px
+    sha1_mapping: dict[str, tuple[int, int]]
+
 
 ImportOptions = dict[int, ColumnOption]
 

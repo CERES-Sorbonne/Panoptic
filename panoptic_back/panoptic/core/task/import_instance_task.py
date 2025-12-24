@@ -5,6 +5,7 @@ import os
 from PIL import Image
 from imagehash import average_hash
 
+from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
 from panoptic.core.task.task import Task
 from panoptic.models import DbCommit, Instance, ProjectSettings
 
@@ -58,8 +59,7 @@ class ImportInstanceTask(Task):
         return commit.instances[0]
 
     async def run_if_last(self):
-        pass
-        # self._project.ui.update_counter.image += 1
+        self._project.task_queue.add_task(GenerateAtlasTask())
 
     @staticmethod
     def _import_image(file_path, settings: ProjectSettings):

@@ -15,7 +15,7 @@ from panoptic.core.project.project_events import ImportInstanceEvent, DbUpdateEv
 from panoptic.core.project.undo_queue import UndoQueue
 from panoptic.models import Property, PropertyType, InstanceProperty, Instance, Tag, Vector, VectorDescription, \
     ProjectVectorDescriptions, PropertyMode, DbCommit, ImageProperty, DeleteFolderConfirm, ImagePropertyKey, \
-    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate, PropertyGroup, Map
+    InstancePropertyKey, ProjectSettings, VectorType, VectorStats, UpdateType, DbUpdate, PropertyGroup, Map, ImageAtlas
 from panoptic.models.computed_properties import computed_properties
 from panoptic.utils import convert_to_instance_values, get_computed_values, clean_and_separate_values, separate_ids, \
     get_model_params_description
@@ -749,3 +749,13 @@ class ProjectDb:
 
     async def delete_map(self, map_id: int):
         return await self._db.delete_map(map_id)
+
+
+    # ATLAS
+
+    async def import_atlas(self, atlas: ImageAtlas):
+        return await self._db.import_atlas(atlas)
+
+    async def get_atlas(self, atlas_id: int):
+        return await self._db.get_atlas(atlas_id)
+    

@@ -2,6 +2,7 @@ import io
 
 from PIL import Image
 
+from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
 from panoptic.core.task.import_instance_task import format_to_mime
 from panoptic.models import ProjectSettings
 

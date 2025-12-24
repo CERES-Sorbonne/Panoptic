@@ -802,3 +802,14 @@ export interface MapGroup {
     count: number
     box: BoundingBox
 }
+
+// Atlas
+export interface ImageAtlas {
+    id: number
+    atlasNb: number
+    width: number
+    height: number
+    cellWidth: number
+    cellHeight: number
+    sha1Mapping: Record<string, [number, number]>
+}
