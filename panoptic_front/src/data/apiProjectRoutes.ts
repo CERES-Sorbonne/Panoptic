@@ -27,7 +27,8 @@ import {
     Notif,
     NotifType,
     ImportVerify,
-    PointMap
+    PointMap,
+    ImageAtlas
 } from './models'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -428,4 +429,9 @@ export async function apiBenchmark() {
     console.log((performance.now()-old) / 1000)
     console.log(res.data)
     return res.data
+}
+
+export async function apiGetAtlas(atlasId: number) {
+    const res = await projectApi.get('/atlas/' + String(atlasId))
+    return keysToCamel(res.data) as ImageAtlas
 }

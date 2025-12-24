@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed, triggerRef } from 'vue'
+import { ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed } from 'vue'
 import { ActionResult, Colors, Instance, MapGroup } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
@@ -12,6 +12,7 @@ import * as THREE from 'three'
 import { objValues } from '@/data/builder'
 import Toolbar from './Toolbar.vue'
 import ImagePreview from './ImagePreview.vue'
+import MapRendererView from './MapRendererView.vue'
 
 const data = useDataStore()
 
@@ -317,11 +318,12 @@ onUnmounted(() => {
     <div class="map-view-container">
         <div class="map-container"
             :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
-            <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages"
+            <!-- <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages"
                 :show-points="props.tab.state.mapOptions.showPoints" :show-boxes="props.tab.state.mapOptions.showBoxes"
                 background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
-                :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" />
+                :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" /> -->
+                <MapRendererView :points="points" />
         </div>
         <div class="toolbar">
             <Toolbar v-model:mouse-mode="mouseMode" />

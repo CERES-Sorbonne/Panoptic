@@ -406,6 +406,20 @@ async def benchmark(project: Project = Depends(get_project_from_id)):
 
     return ORJSONResponse({'instances': instances, 'data': values})
 
+@project_router.get('/atlas/{atlas_id:int}')
+async def get_atlas(project: Project = Depends(get_project_from_id), atlas_id: int = 0):
+    atlas = await project.db.get_atlas(atlas_id)
+    return ORJSONResponse(atlas)
+
+@project_router.get('/atlas_sheet/{atlas_id:int}/{sheet_nb:int}')
+async def get_atlas_sheets_route(project: Project = Depends(get_project_from_id), atlas_id: int = 0, sheet_nb: int = 0):
+    path = project.paths.get_atlas_sheet_path(atlas_id, sheet_nb)
+    return FileResponse(path, media_type='image/png')
+
+@project_router.get('/spritesheet')
+async def get_spritesheet(project: Project = Depends(get_project_from_id)):
+    return FileResponse('/Users/david/Desktop/SpriteSheet_Output/spritesheet_00.png')
+
 
 class EndpointFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
