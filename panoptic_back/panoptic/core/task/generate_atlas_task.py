@@ -18,8 +18,8 @@ class GenerateAtlasTask(Task):
         atlas_id = 0
         atlas_width = 2048
         atlas_height = 2048
-        cell_width = 32
-        cell_height = 32
+        cell_width = 64
+        cell_height = 64
 
         # Calculate how many cells fit in the atlas
         cells_per_row = atlas_width // cell_width

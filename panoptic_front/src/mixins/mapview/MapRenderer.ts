@@ -4,6 +4,8 @@ import { MapControls } from './MapControl'
 import { InstancedImageMaterial } from './InstancedImageMaterial'
 import { apiGetAtlas } from '@/data/apiProjectRoutes'
 import { ImageAtlas } from '@/data/models'
+import { AtlasLayer } from './AtlasLayer'
+import { PointData } from './useMapLogic'
 
 export class MapRenderer {
     private container: HTMLElement
@@ -15,6 +17,7 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private mapImage!: THREE.Mesh
     private frustumSize = 20
+    private layers: AtlasLayer[] = []
 
     constructor(container: HTMLElement) {
         this.container = container
@@ -81,70 +84,62 @@ export class MapRenderer {
         this.scene.add(this.mapImage)
     }
 
-    public createMap(atlas: ImageAtlas) {
+    public async createMap(atlas: ImageAtlas, points: PointData[]) {
+        console.log('create map')
+        this.clearLayers();
+
         const loader = new THREE.TextureLoader();
-        const url = useDataStore().baseUrl + 'atlas_sheet/0/0';
+        const baseUrl = useDataStore().baseUrl;
+        console.log(points.map(p => p.color))
 
-        const texture = loader.load(url, (tex) => {
-            tex.colorSpace = THREE.SRGBColorSpace;
-            this.triggerRender();
-        });
-
-        // Configuration based on your spritesheet specs
-        const gridCols = atlas.width / atlas.cellWidth
-        const gridRows = atlas.height / atlas.cellHeight
-
-        const points = [];
-        for (let i = 0; i < (gridCols * gridRows); i++) {
-            let x = i * 2;
-            let y = 0;
-            points.push({ x, y, index: i });
+        const sheetPointsMap = new Array(atlas.atlasNb)
+        for (let i = 0; i < atlas.atlasNb; i++) {
+            sheetPointsMap[i] = []
         }
+        console.log(points.length)
+        for (let p of points) {
+            if(!atlas.sha1Mapping[p.sha1]) continue
+            let sheetIndex = atlas.sha1Mapping[p.sha1][0]
+            console.log(sheetIndex)
+            sheetPointsMap[sheetIndex].push(p)
+        }
+        // atlas.atlasNb is the total count of sheets
+        for (let s = 0; s < atlas.atlasNb; s++) {
 
-        const count = points.length;
-        const geometry = new THREE.PlaneGeometry(1, 1);
+            const sheetPoints = sheetPointsMap[s]
+            console.log(sheetPoints)
+            if (sheetPoints.length === 0) continue;
 
-        const offsets = new Float32Array(count * 2);
-        const tints = new Float32Array(count * 3);
-        const borders = new Float32Array(count * 3);
+            // Load the specific sheet image
+            const textureUrl = `${baseUrl}atlas_sheet/${atlas.id}/${s}`;
+            console.log(textureUrl)
+            try {
+                const texture = await loader.loadAsync(textureUrl);
+                texture.colorSpace = THREE.SRGBColorSpace;
+                // Best for pixel art/icons to prevent blurring
+                texture.magFilter = THREE.NearestFilter;
+                texture.minFilter = THREE.NearestFilter;
+                texture.generateMipmaps = false; // Mipmaps are a major cause of bleeding at a distance
+                texture.wrapS = THREE.ClampToEdgeWrapping;
+                texture.wrapT = THREE.ClampToEdgeWrapping;
 
-        // 1. Create the Matrix helper for positions
-        const mesh = new THREE.InstancedMesh(
-            geometry,
-            new InstancedImageMaterial({ map: texture, transparent: false }, gridCols, gridRows),
-            count
-        );
-        const matrix = new THREE.Matrix4();
+                const layer = new AtlasLayer(atlas, texture, sheetPoints, s);
+                this.layers.push(layer);
+                this.scene.add(layer.mesh);
+            } catch (error) {
+                console.error(`Failed to load atlas sheet ${s}:`, error);
+            }
+        }
+        console.log(this.layers)
+        this.triggerRender();
+    }
 
-        points.forEach((p, i) => {
-            // --- POSITION ---
-            matrix.setPosition(p.x, p.y, 0);
-            mesh.setMatrixAt(i, matrix);
-
-            // --- SPRITESHEET UV OFFSET ---
-            // Calculate which column and row the index belongs to
-            const col = p.index % gridCols;
-            const row = Math.floor(p.index / gridCols);
-
-            // UV coordinates usually start from bottom-left (0,0). 
-            // If your spritesheet is organized top-to-bottom, you might need:
-            // (gridRows - 1 - row) / gridRows
-            offsets[i * 2] = col / gridCols;      // U (Horizontal)
-            offsets[i * 2 + 1] = (gridRows - 1 - row) / gridRows; // V (Vertical, flipped for standard top-down sheets)
-
-            // --- TINTS & BORDERS ---
-            tints[i * 3] = 1.0; tints[i * 3 + 1] = 1.0; tints[i * 3 + 2] = 1.0;
-            borders[i * 3] = 0.0; borders[i * 3 + 1] = 0.0; borders[i * 3 + 2] = 0.0;
-        });
-
-        // 2. Attach attributes to geometry
-        geometry.setAttribute('vOffset', new THREE.InstancedBufferAttribute(offsets, 2));
-        geometry.setAttribute('vTint', new THREE.InstancedBufferAttribute(tints, 3));
-        geometry.setAttribute('vBorderCol', new THREE.InstancedBufferAttribute(borders, 3));
-
-        // 3. Finalize
-        mesh.instanceMatrix.needsUpdate = true;
-        this.scene.add(mesh);
+    private clearLayers() {
+        this.layers.forEach(l => {
+            this.scene.remove(l.mesh)
+            l.dispose()
+        })
+        this.layers = []
     }
 
     private triggerRender() {
@@ -178,6 +173,7 @@ export class MapRenderer {
         this.resizeObserver.disconnect()
         this.controls.dispose()
         this.renderer.dispose()
+        this.clearLayers()
 
         this.mapImage.geometry.dispose()
         if (this.mapImage.material instanceof THREE.Material) {

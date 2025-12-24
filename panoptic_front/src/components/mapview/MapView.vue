@@ -25,6 +25,8 @@ const baseImageSize = ref(3)
 const maxImageSize = ref(5)
 const minImageSize = ref(10)
 
+const showPoints = ref(false)
+
 const mouseMode = ref('pan')
 
 const spatialFunction = ref({
@@ -127,6 +129,8 @@ async function showMap(mapId: number) {
     }
     points.value = res
     generateGroups()
+    showPoints.value = true
+    console.log(points.value.length)
 }
 
 function generateGroups() {
@@ -323,7 +327,7 @@ onUnmounted(() => {
                 background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
                 :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" /> -->
-                <MapRendererView :points="points" />
+                <MapRendererView v-if="showPoints" :points="points" />
         </div>
         <div class="toolbar">
             <Toolbar v-model:mouse-mode="mouseMode" />
