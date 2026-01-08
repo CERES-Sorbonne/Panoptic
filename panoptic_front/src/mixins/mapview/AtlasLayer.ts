@@ -1,12 +1,12 @@
 import * as THREE from 'three'
-import { ImageAtlas } from '@/data/models'
+import { ImageAtlas, ZoomParams } from '@/data/models'
 import { InstancedImageMaterial } from './InstancedImageMaterial'
 import { PointData } from './useMapLogic'
 
 export class AtlasLayer {
     public mesh: THREE.InstancedMesh
     private geometry: THREE.PlaneGeometry
-    private material: InstancedImageMaterial
+    public material: InstancedImageMaterial // Public so Renderer can access easily
 
     constructor(atlas: ImageAtlas, texture: THREE.Texture, points: PointData[], currentSheetIdx: number) {
         const gridCols = atlas.width / atlas.cellWidth
@@ -15,24 +15,24 @@ export class AtlasLayer {
         const count = points.length
 
         // --- ANTI-BLEEDING LOGIC ---
-        // We inset the UVs by a fraction of a pixel to stop flickering borders
-        const bleedMargin = 0.5; // half-pixel inset
+        const bleedMargin = 0.5; 
         const invTexW = 1.0 / atlas.width;
         const invTexH = 1.0 / atlas.height;
         
-        // Convert pixel margin to normalized UV space (0.0 to 1.0)
-        // We multiply by grid size because the transform happens BEFORE the grid scaling in your shader
         const uvMarginX = (bleedMargin * invTexW) * gridCols;
         const uvMarginY = (bleedMargin * invTexH) * gridRows;
 
         this.geometry = new THREE.PlaneGeometry(1, 1)
-        this.material = new InstancedImageMaterial({ map: texture, transparent: true }, gridCols, gridRows)
+        
+        // Use transparent: true if your images have cutouts, 
+        // but remember to set texture.generateMipmaps = true in MapRenderer for panning performance
+        this.material = new InstancedImageMaterial({ map: texture, transparent: false }, gridCols, gridRows)
         this.mesh = new THREE.InstancedMesh(this.geometry, this.material, count)
 
         const offsets = new Float32Array(count * 2)
         const uvTransforms = new Float32Array(count * 4) 
         const tints = new Float32Array(count * 3)
-        const borders = new Float32Array(count * 3) // Added missing attribute
+        const borders = new Float32Array(count * 3) 
         const matrix = new THREE.Matrix4()
         const colorHelper = new THREE.Color()
 
@@ -61,8 +61,6 @@ export class AtlasLayer {
                 scaleX = imgRatio / cellRatio
             }
 
-            // Apply the bleed margin to the scale and offset
-            // We shrink the sampling area slightly and shift the start point inward
             uvTransforms[i * 4] = scaleX - (uvMarginX * 2.0)
             uvTransforms[i * 4 + 1] = scaleY - (uvMarginY * 2.0)
             uvTransforms[i * 4 + 2] = (1.0 - scaleX) * 0.5 + uvMarginX
@@ -74,7 +72,6 @@ export class AtlasLayer {
             tints[i * 3 + 1] = colorHelper.g
             tints[i * 3 + 2] = colorHelper.b
 
-            // Initialize borders to avoid undefined behavior in shader
             borders[i * 3] = 0;
             borders[i * 3 + 1] = 0;
             borders[i * 3 + 2] = 0;
@@ -85,11 +82,27 @@ export class AtlasLayer {
         this.geometry.setAttribute('vTint', new THREE.InstancedBufferAttribute(tints, 3))
         this.geometry.setAttribute('vBorderCol', new THREE.InstancedBufferAttribute(borders, 3))
         
+        // --- PERFORMANCE OPTIMIZATIONS ---
+        this.mesh.frustumCulled = false;      // Stops CPU checking bounds for every point
+        this.mesh.matrixAutoUpdate = false;   // The points themselves don't move
+        this.mesh.updateMatrixWorld(true);
         this.mesh.instanceMatrix.needsUpdate = true
+    }
+
+    /**
+     * Links the material's zoom uniform to the shared global uniform object
+     */
+    public setZoomReference(zoomUniform: { value: number }) {
+        this.material.setZoomReference(zoomUniform);
+    }
+
+    public setZoomParams(params: ZoomParams) {
+        this.material.setZoomParams(params)
     }
 
     public dispose() {
         this.geometry.dispose()
         this.material.dispose()
+        this.mesh.dispose()
     }
 }

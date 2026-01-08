@@ -1,11 +1,11 @@
 import * as THREE from 'three'
 import { useDataStore } from '@/data/dataStore'
 import { MapControls } from './MapControl'
-import { InstancedImageMaterial } from './InstancedImageMaterial'
-import { apiGetAtlas } from '@/data/apiProjectRoutes'
-import { ImageAtlas } from '@/data/models'
-import { AtlasLayer } from './AtlasLayer'
+import { ImageAtlas, ZoomParams } from '@/data/models'
 import { PointData } from './useMapLogic'
+import { SpatialIndex } from './SpatialIndex'
+import { HDLayer } from './HDLayer'
+import { AtlasLayerManager } from './AtlasLayerManager' // Import the new class
 
 export class MapRenderer {
     private container: HTMLElement
@@ -15,9 +15,19 @@ export class MapRenderer {
     private controls!: MapControls
     private requestID: number | null = null
     private resizeObserver: ResizeObserver
-    private mapImage!: THREE.Mesh
     private frustumSize = 20
-    private layers: AtlasLayer[] = []
+    private hoveredId: number
+    private zoomParams: ZoomParams = { h: 3.0, z1: 0.1, z2: 0.8 }
+
+    // Replaced array with the Manager instance
+    public atlasManager: AtlasLayerManager
+
+    private hdLayer?: HDLayer
+    private spatialIndex = new SpatialIndex()
+
+    private globalUniforms = {
+        uZoom: { value: 1.0 }
+    }
 
     constructor(container: HTMLElement) {
         this.container = container
@@ -27,10 +37,11 @@ export class MapRenderer {
         this.initCamera()
         this.initRenderer()
 
-        // Initialize our clean custom controls
-        this.controls = new MapControls(this.camera, this.renderer.domElement)
-        this.controls.onUpdate = () => this.triggerRender()
+        // Initialize the manager
+        this.atlasManager = new AtlasLayerManager(this.scene)
+        this.atlasManager.setZoomParams(this.zoomParams)
 
+        this.controls = new MapControls(this.camera, this.renderer.domElement)
         this.resizeObserver = new ResizeObserver(() => this.onResize())
         this.resizeObserver.observe(this.container)
 
@@ -50,122 +61,91 @@ export class MapRenderer {
         this.camera.position.z = 10
         this.camera.zoom = 0.08
         this.camera.updateProjectionMatrix()
+        this.globalUniforms.uZoom.value = this.camera.zoom
     }
 
     private initRenderer() {
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: false,
+            powerPreference: "high-performance"
+        })
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-        // Accurate Color Settings
-        this.renderer.toneMapping = THREE.NoToneMapping
         this.renderer.outputColorSpace = THREE.SRGBColorSpace
-
         this.container.appendChild(this.renderer.domElement)
     }
 
-    private addImage() {
-        const loader = new THREE.TextureLoader()
-        const url = useDataStore().baseUrl + 'spritesheet'
-
-        const texture = loader.load(url, (tex) => {
-            tex.colorSpace = THREE.SRGBColorSpace
-            this.triggerRender()
-        })
-
-        const geometry = new THREE.PlaneGeometry(10, 10)
-        const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            transparent: true,
-            side: THREE.DoubleSide
-        })
-
-        this.mapImage = new THREE.Mesh(geometry, material)
-        this.scene.add(this.mapImage)
-    }
-
     public async createMap(atlas: ImageAtlas, points: PointData[]) {
-        console.log('create map')
-        this.clearLayers();
+        const dataStore = useDataStore()
 
-        const loader = new THREE.TextureLoader();
-        const baseUrl = useDataStore().baseUrl;
-        console.log(points.map(p => p.color))
-
-        const sheetPointsMap = new Array(atlas.atlasNb)
-        for (let i = 0; i < atlas.atlasNb; i++) {
-            sheetPointsMap[i] = []
-        }
-        console.log(points.length)
-        for (let p of points) {
-            if(!atlas.sha1Mapping[p.sha1]) continue
-            let sheetIndex = atlas.sha1Mapping[p.sha1][0]
-            console.log(sheetIndex)
-            sheetPointsMap[sheetIndex].push(p)
-        }
-        // atlas.atlasNb is the total count of sheets
-        for (let s = 0; s < atlas.atlasNb; s++) {
-
-            const sheetPoints = sheetPointsMap[s]
-            console.log(sheetPoints)
-            if (sheetPoints.length === 0) continue;
-
-            // Load the specific sheet image
-            const textureUrl = `${baseUrl}atlas_sheet/${atlas.id}/${s}`;
-            console.log(textureUrl)
-            try {
-                const texture = await loader.loadAsync(textureUrl);
-                texture.colorSpace = THREE.SRGBColorSpace;
-                // Best for pixel art/icons to prevent blurring
-                texture.magFilter = THREE.NearestFilter;
-                texture.minFilter = THREE.NearestFilter;
-                texture.generateMipmaps = false; // Mipmaps are a major cause of bleeding at a distance
-                texture.wrapS = THREE.ClampToEdgeWrapping;
-                texture.wrapT = THREE.ClampToEdgeWrapping;
-
-                const layer = new AtlasLayer(atlas, texture, sheetPoints, s);
-                this.layers.push(layer);
-                this.scene.add(layer.mesh);
-            } catch (error) {
-                console.error(`Failed to load atlas sheet ${s}:`, error);
+        points.forEach(p => {
+            if (p.ratio > 2) {
+                p.ratio = 1 / p.ratio
             }
-        }
-        console.log(this.layers)
-        this.triggerRender();
-    }
-
-    private clearLayers() {
-        this.layers.forEach(l => {
-            this.scene.remove(l.mesh)
-            l.dispose()
         })
-        this.layers = []
-    }
 
-    private triggerRender() {
-        // In a class, we just render directly or set a flag
-        this.renderer.render(this.scene, this.camera)
+        // Delegate loading logic to the manager
+        await this.atlasManager.loadLayers(
+            atlas,
+            points,
+            dataStore.baseUrl,
+            this.globalUniforms.uZoom
+        )
+
+        // Initialize Spatial Index and HD Layer
+        this.spatialIndex.initTree(points)
+
+        if (this.hdLayer) this.hdLayer.dispose()
+        this.hdLayer = new HDLayer(this.scene, dataStore.baseImgUrl)
+        this.hdLayer.setZoomReference(this.globalUniforms.uZoom)
+        this.hdLayer.setZoomParams(this.zoomParams)
     }
 
     private onResize() {
         const w = this.container.clientWidth
         const h = this.container.clientHeight
         const aspect = w / h
-
         this.camera.left = (this.frustumSize * aspect) / -2
         this.camera.right = (this.frustumSize * aspect) / 2
         this.camera.top = this.frustumSize / 2
         this.camera.bottom = this.frustumSize / -2
-
         this.camera.updateProjectionMatrix()
         this.renderer.setSize(w, h)
-        this.triggerRender()
     }
 
     public animate() {
         this.requestID = requestAnimationFrame(() => this.animate())
-        // If you have animations (like the rotating cube), call them here
+
+        if (this.globalUniforms.uZoom.value !== this.camera.zoom) {
+            this.globalUniforms.uZoom.value = this.camera.zoom;
+        }
+
+        if (this.hdLayer) {
+            this.hdLayer.updateAnimations()
+            const rect = this.getCameraRect()
+            const pointsInView = this.spatialIndex.getPointsInRect(rect)
+
+            if (this.camera.zoom > 2.0 && pointsInView.length < 100) {
+                this.hdLayer.show(pointsInView)
+                // this.atlasManager.hide()
+            } else {
+                this.hdLayer.show([])
+                // this.atlasManager.show()
+            }
+        }
+        this.updateHoverRectangular()
         this.renderer.render(this.scene, this.camera)
+    }
+
+    public getCameraRect() {
+        const zoom = this.camera.zoom
+        return {
+            minX: (this.camera.left / zoom) + this.camera.position.x,
+            maxX: (this.camera.right / zoom) + this.camera.position.x,
+            minY: (this.camera.bottom / zoom) + this.camera.position.y,
+            maxY: (this.camera.top / zoom) + this.camera.position.y
+        }
     }
 
     public dispose() {
@@ -173,17 +153,74 @@ export class MapRenderer {
         this.resizeObserver.disconnect()
         this.controls.dispose()
         this.renderer.dispose()
-        this.clearLayers()
 
-        this.mapImage.geometry.dispose()
-        if (this.mapImage.material instanceof THREE.Material) {
-            this.mapImage.material.dispose()
+        // Clean up via manager
+        this.atlasManager.dispose()
+        if (this.hdLayer) {
+            this.hdLayer.dispose()
+            this.hdLayer = undefined
         }
 
         this.scene.clear()
-        if (this.container.contains(this.renderer.domElement)) {
-            this.container.removeChild(this.renderer.domElement)
-        }
     }
 
+    public updateHoverRectangular() {
+        const worldPos = this.controls.getMouseWorldPos();
+        const currentZoom = this.camera.zoom;
+
+        // These should match what you pass to updateAllZoomParams(h, z1, z2)
+        const h = this.zoomParams.h;
+        const z1 = this.zoomParams.z1;
+        const z2 = this.zoomParams.z2;
+
+        // 1. Calculate the Dynamic Scale Factor (Replicating Shader Logic)
+        let dynamicScale = 1.0;
+        if (currentZoom < z1) {
+            dynamicScale = h;
+        } else if (currentZoom < z2) {
+            dynamicScale = h * (z1 / currentZoom);
+        } else {
+            dynamicScale = h * (z1 / z2);
+        }
+
+        // 2. Broad phase (Adjust search area based on dynamic scale)
+        const searchArea = dynamicScale;
+        const nearbyPoints = this.spatialIndex.getPointsInRect({
+            minX: worldPos.x - searchArea,
+            maxX: worldPos.x + searchArea,
+            minY: worldPos.y - searchArea,
+            maxY: worldPos.y + searchArea
+        });
+
+        // 3. Sort by distance
+        nearbyPoints.sort((a, b) => {
+            const distA = Math.pow(a.x - worldPos.x, 2) + Math.pow(a.y - worldPos.y, 2);
+            const distB = Math.pow(b.x - worldPos.x, 2) + Math.pow(b.y - worldPos.y, 2);
+            return distA - distB;
+        });
+
+        // 4. Narrow phase: Check actual boundaries with dynamic scale
+        let foundId: number | null = null
+        let foundPoint: PointData | null = null
+
+        for (const p of nearbyPoints) {
+            // Base dimensions * dynamic shader scale
+            const halfW = (p.ratio * dynamicScale) / 2.0;
+            const halfH = dynamicScale / 2.0;
+
+            if (worldPos.x >= p.x - halfW && worldPos.x <= p.x + halfW &&
+                worldPos.y >= p.y - halfH && worldPos.y <= p.y + halfH) {
+                foundId = p.id!;
+                foundPoint = p
+                break;
+            }
+        }
+
+        // 5. Apply hover/unhover logic
+        if (foundId !== this.hoveredId) {
+            if (this.hoveredId !== null) this.hdLayer?.unhover(this.hoveredId);
+            this.hoveredId = foundId;
+            if (this.hoveredId !== null) this.hdLayer?.hover(foundPoint);
+        }
+    }
 }

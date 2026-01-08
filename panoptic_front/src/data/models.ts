@@ -813,3 +813,9 @@ export interface ImageAtlas {
     cellHeight: number
     sha1Mapping: Record<string, [number, number]>
 }
+
+export interface ZoomParams {
+    h: number
+    z1: number
+    z2: number
+}
