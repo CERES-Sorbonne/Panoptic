@@ -74,7 +74,7 @@ export class HDLayer {
     }
 
     private getResolutionUrl(sha1: string): string {
-        const resolution = this.zoomRef.value < 0.5 ? 'large' : 'medium'
+        const resolution = this.zoomRef.value > 7 ? 'large' : 'medium'
         return `${this.baseImgUrl}${resolution}/${sha1}`
     }
 
