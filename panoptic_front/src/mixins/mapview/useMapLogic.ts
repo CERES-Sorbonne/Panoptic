@@ -31,6 +31,7 @@ export interface PointData {
     ratio: number,
     id?: number,
     border?: boolean
+    order: number
 }
 
 interface PointCloudVizParams {
