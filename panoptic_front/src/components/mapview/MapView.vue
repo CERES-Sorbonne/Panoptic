@@ -9,6 +9,7 @@ import { Group } from '@/core/GroupManager'
 import Toolbar from './Toolbar.vue'
 import ImagePreview from './ImagePreview.vue'
 import MapRendererView from './MapRendererView.vue'
+import * as THREE from 'three'
 
 const data = useDataStore()
 
@@ -22,6 +23,8 @@ const maxImageSize = ref(5)
 const minImageSize = ref(10)
 
 const showPoints = ref(false)
+
+const mapRenderer = ref()
 
 const mouseMode = ref('pan')
 
@@ -61,29 +64,44 @@ let points = shallowRef<PointData[]>([])
 const mapElem = ref(null)
 
 function colorGroups(groupList, groupColorMap) {
-    if (!groupList.length) return
+    if (!groupList.length) return;
 
-    const sha1ToGroupId = {}
-
-    // ... (Mapping sha1 to groupId remains the same)
+    const sha1ToGroupId = {};
     for (let group of groupList) {
         for (let img of group.images) {
-            sha1ToGroupId[img.sha1] = group.id
+            sha1ToGroupId[img.sha1] = group.id;
         }
     }
 
-    const pointList = points.value
-    for (let point of pointList) {
-        let groupId = sha1ToGroupId[point.sha1]
-        // Direct color lookup using the Group ID
-        let pointColor = groupColorMap[groupId]
+    const pointList = points.value;
+    const tempColor = new THREE.Color(); // Reuse object for performance
 
-        point.color = pointColor // Assign color
-        point.border = true
+    for (let point of pointList) {
+        let groupId = sha1ToGroupId[point.sha1];
+        let pointColorHex = groupColorMap[groupId];
+
+        if (pointColorHex) {
+            // 1. Set the base color (for the border)
+            point.color = pointColorHex;
+
+            // 2. Calculate the lighter tint
+            tempColor.set(pointColorHex);
+            
+            // Convert to HSL, boost Lightness, and convert back
+            const hsl:any = {};
+            tempColor.getHSL(hsl);
+            
+            // Increase lightness by 30% (capped at 1.0)
+            // Adjust 0.3 to your preference for "visibility"
+            tempColor.setHSL(hsl.h, hsl.s, Math.min(1.0, hsl.l + 0.05));
+
+            point.tint = '#' + tempColor.getHexString();
+            point.border = true;
+        }
     }
 
-    points.value = [...pointList]
-    mapElem.value.updatePoints()
+    points.value = [...pointList];
+    mapRenderer.value.updateTints();
 }
 
 function clearColors() {
@@ -255,7 +273,7 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
         // props.tab.collection.groupManager.selectImages(ids)
         groups.value = [...groups.value]
         // getSelectedPoints()
-        nextTick(() => mapElem.value.render())
+        // nextTick(() => mapElem.value.render())
     } else {
         delete selectedGroups.value[ev.groupId]
         let ids = []
@@ -265,7 +283,7 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
         // props.tab.collection.groupManager.unselectImages(ids)
         groups.value = [...groups.value]
         // getSelectedPoints()
-        nextTick(() => mapElem.value.render())
+        // nextTick(() => mapElem.value.render())
         mapElem.value.render()
     }
 }
@@ -346,7 +364,7 @@ onUnmounted(() => {
                 background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
                 :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" /> -->
-                <MapRendererView v-if="showPoints" :points="points" :mouse-mode="mouseMode" @selection="handleLasso"/>
+                <MapRendererView v-if="showPoints" :points="points" :mouse-mode="mouseMode" @selection="handleLasso" ref="mapRenderer"/>
         </div>
         <div class="toolbar">
             <Toolbar v-model:mouse-mode="mouseMode" />

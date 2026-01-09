@@ -3,10 +3,11 @@ import * as THREE from 'three';
 
 export class HDImageMaterial extends THREE.MeshBasicMaterial {
     private _zoomRef: { value: number } = { value: 1.0 };
-    private _zoomParams = new THREE.Vector3(1.0, 0.1, 0.8); // h, z1, z2
+    private _zoomParams = new THREE.Vector3(1.0, 0.1, 0.8);
     private _ratio = { value: 1.0 };
     private _borderColor = { value: new THREE.Color(0x000000) };
-    private _borderWidth = { value: 0.04 };
+    private _borderWidth = { value: 0.00 };
+    private _radius = { value: 0.05 };
 
     constructor(parameters: THREE.MeshBasicMaterialParameters) {
         super(parameters);
@@ -17,11 +18,13 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
             shader.uniforms.uRatio = this._ratio;
             shader.uniforms.uBorderColor = this._borderColor;
             shader.uniforms.uBorderWidth = this._borderWidth;
+            shader.uniforms.uRadius = this._radius;
 
             shader.vertexShader = `
                 varying vec2 vRawUv;
                 uniform float uZoom;
-                uniform vec3 uZoomParams; // x:h, y:z1, z:z2
+                uniform vec3 uZoomParams;
+                uniform float uRatio;
                 ${shader.vertexShader}
             `.replace(
                 `#include <begin_vertex>`,
@@ -31,13 +34,25 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 float z1 = uZoomParams.y;
                 float z2 = uZoomParams.z;
 
-                if(uZoom < z1) {
-                    transformed.xy *= h;
-                } else if(uZoom < z2) {
-                    transformed.xy *= h * (z1 / uZoom);
-                } else {
-                    transformed.xy *= h * (z1 / z2);
+                float zoomScale = h;
+                if(uZoom >= z1 && uZoom < z2) {
+                    zoomScale = h * (z1 / uZoom);
+                } else if(uZoom >= z2) {
+                    zoomScale = h * (z1 / z2);
                 }
+
+                // Calculate scale factor to fit in 1.0 x 1.0 box
+                float scale;
+                if(uRatio > 1.0) {
+                    // Landscape: constrain by width (1.0)
+                    scale = 1.0 / uRatio;
+                } else {
+                    // Portrait/Square: constrain by height (1.0)
+                    scale = 1.0;
+                }
+
+                // Apply zoom and constraint
+                transformed.xy *= zoomScale * scale;
                 `
             ).replace(
                 `#include <uv_vertex>`,
@@ -50,31 +65,39 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uBorderWidth;
                 uniform float uRatio;
                 uniform vec3 uBorderColor;
+                uniform float uRadius;
+
+                float sdRoundedBox(vec2 p, vec2 b, float r) {
+                    vec2 q = abs(p) - b + r;
+                    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+                }
+
                 ${shader.fragmentShader}
             `.replace(
                 `#include <map_fragment>`,
                 `
-                vec4 texelColor = texture2D( map, vRawUv );
-                
-                // --- ADAPTATION FOR TINT ---
-                // MeshBasicMaterial uses the 'diffuse' uniform for the .color property
-                texelColor.rgb *= diffuse; 
-                
-                float b = uBorderWidth;
-                vec3 finalRGB = texelColor.rgb;
-
-                if (b > 0.0005) {
-                    float inset = 0.001;
-                    vec2 stableUv = vRawUv * (1.0 - inset * 2.0) + inset;
-                    float bx = b / uRatio;
-                    float by = b;
-                    bx = min(bx, 0.5);
-                    by = min(by, 0.5);
-                    float aa = 0.005; 
-                    float borderMask = smoothstep(bx, bx + aa, stableUv.x) * smoothstep(by, by + aa, stableUv.y) * smoothstep(bx, bx + aa, 1.0 - stableUv.x) * smoothstep(by, by + aa, 1.0 - stableUv.y);
-                    finalRGB = mix(uBorderColor, texelColor.rgb, borderMask);
+                vec2 dimensions;
+                if(uRatio > 1.0) {
+                    dimensions = vec2(1.0, 1.0 / uRatio);
+                } else {
+                    dimensions = vec2(uRatio, 1.0);
                 }
-                diffuseColor = vec4(finalRGB, texelColor.a);
+                
+                vec2 p = (vRawUv - 0.5) * dimensions;
+                vec2 b = dimensions * 0.5;
+                
+                float d = sdRoundedBox(p, b, uRadius);
+                
+                float edgeSoftness = 0.002;
+                float outsideMask = smoothstep(edgeSoftness, 0.0, d);
+                float borderMask = smoothstep(edgeSoftness, 0.0, d + uBorderWidth);
+
+                vec4 texelColor = texture2D( map, vRawUv );
+                texelColor.rgb *= diffuse;
+
+                vec3 finalRGB = mix(uBorderColor, texelColor.rgb, borderMask);
+                
+                diffuseColor = vec4(finalRGB, texelColor.a * outsideMask);
                 `
             );
 
@@ -92,5 +115,9 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
 
     public setRatio(ratio: number) {
         this._ratio.value = ratio;
+    }
+
+    public setRadius(radius: number) {
+        this._radius.value = radius;
     }
 }

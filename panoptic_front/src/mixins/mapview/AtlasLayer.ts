@@ -22,7 +22,7 @@ export class AtlasLayer {
         const count = points.length
 
         this.geometry = new THREE.PlaneGeometry(1, 1)
-        this.material = new InstancedImageMaterial({ map: texture, transparent: false }, gridCols, gridRows)
+        this.material = new InstancedImageMaterial({ map: texture, transparent: true }, gridCols, gridRows)
         this.mesh = new THREE.InstancedMesh(this.geometry, this.material, count)
 
         // Initialize attributes with empty arrays
