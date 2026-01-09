@@ -1,37 +1,35 @@
-import { onMounted, onUnmounted, type Ref } from 'vue'
+import { onMounted, onUnmounted, shallowRef, type Ref } from 'vue'
 import { MapRenderer } from './MapRenderer'
-import { ImageAtlas } from '@/data/models'
+import { ImageAtlas, PointData } from '@/data/models'
 import { apiGetAtlas } from '@/data/apiProjectRoutes'
-import { PointData } from './useMapLogic'
+import { useDataStore } from '@/data/dataStore'
 
 export function useMapRenderer(containerRef: Ref<HTMLElement | null>, points: PointData[]) {
-    let renderer: MapRenderer | null = null
+    let map = shallowRef<MapRenderer>()
     let atlas: ImageAtlas | null = null
-    console.log('lalalalaall')
 
     onMounted(async () => {
-        console.log('mounted')
         if (containerRef.value) {
             console.log('init useMapRednerer    ')
             // Initialize the engine with the DOM element
-            renderer = new MapRenderer(containerRef.value)
+            map.value = new MapRenderer(containerRef.value, useDataStore().baseImgUrl)
 
             atlas = await apiGetAtlas(0)
-            renderer.createMap(atlas, points)
+            map.value.createMap(atlas, points)
 
             // Start the loop
-            renderer.animate()
+            map.value.animate()
         }
     })
 
     onUnmounted(() => {
-        if (renderer) {
-            renderer.dispose()
-            renderer = null
+        if (map.value) {
+            map.value.dispose()
+            map.value = null
         }
     })
 
     return {
-        renderer
+        map
     }
 }

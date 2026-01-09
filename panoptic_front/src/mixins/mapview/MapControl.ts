@@ -1,13 +1,19 @@
 import * as THREE from 'three';
+import { LassoLayer } from './LassoLayer';
+
 
 export class MapControls {
     private camera: THREE.OrthographicCamera;
     private domElement: HTMLElement;
-    
+
     // Interaction State
+    private mode: string = 'pan';
     private isDragging = false;
+    private isLassoing = false;
     private prevPos = { x: 0, y: 0 };
     private mouse = new THREE.Vector2(); // NDC coordinates (-1 to +1)
+
+    private lasso: LassoLayer;
 
     // Zoom config
     public minZoom = 0.01;
@@ -15,47 +21,57 @@ export class MapControls {
     public zoomSpeed = 0.001;
 
     // Callbacks to notify the renderer
-    public onUpdate: () => void = () => {};
+    public onUpdate: () => void = () => { };
 
-    constructor(camera: THREE.OrthographicCamera, domElement: HTMLElement) {
+    constructor(camera: THREE.OrthographicCamera, domElement: HTMLElement, lassoLayer: LassoLayer) {
         this.camera = camera;
         this.domElement = domElement;
+        this.lasso = lassoLayer;
         this.init();
     }
 
     private init() {
         this.domElement.addEventListener('wheel', this.handleWheel, { passive: false });
         this.domElement.addEventListener('mousedown', this.handleMouseDown);
-        // Window listeners ensure panning continues even if mouse leaves the container
+        // Window listeners ensure interaction continues even if mouse leaves the container
         window.addEventListener('mousemove', this.handleMouseMove);
         window.addEventListener('mouseup', this.handleMouseUp);
     }
 
     /**
-     * Updates internal mouse coordinates and handles panning
+     * Updates internal mouse coordinates and handles panning or lasso drawing
      */
     private handleMouseMove = (e: MouseEvent) => {
         const rect = this.domElement.getBoundingClientRect();
-        
+
         // 1. Update Normalized Device Coordinates (NDC) for Raycasting
         this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-        if (!this.isDragging) return;
+        // 2. Handle Lasso Drawing (takes priority)
+        if (this.isLassoing) {
+            const worldPos = this.getMouseWorldPos();
+            const screenPos = { x: e.clientX, y: e.clientY };
+            this.lasso.move(worldPos, screenPos);
+            this.onUpdate();
+            return;
+        }
 
-        // 2. Handle Panning
-        const dx = e.clientX - this.prevPos.x;
-        const dy = e.clientY - this.prevPos.y;
+        // 3. Handle Panning (only in pan mode)
+        if (this.isDragging && this.mode === 'pan') {
+            const dx = e.clientX - this.prevPos.x;
+            const dy = e.clientY - this.prevPos.y;
 
-        const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
-        const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
+            const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
+            const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
 
-        // Map pixels to world units for 1:1 panning movement
-        this.camera.position.x -= dx * (worldWidth / rect.width);
-        this.camera.position.y += dy * (worldHeight / rect.height);
+            // Map pixels to world units for 1:1 panning movement
+            this.camera.position.x -= dx * (worldWidth / rect.width);
+            this.camera.position.y += dy * (worldHeight / rect.height);
 
-        this.prevPos = { x: e.clientX, y: e.clientY };
-        this.onUpdate();
+            this.prevPos = { x: e.clientX, y: e.clientY };
+            this.onUpdate();
+        }
     };
 
     /**
@@ -63,7 +79,7 @@ export class MapControls {
      */
     private handleWheel = (e: WheelEvent) => {
         e.preventDefault();
-        
+
         // Calculate world coordinates under mouse before zoom
         const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
         const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
@@ -89,15 +105,78 @@ export class MapControls {
     };
 
     private handleMouseDown = (e: MouseEvent) => {
-        this.isDragging = true;
-        this.prevPos = { x: e.clientX, y: e.clientY };
-        this.domElement.style.cursor = 'grabbing';
+        // Lasso mode - only start lasso, never pan
+        if (this.mode.startsWith('lasso')) {
+            this.isLassoing = true;
+            const worldPos = this.getMouseWorldPos();
+            const screenPos = { x: e.clientX, y: e.clientY };
+            this.lasso.start(worldPos, screenPos);
+            this.domElement.style.cursor = 'crosshair';
+            this.onUpdate();
+        } 
+        // Pan mode - only pan, never lasso
+        else if (this.mode === 'pan') {
+            this.isDragging = true;
+            this.prevPos = { x: e.clientX, y: e.clientY };
+            this.domElement.style.cursor = 'grabbing';
+        }
     };
 
     private handleMouseUp = () => {
-        this.isDragging = false;
-        this.domElement.style.cursor = 'inherit';
+        if (this.isLassoing) {
+            this.isLassoing = false;
+            this.lasso.end();
+            this.updateCursor();
+            this.onUpdate();
+        }
+        
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.updateCursor();
+        }
     };
+
+    // --- Mode Management ---
+
+    /**
+     * Set the interaction mode (pan or lasso*)
+     */
+    public setMode(mode: string) {
+        // Cancel any ongoing interactions when switching modes
+        if (this.isLassoing) {
+            this.lasso.clear();
+            this.isLassoing = false;
+        }
+        this.isDragging = false;
+
+        this.mode = mode;
+        this.updateCursor();
+        console.log("mode", mode);
+    }
+
+    /**
+     * Get the current interaction mode
+     */
+    public getMode(): string {
+        return this.mode;
+    }
+
+    /**
+     * Update cursor based on current mode and state
+     */
+    private updateCursor() {
+        if (this.isLassoing) {
+            this.domElement.style.cursor = 'crosshair';
+        } else if (this.isDragging) {
+            this.domElement.style.cursor = 'grabbing';
+        } else if (this.mode.startsWith('lasso')) {
+            this.domElement.style.cursor = 'crosshair';
+        } else if (this.mode === 'pan') {
+            this.domElement.style.cursor = 'grab';
+        } else {
+            this.domElement.style.cursor = 'default';
+        }
+    }
 
     // --- Public Getters ---
 
@@ -118,7 +197,7 @@ export class MapControls {
 
         worldPos.x = this.camera.position.x + (this.mouse.x * worldWidth) / 2;
         worldPos.y = this.camera.position.y + (this.mouse.y * worldHeight) / 2;
-        worldPos.z = 0; 
+        worldPos.z = 0;
 
         return worldPos;
     }

@@ -55,6 +55,11 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                 `#include <map_fragment>`,
                 `
                 vec4 texelColor = texture2D( map, vRawUv );
+                
+                // --- ADAPTATION FOR TINT ---
+                // MeshBasicMaterial uses the 'diffuse' uniform for the .color property
+                texelColor.rgb *= diffuse; 
+                
                 float b = uBorderWidth;
                 vec3 finalRGB = texelColor.rgb;
 

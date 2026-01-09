@@ -1,15 +1,11 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed } from 'vue'
-import { ActionResult, Colors, Instance, MapGroup } from '@/data/models'
+import { Colors, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors, isTag } from '@/utils/utils'
-import { BoundingBox, PointData } from '@/mixins/mapview/useMapLogic'
 import MapMenu from './MapMenu.vue'
-import ImageMap from './ImageMap.vue'
 import { Group } from '@/core/GroupManager'
-import * as THREE from 'three'
-import { objValues } from '@/data/builder'
 import Toolbar from './Toolbar.vue'
 import ImagePreview from './ImagePreview.vue'
 import MapRendererView from './MapRendererView.vue'
@@ -122,7 +118,8 @@ async function showMap(mapId: number) {
             y: y,
             color: defaultColor,
             sha1: sha1,
-            ratio: img.containerRatio
+            ratio: img.containerRatio,
+            order: 1
         }
         res.push(p)
         sha1ToPoint[sha1] = p
@@ -286,7 +283,29 @@ const handleLasso = (points: PointData[]) => {
     }
 }
 
-watch(selectedPoints, () => nextTick(() => mapElem.value.render()))
+watch(props.tab.collection.groupManager.selectedImages, () => updatePointTints())
+
+function updatePointTints() {
+    const pointList = points.value
+    const selected = props.tab.collection.groupManager.selectedImages.value
+    const selectedSha1s = new Set<string>()
+    
+    Object.keys(selected).map(Number).forEach(id => selectedSha1s.add(data.instances[id].sha1))
+
+
+    for(let point of pointList) {
+        if(selectedSha1s.has(point.sha1)) {
+            point.tint = '#5DACFF'
+        }
+        else {
+            point.tint = undefined
+        }
+    }
+    points.value = pointList
+
+}
+
+// watch(selectedPoints, () => nextTick(() => mapElem.value.render()))
 
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => {
     if (mapId == null) {
@@ -327,7 +346,7 @@ onUnmounted(() => {
                 background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
                 :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
                 :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" /> -->
-                <MapRendererView v-if="showPoints" :points="points" />
+                <MapRendererView v-if="showPoints" :points="points" :mouse-mode="mouseMode" @selection="handleLasso"/>
         </div>
         <div class="toolbar">
             <Toolbar v-model:mouse-mode="mouseMode" />
