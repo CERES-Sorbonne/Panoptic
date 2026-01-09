@@ -345,6 +345,7 @@ class Clusters:
 @dataclass(slots=True)
 class ActionContext:
     instance_ids: List[int] | None = None
+    group_name: str | None = None
     # property_ids: List[int] | None = None
     # file: str | None = None
     # text: str | None = None

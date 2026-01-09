@@ -21,6 +21,7 @@ const props = defineProps<{
     action: string
     images?: Instance[]
     propertyIds?: number[]
+    groupName?: string
 }>()
 const emits = defineEmits(['instances', 'groups'])
 
@@ -65,10 +66,10 @@ async function call() {
             uiInputs[input.name] = input.defaultValue
         }
         const imageIds = props.images.map(i => i.id)
-        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
+        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs, groupName: props.groupName }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
-
+        console.log(context.groupName)
         if (res.groups) {
             const groups = convertClusterGroupResult(res.groups, context)
             emits('groups', groups)

@@ -454,6 +454,7 @@ export interface ActionParam {
 export interface ActionContext {
     instanceIds?: number[]
     propertyIds?: number[]
+    groupName?: string
     file?: string
     text?: string
     uiInputs?: { [key: string]: any }
