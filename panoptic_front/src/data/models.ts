@@ -425,7 +425,7 @@ export interface PluginDefaultParams {
     functions: { [func: string]: { [param: string]: any } }
 }
 
-export enum PluginType{
+export enum PluginType {
     PIP = "pip",
     GIT = "git",
     LOCAL = "local"
@@ -743,7 +743,7 @@ export interface User {
 }
 
 export interface UserState extends User {
-  connectedTo?: string
+    connectedTo?: string
 }
 
 export interface PanopticServerState {
@@ -819,3 +819,18 @@ export interface ZoomParams {
     z1: number
     z2: number
 }
+
+export interface PointData {
+    x: number
+    y: number
+    color: string
+    tint?: string
+    sha1: string
+    ratio: number,
+    id?: number,
+    border?: boolean
+    borderColor?: string
+    order: number
+}
+
+export interface PointIndex { [pointId: number]: PointData }

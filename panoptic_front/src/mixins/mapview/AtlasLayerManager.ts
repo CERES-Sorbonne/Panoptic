@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import { AtlasLayer } from './AtlasLayer'
-import { ImageAtlas, ZoomParams } from '@/data/models'
-import { PointData } from './useMapLogic'
+import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 
 export class AtlasLayerManager {
     private scene: THREE.Scene
@@ -26,7 +25,7 @@ export class AtlasLayerManager {
         this.dispose()
 
         const loader = new THREE.TextureLoader()
-        
+
         // Group points by sheet index
         const sheetPointsMap: PointData[][] = Array.from({ length: atlas.atlasNb }, () => [])
         for (let p of points) {
@@ -54,12 +53,12 @@ export class AtlasLayerManager {
 
                 const layer = new AtlasLayer(atlas, texture, sheetPoints, s)
                 layer.setZoomReference(zoomUniform)
-                
+
                 // Set initial visibility state
                 layer.mesh.visible = this._isVisible
                 layer.setZoomParams(this._zoomParams)
                 this.layers.push(layer)
-                
+
                 this.scene.add(layer.mesh)
             } catch (error) {
                 console.error(`Failed to load atlas sheet ${s}:`, error)
@@ -88,5 +87,17 @@ export class AtlasLayerManager {
     public setZoomParams(params: ZoomParams) {
         this._zoomParams = params
         this.layers.forEach(l => l.setZoomParams(params))
+    }
+
+    public updateTints() {
+        this.layers.forEach(l => l.updateTints())
+    }
+
+    public updateBorderColors() {
+        this.layers.forEach(l => l.updateBorderColors())
+    }
+
+    public updatePositions() {
+        this.layers.forEach(l => l.updatePositions())
     }
 }

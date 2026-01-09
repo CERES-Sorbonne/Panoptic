@@ -1,11 +1,11 @@
 import * as THREE from 'three'
 import { useDataStore } from '@/data/dataStore'
 import { MapControls } from './MapControl'
-import { ImageAtlas, ZoomParams } from '@/data/models'
-import { PointData } from './useMapLogic'
+import { ImageAtlas, PointData, ZoomParams } from '@/data/models'
 import { SpatialIndex } from './SpatialIndex'
 import { HDLayer } from './HDLayer'
 import { AtlasLayerManager } from './AtlasLayerManager' // Import the new class
+import { LassoLayer } from './LassoLayer'
 
 export class MapRenderer {
     private container: HTMLElement
@@ -17,19 +17,23 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private frustumSize = 20
     private hoveredId: number
-    private zoomParams: ZoomParams = { h: 3.0, z1: 0.1, z2: 0.8 }
+    private zoomParams: ZoomParams = { h: 4.0, z1: 0.1, z2: 1.2 }
+    // private pointIndex: PointIndex = {}
 
     // Replaced array with the Manager instance
-    public atlasManager: AtlasLayerManager
+    public atlasLayers: AtlasLayerManager
 
-    private hdLayer?: HDLayer
+    private hdLayer: HDLayer
+    private lassoLayer: LassoLayer
     private spatialIndex = new SpatialIndex()
 
     private globalUniforms = {
         uZoom: { value: 1.0 }
     }
 
-    constructor(container: HTMLElement) {
+    public onPointSelection: Function = null
+
+    constructor(container: HTMLElement, baseImgUrl: string) {
         this.container = container
         this.scene = new THREE.Scene()
         this.scene.background = new THREE.Color(0xFFFFFF)
@@ -38,12 +42,23 @@ export class MapRenderer {
         this.initRenderer()
 
         // Initialize the manager
-        this.atlasManager = new AtlasLayerManager(this.scene)
-        this.atlasManager.setZoomParams(this.zoomParams)
+        this.atlasLayers = new AtlasLayerManager(this.scene)
+        this.atlasLayers.setZoomParams(this.zoomParams)
 
-        this.controls = new MapControls(this.camera, this.renderer.domElement)
+        this.hdLayer = new HDLayer(this.scene, baseImgUrl)
+        this.hdLayer.setZoomReference(this.globalUniforms.uZoom)
+        this.hdLayer.setZoomParams(this.zoomParams)
+
+        this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points) => {
+            if(this.onPointSelection) {
+                this.onPointSelection(points)
+            }
+        })
+
+        this.controls = new MapControls(this.camera, this.renderer.domElement, this.lassoLayer)
         this.resizeObserver = new ResizeObserver(() => this.onResize())
         this.resizeObserver.observe(this.container)
+
 
         this.animate()
     }
@@ -68,7 +83,7 @@ export class MapRenderer {
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
             alpha: false,
-            powerPreference: "high-performance"
+            powerPreference: "high-performance",
         })
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -86,7 +101,7 @@ export class MapRenderer {
         })
 
         // Delegate loading logic to the manager
-        await this.atlasManager.loadLayers(
+        await this.atlasLayers.loadLayers(
             atlas,
             points,
             dataStore.baseUrl,
@@ -95,11 +110,7 @@ export class MapRenderer {
 
         // Initialize Spatial Index and HD Layer
         this.spatialIndex.initTree(points)
-
-        if (this.hdLayer) this.hdLayer.dispose()
-        this.hdLayer = new HDLayer(this.scene, dataStore.baseImgUrl)
-        this.hdLayer.setZoomReference(this.globalUniforms.uZoom)
-        this.hdLayer.setZoomParams(this.zoomParams)
+        // this.buildIndex(points)
     }
 
     private onResize() {
@@ -155,7 +166,7 @@ export class MapRenderer {
         this.renderer.dispose()
 
         // Clean up via manager
-        this.atlasManager.dispose()
+        this.atlasLayers.dispose()
         if (this.hdLayer) {
             this.hdLayer.dispose()
             this.hdLayer = undefined
@@ -165,6 +176,16 @@ export class MapRenderer {
     }
 
     public updateHoverRectangular() {
+
+        const mouseMode = this.controls.getMode()
+        if(mouseMode.startsWith('lasso')) {
+            if(this.hoveredId) {
+                this.hdLayer.unhover(this.hoveredId)
+                this.hoveredId = null
+            }
+            return
+        }
+
         const worldPos = this.controls.getMouseWorldPos();
         const currentZoom = this.camera.zoom;
 
@@ -223,4 +244,25 @@ export class MapRenderer {
             if (this.hoveredId !== null) this.hdLayer?.hover(foundPoint);
         }
     }
+
+    public setMouseMode(mode: string) {
+        this.controls.setMode(mode)
+    }
+
+    public updateTints() {
+        this.atlasLayers.updateTints()
+        this.hdLayer.updateTints()
+    }
+
+    
+
+    // clearIndex() {
+    //     Object.keys(this.pointIndex).forEach(k => delete this.pointIndex[k])
+    // }
+
+    // buildIndex(points: PointData[]) {
+    //     for(let point of points) {
+    //         this.pointIndex[point.id] = point
+    //     }
+    // }
 }

@@ -1,5 +1,5 @@
+import { PointData } from '@/data/models';
 import KDBush from 'kdbush';
-import { PointData } from './useMapLogic';
 
 export class SpatialIndex {
     private tree: KDBush | null = null;

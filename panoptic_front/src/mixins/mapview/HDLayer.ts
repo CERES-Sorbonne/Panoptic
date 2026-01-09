@@ -1,14 +1,13 @@
 import * as THREE from 'three'
-import { PointData } from './useMapLogic'
 import { HDImageMaterial } from './HDImageMaterial'
-import { ZoomParams } from '@/data/models'
+import { PointData, ZoomParams } from '@/data/models'
 
 const sharedPlaneGeo = new THREE.PlaneGeometry(1, 1)
 const textureLoader = new THREE.TextureLoader()
 const HD_Z_OFFSET = 1.5
 
 const SCALE_NORMAL = 1.0
-const SCALE_HOVER = 1.3
+const SCALE_HOVER = 2.0
 const LERP_FACTOR = 0.15
 const ANIMATION_THRESHOLD = 0.005;
 
@@ -29,7 +28,8 @@ export class HDLayer {
     private textureCache: Map<string, THREE.Texture> = new Map()
     private zoomRef: { value: number } = { value: 1.0 }
     private zoomParams: ZoomParams = { h: 1.0, z1: 0.2, z2: 0.8 }
-    private currentHoveredId: number | null;
+    private currentHoveredId: number | null = null;
+    private colorHelper = new THREE.Color();
 
     constructor(scene: THREE.Scene, baseImgUrl: string) {
         this.scene = scene
@@ -37,6 +37,41 @@ export class HDLayer {
         this.group = new THREE.Group()
         this.scene.add(this.group)
     }
+
+    // --- New Update Functions ---
+
+    public updatePositions() {
+        this.animationMap.forEach((state) => {
+            const p = state.point;
+            state.mesh.position.set(p.x, p.y, HD_Z_OFFSET);
+            // Re-apply current scaling with potential new ratio
+            state.mesh.scale.set(
+                p.ratio * state.currentScale,
+                state.currentScale,
+                1.0
+            );
+        });
+    }
+
+    public updateTints() {
+        this.animationMap.forEach((state) => {
+            const mat = state.mesh.material as THREE.MeshBasicMaterial;
+            mat.color.set(state.point.tint || '#FFFFFF');
+        });
+    }
+
+    public updateBorderColors() {
+        this.animationMap.forEach((state) => {
+            const mat = state.mesh.material as HDImageMaterial;
+            // Access the underlying shader uniform if available
+            if (mat.userData.shader) {
+                this.colorHelper.set(state.point.borderColor || '#000000');
+                mat.userData.shader.uniforms.uBorderColor.value.copy(this.colorHelper);
+            }
+        });
+    }
+
+    // --- Core Logic ---
 
     public setZoomReference(zoomUniform: { value: number }) {
         this.zoomRef = zoomUniform;
@@ -46,22 +81,23 @@ export class HDLayer {
         points.sort((p1, p2) => p2.order - p1.order)
         const activeIds = new Set(points.map(p => p.id!))
 
-        // Mark current items as in or out of the show list
         this.animationMap.forEach((state, id) => {
             state.isInShowList = activeIds.has(id);
         });
 
-        // Cleanup: Only remove if not in show list, not hovered, and not animating
         this.cleanupUnusedImages();
 
         points.forEach(p => {
             if (this.animationMap.has(p.id!)) {
+                // Ensure we have the latest data reference
+                this.animationMap.get(p.id!)!.point = p;
                 this.updateImagePosition(p)
             } else {
                 this.createImage(p)
             }
         })
         this.setZoomParams(this.zoomParams)
+        this.updateTints()
     }
 
     private cleanupUnusedImages() {
@@ -105,7 +141,7 @@ export class HDLayer {
 
         const mesh = new THREE.Mesh(sharedPlaneGeo, mat)
         mesh.position.set(p.x, p.y, HD_Z_OFFSET)
-        mesh.renderOrder = 2000 + p.order
+        mesh.renderOrder = 2000 + (p.order || 0)
         mesh.scale.set(p.ratio, 1.0, 1.0)
 
         this.group.add(mesh)
@@ -115,7 +151,6 @@ export class HDLayer {
             mesh,
             point: p,
             currentScale: SCALE_NORMAL,
-            // Check if this image was loaded specifically because of a hover
             targetScale: isActuallyHovered ? SCALE_HOVER : SCALE_NORMAL,
             isHovered: isActuallyHovered,
             isInShowList: false 
@@ -136,7 +171,6 @@ export class HDLayer {
         let state = this.animationMap.get(point.id!)
         if (!state) {
             this.createImage(point)
-            // Note: Since createImage is async, state will be updated in next cycles
             return 
         }
         state.isHovered = true;
@@ -149,7 +183,7 @@ export class HDLayer {
         if (state) {
             state.isHovered = false;
             state.targetScale = SCALE_NORMAL
-            state.mesh.renderOrder = 2000 + state.point.order
+            state.mesh.renderOrder = 2000 + (state.point.order || 0)
         }
     }
 
@@ -165,7 +199,6 @@ export class HDLayer {
                     1.0
                 )
             } else if (!state.isInShowList && !state.isHovered) {
-                // If animation stopped and it's not in the show list or hovered, mark for cleanup
                 needsCleanup = true;
             }
         })

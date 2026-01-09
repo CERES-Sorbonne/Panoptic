@@ -1,18 +1,37 @@
 <script setup lang="ts">
 import { apiGetAtlas } from '@/data/apiProjectRoutes';
-import { ImageAtlas } from '@/data/models';
-import { PointData } from '@/mixins/mapview/useMapLogic';
+import { ImageAtlas, PointData } from '@/data/models';
+import { useTabStore } from '@/data/tabStore';
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
+const tabs = useTabStore()
+
+const groupManager = tabs.getMainTab().collection.groupManager
 
 const props = defineProps<{
     points: PointData[]
+    mouseMode: string
 }>()
+
+const emits = defineEmits(['selection'])
 
 const canvasContainer = ref<HTMLElement>(null)
 
-useMapRenderer(canvasContainer, props.points).renderer
+const renderer = useMapRenderer(canvasContainer, props.points)
+
+watch(renderer.map, () => renderer.map.value.onPointSelection = (points) => emits('selection', points))
+
+watch(() => props.mouseMode, () => {
+    if (renderer.map) {
+        renderer.map.value.setMouseMode(props.mouseMode)
+    }
+})
+
+watch(groupManager.selectedImages, () => {
+    console.log('change tints')
+    renderer.map.value.updateTints()
+})
 
 </script>
 
