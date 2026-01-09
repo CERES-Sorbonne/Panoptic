@@ -202,11 +202,11 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
 
             <div class="ms-2" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" />
+                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" :group-name="props.item.data.name" />
             </div>
             <div class="ms-2">
                 <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
-                    @groups="addClusters" />
+                    @groups="addClusters" :group-name="props.item.data.name" />
             </div>
 
             <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
