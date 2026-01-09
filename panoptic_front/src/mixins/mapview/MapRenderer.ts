@@ -223,37 +223,31 @@ export class MapRenderer {
         let foundPoint: PointData | null = null
 
         for (const p of nearbyPoints) {
-            // Calculate scale factor to fit in 1.0 x 1.0 box
-            let scale;
+
+            // 1. Determine the visual dimensions (0 to 1 scale)
+            // This matches the new 'sizeScale' logic in the shader
+            let visualWidth, visualHeight;
+
             if (p.ratio > 1.0) {
-                // Landscape: constrain by width (1.0)
-                scale = 1.0 / p.ratio;
+                // Landscape
+                visualWidth = 1.0;
+                visualHeight = 1.0 / p.ratio;
             } else {
-                // Portrait/Square: constrain by height (1.0)
-                scale = 1.0;
+                // Portrait / Square
+                visualWidth = p.ratio;
+                visualHeight = 1.0;
             }
 
-            // Apply zoom and constraint to get final scale
-            const finalScale = zoomScale * scale;
-            // Calculate actual dimensions based on aspect ratio
-            let width, height;
-            if (p.ratio > 1.0) {
-                // Landscape: width = 1.0 * finalScale, height = (1.0 / ratio) * finalScale
-                width = 1.0 * finalScale;
-                height = (1.0 / p.ratio) * finalScale;
-            } else {
-                // Portrait/Square: width = ratio * finalScale, height = 1.0 * finalScale
-                width = p.ratio * finalScale;
-                height = 1.0 * finalScale;
-            }
-
-            const halfW = width;
-            const halfH = height;
+            // 2. Calculate actual Half-Extents for collision
+            // We multiply by zoomScale.
+            // IMPORTANT: We divide by 2.0 because a width of 1.0 extends ±0.5 from center.
+            const halfW = (visualWidth * zoomScale) / 2.0;
+            const halfH = (visualHeight * zoomScale) / 2.0;
 
             if (worldPos.x >= p.x - halfW && worldPos.x <= p.x + halfW &&
                 worldPos.y >= p.y - halfH && worldPos.y <= p.y + halfH) {
                 foundId = p.id!;
-                foundPoint = p
+                foundPoint = p;
                 break;
             }
         }

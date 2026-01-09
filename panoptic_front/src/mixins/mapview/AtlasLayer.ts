@@ -5,8 +5,8 @@ import { InstancedImageMaterial } from './InstancedImageMaterial'
 export class AtlasLayer {
     public mesh: THREE.InstancedMesh
     private geometry: THREE.PlaneGeometry
-    public material: InstancedImageMaterial 
-    
+    public material: InstancedImageMaterial
+
     // Store references to points and atlas for subsequent updates
     private points: PointData[]
     private atlas: ImageAtlas
@@ -16,7 +16,7 @@ export class AtlasLayer {
     constructor(atlas: ImageAtlas, texture: THREE.Texture, points: PointData[], currentSheetIdx: number) {
         this.points = points
         this.atlas = atlas
-        
+
         const gridCols = atlas.width / atlas.cellWidth
         const gridRows = atlas.height / atlas.cellHeight
         const count = points.length
@@ -30,13 +30,15 @@ export class AtlasLayer {
         this.geometry.setAttribute('vUvTransform', new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4))
         this.geometry.setAttribute('vTint', new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3))
         this.geometry.setAttribute('vBorderCol', new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3))
+        this.geometry.setAttribute('vRatioAttr', new THREE.InstancedBufferAttribute(new Float32Array(count), 1));
 
         // Initial population of all attributes
         this.updateUVsAndOffsets()
         this.updatePositions()
+        this.updateRatios()
         this.updateTints()
         this.updateBorderColors()
-        
+
         this.mesh.frustumCulled = false;
         this.mesh.matrixAutoUpdate = false;
         this.mesh.updateMatrixWorld(true);
@@ -47,11 +49,21 @@ export class AtlasLayer {
      */
     public updatePositions() {
         this.points.forEach((p, i) => {
-            this.matrixHelper.makeScale(p.ratio, 1, 1) 
+            this.matrixHelper.makeScale(1.0, 1.0, 1.0)
             this.matrixHelper.setPosition(p.x, p.y, 0)
             this.mesh.setMatrixAt(i, this.matrixHelper)
         })
         this.mesh.instanceMatrix.needsUpdate = true
+    }
+
+    public updateRatios() {
+        const attr = this.geometry.getAttribute('vRatioAttr') as THREE.InstancedBufferAttribute;
+        const array = attr.array as Float32Array;
+
+        this.points.forEach((p, i) => {
+            array[i] = p.ratio; // Pass the raw ratio (e.g., 1.5 for landscape)
+        });
+        attr.needsUpdate = true;
     }
 
     /**
@@ -94,14 +106,14 @@ export class AtlasLayer {
         const gridCols = this.atlas.width / this.atlas.cellWidth
         const gridRows = this.atlas.height / this.atlas.cellHeight
         const cellRatio = this.atlas.cellWidth / this.atlas.cellHeight
-        
-        const bleedMargin = 0.5; 
+
+        const bleedMargin = 0.5;
         const uvMarginX = (bleedMargin / this.atlas.width) * gridCols;
         const uvMarginY = (bleedMargin / this.atlas.height) * gridRows;
 
         const offAttr = this.geometry.getAttribute('vOffset') as THREE.InstancedBufferAttribute
         const uvAttr = this.geometry.getAttribute('vUvTransform') as THREE.InstancedBufferAttribute
-        
+
         const offArray = offAttr.array as Float32Array
         const uvArray = uvAttr.array as Float32Array
 
