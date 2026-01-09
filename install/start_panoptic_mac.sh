@@ -93,7 +93,7 @@ if [ ! -d ".venv" ]; then
     # Installer torch 2.1.0 si Python 3.11
     if [ "$PYTHON_VERSION" = "3.11" ]; then
         echo "Installation de torch 2.1.0..."
-        uv pip install torch==2.1.0
+        uv pip install torch==2.1.0 numpy==1.25.2
     fi
 else
     # Vérifier la version Python de l'env existant

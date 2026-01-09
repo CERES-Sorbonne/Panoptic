@@ -10,12 +10,12 @@ from queue import Queue
 from typing import List, Any, Callable, Awaitable, Dict, TypeVar, Tuple, Generic
 
 from fastapi import UploadFile
-from orjson import orjson
+import orjson
 from pydantic import BaseModel
 
 from panoptic.dateformat import parse_date
 from panoptic.models import ParamDescription, Instance, ImageProperty, InstanceProperty, Property, \
-    PropertyType, PropertyId, Tag, Folder, ActionContext, VectorType, OwnVectorType
+    PropertyType, PropertyId, Tag, Folder, ActionContext, VectorType, OwnVectorType, InputFile
 from panoptic.models.computed_properties import ComputedId
 
 
@@ -111,6 +111,8 @@ def to_str_type(type_):
         return 'own_vector_type'
     if type_ is VectorType:
         return 'vector_type'
+    if type_ is InputFile:
+        return 'input_file'
     if issubclass(type_, Enum):
         return 'enum'
     return None
