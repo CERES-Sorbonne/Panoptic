@@ -22,6 +22,7 @@ from panoptic.routes.image_utils import medium_order, large_order, small_order, 
 from panoptic.routes.panoptic_routes import get_panoptic, get_server
 from panoptic.utils import save_upload_file
 
+
 project_router = APIRouter(
     prefix="/projects/{project_id}",
     tags=["_project"],
@@ -95,8 +96,6 @@ async def stream_db_state(project: Project = Depends(get_project_from_id)):
                 state.finished_instance = end
                 yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
 
-
-
             elif not state.finished_instance_values:
                 async for groups in group_property_stream(project.db.stream_instance_property_values_raw(chunk_size)):
                     arr_list = [
@@ -106,7 +105,6 @@ async def stream_db_state(project: Project = Depends(get_project_from_id)):
                     state.counter_instance_value += sum(len(a.values) for a in arr_list)
                     yield orjson.dumps(asdict(LoadResult(state=state, instance_values=arr_list))) + b'\n'
                 state.finished_instance_values = True
-
 
             elif not state.finished_image_values:
                 async for groups in group_property_stream(project.db.stream_image_property_values_raw(chunk_size)):

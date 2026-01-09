@@ -75,7 +75,7 @@ class Panoptic:
 
     async def create_project(self, name, path):
         if any(project.path == path for project in self.data.projects):
-            raise f"A Project with path '{path}' is already imported into panoptic."
+            raise ValueError(f"A Project with path '{path}' is already imported into panoptic.")
         # else:
         if not os.path.exists(path):
             os.makedirs(path)
@@ -90,7 +90,7 @@ class Panoptic:
         if not (p / 'panoptic.db').exists():
             raise ValueError(f'Folder [{p}] is not a panoptic Project (No panoptic.db file found)')
         if any(project.path == path for project in self.data.projects):
-            raise f"A Project with path '{path}' is already imported into panoptic."
+            raise ValueError(f"A Project with path '{path}' is already imported into panoptic.")
 
         project = ProjectRef2(name=p.name, path=path)
         project = await self.db.import_project(project)
