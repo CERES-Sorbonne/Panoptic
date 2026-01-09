@@ -41,18 +41,18 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
                     zoomScale = h * (z1 / z2);
                 }
 
-                // Calculate scale factor to fit in 1.0 x 1.0 box
-                float scale;
+                // Calculate vector scale to fit in 1.0 x 1.0 box while keeping aspect ratio
+                vec2 sizeScale;
                 if(uRatio > 1.0) {
-                    // Landscape: constrain by width (1.0)
-                    scale = 1.0 / uRatio;
+                    // Landscape: Width fixed to 1.0, Height reduces
+                    sizeScale = vec2(1.0, 1.0 / uRatio);
                 } else {
-                    // Portrait/Square: constrain by height (1.0)
-                    scale = 1.0;
+                    // Portrait/Square: Height fixed to 1.0, Width reduces
+                    sizeScale = vec2(uRatio, 1.0);
                 }
 
-                // Apply zoom and constraint
-                transformed.xy *= zoomScale * scale;
+                // Apply specific X and Y scaling
+                transformed.xy *= sizeScale * zoomScale;
                 `
             ).replace(
                 `#include <uv_vertex>`,

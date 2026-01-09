@@ -8,7 +8,7 @@ const HD_Z_OFFSET = 1.5
 
 const SCALE_NORMAL = 1.0
 const SCALE_HOVER = 2.0
-const LERP_FACTOR = 0.15
+const LERP_FACTOR = 0.2
 const ANIMATION_THRESHOLD = 0.005;
 
 interface AnimationState {
@@ -44,9 +44,10 @@ export class HDLayer {
         this.animationMap.forEach((state) => {
             const p = state.point;
             state.mesh.position.set(p.x, p.y, HD_Z_OFFSET);
-            // Re-apply current scaling with potential new ratio
+            // FIX: Apply UNIFORM scaling only. 
+            // The shader handles the aspect ratio using uRatio.
             state.mesh.scale.set(
-                p.ratio * state.currentScale,
+                state.currentScale,
                 state.currentScale,
                 1.0
             );
@@ -137,12 +138,15 @@ export class HDLayer {
         });
 
         mat.setZoomReference(this.zoomRef);
+        // Pass ratio to the shader (Critical for Option A)
         mat.setRatio(p.ratio);
 
         const mesh = new THREE.Mesh(sharedPlaneGeo, mat)
         mesh.position.set(p.x, p.y, HD_Z_OFFSET)
         mesh.renderOrder = 2000 + (p.order || 0)
-        mesh.scale.set(p.ratio, 1.0, 1.0)
+        
+        // FIX: Start with 1x1x1 scale. No pre-scaling by ratio.
+        mesh.scale.set(1.0, 1.0, 1.0)
 
         this.group.add(mesh)
         const isActuallyHovered = this.currentHoveredId === p.id
@@ -193,8 +197,10 @@ export class HDLayer {
             const diff = state.targetScale - state.currentScale;
             if (Math.abs(diff) > 0.001) {
                 state.currentScale += diff * LERP_FACTOR
+                
+                // FIX: Update only uniform scale. Do NOT multiply by ratio.
                 state.mesh.scale.set(
-                    state.point.ratio * state.currentScale,
+                    state.currentScale,
                     state.currentScale,
                     1.0
                 )
