@@ -17,7 +17,7 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private frustumSize = 20
     private hoveredId: number
-    private zoomParams: ZoomParams = { h: 4.0, z1: 0.1, z2: 1.2 }
+    private zoomParams: ZoomParams = { h: 8.0, z1: 0.1, z2: 1.0 }
     // private pointIndex: PointIndex = {}
 
     // Replaced array with the Manager instance
@@ -50,7 +50,7 @@ export class MapRenderer {
         this.hdLayer.setZoomParams(this.zoomParams)
 
         this.lassoLayer = new LassoLayer(this.scene, this.spatialIndex, (points) => {
-            if(this.onPointSelection) {
+            if (this.onPointSelection) {
                 this.onPointSelection(points)
             }
         })
@@ -96,7 +96,7 @@ export class MapRenderer {
 
         points.forEach(p => {
             if (p.ratio > 2) {
-                p.ratio = 1 / p.ratio
+                // p.ratio = 1 / p.ratio
             }
         })
 
@@ -178,8 +178,8 @@ export class MapRenderer {
     public updateHoverRectangular() {
 
         const mouseMode = this.controls.getMode()
-        if(mouseMode.startsWith('lasso')) {
-            if(this.hoveredId) {
+        if (mouseMode.startsWith('lasso')) {
+            if (this.hoveredId) {
                 this.hdLayer.unhover(this.hoveredId)
                 this.hoveredId = null
             }
@@ -195,17 +195,15 @@ export class MapRenderer {
         const z2 = this.zoomParams.z2;
 
         // 1. Calculate the Dynamic Scale Factor (Replicating Shader Logic)
-        let dynamicScale = 1.0;
-        if (currentZoom < z1) {
-            dynamicScale = h;
-        } else if (currentZoom < z2) {
-            dynamicScale = h * (z1 / currentZoom);
-        } else {
-            dynamicScale = h * (z1 / z2);
+        let zoomScale = h;
+        if (currentZoom >= z1 && currentZoom < z2) {
+            zoomScale = h * (z1 / currentZoom);
+        } else if (currentZoom >= z2) {
+            zoomScale = h * (z1 / z2);
         }
 
         // 2. Broad phase (Adjust search area based on dynamic scale)
-        const searchArea = dynamicScale;
+        const searchArea = zoomScale;
         const nearbyPoints = this.spatialIndex.getPointsInRect({
             minX: worldPos.x - searchArea,
             maxX: worldPos.x + searchArea,
@@ -225,9 +223,32 @@ export class MapRenderer {
         let foundPoint: PointData | null = null
 
         for (const p of nearbyPoints) {
-            // Base dimensions * dynamic shader scale
-            const halfW = (p.ratio * dynamicScale) / 2.0;
-            const halfH = dynamicScale / 2.0;
+            // Calculate scale factor to fit in 1.0 x 1.0 box
+            let scale;
+            if (p.ratio > 1.0) {
+                // Landscape: constrain by width (1.0)
+                scale = 1.0 / p.ratio;
+            } else {
+                // Portrait/Square: constrain by height (1.0)
+                scale = 1.0;
+            }
+
+            // Apply zoom and constraint to get final scale
+            const finalScale = zoomScale * scale;
+            // Calculate actual dimensions based on aspect ratio
+            let width, height;
+            if (p.ratio > 1.0) {
+                // Landscape: width = 1.0 * finalScale, height = (1.0 / ratio) * finalScale
+                width = 1.0 * finalScale;
+                height = (1.0 / p.ratio) * finalScale;
+            } else {
+                // Portrait/Square: width = ratio * finalScale, height = 1.0 * finalScale
+                width = p.ratio * finalScale;
+                height = 1.0 * finalScale;
+            }
+
+            const halfW = width;
+            const halfH = height;
 
             if (worldPos.x >= p.x - halfW && worldPos.x <= p.x + halfW &&
                 worldPos.y >= p.y - halfH && worldPos.y <= p.y + halfH) {
@@ -254,7 +275,7 @@ export class MapRenderer {
         this.hdLayer.updateTints()
     }
 
-    
+
 
     // clearIndex() {
     //     Object.keys(this.pointIndex).forEach(k => delete this.pointIndex[k])

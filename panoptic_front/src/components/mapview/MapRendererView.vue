@@ -33,6 +33,10 @@ watch(groupManager.selectedImages, () => {
     renderer.map.value.updateTints()
 })
 
+defineExpose({
+    updateTints: () => renderer.map.value.updateTints()
+})
+
 </script>
 
 <template>

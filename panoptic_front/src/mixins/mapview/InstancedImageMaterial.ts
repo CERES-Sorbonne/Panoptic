@@ -2,19 +2,19 @@ import { ZoomParams } from '@/data/models';
 import * as THREE from 'three';
 
 export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
-    // 1. Internal state stored in a way accessible to onBeforeCompile
     private _zoomRef: { value: number } = { value: 1.0 };
-    private _zoomParams = new THREE.Vector3(1.0, 0.1, 1.3); // Default h, z1, z2
-    private _borderWidth = { value: 0.05 };
+    private _zoomParams = new THREE.Vector3(1.0, 0.1, 1.3);
+    private _borderWidth = { value: 0.00 };
+    private _radius = { value: 0.05 };
 
     constructor(parameters: THREE.MeshBasicMaterialParameters, collNb: number, rowNb: number) {
         super(parameters);
 
         this.onBeforeCompile = (shader) => {
-            // 2. Define and Link Uniforms
             shader.uniforms.uGridCols = { value: collNb };
             shader.uniforms.uGridRows = { value: rowNb };
             shader.uniforms.uBorderWidth = this._borderWidth;
+            shader.uniforms.uRadius = this._radius;
             shader.uniforms.uZoom = this._zoomRef;
             shader.uniforms.uZoomParams = { value: this._zoomParams };
 
@@ -33,29 +33,40 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uGridCols;
                 uniform float uGridRows;
                 uniform float uZoom;
-                uniform vec3 uZoomParams; // x: h, y: z1, z: z2
+                uniform vec3 uZoomParams;
 
                 ${shader.vertexShader}
             `.replace(
                 `#include <begin_vertex>`,
                 `
                 vec3 transformed = vec3( position );
-                
-                // Extract params from Vector3
                 float h  = uZoomParams.x;
                 float z1 = uZoomParams.y;
                 float z2 = uZoomParams.z;
 
-                // Scale vertices based on zoom thresholds to maintain visual consistency
-                if(uZoom < z1) {
-                    transformed.xy *= h;
+                // Get world scale/ratio from instance matrix
+                float instanceRatio = length(vec3(instanceMatrix[0][0], instanceMatrix[0][1], instanceMatrix[0][2])) / 
+                                     length(vec3(instanceMatrix[1][0], instanceMatrix[1][1], instanceMatrix[1][2]));
+
+                float zoomScale = h;
+                if(uZoom >= z1 && uZoom < z2) {
+                    zoomScale = h * (z1 / uZoom);
+                } else if(uZoom >= z2) {
+                    zoomScale = h * (z1 / z2);
                 }
-                else if(uZoom < z2) {
-                    transformed.xy *= h * (z1 / uZoom);
-                } 
-                else {
-                    transformed.xy *= h * (z1 / z2);
+
+                // Calculate scale factor to fit in 1.0 x 1.0 box
+                float scale;
+                if(instanceRatio > 1.0) {
+                    // Landscape: constrain by width (1.0)
+                    scale = 1.0 / instanceRatio;
+                } else {
+                    // Portrait/Square: constrain by height (1.0)
+                    scale = 1.0;
                 }
+
+                // Apply zoom and constraint
+                transformed.xy *= zoomScale * scale;
                 `
             ).replace(
                 `#include <uv_vertex>`,
@@ -63,8 +74,9 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 #include <uv_vertex>
                 vRawUv = uv;
                 
-                // Extract physical aspect ratio from the instance matrix
-                vRatio = length(vec3(instanceMatrix[0][0], instanceMatrix[0][1], instanceMatrix[0][2]));
+                // Get world scale/ratio from instance matrix
+                vRatio = length(vec3(instanceMatrix[0][0], instanceMatrix[0][1], instanceMatrix[0][2])) / 
+                         length(vec3(instanceMatrix[1][0], instanceMatrix[1][1], instanceMatrix[1][2]));
 
                 float margin = 0.0005; 
                 vec2 safeUv = mix(vec2(margin), vec2(1.0 - margin), uv);
@@ -84,75 +96,71 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 varying float vRatio;
 
                 uniform float uBorderWidth;
+                uniform float uRadius;
+
+                float sdRoundedBox(vec2 p, vec2 b, float r) {
+                    vec2 q = abs(p) - b + r;
+                    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+                }
 
                 ${shader.fragmentShader}
             `.replace(
                 `#include <map_fragment>`,
                 `
+                // Calculate dimensions to fit image inside 1.0 x 1.0 box
+                vec2 dimensions;
+                if(vRatio > 1.0) {
+                    dimensions = vec2(1.0, 1.0 / vRatio);
+                } else {
+                    dimensions = vec2(vRatio, 1.0);
+                }
+                
+                vec2 p = (vRawUv - 0.5) * dimensions;
+                vec2 b = dimensions * 0.5;
+                
+                float d = sdRoundedBox(p, b, uRadius);
+                
+                float aa = 0.002; 
+                float outsideMask = smoothstep(aa, 0.0, d);
+                float borderMask = smoothstep(aa, 0.0, d + uBorderWidth);
+
                 vec4 texelColor = texture2D( map, vMappedUv );
                 texelColor.rgb *= vInstanceTint;
 
-                float b = uBorderWidth;
-                vec3 finalRGB = texelColor.rgb;
-
-                if (b > 0.0005) {
-                    float inset = 0.001;
-                    vec2 stableUv = vRawUv * (1.0 - inset * 2.0) + inset;
-                    
-                    // Adjust border thickness based on aspect ratio
-                    float bx = b / vRatio;
-                    float by = b;
-
-                    bx = min(bx, 0.5);
-                    by = min(by, 0.5);
-
-                    float aa = 0.002; 
-                    float borderMask = smoothstep(bx, bx + aa, stableUv.x) * smoothstep(by, by + aa, stableUv.y) * smoothstep(bx, bx + aa, 1.0 - stableUv.x) * smoothstep(by, by + aa, 1.0 - stableUv.y);
-                    
-                    finalRGB = mix(vInstanceBorder, texelColor.rgb, borderMask);
-                }
-
-                diffuseColor = vec4(finalRGB, texelColor.a);
+                vec3 finalRGB = mix(vInstanceBorder, texelColor.rgb, borderMask);
+                diffuseColor = vec4(finalRGB, texelColor.a * outsideMask);
                 `
             );
 
-            // Store a reference to the shader for manual updates if needed
             this.userData.shader = shader;
         };
     }
 
-    /**
-     * Updates sizing behavior.
-     * h: base multiplier, z1: start threshold, z2: end threshold
-     */
-    public setZoomParams(params: ZoomParams) {
-        this._zoomParams.set(params.h, params.z1, params.z2);
-        const shader = this.userData.shader;
-        console.log("set params", shader)
-        if (shader) {
-            shader.uniforms.uZoomParams.value = this._zoomParams;
+    public setRadius(radius: number) {
+        this._radius.value = radius;
+        if (this.userData.shader) {
+            this.userData.shader.uniforms.uRadius.value = radius;
         }
     }
 
-    /**
-     * Connects this material to the global zoom uniform.
-     */
-    public setZoomReference(zoomUniform: { value: number }) {
-        this._zoomRef = zoomUniform;
-        const shader = this.userData.shader;
-        if (shader) {
-            shader.uniforms.uZoom = zoomUniform;
-        }
-    }
-
-    /**
-     * Updates the global border width for all instances in this layer.
-     */
     public setBorderWidth(width: number) {
         this._borderWidth.value = width;
-        const shader = this.userData.shader;
-        if (shader) {
-            shader.uniforms.uBorderWidth.value = width;
+        if (this.userData.shader) {
+            this.userData.shader.uniforms.uBorderWidth.value = width;
+        }
+    }
+
+    public setZoomParams(params: ZoomParams) {
+        this._zoomParams.set(params.h, params.z1, params.z2);
+        if (this.userData.shader) {
+            this.userData.shader.uniforms.uZoomParams.value = this._zoomParams;
+        }
+    }
+
+    public setZoomReference(zoomUniform: { value: number }) {
+        this._zoomRef = zoomUniform;
+        if (this.userData.shader) {
+            this.userData.shader.uniforms.uZoom = zoomUniform;
         }
     }
 }
