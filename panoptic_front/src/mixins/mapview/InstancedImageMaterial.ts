@@ -37,6 +37,7 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 uniform float uGridRows;
                 uniform float uZoom;
                 uniform vec3 uZoomParams;
+                uniform float uShowAsPoint;
 
                 ${shader.vertexShader}
             `.replace(
@@ -50,27 +51,35 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 // Use the attribute directly
                 vRatio = vRatioAttr; 
 
-                float zoomScale = h;
-                if(uZoom >= z1 && uZoom < z2) {
-                    zoomScale = h * (z1 / uZoom);
-                } else if(uZoom >= z2) {
-                    zoomScale = h * (z1 / z2);
-                }
-
-                // FIT LOGIC: Calculate scale to fit in 1.0 x 1.0 box
-                vec2 sizeScale;
-                if(vRatio > 1.0) {
-                    // Landscape: Width is 1.0, Height is 1/Ratio
-                    sizeScale = vec2(1.0, 1.0 / vRatio);
+                // When showing as point, use uniform 1:1 scale
+                if(uShowAsPoint > 0.5) {
+                    // Point size is always h/uZoom for consistent sizing
+                    float pointScale = h/10.0 / uZoom;
+                    transformed.xy *= pointScale;
                 } else {
-                    // Portrait: Height is 1.0, Width is Ratio
-                    sizeScale = vec2(vRatio, 1.0);
-                }
-                if(uZoom < z1/2.0) {
-                    sizeScale = vec2(1.0, 1.0);
-                }
+                    // Normal image rendering with zoom scaling
+                    float zoomScale = h;
+                    if(uZoom >= z1 && uZoom < z2) {
+                        zoomScale = h * (z1 / uZoom);
+                    } else if(uZoom >= z2) {
+                        zoomScale = h * (z1 / z2);
+                    }
 
-                transformed.xy *= sizeScale * zoomScale;
+                    // FIT LOGIC: Calculate scale to fit in 1.0 x 1.0 box
+                    vec2 sizeScale;
+                    if(vRatio > 1.0) {
+                        // Landscape: Width is 1.0, Height is 1/Ratio
+                        sizeScale = vec2(1.0, 1.0 / vRatio);
+                    } else {
+                        // Portrait: Height is 1.0, Width is Ratio
+                        sizeScale = vec2(vRatio, 1.0);
+                    }
+                    if(uZoom < z1/2.0) {
+                        sizeScale = vec2(1.0, 1.0);
+                    }
+
+                    transformed.xy *= sizeScale * zoomScale;
+                }
                 `
             ).replace(
                 `#include <uv_vertex>`,

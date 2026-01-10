@@ -29,10 +29,10 @@ const canvasContainer = ref<HTMLElement | null>(null)
 // Initialize the renderer controller directly with the container ref
 const { map: renderer } = useMapRenderer(canvasContainer)
 
+const imageSize = ref(5)
+const zoomDelay = ref(2)
+
 // Image Map Configuration
-const baseImageSize = ref(3)
-const maxImageSize = ref(5)
-const minImageSize = ref(10)
 const showPoints = ref(false)
 const mouseMode = ref('pan')
 
@@ -42,7 +42,7 @@ const spatialFunction = ref({
 })
 
 const groups = ref<MapGroup[]>([])
-const defaultColor = '#4A90E2'
+const defaultColor = '#777777'
 let clusters: Group[] = []
 
 // Fast lookups
@@ -58,7 +58,7 @@ const selectedPoints = computed(() => {
     let ids = Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number)
     let instances = ids.map(i => data.instances[i])
     const res: { [sha1: string]: boolean } = {}
-    
+
     // Add explicitly selected images
     for (let inst of instances) {
         res[inst.sha1] = true
@@ -81,7 +81,7 @@ const selectedPointsList = computed(() => Object.keys(selectedPoints.value))
 
 function colorGroups() {
     const hasHover = Object.keys(selectedGroups.value).length > 0
-    
+
     for (let group of groups.value) {
         const isHover = selectedGroups.value[group.id]
         for (let point of group.points) {
@@ -122,7 +122,7 @@ function updateColors() {
     clearColors()
     colorGroups()
     colorSelected()
-    
+
     // Direct communication with Renderer
     if (renderer.value) {
         renderer.value.updateBorder()
@@ -134,6 +134,7 @@ function updateColors() {
 function clearColors() {
     points.value.forEach(p => {
         p.color = defaultColor
+        p.borderColor = defaultColor
         p.border = 0.0
         p.tint = WHITE_TINT
         p.tintAlpha = 0.0
@@ -147,10 +148,10 @@ async function showMap(mapId: number) {
 
     sha1ToPoint = {}
     console.log('Loading map data...')
-    
+
     const res: PointData[] = []
     const values = data.maps[mapId].data
-    
+
     for (let i = 0; i < values.length; i += 3) {
         const sha1 = values[i]
         const x = values[i + 1]
@@ -170,15 +171,14 @@ async function showMap(mapId: number) {
             order: 1,
             border: 0.0,
             tintAlpha: 0.0,
-            borderColor: '#000000'
+            borderColor: defaultColor
         }
         res.push(p)
         sha1ToPoint[sha1] = p
     }
-    
+
     points.value = res
     generateGroups()
-    showPoints.value = true
 
     // Initialize Renderer with new data
     if (renderer.value) {
@@ -206,7 +206,7 @@ function generateGroups() {
     const nb = groupList.length
     const colors = generateColors(nb)
     const groupToColor: Record<number, string> = {}
-    
+
     groupList.forEach((g, index) => groupToColor[g.id] = colors[index])
 
     // Handle Tag Property Colors
@@ -227,11 +227,11 @@ function generateGroups() {
 
     const res: MapGroup[] = []
     groupToPoints = {}
-    
+
     groupList.forEach((g) => {
         groupToPoints[g.id] = g.images.map(i => i.sha1)
         const grpPoints = Array.from(new Set(g.images.map(i => sha1ToPoint[i.sha1]).filter(Boolean)))
-        
+
         res.push({
             id: g.id,
             name: computeName(g),
@@ -241,7 +241,7 @@ function generateGroups() {
             points: grpPoints
         })
     })
-    
+
     groups.value = res
     updateColors()
 }
@@ -254,7 +254,7 @@ function computeBox(images: Instance[], color: string) {
         let img = images[i]
         let p = sha1ToPoint[img.sha1]
         if (!p) continue
-        
+
         if (!initialized) {
             minX = p.x; minY = p.y; maxX = p.x; maxY = p.y
             initialized = true
@@ -304,17 +304,25 @@ function onClickGroup(group: MapGroup) {
 const handleLasso = (selectedPoints: PointData[]) => {
     let ids: number[] = []
     for (let point of selectedPoints) {
-        if(data.sha1Index[point.sha1]) {
+        if (data.sha1Index[point.sha1]) {
             ids.push(...data.sha1Index[point.sha1].map(i => i.id))
         }
     }
-    
+
     if (mouseMode.value == 'lasso-plus') {
         props.tab.collection.groupManager.selectImages(ids)
     }
     if (mouseMode.value == 'lasso-minus') {
         props.tab.collection.groupManager.unselectImages(ids)
     }
+}
+
+function updateZoomParams() {
+    renderer.value.setZoomParams(imageSize.value, zoomDelay.value)
+}
+
+function updateShowPoints() {
+    renderer.value.setShowAsPoint(showPoints.value)
 }
 
 // --- Watchers ---
@@ -342,13 +350,18 @@ watch(renderer, (r) => {
         // If we have points loaded but renderer just initialized (race condition fix)
         if (points.value.length > 0 && r.atlasLayers) {
             // Re-trigger visual updates if needed
-             updateColors()
+            updateColors()
         }
+        updateZoomParams()
     }
 })
 
 // Save state
 watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), { deep: true })
+
+watch(imageSize, updateZoomParams)
+watch(zoomDelay, updateZoomParams)
+watch(showPoints, updateShowPoints)
 
 // --- Lifecycle ---
 
@@ -360,7 +373,7 @@ onMounted(async () => {
 
 onMounted(() => {
     // Safety check: ensure mouse mode is synced on startup
-    if(renderer.value) renderer.value.setMouseMode(mouseMode.value)
+    if (renderer.value) renderer.value.setMouseMode(mouseMode.value)
 })
 
 // Cleanup
@@ -374,30 +387,20 @@ onUnmounted(() => {
     <div class="map-view-container">
         <div class="map-container"
             :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
-            
+
             <div ref="canvasContainer" class="canvas-wrapper"></div>
-            
+
         </div>
 
         <div class="toolbar">
-            <Toolbar v-model:mouse-mode="mouseMode" />
+            <Toolbar v-model:mouse-mode="mouseMode" v-model:image-size="imageSize" v-model:zoom-delay="zoomDelay" v-model:show-point="showPoints"/>
         </div>
 
         <div class="menu">
             <MapMenu v-model:selected-map="props.tab.state.mapOptions.selectedMap"
-                v-model:show-images="props.tab.state.mapOptions.showImages"
-                v-model:color-option="props.tab.state.mapOptions.groupOption"
-                v-model:show-boxes="props.tab.state.mapOptions.showBoxes"
-                v-model:show-points="props.tab.state.mapOptions.showPoints" 
-                v-model:base-image-size="baseImageSize"
-                v-model:max-image-size="maxImageSize" 
-                v-model:min-image-size="minImageSize"
-                v-model:spatial-function="spatialFunction" 
-                :groups="groups" 
-                :images="tab.collection.groupManager.result.root.images" 
-                @clusters="showClusters" 
-                @hover-group="onGroupHover"
-                @click-group="onClickGroup"
+                v-model:color-option="props.tab.state.mapOptions.groupOption" v-model:spatial-function="spatialFunction"
+                :groups="groups" :images="tab.collection.groupManager.result.root.images" @clusters="showClusters"
+                @hover-group="onGroupHover" @click-group="onClickGroup"
                 />
         </div>
 
@@ -427,11 +430,17 @@ onUnmounted(() => {
 .canvas-wrapper {
     width: 100%;
     height: 100%;
-    background-color: white; /* Or your preferred background */
+    background-color: white;
+    /* Or your preferred background */
 }
 
-.cursor-grab { cursor: grab; }
-.cursor-lasso { cursor: crosshair; }
+.cursor-grab {
+    cursor: grab;
+}
+
+.cursor-lasso {
+    cursor: crosshair;
+}
 
 .menu {
     position: absolute;
