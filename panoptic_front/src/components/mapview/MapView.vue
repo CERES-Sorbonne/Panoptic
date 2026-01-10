@@ -298,6 +298,9 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
     updateColors()
 }
 
+function onClickGroup(group: MapGroup) {
+    renderer.value.lookAtRect(group.box)
+}
 const handleLasso = (selectedPoints: PointData[]) => {
     let ids: number[] = []
     for (let point of selectedPoints) {
@@ -394,6 +397,7 @@ onUnmounted(() => {
                 :images="tab.collection.groupManager.result.root.images" 
                 @clusters="showClusters" 
                 @hover-group="onGroupHover"
+                @click-group="onClickGroup"
                 />
         </div>
 
