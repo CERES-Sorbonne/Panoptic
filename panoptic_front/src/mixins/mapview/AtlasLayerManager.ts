@@ -100,4 +100,12 @@ export class AtlasLayerManager {
     public updatePositions() {
         this.layers.forEach(l => l.updatePositions())
     }
+    
+    public updateBorderWidths() {
+        this.layers.forEach(l => l.updateBorderWidths())
+    }
+
+    public setShowAsPoint(show: boolean) {
+        this.layers.forEach(l => l.setShowAsPoint(show))
+    }
 }

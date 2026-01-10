@@ -120,4 +120,9 @@ export class HDImageMaterial extends THREE.MeshBasicMaterial {
     public setRadius(radius: number) {
         this._radius.value = radius;
     }
+
+    public setBorder(width: number, color: string) {
+        this._borderWidth.value = width
+        this._borderColor.value = new THREE.Color(color)
+    }
 }
