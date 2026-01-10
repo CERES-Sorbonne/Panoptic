@@ -18,7 +18,7 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private frustumSize = 20
 
-    private zoomParams: ZoomParams = { h: 8.0, z1: 0.05, z2: 1.0 }
+    private zoomParams: ZoomParams = { h: 5.0, z1: 0.1, z2: 1.1 }
 
     public atlasLayers: AtlasLayerManager
     private hdLayer: HDLayer
@@ -112,7 +112,7 @@ export class MapRenderer {
             const pointsInView = this.spatialIndex.getPointsInRect(rect)
 
             // HD Detail threshold
-            if (this.camera.zoom > 2.0 && pointsInView.length < 100) {
+            if (pointsInView.length < 200) {
                 this.hdLayer.show(pointsInView)
             } else {
                 this.hdLayer.show([])
@@ -121,6 +121,7 @@ export class MapRenderer {
 
         this.updateHoverState()
         // console.log(this.controls.getMouseWorldPos())
+        // console.log(this.camera.zoom)
         this.renderer.render(this.scene, this.camera)
     }
 
@@ -156,6 +157,13 @@ export class MapRenderer {
 
     public setShowAsPoint(show: boolean) {
         this.atlasLayers.setShowAsPoint(show)
+    }
+
+    public setZoomParams(imageSize: number, zoomDelay: number) {
+        this.zoomParams.h = imageSize / 2
+        this.zoomParams.z2 = this.zoomParams.z1 + zoomDelay * 0.2
+        this.hdLayer.setZoomParams(this.zoomParams)
+        this.atlasLayers.setZoomParams(this.zoomParams)
     }
 
     private onResize() {

@@ -11,12 +11,6 @@ const data = useDataStore()
 
 const props = defineProps<{
     selectedMap: number | null
-    showImages: boolean
-    showPoints: boolean
-    showBoxes: boolean
-    baseImageSize: number
-    maxImageSize: number
-    minImageSize: number
     spatialFunction: {
         function: string
         context: any
@@ -28,9 +22,6 @@ const props = defineProps<{
 
 const emits = defineEmits([
     'update:selectedMap',
-    'update:showImages',
-    'update:showPoints',
-    'update:showBoxes',
     'update:baseImageSize',
     'update:maxImageSize',
     'update:minImageSize',
@@ -121,24 +112,6 @@ function hoverGroup(groupId: number, value) {
             <div class="menu-section-card" v-if="selectedMap">
                 <div class="section-title">{{ $t("map.display") }}</div>
                 <div class="menu-section">
-                    <div class="checkbox-item sb">
-                        <input type="checkbox" :checked="showImages"
-                            @change="$emit('update:showImages', ($event.target as HTMLInputElement).checked)"
-                            id="showImages" />
-                        <label for="showImages" class="w-100">{{ $t('map.show_image') }}</label>
-                    </div>
-                    <div class="checkbox-item sb">
-                        <input type="checkbox" :checked="showPoints"
-                            @change="$emit('update:showPoints', ($event.target as HTMLInputElement).checked)"
-                            id="showPoints" />
-                        <label for="showPoints" class="w-100">{{ $t('map.show_points') }}</label>
-                    </div>
-                    <div class="checkbox-item sb">
-                        <input type="checkbox" :checked="showBoxes"
-                            @change="$emit('update:showBoxes', ($event.target as HTMLInputElement).checked)"
-                            id="showBoxes" />
-                        <label for="showBoxes" class="w-100">{{ $t('map.show_boxes') }}</label>
-                    </div>
                     <div class="">
                         <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption"
                             @update:model-value="e => emits('update:colorOption', e)" :no-border="true" />
