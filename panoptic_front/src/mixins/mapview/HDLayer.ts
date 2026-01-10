@@ -9,15 +9,15 @@ const HD_Z_OFFSET = 1.5
 const SCALE_NORMAL = 1.0
 const SCALE_HOVER = 2.0
 const LERP_FACTOR = 0.2
-const ANIMATION_THRESHOLD = 0.005;
+const ANIMATION_THRESHOLD = 0.005
 
 interface AnimationState {
     mesh: THREE.Mesh
     point: PointData
     currentScale: number
     targetScale: number
-    isHovered: boolean;
-    isInShowList: boolean;
+    isHovered: boolean
+    isInShowList: boolean
 }
 
 export class HDLayer {
@@ -28,8 +28,7 @@ export class HDLayer {
     private textureCache: Map<string, THREE.Texture> = new Map()
     private zoomRef: { value: number } = { value: 1.0 }
     private zoomParams: ZoomParams = { h: 1.0, z1: 0.2, z2: 0.8 }
-    private currentHoveredId: number | null = null;
-    private colorHelper = new THREE.Color();
+    private currentHoveredId: number | null = null
 
     constructor(scene: THREE.Scene, baseImgUrl: string) {
         this.scene = scene
@@ -38,44 +37,36 @@ export class HDLayer {
         this.scene.add(this.group)
     }
 
-    // --- New Update Functions ---
+    // --- Original Update Functions ---
 
     public updatePositions() {
         this.animationMap.forEach((state) => {
-            const p = state.point;
-            state.mesh.position.set(p.x, p.y, HD_Z_OFFSET);
-            // FIX: Apply UNIFORM scaling only. 
-            // The shader handles the aspect ratio using uRatio.
-            state.mesh.scale.set(
-                state.currentScale,
-                state.currentScale,
-                1.0
-            );
-        });
+            const p = state.point
+            state.mesh.position.set(p.x, p.y, HD_Z_OFFSET)
+            state.mesh.scale.set(state.currentScale, state.currentScale, 1.0)
+        })
     }
 
     public updateTints() {
         this.animationMap.forEach((state) => {
-            const mat = state.mesh.material as THREE.MeshBasicMaterial;
-            mat.color.set(state.point.tint || '#FFFFFF');
-        });
+            const mat = state.mesh.material as THREE.MeshBasicMaterial
+            mat.color.set(state.point.tint || '#FFFFFF')
+        })
     }
 
-    public updateBorderColors() {
+    public updateBorder() {
         this.animationMap.forEach((state) => {
-            const mat = state.mesh.material as HDImageMaterial;
-            // Access the underlying shader uniform if available
-            if (mat.userData.shader) {
-                this.colorHelper.set(state.point.borderColor || '#000000');
-                mat.userData.shader.uniforms.uBorderColor.value.copy(this.colorHelper);
+            const mat = state.mesh.material as HDImageMaterial
+            if (mat.setBorder) {
+                mat.setBorder(state.point.border, state.point.borderColor)
             }
-        });
+        })
     }
 
     // --- Core Logic ---
 
     public setZoomReference(zoomUniform: { value: number }) {
-        this.zoomRef = zoomUniform;
+        this.zoomRef = zoomUniform
     }
 
     public show(points: PointData[]) {
@@ -83,15 +74,14 @@ export class HDLayer {
         const activeIds = new Set(points.map(p => p.id!))
 
         this.animationMap.forEach((state, id) => {
-            state.isInShowList = activeIds.has(id);
-        });
+            state.isInShowList = activeIds.has(id)
+        })
 
-        this.cleanupUnusedImages();
+        this.cleanupUnusedImages()
 
         points.forEach(p => {
             if (this.animationMap.has(p.id!)) {
-                // Ensure we have the latest data reference
-                this.animationMap.get(p.id!)!.point = p;
+                this.animationMap.get(p.id!)!.point = p
                 this.updateImagePosition(p)
             } else {
                 this.createImage(p)
@@ -99,15 +89,16 @@ export class HDLayer {
         })
         this.setZoomParams(this.zoomParams)
         this.updateTints()
+        this.updateBorder()
     }
 
     private cleanupUnusedImages() {
         this.animationMap.forEach((state, id) => {
-            const isAnimating = Math.abs(state.targetScale - state.currentScale) > ANIMATION_THRESHOLD;
+            const isAnimating = Math.abs(state.targetScale - state.currentScale) > ANIMATION_THRESHOLD
             if (!state.isInShowList && !state.isHovered && !isAnimating) {
-                this.removeImage(id);
+                this.removeImage(id)
             }
-        });
+        })
     }
 
     private getResolutionUrl(sha1: string): string {
@@ -129,26 +120,25 @@ export class HDLayer {
     }
 
     private setupMesh(p: PointData, tex: THREE.Texture) {
-        if (this.animationMap.has(p.id!)) return;
+        if (this.animationMap.has(p.id!)) return
 
         const mat = new HDImageMaterial({
             map: tex,
             transparent: true,
             side: THREE.DoubleSide
-        });
+        })
 
-        mat.setZoomReference(this.zoomRef);
-        // Pass ratio to the shader (Critical for Option A)
-        mat.setRatio(p.ratio);
+        mat.setZoomReference(this.zoomRef)
+        mat.setBorder(p.border, p.borderColor)
+        mat.setRatio(p.ratio)
 
         const mesh = new THREE.Mesh(sharedPlaneGeo, mat)
         mesh.position.set(p.x, p.y, HD_Z_OFFSET)
         mesh.renderOrder = 2000 + (p.order || 0)
-        
-        // FIX: Start with 1x1x1 scale. No pre-scaling by ratio.
         mesh.scale.set(1.0, 1.0, 1.0)
 
         this.group.add(mesh)
+        
         const isActuallyHovered = this.currentHoveredId === p.id
 
         this.animationMap.set(p.id!, {
@@ -157,11 +147,11 @@ export class HDLayer {
             currentScale: SCALE_NORMAL,
             targetScale: isActuallyHovered ? SCALE_HOVER : SCALE_NORMAL,
             isHovered: isActuallyHovered,
-            isInShowList: false 
-        });
+            isInShowList: true 
+        })
 
         if (isActuallyHovered) {
-            mesh.renderOrder = Number.MAX_SAFE_INTEGER;
+            mesh.renderOrder = Number.MAX_SAFE_INTEGER
         }
     }
 
@@ -170,47 +160,58 @@ export class HDLayer {
         if (state) state.mesh.position.set(p.x, p.y, HD_Z_OFFSET)
     }
 
+    /**
+     * Triggers hover for one point and unhovers any others.
+     */
     public hover(point: PointData) {
-        this.currentHoveredId = point.id;
-        let state = this.animationMap.get(point.id!)
-        if (!state) {
+        this.currentHoveredId = point.id
+        
+        this.animationMap.forEach((state, id) => {
+            if (id === point.id) {
+                state.isHovered = true
+                state.targetScale = SCALE_HOVER
+                state.mesh.renderOrder = Number.MAX_SAFE_INTEGER
+            } else if (state.isHovered) {
+                // If another point was hovered, reset it
+                state.isHovered = false
+                state.targetScale = SCALE_NORMAL
+                state.mesh.renderOrder = 2000 + (state.point.order || 0)
+            }
+        })
+
+        if (!this.animationMap.has(point.id!)) {
             this.createImage(point)
-            return 
         }
-        state.isHovered = true;
-        state.targetScale = SCALE_HOVER
-        state.mesh.renderOrder = Number.MAX_SAFE_INTEGER
     }
 
-    public unhover(id: number) {
-        const state = this.animationMap.get(id)
-        if (state) {
-            state.isHovered = false;
-            state.targetScale = SCALE_NORMAL
-            state.mesh.renderOrder = 2000 + (state.point.order || 0)
-        }
+    /**
+     * Resets any currently hovered points to normal scale/order.
+     */
+    public unhover() {
+        this.currentHoveredId = null
+        this.animationMap.forEach((state) => {
+            if (state.isHovered) {
+                state.isHovered = false
+                state.targetScale = SCALE_NORMAL
+                state.mesh.renderOrder = 2000 + (state.point.order || 0)
+            }
+        })
     }
 
     public updateAnimations() {
-        let needsCleanup = false;
+        let needsCleanup = false
         this.animationMap.forEach(state => {
-            const diff = state.targetScale - state.currentScale;
+            const diff = state.targetScale - state.currentScale
             if (Math.abs(diff) > 0.001) {
                 state.currentScale += diff * LERP_FACTOR
-                
-                // FIX: Update only uniform scale. Do NOT multiply by ratio.
-                state.mesh.scale.set(
-                    state.currentScale,
-                    state.currentScale,
-                    1.0
-                )
+                state.mesh.scale.set(state.currentScale, state.currentScale, 1.0)
             } else if (!state.isInShowList && !state.isHovered) {
-                needsCleanup = true;
+                needsCleanup = true
             }
         })
 
         if (needsCleanup) {
-            this.cleanupUnusedImages();
+            this.cleanupUnusedImages()
         }
     }
 
@@ -230,15 +231,15 @@ export class HDLayer {
     public setZoomParams(params: ZoomParams) {
         this.zoomParams = params
         this.animationMap.forEach(state => {
-            const mat = state.mesh.material as HDImageMaterial;
-            mat.setZoomParams(params);
-        });
+            const mat = state.mesh.material as HDImageMaterial
+            if (mat.setZoomParams) mat.setZoomParams(params)
+        })
     }
 
     public dispose() {
-        const ids = Array.from(this.animationMap.keys());
-        ids.forEach(id => this.removeImage(id));
-        this.group.clear();
+        const ids = Array.from(this.animationMap.keys())
+        ids.forEach(id => this.removeImage(id))
+        this.group.clear()
         this.textureCache.forEach(t => t.dispose())
         this.textureCache.clear()
         this.scene.remove(this.group)

@@ -801,6 +801,7 @@ export interface MapGroup {
     color: string
     count: number
     box: BoundingBox
+    points: PointData[]
 }
 
 // Atlas
@@ -823,12 +824,14 @@ export interface ZoomParams {
 export interface PointData {
     x: number
     y: number
+    z: number
     color: string
-    tint?: string
+    tint?: string,
+    tintAlpha: number
     sha1: string
     ratio: number,
     id?: number,
-    border?: boolean
+    border?: number
     borderColor?: string
     order: number
 }

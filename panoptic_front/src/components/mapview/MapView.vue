@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, watch, onUnmounted, nextTick, computed } from 'vue'
+import { ref, shallowRef, onMounted, watch, computed } from 'vue'
 import { Colors, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors, isTag } from '@/utils/utils'
-import MapMenu from './MapMenu.vue'
 import { Group } from '@/core/GroupManager'
+import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
+import { apiGetAtlas } from '@/data/apiProjectRoutes' // Import needed for atlas loading
+
+// Components
+import MapMenu from './MapMenu.vue'
 import Toolbar from './Toolbar.vue'
 import ImagePreview from './ImagePreview.vue'
-import MapRendererView from './MapRendererView.vue'
-import * as THREE from 'three'
+
+const BORDER_WIDTH = 0.05
+const WHITE_TINT = '#FFFFFF'
+const DIMMED_TINT = '#888888'
+const SELECTED_TINT = '#5DACFF'
 
 const data = useDataStore()
 
@@ -17,140 +24,174 @@ const props = defineProps<{
     tab: TabManager
 }>()
 
-// --- Image Map Configuration Parameters ---
+// --- Refs & State ---
+const canvasContainer = ref<HTMLElement | null>(null)
+// Initialize the renderer controller directly with the container ref
+const { map: renderer } = useMapRenderer(canvasContainer)
+
+// Image Map Configuration
 const baseImageSize = ref(3)
 const maxImageSize = ref(5)
 const minImageSize = ref(10)
-
 const showPoints = ref(false)
-
-const mapRenderer = ref()
-
 const mouseMode = ref('pan')
 
 const spatialFunction = ref({
     function: '',
     context: undefined
 })
+
 const groups = ref<MapGroup[]>([])
 const defaultColor = '#4A90E2'
-let clusters = []
+let clusters: Group[] = []
 
+// Fast lookups
 let sha1ToPoint: { [sha1: string]: PointData } = {}
-
-const selectedGroups = ref<{ [groupId: number]: boolean }>({})
 let groupToPoints: { [groupId: number]: string[] } = {}
+const selectedGroups = ref<{ [groupId: number]: boolean }>({})
+
+const points = shallowRef<PointData[]>([])
+
+// --- Computeds ---
 
 const selectedPoints = computed(() => {
     let ids = Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number)
     let instances = ids.map(i => data.instances[i])
     const res: { [sha1: string]: boolean } = {}
+    
+    // Add explicitly selected images
     for (let inst of instances) {
         res[inst.sha1] = true
     }
 
-    for(let groupId of Object.keys(selectedGroups.value).map(Number)) {
-        for(let sha1 of groupToPoints[groupId]) {
-            res[sha1] = true
+    // Add images from selected groups
+    for (let groupId of Object.keys(selectedGroups.value).map(Number)) {
+        if (groupToPoints[groupId]) {
+            for (let sha1 of groupToPoints[groupId]) {
+                res[sha1] = true
+            }
         }
     }
     return res
 })
 
 const selectedPointsList = computed(() => Object.keys(selectedPoints.value))
-// ------------------------------------------
 
-let points = shallowRef<PointData[]>([])
-const mapElem = ref(null)
+// --- Logic ---
 
-function colorGroups(groupList, groupColorMap) {
-    if (!groupList.length) return;
-
-    const sha1ToGroupId = {};
-    for (let group of groupList) {
-        for (let img of group.images) {
-            sha1ToGroupId[img.sha1] = group.id;
+function colorGroups() {
+    const hasHover = Object.keys(selectedGroups.value).length > 0
+    
+    for (let group of groups.value) {
+        const isHover = selectedGroups.value[group.id]
+        for (let point of group.points) {
+            point.border = BORDER_WIDTH
+            point.borderColor = group.color
+            if (isHover) {
+                point.tintAlpha = 0.0
+                point.z = 1.1 // Bring to front
+            } else if (hasHover) {
+                point.tintAlpha = 0.7
+                point.tint = DIMMED_TINT
+                point.z = 1.0
+            } else {
+                point.tintAlpha = 0.0
+                point.z = 1.0
+            }
         }
     }
+}
 
-    const pointList = points.value;
-    const tempColor = new THREE.Color(); // Reuse object for performance
+function colorSelected() {
+    const pointList = points.value
+    const selected = props.tab.collection.groupManager.selectedImages.value
+    const selectedSha1s = new Set<string>()
+
+    Object.keys(selected).map(Number).forEach(id => selectedSha1s.add(data.instances[id].sha1))
 
     for (let point of pointList) {
-        let groupId = sha1ToGroupId[point.sha1];
-        let pointColorHex = groupColorMap[groupId];
-
-        if (pointColorHex) {
-            // 1. Set the base color (for the border)
-            point.color = pointColorHex;
-
-            // 2. Calculate the lighter tint
-            tempColor.set(pointColorHex);
-            
-            // Convert to HSL, boost Lightness, and convert back
-            const hsl:any = {};
-            tempColor.getHSL(hsl);
-            
-            // Increase lightness by 30% (capped at 1.0)
-            // Adjust 0.3 to your preference for "visibility"
-            tempColor.setHSL(hsl.h, hsl.s, Math.min(1.0, hsl.l + 0.05));
-
-            point.tint = '#' + tempColor.getHexString();
-            point.border = true;
+        if (selectedSha1s.has(point.sha1)) {
+            point.tint = SELECTED_TINT
+            point.tintAlpha = 0.5
         }
     }
+    // We don't need to reassign points.value since we mutated objects and will call update methods
+}
 
-    points.value = [...pointList];
-    mapRenderer.value.updateTints();
+function updateColors() {
+    clearColors()
+    colorGroups()
+    colorSelected()
+    
+    // Direct communication with Renderer
+    if (renderer.value) {
+        renderer.value.updateBorder()
+        renderer.value.updateTints()
+        renderer.value.updatePosition() // Required if Z-index changed
+    }
 }
 
 function clearColors() {
-    const ps = points.value
-    ps.forEach(p => {
+    points.value.forEach(p => {
         p.color = defaultColor
-        p.border = false
+        p.border = 0.0
+        p.tint = WHITE_TINT
+        p.tintAlpha = 0.0
+        p.z = 1.0
     })
-    mapElem.value.updatePoints()
 }
 
 async function showMap(mapId: number) {
-    if (!data.maps[mapId]) {
-        return
-    }
-    if (!data.maps[mapId].data) {
-        await data.loadMapData(mapId)
-    }
+    if (!data.maps[mapId]) return
+    if (!data.maps[mapId].data) await data.loadMapData(mapId)
 
     sha1ToPoint = {}
-    console.log('show map')
-    const res = []
+    console.log('Loading map data...')
+    
+    const res: PointData[] = []
     const values = data.maps[mapId].data
+    
     for (let i = 0; i < values.length; i += 3) {
         const sha1 = values[i]
         const x = values[i + 1]
         const y = values[i + 2]
 
-        const img = data.sha1Index[sha1][0]
+        const img = data.sha1Index[sha1]?.[0]
+        if (!img) continue // Safety check
+
         const p: PointData = {
+            id: img.id, // Ensure ID is passed for selection logic
             x: x,
             y: y,
+            z: 1.0,
             color: defaultColor,
             sha1: sha1,
             ratio: img.containerRatio,
-            order: 1
+            order: 1,
+            border: 0.0,
+            tintAlpha: 0.0,
+            borderColor: '#000000'
         }
         res.push(p)
         sha1ToPoint[sha1] = p
     }
+    
     points.value = res
     generateGroups()
     showPoints.value = true
-    console.log(points.value.length)
+
+    // Initialize Renderer with new data
+    if (renderer.value) {
+        const atlas = await apiGetAtlas(0) // Ideally this ID comes from map config
+        renderer.value.createMap(atlas, points.value)
+    }
 }
 
 function generateGroups() {
     let groupList: Group[] = []
-    if (props.tab.state.mapOptions.groupOption == 'property') {
+    const groupOption = props.tab.state.mapOptions.groupOption
+
+    if (groupOption === 'property') {
         groupList = props.tab.collection.groupManager.result.root.children
     } else {
         groupList = clusters
@@ -162,21 +203,20 @@ function generateGroups() {
         return
     }
 
-
-
     const nb = groupList.length
     const colors = generateColors(nb)
-
-    const groupToColor = {}
+    const groupToColor: Record<number, string> = {}
+    
     groupList.forEach((g, index) => groupToColor[g.id] = colors[index])
 
-    const propId = groupList[0]?.meta?.propertyValues[0]?.propertyId
+    // Handle Tag Property Colors
+    const propId = groupList[0]?.meta?.propertyValues?.[0]?.propertyId
     if (propId) {
         const property = data.properties[propId]
         if (isTag(property.type)) {
             for (let group of groupList) {
                 const value = group.meta.propertyValues[0].value
-                if (value != undefined) {
+                if (value !== undefined) {
                     groupToColor[group.id] = Colors[data.tags[value].color].color
                 } else {
                     groupToColor[group.id] = '#777'
@@ -187,31 +227,37 @@ function generateGroups() {
 
     const res: MapGroup[] = []
     groupToPoints = {}
+    
     groupList.forEach((g) => {
         groupToPoints[g.id] = g.images.map(i => i.sha1)
+        const grpPoints = Array.from(new Set(g.images.map(i => sha1ToPoint[i.sha1]).filter(Boolean)))
+        
         res.push({
             id: g.id,
             name: computeName(g),
             count: g.images.length,
             color: groupToColor[g.id],
-            box: computeBox(g.images, groupToColor[g.id])
+            box: computeBox(g.images, groupToColor[g.id]),
+            points: grpPoints
         })
     })
-    colorGroups(groupList, groupToColor)
+    
     groups.value = res
+    updateColors()
 }
 
-function computeBox(images: Instance[], color) {
+function computeBox(images: Instance[], color: string) {
     let minX, minY, maxX, maxY = 0
+    let initialized = false
+
     for (let i = 0; i < images.length; i++) {
         let img = images[i]
         let p = sha1ToPoint[img.sha1]
         if (!p) continue
-        if (i == 0) {
-            minX = p.x
-            minY = p.y
-            maxX = p.x
-            maxY = p.y
+        
+        if (!initialized) {
+            minX = p.x; minY = p.y; maxX = p.x; maxY = p.y
+            initialized = true
         } else {
             minX = Math.min(minX, p.x)
             minY = Math.min(minY, p.y)
@@ -224,75 +270,42 @@ function computeBox(images: Instance[], color) {
 
 function computeName(group: Group, index: number = 0) {
     if (group.name) return group.name
-
     if (group.meta.propertyValues?.length) {
         const value = group.meta.propertyValues[0]
         const prop = data.properties[value.propertyId]
         if (isTag(prop.type)) {
             return data.tags[value.value]?.value ?? 'undefined'
-        }
-        else {
+        } else {
             return prop.name + ': ' + value.value
         }
     }
-
     return 'Group ' + index
 }
 
-function showClusters(cc) {
+function showClusters(cc: any[]) {
     clusters = cc
     generateGroups()
 }
 
-// function getSelectedPoints() {
-//     const selectedGroupKeys = Object.keys(selectedGroups.value).map(Number)
-//     selectedPoints.value = {} // Clear selected points if no group is selected
-//     // Check if any group is currently selected
-//     if (selectedGroupKeys.length === 0) {
-//         return
-//     }
-//     // Get the first selected group ID
-//     let group = selectedGroupKeys[0]
-
-//     // Check if the group ID has an entry in groupToPoints before iterating
-//     if (groupToPoints[group]) {
-//         groupToPoints[group].forEach(sha1 => {
-//             selectedPoints.value[sha1] = true
-//         })
-//     }
-
-// }
-
 function onGroupHover(ev: { groupId: number, value: boolean }) {
     if (ev.value) {
         selectedGroups.value[ev.groupId] = true
-        // let ids = []
-        // for(let sha1 of groupToPoints[ev.groupId]) {
-        //     ids.push(...data.sha1Index[sha1].map(i => i.id))
-        // }
-        // props.tab.collection.groupManager.selectImages(ids)
-        groups.value = [...groups.value]
-        // getSelectedPoints()
-        // nextTick(() => mapElem.value.render())
     } else {
         delete selectedGroups.value[ev.groupId]
-        let ids = []
-        // for(let sha1 of groupToPoints[ev.groupId]) {
-        //     ids.push(...data.sha1Index[sha1].map(i => i.id))
-        // }
-        // props.tab.collection.groupManager.unselectImages(ids)
-        groups.value = [...groups.value]
-        // getSelectedPoints()
-        // nextTick(() => mapElem.value.render())
-        mapElem.value.render()
     }
+    // Trigger reactivity for watcher if necessary, though simpler is usually better
+    selectedGroups.value = { ...selectedGroups.value }
+    updateColors()
 }
 
-const handleLasso = (points: PointData[]) => {
-    let ids = []
-    for (let point of points) {
-        ids.push(...data.sha1Index[point.sha1].map(i => i.id))
+const handleLasso = (selectedPoints: PointData[]) => {
+    let ids: number[] = []
+    for (let point of selectedPoints) {
+        if(data.sha1Index[point.sha1]) {
+            ids.push(...data.sha1Index[point.sha1].map(i => i.id))
+        }
     }
+    
     if (mouseMode.value == 'lasso-plus') {
         props.tab.collection.groupManager.selectImages(ids)
     }
@@ -301,47 +314,40 @@ const handleLasso = (points: PointData[]) => {
     }
 }
 
-watch(props.tab.collection.groupManager.selectedImages, () => updatePointTints())
+// --- Watchers ---
 
-function updatePointTints() {
-    const pointList = points.value
-    const selected = props.tab.collection.groupManager.selectedImages.value
-    const selectedSha1s = new Set<string>()
-    
-    Object.keys(selected).map(Number).forEach(id => selectedSha1s.add(data.instances[id].sha1))
+// Update renderer mouse mode when UI changes
+watch(mouseMode, (newMode) => {
+    renderer.value?.setMouseMode(newMode)
+})
 
+// Sync Selection Colors
+watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
 
-    for(let point of pointList) {
-        if(selectedSha1s.has(point.sha1)) {
-            point.tint = '#5DACFF'
-        }
-        else {
-            point.tint = undefined
-        }
-    }
-    points.value = pointList
-
-}
-
-// watch(selectedPoints, () => nextTick(() => mapElem.value.render()))
-
+// Load map when selection changes
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => {
-    if (mapId == null) {
-        return
+    if (mapId != null) showMap(mapId)
+})
+
+// Re-group when options change
+watch(() => props.tab.state.mapOptions.groupOption, () => generateGroups())
+
+// Bind Selection Event from Renderer
+watch(renderer, (r) => {
+    if (r) {
+        r.onPointSelection = handleLasso
+        // If we have points loaded but renderer just initialized (race condition fix)
+        if (points.value.length > 0 && r.atlasLayers) {
+            // Re-trigger visual updates if needed
+             updateColors()
+        }
     }
-    showMap(mapId)
 })
 
-watch(() => props.tab.state.mapOptions.groupOption, (val) => {
-    // if(val == 'property') {
-    //     clusters = []
-    // }
-    generateGroups()
-})
-
-watch(() => props.tab.state.mapOptions.showBoxes, (val) => mapElem.value.updateShowBoxes(val))
-
+// Save state
 watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), { deep: true })
+
+// --- Lifecycle ---
 
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(generateGroups)
@@ -349,40 +355,51 @@ onMounted(async () => {
     showMap(props.tab.state.mapOptions.selectedMap)
 })
 
+onMounted(() => {
+    // Safety check: ensure mouse mode is synced on startup
+    if(renderer.value) renderer.value.setMouseMode(mouseMode.value)
+})
+
+// Cleanup
+import { onUnmounted } from 'vue'
 onUnmounted(() => {
     props.tab.collection.groupManager.onResultChange.removeListener(generateGroups)
 })
-
 </script>
 
 <template>
     <div class="map-view-container">
         <div class="map-container"
             :class="{ 'cursor-grab': mouseMode == 'pan', 'cursor-lasso': mouseMode.startsWith('lasso') }">
-            <!-- <ImageMap :points="points" :point-size="10" :show-images="props.tab.state.mapOptions.showImages"
-                :show-points="props.tab.state.mapOptions.showPoints" :show-boxes="props.tab.state.mapOptions.showBoxes"
-                background-color="#FFFFFF" :base-image-size="baseImageSize" :mouse-mode="mouseMode"
-                :selected-points="selectedPoints" :max-image-size="maxImageSize" :min-image-size="minImageSize"
-                :groups="groups" :selected-groups="selectedGroups" ref="mapElem" @lasso="handleLasso" /> -->
-                <MapRendererView v-if="showPoints" :points="points" :mouse-mode="mouseMode" @selection="handleLasso" ref="mapRenderer"/>
+            
+            <div ref="canvasContainer" class="canvas-wrapper"></div>
+            
         </div>
+
         <div class="toolbar">
             <Toolbar v-model:mouse-mode="mouseMode" />
         </div>
+
         <div class="menu">
             <MapMenu v-model:selected-map="props.tab.state.mapOptions.selectedMap"
                 v-model:show-images="props.tab.state.mapOptions.showImages"
                 v-model:color-option="props.tab.state.mapOptions.groupOption"
                 v-model:show-boxes="props.tab.state.mapOptions.showBoxes"
-                v-model:show-points="props.tab.state.mapOptions.showPoints" v-model:base-image-size="baseImageSize"
-                :groups="groups" v-model:max-image-size="maxImageSize" v-model:min-image-size="minImageSize"
-                v-model:spatial-function="spatialFunction" @clusters="showClusters" @hover-group="onGroupHover"
-                :images="tab.collection.groupManager.result.root.images" />
-        </div>
-        <div v-if="selectedPointsList.length" class="preview">
-            <ImagePreview :sha1s="selectedPointsList"/>
+                v-model:show-points="props.tab.state.mapOptions.showPoints" 
+                v-model:base-image-size="baseImageSize"
+                v-model:max-image-size="maxImageSize" 
+                v-model:min-image-size="minImageSize"
+                v-model:spatial-function="spatialFunction" 
+                :groups="groups" 
+                :images="tab.collection.groupManager.result.root.images" 
+                @clusters="showClusters" 
+                @hover-group="onGroupHover"
+                />
         </div>
 
+        <div v-if="selectedPointsList.length" class="preview">
+            <ImagePreview :sha1s="selectedPointsList" />
+        </div>
     </div>
 </template>
 
@@ -393,21 +410,24 @@ onUnmounted(() => {
     position: relative;
     display: flex;
     height: 100%;
+    width: 100%;
 }
 
 .map-container {
     flex-grow: 1;
-    /* margin-top: 8px; */
     z-index: 1;
+    overflow: hidden;
+    position: relative;
 }
 
-.cursor-grab {
-    cursor: grab;
+.canvas-wrapper {
+    width: 100%;
+    height: 100%;
+    background-color: white; /* Or your preferred background */
 }
 
-.cursor-lasso {
-    cursor: crosshair;
-}
+.cursor-grab { cursor: grab; }
+.cursor-lasso { cursor: crosshair; }
 
 .menu {
     position: absolute;
@@ -431,8 +451,6 @@ onUnmounted(() => {
     top: 10px;
     left: 50%;
     z-index: 10;
-    /* background-color: red; */
     transform: translate(-50%, 0);
-    /* background-color: blue; */
 }
 </style>

@@ -23,16 +23,16 @@ export interface BoundingBox {
     label?: string
 }
 
-export interface PointData {
-    x: number
-    y: number
-    color: string
-    sha1: string
-    ratio: number,
-    id?: number,
-    border?: boolean
-    order: number
-}
+// export interface PointData {
+//     x: number
+//     y: number
+//     color: string
+//     sha1: string
+//     ratio: number,
+//     id?: number,
+//     border?: boolean
+//     order: number
+// }
 
 interface PointCloudVizParams {
     dataStore: any

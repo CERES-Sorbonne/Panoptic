@@ -34,7 +34,9 @@ watch(groupManager.selectedImages, () => {
 })
 
 defineExpose({
-    updateTints: () => renderer.map.value.updateTints()
+    updateTints: () => renderer.map.value.updateTints(),
+    updateBorder: () => renderer.map.value.updateBorder(),
+    getMap: () => renderer.map.value
 })
 
 </script>

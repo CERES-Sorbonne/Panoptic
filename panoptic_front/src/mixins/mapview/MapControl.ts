@@ -1,214 +1,178 @@
-import * as THREE from 'three';
-import { LassoLayer } from './LassoLayer';
-
+import * as THREE from 'three'
+import { LassoLayer } from './LassoLayer'
+import { SpatialIndex } from './SpatialIndex'
+import { PointData, ZoomParams } from '@/data/models'
 
 export class MapControls {
-    private camera: THREE.OrthographicCamera;
-    private domElement: HTMLElement;
+    private camera: THREE.OrthographicCamera
+    private domElement: HTMLElement
+    private spatialIndex: SpatialIndex
 
-    // Interaction State
-    private mode: string = 'pan';
-    private isDragging = false;
-    private isLassoing = false;
-    private prevPos = { x: 0, y: 0 };
-    private mouse = new THREE.Vector2(); // NDC coordinates (-1 to +1)
+    private mode: string = 'pan'
+    private isDragging = false
+    private isLassoing = false
+    private prevPos = { x: 0, y: 0 }
+    private mouse = new THREE.Vector2()
 
-    private lasso: LassoLayer;
+    private lasso: LassoLayer
+    public minZoom = 0.01
+    public maxZoom = 20
+    public zoomSpeed = 0.001
 
-    // Zoom config
-    public minZoom = 0.01;
-    public maxZoom = 20;
-    public zoomSpeed = 0.001;
+    public onUpdate: () => void = () => { }
 
-    // Callbacks to notify the renderer
-    public onUpdate: () => void = () => { };
-
-    constructor(camera: THREE.OrthographicCamera, domElement: HTMLElement, lassoLayer: LassoLayer) {
-        this.camera = camera;
-        this.domElement = domElement;
-        this.lasso = lassoLayer;
-        this.init();
+    constructor(
+        camera: THREE.OrthographicCamera, 
+        domElement: HTMLElement, 
+        lassoLayer: LassoLayer,
+        spatialIndex: SpatialIndex
+    ) {
+        this.camera = camera
+        this.domElement = domElement
+        this.lasso = lassoLayer
+        this.spatialIndex = spatialIndex
+        this.init()
     }
 
     private init() {
-        this.domElement.addEventListener('wheel', this.handleWheel, { passive: false });
-        this.domElement.addEventListener('mousedown', this.handleMouseDown);
-        // Window listeners ensure interaction continues even if mouse leaves the container
-        window.addEventListener('mousemove', this.handleMouseMove);
-        window.addEventListener('mouseup', this.handleMouseUp);
+        this.domElement.addEventListener('wheel', this.handleWheel, { passive: false })
+        this.domElement.addEventListener('mousedown', this.handleMouseDown)
+        window.addEventListener('mousemove', this.handleMouseMove)
+        window.addEventListener('mouseup', this.handleMouseUp)
     }
 
-    /**
-     * Updates internal mouse coordinates and handles panning or lasso drawing
-     */
     private handleMouseMove = (e: MouseEvent) => {
-        const rect = this.domElement.getBoundingClientRect();
+        const rect = this.domElement.getBoundingClientRect()
+        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
-        // 1. Update Normalized Device Coordinates (NDC) for Raycasting
-        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-        // 2. Handle Lasso Drawing (takes priority)
         if (this.isLassoing) {
-            const worldPos = this.getMouseWorldPos();
-            const screenPos = { x: e.clientX, y: e.clientY };
-            this.lasso.move(worldPos, screenPos);
-            this.onUpdate();
-            return;
+            this.lasso.move(this.getMouseWorldPos(), { x: e.clientX, y: e.clientY })
+            this.onUpdate()
+            return
         }
 
-        // 3. Handle Panning (only in pan mode)
         if (this.isDragging && this.mode === 'pan') {
-            const dx = e.clientX - this.prevPos.x;
-            const dy = e.clientY - this.prevPos.y;
+            const dx = e.clientX - this.prevPos.x
+            const dy = e.clientY - this.prevPos.y
+            const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom
+            const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom
 
-            const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
-            const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
-
-            // Map pixels to world units for 1:1 panning movement
-            this.camera.position.x -= dx * (worldWidth / rect.width);
-            this.camera.position.y += dy * (worldHeight / rect.height);
-
-            this.prevPos = { x: e.clientX, y: e.clientY };
-            this.onUpdate();
+            this.camera.position.x -= dx * (worldWidth / rect.width)
+            this.camera.position.y += dy * (worldHeight / rect.height)
+            this.prevPos = { x: e.clientX, y: e.clientY }
+            this.onUpdate()
         }
-    };
+    }
 
-    /**
-     * Handles zooming while keeping the mouse position anchored in world space
-     */
+    public getHoveredPoint(zoomParams: ZoomParams): PointData | null {
+        if (this.mode.startsWith('lasso')) return null
+
+        const worldPos = this.getMouseWorldPos()
+        const currentZoom = this.camera.zoom
+        const { h, z1, z2 } = zoomParams
+
+        // Replicate shader scaling logic
+        let zoomScale = h
+        if (currentZoom >= z1 && currentZoom < z2) {
+            zoomScale = h * (z1 / currentZoom)
+        } else if (currentZoom >= z2) {
+            zoomScale = h * (z1 / z2)
+        }
+
+        const nearbyPoints = this.spatialIndex.getPointsInRect({
+            minX: worldPos.x - zoomScale,
+            maxX: worldPos.x + zoomScale,
+            minY: worldPos.y - zoomScale,
+            maxY: worldPos.y + zoomScale
+        })
+
+        // Sort by distance to find top-most/closest
+        nearbyPoints.sort((a, b) => {
+            const distA = Math.pow(a.x - worldPos.x, 2) + Math.pow(a.y - worldPos.y, 2)
+            const distB = Math.pow(b.x - worldPos.x, 2) + Math.pow(b.y - worldPos.y, 2)
+            return distA - distB
+        })
+
+        for (const p of nearbyPoints) {
+            const vW = p.ratio > 1.0 ? 1.0 : p.ratio
+            const vH = p.ratio > 1.0 ? 1.0 / p.ratio : 1.0
+            const halfW = (vW * zoomScale) / 2.0
+            const halfH = (vH * zoomScale) / 2.0
+
+            if (worldPos.x >= p.x - halfW && worldPos.x <= p.x + halfW &&
+                worldPos.y >= p.y - halfH && worldPos.y <= p.y + halfH) {
+                return p
+            }
+        }
+        return null
+    }
+
     private handleWheel = (e: WheelEvent) => {
-        e.preventDefault();
+        e.preventDefault()
+        const before = this.getMouseWorldPos()
+        const zoomAmount = e.deltaY * -this.zoomSpeed * this.camera.zoom
+        this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom + zoomAmount))
+        this.camera.updateProjectionMatrix()
 
-        // Calculate world coordinates under mouse before zoom
-        const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
-        const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
-        const mouseWorldX = this.camera.position.x + (this.mouse.x * worldWidth) / 2;
-        const mouseWorldY = this.camera.position.y + (this.mouse.y * worldHeight) / 2;
-
-        // Perform Zoom logic
-        const zoomAmount = e.deltaY * -this.zoomSpeed * this.camera.zoom;
-        this.camera.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.camera.zoom + zoomAmount));
-        this.camera.updateProjectionMatrix();
-
-        // Calculate world coordinates under mouse after zoom
-        const newWorldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
-        const newWorldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
-        const newMouseWorldX = this.camera.position.x + (this.mouse.x * newWorldWidth) / 2;
-        const newMouseWorldY = this.camera.position.y + (this.mouse.y * newWorldHeight) / 2;
-
-        // Offset camera to keep mouse over the same world coordinate (the "anchor" effect)
-        this.camera.position.x += mouseWorldX - newMouseWorldX;
-        this.camera.position.y += mouseWorldY - newMouseWorldY;
-
-        this.onUpdate();
-    };
+        const after = this.getMouseWorldPos()
+        this.camera.position.x += before.x - after.x
+        this.camera.position.y += before.y - after.y
+        this.onUpdate()
+    }
 
     private handleMouseDown = (e: MouseEvent) => {
-        // Lasso mode - only start lasso, never pan
         if (this.mode.startsWith('lasso')) {
-            this.isLassoing = true;
-            const worldPos = this.getMouseWorldPos();
-            const screenPos = { x: e.clientX, y: e.clientY };
-            this.lasso.start(worldPos, screenPos);
-            this.domElement.style.cursor = 'crosshair';
-            this.onUpdate();
-        } 
-        // Pan mode - only pan, never lasso
-        else if (this.mode === 'pan') {
-            this.isDragging = true;
-            this.prevPos = { x: e.clientX, y: e.clientY };
-            this.domElement.style.cursor = 'grabbing';
+            this.isLassoing = true
+            this.lasso.start(this.getMouseWorldPos(), { x: e.clientX, y: e.clientY })
+        } else if (this.mode === 'pan') {
+            this.isDragging = true
+            this.prevPos = { x: e.clientX, y: e.clientY }
         }
-    };
+        this.updateCursor()
+        this.onUpdate()
+    }
 
     private handleMouseUp = () => {
         if (this.isLassoing) {
-            this.isLassoing = false;
-            this.lasso.end();
-            this.updateCursor();
-            this.onUpdate();
+            this.isLassoing = false
+            this.lasso.end()
         }
-        
-        if (this.isDragging) {
-            this.isDragging = false;
-            this.updateCursor();
-        }
-    };
+        this.isDragging = false
+        this.updateCursor()
+        this.onUpdate()
+    }
 
-    // --- Mode Management ---
-
-    /**
-     * Set the interaction mode (pan or lasso*)
-     */
     public setMode(mode: string) {
-        // Cancel any ongoing interactions when switching modes
-        if (this.isLassoing) {
-            this.lasso.clear();
-            this.isLassoing = false;
-        }
-        this.isDragging = false;
-
-        this.mode = mode;
-        this.updateCursor();
-        console.log("mode", mode);
+        if (this.isLassoing) this.lasso.clear()
+        this.isLassoing = false
+        this.isDragging = false
+        this.mode = mode
+        this.updateCursor()
     }
 
-    /**
-     * Get the current interaction mode
-     */
-    public getMode(): string {
-        return this.mode;
-    }
+    public getMode() { return this.mode }
 
-    /**
-     * Update cursor based on current mode and state
-     */
     private updateCursor() {
-        if (this.isLassoing) {
-            this.domElement.style.cursor = 'crosshair';
-        } else if (this.isDragging) {
-            this.domElement.style.cursor = 'grabbing';
-        } else if (this.mode.startsWith('lasso')) {
-            this.domElement.style.cursor = 'crosshair';
-        } else if (this.mode === 'pan') {
-            this.domElement.style.cursor = 'grab';
-        } else {
-            this.domElement.style.cursor = 'default';
-        }
+        if (this.isLassoing || this.mode.startsWith('lasso')) this.domElement.style.cursor = 'crosshair'
+        else if (this.isDragging) this.domElement.style.cursor = 'grabbing'
+        else if (this.mode === 'pan') this.domElement.style.cursor = 'grab'
+        else this.domElement.style.cursor = 'default'
     }
 
-    // --- Public Getters ---
-
-    /**
-     * Returns mouse position in Normalized Device Coordinates (-1 to 1)
-     */
-    public getMouseNDC(): THREE.Vector2 {
-        return this.mouse;
-    }
-
-    /**
-     * Returns the current mouse position converted to World Space coordinates
-     */
     public getMouseWorldPos(): THREE.Vector3 {
-        const worldPos = new THREE.Vector3();
-        const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
-        const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
-
-        worldPos.x = this.camera.position.x + (this.mouse.x * worldWidth) / 2;
-        worldPos.y = this.camera.position.y + (this.mouse.y * worldHeight) / 2;
-        worldPos.z = 0;
-
-        return worldPos;
+        const worldPos = new THREE.Vector3()
+        const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom
+        const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom
+        worldPos.x = this.camera.position.x + (this.mouse.x * worldWidth) / 2
+        worldPos.y = this.camera.position.y + (this.mouse.y * worldHeight) / 2
+        return worldPos
     }
 
-    /**
-     * Cleanup event listeners
-     */
     public dispose() {
-        this.domElement.removeEventListener('wheel', this.handleWheel);
-        this.domElement.removeEventListener('mousedown', this.handleMouseDown);
-        window.removeEventListener('mousemove', this.handleMouseMove);
-        window.removeEventListener('mouseup', this.handleMouseUp);
+        this.domElement.removeEventListener('wheel', this.handleWheel)
+        this.domElement.removeEventListener('mousedown', this.handleMouseDown)
+        window.removeEventListener('mousemove', this.handleMouseMove)
+        window.removeEventListener('mouseup', this.handleMouseUp)
     }
 }
