@@ -13,6 +13,7 @@ export class MapControls {
     private isLassoing = false
     private prevPos = { x: 0, y: 0 }
     private mouse = new THREE.Vector2()
+    private animationId: number | null = null
 
     private lasso: LassoLayer
     public minZoom = 0.01
@@ -168,6 +169,59 @@ export class MapControls {
         worldPos.y = this.camera.position.y + (this.mouse.y * worldHeight) / 2
         return worldPos
     }
+
+    
+
+public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration: number = 500) {
+    // 1. Calculate Target Position and Zoom
+    const centerX = (rect.minX + rect.maxX) / 2
+    const centerY = (rect.minY + rect.maxY) / 2
+    const rectWidth = rect.maxX - rect.minX
+    const rectHeight = rect.maxY - rect.minY
+
+    const viewWidth = this.camera.right - this.camera.left
+    const viewHeight = this.camera.top - this.camera.bottom
+
+    const zoomX = viewWidth / rectWidth
+    const zoomY = viewHeight / rectHeight
+    
+    // Calculate final targets
+    const targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, Math.min(zoomX, zoomY) * 0.9)) // 0.9 for some padding
+    const targetPos = new THREE.Vector3(centerX, centerY, this.camera.position.z)
+
+    // 2. Capture Starting State
+    const startPos = this.camera.position.clone()
+    const startZoom = this.camera.zoom
+    const startTime = performance.now()
+
+    // 3. Cancel any existing animation
+    if (this.animationId) cancelAnimationFrame(this.animationId)
+
+    const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+
+        // 4. Easing function (Optional but recommended: Ease-Out-Cubic)
+        const ease = 1 - Math.pow(1 - progress, 3)
+
+        // 5. Interpolate Position
+        this.camera.position.lerpVectors(startPos, targetPos, ease)
+
+        // 6. Interpolate Zoom
+        this.camera.zoom = startZoom + (targetZoom - startZoom) * ease
+        
+        this.camera.updateProjectionMatrix()
+        this.onUpdate()
+
+        if (progress < 1) {
+            this.animationId = requestAnimationFrame(animate)
+        } else {
+            this.animationId = null
+        }
+    }
+
+    this.animationId = requestAnimationFrame(animate)
+}
 
     public dispose() {
         this.domElement.removeEventListener('wheel', this.handleWheel)

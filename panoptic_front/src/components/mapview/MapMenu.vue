@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import PointMapSelection from './PointMapSelection.vue';
 import ActionButton2 from '../actions/ActionButton2.vue';
 import { useDataStore } from '@/data/dataStore';
@@ -39,7 +39,8 @@ const emits = defineEmits([
     'result',
     'colorGroups',
     'clusters',
-    'hoverGroup'
+    'hoverGroup',
+    'clickGroup'
 ])
 
 const isCollapsed = ref(false)
@@ -162,7 +163,7 @@ function hoverGroup(groupId: number, value) {
                 </div>
                 <div class="groups-list">
                     <div v-for="group in props.groups" :key="group.id" class="group-item"
-                        @mouseover="hoverGroup(group.id, true)" @mouseleave="hoverGroup(group.id, false)">
+                        @mouseover="hoverGroup(group.id, true)" @mouseleave="hoverGroup(group.id, false)" @click="emits('clickGroup', group)">
                         <div class="group-color" :style="{ backgroundColor: group.color }"></div>
                         <span class="group-name">{{ group.name }}</span>
                         <span class="group-count">{{ group.count }}</span>

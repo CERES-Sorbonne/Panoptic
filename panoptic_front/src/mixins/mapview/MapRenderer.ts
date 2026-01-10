@@ -6,6 +6,7 @@ import { SpatialIndex } from './SpatialIndex'
 import { HDLayer } from './HDLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
+import { deepCopy } from '@/utils/utils'
 
 export class MapRenderer {
     private container: HTMLElement
@@ -17,7 +18,6 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private frustumSize = 20
 
-    private hoveredId: number | null = null
     private zoomParams: ZoomParams = { h: 8.0, z1: 0.05, z2: 1.0 }
 
     public atlasLayers: AtlasLayerManager
@@ -128,7 +128,7 @@ export class MapRenderer {
         const foundPoint = this.controls.getHoveredPoint(this.zoomParams)
         const foundId = foundPoint ? foundPoint.id! : null
 
-        if(foundId) {
+        if (foundId) {
             this.hdLayer.hover(foundPoint)
         } else {
             this.hdLayer.unhover()
@@ -168,6 +168,27 @@ export class MapRenderer {
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
     }
 
+    public getImageMaxSize(): number {
+        const currentZoom = this.camera.zoom;
+        const { h, z1, z2 } = this.zoomParams;
+
+        let zoomScale: number;
+
+        // 1. Replicate the zoomScale conditional logic from the Vertex Shader
+        if (currentZoom >= z1 && currentZoom < z2) {
+            // Linear scaling based on zoom ratio
+            zoomScale = h * (z1 / currentZoom);
+        } else if (currentZoom >= z2) {
+            // Fixed scale cap at z2
+            zoomScale = h * (z1 / z2);
+        } else {
+            // Default height when zoom is low (uZoom < z1)
+            zoomScale = h;
+        }
+
+        return zoomScale;
+    }
+
     public getCameraRect() {
         const zoom = this.camera.zoom
         return {
@@ -176,6 +197,16 @@ export class MapRenderer {
             minY: (this.camera.bottom / zoom) + this.camera.position.y,
             maxY: (this.camera.top / zoom) + this.camera.position.y
         }
+    }
+
+    public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }) {
+        let offset = this.getImageMaxSize()
+        let finalRect = deepCopy(rect)
+        finalRect.minX -= offset
+        finalRect.minY -= offset
+        finalRect.maxX += offset
+        finalRect.maxY += offset
+        this.controls.lookAtRect(finalRect)
     }
 
     public dispose() {
