@@ -190,7 +190,8 @@ export interface FolderIndex {
 
 export interface CollectionState {
     autoReload: boolean,
-    instances?: number[]
+    instances?: number[],
+    filterBySelection?: boolean
 }
 
 export interface ScoreInterval {
@@ -219,6 +220,8 @@ export interface TabState {
     selectedFolders: { [key: number]: boolean }
     propertyOptions: { [key: number]: PropertyOption }
     mapOptions: MapOptions
+
+    isSelection?: boolean
 }
 
 export interface MapOptions {

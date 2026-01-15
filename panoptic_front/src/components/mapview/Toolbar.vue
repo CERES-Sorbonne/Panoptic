@@ -6,8 +6,12 @@ import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import { useI18n } from 'vue-i18n'
 import { Instance } from '@/data/models'
+import { useDataStore } from '@/data/dataStore'
+import { useTabStore } from '@/data/tabStore'
 
 const { t } = useI18n()
+
+const data = useDataStore()
 
 const props = defineProps<{
     mouseMode: string
@@ -27,7 +31,8 @@ const emits = defineEmits([
     'update:showPoint',
     'update:selectedMap',
     'update:colorOption',
-    'clusters'
+    'clusters',
+    'delete:map'
 ])
 
 const colorOptions = computed<SelectOption[]>(() => {
@@ -40,18 +45,32 @@ const colorOptions = computed<SelectOption[]>(() => {
 function changeTool(tool: string) {
     emits('update:mouseMode', tool)
 }
+
+function deleteMap() {
+    useDataStore().deleteMap(props.selectedMap)
+}
+
+function updateMap(event) {
+    console.log(event)
+    emits('update:selectedMap', event.value.id)
+}
+
+const selectedImages = computed(() => Object.keys(useTabStore().getMainTab().collection.groupManager.selectedImages.value).map(Number).map(id => data.instances[id]))
 </script>
 
 <template>
     <div class="glass-box2 d-flex align-items-center">
         <div class="toolbar-item px-1 d-flex align-items-center gap-1">
+            <div v-if="props.hasMaps" class="tool sb" @click="deleteMap">
+                <i class="bi bi-trash" style="opacity: 0.8;"></i>
+            </div>
             <div v-if="props.hasMaps" style="min-width: 150px;" class="map-select">
                 <PointMapSelection :model-value="props.selectedMap"
                     @update:model-value="emits('update:selectedMap', $event)" />
             </div>
         </div>
-        <div class="toobar-item text-secondary">
-            <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true">
+        <div class="toolbar-item text-secondary">
+            <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @call="updateMap" :images="selectedImages">
                 <i class="bi bi-boxes" /> {{ $t('map.create') }}
             </ActionButton2>
         </div>
@@ -63,9 +82,11 @@ function changeTool(tool: string) {
                 <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption"
                     @update:model-value="e => emits('update:colorOption', e)" :no-border="true" />
             </div>
-            <ActionButton2 v-if="props.colorOption === 'cluster'" :images="props.images" action="group"
-                :no-border="true" class="tool" @groups="clusters => emits('clusters', clusters)">
-                <i class="bi bi-boxes" />
+        </div>
+
+        <div v-if="props.colorOption === 'cluster'" class="toobar-item">
+            <ActionButton2 :images="props.images" action="group" class="sb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @groups="clusters => emits('clusters', clusters)">
+                <img class="cluster-icon" src="/icons/network2_white.svg" />
             </ActionButton2>
         </div>
 

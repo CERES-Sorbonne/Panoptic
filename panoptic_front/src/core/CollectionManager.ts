@@ -72,6 +72,15 @@ export class CollectionManager {
             return
         }
 
+        if(this.state.filterBySelection) {
+            let selected = this.groupManager.selectedImages
+            for(let id of Array.from(instanceIds)) {
+                if(!selected[id]) {
+                    instanceIds.delete(id)
+                }
+            }
+        }
+
         if (this.state.autoReload) {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
@@ -101,7 +110,14 @@ export class CollectionManager {
         }
         if (!this.images) return
 
-        const filterRes = await this.filterManager.filter(objValues(this.images))
+        
+        let images = objValues(this.images)
+        if(this.state.filterBySelection) {
+            let selected = this.groupManager.selectedImages.value
+            images = images.filter(i => selected[i.id])
+        }
+
+        const filterRes = await this.filterManager.filter(images)
         const sortRes = this.sortManager.sort(filterRes.images)
         this.groupManager.group(sortRes.images, sortRes.order, true)
         this.runState.isDirty = false

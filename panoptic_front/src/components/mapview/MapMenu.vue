@@ -15,7 +15,6 @@ const data = useDataStore()
 
 const props = defineProps<{
     selectedMap: number | null
-    spatialFunction: { function: string, context: any }
     colorOption: string
     groups: MapGroup[]
     images: Instance[]

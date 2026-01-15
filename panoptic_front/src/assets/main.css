@@ -586,3 +586,10 @@ input[type=number] {
     box-shadow: 0 0 2px 2px rgb(195, 207, 217);
     border-radius: 5px;
 }
+
+.cluster-icon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  top: -1px;
+}
