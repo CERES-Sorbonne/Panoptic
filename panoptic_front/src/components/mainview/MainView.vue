@@ -51,10 +51,10 @@ const visibleProperties = computed(() => props.tab.getVisibleProperties())
 
 function updateScrollerHeight() {
     if (filterElem.value && boxElem.value) {
-        scrollerHeight.value = props.height - filterElem.value.clientHeight - boxElem.value.clientHeight - 5
+        scrollerHeight.value = props.height - filterElem.value.clientHeight - boxElem.value.clientHeight
     }
     else if (filterElem.value) {
-        scrollerHeight.value = props.height - filterElem.value.clientHeight - 5
+        scrollerHeight.value = props.height - filterElem.value.clientHeight
     }
     else {
         scrollerHeight.value = 0
@@ -128,7 +128,7 @@ onMounted(updateScrollerHeight)
             <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15"  style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.display == 'map'">
-           <MapView :style="{height: scrollerHeight - 10 + 'px'}" :tab="props.tab" /> 
+           <MapView :style="{height: scrollerHeight - 0 + 'px'}" :tab="props.tab" /> 
         </template>
 
     </div>

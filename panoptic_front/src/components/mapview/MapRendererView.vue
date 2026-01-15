@@ -18,7 +18,7 @@ const emits = defineEmits(['selection'])
 
 const canvasContainer = ref<HTMLElement>(null)
 
-const renderer = useMapRenderer(canvasContainer, props.points)
+const renderer = useMapRenderer(canvasContainer)
 
 watch(renderer.map, () => renderer.map.value.onPointSelection = (points) => emits('selection', points))
 

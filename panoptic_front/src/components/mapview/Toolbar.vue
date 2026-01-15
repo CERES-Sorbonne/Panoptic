@@ -1,76 +1,145 @@
 <script setup lang="ts">
-import RangeInput from '../inputs/RangeInput.vue';
+import { computed } from 'vue'
+import RangeInput from '../inputs/RangeInput.vue'
+import PointMapSelection from './PointMapSelection.vue'
+import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue'
+import ActionButton2 from '../actions/ActionButton2.vue'
+import { useI18n } from 'vue-i18n'
+import { Instance } from '@/data/models'
 
+const { t } = useI18n()
 
 const props = defineProps<{
     mouseMode: string
     imageSize: number
     zoomDelay: number
     showPoint: boolean
+    selectedMap: number | null
+    colorOption: string
+    hasMaps: boolean
+    images: Instance[]
 }>()
-const emits = defineEmits(['update:mouseMode', 'update:imageSize', 'update:zoomDelay', 'update:showPoint'])
+
+const emits = defineEmits([
+    'update:mouseMode',
+    'update:imageSize',
+    'update:zoomDelay',
+    'update:showPoint',
+    'update:selectedMap',
+    'update:colorOption',
+    'clusters'
+])
+
+const colorOptions = computed<SelectOption[]>(() => {
+    return [
+        { value: 'property', label: t('map.color_prop'), icon: 'stack' },
+        { value: 'cluster', label: t('map.color_cluster'), icon: 'stack' }
+    ]
+})
 
 function changeTool(tool: string) {
     emits('update:mouseMode', tool)
 }
-
 </script>
 
 <template>
-    <div class="glass-box d-flex">
-        <div class="tool" :class="{ selected: props.showPoint }" @click="emits('update:showPoint', !props.showPoint)"><i
-                class="bi bi-dot"></i></div>
+    <div class="glass-box2 d-flex align-items-center">
+        <div class="toolbar-item px-1 d-flex align-items-center gap-1">
+            <div v-if="props.hasMaps" style="min-width: 150px;" class="map-select">
+                <PointMapSelection :model-value="props.selectedMap"
+                    @update:model-value="emits('update:selectedMap', $event)" />
+            </div>
+        </div>
+        <div class="toobar-item text-secondary">
+            <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true">
+                <i class="bi bi-boxes" /> {{ $t('map.create') }}
+            </ActionButton2>
+        </div>
+
         <div class="divider"></div>
-        <div class="tool" :class="{ selected: props.mouseMode == 'pan' }" @click="changeTool('pan')"><i
-                class="bi bi-hand-index-thumb"></i></div>
-        <div class="tool" :class="{ selected: props.mouseMode == 'lasso-plus' }" @click="changeTool('lasso-plus')"><i
-                class="bi bi-plus-circle-dotted"></i></div>
-        <div class="tool" :class="{ selected: props.mouseMode == 'lasso-minus' }" @click="changeTool('lasso-minus')"><i
-                class="bi bi-dash-circle-dotted"></i></div>
+
+        <div class="toolbar-item d-flex align-items-center gap-1">
+            <div style="min-width: 120px;">
+                <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption"
+                    @update:model-value="e => emits('update:colorOption', e)" :no-border="true" />
+            </div>
+            <ActionButton2 v-if="props.colorOption === 'cluster'" :images="props.images" action="group"
+                :no-border="true" class="tool" @groups="clusters => emits('clusters', clusters)">
+                <i class="bi bi-boxes" />
+            </ActionButton2>
+        </div>
+
         <div class="divider"></div>
-        <div class="tool-icon"><i class="bi bi-aspect-ratio"></i></div>
+
+        <div class="tool" :class="{ selected: props.showPoint }" @click="emits('update:showPoint', !props.showPoint)"
+            title="Show Points">
+            <i class="bi bi-dot"></i>
+        </div>
+        <div class="tool" :class="{ selected: props.mouseMode == 'pan' }" @click="changeTool('pan')" title="Pan">
+            <i class="bi bi-hand-index-thumb"></i>
+        </div>
+        <div class="tool" :class="{ selected: props.mouseMode == 'lasso-plus' }" @click="changeTool('lasso-plus')"
+            title="Lasso Add">
+            <i class="bi bi-plus-circle-dotted"></i>
+        </div>
+        <div class="tool" :class="{ selected: props.mouseMode == 'lasso-minus' }" @click="changeTool('lasso-minus')"
+            title="Lasso Remove">
+            <i class="bi bi-dash-circle-dotted"></i>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tool-icon ms-1"><i class="bi bi-aspect-ratio"></i></div>
         <RangeInput style="width: 60px;" :min="1" :max="10" :modelValue="props.imageSize"
             @update:modelValue="e => emits('update:imageSize', e)" />
-        <!-- <div class="divider"></div> -->
-        <div class="tool-icon"><i class="bi bi-border"></i></div>
+
+        <div class="tool-icon ms-1"><i class="bi bi-border"></i></div>
         <RangeInput style="width: 60px;" :min="1" :max="10" :modelValue="props.zoomDelay"
             @update:modelValue="e => emits('update:zoomDelay', e)" />
-
     </div>
 </template>
 
 <style scoped>
-.glass-box {
-    padding: 4px;
-    background: rgba(195, 207, 217, 0.219);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(195, 207, 217, 0.117);
-    box-shadow: 0 0 2px 2px rgb(195, 207, 217);
-    border-radius: 5px;
+.glass-box2 {
+    padding: 4px 8px;
+    background: rgb(246, 247, 249);
+    /* backdrop-filter: blur(10px); */
+    /* -webkit-backdrop-filter: blur(10px); */
+    border-bottom: 1px solid var(--border-color);
+    /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
+    /* border-radius: 8px; */
+    border-radius: 0px;
     column-gap: 4px;
+}
+
+.toolbar-item {
+    display: flex;
+    align-items: center;
 }
 
 .tool {
     color: rgb(0, 0, 0);
     line-height: 100%;
-    padding: 4px;
+    padding: 6px;
     border-radius: 5px;
     cursor: pointer;
-
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tool-icon {
     color: rgb(0, 0, 0);
     line-height: 100%;
     padding: 4px 0px;
-    border-radius: 5px;
     opacity: 0.7;
+    display: flex;
+    align-items: center;
 }
 
 .tool:hover {
-    background-color: #89b0cd;
+    background-color: rgba(137, 176, 205, 0.4);
 }
 
 .selected,
@@ -80,6 +149,13 @@ function changeTool(tool: string) {
 }
 
 .divider {
-    border-left: 1px solid var(--border-color);
+    height: 24px;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    margin: 0 4px;
+}
+
+.map-select {
+    background-color: white;
+    border-radius: 5px;
 }
 </style>

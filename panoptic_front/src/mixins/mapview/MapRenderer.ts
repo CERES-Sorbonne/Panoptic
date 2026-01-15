@@ -6,7 +6,7 @@ import { SpatialIndex } from './SpatialIndex'
 import { HDLayer } from './HDLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
-import { deepCopy } from '@/utils/utils'
+import { deepCopy, EventEmitter } from '@/utils/utils'
 
 export class MapRenderer {
     private container: HTMLElement
@@ -24,12 +24,15 @@ export class MapRenderer {
     private hdLayer: HDLayer
     private lassoLayer: LassoLayer
     private spatialIndex = new SpatialIndex()
+    
 
     private globalUniforms = {
         uZoom: { value: 1.0 }
     }
 
     public onPointSelection: ((points: PointData[]) => void) | null = null
+    
+    public onHover = new EventEmitter()
 
     constructor(container: HTMLElement, baseImgUrl: string) {
         this.container = container
@@ -131,9 +134,13 @@ export class MapRenderer {
 
         if (foundId) {
             this.hdLayer.hover(foundPoint)
+            this.onHover.emit(useDataStore().sha1Index[foundPoint.sha1][0].id)
         } else {
             this.hdLayer.unhover()
+            this.onHover.emit()
         }
+
+        
     }
 
     public setMouseMode(mode: string) {

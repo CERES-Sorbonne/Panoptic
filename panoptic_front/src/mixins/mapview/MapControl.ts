@@ -173,6 +173,7 @@ export class MapControls {
     
 
 public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration: number = 500) {
+    console.log(rect)
     // 1. Calculate Target Position and Zoom
     const centerX = (rect.minX + rect.maxX) / 2
     const centerY = (rect.minY + rect.maxY) / 2

@@ -1,142 +1,76 @@
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
+import { ref, computed } from 'vue'
 import PointMapSelection from './PointMapSelection.vue';
 import ActionButton2 from '../actions/ActionButton2.vue';
 import { useDataStore } from '@/data/dataStore';
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { useI18n } from 'vue-i18n';
 import { Instance, MapGroup } from '@/data/models';
+import Zoomable from '../Zoomable.vue';
+import Image from '../scrollers/tree/Image.vue';
+import CenteredImage from '../images/CenteredImage.vue';
+
 const { t } = useI18n()
 const data = useDataStore()
 
 const props = defineProps<{
     selectedMap: number | null
-    spatialFunction: {
-        function: string
-        context: any
-    }
+    spatialFunction: { function: string, context: any }
     colorOption: string
     groups: MapGroup[]
     images: Instance[]
+    hoverImageId: number | undefined
 }>()
 
 const emits = defineEmits([
-    'update:selectedMap',
-    'update:baseImageSize',
-    'update:maxImageSize',
-    'update:minImageSize',
-    'update:spatialFunction',
-    'update:colorOption',
-    'result',
-    'colorGroups',
-    'clusters',
-    'hoverGroup',
-    'clickGroup'
+    'update:selectedMap', 'update:spatialFunction', 'update:colorOption',
+    'clusters', 'hoverGroup', 'clickGroup'
 ])
 
 const isCollapsed = ref(false)
-const showContent = ref(true)
 
-const colorOptions = computed<SelectOption[]>(() => {
-    return [
-        { value: 'property', label: t('map.color_prop'), icon: 'stack' },
-        { value: 'cluster', label: t('map.color_cluster'), icon: 'stack' }
-    ]
-})
+const hoverImage = computed(() => data.instances[props.hoverImageId])
+
+const colorOptions = computed<SelectOption[]>(() => [
+    { value: 'property', label: t('map.color_prop'), icon: 'stack' },
+    { value: 'cluster', label: t('map.color_cluster'), icon: 'stack' }
+])
 
 function toggleCollapse() {
-    if (isCollapsed.value) {
-        // === EXPANDING ===
-        isCollapsed.value = false
-        showContent.value = true
-    } else {
-        // === COLLAPSING ===
-        showContent.value = false
-        nextTick(() => {
-            isCollapsed.value = true
-        })
-    }
+    isCollapsed.value = !isCollapsed.value
 }
 
-function handleSpatialFunctionChange(e: any) {
-    emits('update:spatialFunction', e)
-}
 
-function handleResult(res: any) {
-    emits('result', res)
-}
-
-function handleColorGroups() {
-    emits('colorGroups')
-}
-
-function hoverGroup(groupId: number, value) {
-    emits('hoverGroup', { groupId, value })
-}
 </script>
 
 <template>
     <div class="map-menu" :class="{ 'collapsed': isCollapsed }">
-        <!-- Collapse/Expand Button -->
-        <div v-if="!isCollapsed" class="collapse-btn text-center d-flex"
-            :title="isCollapsed ? 'Expand Menu' : 'Collapse Menu'">
-            <div class="flex-grow-1 " style="font-size: 16px; color: #384955;">{{ $t('map.main_menu') }}</div>
+        <div class="toggle-header" @click="toggleCollapse">
+            <i :class="isCollapsed ? 'bi bi-arrow-left-circle' : 'bi bi-arrow-right-circle'"></i>
         </div>
-        <div v-if="!isCollapsed" style="position: absolute; right: 6px; top: 6px">
-            <i @click="toggleCollapse" class="bi bi-arrow-left-circle bb m-0" style="border-radius: 50%;"></i>
+        <div v-if="!isCollapsed" class="text-center" style="position: relative; top: 1px">{{ $t("map.main_menu") }}</div>
+        <div class="mb-2    "></div>
+        <div class="image-container">
+            <Zoomable v-if="hoverImage" :image="hoverImage" class="">
+                <CenteredImage :image="hoverImage" :width="260" :height="200" style="margin-left: 10px;"/>
+            </Zoomable>
         </div>
-        <div v-else class="bb" @click="toggleCollapse"><i class="bi bi-three-dots m-0"
-                style="position: relative; top: -1px" /></div>
-        <!-- Menu Content -->
-        <div class="menu-content" v-if="showContent">
-            <!-- Map Selection Section -->
-            <div class="menu-section-card">
-                <div class="section-title">{{ $t("map.data") }}</div>
-                <div v-if="data.hasMaps" class="menu-section-full" style="">
-                    <PointMapSelection :model-value="selectedMap"
-                        @update:model-value="$emit('update:selectedMap', $event)" />
-                </div>
 
-                <div class="menu-section m-0 p-0">
-                    <ActionButton2 action="map" class="bb ps-1" style="font-size: 14px;" :no-border="true">
-                        <i class="bi bi-boxes" /> {{ $t('map.create') }}
-                    </ActionButton2>
-                </div>
-
-                <template v-if="!selectedMap">
-                    <div class="text-secondary help-text text-wrap ps-1">{{ $t('map.no_map_help') }}</div>
-                </template>
-            </div>
-
-            <!-- Display Options Section (only when map selected) -->
-            <div class="menu-section-card" v-if="selectedMap">
-                <div class="section-title">{{ $t("map.display") }}</div>
-                <div class="menu-section">
-                    <div class="">
-                        <SelectDropdown :teleport="true" :options="colorOptions" :model-value="props.colorOption"
-                            @update:model-value="e => emits('update:colorOption', e)" :no-border="true" />
-                    </div>
-
-                    <div v-if="props.colorOption == 'cluster'" class="sb">
-                        <ActionButton2 :images="props.images" action="group" :no-border="true"
-                            @groups="clusters => emits('clusters', clusters)"><i class="bi bi-boxes me-1" />{{
-                                $t('map.action_cluster') }}</ActionButton2>
-                    </div>
-
-                </div>
-            </div>
-
+        <div class="menu-content mt-2" :class="{ 'hidden': isCollapsed }">
             <div v-if="props.groups.length" class="menu-section-card scrollable-section">
                 <div class="section-title">
-                    <span v-if="props.colorOption == 'property'">{{ $t("map.group_property") }}</span>
-                    <span v-if="props.colorOption == 'cluster'">{{ $t("map.group_cluster") }}</span>
-                    <span class="">{{ props.groups.length }}
-                        <span class="bb"> <i class="bi bi-trash" /></span>
-                    </span>
+                    <span>{{ props.colorOption == 'property' ? $t("map.group_property") : $t("map.group_cluster") }}</span>
+                    <span class="badge">{{ props.groups.length }}</span>
                 </div>
                 <div class="groups-list">
-                    <div v-for="group in props.groups" :key="group.id" class="group-item"
-                        @mouseover="hoverGroup(group.id, true)" @mouseleave="hoverGroup(group.id, false)" @click="emits('clickGroup', group)">
+                    <div 
+                        v-for="group in props.groups" 
+                        :key="group.id" 
+                        class="group-item"
+                        @mouseover="emits('hoverGroup', { groupId: group.id, value: true })" 
+                        @mouseleave="emits('hoverGroup', { groupId: group.id, value: false })" 
+                        @click="emits('clickGroup', group)"
+                    >
                         <div class="group-color" :style="{ backgroundColor: group.color }"></div>
                         <span class="group-name">{{ group.name }}</span>
                         <span class="group-count">{{ group.count }}</span>
@@ -150,263 +84,136 @@ function hoverGroup(groupId: number, value) {
 <style scoped>
 .map-menu {
     position: relative;
+    height: 100%;
+    background: rgb(246, 247, 249);
+    border-left: 1px solid #ddd;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 8px;
-    padding-top: 4px;
-    background: rgba(195, 207, 217, 0.219);
-    backdrop-filter: blur(11px);
-    -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(195, 207, 217, 0.117);
-    box-shadow: 0 0 2px 2px rgb(195, 207, 217);
-
-    min-width: 220px;
-    max-width: 280px;
+    /* transition: width 0.3s ease; */
+    flex-shrink: 0;
     width: 280px;
-
-    border-radius: 5px;
-    font-size: 14px;
-
     overflow: hidden;
-    white-space: nowrap;
-
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 100px;
-    max-height: 100%;
+    padding-top: 5px;
 }
 
 .map-menu.collapsed {
-    min-width: 20px;
-    max-width: 20px;
-    width: 20px;
-    border: none;
-    padding: 0;
-    height: 20px;
-    min-height: 20px;
-    margin: 0;
-
+    width: 40px;
 }
 
-.btn-small {
-    width: 30px;
-    text-align: center;
+.toggle-header {
+    position: absolute;
+    left: 5px;
+    /* padding: 10px; */
+    cursor: pointer;
+    font-size: 18px;
+    text-align: start;
+    /* color: #666; */
+    opacity: 0.8;
+    padding-left: 5px;
+    /* flex-shrink: 0; */
+    top: 5px;
+    z-index: 10;
+    
 }
+
+.toggle-header:hover { color: #000; }
 
 .menu-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    animation: fadeIn 0.3s ease-in-out;
-    overflow-y: auto;
+    gap: 12px;
+    padding: 0 10px 10px 10px;
     flex: 1;
-    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    opacity: 1;
+    /* transition: opacity 0.3s ease; */
+    pointer-events: auto;
 }
 
-.menu-content::-webkit-scrollbar {
-    width: 6px;
+.menu-content.hidden {
+    opacity: 0;
+    pointer-events: none;
 }
 
-.menu-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 3px;
-}
-
-.menu-content::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
-}
-
-.menu-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-/* Card-style sections with glass effect */
 .menu-section-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: white;
+    border: 1px solid #eee;
     border-radius: 8px;
-    padding: 4px 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s;
-
-}
-
-.menu-section-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    flex-shrink: 0;
 }
 
 .section-title {
-    /* background-color: red; */
-    font-weight: 500;
-    font-size: 14px;
-    /* text-transform: uppercase; */
-    /* letter-spacing: 0.5px; */
-    color: #495057;
-    margin-bottom: 2px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 8px;
     display: flex;
-    align-items: center;
     justify-content: space-between;
 }
 
-.badge {
-    background: rgba(0, 123, 255, 0.15);
-    color: #007bff;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.scrollable-section {
-    max-height: 300px;
-    display: flex;
-    flex-direction: column;
-}
-
 .groups-list {
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    /* gap: 4px; */
-    padding-right: 4px;
-}
-
-.groups-list::-webkit-scrollbar {
-    width: 5px;
-}
-
-.groups-list::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 3px;
-}
-
-.groups-list::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 3px;
-}
-
-.groups-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.25);
+    gap: 2px;
 }
 
 .group-item {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 4px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 6px;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.15s;
-    /* background-color: red; */
+    /* transition: background 0.2s; */
 }
 
-.group-item:hover {
-    background: rgba(255, 255, 255, 0.8);
-    transform: translateX(2px);
-}
+.group-item:hover { background: #f0f0f0; }
 
 .group-color {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.group-name {
-    flex: 1;
+.group-name { 
+    flex: 1; 
     font-size: 13px;
-    color: #333;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
-.group-count {
-    font-size: 11px;
-    color: #6c757d;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 2px 6px;
-    border-radius: 10px;
+.group-count { 
+    font-size: 11px; 
+    color: #999;
     flex-shrink: 0;
 }
 
-.help-text {
-    font-size: 12px;
-    line-height: 1.4;
-    margin-top: 4px;
-}
-
-.menu-section {
+.scrollable-section {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
 }
 
-.menu-section-full {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
+.groups-list { 
+    overflow-y: auto;
+    flex: 1;
 }
 
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+.image-container {
+    margin: auto;
+    width: 280px;
+    height: 200px;
+    /* background-color: green; */
 }
 
-.checkbox-item input[type="checkbox"] {
-    cursor: pointer;
-}
-
-.checkbox-item label {
-    cursor: pointer;
-    user-select: none;
-}
-
-.color-groups-btn {
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(0, 123, 255, 0.85);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.color-groups-btn i {
-    font-size: 14px;
-}
-
-.color-groups-btn:hover {
-    background: rgba(0, 86, 179, 0.95);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-}
-
-.color-groups-btn:active {
-    background: rgba(0, 64, 133, 1);
-    transform: translateY(0);
-}
+/* Custom Scrollbar */
+.groups-list::-webkit-scrollbar { width: 4px; }
+.groups-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 </style>
