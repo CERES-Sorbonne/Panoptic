@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, shallowRef, type Ref, watch } from 'vue'
+import { onMounted, onUnmounted, shallowRef, type Ref, watch, ref } from 'vue'
 import { MapRenderer } from './MapRenderer'
 import { useDataStore } from '@/data/dataStore'
 
@@ -9,6 +9,7 @@ import { useDataStore } from '@/data/dataStore'
  */
 export function useMapRenderer(containerRef: Ref<HTMLElement | null>) {
     const map = shallowRef<MapRenderer | null>(null)
+    const hoverInstanceId = ref(null)
     const store = useDataStore()
 
     onMounted(() => {
@@ -20,6 +21,7 @@ export function useMapRenderer(containerRef: Ref<HTMLElement | null>) {
         console.log('Initializing MapRenderer...')
         // Initialize the engine with the DOM element
         map.value = new MapRenderer(containerRef.value, store.baseImgUrl)
+        map.value.onHover.addListener((v) => hoverInstanceId.value = v)
         
         // Start the animation loop
         map.value.animate()
@@ -34,6 +36,7 @@ export function useMapRenderer(containerRef: Ref<HTMLElement | null>) {
     })
 
     return {
-        map
+        map,
+        hoverInstanceId
     }
 }
