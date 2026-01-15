@@ -5,6 +5,7 @@ import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
 import ActionButton2 from '../actions/ActionButton2.vue';
+import { useTabStore } from '@/data/tabStore';
 
 const data = useDataStore()
 
@@ -15,6 +16,10 @@ const props = defineProps({
 const images = computed(() => props.selectedImagesIds.map(id => data.instances[id]))
 
 const emits = defineEmits(['remove:selected', 'stamped'])
+
+function openSelectionTab() {
+    // useTabStore().addTab('Selection', true)
+}
 
 </script>
 
@@ -30,6 +35,9 @@ const emits = defineEmits(['remove:selected', 'stamped'])
                 <div class="sb bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
             </ActionButton2>
         </div>
+        <!-- <div class="no-radius left-border" @click="openSelectionTab">
+            <div class="sb bi bi-bookmark-plus" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
+        </div> -->
     </div>
 </template>
 

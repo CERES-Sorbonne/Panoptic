@@ -4,7 +4,6 @@ import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/keyState';
 import { useDataStore } from '@/data/dataStore';
 import { objValues } from '@/utils/utils';
-import { PointData } from '@/mixins/mapview/useMapLogic';
 
 const data = useDataStore()
 const props = defineProps<{
@@ -14,35 +13,35 @@ const emits = defineEmits(['update:modelValue'])
 
 const inputElem = ref(null)
 
-const modeOptions = ref<SelectOption[]>([])
-const mode = ref(props.modelValue)
+const mapOptions = ref<SelectOption[]>([])
+const localMap = ref(props.modelValue)
 
 
 
 
-function updateModes() {
-    modeOptions.value = objValues(data.maps).map(m => ({
+function updateMaps() {
+    mapOptions.value = objValues(data.maps).map(m => ({
         value: m.id,
         label: m.id + ': ' + m.source + '.' + m.name,
         icon: 'geo'
     }))
-
-    if (!mode.value && modeOptions.value.length) {
-        mode.value = (modeOptions.value[0].value) as number
-        console.log('chose mode', mode.value)
+    if(localMap.value && !data.maps[localMap.value]) {
+        localMap.value = null
     }
-    
-    emits('update:modelValue', mode.value)
+    if (!localMap.value && mapOptions.value.length) {
+        localMap.value = (mapOptions.value[0].value) as number
+    }
+    emits('update:modelValue', localMap.value)
 }
 
 // updateModes()
 
-watch(() => data.maps, () => updateModes())
-watch(mode, (val) => emits('update:modelValue', val))
-watch(() => props.modelValue, (val) => mode.value = val)
+watch(() => data.maps, () => updateMaps())
+watch(localMap, (val) => emits('update:modelValue', val))
+watch(() => props.modelValue, (val) => localMap.value = val)
 
 onMounted(() => {
-    updateModes()
+    updateMaps()
 })
 
 keyState.ctrlF.on(() => inputElem.value?.focus())
@@ -51,7 +50,7 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 
 <template>
     <div class="cont3">
-        <SelectDropdown :options="modeOptions" v-model="mode" :placeholder="$t('map.select_map')" :no-border="true" :teleport="true"/>
+        <SelectDropdown :options="mapOptions" v-model="localMap" :placeholder="$t('map.select_map')" :no-border="true" :teleport="true"/>
     </div>
     <!-- <div class="nofound">No Point Maps found</div> -->
 </template>

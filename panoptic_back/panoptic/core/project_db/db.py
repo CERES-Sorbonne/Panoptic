@@ -865,7 +865,7 @@ class Db:
 
     async def delete_map(self, map_id: int):
         query = "DELETE FROM maps WHERE id=?"
-        await self.conn.execute_query_many(query, [map_id])
+        await self.conn.execute_query(query, (map_id,))
 
     # =====================================================
     # ==================== ID COUNTERS ====================

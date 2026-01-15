@@ -15,6 +15,9 @@ export class TabManager {
     onLoad: EventEmitter
 
     constructor(state: TabState) {
+        if(state.isSelection) {
+            state.collectionState.filterBySelection = true
+        }
         this.state = reactive(state)
         this.collection = new CollectionManager(state.collectionState, state.filterState, state.sortState, state.groupState)
         this.onLoad = new EventEmitter()

@@ -11,7 +11,6 @@ import { apiGetAtlas } from '@/data/apiProjectRoutes'
 // Components
 import MapMenu from './MapMenu.vue'
 import Toolbar from './Toolbar.vue'
-import ImagePreview from './ImagePreview.vue'
 import Resizable from '../Resizable.vue'
 
 const BORDER_WIDTH = 0.05
@@ -32,10 +31,6 @@ const imageSize = ref(5)
 const zoomDelay = ref(2)
 const showPoints = ref(false)
 const mouseMode = ref('pan')
-const spatialFunction = ref({
-    function: '',
-    context: undefined
-})
 const mapWidth = ref(1000)
 
 const groups = ref<MapGroup[]>([])
@@ -47,28 +42,6 @@ let groupToPoints: { [groupId: number]: string[] } = {}
 const selectedGroups = ref<{ [groupId: number]: boolean }>({})
 const points = shallowRef<PointData[]>([])
 
-const selectedPoints = computed(() => {
-    let ids = Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number)
-    let instances = ids.map(i => data.instances[i])
-    const res: { [sha1: string]: boolean } = {}
-
-    for (let inst of instances) {
-        res[inst.sha1] = true
-    }
-
-    for (let groupId of Object.keys(selectedGroups.value).map(Number)) {
-        if (groupToPoints[groupId]) {
-            for (let sha1 of groupToPoints[groupId]) {
-                res[sha1] = true
-            }
-        }
-    }
-    return res
-})
-
-const selectedPointsList = computed(() => Object.keys(selectedPoints.value))
-
-// --- RESTORED FUNCTIONS ---
 
 function computeBox(images: Instance[], color: string) {
     let minX = 0, minY = 0, maxX = 0, maxY = 0
@@ -267,6 +240,11 @@ const handleLasso = (selectedPoints: PointData[]) => {
     if (mouseMode.value == 'lasso-minus') props.tab.collection.groupManager.unselectImages(ids)
 }
 
+async function deleteMap(mapId: number) {
+    await data.deleteMap(mapId)
+
+}
+
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
@@ -307,10 +285,11 @@ onUnmounted(() => {
                 :selected-map="props.tab.state.mapOptions.selectedMap"
                 @update:selected-map="id => props.tab.state.mapOptions.selectedMap = id"
                 :color-option="props.tab.state.mapOptions.groupOption"
-                @update:color-option="opt => props.tab.state.mapOptions.groupOption = opt" 
+                @update:color-option="opt => {props.tab.state.mapOptions.groupOption = opt; props.tab.saveState();}" 
                 :has-maps="data.hasMaps"
                 :images="tab.collection.groupManager.result.root.images"
-                @clusters="cc => { clusters = cc; generateGroups() }"
+                @clusters="cc => { clusters = cc; generateGroups()}"
+                @delete:map="deleteMap"
             />
         </div>
 
@@ -325,7 +304,6 @@ onUnmounted(() => {
             <MapMenu 
                 v-model:selected-map="props.tab.state.mapOptions.selectedMap"
                 v-model:color-option="props.tab.state.mapOptions.groupOption" 
-                v-model:spatial-function="spatialFunction"
                 :hover-image-id="hoverInstanceId"
                 :groups="groups" 
                 :images="tab.collection.groupManager.result.root.images"

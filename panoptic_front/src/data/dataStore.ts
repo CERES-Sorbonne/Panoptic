@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
 import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
-import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
+import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteMap, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, hasPropertyChanges, isFinished, isTag } from "@/utils/utils";
 import { useTabStore } from "./tabStore";
@@ -770,9 +770,10 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function loadMaps(mapList?: PointMap[]) {
-        const idx = {...maps.value}
+        let idx = {...maps.value}
         if(!mapList){
             mapList = await apiListMaps()
+            idx = {}
         }
         if (!mapList) {
             return
@@ -791,6 +792,13 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(maps)
     }
 
+    async function deleteMap(mapId: number) {
+        await apiDeleteMap(mapId)
+        await loadMaps()
+        console.log(maps.value)
+        // maps.value = {}
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
@@ -804,7 +812,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         updateVectorTypes, deleteVectorType, updateVectorStats,
         clear,
-        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, baseUrl, loadMaps, maps, loadMapData, hasMaps
+        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, baseUrl, loadMaps, maps, loadMapData, hasMaps, deleteMap
     }
 
 })

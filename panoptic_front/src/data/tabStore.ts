@@ -80,8 +80,9 @@ export const useTabStore = defineStore('tabStore', () => {
         }
     }
 
-    async function addTab(name?: string) {
+    async function addTab(name?: string, isSelection?: boolean) {
         const tab = buildTabState()
+        tab.isSelection = isSelection
         let id = 1
         if (loadedTabs.value.length) {
             let maxId = Math.max(...loadedTabs.value)
