@@ -32,6 +32,7 @@ const zoomDelay = ref(2)
 const showPoints = ref(false)
 const mouseMode = ref('pan')
 const mapWidth = ref(1000)
+const lastValiderHoverId = ref(hoverInstanceId.value)
 
 const groups = ref<MapGroup[]>([])
 const defaultColor = '#777777'
@@ -253,6 +254,11 @@ watch(() => props.tab.state.mapOptions.groupOption, () => generateGroups())
 watch(showPoints, () => renderer.value.setShowAsPoint(showPoints.value))
 watch(imageSize, () => renderer.value.setZoomParams(imageSize.value, zoomDelay.value))
 watch(zoomDelay, () => renderer.value.setZoomParams(imageSize.value, zoomDelay.value))
+watch(hoverInstanceId, () => {
+    if(hoverInstanceId.value) {
+        lastValiderHoverId.value = hoverInstanceId.value
+    }
+})
 
 watch(renderer, (r) => {
     if (r) {
@@ -304,7 +310,7 @@ onUnmounted(() => {
             <MapMenu 
                 v-model:selected-map="props.tab.state.mapOptions.selectedMap"
                 v-model:color-option="props.tab.state.mapOptions.groupOption" 
-                :hover-image-id="hoverInstanceId"
+                :hover-image-id="lastValiderHoverId"
                 :groups="groups" 
                 :images="tab.collection.groupManager.result.root.images"
                 @clusters="cc => { clusters = cc; generateGroups() }" 

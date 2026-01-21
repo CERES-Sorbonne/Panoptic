@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import PointMapSelection from './PointMapSelection.vue';
-import ActionButton2 from '../actions/ActionButton2.vue';
 import { useDataStore } from '@/data/dataStore';
-import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
+import { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { useI18n } from 'vue-i18n';
 import { Instance, MapGroup } from '@/data/models';
 import Zoomable from '../Zoomable.vue';
-import Image from '../scrollers/tree/Image.vue';
 import CenteredImage from '../images/CenteredImage.vue';
 
 const { t } = useI18n()
@@ -29,11 +26,6 @@ const emits = defineEmits([
 const isCollapsed = ref(false)
 
 const hoverImage = computed(() => data.instances[props.hoverImageId])
-
-const colorOptions = computed<SelectOption[]>(() => [
-    { value: 'property', label: t('map.color_prop'), icon: 'stack' },
-    { value: 'cluster', label: t('map.color_cluster'), icon: 'stack' }
-])
 
 function toggleCollapse() {
     isCollapsed.value = !isCollapsed.value
