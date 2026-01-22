@@ -129,7 +129,9 @@ export const useDataStore = defineStore('dataStore', () => {
             img.urlLarge = `${SERVER_PREFIX}/projects/${projectId}/image/large/${img.sha1}`
             img.urlRaw = `${SERVER_PREFIX}/projects/${projectId}/image/raw/${img.sha1}`
 
-            img.containerRatio = computeContainerRatio(img)
+            let res = computeContainerRatio(img)
+            img.containerRatio = res.ratio
+            img.containerMaxRatio = res.maxRatio
 
             if (instances.value[img.id]) {
                 img.properties = Object.assign(instances.value[img.id].properties, img.properties)

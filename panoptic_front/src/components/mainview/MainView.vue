@@ -77,7 +77,7 @@ async function updateScrollerWidth() {
 }
 
 onMounted(() => {
-    scrollerWidth.value = filterElem.value.clientWidth
+    updateScrollerWidth()
     window.addEventListener('resize', updateScrollerWidth)
 })
 
@@ -112,9 +112,9 @@ onMounted(updateScrollerHeight)
         <!-- <button @click="imageList.computeLines()">test</button> -->
         <template v-if="props.tab.state.display == 'tree'" >
             <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.imageSize"
-                :height="scrollerHeight - 0" :properties="visibleProperties" :hide-if-modal="true"
+                :height="scrollerHeight" :properties="visibleProperties" :hide-if-modal="true"
                 :selected-images="props.tab.collection.groupManager.selectedImages" ref="imageList"
-                :width="scrollerWidth - 30" @recommend="setRecoImages"  style="margin-left: 10px;"/>
+                :width="scrollerWidth -20" @recommend="setRecoImages"  style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.display == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="grid-container" style="margin-left: 10px;">
