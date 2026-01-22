@@ -64,7 +64,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     function updateClientState(state: PanopticClientState) {
         clientState.value = state
-        if(state.connectedProject) {
+        if(state && state.connectedProject) {
             router.push('/view')
         }
         else {
