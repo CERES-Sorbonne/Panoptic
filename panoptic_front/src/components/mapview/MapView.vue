@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, watch, computed, onUnmounted } from 'vue'
+import { ref, shallowRef, onMounted, watch, computed, onUnmounted, nextTick } from 'vue'
 import { Colors, greyColor, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
@@ -217,7 +217,7 @@ async function showMap(mapId: number) {
 
     if (renderer.value) {
         const atlas = await apiGetAtlas(0)
-        renderer.value.createMap(atlas, points.value)
+        renderer.value.createMap(atlas, points.value, showPoints.value)
     }
 }
 

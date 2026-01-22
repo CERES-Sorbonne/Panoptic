@@ -90,7 +90,7 @@ export class MapRenderer {
         this.container.appendChild(this.renderer.domElement)
     }
 
-    public async createMap(atlas: ImageAtlas, points: PointData[]) {
+    public async createMap(atlas: ImageAtlas, points: PointData[], showAsPoint: boolean) {
         const dataStore = useDataStore()
         this.spatialIndex.initTree(points)
 
@@ -98,7 +98,8 @@ export class MapRenderer {
             atlas,
             points,
             dataStore.baseUrl,
-            this.globalUniforms.uZoom
+            this.globalUniforms.uZoom,
+            showAsPoint
         )
     }
 
