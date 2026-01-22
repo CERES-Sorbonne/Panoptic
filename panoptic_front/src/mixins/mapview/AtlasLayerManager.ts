@@ -19,7 +19,8 @@ export class AtlasLayerManager {
         atlas: ImageAtlas,
         points: PointData[],
         baseUrl: string,
-        zoomUniform: { value: number }
+        zoomUniform: { value: number },
+        showAsPoint: boolean
     ) {
         // Cleanup existing layers before loading new ones
         this.dispose()
@@ -57,6 +58,7 @@ export class AtlasLayerManager {
                 // Set initial visibility state
                 layer.mesh.visible = this._isVisible
                 layer.setZoomParams(this._zoomParams)
+                layer.setShowAsPoint(showAsPoint)
                 this.layers.push(layer)
 
                 this.scene.add(layer.mesh)
