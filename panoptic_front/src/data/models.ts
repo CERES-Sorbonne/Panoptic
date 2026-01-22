@@ -2,7 +2,6 @@ import { FilterState } from "@/core/FilterManager"
 import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 import { PluginKey } from "./panopticStore"
-import { BoundingBox } from "@/mixins/mapview/useMapLogic"
 
 export interface Instance {
     id: number
@@ -800,13 +799,21 @@ export interface MapIndex {
     [mapId: number]: PointMap
 }
 
+export interface BoundingBox {
+    minX: number
+    minY: number
+    maxX: number
+    maxY: number 
+    color: string
+}
+
 export interface MapGroup {
     id: number
     name: string
     color: string
     count: number
-    box: BoundingBox
     points: PointData[]
+    box: BoundingBox
 }
 
 // Atlas
