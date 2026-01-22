@@ -307,8 +307,10 @@ export const Colors = [
     { name: 'green', color: '#69db7c' },
     { name: 'lime', color: '#a9e34b' },
     { name: 'yellow', color: '#ffd43b' },
-    { name: 'orange', color: '#ffa94d' },
+    { name: 'orange', color: '#ffa94d' }
 ]
+
+export const greyColor = { name: 'grey', color: '#808080'}
 
 export interface ScrollerLine {
     id: string | number

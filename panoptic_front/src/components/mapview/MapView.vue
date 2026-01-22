@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, watch, computed, onUnmounted } from 'vue'
-import { Colors, Instance, MapGroup, PointData } from '@/data/models'
+import { Colors, greyColor, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors, isTag } from '@/utils/utils'
@@ -157,6 +157,8 @@ function generateGroups() {
                 const value = g.meta.propertyValues[0].value
                 if (value !== undefined) {
                     groupColor = Colors[data.tags[value].color].color
+                } else {
+                    groupColor = greyColor.color
                 }
             }
         }
