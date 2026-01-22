@@ -1,10 +1,8 @@
 import * as THREE from 'three'
-import KDBush from 'kdbush'
 import simplify from 'simplify'
 import { getBoundingRect } from '@/utils/utils'
 import classifyPoint from 'robust-point-in-polygon'
-import { PointData } from './useMapLogic'
-import { PointIndex } from '@/data/models'
+import { PointData } from '@/data/models'
 import { SpatialIndex } from './SpatialIndex'
 
 interface ScreenPoint {
