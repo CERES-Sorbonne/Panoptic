@@ -26,7 +26,7 @@ const props = defineProps<{
 
 const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
-const localQuery = ref<TextQuery>()
+const localQuery = ref<TextQuery>({ type: 'text', text: '' })
 
 const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number))
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
@@ -38,7 +38,6 @@ function updateSha1Mode(event) {
 }
 
 function getLocalQuery() {
-    console.log('get local', props.tab.state.filterState.query)
     localQuery.value = props.tab.state.filterState.query
 }
 
@@ -53,7 +52,6 @@ function deleteQuery() {
     props.tab.collection.filterManager.setQuery({ type: 'text', text: '' })
     props.tab.collection.filterManager.update(true)
 }
-
 
 onMounted(getLocalQuery)
 watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
