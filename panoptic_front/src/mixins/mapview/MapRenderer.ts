@@ -115,7 +115,7 @@ export class MapRenderer {
             const pointsInView = this.spatialIndex.getPointsInRect(rect)
 
             // HD Detail threshold
-            if (pointsInView.length < 200) {
+            if (pointsInView.length < 50) {
                 this.hdLayer.show(pointsInView)
             } else {
                 this.hdLayer.show([])
