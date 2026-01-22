@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide, triggerRef, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide, onUnmounted } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -154,7 +154,7 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
     while (imgIt?.image && imgIt.groupId == it.groupId && lines.length) {
 
         let img = imgIt.image
-        let imgWidth = (imageHeight * img.containerRatio) + 12
+        let imgWidth = (imageHeight * img.containerMaxRatio) + 12
         if (actualWidth + imgWidth < lineWidth) {
             newLine.push(imgIt)
             actualWidth += imgWidth
@@ -197,7 +197,7 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
     while (imgIt && imgIt.groupId == it.groupId) {
         let group = imgIt.sha1Group
         let img = imgIt.image
-        let imgWidth = (imageHeight * img.containerRatio) + 10
+        let imgWidth = (imageHeight * img.containerMaxRatio) + 10
         if (actualWidth + imgWidth < lineWidth) {
             newLine.push(imgIt)
             actualWidth += imgWidth

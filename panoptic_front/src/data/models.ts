@@ -19,6 +19,7 @@ export interface Instance {
     }
     dist?: number
     containerRatio?: number
+    containerMaxRatio?: number
 
     urlSmall: string
     urlMedium: string
