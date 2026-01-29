@@ -39,37 +39,38 @@ function toggleCollapse() {
         <div class="toggle-header" @click="toggleCollapse">
             <i :class="isCollapsed ? 'bi bi-arrow-left-circle' : 'bi bi-arrow-right-circle'"></i>
         </div>
-        <div v-if="!isCollapsed" class="text-center" style="position: relative; top: 1px">{{ $t("map.main_menu") }}</div>
-        <div class="mb-2    "></div>
-        <div class="image-container">
-            <Zoomable v-if="hoverImage" :image="hoverImage" class="">
-                <CenteredImage :image="hoverImage" :width="260" :height="200" style="margin-left: 10px;"/>
-            </Zoomable>
-        </div>
+        <template v-if="!isCollapsed">
+            <div class="text-center" style="position: relative; top: 1px">{{ $t("map.main_menu") }}</div>
+            <div class="mb-2    "></div>
+            <div class="image-container">
+                <Zoomable v-if="hoverImage" :image="hoverImage" class="">
+                    <CenteredImage :image="hoverImage" :width="260" :height="200" style="margin-left: 10px;" />
+                </Zoomable>
+            </div>
 
-        <div class="menu-content mt-2" :class="{ 'hidden': isCollapsed }">
-            <div v-if="props.groups.length" class="menu-section-card scrollable-section">
-                <div class="section-title">
-                    <span class="flex-grow-1">{{ props.colorOption == 'property' ? $t("map.group_property") : $t("map.group_cluster") }}</span>
-                    <span>{{ props.groups.length }}</span>
-                    <span v-if="props.colorOption == 'cluster'" class="sb ms-2" @click="emits('removeClusters')"><i class="bi bi-x"/></span>
-                </div>
-                <div class="groups-list">
-                    <div 
-                        v-for="group in props.groups" 
-                        :key="group.id" 
-                        class="group-item"
-                        @mouseover="emits('hoverGroup', { groupId: group.id, value: true })" 
-                        @mouseleave="emits('hoverGroup', { groupId: group.id, value: false })" 
-                        @click="emits('clickGroup', group)"
-                    >
-                        <div class="group-color" :style="{ backgroundColor: group.color }"></div>
-                        <span class="group-name">{{ group.name }}</span>
-                        <span class="group-count">{{ group.count }}</span>
+            <div class="menu-content mt-2" :class="{ 'hidden': isCollapsed }">
+                <div v-if="props.groups.length" class="menu-section-card scrollable-section">
+                    <div class="section-title">
+                        <span class="flex-grow-1">{{ props.colorOption == 'property' ? $t("map.group_property") :
+                            $t("map.group_cluster") }}</span>
+                        <span>{{ props.groups.length }}</span>
+                        <span v-if="props.colorOption == 'cluster'" class="sb ms-2" @click="emits('removeClusters')"><i
+                                class="bi bi-x" /></span>
+                    </div>
+                    <div class="groups-list">
+                        <div v-for="group in props.groups" :key="group.id" class="group-item"
+                            @mouseover="emits('hoverGroup', { groupId: group.id, value: true })"
+                            @mouseleave="emits('hoverGroup', { groupId: group.id, value: false })"
+                            @click="emits('clickGroup', group)">
+                            <div class="group-color" :style="{ backgroundColor: group.color }"></div>
+                            <span class="group-name">{{ group.name }}</span>
+                            <span class="group-count">{{ group.count }}</span>
+                        </div>
                     </div>
                 </div>
+
             </div>
-        </div>
+        </template>
     </div>
 </template>
 
@@ -105,10 +106,12 @@ function toggleCollapse() {
     /* flex-shrink: 0; */
     top: 5px;
     z-index: 10;
-    
+
 }
 
-.toggle-header:hover { color: #000; }
+.toggle-header:hover {
+    color: #000;
+}
 
 .menu-content {
     display: flex;
@@ -133,7 +136,7 @@ function toggleCollapse() {
     border: 1px solid #eee;
     border-radius: 3px;
     padding: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     flex-shrink: 0;
 }
 
@@ -164,7 +167,9 @@ function toggleCollapse() {
     /* transition: background 0.2s; */
 }
 
-.group-item:hover { background: #f0f0f0; }
+.group-item:hover {
+    background: #f0f0f0;
+}
 
 .group-color {
     width: 12px;
@@ -173,16 +178,16 @@ function toggleCollapse() {
     flex-shrink: 0;
 }
 
-.group-name { 
-    flex: 1; 
+.group-name {
+    flex: 1;
     font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.group-count { 
-    font-size: 11px; 
+.group-count {
+    font-size: 11px;
     color: #999;
     flex-shrink: 0;
 }
@@ -194,7 +199,7 @@ function toggleCollapse() {
     flex-direction: column;
 }
 
-.groups-list { 
+.groups-list {
     overflow-y: auto;
     flex: 1;
 }
@@ -207,6 +212,12 @@ function toggleCollapse() {
 }
 
 /* Custom Scrollbar */
-.groups-list::-webkit-scrollbar { width: 4px; }
-.groups-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+.groups-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.groups-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+}
 </style>

@@ -7,13 +7,25 @@ export class AtlasLayerManager {
     private layers: AtlasLayer[] = []
     private _isVisible: boolean = true
     private _zoomParams: ZoomParams
+    
+    // Cache for loaded textures, keyed by atlas ID and sheet index
+    private static textureCache = new Map<string, THREE.Texture>()
+    private currentAtlasId: number | null = null
 
     constructor(scene: THREE.Scene) {
         this.scene = scene
     }
 
     /**
+     * Generates a cache key for a specific atlas sheet
+     */
+    private getCacheKey(atlasId: number, sheetIndex: number): string {
+        return `${atlasId}_${sheetIndex}`
+    }
+
+    /**
      * Loads textures and creates layers for the given atlas and points.
+     * Reuses cached textures if the atlas ID matches the previous one.
      */
     public async loadLayers(
         atlas: ImageAtlas,
@@ -22,8 +34,15 @@ export class AtlasLayerManager {
         zoomUniform: { value: number },
         showAsPoint: boolean
     ) {
-        // Cleanup existing layers before loading new ones
-        this.dispose()
+        const isAtlasChanged = this.currentAtlasId !== atlas.id
+        
+        // Only dispose layers, not textures (they're cached)
+        this.disposeLayers()
+        
+        // If atlas changed, we could optionally clear old atlas textures from cache
+        // For now, we keep all textures cached to support quick switching between multiple atlases
+        
+        this.currentAtlasId = atlas.id
 
         const loader = new THREE.TextureLoader()
 
@@ -42,15 +61,27 @@ export class AtlasLayerManager {
             const sheetPoints = sheetPointsMap[s]
             if (sheetPoints.length === 0) continue
 
+            const cacheKey = this.getCacheKey(atlas.id, s)
             const textureUrl = `${baseUrl}atlas_sheet/${atlas.id}/${s}`
+            
             // Assign order for instanced rendering if needed
             sheetPoints.forEach((p, i) => p.order = (s * maxPerSheet) + i)
 
             try {
-                const texture = await loader.loadAsync(textureUrl)
-                texture.colorSpace = THREE.SRGBColorSpace
-                texture.generateMipmaps = true
-                texture.minFilter = THREE.LinearMipmapLinearFilter
+                let texture: THREE.Texture
+                
+                // Check if texture is already cached
+                if (AtlasLayerManager.textureCache.has(cacheKey)) {
+                    texture = AtlasLayerManager.textureCache.get(cacheKey)!
+                } else {
+                    // Load new texture and cache it
+                    texture = await loader.loadAsync(textureUrl)
+                    texture.colorSpace = THREE.SRGBColorSpace
+                    texture.generateMipmaps = true
+                    texture.minFilter = THREE.LinearMipmapLinearFilter
+                    
+                    AtlasLayerManager.textureCache.set(cacheKey, texture)
+                }
 
                 const layer = new AtlasLayer(atlas, texture, sheetPoints, s)
                 layer.setZoomReference(zoomUniform)
@@ -78,12 +109,49 @@ export class AtlasLayerManager {
         this.layers.forEach(l => l.mesh.visible = false)
     }
 
-    public dispose() {
+    /**
+     * Disposes only the layers (meshes, geometries, materials) but keeps textures cached
+     */
+    private disposeLayers() {
         this.layers.forEach(l => {
             this.scene.remove(l.mesh)
             l.dispose()
         })
         this.layers = []
+    }
+
+    /**
+     * Full cleanup including textures - call this when the component unmounts
+     */
+    public dispose() {
+        this.disposeLayers()
+        // Note: We don't clear the static texture cache here by default
+        // to allow reuse across manager instances
+    }
+
+    /**
+     * Clears the entire texture cache - useful for memory management
+     * Call this when you want to free up GPU memory
+     */
+    public static clearTextureCache() {
+        AtlasLayerManager.textureCache.forEach(texture => {
+            texture.dispose()
+        })
+        AtlasLayerManager.textureCache.clear()
+    }
+
+    /**
+     * Clears textures for a specific atlas from the cache
+     */
+    public static clearAtlasFromCache(atlasId: string) {
+        const keysToDelete: string[] = []
+        AtlasLayerManager.textureCache.forEach((texture, key) => {
+            if (key.startsWith(`${atlasId}_`)) {
+                texture.dispose()
+                keysToDelete.push(key)
+            }
+        })
+        keysToDelete.forEach(key => AtlasLayerManager.textureCache.delete(key))
     }
 
     public setZoomParams(params: ZoomParams) {
