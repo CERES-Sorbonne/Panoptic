@@ -297,6 +297,8 @@ watch(renderer, (r) => {
     }
 })
 
+watch(mapWidth, () => console.log("map width", mapWidth.value))
+
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
     await data.loadMaps()

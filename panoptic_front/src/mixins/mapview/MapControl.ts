@@ -14,6 +14,7 @@ export class MapControls {
     private prevPos = { x: 0, y: 0 }
     private mouse = new THREE.Vector2()
     private animationId: number | null = null
+    private isMouseInCanvas = false // Track if mouse is inside the canvas
 
     private lasso: LassoLayer
     public minZoom = 0.01
@@ -38,8 +39,18 @@ export class MapControls {
     private init() {
         this.domElement.addEventListener('wheel', this.handleWheel, { passive: false })
         this.domElement.addEventListener('mousedown', this.handleMouseDown)
+        this.domElement.addEventListener('mouseenter', this.handleMouseEnter)
+        this.domElement.addEventListener('mouseleave', this.handleMouseLeave)
         window.addEventListener('mousemove', this.handleMouseMove)
         window.addEventListener('mouseup', this.handleMouseUp)
+    }
+
+    private handleMouseEnter = () => {
+        this.isMouseInCanvas = true
+    }
+
+    private handleMouseLeave = () => {
+        this.isMouseInCanvas = false
     }
 
     private handleMouseMove = (e: MouseEvent) => {
@@ -68,6 +79,9 @@ export class MapControls {
 
     public getHoveredPoint(zoomParams: ZoomParams): PointData | null {
         if (this.mode.startsWith('lasso')) return null
+        
+        // Return null if mouse is outside the canvas
+        if (!this.isMouseInCanvas) return null
 
         const worldPos = this.getMouseWorldPos()
         const currentZoom = this.camera.zoom
@@ -170,63 +184,62 @@ export class MapControls {
         return worldPos
     }
 
-    
+    public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration: number = 500) {
+        // 1. Calculate Target Position and Zoom
+        const centerX = (rect.minX + rect.maxX) / 2
+        const centerY = (rect.minY + rect.maxY) / 2
+        const rectWidth = rect.maxX - rect.minX
+        const rectHeight = rect.maxY - rect.minY
 
-public lookAtRect(rect: { minX: number, minY: number, maxX: number, maxY: number }, duration: number = 500) {
-    console.log(rect)
-    // 1. Calculate Target Position and Zoom
-    const centerX = (rect.minX + rect.maxX) / 2
-    const centerY = (rect.minY + rect.maxY) / 2
-    const rectWidth = rect.maxX - rect.minX
-    const rectHeight = rect.maxY - rect.minY
+        const viewWidth = this.camera.right - this.camera.left
+        const viewHeight = this.camera.top - this.camera.bottom
 
-    const viewWidth = this.camera.right - this.camera.left
-    const viewHeight = this.camera.top - this.camera.bottom
-
-    const zoomX = viewWidth / rectWidth
-    const zoomY = viewHeight / rectHeight
-    
-    // Calculate final targets
-    const targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, Math.min(zoomX, zoomY) * 0.9)) // 0.9 for some padding
-    const targetPos = new THREE.Vector3(centerX, centerY, this.camera.position.z)
-
-    // 2. Capture Starting State
-    const startPos = this.camera.position.clone()
-    const startZoom = this.camera.zoom
-    const startTime = performance.now()
-
-    // 3. Cancel any existing animation
-    if (this.animationId) cancelAnimationFrame(this.animationId)
-
-    const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / duration, 1)
-
-        // 4. Easing function (Optional but recommended: Ease-Out-Cubic)
-        const ease = 1 - Math.pow(1 - progress, 3)
-
-        // 5. Interpolate Position
-        this.camera.position.lerpVectors(startPos, targetPos, ease)
-
-        // 6. Interpolate Zoom
-        this.camera.zoom = startZoom + (targetZoom - startZoom) * ease
+        const zoomX = viewWidth / rectWidth
+        const zoomY = viewHeight / rectHeight
         
-        this.camera.updateProjectionMatrix()
-        this.onUpdate()
+        // Calculate final targets
+        const targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, Math.min(zoomX, zoomY) * 0.9)) // 0.9 for some padding
+        const targetPos = new THREE.Vector3(centerX, centerY, this.camera.position.z)
 
-        if (progress < 1) {
-            this.animationId = requestAnimationFrame(animate)
-        } else {
-            this.animationId = null
+        // 2. Capture Starting State
+        const startPos = this.camera.position.clone()
+        const startZoom = this.camera.zoom
+        const startTime = performance.now()
+
+        // 3. Cancel any existing animation
+        if (this.animationId) cancelAnimationFrame(this.animationId)
+
+        const animate = (currentTime: number) => {
+            const elapsed = currentTime - startTime
+            const progress = Math.min(elapsed / duration, 1)
+
+            // 4. Easing function (Optional but recommended: Ease-Out-Cubic)
+            const ease = 1 - Math.pow(1 - progress, 3)
+
+            // 5. Interpolate Position
+            this.camera.position.lerpVectors(startPos, targetPos, ease)
+
+            // 6. Interpolate Zoom
+            this.camera.zoom = startZoom + (targetZoom - startZoom) * ease
+            
+            this.camera.updateProjectionMatrix()
+            this.onUpdate()
+
+            if (progress < 1) {
+                this.animationId = requestAnimationFrame(animate)
+            } else {
+                this.animationId = null
+            }
         }
-    }
 
-    this.animationId = requestAnimationFrame(animate)
-}
+        this.animationId = requestAnimationFrame(animate)
+    }
 
     public dispose() {
         this.domElement.removeEventListener('wheel', this.handleWheel)
         this.domElement.removeEventListener('mousedown', this.handleMouseDown)
+        this.domElement.removeEventListener('mouseenter', this.handleMouseEnter)
+        this.domElement.removeEventListener('mouseleave', this.handleMouseLeave)
         window.removeEventListener('mousemove', this.handleMouseMove)
         window.removeEventListener('mouseup', this.handleMouseUp)
     }
