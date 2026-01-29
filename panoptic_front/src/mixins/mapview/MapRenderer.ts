@@ -18,7 +18,7 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private frustumSize = 20
 
-    private zoomParams: ZoomParams = { h: 5.0, z1: 0.1, z2: 1.1 }
+    private zoomParams: ZoomParams = { h: 5.0, z1: 0.1, z2: 0.5 }
 
     public atlasLayers: AtlasLayerManager
     private hdLayer: HDLayer
@@ -159,9 +159,8 @@ export class MapRenderer {
         this.atlasLayers.setShowAsPoint(show)
     }
 
-    public setZoomParams(imageSize: number, zoomDelay: number) {
-        this.zoomParams.h = imageSize / 2
-        this.zoomParams.z2 = this.zoomParams.z1 + zoomDelay * 0.2
+    public setImageSize(imageSize: number) {
+        this.zoomParams.h = imageSize / 50.0 * 3
         this.hdLayer.setZoomParams(this.zoomParams)
         this.atlasLayers.setZoomParams(this.zoomParams)
     }

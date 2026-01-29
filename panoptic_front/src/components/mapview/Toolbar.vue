@@ -16,7 +16,6 @@ const data = useDataStore()
 const props = defineProps<{
     mouseMode: string
     imageSize: number
-    zoomDelay: number
     showPoint: boolean
     selectedMap: number | null
     colorOption: string
@@ -27,7 +26,6 @@ const props = defineProps<{
 const emits = defineEmits([
     'update:mouseMode',
     'update:imageSize',
-    'update:zoomDelay',
     'update:showPoint',
     'update:selectedMap',
     'update:colorOption',
@@ -50,8 +48,8 @@ function deleteMap() {
     useDataStore().deleteMap(props.selectedMap)
 }
 
-function updateMap(event) {
-    console.log(event)
+async function updateMap(event) {
+    await data.loadMaps()
     emits('update:selectedMap', event.value.id)
 }
 
@@ -111,12 +109,8 @@ const selectedImages = computed(() => Object.keys(useTabStore().getMainTab().col
         <div class="divider"></div>
 
         <div class="tool-icon ms-1"><i class="bi bi-aspect-ratio"></i></div>
-        <RangeInput style="width: 60px;" :min="1" :max="10" :modelValue="props.imageSize"
+        <RangeInput style="width: 60px;" :min="10" :max="100" :modelValue="props.imageSize"
             @update:modelValue="e => emits('update:imageSize', e)" />
-
-        <div class="tool-icon ms-1"><i class="bi bi-border"></i></div>
-        <RangeInput style="width: 60px;" :min="1" :max="10" :modelValue="props.zoomDelay"
-            @update:modelValue="e => emits('update:zoomDelay', e)" />
     </div>
 </template>
 

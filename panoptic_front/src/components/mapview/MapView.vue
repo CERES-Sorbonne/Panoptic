@@ -27,8 +27,7 @@ const canvasContainer = ref<HTMLElement | null>(null)
 const { map: renderer, hoverInstanceId } = useMapRenderer(canvasContainer)
 
 // State
-const imageSize = ref(5)
-const zoomDelay = ref(2)
+const imageSize = ref(50)
 const showPoints = ref(false)
 const mouseMode = ref('pan')
 const mapWidth = ref(1000)
@@ -283,8 +282,7 @@ watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.tab.state.mapOptions.groupOption, () => generateGroups())
 watch(showPoints, () => renderer.value.setShowAsPoint(showPoints.value))
-watch(imageSize, () => renderer.value.setZoomParams(imageSize.value, zoomDelay.value))
-watch(zoomDelay, () => renderer.value.setZoomParams(imageSize.value, zoomDelay.value))
+watch(imageSize, () => renderer.value.setImageSize(imageSize.value))
 watch(hoverInstanceId, () => {
     if(hoverInstanceId.value) {
         lastValiderHoverId.value = hoverInstanceId.value
@@ -295,7 +293,7 @@ watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
         if (points.value.length > 0 && r.atlasLayers) updateColors()
-        r.setZoomParams(imageSize.value, zoomDelay.value)
+        r.setImageSize(imageSize.value)
     }
 })
 
@@ -316,8 +314,7 @@ onUnmounted(() => {
         <div class="toolbar-container">
             <Toolbar 
                 v-model:mouse-mode="mouseMode" 
-                v-model:image-size="imageSize" 
-                v-model:zoom-delay="zoomDelay"
+                v-model:image-size="imageSize"
                 v-model:show-point="showPoints" 
                 :selected-map="props.tab.state.mapOptions.selectedMap"
                 @update:selected-map="id => props.tab.state.mapOptions.selectedMap = id"
