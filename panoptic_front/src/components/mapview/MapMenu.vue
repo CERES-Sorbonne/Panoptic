@@ -20,7 +20,7 @@ const props = defineProps<{
 
 const emits = defineEmits([
     'update:selectedMap', 'update:spatialFunction', 'update:colorOption',
-    'clusters', 'hoverGroup', 'clickGroup'
+    'clusters', 'hoverGroup', 'clickGroup', 'removeClusters'
 ])
 
 const isCollapsed = ref(false)
@@ -50,8 +50,9 @@ function toggleCollapse() {
         <div class="menu-content mt-2" :class="{ 'hidden': isCollapsed }">
             <div v-if="props.groups.length" class="menu-section-card scrollable-section">
                 <div class="section-title">
-                    <span>{{ props.colorOption == 'property' ? $t("map.group_property") : $t("map.group_cluster") }}</span>
-                    <span class="badge">{{ props.groups.length }}</span>
+                    <span class="flex-grow-1">{{ props.colorOption == 'property' ? $t("map.group_property") : $t("map.group_cluster") }}</span>
+                    <span>{{ props.groups.length }}</span>
+                    <span v-if="props.colorOption == 'cluster'" class="sb ms-2" @click="emits('removeClusters')"><i class="bi bi-x"/></span>
                 </div>
                 <div class="groups-list">
                     <div 
@@ -130,20 +131,21 @@ function toggleCollapse() {
 .menu-section-card {
     background: white;
     border: 1px solid #eee;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     flex-shrink: 0;
 }
 
 .section-title {
-    font-weight: 600;
-    font-size: 12px;
-    color: #888;
-    text-transform: uppercase;
-    margin-bottom: 8px;
+    /* font-weight: 600; */
+    font-size: 14px;
+    /* color: #888; */
+    /* text-transform: uppercase; */
+    /* margin-bottom: 8px; */
+    margin: 5px;
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between; */
 }
 
 .groups-list {
@@ -157,7 +159,7 @@ function toggleCollapse() {
     align-items: center;
     gap: 8px;
     padding: 6px;
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
     /* transition: background 0.2s; */
 }

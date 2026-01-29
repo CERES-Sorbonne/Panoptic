@@ -69,7 +69,7 @@ const selectedImages = computed(() => Object.keys(useTabStore().getMainTab().col
                     @update:model-value="emits('update:selectedMap', $event)" />
             </div>
         </div>
-        <div class="toolbar-item text-secondary">
+        <div class="toolbar-item ">
             <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @call="updateMap" :images="selectedImages">
                 <i class="bi bi-boxes" /> {{ $t('map.create') }}
             </ActionButton2>
