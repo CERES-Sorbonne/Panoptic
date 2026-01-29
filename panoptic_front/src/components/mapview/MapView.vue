@@ -112,7 +112,7 @@ function updateColors() {
         const p = sha1ToPoint[data.instances[id].sha1]
         if (p) {
             p.tint = SELECTED_TINT
-            p.tintAlpha = 0.5
+            p.tintAlpha = 0.8
         }
     })
 

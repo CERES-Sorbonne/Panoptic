@@ -181,4 +181,5 @@ export class AtlasLayer {
         this.material.dispose()
         this.mesh.dispose()
     }
+    
 }
