@@ -112,15 +112,7 @@ export class MapRenderer {
 
         if (this.hdLayer) {
             this.hdLayer.updateAnimations()
-            const rect = this.getCameraRect()
-            const pointsInView = this.spatialIndex.getPointsInRect(rect)
-
-            // HD Detail threshold
-            if (pointsInView.length < 50) {
-                this.hdLayer.show(pointsInView)
-            } else {
-                this.hdLayer.show([])
-            }
+            this.hdLayer.show([])
         }
 
         this.updateHoverState()

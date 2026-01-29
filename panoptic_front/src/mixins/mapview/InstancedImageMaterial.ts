@@ -120,15 +120,21 @@ export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
                 `
                 // If showing as point, render a colored circle
                 if(uShowAsPoint > 0.5) {
-                    vec2 p = vRawUv - 0.5;
-                    float dist = length(p);
-                    float pointRadius = 0.3;
-                    float aa = 0.05;
-                    float pointMask = smoothstep(pointRadius + aa, pointRadius, dist);
-                    
-                    vec3 pointColor = vInstanceBorder * vInstanceTint.rgb;
-                    diffuseColor = vec4(pointColor, pointMask);
-                } else {
+    vec2 p = vRawUv - 0.5;
+    float dist = length(p);
+    
+    // Use a larger radius (0.5 fills the square) to ensure visibility
+    float pointRadius = 0.45; 
+    float aa = 0.1; // Softer edge for points
+    float pointMask = smoothstep(pointRadius + aa, pointRadius, dist);
+    
+    // Instead of multiplying, use the logic from your image mode:
+    // This ensures that if it's visible in image mode, it's visible here.
+    vec3 finalRGB = mix(vInstanceBorder, vInstanceTint.rgb, vInstanceTint.a);
+    
+    // Use 1.0 instead of texelColor.a since there is no texture
+    diffuseColor = vec4(finalRGB, pointMask); 
+} else {
                     // Normal image rendering
                     vec2 dimensions;
                     if(vRatio > 1.0) {

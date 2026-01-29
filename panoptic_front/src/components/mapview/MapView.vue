@@ -15,7 +15,7 @@ import Resizable from '../Resizable.vue'
 
 const BORDER_WIDTH = 0.05
 const WHITE_TINT = '#FFFFFF'
-const DIMMED_TINT = '#888888'
+const DIMMED_TINT = '#CCCCCC'
 const SELECTED_TINT = '#5DACFF'
 
 const data = useDataStore()
@@ -97,7 +97,7 @@ function updateColors() {
                 point.tintAlpha = 0.0
                 point.z = 1.1
             } else if (hasHover) {
-                point.tintAlpha = 0.7
+                point.tintAlpha = 1.0
                 point.tint = DIMMED_TINT
                 point.z = 1.0
             } else {
@@ -134,7 +134,18 @@ function generateGroups() {
         groupList = clusters
     }
 
-    if (!groupList.length && groups.value.length) {
+    groupList = groupList.map(g => ({...g}))
+
+    const validSha1s = new Set()
+    points.value.forEach(p => validSha1s.add(p.sha1))
+
+    for(let group of groupList) {
+        group.images = group.images.filter(i => validSha1s.has(i.sha1))
+    }
+
+    groupList = groupList.filter(g => g.images.length > 0)
+    groupList
+    if (!groupList.length) {
         groups.value = []
         updateColors()
         return
@@ -188,8 +199,13 @@ async function showMap(mapId: number) {
     const res: PointData[] = []
     const values = data.maps[mapId].data
 
+    const validSha1s = new Set()
+    props.tab.collection.filterManager.result.images.forEach(i => validSha1s.add(i.sha1))
+
     for (let i = 0; i < values.length; i += 3) {
         const sha1 = values[i]
+        if(!validSha1s.has(sha1)) continue
+        
         const x = values[i + 1]
         const y = values[i + 2]
         const img = data.sha1Index[sha1]?.[0]
@@ -248,6 +264,19 @@ async function deleteMap(mapId: number) {
 
 }
 
+function onGroupManager() {
+    showMap(props.tab.state.mapOptions.selectedMap)
+}
+
+function removeClusters() {
+    const groupOption = props.tab.state.mapOptions.groupOption
+
+    if(groupOption == 'cluster') {
+        clusters = []
+        generateGroups()
+    }
+}
+
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
@@ -271,14 +300,14 @@ watch(renderer, (r) => {
 })
 
 onMounted(async () => {
-    props.tab.collection.groupManager.onResultChange.addListener(generateGroups)
+    props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
     await data.loadMaps()
     showMap(props.tab.state.mapOptions.selectedMap)
     if (renderer.value) renderer.value.setMouseMode(mouseMode.value)
 })
 
 onUnmounted(() => {
-    props.tab.collection.groupManager.onResultChange.removeListener(generateGroups)
+    props.tab.collection.groupManager.onResultChange.removeListener(onGroupManager)
 })
 </script>
 
@@ -318,6 +347,7 @@ onUnmounted(() => {
                 @clusters="cc => { clusters = cc; generateGroups() }" 
                 @hover-group="onGroupHover"
                 @click-group="g => renderer?.lookAtRect(g.box)"
+                @removeClusters="removeClusters"
             />
         </div>
     </div>
