@@ -68,7 +68,7 @@ export const useActionStore = defineStore('actionStore', () => {
         await getDefaultActions()
         await getDefaultParams()
 
-        console.log(index.value)
+        // console.log(index.value)
     }
 
     async function getSimilarImages(ctx: ActionContext) {
@@ -191,7 +191,7 @@ export const useActionStore = defineStore('actionStore', () => {
 
             if (vec_param) {
                 ctx.uiInputs[vec_param.name] = vecType
-                console.log(ctx)
+                // console.log(ctx)
             }
             const req2: ExecuteActionPayload = { function: fnc.id, context: ctx }
             return await project.call(req2)

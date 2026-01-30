@@ -36,11 +36,11 @@ export class TabManager {
         }
     }
 
-    async deactivate() {
+    deactivate() {
         this.collection.runState.active = false
     }
 
-    async activate() {
+    activate() {
         this.collection.runState.active = true
     }
 

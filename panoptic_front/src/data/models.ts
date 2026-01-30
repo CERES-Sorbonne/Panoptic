@@ -225,11 +225,10 @@ export interface TabState {
 }
 
 export interface MapOptions {
-    showImages: boolean
     showPoints: boolean
-    showBoxes: boolean
     selectedMap: number
-    groupOption: string,
+    groupOption: string
+    imageSize: number
 }
 
 export interface TabData {

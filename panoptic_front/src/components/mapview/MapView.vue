@@ -27,8 +27,6 @@ const canvasContainer = ref<HTMLElement | null>(null)
 const { map: renderer, hoverInstanceId } = useMapRenderer(canvasContainer)
 
 // State
-const imageSize = ref(50)
-const showPoints = ref(false)
 const mouseMode = ref('pan')
 const mapWidth = ref(1000)
 const lastValiderHoverId = ref(hoverInstanceId.value)
@@ -232,7 +230,7 @@ async function showMap(mapId: number) {
 
     if (renderer.value) {
         const atlas = await apiGetAtlas(0)
-        renderer.value.createMap(atlas, points.value, showPoints.value)
+        renderer.value.createMap(atlas, points.value, props.tab.state.mapOptions.showPoints)
     }
 }
 
@@ -281,8 +279,8 @@ watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.tab.state.mapOptions.groupOption, () => generateGroups())
-watch(showPoints, () => renderer.value.setShowAsPoint(showPoints.value))
-watch(imageSize, () => renderer.value.setImageSize(imageSize.value))
+watch(() => props.tab.state.mapOptions.showPoints, (val) => renderer.value.setShowAsPoint(val))
+watch(() => props.tab.state.mapOptions.imageSize, (val) => renderer.value.setImageSize(val))
 watch(hoverInstanceId, () => {
     if(hoverInstanceId.value) {
         lastValiderHoverId.value = hoverInstanceId.value
@@ -293,11 +291,13 @@ watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
         if (points.value.length > 0 && r.atlasLayers) updateColors()
-        r.setImageSize(imageSize.value)
+        r.setImageSize(props.tab.state.mapOptions.imageSize)
     }
 })
 
 watch(mapWidth, () => console.log("map width", mapWidth.value))
+
+watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), {deep: true})
 
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
@@ -316,8 +316,8 @@ onUnmounted(() => {
         <div class="toolbar-container">
             <Toolbar 
                 v-model:mouse-mode="mouseMode" 
-                v-model:image-size="imageSize"
-                v-model:show-point="showPoints" 
+                v-model:image-size="props.tab.state.mapOptions.imageSize"
+                v-model:show-point="props.tab.state.mapOptions.showPoints" 
                 :selected-map="props.tab.state.mapOptions.selectedMap"
                 @update:selected-map="id => props.tab.state.mapOptions.selectedMap = id"
                 :color-option="props.tab.state.mapOptions.groupOption"

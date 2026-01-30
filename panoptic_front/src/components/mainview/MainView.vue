@@ -11,15 +11,14 @@ import GridScroller from '../scrollers/grid/GridScroller.vue';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
 import { Group } from '@/core/GroupManager';
-import { useProjectStore } from '@/data/projectStore';
 import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
-import DataLoad from '../loading/DataLoad.vue';
 import { TabManager } from '@/core/TabManager';
 import '@/data/socketStore'
-import ActionSelect from '../actions/ActionSelect.vue';
 import MapView from '../mapview/MapView.vue';
-const project = useProjectStore()
+import { useTabStore } from '@/data/tabStore';
+
+const tabs = useTabStore()
 
 const data = useDataStore()
 
@@ -127,7 +126,7 @@ onMounted(updateScrollerHeight)
         <template v-if="props.tab.state.display == 'graph'">
             <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15"  style="margin-left: 10px;"/>
         </template>
-        <template v-if="props.tab.state.display == 'map'">
+        <template v-if="props.tab.state.display == 'map' && tabs.loaded">
            <MapView :style="{height: scrollerHeight - 0 + 'px'}" :tab="props.tab" /> 
         </template>
 
