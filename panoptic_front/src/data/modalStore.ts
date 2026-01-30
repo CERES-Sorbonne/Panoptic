@@ -13,7 +13,7 @@ export const useModalStore = defineStore('modalStore', () => {
         for(let modal of Object.values(open)) {
             res[modal.id] = true
         }
-        console.log('update computed')
+        // console.log('update computed')
         return res
     })
 
@@ -28,7 +28,7 @@ export const useModalStore = defineStore('modalStore', () => {
         const open = {...layerOpen.value}
         open[layer] = {id, data}
         layerOpen.value = open
-        console.log('set data', data)
+        // console.log('set data', data)
     }
 
     function closeModal(id: ModalId) {

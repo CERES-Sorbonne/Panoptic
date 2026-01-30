@@ -553,8 +553,8 @@ export const useDataStore = defineStore('dataStore', () => {
         if (group !== undefined) {
             prop.propertyGroupId = group
         }
-        sendCommit({ properties: [prop] })
-        useTabStore().getMainTab().update()
+        await sendCommit({ properties: [prop] })
+        await useTabStore().getMainTab().update()
     }
 
     async function deleteProperty(propertyId: number) {
@@ -562,7 +562,7 @@ export const useDataStore = defineStore('dataStore', () => {
         const tabStore = useTabStore()
         const tab = tabStore.getMainTab()
         tab.verifyState()
-        tab.update()
+        await tab.update()
     }
 
     function updateTagCount(oldTags: number[], newTags: number[]) {
@@ -789,6 +789,8 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function loadMapData(mapId: number) {
+        console.log(mapId)
+        // throw new TypeError(String(mapId))
         const map = await apiGetMap(mapId)
         maps.value[map.id] = map
         triggerRef(maps)

@@ -30,11 +30,10 @@ export function buildTabState(): TabState {
 
 export function createMapOptions(): MapOptions {
     return {
-        showImages: false,
-        showBoxes: true,
-        showPoints: true,
+        showPoints: false,
         groupOption: 'cluster',
-        selectedMap: 0
+        selectedMap: 0,
+        imageSize: 50
     }
 }
 
