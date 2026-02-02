@@ -67,7 +67,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         if(state && state.connectedProject) {
             router.push('/view')
         }
-        else {
+        else if (state && state.connectedProject != undefined) {
             router.push('/')
         }
     }
@@ -81,6 +81,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function loadProject(projectId: number, noCall?: boolean) {
+        console.log("load project", projectId)
         project.clear()
         await apiLoadProject(projectId)
     }
