@@ -61,19 +61,10 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 </script>
 
 <template>
-    <div class="d-flex flex-row p-2 align-items-center">
-        <!-- <wTT :icon="true" message="main.menu.search_tooltip" iconPos="left">
-            <div class="d-flex flex-row search-input me-5" :class="localQuery ? 'border-primary' : ''">
-                <div class="bi bi-search float-start bi-sm"></div>
-                <input type="text" class="input-hidden" :placeholder="$t('main.menu.search')" v-model="localQuery"
-                    @change="setQuery" ref="textInput"/>
-                <div class="bi-sm base-hover" style="cursor: pointer; padding: 0px 2px;" @click="deleteQuery">x</div>
-            </div>
-        </wTT> -->
-
+    <div class="d-flex flex-row pt-2 ps-2 pb-1 align-items-center">
         <TextSearchInput class="me-3" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery" />
 
-        <div class="me-3 d-flex">
+        <div class="me-3 d-flex align-items-center">
             <wTT message="main.menu.grid_tooltip">
                 <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.state.display == 'tree' ? '' : ' text-secondary')"
                     @click="props.tab.setViewMode('tree')"></i>
@@ -104,7 +95,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
         </div>
         <!-- <div>{{ props.tab.state.imageSize }}</div> -->
-        <div class="ms-5" style="font-size: 13px;">
+        <div class="ms-3" style="font-size: 14px;">
             <wTT message="main.menu.image_mode_tooltip">
                 <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode"
                     @change="updateSha1Mode" />
@@ -126,7 +117,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
                 class="bi bi-cone-striped" style="color: grey"></a>
         </wTT>
     </div>
-    <div class="d-flex flex-wrap content-container ps-2">
+    <div class="d-flex flex-wrap content-container ps-2 align-items-center">
         <ToggleReload :tab="props.tab" class="me-1" />
         <FilterForm :manager="props.tab.collection.filterManager" />
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
