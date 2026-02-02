@@ -567,6 +567,10 @@ class ProjectIdPayload(BaseModel):
     project_id: int
 
 
+class ProjectDeleteReq(BaseModel):
+    project_id: int
+    delete_files: bool
+
 @dataclass(slots=True)
 class SyncData:
     key: str
