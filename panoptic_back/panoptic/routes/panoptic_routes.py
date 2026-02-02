@@ -53,7 +53,6 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 @selection_router.post("/load")
 async def load_project_route(req: ProjectIdPayload, request: Request):
     connection_id = request.query_params.get('connection_id')
-    print(connection_id)
     res = await server.load_project(req.project_id, connection_id)
     return res
 
