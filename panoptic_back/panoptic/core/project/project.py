@@ -18,6 +18,7 @@ from panoptic.core.project.project_actions import ProjectActions
 from panoptic.core.project_db.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
+from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
 from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
@@ -88,6 +89,12 @@ class Project:
 
         # await self.plugin_watcher.start()
         self.is_loaded = True
+
+        # TBD if we do it here
+        atlas = await self.db.get_atlas(0)
+        if not atlas:
+            task = GenerateAtlasTask()
+            self.task_queue.add_task(task)
 
     async def wait_full_start(self):
         await self._load_task

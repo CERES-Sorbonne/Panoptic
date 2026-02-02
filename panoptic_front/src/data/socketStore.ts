@@ -102,6 +102,8 @@ export const useSocketStore = defineStore('socketStore', () => {
         socket.on('maps', (mapList: PointMap[]) => {
             useDataStore().loadMaps(mapList)
         })
+
+        socket.on('atlas', () => useDataStore().loadAtlas())
     }
 
     function close() {

@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
+import { CommitHistory, DbCommit, Folder, FolderIndex, ImageAtlas, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
-import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteMap, apiDeleteVectorType, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
+import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteMap, apiDeleteVectorType, apiGetAtlas, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, hasPropertyChanges, isFinished, isTag } from "@/utils/utils";
 import { useTabStore } from "./tabStore";
@@ -30,6 +30,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const baseImgUrl = shallowRef('')
     const baseUrl = shallowRef('')
     const maps = shallowRef<MapIndex>({})
+    const atlas = ref<ImageAtlas>()
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
@@ -51,6 +52,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
 
     const hasMaps = computed(() => objValues(maps.value).length > 0)
+    const hasAtlas = computed(() => atlas.value?.id !== undefined)
 
 
     // =======================
@@ -99,6 +101,7 @@ export const useDataStore = defineStore('dataStore', () => {
         // console.time('commit')
         // // applyCommit(dbState)
         // console.timeEnd('commit')
+        await loadAtlas()
         await getHistory()
     }
 
@@ -770,7 +773,6 @@ export const useDataStore = defineStore('dataStore', () => {
     async function updateVectorStats() {
         vectorStats.value = await apiGetVectorStats()
     }
-
     async function loadMaps(mapList?: PointMap[]) {
         let idx = {...maps.value}
         if(!mapList){
@@ -803,6 +805,10 @@ export const useDataStore = defineStore('dataStore', () => {
         // maps.value = {}
     }
 
+    async function loadAtlas() {
+        atlas.value = await apiGetAtlas(0)
+    }
+
     return {
         init, getTmpId, loadState, isLoaded,
         onChange,
@@ -816,7 +822,7 @@ export const useDataStore = defineStore('dataStore', () => {
         addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
         updateVectorTypes, deleteVectorType, updateVectorStats,
         clear,
-        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, baseUrl, loadMaps, maps, loadMapData, hasMaps, deleteMap
+        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, baseUrl, loadMaps, maps, loadMapData, hasMaps, deleteMap, hasAtlas, atlas, loadAtlas
     }
 
 })

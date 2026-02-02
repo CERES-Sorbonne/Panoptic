@@ -754,7 +754,10 @@ class ProjectDb:
     # ATLAS
 
     async def import_atlas(self, atlas: ImageAtlas):
-        return await self._db.import_atlas(atlas)
+        res = await self._db.import_atlas(atlas)
+        self._project.on.sync.emitAtlas(res)
+        return res
+
 
     async def get_atlas(self, atlas_id: int):
         return await self._db.get_atlas(atlas_id)

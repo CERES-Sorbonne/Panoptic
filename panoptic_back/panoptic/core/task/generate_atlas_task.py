@@ -80,8 +80,8 @@ class GenerateAtlasTask(Task):
             sheets.append(current_sheet)
 
         atlas = ImageAtlas(atlas_id, len(sheets), atlas_width, atlas_height, cell_width, cell_height, sha1_mapping)
-        await self._project.db.import_atlas(atlas)
         await self.save_sheets(atlas, sheets)
+        await self._project.db.import_atlas(atlas)
 
 
     async def save_sheets(self, atlas: ImageAtlas, sheets: list[Image.Image]):

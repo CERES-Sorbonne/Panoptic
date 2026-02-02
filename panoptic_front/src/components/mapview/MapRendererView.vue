@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { apiGetAtlas } from '@/data/apiProjectRoutes';
-import { ImageAtlas, PointData } from '@/data/models';
+import { PointData } from '@/data/models';
 import { useTabStore } from '@/data/tabStore';
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer';
-import { onMounted, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 
 const tabs = useTabStore()
 
