@@ -81,7 +81,6 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function loadProject(projectId: number, noCall?: boolean) {
-        console.log("load project", projectId)
         project.clear()
         await apiLoadProject(projectId)
     }
