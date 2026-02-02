@@ -14,6 +14,7 @@ import RowDateInput from '@/components/property_row_input/RowDateInput.vue';
 import RowUrlInput from '@/components/property_row_input/RowUrlInput.vue';
 import RowNumberInput from '@/components/property_row_input/RowNumberInput.vue';
 import { InputKey, useInputStore } from '@/data/inputStore';
+import WithToolTip from '@/components/tooltips/withToolTip.vue';
 
 const data = useDataStore()
 const inputs = useInputStore()
@@ -60,8 +61,8 @@ watch(inputKey, (newVal, oldVal) => {
         newVal.idx == oldVal.idx &&
         newVal.key == oldVal.key &&
         newVal.instanceId == oldVal.instanceId) {
-            return
-        }
+        return
+    }
 
     inputs.removeInput(oldVal.key, oldVal.idx)
     nextTick(() => {
@@ -93,8 +94,10 @@ watch(() => inputs.requestInput, async (val) => {
     <DBInput v-if="props.instance.id != deletedID" :instance="props.instance" :property-id="props.property.id">
         <template #default="{ value, set }">
             <div class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px;font-size: 14px;">
-                <PropertyIcon v-if="props.property.type != PropertyType.checkbox && property.id > 0"
-                    :type="property.type" style="margin-right: 2px;" @click="log" />
+                <WithToolTip :message="props.property.name">
+                    <PropertyIcon v-if="props.property.type != PropertyType.checkbox && property.id > 0"
+                        :type="property.type" style="margin-right: 2px;" @click="log" />
+                </WithToolTip>
 
                 <CellTagInput v-if="isTag(property.type)" :model-value="value" @update:model-value="set" :no-wrap="true"
                     :auto-focus="true" :can-create="true" :can-customize="true" :property="props.property"
