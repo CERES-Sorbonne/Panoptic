@@ -20,29 +20,23 @@ const localMap = ref()
 
 
 async function updateMaps() {
-    await useDataStore().loadMaps()
-    // 1. First, rebuild the options list so we have something to fall back to
     mapOptions.value = objValues(data.maps).map(m => ({
         value: m.id,
         label: m.id + ': ' + m.source + '.' + m.name,
         icon: 'geo'
     }))
 
-    // 2. Determine what the "next" value should be based on current props
     let nextValue = props.modelValue
 
-    // 3. Validation: If the value from props doesn't exist in our data, invalidate it
     if (nextValue && !data.maps[nextValue]) {
         nextValue = null
     }
 
-    // 4. Fallback: If we have no value (or it was invalidated) but we have options, pick the first
     if (!nextValue && mapOptions.value.length) {
         console.log('Defaulting to first available map', { old: props.modelValue, new: mapOptions.value[0].value })
         nextValue = mapOptions.value[0].value as number
     }
 
-    // 5. Final Sync: Update local state and notify parent only if changed
     if (nextValue !== localMap.value) {
         localMap.value = nextValue
         emits('update:modelValue', nextValue)

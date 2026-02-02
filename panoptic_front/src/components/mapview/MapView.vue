@@ -3,10 +3,9 @@ import { ref, shallowRef, onMounted, watch, computed, onUnmounted, nextTick } fr
 import { Colors, greyColor, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
-import { generateColors, isTag } from '@/utils/utils'
+import { generateColors, isTag, sleep } from '@/utils/utils'
 import { Group } from '@/core/GroupManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
-import { apiGetAtlas } from '@/data/apiProjectRoutes'
 
 // Components
 import MapMenu from './MapMenu.vue'
@@ -30,6 +29,7 @@ const { map: renderer, hoverInstanceId } = useMapRenderer(canvasContainer)
 const mouseMode = ref('pan')
 const mapWidth = ref(1000)
 const lastValiderHoverId = ref(hoverInstanceId.value)
+const hasAtlas = ref(true)
 
 const groups = ref<MapGroup[]>([])
 const defaultColor = '#777777'
@@ -229,7 +229,11 @@ async function showMap(mapId: number) {
     generateGroups()
 
     if (renderer.value) {
-        const atlas = await apiGetAtlas(0)
+        const atlas = data.atlas
+        if(!atlas) {
+            hasAtlas.value = false
+            return
+        }
         renderer.value.createMap(atlas, points.value, props.tab.state.mapOptions.showPoints)
     }
 }
@@ -298,6 +302,10 @@ watch(renderer, (r) => {
 watch(mapWidth, () => console.log("map width", mapWidth.value))
 
 watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), {deep: true})
+
+watch(() => data.atlas, async () => {
+    showMap(props.tab.state.mapOptions.selectedMap)
+})
 
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
