@@ -167,7 +167,7 @@ watch(scoreInterval, () => {
                     </div>
                 </wTT>
                 <div class="sep ms-1 me-1"></div>
-                <div style="margin-left: 6px;" class="me-3 sbb">
+                <div style="margin-left: 6px;" class="me-3">
                     <ActionButton2 action="similar" @call="importSimilar" :images="[props.image]">
                         <span>
                             <i class="bi bi-boxes me-1" />Images similaire
