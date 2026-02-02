@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
-import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/keyState';
 import InputOptions from '../actions/InputOptions.vue';

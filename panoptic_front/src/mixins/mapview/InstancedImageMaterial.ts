@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 export class InstancedImageMaterial extends THREE.MeshBasicMaterial {
     private _zoomRef: { value: number } = { value: 1.0 };
-    private _zoomParams = new THREE.Vector3(1.0, 0.1, 0.8);
+    private _zoomParams = new THREE.Vector3(1.0, 0.1, 0.11);
     private _radius = { value: 0.05 };
     private _showAsPoint = { value: 0.0 };
 

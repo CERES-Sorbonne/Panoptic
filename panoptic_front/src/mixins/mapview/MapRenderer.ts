@@ -18,7 +18,7 @@ export class MapRenderer {
     private resizeObserver: ResizeObserver
     private frustumSize = 20
 
-    private zoomParams: ZoomParams = { h: 5.0, z1: 0.1, z2: 0.5 }
+    private zoomParams: ZoomParams = { h: 5.0, z1: 0.1, z2: 0.11 }
 
     public atlasLayers: AtlasLayerManager
     private hdLayer: HDLayer
