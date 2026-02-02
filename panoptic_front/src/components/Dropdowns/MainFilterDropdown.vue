@@ -54,7 +54,7 @@ onMounted(async() => {
     <Dropdown ref="dropdownElem" placement="top-start">
         <template #button>
             <div>
-                <div v-if="selectedFilterSet.length || props.manager.state.query?.text" class="d-flex flex-row m-0 ms-1 p-1 bg hover-light bg-medium"
+                <div v-if="selectedFilterSet.length || props.manager.state.query?.text" class="d-flex flex-row m-0 ms-1 bg hover-light bg-medium"
                     style="cursor:pointer;">
                     <div v-if="props.manager.state.query?.text">
                         <span class="text-primary">Text Query</span>
@@ -85,6 +85,8 @@ onMounted(async() => {
 }
 
 .bg {
-    border-radius: 3px;
+    border-radius: 2px;
+    padding: 2.5px 4px;
+    font-size: 14px;
 }
 </style>

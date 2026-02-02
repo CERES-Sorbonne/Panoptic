@@ -10,7 +10,7 @@ const props = defineProps({
 </script>
 
 <template>
-    <div class="d-flex flex-row filter-form">
+    <div class="d-flex flex-row filter-form align-items-center">
         <div class="pt-1 pb-1">{{ $t("main.menu.filters") }}: </div>
         <GlobalFilterInputDropdown :manager="props.manager"/>
       
@@ -28,8 +28,8 @@ const props = defineProps({
 }
 
 .plus-btn {
-    padding: 4px;
-    border-radius: 3px;
+    padding: 5px 4px;
+    border-radius: 2px;
 }
 
 </style>

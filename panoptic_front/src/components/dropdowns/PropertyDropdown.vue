@@ -32,7 +32,7 @@ const dropdownElem = ref(null)
 
 <style scoped>
 .plus-btn {
-    padding: 4px !important;
-    border-radius: 3px !important;
+padding: 5px 4px;
+    border-radius: 2px;
 }
 </style>
