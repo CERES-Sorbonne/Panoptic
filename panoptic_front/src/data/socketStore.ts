@@ -47,8 +47,12 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('connect', () => {
-            // console.log('Connected to socket server.')
+            usePanopticStore().setConnect()
         })
+
+        socket.on("connect_error", (err) => {
+            usePanopticStore().setFailedConnect()
+        });
 
         socket.on('server_state', (data) => {
             const state = keysToCamel(data) as PanopticServerState
@@ -57,7 +61,6 @@ export const useSocketStore = defineStore('socketStore', () => {
 
         socket.on('client_state', (data) => {
             const state = keysToCamel(data) as PanopticClientState
-            // console.log(state)
             usePanopticStore().updateClientState(state)
             if (state.connectionId) {
                 setConnectionId(state.connectionId)

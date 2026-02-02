@@ -45,6 +45,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     // TODO: remove this
     const openModalId = ref(null)
     const modalData = ref(null)
+    const failedConnected = ref(false)
 
     const notifs = ref<Notif[]>([])
 
@@ -67,7 +68,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         if(state && state.connectedProject) {
             router.push('/view')
         }
-        else if (state && state.connectedProject != undefined) {
+        else if (state && state.connectedProject == undefined) {
             router.push('/')
         }
     }
@@ -174,17 +175,25 @@ async function addPlugin(plugin: PluginAddPayload) {
 
     async function updateProject(project: ProjectRef) {
         const state = await apiUpdateProject(project)
-        
+    }
+
+
+    function setConnect() {
+        failedConnected.value = false
+    }
+
+    function setFailedConnect() {
+        failedConnected.value = true
     }
 
     return {
-        init, isConnected, clientState, serverState,
+        init, isConnected, clientState, serverState, failedConnected,
         modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateProject,
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,
         getPackagesInfo,
-        updateClientState, updateServerState
+        updateClientState, updateServerState, setConnect, setFailedConnect
     }
 })
