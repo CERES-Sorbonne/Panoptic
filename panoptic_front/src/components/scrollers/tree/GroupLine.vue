@@ -213,7 +213,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
-            <div v-if="!hasSubgroups" class="ms-1">
+            <div v-if="!hasSubgroups" class="ms-1 sbb">
                 <StampDropdown :images="images" :no-border="true" style="font-size: 14px;"
                     :show-number="true" />
             </div>
