@@ -41,19 +41,19 @@ const filteredProperties = computed(() => {
 </script>
 
 <template>
-    <div class="p-1">
+    <div class="p-1 flex flex-column h-100">
         <div class="mb-1">
             <!-- <input class="w-100 bg-light" type="text" ref="searchElem" v-model="propertyFilter" /> -->
-             <TextInput v-model="propertyFilter" :focus="true" />
+            <TextInput v-model="propertyFilter" :focus="true" />
         </div>
-        <div 
-            v-for="prop in filteredProperties" 
-            class="p-1 base-hover text-black" 
-            style="cursor:pointer" 
-            @click="emits('select', prop.id)"
-        >
-            <PropertyIcon :type="prop.type" class="me-2" />
-            <a>{{ prop.name }}</a>
+        <div class="flex-grow-1 overflow-auto" style="max-height: 350px; overflow-y: scroll;">
+            <div v-for="prop in filteredProperties" class="p-1 base-hover text-black" style="cursor:pointer"
+                @click="emits('select', prop.id)">
+                <PropertyIcon :type="prop.type" class="me-2" />
+                <a>{{ prop.name }}</a>
+            </div>
         </div>
     </div>
 </template>
+
+<style scoped></style>
