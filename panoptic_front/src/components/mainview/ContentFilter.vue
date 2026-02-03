@@ -32,8 +32,7 @@ const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupMa
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 
-function updateSha1Mode(event) {
-    const value = event.target.checked
+function updateSha1Mode(value: boolean) {
     props.tab.collection.groupManager.setSha1Mode(value, true)
 }
 
@@ -66,25 +65,24 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
         <div class="me-3 d-flex align-items-center">
             <wTT message="main.menu.grid_tooltip">
-                <i :class="'bi bi-grid-3x3-gap-fill me-2 btn-icon' + (props.tab.state.display == 'tree' ? '' : ' text-secondary')"
-                    @click="props.tab.setViewMode('tree')"></i>
+                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'tree' }" @click="props.tab.setViewMode('tree')">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </div>
             </wTT>
             <wTT message="main.menu.table_tooltip">
-                <i id="toot"
-                    :class="'bi bi-table btn-icon me-2' + (props.tab.state.display == 'grid' ? '' : ' text-secondary')"
-                    @click="props.tab.setViewMode('grid')">
-                </i>
+                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'grid' }" @click="props.tab.setViewMode('grid')">
+                    <i class="bi bi-table"></i>
+                </div>
             </wTT>
             <wTT message="main.menu.graph_tooltip">
-                <i id="toot"
-                    :class="'bi bi-bar-chart btn-icon me-2' + (props.tab.state.display == 'graph' ? '' : ' text-secondary')"
-                    @click="props.tab.setViewMode('graph')">
-                </i>
+                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'graph' }" @click="props.tab.setViewMode('graph')">
+                    <i class="bi bi-bar-chart"></i>
+                </div>
             </wTT>
             <wTT message="main.menu.map_tooltip">
-                <i id="toot" :class="'bi bi-map btn-icon' + (props.tab.state.display == 'map' ? '' : ' text-secondary')"
-                    @click="props.tab.setViewMode('map')">
-                </i>
+                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'map' }" @click="props.tab.setViewMode('map')">
+                    <i class="bi bi-map"></i>
+                </div>
             </wTT>
         </div>
 
@@ -94,15 +92,21 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div>
             <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
         </div>
-        <!-- <div>{{ props.tab.state.imageSize }}</div> -->
-        <div class="ms-3" style="font-size: 14px;">
+
+        <div class="ms-3 d-flex align-items-center">
+            <wTT message="main.menu.instance_mode_tooltip">
+                <div class="tool-sm" :class="{ selected: !props.tab.collection.groupManager.state.sha1Mode }" @click="updateSha1Mode(false)">
+                    <i class="bi bi-image"></i>
+                </div>
+            </wTT>
             <wTT message="main.menu.image_mode_tooltip">
-                <input type="checkbox" :checked="props.tab.collection.groupManager.state.sha1Mode"
-                    @change="updateSha1Mode" />
-                <span class="ms-1">{{ $t('main.menu.image_mode') }}</span>
+                <div class="tool-sm" :class="{ selected: props.tab.collection.groupManager.state.sha1Mode }" @click="updateSha1Mode(true)">
+                    <i class="bi bi-images"></i>
+                </div>
             </wTT>
         </div>
-        <div class="ms-4">
+
+        <div class="ms-3">
             <HistoryDropdown />
         </div>
         <div>
@@ -154,7 +158,6 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
     margin: 0;
 }
 
-
 .search-input {
     border: 2px solid rgb(197, 206, 213);
     padding: 1px;
@@ -172,10 +175,8 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
     padding: 0;
     margin-top: 1px;
     height: 16px;
-    /* line-height: 10px; */
     font-size: 10px;
     color: var(--text-color);
-
     width: 100%;
 }
 
@@ -194,5 +195,40 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
     margin-top: 2px;
     margin-right: 4px;
     margin-left: 3px;
+}
+
+.tool {
+    color: rgb(0, 0, 0);
+    line-height: 100%;
+    padding: 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-sm {
+    color: rgb(0, 0, 0);
+    line-height: 100%;
+    padding: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool:hover,
+.tool-sm:hover {
+    background-color: rgba(137, 176, 205, 0.4);
+}
+
+.selected,
+.selected:hover {
+    color: rgb(255, 255, 255);
+    background-color: #384955;
 }
 </style>
