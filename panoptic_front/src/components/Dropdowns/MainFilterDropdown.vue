@@ -7,11 +7,15 @@ import { PropertyID } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
 import FilterGroupVue from '../filter/FilterGroup.vue';
 import { Dropdowns } from '@/data/dropdowns';
+import TextSearchInput from '../inputs/TextSearchInput.vue';
+import { TabManager } from '@/core/TabManager';
+import { deepCopy } from '@/utils/utils';
 const data = useDataStore()
 
-const props = defineProps({
+const props = defineProps<{
+    tab: TabManager
     manager: FilterManager
-})
+}>()
 
 const emits = defineEmits(['update:modelValue'])
 const popupElem = ref(null)
@@ -37,13 +41,27 @@ function recursiveListFilters(root: FilterGroup): Array<Filter> {
     return res
 }
 
+function setQuery(query) {
+    props.manager.setQuery(query)
+    props.manager.update(true)
+    props.tab.saveState()
+}
+
+function resetQuery() {
+    const query = deepCopy(props.manager.state.query)
+    query.text = ""
+    props.manager.setQuery(query)
+    props.manager.update(true)
+    props.tab.saveState()
+}
+
 watch(() => props.manager.state.filter.filters, () => {
     if (props.manager.state.filter.filters.length == 0) {
         dropdownElem.value.hide()
     }
 })
 
-onMounted(async() => {
+onMounted(async () => {
     await nextTick()
     Dropdowns.filter = dropdownElem.value
 })
@@ -54,15 +72,16 @@ onMounted(async() => {
     <Dropdown ref="dropdownElem" placement="top-start">
         <template #button>
             <div>
-                <div v-if="selectedFilterSet.length || props.manager.state.query?.text" class="d-flex flex-row m-0 ms-1 bg hover-light bg-medium"
-                    style="cursor:pointer;">
+                <div v-if="selectedFilterSet.length || props.manager.state.query?.text"
+                    class="d-flex flex-row m-0 ms-1 bg hover-light bg-medium" style="cursor:pointer;">
                     <div v-if="props.manager.state.query?.text">
                         <span class="text-primary">Text Query</span>
                         <span v-if="selectedFilterSet.length" class="or-separator">|</span>
                     </div>
                     <div v-for="filter, index in selectedFilterSet">
                         <span v-if="index > 0" class="or-separator">|</span>
-                        <PropertyIcon v-if="filter.propertyId == PropertyID.id" :type="data.properties[filter.propertyId].type" style="margin-right: 2px;"/>
+                        <PropertyIcon v-if="filter.propertyId == PropertyID.id"
+                            :type="data.properties[filter.propertyId].type" style="margin-right: 2px;" />
                         <span>{{ data.properties[filter.propertyId].name }}</span>
                     </div>
                 </div>
@@ -71,6 +90,13 @@ onMounted(async() => {
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
                 <div class="m-1 p-1" v-if="Object.keys(data.properties).length > 0">
+                    <div v-if="props.manager.state.query?.text?.length > 0" class="d-flex align-items-center">
+                        <TextSearchInput :query="props.manager.state.query" @update:query="setQuery" :size="24"
+                            class="flex-grow-1" />
+                        <div class="me-1 ms-1"><span class="base-btn" @click="resetQuery">
+                                <i class="bi bi-trash"></i>
+                            </span></div>
+                    </div>
                     <FilterGroupVue :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>
             </div>
