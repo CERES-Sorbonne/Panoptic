@@ -81,7 +81,7 @@ function setOrder(propertyId: number, direction: SortDirection) {
 }
 
 .bbw {
-    padding: 2px 4px;
+    padding: 2.5px 4px;
     cursor: pointer;
 }
 
