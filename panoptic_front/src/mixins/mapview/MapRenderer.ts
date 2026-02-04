@@ -160,7 +160,7 @@ export class MapRenderer {
     }
 
     public setImageSize(imageSize: number) {
-        this.zoomParams.h = imageSize / 50.0 * 3
+        this.zoomParams.h = imageSize / 50.0 * 1
         this.hdLayer.setZoomParams(this.zoomParams)
         this.atlasLayers.setZoomParams(this.zoomParams)
     }
