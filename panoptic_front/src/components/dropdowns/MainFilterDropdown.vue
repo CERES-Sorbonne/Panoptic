@@ -41,18 +41,17 @@ function recursiveListFilters(root: FilterGroup): Array<Filter> {
     return res
 }
 
-function setQuery(query) {
-    props.manager.setQuery(query)
-    props.manager.update(true)
-    props.tab.saveState()
-}
-
 function resetQuery() {
     const query = deepCopy(props.manager.state.query)
     query.text = ""
     props.manager.setQuery(query)
     props.manager.update(true)
     props.tab.saveState()
+
+    if (props.manager.state.filter.filters.length == 0) {
+        dropdownElem.value.hide()
+    }
+
 }
 
 watch(() => props.manager.state.filter.filters, () => {
@@ -90,12 +89,8 @@ onMounted(async () => {
         <template #popup>
             <div class="m-0 p-0" ref="popupElem">
                 <div class="m-1 p-1" v-if="Object.keys(data.properties).length > 0">
-                    <div v-if="props.manager.state.query?.text?.length > 0" class="d-flex align-items-center">
-                        <TextSearchInput :query="props.manager.state.query" @update:query="setQuery" :size="24"
-                            class="flex-grow-1" />
-                        <div class="me-1 ms-1"><span class="base-btn" @click="resetQuery">
-                                <i class="bi bi-trash"></i>
-                            </span></div>
+                    <div class="d-flex align-items-center">
+                        <TextSearchInput :tab="props.tab" :size="24" class="flex-grow-1" />
                     </div>
                     <FilterGroupVue :filter="props.manager.state.filter" :manager="props.manager" :parent="popupElem" />
                 </div>

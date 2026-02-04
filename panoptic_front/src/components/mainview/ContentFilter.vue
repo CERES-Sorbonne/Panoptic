@@ -61,7 +61,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
 <template>
     <div class="d-flex flex-row pt-2 ps-2 pb-1 align-items-center">
-        <TextSearchInput class="me-3" style="flex-shrink: 0;" :query="localQuery" @update:query="setQuery" />
+        <TextSearchInput class="me-3" style="flex-shrink: 0;" :tab="props.tab" @update:query="setQuery" />
 
         <div class="me-3 d-flex align-items-center">
             <wTT message="main.menu.grid_tooltip">

@@ -89,7 +89,7 @@ const capitalizeFirst = (text: any) => {
         </template>
 
         <template #popup="{ hide }">
-            <div class="">
+            <div>
                 <div v-for="option in options" :key="option.value" style="white-space: nowrap;"
                     :class="['bb', { 'is-selected': option.value === modelValue, 'is-disabled': option.disabled }]"
                     @click="selectOption(option, hide)">
