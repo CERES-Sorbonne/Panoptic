@@ -229,6 +229,12 @@ class VectorType:
     source: str
     params: Any
 
+    def __str__(self):
+        model = str(self.params.get('model', 'default').replace('/', ''))
+        return f"{self.source}_{model}_{self.id}"
+
+    def __hash__(self):
+        return hash(str(self))
 
 @dataclass(slots=True)
 class OwnVectorType(VectorType):
