@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
-import { defineProps, defineEmits, ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/keyState';
 import InputOptions from '../actions/InputOptions.vue';
 import { TextQuery } from '@/data/models';
+import LoadWheel from '../loading/LoadWheel.vue';
+import { useSearchStore } from '@/data/stores/textSearchStore';
+import { FilterManager } from '@/core/FilterManager';
+import { TabManager } from '@/core/TabManager';
 
 const actions = useActionStore()
+const searchStore = useSearchStore()
 
-const props = defineProps<{query: TextQuery}>()
+const props = defineProps<{ tab: TabManager, size?: number }>()
 const emits = defineEmits(['update:query'])
 
 const inputElem = ref(null)
@@ -18,6 +23,7 @@ const defaultModes = [{ value: 'text', icon: 'search' }, { value: 'regex', icon:
 const modeOptions = ref<SelectOption[]>([])
 const mode = ref('text')
 const searchText = ref('')
+const size = computed(() => props.size ?? 26)
 
 const isPluginMode = computed(() => mode.value != 'text' && mode.value != 'regex')
 
@@ -30,9 +36,9 @@ function updateModes() {
 }
 
 function loadFromProps() {
-    if (!props.query) return
-    mode.value = props.query.type || 'text'
-    searchText.value = props.query.text || ''
+    if (!props.tab.collection.filterManager.state.query) return
+    mode.value = props.tab.collection.filterManager.state.query.type || 'text'
+    searchText.value = props.tab.collection.filterManager.state.query.text || ''
 }
 
 function resetSearch() {
@@ -51,7 +57,7 @@ function emitQuery() {
     }
 
     if (isPluginMode.value) {
-        if(!actions.index[mode.value]) {
+        if (!actions.index[mode.value]) {
             mode.value = 'text'
             resetSearch()
             return
@@ -61,11 +67,28 @@ function emitQuery() {
         newQuery.ctx = ctx
     }
 
-    emits('update:query', newQuery)
+    setQuery(newQuery)
+}
+
+async function setQuery(query) {
+    if(areQueryEquals(query, props.tab.collection.filterManager.state.query)) return
+    searchStore.setLoading(true)
+    props.tab.collection.filterManager.setQuery(query)
+    await props.tab.collection.filterManager.update(true)
+    props.tab.saveState()
+    searchStore.setLoading(false)
+
+}
+
+function areQueryEquals(query1: TextQuery, query2: TextQuery) {
+    if(query1.type != query2.type) return false
+    if(query1.text != query2.text) return false
+    if(JSON.stringify(query1.ctx.uiInputs) !== JSON.stringify(query2.ctx.uiInputs)) return false
+    return true
 }
 
 updateModes()
-watch(() => props.query, loadFromProps, { deep: true })
+watch(() => props.tab.collection.filterManager.state.query, loadFromProps, { deep: true })
 watch(() => actions.textSearchFunctions, updateModes)
 watch(mode, emitQuery)
 onMounted(() => {
@@ -80,15 +103,26 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 <template>
     <div class="cont3">
         <div class="select-wrapper">
-            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" class="bg-white" />
+            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" class="bg-white"
+                :size="size * 0.6" :teleport="false" />
         </div>
-        <div class="input-field d-flex items-align-center" :class="{ focus: isFocus }">
-            <input class="text-input2" type="text" v-model="searchText" :placeholder="$t('main.menu.search')"
-                ref="inputElem" @focusin="isFocus = true" @focusout="isFocus = false" @keypress.enter="confirmSearch"/>
-            <div style="width: 22px;"><i v-if="searchText.length" class="bi bi-x sb" @click="resetSearch" /></div>
+        <div class="input-field d-flex items-align-center" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
+            <input class="text-input2" :style="{ height: size + 'px' }" type="text" v-model="searchText"
+                :placeholder="$t('main.menu.search')" ref="inputElem" @focusin="isFocus = true"
+                @focusout="isFocus = false" @blur="confirmSearch"
+                @keypress.enter="t => (t.target as HTMLElement).blur()" />
+            <div class="toolbar">
+                <div v-if="searchStore.isLoading" :style="{ fontSize: size * 0.63 + 'px' }" style="margin-right: 2px;">
+                    <LoadWheel :loading="searchStore.isLoading" />
+                </div>
+                <div v-if="searchText.length" :style="{ fontSize: size * 0.63 + 'px' }" style="margin-right: 2px;"
+                    @click="resetSearch"><i class="bi bi-x sb" /></div>
+            </div>
+
         </div>
         <div v-if="isPluginMode">
-            <InputOptions :function-id="mode" :size="14" :hide-text="true" @changed="emitQuery"/>
+            <InputOptions :function-id="mode" :size="props.size * 0.6" :style="{ fontSize: size * 0.56 + 'px' }"
+                :hide-text="true" @changed="emitQuery" />
         </div>
     </div>
 </template>
@@ -99,22 +133,31 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     gap: 4px;
     align-items: center;
     border-radius: 3px;
-    overflow: hidden;
+    /* overflow: hidden; */
+}
+
+.toolbar {
+    display: flex;
+    position: absolute;
+    right: 0px;
+    /* top: 0px; */
 }
 
 .input-field {
-    height: 26px;
     border: 1px solid var(--border-color, #ccc);
     background-color: var(--grey, #f8f8f8);
     border-radius: 3px;
     transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 0;
+    position: relative;
+    flex-grow: 1;
 }
 
 .text-input2 {
-    height: 24px;
     border: none;
     background-color: transparent;
     outline: none;
+    width: 100%;
 }
 
 .input-field:hover {

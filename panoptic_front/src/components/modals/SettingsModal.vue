@@ -84,7 +84,7 @@ watch(selectedPage, () => changed.value = false)
                                 <div class="bb align-self-center m-4" style="width: 120px;"
                                     @click="selectedPage = PAGE.Plugins">
                                     <div class="border rounded p-2 text-center">
-                                        <div><i class="bi bi-plugin" style="font-size: 50px;" /></div>
+                                        <div><i class="bi bi-boxes" style="font-size: 50px;" /></div>
                                         <div>{{$t('modals.settings.plugins')}}</div>
                                     </div>
                                 </div>

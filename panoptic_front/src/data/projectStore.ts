@@ -40,7 +40,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======================
 
     async function init() {
-        if(loaded.value) return
+        if (loaded.value) return
         console.log('init')
 
         const panoptic = usePanopticStore()
@@ -64,7 +64,11 @@ export const useProjectStore = defineStore('projectStore', () => {
 
     function importState(st: ProjectState) {
         state.value = st
-        actionStore.init()
+        console.log('import state', st)
+        if (state.value) {
+            actionStore.init()
+        }
+
     }
 
     function clear() {
@@ -129,8 +133,8 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function correctUiState() {
-        if(!uiState.value) {
-            uiState.value = {similarityIntervals: {}, similarityImageSize: 0}
+        if (!uiState.value) {
+            uiState.value = { similarityIntervals: {}, similarityImageSize: 0 }
         }
         if (!uiState.value.similarityIntervals) {
             uiState.value.similarityIntervals = {}
@@ -155,7 +159,7 @@ export const useProjectStore = defineStore('projectStore', () => {
     }
 
     function importTasks(tasks: TaskState[]) {
-        if(!state.value) return
+        if (!state.value) return
         state.value.tasks = tasks
     }
     function importSettings(settings: ProjectSettings) {

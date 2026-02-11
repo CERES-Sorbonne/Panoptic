@@ -98,11 +98,22 @@ class Panoptic:
 
         return project
 
-    async def remove_project(self, project_id: int):
-        if project_id in self.open_projects:
+    async def remove_project(self, project_id: int, delete_files: bool):
+        project = next((p for p in self.data.projects if p.id == project_id), None)
+        if not project:
             return
+        # TODO: see how to manage in multiuser
+        if project_id in self.open_projects:
+            await self.open_projects[project_id].close()
+            self.open_projects.pop(project_id)
+
         await self.db.delete_project(project_id)
         self.data.projects = await self.db.get_projects()
+
+        if delete_files and project.path:
+            directory = Path(project.path)
+            if directory.exists() and directory.is_dir():
+                shutil.rmtree(directory)
 
     async def update_project(self, project_id: int, new_name: str, ignored_plugins: list[str]):
         project = next(p for p in self.data.projects if p.id == project_id)

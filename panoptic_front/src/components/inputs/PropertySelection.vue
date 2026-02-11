@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
 import { deletedID, useDataStore } from '@/data/dataStore'
 import { PropertyType, Property } from '@/data/models'
+import TextInput from './TextInput.vue'
 
 const data = useDataStore()
 
@@ -20,7 +21,6 @@ const emits = defineEmits<{
     (e: 'select', id: number): void
 }>()
 
-const searchElem = ref<HTMLInputElement | null>(null)
 const propertyFilter = ref('')
 
 const filteredProperties = computed(() => {
@@ -38,22 +38,22 @@ const filteredProperties = computed(() => {
     return properties.filter(p => p.name.toLocaleLowerCase().includes(propertyFilter.value.toLocaleLowerCase()))
 })
 
-onMounted(() => searchElem.value?.focus())
 </script>
 
 <template>
-    <div class="p-1">
-        <div class="mb-1 ps-2 pe-2">
-            <input class="w-100 bg-light" type="text" ref="searchElem" v-model="propertyFilter" />
+    <div class="p-1 flex flex-column h-100">
+        <div class="mb-1">
+            <!-- <input class="w-100 bg-light" type="text" ref="searchElem" v-model="propertyFilter" /> -->
+            <TextInput v-model="propertyFilter" :focus="true" />
         </div>
-        <div 
-            v-for="prop in filteredProperties" 
-            class="p-1 base-hover text-black" 
-            style="cursor:pointer" 
-            @click="emits('select', prop.id)"
-        >
-            <PropertyIcon :type="prop.type" class="me-2" />
-            <a>{{ prop.name }}</a>
+        <div class="flex-grow-1 overflow-auto" style="max-height: 350px; overflow-y: scroll;">
+            <div v-for="prop in filteredProperties" class="p-1 base-hover text-black" style="cursor:pointer"
+                @click="emits('select', prop.id)">
+                <PropertyIcon :type="prop.type" class="me-2" />
+                <a>{{ prop.name }}</a>
+            </div>
         </div>
     </div>
 </template>
+
+<style scoped></style>

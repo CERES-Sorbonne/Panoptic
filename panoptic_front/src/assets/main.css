@@ -1,5 +1,5 @@
 :root {
-  --border-color: rgb(195, 207, 217);
+  --border-color: #c3cfd9;
   --validate-border: rgb(163, 208, 209);
   --refuse-border: rgb(213, 180, 191);
   --light-grey: rgb(233, 233, 233);
@@ -8,7 +8,7 @@
   --text-color: rgb(33, 37, 41);
 
   --grey: rgb(246, 246, 247);
-  --blue : #007bff;
+  --blue: #007bff;
   --tab-grey: rgb(226, 226, 226);
   --selected-grey: #e5e3e3;
 
@@ -144,12 +144,14 @@ body {
 
 .bbb {
   border: 1px solid var(--border-color);
-  top: -2px;
+  /* top: -2px; */
+  box-sizing: border-box;
 }
 
 .sbb {
   border: 1px solid var(--border-color);
   top: -1px;
+  box-sizing: border-box;
 }
 
 .bnr:hover,
@@ -160,6 +162,22 @@ body {
 .sbc:hover,
 .sbb:hover {
   background-color: hsl(0, 0%, 90%) !important;
+}
+
+.bw:hover {
+  background-color: white !important;
+}
+
+.btn-icon-hover:hover {
+  color: black
+}
+
+.btn-i {
+  width: 20px;
+  height: 18px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.9);
+  background-color: red;
 }
 
 .base-btn:hover {
@@ -345,12 +363,14 @@ button {
 }
 
 .button {
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   font-size: 11px;
   background-color: #ffffff;
   color: rgb(76, 92, 107);
   border-radius: 3px;
   padding: 0px 3px;
+  height: 20px;
+  line-height: 18px;
   /* position: relative; */
   /* top: 2px;
   cursor: pointer; */
@@ -531,19 +551,45 @@ input[type=number]::-webkit-inner-spin-button {
 
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 input[type=number] {
-    -moz-appearance:textfield;
+  -moz-appearance: textfield;
 }
 
-.bg-selected, .bg-medium {
-    background-color: #e5e3e3;
-    border-radius: 3px;
+.bg-selected,
+.bg-medium {
+  background-color: #e5e3e3;
+  border-radius: 3px;
 }
 
 .bg-light {
   background-color: #fbfbfb;
+}
+
+/* .bi { vertical-align: -1px; } */
+
+.bid {
+  position: relative;
+  top: 0.5px;
+}
+
+.glass-box {
+    padding: 4px;
+    /* background: rgba(195, 207, 217, 0.384); */
+    background-color: transparent;
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(195, 207, 217, 0.117);
+    box-shadow: 0 0 2px 2px rgb(195, 207, 217);
+    border-radius: 5px;
+}
+
+.cluster-icon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  top: -1px;
 }

@@ -53,7 +53,7 @@ function toggleSelect() {
 
 <style scoped>
 .small-offset {
-    margin-top: 3px;
+    margin-top: 0px;
     font-size: 15px;
 }
 

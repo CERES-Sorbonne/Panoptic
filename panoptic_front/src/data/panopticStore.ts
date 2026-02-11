@@ -45,11 +45,12 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     // TODO: remove this
     const openModalId = ref(null)
     const modalData = ref(null)
+    const failedConnected = ref(false)
 
     const notifs = ref<Notif[]>([])
 
     const isConnected = computed(() => {
-        if(serverState.value == undefined || clientState.value == undefined) return false
+        if (serverState.value == undefined || clientState.value == undefined) return false
         return true
     })
 
@@ -64,10 +65,10 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     function updateClientState(state: PanopticClientState) {
         clientState.value = state
-        if(state.connectedProject) {
+        if (state && state.connectedProject) {
             router.push('/view')
         }
-        else {
+        else if (state && state.connectedProject == undefined) {
             router.push('/')
         }
     }
@@ -76,7 +77,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         serverState.value = state
     }
 
-    async function getPackagesInfo(){
+    async function getPackagesInfo() {
         return apiGetPackagesInfo()
     }
 
@@ -87,11 +88,13 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     async function closeProject(projectId: number) {
         notifs.value = []
+        project.clear()
         await apiCloseProject(projectId)
     }
 
     async function deleteProject(projectId: number) {
-        const state = await apiDeleteProject(projectId)
+       const deleteFiles: boolean = window.confirm("Would you also like to delete the associated files?");
+        const state = await apiDeleteProject(projectId, deleteFiles);
     }
 
     async function createProject(path: string, name: string) {
@@ -102,7 +105,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     async function importProject(path: string) {
-        const state = await apiImportProject(path)
+        await apiImportProject(path)
         // await loadProject(path)
     }
 
@@ -126,7 +129,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modal.closeModal(id)
     }
 
-async function addPlugin(plugin: PluginAddPayload) {
+    async function addPlugin(plugin: PluginAddPayload) {
         if (!plugin) return
         await apiAddPlugin(plugin)
         serverState.value.plugins = await apiGetPlugins()
@@ -138,8 +141,8 @@ async function addPlugin(plugin: PluginAddPayload) {
     }
 
     async function updatePlugin(name: string) {
-       const res = await apiUpdatePlugin(name) 
-       return res
+        const res = await apiUpdatePlugin(name)
+        return res
     }
 
     function clearNotif() {
@@ -147,22 +150,22 @@ async function addPlugin(plugin: PluginAddPayload) {
     }
 
     function notify(notifList: Notif | Notif[]) {
-        if(!Array.isArray(notifList)) {
+        if (!Array.isArray(notifList)) {
             notifList = [notifList]
         }
-        for(let notif of notifList) {
+        for (let notif of notifList) {
             notif.id = getId()
             notif.receivedAt = new Date()
             notifs.value.push(notif)
         }
 
-        showModal(ModalId.NOTIF, notifList[notifList.length-1].id)
+        showModal(ModalId.NOTIF, notifList[notifList.length - 1].id)
     }
 
     function delNotif(id: number) {
         const index = notifs.value.findIndex(n => n.id == id)
         console.log(index)
-        if(index < 0) return
+        if (index < 0) return
         notifs.value.splice(index, 1)
     }
 
@@ -173,17 +176,25 @@ async function addPlugin(plugin: PluginAddPayload) {
 
     async function updateProject(project: ProjectRef) {
         const state = await apiUpdateProject(project)
-        
+    }
+
+
+    function setConnect() {
+        failedConnected.value = false
+    }
+
+    function setFailedConnect() {
+        failedConnected.value = true
     }
 
     return {
-        init, isConnected, clientState, serverState,
+        init, isConnected, clientState, serverState, failedConnected,
         modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateProject,
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,
         getPackagesInfo,
-        updateClientState, updateServerState
+        updateClientState, updateServerState, setConnect, setFailedConnect
     }
 })

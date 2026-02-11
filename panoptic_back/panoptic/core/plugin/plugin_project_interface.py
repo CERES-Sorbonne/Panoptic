@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from panoptic.core.plugin.plugin import APlugin
 
 from panoptic.models import ImagePropertyKey, InstanceProperty, PropertyType, PropertyMode, Property, \
-    DbCommit, Vector, Instance, DeleteFolderConfirm, VectorType
+    DbCommit, Vector, Instance, DeleteFolderConfirm, VectorType, Map
 
 
 class PluginProjectInterface:
@@ -112,6 +112,9 @@ class PluginProjectInterface:
         res = await self._project.db.add_vector_type(vec)
         return res
 
+    async def create_map(self, name: str, key: str, data: list):
+        res = self._project.db.create_map(source=self._plugin.name, name=name, key=key, data=data)
+        return res
 
     # COMMIT
 
@@ -129,6 +132,23 @@ class PluginProjectInterface:
 
     async def add_vector(self, vector: Vector):
         res = await self._project.db.add_vector(vector)
+
+
+    # =====================================================
+    # ======================= MAPS ========================
+    # =====================================================
+
+    async def get_map(self, map_id: int):
+        return await self._project.db.get_map(map_id)
+
+    async def list_maps(self):
+        return await self._project.db.list_maps()
+
+    async def add_map(self, point_map: Map):
+       return await self._project.db.add_map(point_map)
+
+    async def delete_map(self, map_id: int):
+        return await self._project.db.delete_map(map_id)
 
 
     # TASKS

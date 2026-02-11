@@ -10,6 +10,7 @@ import { DbCommit, GroupLine, GroupResult, ImagePropertyValue, Instance, Instanc
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 import { allChildrenSha1Groups } from '@/utils/utils'
+import ActionButton2 from '@/components/actions/ActionButton2.vue'
 
 const data = useDataStore()
 
@@ -92,7 +93,7 @@ function openChildren() {
 }
 
 const saving = ref(false)
-async function saveHirachy() {
+async function saveHirachy(ignoreParents?: boolean) {
     if (saving.value) return
 
     saving.value = true
@@ -103,7 +104,22 @@ async function saveHirachy() {
     let id = 0
     const idFunc = () => { id -= 1; return id }
     const tagToImages: { [tagId: number]: Instance[] } = {}
-    const tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
+    let tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
+
+    if(ignoreParents) {
+        const hasChildren = {}
+        for(let tag of tags) {
+            if(tag.parents) {
+                tag.parents.forEach(p => hasChildren[p] = true)
+            }
+        }
+
+        for(let tagId of Object.keys(hasChildren).map(Number)) {
+            delete tagToImages[tagId]
+        }
+        tags = tags.filter(t => !hasChildren[t.id])
+        tags.forEach(t => t.parents = [])
+    }
 
     const instanceValues: InstancePropertyValue[] = []
     const imageValues: ImagePropertyValue[] = []
@@ -196,17 +212,20 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
-        <div class="d-flex flex-row align-self-center me-2" v-if="!closed && !props.hideOptions">
-            <div v-if="!hasSubgroups" class="ms-2">
-                <StampDropdown :images="images" />
+        <template v-if="!closed && !props.hideOptions">
+            <div v-if="!hasSubgroups" class="ms-1 sbb">
+                <StampDropdown :images="images" :no-border="true" style="font-size: 14px;"
+                    :show-number="true" />
             </div>
 
-            <div class="ms-2" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" style="font-size: 10px;" @groups="addClusters" :group-name="props.item.data.name" />
+            <div class="ms-1" v-if="!hasSubgroups">
+                <ActionButton action="group" :images="group.images" @groups="addClusters"/>
             </div>
-            <div class="ms-2">
-                <ActionButton action="execute" :images="instancesForExecute" style="font-size: 10px;"
-                    @groups="addClusters" :group-name="props.item.data.name" />
+            <div class="ms-1">
+                <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
+                    <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
+                    </div>
+                </ActionButton2>
             </div>
 
             <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
@@ -214,13 +233,9 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
                 </wTT>
             </div>
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.close-clusters">
-                <div class="sbb cluster-close" @click="clear">X Clusters</div>
-            </wTT>
-
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-2" message="btn.save-clusters">
-                <div class="sbb cluster-close" @click="saveHirachy">
-                    <span style="position: relative; top: 1px">
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
+                <div class="sbb cluster-close" @click="saveHirachy()">
+                    <span style="">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
                         <i v-if="!saving" class="bi bi-diagram-3"></i>
                         <div v-else class="spinner-border spinner-border-sm text-primary" role="status">
@@ -229,8 +244,23 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     </span>
                 </div>
             </wTT>
+                        <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
+                <div class="sbb cluster-close" @click="saveHirachy(true)">
+                    <span style="">
+                        <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
+                        <!-- <i v-if="!saving" class="bi bi-diagram-3"></i> -->
+                        <div v-if="saving" class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </span>
+                </div>
+            </wTT>
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1 bbb" message="btn.close-clusters"
+                style="font-size: 14px;">
+                <div class="cluster-close" @click="clear"><i class="bi bi-x-lg" /></div>
+            </wTT>
             <!-- <span v-if="group.isSha1Group">lala</span> -->
-        </div>
+        </template>
 
     </div>
 </template>
@@ -245,6 +275,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
     /* position: relative; */
     height: 30px;
     /* line-height: 25px; */
+    align-items: center;
 }
 
 .group-line-border {
@@ -258,10 +289,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 }
 
 .cluster-close {
-    font-size: 10px;
+    font-size: 14px;
     padding: 0px 3px;
-    line-height: 16px;
+    /* line-height: 16px; */
     /* color: grey; */
-    border: 2px solid var(--border-color);
+    /* border: 1px solid var(--border-color); */
 }
 </style>

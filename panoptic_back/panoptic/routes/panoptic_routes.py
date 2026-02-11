@@ -13,7 +13,7 @@ from starlette.responses import FileResponse
 
 from panoptic.core.panoptic_server import PanopticServer
 from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload, \
-    DeleteProjectPayload, IntPayload, ProjectUpdatePayload
+    DeleteProjectPayload, IntPayload, ProjectUpdatePayload, ProjectDeleteReq
 from panoptic.models import ProjectIdPayload
 
 selection_router = APIRouter()
@@ -53,7 +53,6 @@ async def update_ignored_plugins(data: IgnoredPluginPayload):
 @selection_router.post("/load")
 async def load_project_route(req: ProjectIdPayload, request: Request):
     connection_id = request.query_params.get('connection_id')
-    print(connection_id)
     res = await server.load_project(req.project_id, connection_id)
     return res
 
@@ -72,8 +71,9 @@ async def close_project(req: ProjectIdPayload, request: Request):
 
 
 @selection_router.post("/delete_project")
-async def delete_project_route(req: ProjectIdPayload):
-    await server.remove_project(req.project_id)
+async def delete_project_route(req: ProjectDeleteReq):
+    await server.remove_project(req.project_id, req.delete_files)
+    print(req)
     return await get_panoptic_state()
 
 
@@ -85,8 +85,9 @@ async def create_project_route(req: ProjectRequest, request: Request):
 
 
 @selection_router.post("/import_project")
-async def import_project_route(req: LoadProjectPayload):
-    await server.import_project(req.path)
+async def import_project_route(req: LoadProjectPayload, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    await server.import_project(req.path, connection_id)
     return await get_panoptic_state()
 
 

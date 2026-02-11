@@ -111,6 +111,15 @@ class InstanceValuesArray:
     ids: list[str]
     values: list[Any]
 
+@dataclass(slots=True)
+class Map:
+    id: int
+    source: str
+    name: str
+    key: str
+    count: int
+    data: list[Any] | None = None
+
 
 @dataclass(slots=True)
 class LoadState:
@@ -564,11 +573,25 @@ class ProjectIdPayload(BaseModel):
     project_id: int
 
 
+class ProjectDeleteReq(BaseModel):
+    project_id: int
+    delete_files: bool
+
 @dataclass(slots=True)
 class SyncData:
     key: str
     project_id: int
     data: Any
+
+@dataclass(slots=True)
+class ImageAtlas:
+    id: int # needed if we want to have optimized atlas for big maps where each atlas covers a space region.
+    atlas_nb: int # how many atlas files there are
+    width: int # in px
+    height: int # in px
+    cell_width: int # in px
+    cell_height: int # in px
+    sha1_mapping: dict[str, tuple[int, int]]
 
 
 ImportOptions = dict[int, ColumnOption]
