@@ -8,15 +8,18 @@ from typing import List, Any
 
 from showinfm import show_in_file_manager
 
+from panoptic.core.project.project_paths import ProjectPaths
 from panoptic.core.project_db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer.importer import Importer
 from panoptic.core.plugin.plugin import APlugin
 from panoptic.core.project.plugin_watcher import PluginWatcher
 from panoptic.core.project.project_actions import ProjectActions
-from panoptic.core.project.project_db import ProjectDb
+from panoptic.core.project_db.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
 from panoptic.core.project.project_ui import ProjectUi
+from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
+from panoptic.core.task.import_folder_task import ImportFolderTask
 from panoptic.core.task.import_image_task import ImportImageTask
 from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
@@ -25,6 +28,9 @@ from panoptic.models import ProjectSettings, PluginKey, DbCommit, ProjectState, 
 
 nb_workers = 8
 folder_import_seq = 1
+
+image_data_folder = 'image_data'
+atlas_folder = 'atlas'
 
 def get_executor():
     executor = ThreadPoolExecutor(max_workers=nb_workers)
@@ -40,6 +46,7 @@ class Project:
         self.executor = get_executor()
         self.is_loaded = False
         self.base_path = folder_path
+        self.paths = ProjectPaths(Path(folder_path))
         self.db: ProjectDb | None = None
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents(self.id)
@@ -62,6 +69,7 @@ class Project:
         self.on.sync.emitTasks(tasks)
 
     async def start(self):
+        self.paths.create_paths()
         conn = DbConnection(self.base_path)
         await conn.start()
         self.db = ProjectDb(conn, self)
@@ -82,6 +90,12 @@ class Project:
 
         # await self.plugin_watcher.start()
         self.is_loaded = True
+
+        # TBD if we do it here
+        atlas = await self.db.get_atlas(0)
+        if not atlas:
+            task = GenerateAtlasTask()
+            self.task_queue.add_task(task)
 
     async def wait_full_start(self):
         await self._load_task
@@ -116,47 +130,16 @@ class Project:
 
     async def import_folder(self, folder: str):
         global folder_import_seq
-        folder = os.path.normpath(folder)
-        all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
-        all_images = [i for i in all_files if
-                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith(
-                          '.jpeg') or i.lower().endswith('.gif') or i.lower().endswith('.webp')]
-
-        folder_node, file_to_folder_id = await self._compute_folder_structure(folder, all_images)
         seq = folder_import_seq
-        folder_import_seq +=1
-        tasks = [ImportInstanceTask(seq=seq, file=file, folder_id=file_to_folder_id[file])
-                 for file in all_images]
-        [self.task_queue.add_task(t) for t in tasks]
-        self.on.sync.emitFolders(await self.db.get_folders())
+        folder_import_seq += 1
+
+        task = ImportFolderTask(seq=seq, folder=folder)
+        self.task_queue.add_task(task)
 
     async def delete_folder(self, folder_id: int):
         res = await self.db.delete_folder(folder_id)
         self.on.delete_folder.emit(res)
         return res
-
-    async def _compute_folder_structure(self, root_path, all_files: List[str]):
-        offset = len(root_path)
-        root, root_name = os.path.split(root_path)
-        root_folder = await self.db.add_folder(root_path, root_name)
-        file_to_folder_id = {}
-        for file in all_files:
-            path, name = os.path.split(file)
-            if offset == len(path):
-                file_to_folder_id[file] = root_folder.id
-                continue
-            path = path[offset + 1:]
-            parts = Path(path).parts
-            current_folder = root_folder
-            for part in parts:
-                if part not in current_folder.children:
-                    child = await self.db.add_folder(current_folder.path + '/' + part, part, current_folder.id)
-                    current_folder.children[part] = child
-                else:
-                    child = current_folder.children[part]
-                file_to_folder_id[file] = child.id
-                current_folder = child
-        return root_folder, file_to_folder_id
 
     async def set_plugin_params(self, plugin_name: str, params: Any):
         plugin = [p for p in self.plugins if p.name == plugin_name]
@@ -272,3 +255,4 @@ class Project:
         Make function awaitable and execute in Executor
         """
         return await asyncio.wrap_future(self.executor.submit(function, *args, **kwargs))
+

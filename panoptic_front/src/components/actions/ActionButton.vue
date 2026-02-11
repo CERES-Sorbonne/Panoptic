@@ -4,12 +4,11 @@ import Dropdown from '../dropdowns/Dropdown.vue';
 import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import ParamInput from '../inputs/ParamInput.vue';
-import ActionSelect from './ActionSelect.vue';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult, sourceFromFunction, fileToBase64 } from '@/utils/utils';
+import { convertClusterGroupResult, sourceFromFunction, objValues, fileToBase64 } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
 const project = useProjectStore()
@@ -29,8 +28,15 @@ const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref<string>(null)
 const setDefault = ref(false)
 const loading = ref(false)
+const dropdownElem = ref(null)
+const showFunctionSelect = ref(false)
 
 const source = computed(() => sourceFromFunction(localFunction.value))
+
+const available = computed(() => {
+    const valid = objValues(actions.index).filter(a => a.hooks.includes(props.action))
+    return valid.map(a => a.id)
+})
 
 function loadAction() {
     localFunction.value = defaultFunction.value
@@ -45,7 +51,7 @@ function loadInput() {
     const params = actions.index[funcId].params
     const defaults = actions.getContext(funcId).uiInputs
 
-    for(let param of params) {
+    for (let param of params) {
         param.defaultValue = defaults[param.name]
     }
 
@@ -98,6 +104,22 @@ async function call() {
     loading.value = false
 }
 
+
+
+function handleShow() {
+    showFunctionSelect.value = false
+    loadAction()
+}
+
+function selectFunction(func) {
+    localFunction.value = func
+    showFunctionSelect.value = false
+}
+
+function openFunctionSelect() {
+    showFunctionSelect.value = true
+}
+
 onMounted(loadAction)
 watch(() => actions.index, loadAction)
 watch(defaultFunction, loadAction)
@@ -106,58 +128,126 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div id="group-action-button" class="main d-flex flex-center" v-if="localFunction">
+    <div class="b-box sbb" v-if="localFunction" @click="call">
         <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <wTT :message="'dropdown.action.' + props.action">
-            <div @click="call">{{ $t('action.' + props.action) }}</div>
+        <wTT :message="'dropdown.action.' + props.action" class="">
+            <div style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
         </wTT>
-        <div class="sep ms-1"></div>
-        <Dropdown :teleport="true" @show="loadAction">
-            <template #button>
-                <div class="bb" style="margin: 0 1px; font-size: 8px;"><i class="bi bi-chevron-down"></i></div>
-            </template>
-            <template #popup="{ hide }">
-                <Autofocus @keydown.enter="call(); hide();">
-                    <div style="min-width: 200px;" class="p-1">
-                        <div class="">
-                            <ActionSelect v-model="localFunction" :action="props.action" :hide-gear="true" :size="12" />
+        <div class="options" @click.stop.prevent="">
+            <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
+                <template #button>
+                    <wTT :message="'dropdown.action.' + props.action" style="font-size: 12px;">
+                        <div class="sb bw">
+                            <i class="bi bi-gear"  style="position: relative; top: 1px"/>
                         </div>
-                        <div class="ps-1 pt-1 pb-1">
-                            <form @submit.prevent="" class="">
-                                <div v-for="input, i in localInputs" class="mb-1">
-                                    <ParamInput :input="input" :source="source"/>
+                    </wTT>
+                </template>
+                <template #popup="{ hide }">
+                    <Autofocus @keydown.enter="call(); hide();">
+                        <div style="min-width: 200px; overflow: hidden;" class="d-flex flex-column">
+                            <!-- Function Selection View -->
+                            <div v-if="showFunctionSelect">
+                                <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]" class="option"
+                                    @click="selectFunction(func)">
+                                    <wTT :message="actions.index[func].description">
+                                        <i class="bi bi-boxes me-1" />{{ actions.index[func].id }}
+                                    </wTT>
                                 </div>
-                                <div class="d-flex flex-center mt-3 pe-1" style="height: 20px;">
+                                <div v-if="available.length === 0" class="text-gray-500 p-2 text-sm">
+                                    No options available
+                                </div>
+                            </div>
+
+                            <!-- Parameters View -->
+                            <div v-else>
+                                <div class="function-header" @click="openFunctionSelect">
+                                    <wTT v-if="localFunction" :message="actions.index[localFunction].description">
+                                        <i class="bi bi-boxes me-1" /><span>{{ localFunction }}</span>
+                                    </wTT>
+                                    <div class="flex-grow-1"></div>
+                                    <i class="ms-1 bi bi-chevron-down" />
+                                </div>
+                                
+                                <div v-if="localInputs.length" style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
+                                    <form @submit.prevent="" class="params-grid mt-1">
+                                        <template v-for="input, i in localInputs">
+                                            <ParamInput :input="input" :source="source" :max-width="200" />
+                                        </template>
+                                    </form>
+                                </div>
+                                
+                                <div class="d-flex flex-center p-1 bar" :class="{'no-shadow': localInputs.length == 0}">
                                     <div class="me-1"><input type="checkbox" v-model="setDefault"
                                             style="position: relative; top: 2px" /></div>
-                                    <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}
-                                    </div>
+                                    <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
                                     <div class="ms-2 flex-grow-1"></div>
                                     <div class="bb" @click="hide">{{ $t('cancel') }}</div>
                                     <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
                                 </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
-                </Autofocus>
-            </template>
-        </Dropdown>
+                    </Autofocus>
+                </template>
+            </Dropdown>
+        </div>
     </div>
 </template>
 
 <style scoped>
-.main {
-    border: 2px solid var(--border-color);
-    border-radius: 3px;
-    padding: 1px 0px 1px 3px;
-    cursor: pointer;
-    height: 20px;
+
+
+.options {
+    display: flex;
+    align-items: center;
+    margin-right: -1.5px;
 }
 
-/* .sep {
-    padding-left: 2px;
-    padding-right: 2px;
-} */
+.option {
+    padding: 4px 7px;
+}
+
+.b-box {
+    font-size: 14px;
+    margin: 0;
+    padding: 0px 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.params-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 4px;
+    align-items: center;
+    padding: 4px 4px;
+}
+
+.bar {
+    display: flex;
+    padding: 0px 8px;
+    -webkit-box-shadow: 0px 0px 2px 1px var(--border-color);
+    box-shadow: 0px 0px 2px 1px var(--border-color);
+}
+
+.no-shadow {
+    box-shadow: none !important;
+    -webkit-box-shadow: none !important;
+}
+
+.function-header {
+    display: flex;
+    padding: 4px 8px;
+    -webkit-box-shadow: 0px 0px 2px 1px var(--border-color);
+    box-shadow: 0px 0px 2px 1px var(--border-color);
+    cursor: pointer;
+    font-size: 14px;
+    align-items: center;
+}
+
+.is-selected {
+    background-color: var(--grey);
+}
 </style>

@@ -259,6 +259,33 @@ def create_id_counter_table():
     """
     return query
 
+def create_map_table():
+    query = """
+    CREATE TABLE maps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        name TEXT NOT NULL,
+        key TEXT NOT NULL,
+        count INTEGER NOT NULL,
+        data JSON NOT NULL
+    );
+    """
+    return query
+
+def create_atlas_table():
+    query = """
+    CREATE TABLE atlas (
+        id INTEGER PRIMARY KEY NOT NULL,
+        atlas_nb INTEGER NOT NULL,
+        width INTEGER NOT NULL,
+        height INTEGER NOT NULL,
+        cell_width INTEGER NOT NULL,
+        cell_height INTEGER NOT NULL,
+        sha1_mapping JSON NOT NULL
+    )
+    """
+    return query
+
 
 tables = {
     'panoptic': create_panoptic_table(),
@@ -276,5 +303,7 @@ tables = {
     'plugin_data': create_plugin_data(),
     'project': create_project_params(),
     'property_group': create_property_group_table(),
+    'maps': create_map_table(),
+    'atlas': create_atlas_table(),
     'id_counter': create_id_counter_table()
 }

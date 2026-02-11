@@ -19,6 +19,7 @@ export interface Instance {
     }
     dist?: number
     containerRatio?: number
+    containerMaxRatio?: number
 
     urlSmall: string
     urlMedium: string
@@ -189,7 +190,8 @@ export interface FolderIndex {
 
 export interface CollectionState {
     autoReload: boolean,
-    instances?: number[]
+    instances?: number[],
+    filterBySelection?: boolean
 }
 
 export interface ScoreInterval {
@@ -217,6 +219,16 @@ export interface TabState {
     visibleFolders: { [key: number]: boolean }
     selectedFolders: { [key: number]: boolean }
     propertyOptions: { [key: number]: PropertyOption }
+    mapOptions: MapOptions
+
+    isSelection?: boolean
+}
+
+export interface MapOptions {
+    showPoints: boolean
+    selectedMap: number
+    groupOption: string
+    imageSize: number
 }
 
 export interface TabData {
@@ -294,8 +306,10 @@ export const Colors = [
     { name: 'green', color: '#69db7c' },
     { name: 'lime', color: '#a9e34b' },
     { name: 'yellow', color: '#ffd43b' },
-    { name: 'orange', color: '#ffa94d' },
+    { name: 'orange', color: '#ffa94d' }
 ]
+
+export const greyColor = { name: 'grey', color: '#808080'}
 
 export interface ScrollerLine {
     id: string | number
@@ -415,7 +429,7 @@ export interface PluginDefaultParams {
     functions: { [func: string]: { [param: string]: any } }
 }
 
-export enum PluginType{
+export enum PluginType {
     PIP = "pip",
     GIT = "git",
     LOCAL = "local"
@@ -734,7 +748,7 @@ export interface User {
 }
 
 export interface UserState extends User {
-  connectedTo?: string
+    connectedTo?: string
 }
 
 export interface PanopticServerState {
@@ -772,3 +786,67 @@ export interface TextQuery {
     text?: string
     ctx?: ActionContext
 }
+
+export interface PointMap {
+    id: number
+    source: string
+    name: string
+    key: string
+    count: number
+    data?: any[]
+}
+
+export interface MapIndex {
+    [mapId: number]: PointMap
+}
+
+export interface BoundingBox {
+    minX: number
+    minY: number
+    maxX: number
+    maxY: number 
+    color: string
+}
+
+export interface MapGroup {
+    id: number
+    name: string
+    color: string
+    count: number
+    points: PointData[]
+    box: BoundingBox
+}
+
+// Atlas
+export interface ImageAtlas {
+    id: number
+    atlasNb: number
+    width: number
+    height: number
+    cellWidth: number
+    cellHeight: number
+    sha1Mapping: Record<string, [number, number]>
+}
+
+export interface ZoomParams {
+    h: number
+    z1: number
+    z2: number
+}
+
+export interface PointData {
+    x: number
+    y: number
+    z: number
+    color: string
+    tint?: string,
+    tintAlpha: number
+    sha1: string
+    ratio: number,
+    id?: number,
+    border?: number
+    borderColor?: string
+    order: number
+}
+
+export interface PointIndex { [pointId: number]: PointData }

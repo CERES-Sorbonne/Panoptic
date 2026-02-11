@@ -13,9 +13,9 @@ const maxShow = 5
 
 const buttonStyle = computed(() => {
     if (flash.value) {
-        return { backgroundColor: 'blue' }
+        return { backgroundColor: "#89b0cd" }
     }
-    return { backgroundColor: 'white' }
+    return { backgroundColor: 'transparent' }
 })
 
 const undos = computed(() => [...data.history.undo].reverse().slice(0, maxShow))
@@ -33,9 +33,10 @@ watch(() => data.onUndo, () => {
     <Dropdown v-if="undos.length || redos.length">
         <template #button>
             <wTT message="dropdown.history.info">
-                <div class="d-flex sb flash" style="font-size: 14px;" :style="buttonStyle">
-                    <i class="bi bi-clock-history me-1"></i>
-                    <div>{{ $t('dropdown.history.button') }}</div>
+                <div class="d-flex tool " >
+                    <div  :style="buttonStyle"><i class="bi bi-clock-history me-1 flash"></i></div>
+                    
+                    <!-- <div>{{ $t('dropdown.history.button') }}</div> -->
                 </div>
             </wTT>
         </template>
@@ -89,5 +90,23 @@ watch(() => data.onUndo, () => {
 <style scoped>
 .flash {
     transition: background-color 0.5s ease;
+}
+
+.tool{
+    color: rgb(0, 0, 0);
+    height: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 1px 1px 0 5px;
+    overflow: hidden;
+}
+
+.tool:hover,
+.tool-sm:hover {
+    background-color: rgba(137, 176, 205, 0.4);
 }
 </style>

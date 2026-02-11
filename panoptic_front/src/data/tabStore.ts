@@ -13,7 +13,7 @@ import { apiGetTabs, apiSetTabs } from "./apiProjectRoutes";
 
 const TAB_LIST_KEY = 'tab_list'
 const TAB_PREFIX = 'tab_id_'
-export const TAB_MODEL_VERSION = 6
+export const TAB_MODEL_VERSION = 7
 
 let managers: { [tabId: number]: TabManager } = {}
 
@@ -74,14 +74,15 @@ export const useTabStore = defineStore('tabStore', () => {
 
         const activeTab = useProjectStore().uiState?.activeTab
         if (activeTab && loadedTabs.value.includes(activeTab)) {
-            selectMainTab(activeTab)
+            await selectMainTab(activeTab)
         } else {
-            selectMainTab(loadedTabs.value[0])
+            await selectMainTab(loadedTabs.value[0])
         }
     }
 
-    async function addTab(name?: string) {
+    async function addTab(name?: string, isSelection?: boolean) {
         const tab = buildTabState()
+        tab.isSelection = isSelection
         let id = 1
         if (loadedTabs.value.length) {
             let maxId = Math.max(...loadedTabs.value)
@@ -93,7 +94,7 @@ export const useTabStore = defineStore('tabStore', () => {
         await saveTabsToStorage()
         mainTab.value = id
         managers[id].isNew = true
-        selectMainTab(id)
+        await selectMainTab(id)
         return tab
     }
 
@@ -105,13 +106,13 @@ export const useTabStore = defineStore('tabStore', () => {
         console.log('locaded tabs', loadedTabs.value)
         console.log('main tab', mainTab.value, id)
         if (mainTab.value == id && loadedTabs.value.length) {
-            selectMainTab(loadedTabs.value[0])
+            await selectMainTab(loadedTabs.value[0])
         } else if (!loadedTabs.value.length) {
             addTab()
         }
     }
 
-    function selectMainTab(id: number) {
+    async function selectMainTab(id: number) {
         if (!managers[id]) return
 
         for (let manager of objValues(managers)) {
@@ -120,10 +121,10 @@ export const useTabStore = defineStore('tabStore', () => {
 
         mainTab.value = id
         managers[id].activate()
-        managers[id].update()
+        await managers[id].update()
 
         useProjectStore().uiState.activeTab = id
-        useProjectStore().saveUiState()
+        await useProjectStore().saveUiState()
     }
 
     async function saveTabsToStorage() {
