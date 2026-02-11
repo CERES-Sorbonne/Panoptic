@@ -56,35 +56,35 @@ const groups = computed(() => {
 </script>
 
 <template>
-    <div class="d-flex flex-row group-form">
-        <div class="pt-1 pb-1">{{ $t('main.menu.groupby') }}: </div>
-        <div class="bg-selected  bg d-flex flex-row m-0 ms-1 p-0  align-items-center" v-if="selectedProperties.length">
+    <div class="d-flex flex-row group-form align-items-center ">
+        <div class="me-1">{{ $t('main.menu.groupby') }}: </div>
+        <div class="bg-selected  bg d-flex flex-row m-0 p-0  align-items-center" v-if="selectedProperties.length">
             <template v-for="group, index in groups">
                 <i v-if="index > 0" class="bi bi-chevron-right smaller"></i>
-                <div class="base-hover m-1 ps-1 pe-1" @click="del(group.property.id)" id="remove-group-button">
+                <div class="bbw" @click="del(group.property.id)" id="remove-group-button">
                     {{ group.property.name }}
                 </div>
                 <wTT v-if="group.option.type == GroupSortType.Size" message="main.menu.sort.group_order_nb_tooltip">
-                    <i v-if="group.option.direction == SortDirection.Ascending" class="bi bi-sort-up-alt sm-btn" @click="setSortType(group.property.id, GroupSortType.Property)"></i>
-                    <i v-else class="bi bi-sort-down sm-btn" @click="setSortType(group.property.id, GroupSortType.Property)"></i>
+                    <i v-if="group.option.direction == SortDirection.Ascending" class="bi bi-sort-up-alt bbw" @click="setSortType(group.property.id, GroupSortType.Property)"></i>
+                    <i v-else class="bi bi-sort-down bbw" @click="setSortType(group.property.id, GroupSortType.Property)"></i>
                 </wTT>
                 <wTT v-else message="main.menu.sort.group_order_az_tooltip">
                     <template v-if="group.property.type == PropertyType.number">
-                        <i v-if="group.option.direction == SortDirection.Ascending" class="bi bi-sort-numeric-up sm-btn" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
-                        <i v-else class="bi bi-sort-numeric-down-alt sm-btn" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
+                        <i v-if="group.option.direction == SortDirection.Ascending" class="bi bi-sort-numeric-up bbw" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
+                        <i v-else class="bi bi-sort-numeric-down-alt bbw" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
                     </template>
                     <template v-else>
-                        <i v-if="group.option.direction == SortDirection.Ascending" class="bi bi-sort-alpha-up sm-btn" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
-                        <i v-else class="bi bi-sort-alpha-down-alt sm-btn" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
+                        <i v-if="group.option.direction == SortDirection.Ascending" class="bi bi-sort-alpha-up bbw" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
+                        <i v-else class="bi bi-sort-alpha-down-alt bbw" @click="setSortType(group.property.id, GroupSortType.Size)"></i>
                     </template>
                 </wTT>
                 <wTT v-if="group.option.direction == SortDirection.Ascending" message="main.menu.sort.order_asc">
-                    <i class="bi bi-arrow-up sm-btn" @click="setDirection(group.property.id, SortDirection.Descending)"></i>
+                    <i class="bi bi-arrow-up bbw" @click="setDirection(group.property.id, SortDirection.Descending)"></i>
                 </wTT>
                 <wTT v-else message="main.menu.sort.order_desc">
-                    <i class="bi bi-arrow-down sm-btn" @click="setDirection(group.property.id, SortDirection.Ascending)"></i>
+                    <i class="bi bi-arrow-down bbw" @click="setDirection(group.property.id, SortDirection.Ascending)"></i>
                 </wTT>
-                <div v-if="group.property.type == PropertyType.date" class="sm-btn"><GroupOptionDropdown :option="group.option" @change="e => updateGroupOption(group.property.id, e)"/></div>
+                <div v-if="group.property.type == PropertyType.date" class="bbw"><GroupOptionDropdown :option="group.option" @change="e => updateGroupOption(group.property.id, e)"/></div>
             </template>
             <i v-if="props.isLoading" class="spinner-grow spinner-grow-sm loading ms-1"></i>
         </div>
@@ -107,7 +107,17 @@ const groups = computed(() => {
 }
 
 .bg {
+    border-radius: 2px;
+    overflow: hidden;
+    height: 26px;
+}
 
-    border-radius: 3px;
+.bbw {
+    padding: 2px 4px;
+    cursor: pointer;
+}
+
+.bbw:hover {
+    background-color: rgb(240, 240, 240);
 }
 </style>

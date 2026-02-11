@@ -18,7 +18,7 @@ const hover = ref(false) // should be used to activate resize only on hover but 
 
 const classes = computed(() => {
     const res = ['common']
-    if(true || !props.disabled && hover.value) { // always do right now to avoid using hover detection 
+    if(!props.disabled) { // always do right now to avoid using hover detection 
         res.push('horizontal')
     }
     return res

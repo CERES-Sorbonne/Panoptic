@@ -59,7 +59,7 @@ class MacOCR(APlugin):
         instances = await self._project.get_instances(ids=context.instance_ids)
         unique_sha1 = list({i.sha1: i for i in instances}.values())
         tasks = [await ocr(i, prop) for i in unique_sha1]
-        # values = await asyncio.gather(*tasks)
+        # data = await asyncio.gather(*tasks)
         values = tasks
         commit.properties.append(prop)
         commit.image_values.extend(values)

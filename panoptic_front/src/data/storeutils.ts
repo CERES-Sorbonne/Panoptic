@@ -5,7 +5,8 @@ import { useDataStore } from "./dataStore"
 
 export function computeContainerRatio(img: Instance) {
     let ratio = img.width / img.height
-    return Math.max(Math.min(2, ratio), 1)
+    let maxRatio = Math.max(Math.min(2, ratio), 1)
+    return {ratio, maxRatio}
 }
 
 export function buildFolderNodes(folders: Array<Folder>) {

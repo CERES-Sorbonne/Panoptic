@@ -4,6 +4,8 @@ import StampDropdown from '../inputs/StampDropdown.vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
+import ActionButton2 from '../actions/ActionButton2.vue';
+import { useTabStore } from '@/data/tabStore';
 
 const data = useDataStore()
 
@@ -15,34 +17,46 @@ const images = computed(() => props.selectedImagesIds.map(id => data.instances[i
 
 const emits = defineEmits(['remove:selected', 'stamped'])
 
+function openSelectionTab() {
+    // useTabStore().addTab('Selection', true)
+}
+
 </script>
 
 <template>
-    <div class="d-flex border rounded p-0 m-0">
-        <wTT message="main.menu.remove_selection_tooltip">
-            <div class="btn-cls" @click="emits('remove:selected')"><i class="bi bi-x"></i></div>
-        </wTT>
-        <div class="selection-counter"><StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')"/></div>
+    <div class="d-flex b-border">
+        <div class="sb no-radius m-0" style="padding: 0px 4px 0 0;" @click="emits('remove:selected')"><i
+                class="bi bi-x" />{{ images.length }} <i class="bi bi-image" /> </div>
+        <div class="no-radius left-border">
+            <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
+        </div>
+        <div class="no-radius left-border">
+            <ActionButton2 action="execute" :images="images" :no-border="true">
+                <div class="sb bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
+            </ActionButton2>
+        </div>
+        <!-- <div class="no-radius left-border" @click="openSelectionTab">
+            <div class="sb bi bi-bookmark-plus" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
+        </div> -->
     </div>
 </template>
 
 <style scoped>
-.border {
-    border: 2px solid #007bff !important;
+.b-border {
+    border: 1px solid var(--blue);
     overflow: hidden;
     white-space: nowrap;
+    border-radius: 3px;
+    align-items: center;
+    column-gap: 0px;
+    /* padding: 1px 1px; */
 }
 
-.btn-cls {
-    padding: 1px 3px;
-    border-right: 2px solid #007bff !important;
-    cursor: pointer;
-    font-size: 12px;
+.no-radius {
+    border-radius: 0;
 }
 
-.selection-counter {
-    cursor: pointer;
-    padding: 1px 4px;
-    font-size: 12px;
+.left-border {
+    border-left: 1px solid var(--blue);
 }
 </style>

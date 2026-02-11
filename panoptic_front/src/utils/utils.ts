@@ -4,7 +4,7 @@ import { deletedID, useDataStore } from "@/data/dataStore"
 import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, inject, ref, watch } from "vue"
-
+import chroma from 'chroma-js';
 
 export function hasProperty(image: Instance, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -148,25 +148,25 @@ export function keysToCamel(o) {
     if (typeof o !== 'object' || o === null) {
         return o;
     }
-    
+
     // 2. Array Case
     if (Array.isArray(o)) {
         // Use map, as in your original code
         return o.map(i => keysToCamel(i));
     }
-    
+
     // 3. Object Case (using a more specific check for plain objects)
     // We check constructor to exclude Dates, custom classes, etc., which might pass the 'Object(o)' test.
-    if (o.constructor === Object) { 
+    if (o.constructor === Object) {
         const n = {};
         for (const k in o) {
             if (Object.prototype.hasOwnProperty.call(o, k)) {
                 // Use the memoized 'toCamel' function
-                n[toCamel(k)] = keysToCamel(o[k]); 
+                n[toCamel(k)] = keysToCamel(o[k]);
             }
         }
         return n;
-    } 
+    }
 
     // Return other complex types (like Date, Map, custom classes) unprocessed
     return o;
@@ -179,14 +179,14 @@ function toCamel(s) {
     if (camelCaseCache[s]) {
         return camelCaseCache[s];
     }
-    
+
     // Assuming 's' is 'snake_case' or 'kebab-case'
     const result = s.replace(/([-_][a-z])/ig, ($1) => {
         return $1.toUpperCase()
-                 .replace('-', '')
-                 .replace('_', '');
+            .replace('-', '')
+            .replace('_', '');
     });
-    
+
     camelCaseCache[s] = result; // Store result
     return result;
 }
@@ -315,7 +315,6 @@ export function numberToString(number: number, minLength: number) {
 
 export function adjustForTimezone(date: Date): Date {
     var timeOffsetInMS: number = date.getTimezoneOffset() * 60000;
-    console.log(timeOffsetInMS)
     date.setTime(date.getTime() - timeOffsetInMS);
     return date
 }
@@ -367,7 +366,7 @@ export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionCont
     })
 }
 
-export function convertSearchGroupResult(groups: GroupResult[], ctx: ActionContext) {
+export function convertSearchGroupResult(groups: GroupResult[]) {
     const data = useDataStore()
 
     return groups.map((group) => {
@@ -402,7 +401,7 @@ export function sortGroupByScore(group: Group) {
 }
 
 export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: Sha1ToInstances) {
-    if(!group.scores) return
+    if (!group.scores) return
 
     const index: ScoreIndex = {}
     if (group.sha1s) {
@@ -429,14 +428,14 @@ export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: 
 }
 
 export function isFinished(state: LoadState): boolean {
-    if(!state) return false
+    if (!state) return false
 
-    return state.finishedProperty && 
-           state.finishedInstance && 
-           state.finishedTags && 
-           state.finishedInstanceValues && 
-           state.finishedImageValues && 
-           state.finishedPropertyGroups
+    return state.finishedProperty &&
+        state.finishedInstance &&
+        state.finishedTags &&
+        state.finishedInstanceValues &&
+        state.finishedImageValues &&
+        state.finishedPropertyGroups
 }
 
 export function sourceFromFunction(func: string) {
@@ -448,18 +447,207 @@ export function hasPropertyChanges(commit: DbCommit) {
 }
 
 export function useEventSignal() {
-  const signal = ref(0)
-  let data = null
-  
-  const emit = (payload?: any) => {
-    data = payload
-    signal.value++
-  }
-  
-  const on = (callback) => {
-    // watch auto-cleans up when component unmounts
-    watch(signal, () => callback(data), { flush: 'sync' })
-  }
-  
-  return { emit, on }
+    const signal = ref(0)
+    let data = null
+
+    const emit = (payload?: any) => {
+        data = payload
+        signal.value++
+    }
+
+    const on = (callback) => {
+        // watch auto-cleans up when component unmounts
+        watch(signal, () => callback(data), { flush: 'sync' })
+    }
+
+    return { emit, on }
+}
+
+/**
+ * Generates an array of visually distinct colors by distributing them equally around the HSL color wheel.
+ *
+ * @param nb_groups The number of distinct colors to generate.
+ * @returns An array of color strings in Hexadecimal format (e.g., '#FF0000').
+ */
+export function generateColors(nb_groups: number): string[] {
+    if (nb_groups <= 0) {
+        return [];
+    }
+    if (nb_groups <= 20) {
+        return PALETTE_20.slice(0, nb_groups);
+    }
+    return generateChromaColors(nb_groups)
+}
+
+const PALETTE_20 = [
+    '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
+    '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
+    '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000',
+    '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
+];
+
+/**
+ * Generates an array of perceptually distinct colors using HCL color space.
+ * Uses the golden angle for hue distribution and cycles through luminance/chroma
+ * variations to maximize perceptual distance between colors.
+ *
+ * @param nb_groups The number of distinct colors to generate.
+ * @returns An array of color strings in Hexadecimal format (e.g., '#FF0000').
+ */
+export function generateChromaColors(nb_groups: number): string[] {
+    if (nb_groups <= 0) {
+        return [];
+    }
+
+    const colors: string[] = [];
+    const goldenAngle = 137.508; // Golden angle for optimal hue distribution
+
+    // For small numbers, use predefined highly distinct colors
+    if (nb_groups <= 8) {
+        const presetHues = [0, 240, 60, 300, 120, 30, 180, 270];
+        for (let i = 0; i < nb_groups; i++) {
+            const luminance = 65 + (i % 2) * 20; // Alternate 65/85
+            const chromaValue = 70 + (i % 2) * 20; // Alternate 70/90
+            const color = chroma.hcl(presetHues[i], chromaValue, luminance);
+            colors.push(color.hex().toUpperCase());
+        }
+        return colors;
+    }
+
+    // For larger numbers, use a multi-dimensional approach
+    // We'll cycle through different luminance and chroma levels systematically
+    const luminanceLevels = [50, 65, 80]; // Dark, medium, light
+    const chromaLevels = [50, 70, 90];    // Low, medium, high saturation
+    
+    // Calculate how many hue variations we need
+    const totalCombinations = luminanceLevels.length * chromaLevels.length;
+    const hueStep = Math.ceil(nb_groups / totalCombinations);
+
+    for (let i = 0; i < nb_groups; i++) {
+        // Distribute hue using golden angle
+        const hue = (i * goldenAngle) % 360;
+        
+        // Cycle through luminance and chroma systematically
+        // This ensures adjacent colors differ in multiple dimensions
+        const lumIndex = Math.floor(i / chromaLevels.length) % luminanceLevels.length;
+        const chromaIndex = i % chromaLevels.length;
+        
+        const luminance = luminanceLevels[lumIndex];
+        const chromaValue = chromaLevels[chromaIndex];
+
+        // Create color in perceptually uniform HCL space
+        const color = chroma.hcl(hue, chromaValue, luminance);
+        
+        // Ensure the color is valid (some HCL combinations may be out of RGB gamut)
+        if (color.clipped()) {
+            // If clipped, adjust chroma downward until valid
+            let adjustedChroma = chromaValue;
+            let adjustedColor = color;
+            while (adjustedColor.clipped() && adjustedChroma > 0) {
+                adjustedChroma -= 5;
+                adjustedColor = chroma.hcl(hue, adjustedChroma, luminance);
+            }
+            colors.push(adjustedColor.hex().toUpperCase());
+        } else {
+            colors.push(color.hex().toUpperCase());
+        }
+    }
+
+    return colors;
+}
+
+// ----------------------------------------------------------------------
+// HELPER: HSL to HEX Conversion (Required for standard web output)
+// ----------------------------------------------------------------------
+
+/**
+ * Converts HSL values to a standard Hexadecimal color string.
+ * This helper function ensures the output is in the widely used #RRGGBB format.
+ * * @param h Hue (0-360)
+ * @param s Saturation (0-100)
+ * @param l Lightness (0-100)
+ * @returns Hexadecimal color string (e.g., '#FF0000')
+ */
+function hslToHex(h: number, s: number, l: number): string {
+    // Convert S and L from percentage to decimal (0-1)
+    s /= 100;
+    l /= 100;
+
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+
+    if (h >= 0 && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (h >= 60 && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (h >= 120 && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (h >= 180 && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (h >= 240 && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (h >= 300 && h < 360) {
+        r = c; g = 0; b = x;
+    }
+
+    // Convert R, G, B from (0-1) + m to (0-255)
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    const toHex = (c: number) => c.toString(16).padStart(2, '0');
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export function getBoundingRect(points: {x: number, y: number}[]) {
+    if (!points || points.length === 0) {
+        return null;
+    }
+
+    // Initialize min/max values using the coordinates of the first point.
+    let minX = points[0].x;
+    let minY = points[0].y;
+    let maxX = points[0].x;
+    let maxY = points[0].y;
+
+    // Iterate over the rest of the points to find the true extremes.
+    for (let i = 1; i < points.length; i++) {
+        const point = points[i];
+
+        // Find the overall minimum X
+        if (point.x < minX) {
+            minX = point.x;
+        }
+
+        // Find the overall maximum X
+        if (point.x > maxX) {
+            maxX = point.x;
+        }
+
+        // Find the overall minimum Y
+        if (point.y < minY) {
+            minY = point.y;
+        }
+
+        // Find the overall maximum Y
+        if (point.y > maxY) {
+            maxY = point.y;
+        }
+    }
+
+    // Calculate dimensions
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    return {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        width,
+        height
+    };
 }

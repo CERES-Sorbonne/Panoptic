@@ -21,7 +21,7 @@ const dropdownElem = ref(null)
         </template>
 
         <template #popup>
-            <div class="p-1" style="max-height: 400px; overflow-y: scroll;">
+            <div class="">
                 <PropertySelection @click="goNext()" @select="prop => {emits('select', prop); dropdownElem.hide()}" :ignore-ids="props.groupIds" />
             </div>
         </template>
@@ -32,7 +32,7 @@ const dropdownElem = ref(null)
 
 <style scoped>
 .plus-btn {
-    padding: 4px !important;
-    border-radius: 3px !important;
+padding: 5px 4px;
+    border-radius: 2px;
 }
 </style>

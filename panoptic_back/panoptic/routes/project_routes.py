@@ -64,7 +64,7 @@ async def get_db_state_route(project: Project = Depends(get_project_from_id)):
 async def stream_db_state(project: Project = Depends(get_project_from_id)):
     async def load_routine():
         state = LoadState()
-        chunk_size = 10000
+        chunk_size = 10_000
 
         state.max_instance_value = await project.db.get_instance_values_count()
         state.max_image_value = await project.db.get_image_values_count()
@@ -180,20 +180,20 @@ async def get_folders_route(project: Project = Depends(get_project_from_id)):
     return res
 
 
-@project_router.get('/update')
-async def get_update_route(project: Project = Depends(get_project_from_id)):
-    update = Update()
-    if project.ui.commits:
-        update.commits = [*project.ui.commits]
-    if project.ui.plugins:
-        update.plugins = [*project.ui.plugins]
-    if project.ui.actions:
-        update.actions = [*project.ui.actions]
-    project.ui.clear()
-
-    update.status = project.get_status_update()
-
-    return update
+# @project_router.get('/update')
+# async def get_update_route(project: Project = Depends(get_project_from_id)):
+#     update = Update()
+#     if project.ui.commits:
+#         update.commits = [*project.ui.commits]
+#     if project.ui.plugins:
+#         update.plugins = [*project.ui.plugins]
+#     if project.ui.actions:
+#         update.actions = [*project.ui.actions]
+#     project.ui.clear()
+#
+#     update.status = project.get_status_update()
+#
+#     return update
 
 
 class PathRequest(BaseModel):
@@ -375,6 +375,20 @@ async def post_settings_route(settings: ProjectSettings, project: Project = Depe
     await project.update_settings(settings)
     return project.settings
 
+@project_router.get('/list_maps')
+async def get_list_maps_route(project: Project = Depends(get_project_from_id)):
+    res = await project.db.list_maps()
+    return res
+
+@project_router.get('/map/{map_id:int}')
+async def get_map_route(map_id: int, project: Project = Depends(get_project_from_id)):
+    res = await project.db.get_map(map_id)
+    return res
+
+@project_router.delete('/map')
+async def delete_map(map_id: int, project: Project = Depends(get_project_from_id)):
+    res = await project.db.delete_map(map_id)
+    return res
 
 @project_router.post('/delete_empty_clones')
 async def post_delete_empty_clones(project: Project = Depends(get_project_from_id)):
@@ -388,7 +402,21 @@ async def benchmark(project: Project = Depends(get_project_from_id)):
     values = await project.db.get_property_values_raw()
     print(time() - old)
 
-    return ORJSONResponse({'instances': instances, 'values': values})
+    return ORJSONResponse({'instances': instances, 'data': values})
+
+@project_router.get('/atlas/{atlas_id:int}')
+async def get_atlas(project: Project = Depends(get_project_from_id), atlas_id: int = 0):
+    atlas = await project.db.get_atlas(atlas_id)
+    return ORJSONResponse(atlas)
+
+@project_router.get('/atlas_sheet/{atlas_id:int}/{sheet_nb:int}')
+async def get_atlas_sheets_route(project: Project = Depends(get_project_from_id), atlas_id: int = 0, sheet_nb: int = 0):
+    path = project.paths.get_atlas_sheet_path(atlas_id, sheet_nb)
+    return FileResponse(path, media_type='image/png')
+
+@project_router.get('/spritesheet')
+async def get_spritesheet(project: Project = Depends(get_project_from_id)):
+    return FileResponse('/Users/david/Desktop/SpriteSheet_Output/spritesheet_00.png')
 
 
 class EndpointFilter(logging.Filter):
