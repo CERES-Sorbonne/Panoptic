@@ -26,11 +26,11 @@ onMounted(() => {
 </script>
 
 <template>
-    <template v-if="!panoptic.isConnected">
+    <template v-if="panoptic.failedConnected">
         <div class="above">Lost connection to backend. Verify that panoptic is running and
             reload page</div>
     </template>
-    <template v-else>
+    <template v-if="panoptic.isConnected">
         <template v-if="!panoptic.isUserValid">
             <div><UserSelection :users="panoptic.serverState.users" @connect-user="u => socketStore.connectUser(u.id)"/></div>
         </template>

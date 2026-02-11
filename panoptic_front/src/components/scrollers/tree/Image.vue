@@ -50,10 +50,10 @@ const imageSizes = computed(() => {
     return { width: w, height: h }
 })
 
-const imageContainerStyle = computed(() => `width: ${Math.max(imageSizes.value.width, props.size) - 2}px; height: ${props.size}px;`)
+const imageContainerStyle = computed(() => `width: ${Math.max(imageSizes.value.width, props.size) + 2}px; height: ${props.size}px;`)
 const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
 const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
-const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width)}px;`)
+const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width) +2}px;`)
 
 const hideImg = inject('hideImg')
 
@@ -75,7 +75,7 @@ const inputKey = inject('inputKey') as string
                 @mouseleave="hover = false">
                 <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
                 <!-- <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" /> -->
-                <CenteredImage :image="props.image.image" :width="Math.max(imageSizes.width, props.size)-2" :height="props.size"
+                <CenteredImage :image="props.image.image" :width="Math.max(imageSizes.width, props.size)" :height="props.size"
                 style="position: absolute; top:0"
                 />
 
@@ -131,6 +131,7 @@ const inputKey = inject('inputKey') as string
 
 .full-container {
     position: relative;
+    background-color: white;
 }
 
 .img-border {

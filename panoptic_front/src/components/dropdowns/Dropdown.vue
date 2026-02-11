@@ -29,6 +29,8 @@ const globalElem = ref(null)
 const boudaryElem = ref(document.getElementsByTagName('body')[0])
 
 const visible = ref(false)
+// 1. New reactive variable for width
+const popupWidth = ref('auto')
 
 async function hide() {
     popperElem.value.hide()
@@ -43,6 +45,12 @@ async function focus() {
 }
 
 async function onShow() {
+    // 2. Calculate width before showing
+    if (buttonElem.value) {
+        const width = buttonElem.value.getBoundingClientRect().width
+        popupWidth.value = `${width}px`
+    }
+
     visible.value = true
     if (props.autoFocus) {
         await nextTick()
@@ -86,31 +94,31 @@ onUnmounted(() => {
 
 <template>
     <div class="p-0 m-0" ref="globalElem">
-        <!-- <Popper trigger="click-to-toggle" :force-show="forceVisible" @show="onShow" @hide="onHide" ref="popperElem"> -->
         <Dropdown @apply-show="onShow" @hide="onHide" ref="popperElem" :distance="props.offset" :skidding="props.skidding" no-auto-focus
             :boundary="boudaryElem" :auto-hide="false" :prevent-overflow="true" :placement="props.placement"
             :container="props.teleport ? '#popup' : globalElem">
-            <!-- <template #reference> -->
             <div class="m-0 p-0" ref="buttonElem">
                 <slot name="button"></slot>
             </div>
-            <!-- </template> -->
-
             <template #popper="{ hide }">
-                <!-- <div class="p-1"> -->
-                <div v-if="visible" class="popup bg-white m-0 p-0 rounded" :class="props.noShadow ? '' : 'dropdown-input'"
-                    @keydown.escape.stop="onEscape(); hide()" @keydown.enter.stop="onEnter(hide)" style="z-index: 999;" tabindex="0" ref="popupElem">
+                <div v-if="visible" 
+                    class="popup bg-white m-0 p-0 rounded" 
+                    :class="props.noShadow ? '' : 'dropdown-input'"
+                    :style="{ 'min-width': popupWidth, 'z-index': 999 }"
+                    @keydown.escape.stop="onEscape(); hide()" 
+                    @keydown.enter.stop="onEnter(hide)" 
+                    tabindex="0" 
+                    ref="popupElem">
                     <slot name="popup" :hide="hide" :focus="focus"></slot>
                 </div>
-                <!-- </div> -->
-            </template>
+                </template>
         </Dropdown>
     </div>
 </template>
 
 <style scoped>
 .popup {
-    min-width: 0px;
+    min-width: 0px; /* This is now overridden by the inline style when visible */
     font-size: 14px;
     border: none;
 

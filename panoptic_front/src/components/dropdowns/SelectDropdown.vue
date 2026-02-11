@@ -1,121 +1,105 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from 'vue'
 
-// Assuming your generic Dropdown component is imported here
-// If it's located at '../dropdowns/Dropdown.vue' relative to where SelectDropdown is used,
-// you might need to adjust the path based on where you place this new component.
-import Dropdown from '../dropdowns/Dropdown.vue'; 
-import wTT from '../tooltips/withToolTip.vue'; // Assuming this utility is available
+import Dropdown from '../dropdowns/Dropdown.vue'
+import wTT from '../tooltips/withToolTip.vue'
 
-// -------------------------------------------------------------------------
-// 1. Typescript Interface for Options
-// -------------------------------------------------------------------------
-
-/**
- * Defines the structure for each item in the dropdown list,
- * similar to your original ActionConfig setup.
- */
 export interface SelectOption {
     value: string | number
     label?: string
-    description?: string // For tooltips
+    description?: string
     disabled?: boolean
-    icon?: string // boostrap icon key
+    icon?: string
 }
 
-// -------------------------------------------------------------------------
-// 2. Component Props and Emits
-// -------------------------------------------------------------------------
-
 const props = defineProps<{
-    /** The array of options to display. */
-    options: SelectOption[];
-    /** The currently selected value (v-model support). */
-    modelValue: string | number | null;
-    /** Placeholder text when nothing is selected. */
-    placeholder?: string;
-    /** Optional size for font styling */
-    size?: number;
-}>();
+    options: SelectOption[]
+    modelValue?: string | number | null
+    placeholder?: string
+    size?: number
+    width?: number
+    noBorder?: boolean
+    teleport?: boolean
+}>()
 
 const emit = defineEmits<{
-    (e: 'update:modelValue', value: string | number): void;
-    /** Emitted when a selection is made */
-    (e: 'changed', value: string | number): void; 
-}>();
+    (e: 'update:modelValue', value: string | number): void
+    (e: 'changed', value: string | number): void
+}>()
 
-// -------------------------------------------------------------------------
-// 3. Computed Properties
-// -------------------------------------------------------------------------
-
-/**
- * Finds the currently selected option object.
- */
 const selectedOption = computed(() => {
-    return props.options.find(option => option.value === props.modelValue);
-});
-
-/**
- * Determines the label and description for the main display button.
- */
+    return props.options.find(option => option.value === props.modelValue)
+})
 
 const fontSize = computed(() => props.size ? props.size : 14)
 
-// -------------------------------------------------------------------------
-// 4. Logic
-// -------------------------------------------------------------------------
-
-/**
- * Handles selection of an option, updating the model and notifying listeners.
- * @param option The selected option object.
- * @param hide Function provided by the generic Dropdown to close the popup.
- */
 const selectOption = (option: SelectOption, hide: () => void) => {
-    if (option.disabled) return;
-    
-    // 1. Update the v-model binding
-    emit('update:modelValue', option.value);
-    
-    // 2. Emit the change event
-    emit('changed', option.value);
-    
-    // 3. Close the popup
-    hide();
-};
+    if (option.disabled) return
+
+    emit('update:modelValue', option.value)
+    emit('changed', option.value)
+
+    hide()
+}
+
+const capitalizeFirst = (text: any) => {
+    return text.charAt(0).toUpperCase() + text.slice(1)
+}
 </script>
 
 <template>
-    <Dropdown placement="bottom-start">
-        
+    <Dropdown placement="bottom-start" class="w-100" :teleport="props.teleport">
+
         <template #button>
-            <div :style="{ fontSize: fontSize + 'px' }" style="white-space: nowrap;">
-                <wTT v-if="selectedOption.description" :message="selectedOption.description">
-                    <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-0"></span>
-                    <span class="display">
-                        {{ selectedOption.label ?? selectedOption.value }}
-                        <i class="ms-1 bi bi-chevron-down" />
-                    </span>
+            <div :style="{ fontSize: fontSize + 'px' }" style="white-space: nowrap;" class="w-100"
+                :class="{ 'sbb': !props.noBorder, 'sb': props.noBorder }">
+
+                <!-- Case 1: Nothing selected OR no options available -->
+                <div v-if="!selectedOption" class="display placeholder-display display-flex">
+                    <span class="display-text">{{ capitalizeFirst(placeholder ?? 'Select Option') }}</span>
+                    <!-- Only show chevron if there are options to open -->
+                    <i v-if="options.length > 0" class="bi bi-chevron-down" />
+                </div>
+
+                <!-- Case 2: An option is selected and has a description (uses ToolTip) -->
+                <wTT v-else-if="selectedOption.description" :message="selectedOption.description"
+                    :style="{ width: props.width + 'px' }" class="display-container">
+                    <div class="display display-flex">
+                        <span class="display-text">
+                            <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon"
+                                class="me-1"></span>
+                            <span class="display-label">{{ capitalizeFirst(selectedOption.label ?? selectedOption.value)
+                                }}</span>
+                        </span>
+                        <i class="bi bi-chevron-down" />
+                    </div>
                 </wTT>
-                <span v-else class="display">
-                    <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-0"></span>
-                    {{ selectedOption.label ?? selectedOption.value }}
-                    <i class="ms-1 bi bi-chevron-down" />
-                </span>
+
+                <!-- Case 3: An option is selected but no description (simple span) -->
+                <div v-else class="display display-flex display-container" :style="{ width: props.width + 'px' }">
+                    <span class="display-text">
+                        <span v-if="selectedOption.icon" :class="'bi bi-' + selectedOption.icon" class="me-1"></span>
+                        <span class="display-label">{{ capitalizeFirst(selectedOption.label ?? selectedOption.value)
+                            }}</span>
+                    </span>
+                    <i class="bi bi-chevron-down" />
+                </div>
+
             </div>
         </template>
-        
+
         <template #popup="{ hide }">
-            <div class="p-0">
-                <div v-for="option in options" :key="option.value" 
+            <div>
+                <div v-for="option in options" :key="option.value" style="white-space: nowrap;"
                     :class="['bb', { 'is-selected': option.value === modelValue, 'is-disabled': option.disabled }]"
                     @click="selectOption(option, hide)">
                     <span v-if="option.icon" :class="'bi bi-' + option.icon" class="me-2"></span>
                     <wTT v-if="option.description" :message="option.description">
-                        {{ option.label ?? option.value}}
+                        {{ capitalizeFirst(option.label ?? option.value) }}
                     </wTT>
-                    <span v-else>{{ option.label ?? option.value }}</span>
+                    <span v-else>{{ capitalizeFirst(option.label ?? option.value) }}</span>
                 </div>
-                
+
                 <div v-if="options.length === 0" class="text-gray-500 p-2 text-sm">
                     No options available
                 </div>
@@ -125,29 +109,22 @@ const selectOption = (option: SelectOption, hide: () => void) => {
 </template>
 
 <style scoped>
-/*
-    Since this component inherits styling from the generic Dropdown's structural elements 
-    and uses global utility classes (bbb, bb, ms-1, p-2), 
-    we only need specific selection styles here.
-*/
 .is-selected {
-    /* Style for the currently selected item in the list */
-    background-color: var(--grey)
-    /* font-weight: bold; */
-    /* color: #1890ff; */
+    background-color: var(--grey);
 }
 
 .is-disabled {
-    /* Style for disabled items */
     color: #999;
     cursor: not-allowed;
     background-color: #f5f5f5;
 }
 
-/* Ensure the 'bb' class provides standard item styling, 
-   and override only when necessary */
+.placeholder-display {
+    color: #999;
+}
+
 .bb {
-    text-transform: capitalize;
+    /* text-transform: capitalize; */
     padding: 2px 4px;
     cursor: pointer;
     transition: background-color 0.1s;
@@ -157,11 +134,26 @@ const selectOption = (option: SelectOption, hide: () => void) => {
     background-color: #f0f0f0;
 }
 
-.display {
-    padding: 4px;
-    border: 1px solid var(--border-color);
-    border-radius: 3px;
-    cursor: pointer;
-    text-transform: capitalize;
+.display-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.display-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.display-container {
+    overflow: hidden;
+}
+
+.bi-chevron-down {
+    flex-shrink: 0;
 }
 </style>

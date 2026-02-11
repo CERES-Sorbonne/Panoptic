@@ -33,15 +33,19 @@ function toggleMode() {
 </script>
 
 <template>
-    <div class="bb font" @click="toggleMode" style="width: 26px; height: 30px; overflow: hidde;">
+    <div class="bb font" @click="toggleMode" style="width: 26px; height: 26px; overflow: hidden;">
         <wTT v-if="mode == 0" message="btn.reload.dirty" pos="bottom">
-            <span class="bi bi-arrow-repeat text-warning"></span>
+            <div style="height: 26px;">
+                <span class="bi bi-arrow-repeat small-arrow text-warning"></span>
+            </div>
         </wTT>
         <wTT v-if="mode == 1" message="btn.reload.valid" pos="bottom">
-            <span class="bi bi-check2-all text-success"></span>
+            <div style="height: 26px;">
+                <span class="bi bi-check2-all text-success small-valid"></span>
+            </div>
         </wTT>
         <wTT v-if="mode == 2" message="btn.reload.auto" pos="bottom">
-            <div style="height: 30px;">
+            <div style="height: 26px;">
                 <span class="bi bi-check2-all text-success small-valid"></span>
                 <span class="bi bi-arrow-repeat big-arrow text-warning" style="opacity: 0.3;"></span>
             </div>
@@ -56,7 +60,7 @@ function toggleMode() {
 
 .small-valid {
     position: absolute;
-    top: 3px;
+    top: 0px;
     left: 4px;
     font-size: 18px !important;
 }
@@ -64,9 +68,18 @@ function toggleMode() {
 .big-arrow {
     position: relative;
     font-size: 26px !important;
-    top: -5px;
+    top: -8px;
     left: -4px;
     transform: rotate(90deg);
+    display: block;
+}
+
+.small-arrow {
+    position: relative;
+    font-size: 24px !important;
+    top: -5.5px;
+    left: -1.5px;
+    transform: rotate(-45deg);
     display: block;
 }
 </style>

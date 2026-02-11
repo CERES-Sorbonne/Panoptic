@@ -26,7 +26,9 @@ import {
     ApiRequestDescription,
     Notif,
     NotifType,
-    ImportVerify
+    ImportVerify,
+    PointMap,
+    ImageAtlas
 } from './models'
 import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -292,6 +294,25 @@ export async function apiSetUIData(key: string, data: any) {
     return res.data as any
 }
 
+export async function apiListMaps() {
+    const res = await projectApi.get('/list_maps');
+    return keysToCamel(res.data) as PointMap[]
+}
+
+export async function apiGetMap(mapId: number) {
+    const res = await projectApi.get(`/map/${mapId}`);
+    return keysToCamel(res.data) as PointMap;
+}
+
+export async function apiDeleteMap(mapId: number) {
+    const res = await projectApi.delete('/map', {
+        params: {
+            map_id: mapId
+        }
+    });
+    return keysToCamel(res.data);
+}
+
 export async function apiUndo() {
     const res = await projectApi.post('/undo')
     return keysToCamel(res.data) as DbCommit
@@ -408,4 +429,9 @@ export async function apiBenchmark() {
     console.log((performance.now()-old) / 1000)
     console.log(res.data)
     return res.data
+}
+
+export async function apiGetAtlas(atlasId: number) {
+    const res = await projectApi.get('/atlas/' + String(atlasId))
+    return keysToCamel(res.data) as ImageAtlas
 }

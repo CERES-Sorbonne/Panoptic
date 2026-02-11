@@ -173,5 +173,8 @@ watch(props, updateLocalName)
 
 .prop-container {
     border: 1px solid var(--border-color);
+    border-radius: 3px;
+    /* background-color: rgb(212, 212, 212); */
+    overflow: hidden;
 }
 </style>

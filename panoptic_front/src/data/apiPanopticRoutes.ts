@@ -72,8 +72,8 @@ export async function apiCloseProject(projectId: number) {
     return res.data as PanopticState
 }
 
-export async function apiDeleteProject(projectId: number) {
-    let res = await panopticApi.post('/delete_project', { project_id: projectId })
+export async function apiDeleteProject(projectId: number, deleteFiles: boolean) {
+    let res = await panopticApi.post('/delete_project', { project_id: projectId, delete_files: deleteFiles })
     return res.data as PanopticState
 }
 

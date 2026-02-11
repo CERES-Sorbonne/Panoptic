@@ -219,8 +219,8 @@ class PanopticServer:
         await self.panoptic.update_project(req.id, req.name, req.ignored_plugins)
         await self._emit_server_state()
 
-    async def remove_project(self, project_id: int):
-        await self.panoptic.remove_project(project_id)
+    async def remove_project(self, project_id: int, delete_files: bool):
+        await self.panoptic.remove_project(project_id, delete_files)
         await self._emit_server_state()
 
     async def close_project(self, project_id: int, connection_id: str = None):

@@ -93,14 +93,14 @@
 #         value_index = {v.image_id: v.value for v in current_values}
 #         [value_index.update({id_: []}) for id_ in image_ids if id_ not in value_index]
 #         [value_index[id_].extend(value) for id_ in image_ids]
-#         values = [list(set(value_index[id_])) for id_ in image_ids]
-#         await db.set_multiple_property_values(property_id, values, image_ids)
+#         data = [list(set(value_index[id_])) for id_ in image_ids]
+#         await db.set_multiple_property_values(property_id, data, image_ids)
 #     else:
 #         value_index = {v.sha1: v.value for v in current_values}
 #         [value_index.update({sha1: []}) for sha1 in sha1s if sha1 not in value_index]
 #         [value_index[sha1].extend(value) for sha1 in sha1s]
-#         values = [list(set(value_index[sha1])) for sha1 in sha1s]
-#         await db.set_multiple_property_values(property_id, values, sha1s)
+#         data = [list(set(value_index[sha1])) for sha1 in sha1s]
+#         await db.set_multiple_property_values(property_id, data, sha1s)
 #
 #     updated_ids = image_ids
 #     if not image_ids:
@@ -112,9 +112,9 @@
 # async def get_full_images(image_ids: List[int] = None) -> List[Instance]:
 #     images = await db.get_images(image_ids)
 #     sha1s = list({img.sha1 for img in images})
-#     # get ids bound property values
+#     # get ids bound property data
 #     property_values = await db.get_property_values(image_ids=image_ids)
-#     # get sha1 bound property values when image_ids is set and therefore property_values only return id bound properties
+#     # get sha1 bound property data when image_ids is set and therefore property_values only return id bound properties
 #     if image_ids:
 #         sha1s_values = await db.get_property_values(sha1s=sha1s)
 #         property_values += sha1s_values
@@ -124,7 +124,7 @@
 #     def assign_value(prop_value):
 #         image_index[prop_value.image_id].properties[prop_value.property_id] = prop_value
 #
-#     # fill the index with ids bound property values
+#     # fill the index with ids bound property data
 #     [assign_value(prop_value) for prop_value in property_values if prop_value.image_id >= 0]
 #
 #     sha1_properties = {}
@@ -140,7 +140,7 @@
 #     def assign_sha1_value(image_id, prop_value: PropertyValue):
 #         image_index[image_id].properties[prop_value.property_id] = prop_value
 #
-#     # assign the sha1 bound property values to the images with corresponding sha1s
+#     # assign the sha1 bound property data to the images with corresponding sha1s
 #     [assign_sha1_value(img.id, prop_value) for img in images if img.sha1 in sha1_properties for prop_value in
 #      sha1_properties[img.sha1]]
 #
@@ -154,8 +154,8 @@
 #     """
 #     if not sha1s:
 #         return []
-#     values = await db.get_sha1_computed_values(sha1s)
-#     clusters, distances = compute.make_clusters(values, method="kmeans", nb_clusters=sensibility)
+#     data = await db.get_sha1_computed_values(sha1s)
+#     clusters, distances = compute.make_clusters(data, method="kmeans", nb_clusters=sensibility)
 #     return Clusters(clusters=clusters, distances=distances)
 #
 #
@@ -222,7 +222,7 @@
 #         prop_name, prop_type = prop.split('[')
 #         prop_type = PropertyType(prop_type.split(']')[0])
 #         property = await create_property(prop_name, prop_type, prop_mode)
-#         # then get all possible values to insert
+#         # then get all possible data to insert
 #         prop_values = list(data[prop].unique())
 #
 #         # if it's a tag property let's create the tags in the db
@@ -245,7 +245,7 @@
 #                         parent_node = tag.id
 #                         created_tags.append(tag.id)
 #                 tag_matcher[value] = created_tags
-#             # now change all values in the dataframe with the real value that we are going to insert
+#             # now change all data in the dataframe with the real value that we are going to insert
 #             data.loc[data.index, prop] = data[prop].map(tag_matcher)
 #         await db.set_multiple_property_values(property.id, list(data[prop]), list(data.panoptic_id))
 #

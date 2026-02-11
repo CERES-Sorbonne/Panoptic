@@ -399,7 +399,7 @@ class Importer:
                 return
 
             # 1. Create Unified Commit
-            # Backend automatically maps negative tag IDs in 'values' to the new tags in 'tags'
+            # Backend automatically maps negative tag IDs in 'data' to the new tags in 'tags'
             commit = DbCommit(
                 tags=list(pending_tags),
                 instance_values=list(pending_instance_values),

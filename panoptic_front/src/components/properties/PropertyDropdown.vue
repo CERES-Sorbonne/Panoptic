@@ -37,7 +37,7 @@ function select(propId: number): void {
 <template>
     <Dropdown ref="dropdownElem" :auto-focus="false">
         <template #button>
-            <div class="m-0 bb" style="white-space: nowrap">
+            <div class="m-0 sbb" style="white-space: nowrap">
                 <span v-if="props.modelValue">
                     <PropertyIcon :type="props.modelValue.type" />
                     {{ props.modelValue.name }}
