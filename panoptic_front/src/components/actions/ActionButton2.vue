@@ -8,7 +8,7 @@ import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult, sourceFromFunction, objValues } from '@/utils/utils';
+import { convertClusterGroupResult, sourceFromFunction, objValues, fileToBase64 } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
 const project = useProjectStore()
@@ -69,6 +69,9 @@ async function call() {
         for (let input of localInputs.value) {
             if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
                 input.defaultValue = data.propertyList[0].id
+            }
+            if (input.type == 'input_file' && input.defaultValue) {
+                input.defaultValue = await fileToBase64(input.defaultValue)
             }
             uiInputs[input.name] = input.defaultValue
         }
@@ -136,7 +139,7 @@ watch(localFunction, loadInput)
 <template>
     <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
         <template #button>
-            <div class="d-flex main2" :class="{sbb: !props.noBorder}">
+            <div class="d-flex main2" :class="{ sbb: !props.noBorder }">
                 <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
@@ -152,8 +155,8 @@ watch(localFunction, loadInput)
                 <div style="width: 400px; overflow: hidden;" class="d-flex flex-column">
                     <!-- Function Selection View -->
                     <div v-if="showFunctionSelect">
-                        <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]" class="option"
-                            @click="selectFunction(func)">
+                        <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]"
+                            class="option" @click="selectFunction(func)">
                             <wTT :message="actions.index[func].description">
                                 <i class="bi bi-boxes me-1" />{{ actions.index[func].id }}
                             </wTT>
@@ -172,16 +175,17 @@ watch(localFunction, loadInput)
                             <div class="flex-grow-1"></div>
                             <i class="ms-1 bi bi-chevron-down" />
                         </div>
-                        
-                        <div v-if="localInputs.length" style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
+
+                        <div v-if="localInputs.length"
+                            style="padding-left: 5px; padding-right: 5px; margin-bottom: 3px;">
                             <form @submit.prevent="" class="params-grid mt-1">
                                 <template v-for="input, i in localInputs">
                                     <ParamInput :input="input" :source="source" :max-width="200" />
                                 </template>
                             </form>
                         </div>
-                        
-                        <div class="d-flex flex-center p-1 bar" :class="{'no-shadow': localInputs.length == 0}">
+
+                        <div class="d-flex flex-center p-1 bar" :class="{ 'no-shadow': localInputs.length == 0 }">
                             <div class="me-1"><input type="checkbox" v-model="setDefault"
                                     style="position: relative; top: 2px" /></div>
                             <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
