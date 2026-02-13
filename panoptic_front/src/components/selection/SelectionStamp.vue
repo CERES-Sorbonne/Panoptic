@@ -6,6 +6,7 @@ import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
 import ActionButton2 from '../actions/ActionButton2.vue';
 import { useTabStore } from '@/data/tabStore';
+import WithToolTip from '../tooltips/withToolTip.vue';
 
 const data = useDataStore()
 
@@ -25,10 +26,14 @@ function openSelectionTab() {
 
 <template>
     <div class="d-flex b-border">
-        <div class="sb no-radius m-0" style="padding: 0px 4px 0 0;" @click="emits('remove:selected')"><i
-                class="bi bi-x" />{{ images.length }} <i class="bi bi-image" /> </div>
+        <WithToolTip message="main.menu.remove_selection_tooltip">
+            <div class="sb no-radius m-0" style="padding: 0px 4px 0 0;" @click="emits('remove:selected')"><i
+                    class="bi bi-x" />{{ images.length }} <i class="bi bi-image" /> </div>
+        </WithToolTip>
         <div class="no-radius left-border">
+            <WithToolTip message="dropdown.stamp.paint_selection">
             <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
+            </WithToolTip>
         </div>
         <div class="no-radius left-border">
             <ActionButton2 action="execute" :images="images" :no-border="true">

@@ -133,20 +133,21 @@ watch(localFunction, loadInput)
             <span class="visually-hidden">Loading...</span>
         </div>
         <wTT :message="'dropdown.action.' + props.action" class="">
-            <div style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
+            <div v-if="props.action != 'group'" style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
+            <div v-else><img class="cluster-icon-sm" src="/icons/network2_white.svg" /></div>
         </wTT>
         <div class="options" @click.stop.prevent="">
             <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
                 <template #button>
-                    <wTT :message="'dropdown.action.' + props.action" style="font-size: 12px;">
-                        <div class="sb bw">
-                            <i class="bi bi-gear"  style="position: relative; top: 1px"/>
+                    <wTT :message="'dropdown.action.' + props.action" style="font-size: 14px;">
+                        <div class="sb bw ms-1">
+                            <i class="bi bi-gear"  style="position: relative; top: 0px"/>
                         </div>
                     </wTT>
                 </template>
                 <template #popup="{ hide }">
                     <Autofocus @keydown.enter="call(); hide();">
-                        <div style="min-width: 200px; overflow: hidden;" class="d-flex flex-column">
+                        <div style="width: 400px; overflow: hidden;" class="d-flex flex-column">
                             <!-- Function Selection View -->
                             <div v-if="showFunctionSelect">
                                 <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]" class="option"

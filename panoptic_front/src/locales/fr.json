@@ -397,7 +397,9 @@
         "stamp": {
             "add": "ajouter",
             "set": "remplacer",
-            "del": "retirer"
+            "del": "retirer",
+            "paint_group": "Appliquer des proprietées au group",
+            "paint_selection": "Appliquer des proprietées à la selection"
         },
         "property": {
             "select": "Selectionez une propriété"
