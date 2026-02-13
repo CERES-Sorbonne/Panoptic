@@ -30,7 +30,7 @@ const props = defineProps<{
 const similarGroup = props.similarGroup ?? new GroupManager()
 similarGroup.setSha1Mode(true)
 
-const useFilter = ref(true)
+const useFilter = ref(false)
 const scrollerElem = ref(null)
 
 const searchResult = shallowRef<Group>(null)

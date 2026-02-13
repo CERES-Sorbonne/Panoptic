@@ -256,7 +256,7 @@ export function deepCopy<T>(source: T): T {
 export async function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]); // Enlève le préfixe "data:image/jpeg;base64,"
+        reader.onload = () => resolve((reader.result as string).split(',')[1]); // Enlève le préfixe "data:image/jpeg;base64,"
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
