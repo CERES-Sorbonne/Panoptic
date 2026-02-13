@@ -38,7 +38,7 @@ function vectorName(vectorType: VectorType) {
     return '' + vectorType.id + ' ' + vectorType.source + '.' + Object.keys(vectorType.params).filter(k => vectorType.params[k]).map(k => k + '_' + vectorType.params[k]).join('_')
 }
 
-function setFile(event: Event){
+function setFile(event: Event) {
     localValue.value = (<HTMLInputElement>event.target).files[0]
 }
 
@@ -67,43 +67,46 @@ onMounted(initValues)
     <wTT :message="props.input.description" class="label-cell">
         <div v-if="props.input.name" class="param-label">{{ props.input.name }}</div>
     </wTT>
-    
+
     <div class="input-cell">
         <div v-if="props.input.type == 'str'">
-            <input type="text" v-model="localValue" ref="elem" :style="{width: props.maxWidth+'px'}"/>
+            <input type="text" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
         </div>
         <div v-if="props.input.type == 'int'">
-            <input type="number" step="1" v-model="localValue" ref="elem" :style="{width: props.maxWidth+'px'}"/>
+            <input type="number" step="1" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
         </div>
         <div v-if="props.input.type == 'float'">
-            <input type="number" v-model="localValue" ref="elem" :style="{width: props.maxWidth+'px'}"/>
+            <input type="number" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
         </div>
         <div v-if="props.input.type == 'bool'">
-            <input type="checkbox" v-model="localValue" ref="elem" :style="{width: props.maxWidth+'px'}"/>
+            <input type="checkbox" v-model="localValue" ref="elem" :style="{ width: props.maxWidth + 'px' }" />
         </div>
-        <div v-if="props.input.type == 'property'" :style="{width: props.maxWidth+'px'}">
+        <div v-if="props.input.type == 'property'" :style="{ width: props.maxWidth + 'px' }">
             <div v-if="!data.propertyList.length" class="disabled rounded ps-1 pe-1">Create Property First</div>
-            <PropertyDropdown v-else v-model="defaultProperty"
-                @update:model-value="localValue = defaultProperty.id" />
+            <PropertyDropdown v-else v-model="defaultProperty" @update:model-value="localValue = defaultProperty.id" />
         </div>
-        <div v-if="props.input.type == 'enum'" :style="{width: props.maxWidth+'px'}">
+        <div v-if="props.input.type == 'enum'" :style="{ width: props.maxWidth + 'px' }">
             <select v-model="localValue">
                 <option v-for="v in props.input.possibleValues" :value="v">{{ v }}</option>
             </select>
         </div>
         <div v-if="props.input.type == 'vector_type'">
-            <VectorTypeDropdown v-model="localValue" :width="props.maxWidth-6" />
+            <VectorTypeDropdown v-model="localValue" :width="props.maxWidth - 6" />
             <!-- <select v-model="localValue" style="max-width: 200px;">
                 <option v-for="v in data.vectorTypes" :value="v">{{ vectorName(v) }}</option>
             </select> -->
         </div>
 
         <div v-if="props.input.type == 'own_vector_type'">
-            <VectorTypeDropdown v-model="localValue" :source="props.source" :width="props.maxWidth-6"/>
+            <VectorTypeDropdown v-model="localValue" :source="props.source" :width="props.maxWidth - 6" />
             <!-- <select v-model="localValue" style="max-width: 200px;">
                 <option v-for="v in data.vectorTypes.filter(v => v.source == props.source)" :value="v">{{
                     vectorName(v) }}</option>
             </select> -->
+        </div>
+
+        <div v-if="props.input.type == 'input_file'">
+            <input type="file" @change="setFile" ref="elem" />
         </div>
     </div>
 </template>
@@ -121,7 +124,7 @@ onMounted(initValues)
     width: 100%;
 }
 
-.label-cell > * {
+.label-cell>* {
     width: 100%;
 }
 
