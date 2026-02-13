@@ -76,7 +76,7 @@ async function call() {
         const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
-        if (res.groups && props.action == 'group') {
+        if (res.groups) {
             const groups = convertClusterGroupResult(res.groups, context)
             emits('groups', groups)
         }
