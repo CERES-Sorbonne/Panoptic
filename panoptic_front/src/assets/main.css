@@ -593,3 +593,10 @@ input[type=number] {
   position: relative;
   top: -1px;
 }
+
+.cluster-icon-sm {
+  width: 14px;
+  height: 14px;
+  position: relative;
+  top: -1px;
+}

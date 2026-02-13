@@ -149,7 +149,7 @@ watch(localFunction, loadInput)
         </template>
         <template #popup="{ hide }">
             <Autofocus @keydown.enter="call(); hide();">
-                <div style="min-width: 200px; overflow: hidden;" class="d-flex flex-column">
+                <div style="width: 400px; overflow: hidden;" class="d-flex flex-column">
                     <!-- Function Selection View -->
                     <div v-if="showFunctionSelect">
                         <div v-for="func in available" :class="['bb', { 'is-selected': func === localFunction }]" class="option"

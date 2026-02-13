@@ -11,6 +11,7 @@ import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
 import { allChildrenSha1Groups } from '@/utils/utils'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
+import WithToolTip from '../../tooltips/withToolTip.vue'
 
 const data = useDataStore()
 
@@ -106,15 +107,15 @@ async function saveHirachy(ignoreParents?: boolean) {
     const tagToImages: { [tagId: number]: Instance[] } = {}
     let tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
 
-    if(ignoreParents) {
+    if (ignoreParents) {
         const hasChildren = {}
-        for(let tag of tags) {
-            if(tag.parents) {
+        for (let tag of tags) {
+            if (tag.parents) {
                 tag.parents.forEach(p => hasChildren[p] = true)
             }
         }
 
-        for(let tagId of Object.keys(hasChildren).map(Number)) {
+        for (let tagId of Object.keys(hasChildren).map(Number)) {
             delete tagToImages[tagId]
         }
         tags = tags.filter(t => !hasChildren[t.id])
@@ -214,12 +215,13 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 
         <template v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-1 sbb">
-                <StampDropdown :images="images" :no-border="true" style="font-size: 14px;"
-                    :show-number="true" />
+                <WithToolTip message="dropdown.stamp.paint_group">
+                    <StampDropdown :images="images" :no-border="true" style="font-size: 14px;" :show-number="true" />
+                </WithToolTip>
             </div>
 
             <div class="ms-1" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" @groups="addClusters"/>
+                <ActionButton action="group" :images="group.images" @groups="addClusters" />
             </div>
             <div class="ms-1">
                 <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
@@ -244,7 +246,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                     </span>
                 </div>
             </wTT>
-                        <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
+            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
                 <div class="sbb cluster-close" @click="saveHirachy(true)">
                     <span style="">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
