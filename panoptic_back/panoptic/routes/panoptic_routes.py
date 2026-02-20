@@ -163,7 +163,7 @@ async def get_packages_route():
 
 
 def images_in_folder(folder_path):
-    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tif', '*.tiff')  # the tuple of file types  #AJOUT DU FORMAT TIF
+    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tif', '*.tiff')  # the tuple of file types  et AJOUT DU FORMAT TIF
     image_files = []
     for type_ in types:
         image_files.extend(glob.glob(os.path.join(folder_path, type_)))
