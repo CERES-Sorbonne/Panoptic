@@ -114,10 +114,12 @@ function computeLines() {
     // console.log('compute lines')
     // console.time('compute lines2')
     clear()
+    console.log(props.groupManager.result.index)
     let it = props.groupManager.getGroupIterator()
     if(!it.group) return
     const lines = []
     while (it) {
+        // console.log(it)
         const group = it.group
         groupIdx[group.id] = imageLines.value.length
         lines.push(...GroupToLines(it))

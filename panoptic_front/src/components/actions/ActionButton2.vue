@@ -70,8 +70,12 @@ async function call() {
             if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
                 input.defaultValue = data.propertyList[0].id
             }
-            if (input.type == 'input_file' && input.defaultValue) {
-                input.defaultValue = await fileToBase64(input.defaultValue)
+            if (input.type == 'input_file') {
+                if (input.defaultValue?.name) {
+                    input.defaultValue = await fileToBase64(input.defaultValue)
+                } else {
+                    input.defaultValue = undefined
+                }
             }
             uiInputs[input.name] = input.defaultValue
         }
