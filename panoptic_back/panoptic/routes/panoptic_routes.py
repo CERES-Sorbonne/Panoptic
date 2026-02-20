@@ -163,7 +163,7 @@ async def get_packages_route():
 
 
 def images_in_folder(folder_path):
-    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types
+    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.tif', '*.tiff')  # the tuple of file types  #AJOUT DU FORMAT TIF
     image_files = []
     for type_ in types:
         image_files.extend(glob.glob(os.path.join(folder_path, type_)))
@@ -192,7 +192,8 @@ def count_contents(full_path: str):
     folder = os.path.normpath(full_path)
     all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
     all_images = [i for i in all_files if
-                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
+                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')
+                  or i.lower().endswith('.tif') or i.lower().endswith('.tiff')] #AJOUT FORMAT TIF
     return len(all_images)
 
 
