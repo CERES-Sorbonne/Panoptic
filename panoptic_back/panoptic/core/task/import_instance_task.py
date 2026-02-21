@@ -1,112 +1,210 @@
+import asyncio
 import hashlib
 import io
+import logging
 import os
+import time
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
 
 from PIL import Image
 from imagehash import average_hash
 
-from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
 from panoptic.core.task.task import Task
-from panoptic.models import DbCommit, Instance, ProjectSettings
+from panoptic.models import DbCommit, Instance
 
-# PIL format to MIME type mapping
-format_to_mime = {
-    'JPEG': 'image/jpeg',
-    'PNG': 'image/png',
-    'GIF': 'image/gif',
-    'WEBP': 'image/webp',
-    'BMP': 'image/bmp',
-    'TIFF': 'image/tiff',
-    'ICO': 'image/vnd.microsoft.icon'
-}
+logger = logging.getLogger('InstanceTask')
 
+
+@dataclass
+class RawImageItem:
+    file_path: str
+    folder_id: int
+    raw_bytes: bytes
+
+
+@dataclass
+class ProcessedImageItem:
+    file_path: str
+    folder_id: int
+    name: str
+    extension: str
+    sha1: str
+    width: int
+    height: int
+    ahash: str
+    mime_type: str
+    large_bytes: bytes | None
+    small_bytes: bytes | None
+
+
+# --- WORKER: CPU INTENSIVE ---
+def _compute_worker(items: list[RawImageItem], settings) -> list[ProcessedImageItem]:
+    results = []
+    target_max = max(settings.image_large_size, settings.image_small_size)
+
+    for item in items:
+        try:
+            name = os.path.basename(item.file_path)
+            ext = os.path.splitext(name)[1].lower()
+            sha1 = hashlib.sha1(item.raw_bytes).hexdigest()
+
+            with Image.open(io.BytesIO(item.raw_bytes)) as image:
+                if image.format == 'JPEG':
+                    image.draft('RGB', (target_max, target_max))
+
+                image.load()
+                width, height = image.size
+                if image.mode != 'RGB':
+                    image = image.convert('RGB')
+
+                def get_bytes(img, size):
+                    if img.width > size or img.height > size:
+                        img.thumbnail((size, size))
+                    buf = io.BytesIO()
+                    img.save(buf, format='jpeg', quality=30)
+                    return buf.getvalue()
+
+                large_bytes = get_bytes(image.copy(), settings.image_large_size) if settings.save_image_large else None
+
+                # Resize for small thumbnail and hashing
+                if image.width > settings.image_small_size or image.height > settings.image_small_size:
+                    image.thumbnail((settings.image_small_size, settings.image_small_size))
+
+                small_bytes = get_bytes(image, settings.image_small_size) if settings.save_image_small else None
+                ahash = str(average_hash(image))
+
+                results.append(ProcessedImageItem(
+                    file_path=item.file_path, folder_id=item.folder_id, name=name, extension=ext,
+                    sha1=sha1, width=width, height=height, ahash=ahash,
+                    mime_type='image/jpeg', large_bytes=large_bytes, small_bytes=small_bytes
+                ))
+        except Exception as e:
+            logger.error(f"Worker failed on {item.file_path}: {e}")
+    return results
+
+
+# --- MAIN TASK ---
 class ImportInstanceTask(Task):
-    def __init__(self, seq: int, file: str, folder_id: int):
-        super().__init__(priority=True)
-        self.file = file
-        self.folder_id = folder_id
-        self.name = 'Import Instance'
-        self.key += '-' + str(seq)
+    def __init__(self, project, files: list[tuple[str, int]]):
+        super().__init__()
+        self._project = project
+        self._files = files
+        self.state.total = len(files)
 
-    async def run(self):
-        db = self._project.db
+        # Buffering: 30 images per chunk is the "Goldilocks" zone for IPC
+        self.chunk_size = 30
+        self._read_queue = asyncio.Queue(maxsize=10)
+        self._write_queue = asyncio.Queue(maxsize=10)
 
-        name = self.file.split(os.sep)[-1]
-        extension = name.split('.')[-1]
-        folder_id = self.folder_id
+    async def start(self):
+        self.state.running = True
+        self._notify()
+        start_time = time.perf_counter()
 
-        db_image = await db.has_file(folder_id, name, extension)
-        if db_image:
-            db.on_import_instance.emit(db_image)
-            return db_image
+        # 10 workers leaves room for the main loop and SSD controller overhead
+        with ProcessPoolExecutor(max_workers=10) as pool:
+            await asyncio.gather(
+                self._reader_stage(),
+                self._compute_stage(pool),
+                self._writer_stage()
+            )
 
-        sha1, width, height, ahash, large, medium, small, raw_file, mime_type = await self.run_async(self._import_image,
-                                                                                                     self.file,
-                                                                                                     self._project.settings)
-        if not await db.has_image(sha1):
-            await db.import_image(sha1, small, medium, large)
+        duration = time.perf_counter() - start_time
+        img_per_sec = self.state.total / duration if duration > 0 else 0
 
-        if self._project.settings.save_file_raw:
-            await db.import_raw_image(sha1, mime_type, raw_file)
+        self.state.running = False
+        self.state.finished = True
+        self.state.done = self.state.total
+        self._notify()
 
-        instance = Instance(-1, folder_id, name, extension, sha1, self.file, height, width, str(ahash))
+        print(f"\nImage Import: {img_per_sec:.1f} images/sec")
+        logger.info(f"Imported {self.state.total} images in {duration:.2f}s")
 
-        commit = DbCommit(instances=[instance])
-        await self._project.db.apply_commit(commit)
-        self._project.sha1_to_files[sha1].append(self.file)
-        self._project.ui.commits.append(commit)
-        db.on_import_instance.emit(commit.instances[0])
-        return commit.instances[0]
+    async def _reader_stage(self):
+        """Sequential Read: Thread-offloaded to avoid blocking the event loop."""
+        chunk = []
+        for file_path, folder_id in self._files:
+            if self._cancel_event.is_set(): break
 
-    async def run_if_last(self):
-        self._project.task_queue.add_task(GenerateAtlasTask())
+            # Sequential reads are best for SSD long-term health and consistent latency
+            raw_bytes = await asyncio.to_thread(self._read_file, file_path)
+            if raw_bytes:
+                chunk.append(RawImageItem(file_path, folder_id, raw_bytes))
 
-    @staticmethod
-    def _import_image(file_path, settings: ProjectSettings):
-        image = Image.open(file_path)
-        width, height = image.size
+            if len(chunk) >= self.chunk_size:
+                await self._read_queue.put(chunk)
+                chunk = []
 
-        format_ = image.format  # e.g., 'JPEG'
-        mime_type = format_to_mime[format_]
+        if chunk: await self._read_queue.put(chunk)
+        await self._read_queue.put(None)
 
-        medium_bytes = bytes()
-        small_bytes = bytes()
+    def _read_file(self, path):
+        try:
+            with open(path, 'rb') as f:
+                return f.read()
+        except:
+            return None
 
-        raw_file = bytes()
-        raw_buffer = io.BytesIO()
-        if settings.save_file_raw:
-            image.save(raw_buffer, format=image.format)
-            raw_file = raw_buffer.getvalue()
+    async def _compute_stage(self, pool):
+        loop = asyncio.get_running_loop()
+        settings = self._project.settings
+        pending = set()
 
-        large_size = settings.image_large_size
-        if width > large_size or height > large_size:
-            image.thumbnail(size=(large_size, large_size))
-        image = image.convert('RGB')
+        while True:
+            chunk = await self._read_queue.get()
+            if chunk is None: break
 
-        large_io = io.BytesIO()
-        image.save(large_io, format='jpeg', quality=30)
-        large_bytes = large_io.getvalue()
+            task = loop.run_in_executor(pool, _compute_worker, chunk, settings)
+            pending.add(task)
 
-        sha1_hash = hashlib.sha1(large_bytes).hexdigest()
-        ahash = average_hash(image)
+            # Limit active tasks to prevent memory spikes
+            if len(pending) >= 15:
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                for d in done:
+                    await self._write_queue.put(await d)
 
-        medium_size = settings.image_medium_size
-        if settings.save_image_medium and (width > medium_size or height > medium_size):
-            image.thumbnail(size=(medium_size, medium_size))
-            medium_io = io.BytesIO()
-            image.save(medium_io, format='jpeg', quality=30)
-            medium_bytes = medium_io.getvalue()
+        if pending:
+            results = await asyncio.gather(*pending)
+            for r in results: await self._write_queue.put(r)
 
-        small_size = settings.image_small_size
-        if settings.save_image_small and (width > small_size or height > small_size):
-            image.thumbnail(size=(small_size, small_size))
-            small_io = io.BytesIO()
-            image.save(small_io, format='jpeg', quality=30)
-            small_bytes = small_io.getvalue()
+        await self._write_queue.put(None)
 
-        if not settings.save_image_large:
-            large_bytes = bytes()
+    async def _writer_stage(self):
+        paths, db = self._project.paths, self._project.db
+        accumulated = []
+        batch_limit = 120  # Balanced DB transaction size
 
-        del image
+        def _io_block(chunk):
+            """Writes chunk to disk in a single thread pass."""
+            batch = []
+            for item in chunk:
+                fn = f"{item.sha1}.jpg"
+                try:
+                    for data, root in [(item.small_bytes, paths.image_small), (item.large_bytes, paths.image_large)]:
+                        if data:
+                            with open(os.path.join(root, fn), 'wb') as f: f.write(data)
 
-        return sha1_hash, width, height, ahash, large_bytes, medium_bytes, small_bytes, raw_file, mime_type
+                    batch.append(Instance(
+                        id=-1, folder_id=item.folder_id, name=item.name, extension=item.extension,
+                        sha1=item.sha1, url=item.file_path, height=item.height, width=item.width, ahash=item.ahash
+                    ))
+                except:
+                    continue
+            return batch
+
+        while True:
+            chunk = await self._write_queue.get()
+            if chunk is not None:
+                new_inst = await asyncio.to_thread(_io_block, chunk)
+                accumulated.extend(new_inst)
+                self.state.done += len(chunk)
+                self._notify()
+
+            if len(accumulated) >= batch_limit or (chunk is None and accumulated):
+                await db.apply_commit(DbCommit(instances=accumulated))
+                for inst in accumulated:
+                    self._project.sha1_to_files[inst.sha1].append(inst.url)
+                accumulated = []
+
+            if chunk is None: break

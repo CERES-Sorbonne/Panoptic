@@ -35,7 +35,7 @@ const handleInput = async () => {
     panoptic.showModal(ModalId.IMPORT)
 }
 
-const tasks = computed(() => project.state.tasks.filter(t => !(t.done)) ?? [])
+const tasks = computed(() => project.state.tasks.filter(t => !(t.finished)) ?? [])
 
 function promptFolder() {
     panoptic.showModal(ModalId.FOLDERSELECTION, { callback: addFolder, mode: "images" })

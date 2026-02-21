@@ -281,12 +281,15 @@ export interface StatusUpdate {
 }
 
 export interface TaskState {
-    name: string;
-    id: string;
-    total: number;
-    remain: number;
-    computing: number;
-    done: boolean;
+    id: string
+    key: string
+    name: string
+    total: number
+    done: number
+    failed: number
+    remain: number
+    running: boolean
+    finished: boolean
 }
 
 export interface SyncResult {
@@ -850,3 +853,12 @@ export interface PointData {
 }
 
 export interface PointIndex { [pointId: number]: PointData }
+
+
+export interface SelectOption {
+    value: string | number
+    label?: string
+    description?: string
+    disabled?: boolean
+    icon?: string
+}

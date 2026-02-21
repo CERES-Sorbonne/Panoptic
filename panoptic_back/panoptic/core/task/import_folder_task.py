@@ -1,73 +1,132 @@
+import asyncio
 import os
-from pathlib import Path
-from typing import List
-
-from panoptic.core.task.import_instance_task import ImportInstanceTask
+import logging
 from panoptic.core.task.task import Task
+from panoptic.core.task.import_instance_task import ImportInstanceTask
+
+logger = logging.getLogger('ImportFolderTask')
+
+# Use a tuple for super-fast endswith checking
+IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
 
 
 class ImportFolderTask(Task):
-    def __init__(self, seq: int, folder: str):
-        super().__init__(priority=True)
-        self.folder = os.path.normpath(folder)
-        self.seq = seq
+    """
+    Scans folders using a background thread (zero IPC overhead) 
+    and yields control during large DB/Memory operations to keep the UI smooth.
+    """
+
+    def __init__(self, project, folders: list[str]):
+        super().__init__()
         self.name = 'Import Folder'
-        self.key += '-' + str(seq)
+        self._project = project
+        self._folders = [os.path.normpath(f) for f in folders]
+        self.state.total = len(self._folders)
 
-    async def run(self):
-        # Gather all image files from folder
-        all_images = await self.run_async(self._get_all_images, self.folder)
+    async def start(self):
+        self.state.running = True
+        self._notify()
 
-        # Compute folder structure
-        folder_node, file_to_folder_id = await self._compute_folder_structure(self.folder, all_images)
+        all_images_to_process = []
 
-        # Create and queue individual import tasks
-        tasks = [ImportInstanceTask(seq=self.seq, file=file, folder_id=file_to_folder_id[file])
-                 for file in all_images]
+        for folder in self._folders:
+            if self._cancel_event.is_set():
+                break
 
-        for task in tasks:
-            self._project.task_queue.add_task(task)
+            # 1. Run filesystem walk in a Thread. 
+            # Threads share memory, so returning a 100k item dict is instant.
+            scan_result = await asyncio.to_thread(self._scan_folder_thread, folder)
 
-        # Emit folders update
-        self._project.on.sync.emitFolders(await self._project.db.get_folders())
+            # 2. Sync folders to DB (Chunks to prevent loop starvation)
+            path_to_id = await self._sync_folders_to_db(scan_result['folder_nodes'])
 
-    async def _compute_folder_structure(self, root_path, all_files: List[str]):
-        offset = len(root_path)
-        root, root_name = os.path.split(root_path)
-        root_folder = await self._project.db.add_folder(root_path, root_name)
-        file_to_folder_id = {}
-        for file in all_files:
-            path, name = os.path.split(file)
-            if offset == len(path):
-                file_to_folder_id[file] = root_folder.id
-                continue
-            path = path[offset + 1:]
-            parts = Path(path).parts
-            current_folder = root_folder
-            for part in parts:
-                if part not in current_folder.children:
-                    child = await self._project.db.add_folder(current_folder.path + '/' + part, part, current_folder.id)
-                    current_folder.children[part] = child
-                else:
-                    child = current_folder.children[part]
-                file_to_folder_id[file] = child.id
-                current_folder = child
-        return root_folder, file_to_folder_id
+            # 3. Prepare images for the ImportInstanceTask
+            images = scan_result['images']
+            image_to_folder = scan_result['image_to_folder_path']
 
-    @staticmethod
-    def _get_all_images(folder: str) -> List[str]:
-        """Get all files from folder tree (run in executor to avoid blocking)"""
-        all_files = [os.path.join(path, name)
-                for path, subdirs, files in os.walk(folder)
-                for name in files]
+            # Process the 100k list in chunks so the Event Loop can breathe
+            chunk_size = 5000
+            for i in range(0, len(images), chunk_size):
+                if self._cancel_event.is_set():
+                    break
 
-        all_images = [i for i in all_files if
-                      i.lower().endswith('.png') or i.lower().endswith('.jpg') or
-                      i.lower().endswith('.jpeg') or i.lower().endswith('.gif') or
-                      i.lower().endswith('.webp')]
+                chunk = images[i:i + chunk_size]
+                for img_path in chunk:
+                    folder_path = image_to_folder[img_path]
+                    all_images_to_process.append((img_path, path_to_id[folder_path]))
 
-        return all_images
+                # Magic trick: Yields control back to asyncio to process UI/Network events
+                await asyncio.sleep(0)
 
-    async def run_if_last(self):
-        """Called when this is the last ImportFolderTask in the queue"""
-        pass
+            self.state.done += 1
+            self._project.on.sync.emitFolders(await self._project.db.get_folders())
+            self._notify()
+
+        # 4. Chain the ImportInstanceTask
+        if all_images_to_process and not self._cancel_event.is_set():
+            logger.info(f"Passing {len(all_images_to_process)} images to ImportInstanceTask")
+            next_task = ImportInstanceTask(self._project, all_images_to_process)
+            self._project.task_manager.add_task(next_task)
+
+        self.state.running = False
+        self.state.finished = True
+        self._finished_event.set()
+        self._notify()
+
+    def _scan_folder_thread(self, folder: str) -> dict:
+        """Runs in a background thread. Fast, blocking I/O."""
+        images = []
+        folder_path_set = set()
+        image_to_folder_path = {}
+
+        for dirpath, _, filenames in os.walk(folder):
+            # Track directories
+            if dirpath not in folder_path_set:
+                current = dirpath
+                while len(current) >= len(folder):
+                    folder_path_set.add(current)
+                    parent = os.path.dirname(current)
+                    if parent == current:
+                        break
+                    current = parent
+
+            for name in filenames:
+                # String manipulation is much faster than Path() for 100k inner-loops
+                if name.lower().endswith(IMAGE_EXTENSIONS):
+                    full_path = os.path.join(dirpath, name)
+                    images.append(full_path)
+                    image_to_folder_path[full_path] = dirpath
+
+        # Sort so parent paths appear before child paths
+        folder_nodes = []
+        for path in sorted(folder_path_set):
+            parent_path = os.path.dirname(path)
+            folder_nodes.append({
+                'path': path,
+                'name': os.path.basename(path),
+                'parent_path': parent_path if parent_path != path and parent_path in folder_path_set else None
+            })
+
+        return {
+            'images': images,
+            'folder_nodes': folder_nodes,
+            'image_to_folder_path': image_to_folder_path
+        }
+
+    async def _sync_folders_to_db(self, folder_nodes: list[dict]) -> dict[str, int]:
+        """Inserts folders into the database while keeping the UI responsive."""
+        db = self._project.db
+        path_to_id = {}
+
+        chunk_size = 500
+        for i in range(0, len(folder_nodes), chunk_size):
+            chunk = folder_nodes[i:i + chunk_size]
+            for node in chunk:
+                parent_id = path_to_id.get(node['parent_path']) if node['parent_path'] else None
+                folder = await db.add_folder(node['path'], node['name'], parent_id)
+                path_to_id[node['path']] = folder.id
+
+            # Yield control to event loop after every chunk of DB writes
+            await asyncio.sleep(0)
+
+        return path_to_id

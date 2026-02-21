@@ -3,14 +3,7 @@ import { computed } from 'vue'
 
 import Dropdown from '../dropdowns/Dropdown.vue'
 import wTT from '../tooltips/withToolTip.vue'
-
-export interface SelectOption {
-    value: string | number
-    label?: string
-    description?: string
-    disabled?: boolean
-    icon?: string
-}
+import { SelectOption } from '@/data/models';
 
 const props = defineProps<{
     options: SelectOption[]

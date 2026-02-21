@@ -53,7 +53,7 @@ class TaskQueue:
             self._tasks.put_nowait(task)
 
         if task.get_id() not in self._task_states:
-            self._task_states[task.get_id()] = TaskState(id=task.get_id(), name=task.name, total=0, remain=0)
+            self._task_states[task.get_id()] = TaskState(id_=task.get_id(), name=task.name, key=)
 
         state = self._task_states[task.get_id()]
         state.done = False

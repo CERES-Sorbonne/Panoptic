@@ -1,6 +1,5 @@
 import asyncio
 import atexit
-import os
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -8,22 +7,20 @@ from typing import List, Any
 
 from showinfm import show_in_file_manager
 
-from panoptic.core.project.project_paths import ProjectPaths
-from panoptic.core.project_db.db_connection import DbConnection
 from panoptic.core.exporter import Exporter
 from panoptic.core.importer.importer import Importer
 from panoptic.core.plugin.plugin import APlugin
 from panoptic.core.project.plugin_watcher import PluginWatcher
 from panoptic.core.project.project_actions import ProjectActions
-from panoptic.core.project_db.project_db import ProjectDb
 from panoptic.core.project.project_events import ProjectEvents
+from panoptic.core.project.project_paths import ProjectPaths
 from panoptic.core.project.project_ui import ProjectUi
-from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
+from panoptic.core.project_db.db_connection import DbConnection
+from panoptic.core.project_db.project_db import ProjectDb
 from panoptic.core.task.import_folder_task import ImportFolderTask
 from panoptic.core.task.import_image_task import ImportImageTask
-from panoptic.core.task.import_instance_task import ImportInstanceTask
 from panoptic.core.task.load_plugin_task import LoadPluginTask
-from panoptic.core.task.task_queue import TaskQueue
+from panoptic.core.task.task_manager import TaskManager
 from panoptic.models import ProjectSettings, PluginKey, DbCommit, ProjectState, TaskState
 
 nb_workers = 8
@@ -51,7 +48,8 @@ class Project:
         self.ui: ProjectUi | None = None
         self.on = ProjectEvents(self.id)
         self.action = ProjectActions()
-        self.task_queue = TaskQueue(self, num_workers=nb_workers * 2)
+        # self.task_queue = TaskQueue(self, num_workers=nb_workers * 2)
+        self.task_manager = TaskManager(self)
         self.plugin_watcher = PluginWatcher(self)
         self.importer = Importer(project=self)
         self.exporter = Exporter(project=self)
@@ -63,7 +61,7 @@ class Project:
         self.plugins: List[APlugin] = []
         self.plugin_keys = plugins
 
-        self.task_queue.on_update.register(self._emit_tasks)
+        self.task_manager.on_update.register(self._emit_tasks)
 
     async def _emit_tasks(self, tasks: list[TaskState]):
         self.on.sync.emitTasks(tasks)
@@ -80,22 +78,21 @@ class Project:
         # avoid blocking response for UI on longer loads
         self._load_task = asyncio.create_task(self._parallel_load())
 
-
-        for key in self.plugin_keys:
+        if len(self.plugin_keys):
             should_watch = self.plugin_watcher.watching
-            task = LoadPluginTask(key, should_watch)
-            if should_watch:
-                task.run_if_last = self.plugin_watcher.start
-            self.task_queue.add_task(task)
+            task = LoadPluginTask(should_watch)
+            task.add_items(self.plugin_keys)
+            self.task_manager.add_task(task)
 
         # await self.plugin_watcher.start()
         self.is_loaded = True
 
         # TBD if we do it here
-        atlas = await self.db.get_atlas(0)
-        if not atlas:
-            task = GenerateAtlasTask()
-            self.task_queue.add_task(task)
+        # TODO: fix
+        # atlas = await self.db.get_atlas(0)
+        # if not atlas:
+        #     task = GenerateAtlasTask()
+        #     self.task_queue.add_task(task)
 
     async def wait_full_start(self):
         await self._load_task
@@ -112,12 +109,12 @@ class Project:
         self.base_path = ''
         try:
             await self.db.close()
-            await self.task_queue.close()
+            await self.task_manager.close()
             await self.plugin_watcher.stop()
         except Exception:
             pass
 
-    async def export_data(self, name: str = None, ids: [int] = None, properties: [int] = None,
+    async def export_data(self, name: str = None, ids: list[int] = None, properties: list[int] = None,
                           copy_images: bool = False, key: str = 'id'):
         export_path = await self.exporter.export_data(name=name, path=self.base_path, instance_ids=ids,
                                                       properties=properties,
@@ -129,12 +126,8 @@ class Project:
         return [p.get_description() for p in self.plugins]
 
     async def import_folder(self, folder: str):
-        global folder_import_seq
-        seq = folder_import_seq
-        folder_import_seq += 1
-
-        task = ImportFolderTask(seq=seq, folder=folder)
-        self.task_queue.add_task(task)
+        task = ImportFolderTask(project=self, folders=[folder])
+        self.task_manager.add_task(task)
 
     async def delete_folder(self, folder_id: int):
         res = await self.db.delete_folder(folder_id)
@@ -220,8 +213,11 @@ class Project:
         self.settings = settings
 
         if re_import_images:
-            sha1s = list(self.sha1_to_files.keys())
-            [self.task_queue.add_task(ImportImageTask(sha1)) for sha1 in sha1s]
+            task = ImportImageTask()
+            task.set_project(self)
+            for sha1 in self.sha1_to_files:
+                task.add_sha1(sha1)
+            self.task_manager.add_task(task)
 
     async def delete_empty_instance_clones(self):
         ids = await self.db.delete_empty_instance_clones()
@@ -236,7 +232,7 @@ class Project:
         return res
 
     def get_state(self):
-        tasks = self.task_queue.get_task_states()
+        tasks = self.task_manager.get_states()
         plugins = [p.get_description() for p in self.plugins]
         return ProjectState(
             id=self.id,
