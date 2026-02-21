@@ -82,6 +82,7 @@ export const useSocketStore = defineStore('socketStore', () => {
 
         socket.on('tasks', (data) => {
             const tasks = keysToCamel(data) as TaskState[]
+            console.log(tasks)
             useProjectStore().importTasks(tasks)
         })
 

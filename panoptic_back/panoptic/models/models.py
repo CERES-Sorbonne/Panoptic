@@ -6,7 +6,6 @@ from enum import Enum
 from typing import TypeAlias, Any, Union, Dict, List
 
 import numpy
-from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, ConfigDict
 
@@ -344,12 +343,26 @@ class Update:
 
 
 class TaskState(BaseModel):
-    name: str
     id: str
-    total: int
-    remain: int
-    computing: int = 0
-    done: bool = True
+    name: str
+    key: str
+    total: int = 0
+    done: int = 0
+    failed: int = 0
+    running: bool = False
+    finished: bool = False
+
+    @property
+    def remain(self) -> int:
+        return self.total - self.done - self.failed
+
+    def to_dict(self) -> dict:
+        return self.model_dump()
+
+class ExecutorType:
+    THREAD = 'thread'     # I/O bound, non-picklable, default
+    PROCESS = 'process'   # CPU bound, must be picklable
+    ASYNC = 'async' # fully async
 
 
 @dataclass(slots=True)

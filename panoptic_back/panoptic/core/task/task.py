@@ -1,33 +1,49 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from panoptic.core.project.project import Project
+# task.py
+import asyncio
+import logging
+from abc import ABC, abstractmethod
+from typing import Callable
 
-class Task:
-    """
-    Base class for a Task managed by the TaskQueue.
-    To use the task class outside the TaskQueue you need to set_executor manually
-    """
-    def __init__(self, priority=False):
-        self._project: Project | None = None
-        self.has_priority = priority
-        self.name = type(self).__name__
-        self.key = type(self).__name__
+from panoptic.models import TaskState
 
-    def set_project(self, project: Project):
-        self._project = project
+logger = logging.getLogger('Task')
 
-    def get_id(self):
-        return self.key
 
-    async def run_async(self, function, *args):
-        """
-        Make function awaitable and execute in Executor
-        """
-        return await self._project.run_async(function, *args)
+class Task(ABC):
+    def __init__(self):
+        self.key: str = type(self).__name__
+        self.name: str = self.key
+        self.id: str | None = None
+        self.state = TaskState(id='unregistered', name=self.name, key=self.key)
 
-    async def run(self):
-        raise NotImplementedError()
+        self._progress_callbacks: list[Callable[[TaskState], None]] = []
+        self._cancel_event = asyncio.Event()
+        self._finished_event = asyncio.Event()
 
-    async def run_if_last(self):
+    def get_id(self) -> str:
+        if self.id is None:
+            raise RuntimeError(f"Task '{self.key}' is unregistered.")
+        return self.id
+
+    def on_progress(self, callback: Callable[[TaskState], None]):
+        self._progress_callbacks.append(callback)
+        return self
+
+    def _notify(self):
+        for cb in self._progress_callbacks:
+            try:
+                cb(self.state)
+            except Exception as e:
+                logger.error(f"Progress callback failed: {e}")
+
+    async def wait(self):
+        await self._finished_event.wait()
+
+    def stop(self):
+        """Signals the task to cancel gracefully."""
+        self._cancel_event.set()
+
+    @abstractmethod
+    async def start(self):
+        """The concrete task implementation goes here."""
         pass

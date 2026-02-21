@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { useActionStore } from '@/data/actionStore';
 import { ref, watch, computed, onMounted } from 'vue'
-import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
+import SelectDropdown from '../dropdowns/SelectDropdown.vue';
 import { keyState } from '@/data/keyState';
 import InputOptions from '../actions/InputOptions.vue';
-import { TextQuery } from '@/data/models';
+import { SelectOption, TextQuery } from '@/data/models';
 import LoadWheel from '../loading/LoadWheel.vue';
 import { useSearchStore } from '@/data/stores/textSearchStore';
-import { FilterManager } from '@/core/FilterManager';
 import { TabManager } from '@/core/TabManager';
 
 const actions = useActionStore()

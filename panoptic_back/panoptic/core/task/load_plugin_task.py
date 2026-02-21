@@ -1,56 +1,87 @@
+import asyncio
 import importlib.util
-import os
 import sys
+import logging
 from pathlib import Path
-
 from panoptic.core.task.task import Task
 from panoptic.models import PluginKey, PluginType
 
-
-def import_module_from_path(module_name, module_path):
-    # Append the folder path to sys.path
-    sys.path.append(module_path)
-
-    # Construct the spec for the module
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-
-    # Import the module
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    # Finalize the loading
-    spec.loader.exec_module(module)
-
-    # Remove the path from sys.path to keep things clean
-    # sys.path.remove(module_path)
-
-    return module
+logger = logging.getLogger('LoadPluginTask')
 
 
 class LoadPluginTask(Task):
-    def __init__(self, plugin_key: PluginKey, enable_watch: bool = True):
+    """
+    Sequentially loads plugins. 
+    Simplifies the lifecycle to a single start() loop without batching overhead.
+    """
+
+    def __init__(self, plugin_keys: list[PluginKey], enable_watch: bool = True):
         super().__init__()
         self.name = 'Load Plugin'
-        self.plugin_key = plugin_key
+        self._plugin_keys = plugin_keys
         self.enable_watch = enable_watch
+        self.state.total = len(plugin_keys)
 
-    async def run(self):
-        plugin_type = self.plugin_key.type
-        path = self.plugin_key.path
-        name = self.plugin_key.name
+    async def start(self):
+        self.state.running = True
+        self._notify()
 
-        if plugin_type == PluginType.pip:
-            plugin_module = await self.run_async(importlib.import_module, self.plugin_key.source)
-            path = plugin_module.__path__[0]
-        else:
-            file_path = path
-            if not path.endswith('__init__.py'):
-                file_path = str(Path(path) / '__init__.py')
-            plugin_module = await self.run_async(import_module_from_path, name, file_path)
-        plugin = plugin_module.plugin_class(project=self._project, plugin_path=path, name=name)
-        self._project.add_plugin(plugin)
-        await plugin.start()
+        for key in self._plugin_keys:
+            if self._cancel_event.is_set():
+                break
 
-        if self.enable_watch and hasattr(self._project, 'plugin_watcher'):
-            self._project.plugin_watcher.add_plugin_watch(self.plugin_key, path)
+            try:
+                # 1. Import (Blocking I/O moved to thread)
+                path, module = await asyncio.to_thread(self._import_plugin, key)
 
-        self._project.on.sync.emitProjectState(self._project.get_state())
+                # 2. Instantiate and Start (Back on Event Loop)
+                plugin = module.plugin_class(
+                    project=self._project,
+                    plugin_path=path,
+                    name=key.name
+                )
+
+                self._project.add_plugin(plugin)
+                await plugin.start()
+
+                # 3. Handle Watcher
+                if self.enable_watch and hasattr(self._project, 'plugin_watcher'):
+                    self._project.plugin_watcher.add_plugin_watch(key, path)
+
+                # 4. Progress
+                self.state.done += 1
+                self._project.on.sync.emitProjectState(self._project.get_state())
+                self._notify()
+
+            except Exception as e:
+                logger.error(f"Failed to load plugin {key.name}: {e}", exc_info=True)
+
+        self.state.running = False
+        self.state.finished = True
+        self._finished_event.set()
+        self._notify()
+
+    def _import_plugin(self, key: PluginKey):
+        """Standard blocking import logic, now simplified."""
+        if key.type == PluginType.pip:
+            module = importlib.import_module(key.source)
+            path = module.__path__[0]
+            return path, module
+
+        # Local Path loading
+        path = key.path
+        file_path = path if path.endswith('__init__.py') else str(Path(path) / '__init__.py')
+
+        # Use a unique module name to avoid collision
+        module_name = key.name
+        sys.path.append(str(Path(path).parent))  # Ensure parent is in path for relative imports
+
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Could not find plugin at {file_path}")
+
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        return path, module
