@@ -25,3 +25,4 @@ torch
 faiss-cpu
 python-socketio
 polars
+watchfiles
