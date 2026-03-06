@@ -134,7 +134,7 @@ watch(localFunction, loadInput)
         </div>
         <wTT :message="'dropdown.action.' + props.action" class="">
             <div v-if="props.action != 'group'" style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
-            <div v-else><img class="cluster-icon-sm" src="/icons/network2_white.svg" /></div>
+            <div v-else><img class="cluster-icon-sm" src="/icons/network2_white.svg" /> Clustering </div>
         </wTT>
         <div class="options" @click.stop.prevent="">
             <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
