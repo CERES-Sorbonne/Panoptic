@@ -64,7 +64,8 @@ class ImportFolderTask(Task):
         all_images = [i for i in all_files if
                       i.lower().endswith('.png') or i.lower().endswith('.jpg') or
                       i.lower().endswith('.jpeg') or i.lower().endswith('.gif') or
-                      i.lower().endswith('.webp')]
+                      i.lower().endswith('.webp') or i.lower().endswith('.tif') or
+                      i.lower().endswith('.tiff')]   #AJOUT SUPPORT TIFF
 
         return all_images
 

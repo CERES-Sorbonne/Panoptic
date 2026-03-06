@@ -537,7 +537,6 @@ export class GroupManager {
         // console.timeEnd('group register')
         let insert = true
         let toInsert = new Set(Object.keys(lastCustom).map(Number))
-
         while (insert) {
             insert = false
             for (let target of Array.from(toInsert)) {
@@ -1303,7 +1302,12 @@ export class GroupIterator {
 
     nextGroup(): GroupIterator {
         let current = this.group
-        if (!current.view.closed && current.children.length > 0 && current.subGroupType != GroupType.Sha1) {
+
+        let isOpen = !current.view.closed
+        let hasChildren = current.children.length > 0
+        let avoidChildren = hasChildren && current.subGroupType == GroupType.Cluster && this.options.onlyPropertyGroups
+        let isSha1Subgroup = current.subGroupType == GroupType.Sha1
+        if (isOpen && hasChildren && !isSha1Subgroup && !avoidChildren) {
             return new GroupIterator(this.manager, current.children[0].id)
         }
 
@@ -1386,11 +1390,16 @@ export class ImageIterator extends GroupIterator {
     }
 
     private shouldSkipGroup(group: Group): boolean {
+        // The name can be confusing. The question is if the iterator should directly go to the children group or stay on the parent level.
+
         // Don't skip if no children
         if (group.children.length === 0) return false
         
         // Don't skip sha1 groups - they need to iterate their children as sha1 groups
         if (group.subGroupType === GroupType.Sha1) return false
+
+        // If the children are Clusters and we want to ingore them, dont go down.
+        if(group.subGroupType == GroupType.Cluster && this.options.onlyPropertyGroups) return false
         
         // Skip groups that have non-sha1 children (property groups, etc.)
         return true
@@ -1417,7 +1426,7 @@ export class ImageIterator extends GroupIterator {
 
     nextGroup(): ImageIterator {
         let next = super.nextGroup()
-        while (next) {
+        while (next && next.isValid) {
             const group = next.group
             
             // Check if we should iterate this group's images

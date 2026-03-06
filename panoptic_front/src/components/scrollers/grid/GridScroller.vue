@@ -71,7 +71,8 @@ function computeLines() {
     const lines = []
 
     let lastGroupId = undefined
-    let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
+    let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true, onlyPropertyGroups: true })
+    console.log(current)
     // lines.push({ id: '__filler__', type: 'fillter', size: 0, index: lines.length })
     while (current) {
         const group = current.group
@@ -247,7 +248,8 @@ function changeHandler(){
 }
 onMounted(() => {
     props.manager.onResultChange.addListener(changeHandler)
-    props.manager.clearCustomGroups(true)
+    // props.manager.clearCustomGroups(true)
+    changeHandler()
 })
 
 onUnmounted(() => {
