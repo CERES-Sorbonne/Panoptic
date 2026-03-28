@@ -1,11 +1,8 @@
-import pytest
-from datetime import datetime
 from pathlib import Path
 
 from panoptic.core.databases.data.commit import CommitBuilder
 from panoptic.core.databases.data.data_writer import DataWriter
 from panoptic.core.databases.registry.registry_db import RegistryDB
-from panoptic.models.data import File, UpsertCommit
 
 
 def test_writer_history_logic():
@@ -80,30 +77,41 @@ def test_writer_sha1_values_override():
     # --- PHASE 2: Override ---
     commit2 = CommitBuilder(registry)
 
-    # New values for the SAME 10 SHA1 hashes
-    new_values = {}
+    # Define new values for the same 10 hashes
+    overridden_values = {}
     for i in range(10):
         sha1_hash = f"hash_{i}"
-        val = i + 500.0  # Completely different values
-        new_values[sha1_hash] = val
+        val = i + 500.0  # New distinct value
+        overridden_values[sha1_hash] = val
 
-    commit2.add_sha1_values(prop.id, new_values)
-    writer.apply_upsert_commit('override_script', commit2.data)
+    # Create the write order for the same property
+    ov_write = commit2.add_sha1_value_write(prop.id)
+    ov_write.keys = list(overridden_values.keys())
+    ov_write.values = list(overridden_values.values())
 
-    # --- PHASE 3: Final Verification ---
+    # This should trigger the 'existing' logic in _upsert_commit_sha1_values
+    writer.apply_upsert_commit('override_test', commit2.data)
+
+    # --- PHASE 3: Verification ---
+    # 1. Check current state (should be the new values)
     updated_db_values = writer.reader.get_sha1_values(property_id=prop.id)
     assert len(updated_db_values) == 10
-
     for row in updated_db_values:
-        expected_val = float(row.sha1.split('_')[1]) + 500.0
-        assert row.value == expected_val
-        # Ensure the commit_id was updated to 2
+        idx = int(row.sha1.split('_')[1])
+        assert float(row.value) == idx + 500.0
         assert row.commit_id == 2
 
-    # Verify History (Optional but recommended)
-    # Check if the history table captured the previous values (0.0, 10.0, etc.)
+    # 2. Check history (should contain the values from Commit 1)
+    # We query the history table directly via the reader or a raw transaction
     with writer.transaction() as tx:
-        cursor = tx.execute("SELECT value FROM sha1_values_history WHERE property_id = ?", (prop.id,))
+        cursor = tx.execute(
+            "SELECT sha1, value FROM sha1_values_history WHERE property_id = ? AND commit_id = 2",
+            (prop.id,)
+        )
         history_rows = cursor.fetchall()
-        # Should have 10 history entries from the override operation
-        assert len(history_rows) == 10
+
+    assert len(history_rows) == 10
+    for sha1, value in history_rows:
+        idx = int(sha1.split('_')[1])
+        # The history stores what was there BEFORE the update
+        assert float(value) == idx * 10.0

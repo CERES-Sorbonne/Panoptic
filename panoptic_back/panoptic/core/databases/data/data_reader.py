@@ -105,5 +105,4 @@ class DataReader(SQLiteReader):
 
     def get_sha1_values(self, **filters) -> List[Sha1Value]:
         query = _filter_query(SHA1_VALUES, **filters)
-        print(query.get_sql())
         return self.fetch_structs(query.get_sql(quote_char=None), Sha1Value)

@@ -241,11 +241,13 @@ class DataWriter(SQLiteWriter):
             return
 
         p_ids = list(data.sha1_values.keys())
+        properties = {p.id: p for p in self.reader.get_properties(id=p_ids)}
         existing_list = self.reader.get_sha1_values(property_id=p_ids)
         existing = {(r.property_id, r.sha1): r for r in existing_list}
         u_batch, h_batch = [], []
 
         for p_id, prop_write in data.sha1_values.items():
+            prop = properties[p_id]
             mode = prop_write.stamp_mode
             if mode is None:
                 for idx, sha1 in enumerate(prop_write.keys):
@@ -263,6 +265,56 @@ class DataWriter(SQLiteWriter):
                     u_batch.append((p_id, sha1, val_db, commit_id))
                     prev_val = existing[key].value if key in existing else None
                     h_batch.append((p_id, sha1, prev_val, commit_id, OP_UPDATE))
+            elif mode == 'add' and prop.dtype == 'multi_tags':
+                for idx, sha1 in enumerate(prop_write.keys):
+                    key = (p_id, sha1)
+
+                    # Get current state
+                    current_val_raw = existing[key].value if key in existing else "[]"
+                    try:
+                        current_tags = set(json.loads(current_val_raw))
+                    except (json.JSONDecodeError, TypeError):
+                        current_tags = set()
+
+                    # Determine tags to add (handles single string or list of strings)
+                    to_add = prop_write.values
+                    if isinstance(to_add, str):
+                        current_tags.add(to_add)
+                    else:
+                        current_tags.update(to_add)
+
+                    new_val_db = json.dumps(sorted(list(current_tags)))
+                    u_batch.append((p_id, sha1, new_val_db, commit_id))
+
+                    # History records the state BEFORE the addition
+                    h_batch.append((p_id, sha1, current_val_raw, commit_id, OP_ADD))
+
+            elif mode == 'sub' and prop.dtype == 'multi_tags':
+                for idx, sha1 in enumerate(prop_write.keys):
+                    key = (p_id, sha1)
+
+                    # If it doesn't exist, there's nothing to subtract from
+                    if key not in existing:
+                        continue
+
+                    current_val_raw = existing[key].value
+                    try:
+                        current_tags = set(json.loads(current_val_raw))
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+                    # Determine tags to remove
+                    to_remove = prop_write.values[idx]
+                    if isinstance(to_remove, str):
+                        current_tags.discard(to_remove)
+                    else:
+                        current_tags.difference_update(to_remove)
+
+                    new_val_db = json.dumps(sorted(list(current_tags)))
+                    u_batch.append((p_id, sha1, new_val_db, commit_id))
+
+                    # History records the state BEFORE the subtraction
+                    h_batch.append((p_id, sha1, current_val_raw, commit_id, OP_SUB))
 
         if u_batch:
             self._sql_upsert_sha1_values(tx, u_batch)
