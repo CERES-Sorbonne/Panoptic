@@ -158,7 +158,7 @@ class DbCommit:
 
 **Fonctions utilitaires** (créent objets avec ID négatifs) :
 - `create_instance(...)`
-- `create_property(name, type_, mode)`
+- `create_property(name, type_, mode)` le mode est "id" ou "sha1"
 - `create_property_group(name)`
 - `create_tag(property_id, value, parent_ids, color)`
 - `create_vector_type(params)`
@@ -269,8 +269,8 @@ plugin_class = MonPlugin
 
 # mon_plugin.py
 from panoptic.core.plugin.plugin import APlugin
-from panoptic.models import ActionContext
-from panoptic.models.results import ActionResult, Notif, NotifType
+from panoptic.models import ActionContext, Property, PropertyMode, VectorType
+from panoptic.models.results import ActionResult, Notif, NotifType, Group
 
 class MonPlugin(APlugin):
     def __init__(self, project, plugin_path, name):

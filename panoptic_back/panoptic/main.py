@@ -8,7 +8,6 @@ from fastapi import FastAPI
 
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
@@ -16,8 +15,7 @@ import socketio
 
 from panoptic.core.panoptic import Panoptic
 from panoptic.core.panoptic_server import PanopticServer
-from panoptic.routes.panoptic_routes import selection_router, set_server
-from panoptic.routes.project_routes import project_router
+from panoptic.routes.panoptic_routes import set_server
 from panoptic.models import PluginType
 from panoptic.routes.panoptic_routes import selection_router
 from panoptic.routes.project_routes import project_router

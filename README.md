@@ -1,6 +1,6 @@
 # Panoptic 👀
 
-[![PyPI - Version](https://img.shields.io/pypi/v/panoptic.svg)](https://pypi.org/project/panoptic)
+[![PyPI - Version]( https://img.shields.io/pypi/v/panoptic.svg)](https://pypi.org/project/panoptic)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/panoptic.svg)](https://pypi.org/project/panoptic)
 
 This documentation is also available in [French](https://github.com/CERES-Sorbonne/Panoptic/blob/main/README-FR.md)
