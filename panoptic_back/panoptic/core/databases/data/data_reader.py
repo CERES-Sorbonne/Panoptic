@@ -60,6 +60,12 @@ class DataReader(SQLiteReader):
 
         return self.fetch_structs(query.get_sql(quote_char=None), Commit)
 
+    def get_commit_by_id(self, commit_id: int) -> Commit | None:
+        query = Query.from_(COMMITS).select('*').where(COMMITS.id == commit_id)
+
+        results = self.fetch_structs(query.get_sql(quote_char=None), Commit)
+        return results[0] if results else None
+
     def get_file_sources(self, **filters) -> List[FileSource]:
         query = _filter_query(FILE_SOURCES, **filters)
         return self.fetch_structs(query.get_sql(quote_char=None), FileSource)

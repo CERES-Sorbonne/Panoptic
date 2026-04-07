@@ -43,6 +43,8 @@ class Property(msgspec.Struct, array_like=True):
     dtype: str | None
     mode: str | None
     name: str | None
+    access: str | None
+    layer: int | None
     commit_id: int
 
 class Tag(msgspec.Struct, array_like=True):

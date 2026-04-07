@@ -63,6 +63,8 @@ def create_properties_table():
             dtype TEXT,
             mode TEXT,
             name TEXT,
+            access TEXT,
+            layer INTEGER,
             commit_id INTEGER
         );
     """
@@ -109,7 +111,7 @@ def create_file_sources_history_table():
             name TEXT,
             root_url TEXT,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (id, commit_id)
         );
         CREATE INDEX idx_file_sources_hist_commit ON file_sources_history (commit_id);
@@ -124,7 +126,7 @@ def create_folders_history_table():
             name TEXT,
             parent INTEGER,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (id, commit_id)
         );
         CREATE INDEX idx_folders_hist_commit ON folders_history (commit_id);
@@ -138,7 +140,7 @@ def create_files_history_table():
             folder_id TEXT,
             sha1 TEXT,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (id, commit_id)
         );
         CREATE INDEX idx_files_hist_commit ON files_history (commit_id);
@@ -151,7 +153,7 @@ def create_instances_history_table():
             file_id INTEGER,
             sha1 TEXT,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (id, commit_id)
         );
         CREATE INDEX idx_instances_hist_commit ON instances_history (commit_id);
@@ -164,8 +166,10 @@ def create_properties_history_table():
             dtype TEXT,
             mode TEXT,
             name TEXT,
+            access TEXT,
+            layer INTEGER,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (id, commit_id)
         );
         CREATE INDEX idx_properties_hist_commit ON properties_history (commit_id);
@@ -180,7 +184,7 @@ def create_tags_history_table():
             value TEXT,
             color INTEGER,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (id, commit_id)
         );
         CREATE INDEX idx_tags_hist_commit ON tags_history (commit_id);
@@ -193,7 +197,7 @@ def create_instance_values_history_table():
             instance_id INTEGER NOT NULL,
             value BLOB,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (property_id, instance_id, commit_id)
         );
         CREATE INDEX idx_inst_val_hist_commit ON instance_values_history (commit_id);
@@ -206,7 +210,7 @@ def create_sha1_values_history_table():
             sha1 TEXT NOT NULL,
             value BLOB,
             commit_id INTEGER NOT NULL,
-            operation_type INTEGER,
+            operation_type TEXT,
             PRIMARY KEY (property_id, sha1, commit_id)
         );
         CREATE INDEX idx_sha1_val_hist_commit ON sha1_values_history (commit_id);

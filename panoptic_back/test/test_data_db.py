@@ -3,6 +3,7 @@ from pathlib import Path
 from panoptic.core.databases.data.commit import CommitBuilder
 from panoptic.core.databases.data.data_writer import DataWriter
 from panoptic.core.databases.registry.registry_db import RegistryDB
+from panoptic.models.data import DeleteCommit
 
 
 def test_writer_history_logic():
@@ -53,7 +54,7 @@ def test_writer_sha1_values_override():
     commit1 = CommitBuilder(registry)
 
     # Add a property
-    prop = commit1.add_property(dtype="multi_tags", mode="manual", name="quality_score")
+    prop = commit1.add_property(dtype="multi_tags", mode="sha1", name="quality_score")
 
     # Add 10 SHA1 values for this property
     initial_values = {}
@@ -66,7 +67,6 @@ def test_writer_sha1_values_override():
     values.keys = list(initial_values.keys())
     values.values = list(initial_values.values())
     writer.apply_upsert_commit('override_test', commit1.data)
-
     # Verify initial state
     db_values = writer.reader.get_sha1_values(property_id=prop.id)
 
@@ -115,3 +115,28 @@ def test_writer_sha1_values_override():
         idx = int(sha1.split('_')[1])
         # The history stores what was there BEFORE the update
         assert float(value) == idx * 10.0
+
+    # --- PHASE 4: Delete Property ---
+    # We want to see if deleting the property also cleans up values (or handles them correctly)
+    delete_req = DeleteCommit(properties={prop.id})
+
+    # Execute the deletion
+    # This should trigger _handle_properties with a None value (delete mode)
+    # and ideally clear or archive associated values.
+    writer.apply_delete_commit('delete_test', delete_req)
+
+    # --- PHASE 5: Post-Deletion Verification ---
+
+    # 1. Verify Property is gone
+    db_prop = writer.reader.get_properties(id=prop.id)
+    assert len(db_prop) == 0, "Property should be deleted from the properties table"
+
+    # 2. Verify current SHA1 values are gone
+    # Depending on your business logic, deleting a property should remove its current values
+    remaining_values = writer.reader.get_sha1_values(property_id=prop.id)
+    assert len(remaining_values) == 0, "Values associated with the deleted property should be gone"
+
+    # 3. Verify the Commit Log (The "Undo" capability)
+    last_commit = writer.reader.get_commit_by_id(3)
+    assert last_commit is not None
+    assert last_commit.source == "delete_test"

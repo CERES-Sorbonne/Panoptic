@@ -9,11 +9,11 @@ from panoptic.models.data import (
     Commit, DeleteCommit, UpsertCommit
 )
 
-OP_INSERT = 1
-OP_UPDATE = 2
-OP_DELETE = 3
-OP_ADD = 4
-OP_SUB = 5
+OP_INSERT = "insert"
+OP_UPDATE = "update"
+OP_DELETE = "remove"
+OP_ADD = "add"
+OP_SUB = "del"
 
 
 class DataWriter(SQLiteWriter):
@@ -52,6 +52,9 @@ class DataWriter(SQLiteWriter):
 
             self._cascade_delete_logic(data)
 
+            self._exec_bulk_delete_values(tx, "instance_values", data.properties, commit_id)
+            self._exec_bulk_delete_values(tx, "sha1_values", data.properties, commit_id)
+
             self._exec_bulk_delete(tx, "file_sources", "id", data.file_sources, commit_id)
             self._exec_bulk_delete(tx, "folders", "id", data.folders, commit_id)
             self._exec_bulk_delete(tx, "files", "id", data.files, commit_id)
@@ -66,27 +69,30 @@ class DataWriter(SQLiteWriter):
 
     def _cascade_delete_logic(self, data: DeleteCommit):
         if data.file_sources:
-            rows = self.reader.get_folders(source_id=list(data.file_sources))
-            data.folders.update(row.id for row in rows)
+            folders = self.reader.get_folders(source_id=list(data.file_sources))
+            data.folders.update(row.id for row in folders)
 
-        pending = list(data.folders)
-        processed = set()
-        while pending:
-            fid = pending.pop()
-            if fid in processed: continue
-            processed.add(fid)
+        if data.folders:
+            frontier = list(data.folders)
+            while frontier:
+                children = self.reader.get_folders(parent=frontier)
+                new_fids = [child.id for child in children if child.id not in data.folders]
+                if not new_fids:
+                    break
+                data.folders.update(new_fids)
+                frontier = new_fids
 
-            subs = self.reader.get_folders(parent=fid)
-            for s in subs:
-                data.folders.add(s.id)
-                pending.append(s.id)
-
-            files = self.reader.get_files(folder_id=fid)
-            data.files.update(f.id for f in files)
+        if data.folders:
+            files = self.reader.get_files(folder_id=list(data.folders))
+            data.files.update(row.id for row in files)
 
         if data.files:
-            rows = self.reader.get_instances(file_id=list(data.files))
-            data.instances.update(row.id for row in rows)
+            instances = self.reader.get_instances(file_id=list(data.files))
+            data.instances.update(row.id for row in instances)
+
+        if data.properties:
+            tags = self.reader.get_tags(property_id=list(data.properties))
+            data.tags.update(row.id for row in tags)
 
     # --- Upsert Handlers ---
 
@@ -97,13 +103,13 @@ class DataWriter(SQLiteWriter):
         u_batch, h_batch = [], []
 
         for obj in data.file_sources.values():
-            rev_op = OP_UPDATE if obj.id in existing else OP_DELETE
+            operation = OP_UPDATE if obj.id in existing else OP_INSERT
             u_batch.append((obj.id, obj.dtype, obj.name, obj.root_url, commit_id))
-            if rev_op == OP_DELETE:
-                h_batch.append((obj.id, None, None, None, commit_id, rev_op))
+            if operation == OP_INSERT:
+                h_batch.append((obj.id, None, None, None, commit_id, operation))
             else:
                 d = existing[obj.id]
-                h_batch.append((obj.id, d.dtype, d.name, d.root_url, commit_id, rev_op))
+                h_batch.append((obj.id, d.dtype, d.name, d.root_url, commit_id, operation))
 
         if u_batch:
             self._sql_upsert_file_sources(tx, u_batch)
@@ -116,13 +122,13 @@ class DataWriter(SQLiteWriter):
         u_batch, h_batch = [], []
 
         for obj in data.folders.values():
-            rev_op = OP_UPDATE if obj.id in existing else OP_DELETE
+            operation = OP_UPDATE if obj.id in existing else OP_INSERT
             u_batch.append((obj.id, obj.source_id, obj.path, obj.name, obj.parent, commit_id))
-            if rev_op == OP_DELETE:
-                h_batch.append((obj.id, None, None, None, None, commit_id, rev_op))
+            if operation == OP_INSERT:
+                h_batch.append((obj.id, None, None, None, None, commit_id, operation))
             else:
                 d = existing[obj.id]
-                h_batch.append((obj.id, d.source_id, d.path, d.name, d.parent, commit_id, rev_op))
+                h_batch.append((obj.id, d.source_id, d.path, d.name, d.parent, commit_id, operation))
 
         if u_batch:
             self._sql_upsert_folders(tx, u_batch)
@@ -135,13 +141,13 @@ class DataWriter(SQLiteWriter):
         u_batch, h_batch = [], []
 
         for obj in data.files.values():
-            rev_op = OP_UPDATE if obj.id in existing else OP_DELETE
+            operation = OP_UPDATE if obj.id in existing else OP_INSERT
             u_batch.append((obj.id, obj.name, obj.folder_id, obj.sha1, commit_id))
-            if rev_op == OP_DELETE:
-                h_batch.append((obj.id, None, None, None, commit_id, rev_op))
+            if operation == OP_INSERT:
+                h_batch.append((obj.id, None, None, None, commit_id, operation))
             else:
                 d = existing[obj.id]
-                h_batch.append((obj.id, d.name, d.folder_id, d.sha1, commit_id, rev_op))
+                h_batch.append((obj.id, d.name, d.folder_id, d.sha1, commit_id, operation))
 
         if u_batch:
             self._sql_upsert_files(tx, u_batch)
@@ -154,13 +160,13 @@ class DataWriter(SQLiteWriter):
         u_batch, h_batch = [], []
 
         for obj in data.instances.values():
-            rev_op = OP_UPDATE if obj.id in existing else OP_DELETE
+            operation = OP_UPDATE if obj.id in existing else OP_INSERT
             u_batch.append((obj.id, obj.file_id, obj.sha1, commit_id))
-            if rev_op == OP_DELETE:
-                h_batch.append((obj.id, None, None, commit_id, rev_op))
+            if operation == OP_INSERT:
+                h_batch.append((obj.id, None, None, commit_id, operation))
             else:
                 d = existing[obj.id]
-                h_batch.append((obj.id, d.file_id, d.sha1, commit_id, rev_op))
+                h_batch.append((obj.id, d.file_id, d.sha1, commit_id, operation))
 
         if u_batch:
             self._sql_upsert_instances(tx, u_batch)
@@ -173,13 +179,13 @@ class DataWriter(SQLiteWriter):
         u_batch, h_batch = [], []
 
         for obj in data.properties.values():
-            rev_op = OP_UPDATE if obj.id in existing else OP_DELETE
-            u_batch.append((obj.id, obj.dtype, obj.mode, obj.name, commit_id))
-            if rev_op == OP_DELETE:
-                h_batch.append((obj.id, None, None, None, commit_id, rev_op))
+            operation = OP_UPDATE if obj.id in existing else OP_INSERT
+            u_batch.append((obj.id, obj.dtype, obj.mode, obj.name, obj.access, obj.layer, commit_id))
+            if operation == OP_INSERT:
+                h_batch.append((obj.id, None, None, None, None, None, commit_id, operation))
             else:
                 d = existing[obj.id]
-                h_batch.append((obj.id, d.dtype, d.mode, d.name, commit_id, rev_op))
+                h_batch.append((obj.id, d.dtype, d.mode, d.name, d.access, None, commit_id, operation))
 
         if u_batch:
             self._sql_upsert_properties(tx, u_batch)
@@ -192,29 +198,39 @@ class DataWriter(SQLiteWriter):
         u_batch, h_batch = [], []
 
         for obj in data.tags.values():
-            rev_op = OP_UPDATE if obj.id in existing else OP_DELETE
+            operation = OP_UPDATE if obj.id in existing else OP_INSERT
             p_json = json.dumps(obj.parents) if obj.parents else "[]"
             u_batch.append((obj.id, obj.property_id, p_json, obj.value, obj.color, commit_id))
-            if rev_op == OP_DELETE:
-                h_batch.append((obj.id, None, None, None, None, commit_id, rev_op))
+            if operation == OP_INSERT:
+                h_batch.append((obj.id, None, None, None, None, commit_id, operation))
             else:
                 d = existing[obj.id]
                 d_parents_json = json.dumps(d.parents) if d.parents else "[]"
-                h_batch.append((obj.id, d.property_id, d_parents_json, d.value, d.color, commit_id, rev_op))
+                h_batch.append((obj.id, d.property_id, d_parents_json, d.value, d.color, commit_id, operation))
 
         if u_batch:
             self._sql_upsert_tags(tx, u_batch)
             self._sql_insert_tags_history(tx, h_batch)
 
     def _upsert_commit_instance_values(self, tx: Cursor, data: UpsertCommit, commit_id: int):
-        if not data.instance_values: return
+        if not data.instance_values:
+            return
+
         p_ids = list(data.instance_values.keys())
+
+        # Fetch properties to check dtype (mirroring sha1 logic)
+        properties = {p.id: p for p in self.reader.get_properties(id=p_ids)}
+        for p in data.properties.values():
+            properties[p.id] = p
+
         existing_list = self.reader.get_instance_values(property_id=p_ids)
         existing = {(r.property_id, r.instance_id): r for r in existing_list}
         u_batch, h_batch = [], []
 
         for p_id, prop_write in data.instance_values.items():
+            prop = properties[p_id]
             mode = prop_write.stamp_mode
+
             if mode is None:
                 for idx, i_id in enumerate(prop_write.keys):
                     key = (p_id, i_id)
@@ -223,6 +239,7 @@ class DataWriter(SQLiteWriter):
                     u_batch.append((p_id, i_id, val_db, commit_id))
                     prev_val = existing[key].value if key in existing else None
                     h_batch.append((p_id, i_id, prev_val, commit_id, OP_UPDATE))
+
             elif mode == 'set':
                 for i_id in prop_write.keys:
                     key = (p_id, i_id)
@@ -231,6 +248,57 @@ class DataWriter(SQLiteWriter):
                     u_batch.append((p_id, i_id, val_db, commit_id))
                     prev_val = existing[key].value if key in existing else None
                     h_batch.append((p_id, i_id, prev_val, commit_id, OP_UPDATE))
+
+            elif mode == 'add' and prop.dtype == 'multi_tags':
+                for idx, i_id in enumerate(prop_write.keys):
+                    key = (p_id, i_id)
+
+                    # Get current state
+                    current_val_raw = existing[key].value if key in existing else "[]"
+                    try:
+                        current_tags = set(json.loads(current_val_raw))
+                    except (json.JSONDecodeError, TypeError):
+                        current_tags = set()
+
+                    # Determine tags to add (handles single string or list of strings)
+                    to_add = prop_write.values
+                    if isinstance(to_add, str):
+                        current_tags.add(to_add)
+                    else:
+                        current_tags.update(to_add)
+
+                    new_val_db = json.dumps(sorted(list(current_tags)))
+                    u_batch.append((p_id, i_id, new_val_db, commit_id))
+
+                    # History records the state BEFORE the addition
+                    h_batch.append((p_id, i_id, current_val_raw, commit_id, OP_ADD))
+
+            elif mode == 'sub' and prop.dtype == 'multi_tags':
+                for idx, i_id in enumerate(prop_write.keys):
+                    key = (p_id, i_id)
+
+                    # If it doesn't exist, there's nothing to subtract from
+                    if key not in existing:
+                        continue
+
+                    current_val_raw = existing[key].value
+                    try:
+                        current_tags = set(json.loads(current_val_raw))
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+                    # Determine tags to remove
+                    to_remove = prop_write.values[idx]
+                    if isinstance(to_remove, str):
+                        current_tags.discard(to_remove)
+                    else:
+                        current_tags.difference_update(to_remove)
+
+                    new_val_db = json.dumps(sorted(list(current_tags)))
+                    u_batch.append((p_id, i_id, new_val_db, commit_id))
+
+                    # History records the state BEFORE the subtraction
+                    h_batch.append((p_id, i_id, current_val_raw, commit_id, OP_SUB))
 
         if u_batch:
             self._sql_upsert_instance_values(tx, u_batch)
@@ -242,6 +310,8 @@ class DataWriter(SQLiteWriter):
 
         p_ids = list(data.sha1_values.keys())
         properties = {p.id: p for p in self.reader.get_properties(id=p_ids)}
+        for p in data.properties.values():
+            properties[p.id] = p
         existing_list = self.reader.get_sha1_values(property_id=p_ids)
         existing = {(r.property_id, r.sha1): r for r in existing_list}
         u_batch, h_batch = [], []
@@ -324,18 +394,53 @@ class DataWriter(SQLiteWriter):
 
     @staticmethod
     def _exec_bulk_delete(tx: Cursor, table: str, field: str, ids: set, commit_id: int):
-        if not ids: return
+        if not ids:
+            return
+
+        tx.execute(f"CREATE TEMP TABLE _staging AS SELECT * FROM {table} WHERE 0")
+
         tx.execute("CREATE TEMP TABLE _del_ids (id ANY)")
         tx.executemany("INSERT INTO _del_ids VALUES (?)", [(i,) for i in ids])
 
         tx.execute(f"""
-            INSERT INTO {table}_history
-            SELECT *, ?, {OP_DELETE} FROM {table}
+            INSERT INTO _staging 
+            SELECT * FROM {table} 
             WHERE {field} IN (SELECT id FROM _del_ids)
-        """, (commit_id,))
+        """)
+
+        tx.execute("UPDATE _staging SET commit_id = ?", (commit_id,))
+
+        tx.execute(f"INSERT INTO {table}_history SELECT *, ? FROM _staging", (OP_DELETE,))
 
         tx.execute(f"DELETE FROM {table} WHERE {field} IN (SELECT id FROM _del_ids)")
+
+        tx.execute("DROP TABLE _staging")
         tx.execute("DROP TABLE _del_ids")
+
+    @staticmethod
+    def _exec_bulk_delete_values(tx: Cursor, table: str, property_ids: set, commit_id: int):
+        if not property_ids:
+            return
+
+        tx.execute(f"CREATE TEMP TABLE _staging AS SELECT * FROM {table} WHERE 0")
+
+        tx.execute("CREATE TEMP TABLE _prop_del_ids (id INTEGER)")
+        tx.executemany("INSERT INTO _prop_del_ids VALUES (?)", [(p,) for p in property_ids])
+
+        tx.execute(f"""
+            INSERT INTO _staging 
+            SELECT * FROM {table} 
+            WHERE property_id IN (SELECT id FROM _prop_del_ids)
+        """)
+
+        tx.execute("UPDATE _staging SET commit_id = ?", (commit_id,))
+
+        tx.execute(f"INSERT INTO {table}_history SELECT *, ? FROM _staging", (OP_DELETE,))
+
+        tx.execute(f"DELETE FROM {table} WHERE property_id IN (SELECT id FROM _prop_del_ids)")
+
+        tx.execute("DROP TABLE _staging")
+        tx.execute("DROP TABLE _prop_del_ids")
 
     @staticmethod
     def _sql_insert_commit(tx: Cursor, commit_id: int, group_id: int, source: str, now: datetime.datetime):
@@ -381,12 +486,12 @@ class DataWriter(SQLiteWriter):
 
     @staticmethod
     def _sql_upsert_properties(tx, b):
-        tx.executemany("INSERT OR REPLACE INTO properties (id,dtype,mode,name,commit_id) VALUES (?,?,?,?,?)", b)
+        tx.executemany("INSERT OR REPLACE INTO properties (id,dtype,mode,name,access,layer, commit_id) VALUES (?,?,?,?,?,?,?)", b)
 
     @staticmethod
     def _sql_insert_properties_history(tx, b):
         tx.executemany(
-            "INSERT INTO properties_history (id,dtype,mode,name,commit_id,operation_type) VALUES (?,?,?,?,?,?)", b)
+            "INSERT INTO properties_history (id,dtype,mode,name,access,layer,commit_id,operation_type) VALUES (?,?,?,?,?,?,?,?)", b)
 
     @staticmethod
     def _sql_upsert_tags(tx, b):

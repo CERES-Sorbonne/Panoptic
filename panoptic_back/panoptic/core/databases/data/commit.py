@@ -58,13 +58,17 @@ class CommitBuilder:
         self.data.instances[inst_id] = instance
         return instance
 
-    def add_property(self, dtype: str, mode: str, name: str) -> Property:
+    def add_property(self, dtype: str, mode: str, name: str, access='write', layer=None) -> Property:
         prop_id = self.registry.allocate_properties()
+        if layer is None:
+            layer = prop_id
         prop = Property(
             id=prop_id,
             dtype=dtype,
             mode=mode,
             name=name,
+            access=access,
+            layer=layer,
             commit_id=0
         )
         self.data.properties[prop_id] = prop
