@@ -25,6 +25,10 @@ class SQLiteWriter:
         )
         self.is_loaded = False
 
+        self.conn.execute("PRAGMA journal_mode = WAL")
+        self.conn.execute("PRAGMA synchronous = NORMAL")
+        self.conn.execute("PRAGMA temp_store = MEMORY")
+
     def start(self):
         """
         Initializes the database: pragmas, versioning, recursive migrations,

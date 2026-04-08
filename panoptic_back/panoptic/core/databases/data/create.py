@@ -1,241 +1,129 @@
+from panoptic.core.databases.data.helper import Col, EntitySchema
 from panoptic.core.databases.db_description import DbDescription
 
-CURRENT_DATASTORE_VERSION = 1
+COMMITS_SCHEMA = EntitySchema(
+    table="commits",
+    trackable=False,
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("group_id", "INTEGER"),
+        Col("source", "TEXT", nullable=False),
+        Col("timestamp", "TEXT", nullable=False),
+    ]
+)
 
-def create_commits_table():
-    return """
-        CREATE TABLE commits (
-            id INTEGER PRIMARY KEY NOT NULL,
-            group_id INTEGER,
-            source TEXT NOT NULL,
-            timestamp TEXT NOT NULL
-        );
-    """
+FILE_SOURCES_SCHEMA = EntitySchema(
+    table="file_sources",
+    columns=[
+        Col("id", "TEXT", primary_key=True, nullable=False),
+        Col("dtype", "TEXT"),
+        Col("name", "TEXT"),
+        Col("root_url", "TEXT"),
+    ]
+)
 
-def create_file_sources_table():
-    return """
-        CREATE TABLE file_sources (
-            id TEXT PRIMARY KEY NOT NULL,
-            dtype TEXT,
-            name TEXT,
-            root_url TEXT,
-            commit_id INTEGER
-        );
-    """
+FOLDERS_SCHEMA = EntitySchema(
+    table="folders",
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("source_id", "TEXT"),
+        Col("path", "TEXT"),
+        Col("name", "TEXT"),
+        Col("parent", "INTEGER"),
+    ]
+)
 
-def create_folders_table():
-    return """
-        CREATE TABLE folders (
-            id INTEGER PRIMARY KEY NOT NULL,
-            source_id TEXT,
-            path TEXT,
-            name TEXT,
-            parent INTEGER,
-            commit_id INTEGER
-        );
-    """
+FILES_SCHEMA = EntitySchema(
+    table="files",
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("name", "TEXT"),
+        Col("folder_id", "INTEGER"),
+        Col("sha1", "TEXT"),
+    ]
+)
 
-def create_files_table():
-    return """
-        CREATE TABLE files (
-            id INTEGER PRIMARY KEY NOT NULL,
-            name TEXT,
-            folder_id TEXT,
-            sha1 TEXT,
-            commit_id INTEGER
-        );
-    """
+INSTANCES_SCHEMA = EntitySchema(
+    table="instances",
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("file_id", "INTEGER"),
+        Col("sha1", "TEXT"),
+    ]
+)
 
-def create_instances_table():
-    return """
-        CREATE TABLE instances (
-            id INTEGER PRIMARY KEY NOT NULL,
-            file_id INTEGER,
-            sha1 TEXT,
-            commit_id INTEGER
-        );
-    """
+PROPERTIES_SCHEMA = EntitySchema(
+    table="properties",
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("dtype", "TEXT"),
+        Col("mode", "TEXT"),
+        Col("name", "TEXT"),
+        Col("access", "TEXT"),
+        Col("tag_list_id", "INTEGER"),
+    ]
+)
 
-def create_properties_table():
-    return """
-        CREATE TABLE properties (
-            id INTEGER PRIMARY KEY NOT NULL,
-            dtype TEXT,
-            mode TEXT,
-            name TEXT,
-            access TEXT,
-            layer INTEGER,
-            commit_id INTEGER
-        );
-    """
+TAG_LISTS_SHEMA = EntitySchema(
+    table="tag_lists",
+    trackable=False,
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("name", "TEXT"),
+    ]
+)
 
-def create_tags_table():
-    return """
-        CREATE TABLE tags (
-            id INTEGER PRIMARY KEY NOT NULL,
-            property_id INTEGER,
-            parents JSON,
-            value TEXT,
-            color INTEGER,
-            commit_id INTEGER
-        );
-    """
+TAGS_SCHEMA = EntitySchema(
+    table="tags",
+    columns=[
+        Col("id", "INTEGER", primary_key=True, nullable=False),
+        Col("list_id", "INTEGER"),
+        Col("parents", "JSON"),
+        Col("value", "TEXT"),
+        Col("color", "INTEGER"),
+    ]
+)
 
-def create_instance_values_table():
-    return """
-        CREATE TABLE instance_values (
-            property_id INTEGER NOT NULL,
-            instance_id INTEGER NOT NULL,
-            value BLOB,
-            commit_id INTEGER NOT NULL,
-            PRIMARY KEY (property_id, instance_id)
-        );
-    """
+INSTANCE_VALUES_SCHEMA = EntitySchema(
+    table="instance_values",
+    columns=[
+        Col("property_id", "INTEGER", primary_key=True, nullable=False),
+        Col("instance_id", "INTEGER", primary_key=True, nullable=False),
+        Col("value", "JSON"),
+    ]
+)
 
-def create_sha1_values_table():
-    return """
-        CREATE TABLE sha1_values (
-            property_id INTEGER NOT NULL,
-            sha1 TEXT NOT NULL,
-            value BLOB,
-            commit_id INTEGER NOT NULL,
-            PRIMARY KEY (property_id, sha1)
-        );
-    """
+SHA1_VALUES_SCHEMA = EntitySchema(
+    table="sha1_values",
+    columns=[
+        Col("property_id", "INTEGER", primary_key=True, nullable=False),
+        Col("sha1", "TEXT", primary_key=True, nullable=False),
+        Col("value", "JSON"),
+    ]
+)
 
-def create_file_sources_history_table():
-    return """
-        CREATE TABLE file_sources_history (
-            id TEXT NOT NULL,
-            dtype TEXT,
-            name TEXT,
-            root_url TEXT,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (id, commit_id)
-        );
-        CREATE INDEX idx_file_sources_hist_commit ON file_sources_history (commit_id);
-    """
+ALL_SCHEMAS = [
+    COMMITS_SCHEMA,
+    FILE_SOURCES_SCHEMA,
+    FOLDERS_SCHEMA,
+    FILES_SCHEMA,
+    INSTANCES_SCHEMA,
+    PROPERTIES_SCHEMA,
+    TAG_LISTS_SHEMA,
+    TAGS_SCHEMA,
+    INSTANCE_VALUES_SCHEMA,
+    SHA1_VALUES_SCHEMA,
+]
 
-def create_folders_history_table():
-    return """
-        CREATE TABLE folders_history (
-            id INTEGER NOT NULL,
-            source_id TEXT,
-            path TEXT,
-            name TEXT,
-            parent INTEGER,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (id, commit_id)
-        );
-        CREATE INDEX idx_folders_hist_commit ON folders_history (commit_id);
-    """
-
-def create_files_history_table():
-    return """
-        CREATE TABLE files_history (
-            id INTEGER NOT NULL,
-            name TEXT,
-            folder_id TEXT,
-            sha1 TEXT,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (id, commit_id)
-        );
-        CREATE INDEX idx_files_hist_commit ON files_history (commit_id);
-    """
-
-def create_instances_history_table():
-    return """
-        CREATE TABLE instances_history (
-            id INTEGER NOT NULL,
-            file_id INTEGER,
-            sha1 TEXT,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (id, commit_id)
-        );
-        CREATE INDEX idx_instances_hist_commit ON instances_history (commit_id);
-    """
-
-def create_properties_history_table():
-    return """
-        CREATE TABLE properties_history (
-            id INTEGER NOT NULL,
-            dtype TEXT,
-            mode TEXT,
-            name TEXT,
-            access TEXT,
-            layer INTEGER,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (id, commit_id)
-        );
-        CREATE INDEX idx_properties_hist_commit ON properties_history (commit_id);
-    """
-
-def create_tags_history_table():
-    return """
-        CREATE TABLE tags_history (
-            id INTEGER NOT NULL,
-            property_id INTEGER,
-            parents JSON,
-            value TEXT,
-            color INTEGER,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (id, commit_id)
-        );
-        CREATE INDEX idx_tags_hist_commit ON tags_history (commit_id);
-    """
-
-def create_instance_values_history_table():
-    return """
-        CREATE TABLE instance_values_history (
-            property_id INTEGER NOT NULL,
-            instance_id INTEGER NOT NULL,
-            value BLOB,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (property_id, instance_id, commit_id)
-        );
-        CREATE INDEX idx_inst_val_hist_commit ON instance_values_history (commit_id);
-    """
-
-def create_sha1_values_history_table():
-    return """
-        CREATE TABLE sha1_values_history (
-            property_id INTEGER NOT NULL,
-            sha1 TEXT NOT NULL,
-            value BLOB,
-            commit_id INTEGER NOT NULL,
-            operation_type TEXT,
-            PRIMARY KEY (property_id, sha1, commit_id)
-        );
-        CREATE INDEX idx_sha1_val_hist_commit ON sha1_values_history (commit_id);
-    """
+# Build the tables dictionary dynamically
+tables_config = {}
+for s in ALL_SCHEMAS:
+    tables_config[s.table] = s.create_table_sql()
+    if s.trackable:
+        tables_config[f"{s.table}_reverts"] = s.create_revert_table_sql()
 
 datastore_desc = DbDescription(
-    version=CURRENT_DATASTORE_VERSION,
-    tables={
-        'commits': create_commits_table(),
-        'file_sources': create_file_sources_table(),
-        'file_sources_history': create_file_sources_history_table(),
-        'folders': create_folders_table(),
-        'folders_history': create_folders_history_table(),
-        'files': create_files_table(),
-        'files_history': create_files_history_table(),
-        'instances': create_instances_table(),
-        'instances_history': create_instances_history_table(),
-        'properties': create_properties_table(),
-        'properties_history': create_properties_history_table(),
-        'tags': create_tags_table(),
-        'tags_history': create_tags_history_table(),
-        'instance_values': create_instance_values_table(),
-        'instance_values_history': create_instance_values_history_table(),
-        'sha1_values': create_sha1_values_table(),
-        'sha1_values_history': create_sha1_values_history_table(),
-    },
+    version=1,
+    tables=tables_config,
     migrations={}
 )
