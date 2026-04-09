@@ -35,7 +35,7 @@ class CommitBuilder:
         self.data.folders[f_id] = folder
         return folder
 
-    def add_file(self, name: str, folder_id: str, sha1: str) -> File:
+    def add_file(self, name: str, folder_id: int, sha1: str) -> File:
         file_id = self.registry.allocate_files()
         file = File(
             id=file_id,
@@ -58,27 +58,27 @@ class CommitBuilder:
         self.data.instances[inst_id] = instance
         return instance
 
-    def add_property(self, dtype: str, mode: str, name: str, access='write', layer=None) -> Property:
+    def add_property(self, dtype: str, mode: str, name: str, access='write', tag_list_id=None) -> Property:
         prop_id = self.registry.allocate_properties()
-        if layer is None:
-            layer = prop_id
+        if tag_list_id is None:
+            tag_list_id = prop_id
         prop = Property(
             id=prop_id,
             dtype=dtype,
             mode=mode,
             name=name,
             access=access,
-            layer=layer,
+            tag_list_id=tag_list_id,
             commit_id=0
         )
         self.data.properties[prop_id] = prop
         return prop
 
-    def add_tag(self, property_id: int, value: str, color: int, parents: list[int] = None) -> Tag:
+    def add_tag(self, list_id: int, value: str, color: int, parents: list[int] = None) -> Tag:
         tag_id = self.registry.allocate_tags()
         tag = Tag(
             id=tag_id,
-            property_id=property_id,
+            list_id=list_id,
             parents=parents or [],
             value=value,
             color=color,

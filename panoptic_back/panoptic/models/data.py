@@ -28,7 +28,7 @@ class Folder(msgspec.Struct, array_like=True):
 class File(msgspec.Struct, array_like=True):
     id: int
     name: str | None
-    folder_id: str | None
+    folder_id: int | None
     sha1: str | None
     commit_id: int
 
@@ -44,12 +44,12 @@ class Property(msgspec.Struct, array_like=True):
     mode: str | None
     name: str | None
     access: str | None
-    layer: int | None
+    tag_list_id: int | None
     commit_id: int
 
 class Tag(msgspec.Struct, array_like=True):
     id: int
-    property_id: int | None
+    list_id: int | None
     parents: list[int] | None
     value: str | None
     color: int | None

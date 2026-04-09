@@ -54,17 +54,27 @@ class DataWriter(SQLiteWriter):
             if group_id is None:
                 group_id = commit_id
 
+            # Process cascade logic first
             self._cascade_delete_logic(data)
 
-            self._exec_bulk_delete_values(tx, SHA1_VALUES_SCHEMA, data.properties, commit_id)
-            self._exec_bulk_delete_values(tx, INSTANCE_VALUES_SCHEMA, data.properties, commit_id)
+            # Handle values deletion with proper revert
+            if data.properties:
+                self._exec_bulk_delete_values_with_revert(tx, INSTANCE_VALUES_SCHEMA, data.properties, commit_id)
+                self._exec_bulk_delete_values_with_revert(tx, SHA1_VALUES_SCHEMA, data.properties, commit_id)
 
-            self._exec_bulk_delete(tx, FILE_SOURCES_SCHEMA, data.file_sources, commit_id)
-            self._exec_bulk_delete(tx, FOLDERS_SCHEMA, data.folders, commit_id)
-            self._exec_bulk_delete(tx, FILES_SCHEMA, data.files, commit_id)
-            self._exec_bulk_delete(tx, INSTANCES_SCHEMA, data.instances, commit_id)
-            self._exec_bulk_delete(tx, PROPERTIES_SCHEMA, data.properties, commit_id)
-            self._exec_bulk_delete(tx, TAGS_SCHEMA, data.tags, commit_id)
+            # Handle revert operations for each table using the same pattern as upserts
+            if data.file_sources:
+                self._exec_bulk_delete_with_revert(tx, FILE_SOURCES_SCHEMA, "id", data.file_sources, commit_id)
+            if data.folders:
+                self._exec_bulk_delete_with_revert(tx, FOLDERS_SCHEMA, "id", data.folders, commit_id)
+            if data.files:
+                self._exec_bulk_delete_with_revert(tx, FILES_SCHEMA, "id", data.files, commit_id)
+            if data.instances:
+                self._exec_bulk_delete_with_revert(tx, INSTANCES_SCHEMA, "id", data.instances, commit_id)
+            if data.properties:
+                self._exec_bulk_delete_with_revert(tx, PROPERTIES_SCHEMA, "id", data.properties, commit_id)
+            if data.tags:
+                self._exec_bulk_delete_with_revert(tx, TAGS_SCHEMA, "id", data.tags, commit_id)
 
             commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now)
             COMMITS_SCHEMA.upserts(tx, commit)
@@ -133,7 +143,7 @@ class DataWriter(SQLiteWriter):
             update_list.append(obj)
 
         FOLDERS_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-        FOLDERS_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+        FOLDERS_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
 
     def _upsert_commit_files(self, tx: Cursor, data: UpsertCommit, commit_id: int):
         if not data.files: return
@@ -150,7 +160,7 @@ class DataWriter(SQLiteWriter):
             update_list.append(obj)
 
         FILES_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-        FILES_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+        FILES_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
 
     def _upsert_commit_instances(self, tx: Cursor, data: UpsertCommit, commit_id: int):
         if not data.instances: return
@@ -167,7 +177,7 @@ class DataWriter(SQLiteWriter):
             update_list.append(obj)
 
         INSTANCES_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-        INSTANCES_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+        INSTANCES_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
 
     def _upsert_commit_properties(self, tx: Cursor, data: UpsertCommit, commit_id: int):
         if not data.properties: return
@@ -184,7 +194,7 @@ class DataWriter(SQLiteWriter):
             update_list.append(obj)
 
         PROPERTIES_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-        PROPERTIES_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+        PROPERTIES_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
 
     def _upsert_commit_tags(self, tx: Cursor, data: UpsertCommit, commit_id: int):
         if not data.tags: return
@@ -201,7 +211,7 @@ class DataWriter(SQLiteWriter):
             update_list.append(obj)
 
         TAGS_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-        TAGS_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+        TAGS_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
 
     def _upsert_commit_instance_values(self, tx: Cursor, data: UpsertCommit, commit_id: int):
         if not data.instance_values:
@@ -255,7 +265,7 @@ class DataWriter(SQLiteWriter):
 
         if update_list:
             INSTANCE_VALUES_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-            INSTANCE_VALUES_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+            INSTANCE_VALUES_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
 
     def _upsert_commit_sha1_values(self, tx: Cursor, data: UpsertCommit, commit_id: int):
         if not data.sha1_values:
@@ -308,7 +318,96 @@ class DataWriter(SQLiteWriter):
 
         if update_list:
             SHA1_VALUES_SCHEMA.upserts(tx, objs=update_list, commit_id=commit_id)
-            SHA1_VALUES_SCHEMA.insert_revert_operations(tx, ops=revert_list, commit_id=commit_id)
+            SHA1_VALUES_SCHEMA.insert_revert_operations(tx, ops=revert_list, revert_commit_id=commit_id)
+
+    def _exec_bulk_delete_with_revert(self, tx: Cursor, schema: EntitySchema, field: str, ids: set,
+                                      revert_commit_id: int):
+        """Delete records and create revert operations in the corresponding _reverts table"""
+        if not ids:
+            return
+
+        # Get records to be deleted
+        rows = schema.get(tx, **{f"{field}": list(ids)})
+
+        if not rows:
+            return
+
+        # Get column names for the revert table (same columns + commit_id, revert_commit_id, operation)
+        table_name = schema.table
+        column_names = [c.name for c in schema.columns]
+
+        # Create revert records (must include all columns + commit_id, revert_commit_id, operation)
+        revert_rows = []
+        for row in rows:
+            if isinstance(row, tuple):
+                # For tuple result
+                row_data = list(row)
+                revert_row = row_data + [revert_commit_id, OP_DELETE]  # commit_id from original table is already there
+                revert_rows.append(revert_row)
+            else:
+                # For struct/other type - convert to list and add revert fields
+                row_data = list(row) if hasattr(row, '__iter__') and not isinstance(row, str) else [row]
+                revert_row = row_data + [revert_commit_id, OP_DELETE]
+                revert_rows.append(revert_row)
+
+        # Build the INSERT statement for reverts table
+        columns_for_revert = column_names + ["commit_id", "revert_commit_id", "operation"]
+        placeholders_for_revert = "(" + ", ".join(["?"] * len(columns_for_revert)) + ")"
+        revert_sql = f"INSERT INTO {table_name}_reverts ({', '.join(columns_for_revert)}) VALUES {placeholders_for_revert}"
+
+        # Execute revert inserts
+        if revert_rows:
+            tx.executemany(revert_sql, revert_rows)
+
+        # Delete from original table
+        schema.deletes(tx, [(getattr(row, field) if hasattr(row, field) else row[0]) for row in rows])
+
+    def _exec_bulk_delete_values_with_revert(self, tx: Cursor, schema: EntitySchema, property_ids: set,
+                                             revert_commit_id: int):
+        """Delete values and create revert operations for value tables"""
+        if not property_ids:
+            return
+
+        # Get records to be deleted
+        if hasattr(schema, 'table') and 'sha1' in schema.table:
+            # For sha1_values - get by property_id
+            rows = schema.get(tx, property_id=list(property_ids))
+        else:
+            # For instance_values - get by property_id
+            rows = schema.get(tx, property_id=list(property_ids))
+
+        if not rows:
+            return
+
+        # Get column names for the revert table
+        table_name = schema.table
+        column_names = [c.name for c in schema.columns]
+
+        # Create revert records
+        revert_rows = []
+        for row in rows:
+            if isinstance(row, tuple):
+                # For tuple result
+                row_data = list(row)
+                revert_row = row_data + [revert_commit_id, OP_DELETE]
+                revert_rows.append(revert_row)
+            else:
+                # For struct/other type
+                row_data = list(row) if hasattr(row, '__iter__') and not isinstance(row, str) else [row]
+                revert_row = row_data + [revert_commit_id, OP_DELETE]
+                revert_rows.append(revert_row)
+
+        # Build the INSERT statement for reverts table
+        columns_for_revert = column_names + ["commit_id", "revert_commit_id", "operation"]
+        placeholders_for_revert = "(" + ", ".join(["?"] * len(columns_for_revert)) + ")"
+        revert_sql = f"INSERT INTO {table_name}_reverts ({', '.join(columns_for_revert)}) VALUES {placeholders_for_revert}"
+
+        # Execute revert inserts
+        if revert_rows:
+            tx.executemany(revert_sql, revert_rows)
+
+        # Delete from original table
+        schema.deletes(tx, property_ids)
     # --- SQL Statements ---
 
 
