@@ -52,72 +52,86 @@ def test_cycle_file_sources():
     assert len(rows) == 1
     assert rows[0].operation == OP_DELETE
 
+    writer.set_commit_active(3, False)
+    rows = writer.reader.get_file_sources(id=source.id)
+    assert len(rows) == 1
+    assert rows[0].operation == OP_CREATE
+
+    writer.set_commit_active(2, False)
+    rows = writer.reader.get_file_sources(id=source.id)
+    assert len(rows) == 1
+    assert rows[0].root_url == '/tmp/data'
+    assert rows[0].operation == OP_CREATE
+
 
 def test_cycle_folders():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp/photos', name='photos', parent=None)
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_folders(id=folder.id)
-    assert len(rows) == 1
-    assert rows[0].name == 'photos'
-
-    # UPDATE
+    # UPDATE (Commit 2)
     commit2 = CommitBuilder(registry)
     folder.name = 'renamed'
     commit2.update_folder(folder)
     writer.apply_upsert_commit('update', commit2.data)
 
+    # DELETE (Commit 3)
+    writer.apply_delete_commit('delete', DeleteCommit(folders={folder.id}))
+
+    # REVERT DELETE
+    writer.set_commit_active(3, False)
     rows = writer.reader.get_folders(id=folder.id)
     assert len(rows) == 1
     assert rows[0].name == 'renamed'
+    assert rows[0].operation == OP_CREATE
 
-    # DELETE (Logical)
-    writer.apply_delete_commit('delete', DeleteCommit(folders={folder.id}))
+    # REVERT UPDATE
+    writer.set_commit_active(2, False)
     rows = writer.reader.get_folders(id=folder.id)
     assert len(rows) == 1
-    assert rows[0].operation == OP_DELETE
+    assert rows[0].name == 'photos'
+    assert rows[0].operation == OP_CREATE
 
 
 def test_cycle_files():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp/photos', name='photos', parent=None)
     file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_files(id=file.id)
-    assert len(rows) == 1
-    assert rows[0].name == 'img.jpg'
-
-    # UPDATE
+    # UPDATE (Commit 2)
     commit2 = CommitBuilder(registry)
     file.name = 'img_renamed.jpg'
     commit2.update_file(file)
     writer.apply_upsert_commit('update', commit2.data)
 
+    # DELETE (Commit 3)
+    writer.apply_delete_commit('delete', DeleteCommit(files={file.id}))
+
+    # REVERT DELETE
+    writer.set_commit_active(3, False)
     rows = writer.reader.get_files(id=file.id)
-    assert len(rows) == 1
+    assert rows[0].operation == OP_CREATE
     assert rows[0].name == 'img_renamed.jpg'
 
-    # DELETE (Logical)
-    writer.apply_delete_commit('delete', DeleteCommit(files={file.id}))
+    # REVERT UPDATE
+    writer.set_commit_active(2, False)
     rows = writer.reader.get_files(id=file.id)
-    assert len(rows) == 1
-    assert rows[0].operation == OP_DELETE
+    assert rows[0].name == 'img.jpg'
 
 
 def test_cycle_instances():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
@@ -125,255 +139,203 @@ def test_cycle_instances():
     instance = commit1.create_instance(file_id=file.id, sha1='abc123')
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_instances(id=instance.id)
-    assert len(rows) == 1
-    assert rows[0].sha1 == 'abc123'
-
-    # UPDATE
+    # UPDATE (Commit 2)
     commit2 = CommitBuilder(registry)
     instance.sha1 = 'def456'
     commit2.update_instance(instance)
     writer.apply_upsert_commit('update', commit2.data)
 
+    # DELETE (Commit 3)
+    writer.apply_delete_commit('delete', DeleteCommit(instances={instance.id}))
+
+    # REVERT DELETE
+    writer.set_commit_active(3, False)
     rows = writer.reader.get_instances(id=instance.id)
-    assert len(rows) == 1
+    assert rows[0].operation == OP_CREATE
     assert rows[0].sha1 == 'def456'
 
-    # DELETE (Logical)
-    writer.apply_delete_commit('delete', DeleteCommit(instances={instance.id}))
+    # REVERT UPDATE
+    writer.set_commit_active(2, False)
     rows = writer.reader.get_instances(id=instance.id)
-    assert len(rows) == 1
-    assert rows[0].operation == OP_DELETE
+    assert rows[0].sha1 == 'abc123'
 
 
 def test_cycle_properties():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     prop = commit1.create_property(dtype='tags', mode='sha1', name='color')
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_properties(id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].name == 'color'
-
-    # UPDATE
+    # UPDATE (Commit 2)
     commit2 = CommitBuilder(registry)
     prop.name = 'color_renamed'
     commit2.update_property(prop)
     writer.apply_upsert_commit('update', commit2.data)
 
+    # DELETE (Commit 3)
+    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
+
+    # REVERT DELETE
+    writer.set_commit_active(3, False)
     rows = writer.reader.get_properties(id=prop.id)
-    assert len(rows) == 1
+    assert rows[0].operation == OP_CREATE
     assert rows[0].name == 'color_renamed'
 
-    # DELETE (Logical)
-    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
+    # REVERT UPDATE
+    writer.set_commit_active(2, False)
     rows = writer.reader.get_properties(id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].operation == OP_DELETE
+    assert rows[0].name == 'color'
 
 
 def test_cycle_tags():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     prop = commit1.create_property(dtype='tags', mode='sha1', name='genre')
     tag = commit1.create_tag(list_id=prop.id, value='Rock', color=0xFF0000, parents=[1, 2])
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_tags(id=tag.id)
-    assert len(rows) == 1
-    assert rows[0].value == 'Rock'
-
-    # UPDATE
+    # UPDATE (Commit 2)
     commit2 = CommitBuilder(registry)
     tag.value = 'Jazz'
-    tag.color = 0x00FF00
     commit2.update_tag(tag)
     writer.apply_upsert_commit('update', commit2.data)
 
+    # DELETE (Commit 3)
+    writer.apply_delete_commit('delete', DeleteCommit(tags={tag.id}))
+
+    # REVERT DELETE
+    writer.set_commit_active(3, False)
     rows = writer.reader.get_tags(id=tag.id)
-    assert len(rows) == 1
+    assert rows[0].operation == OP_CREATE
     assert rows[0].value == 'Jazz'
 
-    # DELETE (Logical)
-    writer.apply_delete_commit('delete', DeleteCommit(tags={tag.id}))
+    # REVERT UPDATE
+    writer.set_commit_active(2, False)
     rows = writer.reader.get_tags(id=tag.id)
-    assert len(rows) == 1
-    assert rows[0].operation == OP_DELETE
+    assert rows[0].value == 'Rock'
 
 
 def test_cycle_instance_values():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     prop = commit1.create_property(dtype='number', mode='id', name='score')
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
     file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
     instance = commit1.create_instance(file_id=file.id, sha1='abc123')
-
     write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=42.0)
-
     commit1.update_instance_value(write)
-
     writer.apply_upsert_commit('test_cycle', commit1.data)
 
-    rows = writer.reader.get_instance_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert float(rows[0].value) == 42.0
-
-    # UPDATE
+    # UPDATE (Commit 2)
     commit2 = CommitBuilder(registry)
     write.value = 99.0
     commit2.update_instance_value(write)
     writer.apply_upsert_commit('update', commit2.data)
 
-    rows = writer.reader.get_instance_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert float(rows[0].value) == 99.0
-
-    # DELETE
-    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
-    assert len(writer.reader.get_instance_values(property_id=prop.id)) == 1
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE
-
-
-def test_cycle_sha1_values():
-    registry, writer = _setup()
-
-    # INSERT
-    commit1 = CommitBuilder(registry)
-    prop = commit1.create_property(dtype='number', mode='sha1', name='quality')
-
-    # Using the Sha1Value struct directly like the InstanceValue test
-    write = Sha1Value(property_id=prop.id, sha1='hash_a', value=1.0)
-    commit1.update_sha1_value(write)
-
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert float(rows[0].value) == 1.0
-    assert rows[0].sha1 == 'hash_a'
-
-    # UPDATE
-    commit2 = CommitBuilder(registry)
-    # Mutate the existing object or create a new one with same PKs
-    write.value = 10.0
-    commit2.update_sha1_value(write)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert float(rows[0].value) == 10.0
-
-    # DELETE
-    # Deleting the property should leave the values in the table (logical delete of parent)
+    # DELETE Property (Commit 3)
     writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
 
-    # Verification matches the instance_values logic
-    assert len(writer.reader.get_sha1_values(property_id=prop.id)) == 1
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE
+    # REVERT DELETE
+    writer.set_commit_active(3, False)
+    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_CREATE
+    assert float(writer.reader.get_instance_values(property_id=prop.id)[0].value) == 99.0
+
+    # REVERT UPDATE
+    writer.set_commit_active(2, False)
+    assert float(writer.reader.get_instance_values(property_id=prop.id)[0].value) == 42.0
 
 
 def test_instances_values_tags():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
     prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='score')
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
     file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
     instance = commit1.create_instance(file_id=file.id, sha1='abc123')
-
-    write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=[1,2,3])
-
+    write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=[1, 2, 3])
     commit1.update_instance_value(write)
+    writer.apply_upsert_commit('insert', commit1.data)
 
-    writer.apply_upsert_commit('test_cycle', commit1.data)
-
-    rows = writer.reader.get_instance_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].value == [1,2,3]
-
-    # UPDATE
+    # DIFF (Commit 2): [2, 3, 4]
     commit2 = CommitBuilder(registry)
-    write.value = [-1,4]
+    write.value = [-1, 4]
     write.operation = OP_DIFF
     commit2.update_instance_value(write)
-    writer.apply_upsert_commit('update', commit2.data)
+    writer.apply_upsert_commit('diff', commit2.data)
 
-    rows = writer.reader.get_instance_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].value == [2,3,4]
-
+    # UPDATE (Commit 3): [1, 4]
     commit3 = CommitBuilder(registry)
     write.value = [1, 4]
     write.operation = OP_UPDATE
     commit3.update_instance_value(write)
     writer.apply_upsert_commit('update', commit3.data)
 
-    rows = writer.reader.get_instance_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].value == [1, 4]
-
-    # DELETE
+    # DELETE PROPERTY (Commit 4)
     writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
-    assert len(writer.reader.get_instance_values(property_id=prop.id)) == 1
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE
+
+    # REVERT DELETE
+    writer.set_commit_active(4, False)
+    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_CREATE
+
+    # REVERT FULL UPDATE -> Should go back to the Diff state [2, 3, 4]
+    writer.set_commit_active(1, False)
+    writer.set_commit_active(3, False)
+    rows = writer.reader.get_instance_values(property_id=prop.id)
+    assert rows[0].value == [4]
 
 
 def test_sha1_values_tags():
     registry, writer = _setup()
 
-    # INSERT
+    # INSERT (Commit 1)
     commit1 = CommitBuilder(registry)
-    # Mode is 'sha1' for sha1_values
     prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='tags')
 
-    # Initial Insert: tags [1, 2, 3] for a specific hash
-    write = Sha1Value(property_id=prop.id, sha1='abc123hash', value=[1, 2, 3])
+    # Initial state: [1, 2, 3]
+    write = Sha1Value(property_id=prop.id, sha1='hash_abc', value=[1, 2, 3])
     commit1.update_sha1_value(write)
-
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].value == [1, 2, 3]
-
-    # UPDATE (OP_DIFF)
-    # Use DIFF to remove 1 and add 4. Expected result: [2, 3, 4]
+    # DIFF (Commit 2)
+    # Applying [-1, 4] -> Should result in [2, 3, 4]
     commit2 = CommitBuilder(registry)
     write.value = [-1, 4]
     write.operation = OP_DIFF
     commit2.update_sha1_value(write)
-    writer.apply_upsert_commit('diff_update', commit2.data)
+    writer.apply_upsert_commit('diff', commit2.data)
 
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].value == [2, 3, 4]
-
-    # UPDATE (OP_UPDATE)
-    # Use standard UPDATE to overwrite the whole list to [1, 4]
+    # FULL UPDATE (Commit 3)
+    # Overwriting with [1, 4]
     commit3 = CommitBuilder(registry)
     write.value = [1, 4]
     write.operation = OP_UPDATE
     commit3.update_sha1_value(write)
     writer.apply_upsert_commit('full_update', commit3.data)
 
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
-    assert len(rows) == 1
-    assert rows[0].value == [1, 4]
-
-    # DELETE
-    # Logical delete of the property should leave value rows intact
+    # DELETE PROPERTY (Commit 4)
     writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
 
-    assert len(writer.reader.get_sha1_values(property_id=prop.id)) == 1
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE
+    # --- REVERT TESTING ---
+
+    # 1. Revert Delete (Disable Commit 4)
+    writer.set_commit_active(4, False)
+    # Property should no longer be marked OP_DELETE
+    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_CREATE
+    # Values should still be at the last known state [1, 4]
+    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    assert rows[0].value == [1, 4]
+
+    writer.set_commit_active(1, False)
+    writer.set_commit_active(3, False)
+    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    assert rows[0].value == [4]

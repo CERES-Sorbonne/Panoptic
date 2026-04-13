@@ -28,27 +28,21 @@ Main table column layout (trackable)
 -------------------------------------
     <data cols...>  commit_id  operation  sequence
 
-    commit_id and operation are struct fields, already inside <data cols...>.
-    sequence is DB-only, appended last and stripped before decoding rows
-    (msgspec.convert would fail on the extra column).
-
 Log table column layout
 -----------------------
     <data cols...>  commit_id  operation
-
-    No sequence column — log ordering is provided by commit_id.
 
 Filter API  (get / delete)
 --------------------------
 **filters accepts any mix of scalar and list values.
 
-    scalar  →  col = ?        (equality)
+    scalar  →  col = ?
     list    →  col IN (...)
 
-Multiple list filters are AND-ed.  The largest list is chunked (iterated in
-slices ≤ chunk_size vars).  All smaller lists are emitted as a single IN
-clause repeated per chunk iteration.  Scalar filters are appended once per
-chunk.  The caller is responsible for not supplying two large lists at once.
+Multiple list filters are AND-ed. The largest list is chunked (iterated in
+slices ≤ chunk_size vars). All smaller lists are emitted as a single IN
+clause repeated per chunk iteration. Scalar filters are appended once per
+chunk.
 """
 
 from __future__ import annotations
@@ -87,7 +81,7 @@ OP_DIFF   = 2  # PropertyValueSchema only: apply tag diff instead of replace
 # Limits
 # ---------------------------------------------------------------------------
 
-_SQLITE_MAX_VARS = 900  # conservative; hard limit is 999 / 32766
+_SQLITE_MAX_VARS = 900
 
 # ---------------------------------------------------------------------------
 # Tracking field names on the struct (sequence is intentionally absent)
@@ -110,12 +104,11 @@ _PY_TO_SQL: dict[Any, str] = {
 
 _UNION_ORIGINS = {
     _typing.Union,
-    getattr(_types, "UnionType", None),  # Python 3.10+  X | Y
+    getattr(_types, "UnionType", None),
 }
 
 
 def _unwrap_optional(py_type: Any) -> Any:
-    """Strip Optional[X] / Union[X, None] → X. Returns the type unchanged otherwise."""
     origin = get_origin(py_type)
     if origin in _UNION_ORIGINS:
         non_none = [a for a in get_args(py_type) if a is not type(None)]
@@ -129,7 +122,6 @@ def _is_optional(py_type: Any) -> bool:
 
 
 def _sql_type(py_type: Any) -> str:
-    """Map a (possibly Optional / generic) Python type to an SQLite type string."""
     unwrapped = _unwrap_optional(py_type)
     origin    = get_origin(unwrapped)
 
@@ -138,7 +130,7 @@ def _sql_type(py_type: Any) -> str:
     if origin in (list, dict):
         return "JSON"
     if origin is not None:
-        return "JSON"  # unknown parametrised generic → safe fallback
+        return "JSON"
     if unwrapped in _PY_TO_SQL:
         return _PY_TO_SQL[unwrapped]
 
@@ -162,12 +154,6 @@ class Col:
 # ---------------------------------------------------------------------------
 
 def _introspect(struct_cls: type) -> tuple[list[Col], bool]:
-    """Return (data_columns, is_trackable).
-
-    data_columns excludes commit_id / operation — those are struct fields but
-    are appended explicitly in SQL builders so they stay out of the generic
-    data column list.  sequence is never on the struct at all.
-    """
     hints   = get_type_hints(struct_cls, include_extras=True)
     fields_ = msgspec.structs.fields(struct_cls)
     names   = {f.name for f in fields_}
@@ -182,7 +168,6 @@ def _introspect(struct_cls: type) -> tuple[list[Col], bool]:
         hint  = hints[f.name]
         is_pk = False
 
-        # Detect Annotated[T, PrimaryKey, ...]
         if get_origin(hint) is _typing.Annotated:
             base, *metadata = get_args(hint)
             is_pk = any(
@@ -207,10 +192,10 @@ def _introspect(struct_cls: type) -> tuple[list[Col], bool]:
 
 @dataclass
 class _ParsedFilters:
-    big_col:     str  | None      # largest list col (chunked)
-    big_vals:    list | None      # its values
-    small_lists: dict[str, list]  # smaller list filters (single IN per chunk)
-    scalars:     dict[str, Any]   # equality filters
+    big_col:     str  | None
+    big_vals:    list | None
+    small_lists: dict[str, list]
+    scalars:     dict[str, Any]
 
 
 def _parse_filters(filters: dict[str, Any]) -> _ParsedFilters:
@@ -232,7 +217,6 @@ def _parse_filters(filters: dict[str, Any]) -> _ParsedFilters:
 
 
 def _fixed_clause(small_lists: dict[str, list], scalars: dict[str, Any]) -> tuple[str, list]:
-    """Build the WHERE fragment and params for everything except the big list."""
     parts:  list[str] = []
     params: list      = []
 
@@ -257,31 +241,16 @@ T = _typing.TypeVar("T", bound=msgspec.Struct)
 
 @dataclass
 class EntitySchema(_typing.Generic[T]):
-    """SQL schema manager auto-derived from a msgspec.Struct subclass.
-
-    Parameters
-    ----------
-    struct_cls:
-        A msgspec.Struct subclass.  PrimaryKey columns are declared with
-        ``Annotated[T, PrimaryKey]``.  Trackable structs additionally have
-        ``commit_id`` and ``operation`` fields.
-    table:
-        Base table name.  Log table → ``{table}_log``.
-    chunk_size:
-        Maximum SQLite bound variables per statement (default 900).
-    """
+    """SQL schema manager auto-derived from a msgspec.Struct subclass."""
 
     struct_cls: type[T]
     table:      str
     chunk_size: int = _SQLITE_MAX_VARS
 
-    # Derived
     columns:   list[Col] = field(init=False, repr=False)
     trackable: bool      = field(init=False, repr=False)
     _pk_names: list[str] = field(init=False, repr=False)
     _json_idx: list[int] = field(init=False, repr=False)
-    # Trackable: strip 1 trailing DB-only column (sequence) before decode.
-    # Non-trackable: strip 0.
     _decode_strip: int   = field(init=False, repr=False)
 
     _log_by_commit_sql: str = field(init=False, repr=False)
@@ -309,13 +278,6 @@ class EntitySchema(_typing.Generic[T]):
     # ------------------------------------------------------------------
 
     def create_table_sql(self) -> str:
-        """DDL for the current-state table.
-
-        Trackable layout: <data cols>  commit_id  operation  sequence
-        sequence is DB-only (not on struct); commit_id and operation are
-        struct fields emitted by the data-col loop via _TRACKING_FIELDS exclusion
-        then re-appended explicitly so their position is guaranteed.
-        """
         definitions: list[str] = []
         composite_pk = len(self._pk_names) > 1
 
@@ -346,11 +308,6 @@ class EntitySchema(_typing.Generic[T]):
         )
 
     def create_log_table_sql(self) -> str:
-        """DDL for the append-only audit log.
-
-        Layout: <data cols>  commit_id  operation
-        No sequence — log ordering is provided by commit_id.
-        """
         if not self.trackable:
             raise ValueError(f"Table {self.table!r} is not trackable")
 
@@ -380,7 +337,6 @@ class EntitySchema(_typing.Generic[T]):
     # ------------------------------------------------------------------
 
     def _to_row(self, obj: T) -> list:
-        """Flat list of data-column values only (no tracking fields, no sequence)."""
         t   = msgspec.structs.astuple(obj)
         row = list(t[: len(self.columns)])
         for i in self._json_idx:
@@ -389,16 +345,8 @@ class EntitySchema(_typing.Generic[T]):
         return row
 
     def _to_row_trackable(self, obj: T, sequence: int) -> list:
-        """Data columns + commit_id + operation (from struct tuple) + sequence (DB-only).
-
-        Struct tuple layout : <data cols> commit_id operation
-        Main table layout   : <data cols> commit_id operation sequence
-
-        Slicing to len(self.columns) + 2 captures data + both tracking fields.
-        JSON serialisation only touches data col indices (self._json_idx).
-        """
         t   = msgspec.structs.astuple(obj)
-        row = list(t[: len(self.columns) + 2])  # data + commit_id + operation
+        row = list(t[: len(self.columns) + 2])
         for i in self._json_idx:
             if row[i] is not None:
                 row[i] = json.dumps(row[i])
@@ -406,13 +354,9 @@ class EntitySchema(_typing.Generic[T]):
         return row
 
     def _decode_row(self, row: tuple) -> T:
-        """Decode a main-table row using the optimized baked decoder."""
-        # self._row_decoder handles sequence stripping and JSON parsing
         return self._row_decoder(row)
 
     def _decode_log_row(self, row: tuple) -> T:
-        """Decode a log-table row using the optimized baked decoder."""
-        # self._log_row_decoder skips stripping but handles JSON parsing
         return self._log_row_decoder(row)
 
     # ------------------------------------------------------------------
@@ -438,34 +382,26 @@ class EntitySchema(_typing.Generic[T]):
         )
 
     def _build_decoders(self):
-        """
-        Called during __post_init__ to bake the optimized decoding logic.
-        """
-        json_idx = self._json_idx
+        json_idx   = self._json_idx
         struct_cls = self.struct_cls
         strip_count = self._decode_strip
 
         def _run_decode(row: tuple, strip: bool) -> T:
-            # 1. Strip sequence column if it's a main table row
             if strip and strip_count:
                 row = row[:-strip_count]
 
-            # 2. Fast Path: No JSON fields
             if not json_idx:
                 return msgspec.convert(row, struct_cls)
 
-            # 3. Slow Path: JSON parsing required
             data = list(row)
             for i in json_idx:
                 val = data[i]
                 if val is not None:
-                    # msgjson.decode is significantly faster than json.loads
                     data[i] = msgjson.decode(val) if isinstance(val, (str, bytes)) else val
 
             return msgspec.convert(data, struct_cls)
 
-        # Pre-bind the functions to the instance
-        self._row_decoder = lambda r: _run_decode(r, strip=True)
+        self._row_decoder     = lambda r: _run_decode(r, strip=True)
         self._log_row_decoder = lambda r: _run_decode(r, strip=False)
 
     # ------------------------------------------------------------------
@@ -475,7 +411,7 @@ class EntitySchema(_typing.Generic[T]):
     def _execute_chunked(
         self,
         tx:     Cursor,
-        action: str,           # "SELECT *" or "DELETE"
+        action: str,
         pf:     _ParsedFilters,
     ) -> list[tuple]:
         fixed_clause, fixed_params = _fixed_clause(pf.small_lists, pf.scalars)
@@ -507,23 +443,55 @@ class EntitySchema(_typing.Generic[T]):
         return results
 
     # ------------------------------------------------------------------
+    # Log table PK query (private)
+    # ------------------------------------------------------------------
+
+    def _get_log_by_pks(self, tx: Cursor, pk_list: list[Any]) -> list[T]:
+        """Fetch all log rows for the given PKs, ordered by commit_id."""
+        if not pk_list:
+            return []
+
+        log_table      = f"{self.table}_log"
+        pk_cols        = ", ".join(self._pk_names)
+        num_pks        = len(self._pk_names)
+        order_by       = f" ORDER BY {pk_cols}, commit_id"
+        chunk_size     = max(1, self.chunk_size // num_pks)
+
+        results: list[tuple] = []
+
+        if num_pks == 1:
+            col = self._pk_names[0]
+            for i in range(0, len(pk_list), chunk_size):
+                chunk = pk_list[i : i + chunk_size]
+                in_ph = ", ".join(["?"] * len(chunk))
+                sql   = f"SELECT * FROM {log_table} WHERE {col} IN ({in_ph}){order_by}"
+                results.extend(tx.execute(sql, chunk).fetchall())
+        else:
+            placeholders = ", ".join([f"({','.join(['?'] * num_pks)})"] * chunk_size)
+            sql_tpl = (
+                f"SELECT * FROM {log_table}"
+                f" WHERE ({pk_cols}) IN (VALUES {placeholders}){order_by}"
+            )
+            for i in range(0, len(pk_list), chunk_size):
+                chunk = pk_list[i : i + chunk_size]
+                if len(chunk) < chunk_size:
+                    ph  = ", ".join([f"({','.join(['?'] * num_pks)})"] * len(chunk))
+                    sql = (
+                        f"SELECT * FROM {log_table}"
+                        f" WHERE ({pk_cols}) IN (VALUES {ph}){order_by}"
+                    )
+                else:
+                    sql = sql_tpl
+                params = [v for row in chunk for v in (row if isinstance(row, (tuple, list)) else [row])]
+                results.extend(tx.execute(sql, params).fetchall())
+
+        return [self._decode_log_row(r) for r in results]
+
+    # ------------------------------------------------------------------
     # Read
     # ------------------------------------------------------------------
 
     def get(self, tx: Cursor, **filters) -> list[T]:
-        """Read rows from the current-state table.
-
-        Multiple list-valued filters are AND-ed.  The largest list is chunked;
-        all others become a single IN clause per chunk iteration.
-
-        Examples
-        --------
-        schema.get(tx)
-        schema.get(tx, id=5)
-        schema.get(tx, id=[1, 2, 3])
-        schema.get(tx, id=[1, 2, 3], sha1=["abc", "def"])
-        schema.get(tx, id=[1, 2, 3], file_id=7)
-        """
         pf   = _parse_filters(filters)
         rows = self._execute_chunked(tx, "SELECT *", pf)
         return [self._decode_row(r) for r in rows]
@@ -533,24 +501,18 @@ class EntitySchema(_typing.Generic[T]):
         if not pks: return []
 
         num_pks_per_row = len(self._pk_names)
-        # Conservative limit: SQLite default is 999, so we stay under that.
-        # For a composite PK of (property_id, sha1), this is ~450 rows per chunk.
         chunk_size = 900 // num_pks_per_row
 
         results = []
         pk_cols = ", ".join(self._pk_names)
-        # The (VALUES (?,?)...) syntax is faster than (?,?),(?,?) in most versions
         placeholders = ", ".join([f"({','.join(['?'] * num_pks_per_row)})"] * chunk_size)
         sql = f"SELECT * FROM {self.table} WHERE ({pk_cols}) IN (VALUES {placeholders})"
 
-        # 1. Process full chunks
         for i in range(0, len(pks) - chunk_size + 1, chunk_size):
             chunk = pks[i: i + chunk_size]
-            # Flatten the list of tuples for the execute call
             params = [item for row in chunk for item in (row if isinstance(row, (tuple, list)) else [row])]
             results.extend(tx.execute(sql, params).fetchall())
 
-        # 2. Handle the "tail" (remaining rows)
         remainder = pks[(len(pks) // chunk_size) * chunk_size:]
         if remainder:
             tail_placeholders = ", ".join([f"({','.join(['?'] * num_pks_per_row)})"] * len(remainder))
@@ -561,11 +523,7 @@ class EntitySchema(_typing.Generic[T]):
         return [self._decode_row(r) for r in results]
 
     def extract_pks(self, objs: Iterable[T]) -> list[Any]:
-        """
-        Extracts primary key values from a list of structs based on _pk_names.
-        Returns scalars for single PKs, and tuples for composite PKs.
-        """
-        names = self._pk_names
+        names   = self._pk_names
         num_pks = len(names)
 
         if num_pks == 0:
@@ -575,16 +533,10 @@ class EntitySchema(_typing.Generic[T]):
             pk = names[0]
             return [getattr(obj, pk) for obj in objs]
 
-        # Composite PK: pre-fetch getattr to save a tiny bit of look-up time in the loop
         return [tuple(getattr(obj, name) for name in names) for obj in objs]
 
     def list_to_index(self, objs: Iterable[T]) -> dict[Any, T]:
-        """
-        Converts a list of structs into a dictionary indexed by their primary keys.
-        - Single PK: {pk_value: struct}
-        - Composite PK: {(pk_val1, pk_val2): struct}
-        """
-        names = self._pk_names
+        names   = self._pk_names
         num_pks = len(names)
 
         if num_pks == 0:
@@ -594,7 +546,6 @@ class EntitySchema(_typing.Generic[T]):
             pk = names[0]
             return {getattr(obj, pk): obj for obj in objs}
 
-        # Composite PK
         return {
             tuple(getattr(obj, name) for name in names): obj
             for obj in objs
@@ -606,11 +557,6 @@ class EntitySchema(_typing.Generic[T]):
         return db_objs
 
     def get_index(self, tx: Cursor, **filters) -> dict[Any, T]:
-        """Read rows and return them indexed by primary key.
-
-        Single-PK  → key is the scalar PK value.
-        Composite  → key is a tuple of PK values ordered by self._pk_names.
-        """
         objs = self.get(tx, **filters)
         if len(self._pk_names) == 1:
             pk = self._pk_names[0]
@@ -621,11 +567,6 @@ class EntitySchema(_typing.Generic[T]):
         }
 
     def get_by_pk_index(self, tx: Cursor, pk_list: Iterable[Any]) -> dict[Any, T]:
-        """Read rows and return them indexed by primary key.
-
-        Single-PK  → key is the scalar PK value.
-        Composite  → key is a tuple of PK values ordered by self._pk_names.
-        """
         objs = self.get_by_pk(tx, pk_list)
         if len(self._pk_names) == 1:
             pk = self._pk_names[0]
@@ -636,12 +577,6 @@ class EntitySchema(_typing.Generic[T]):
         }
 
     def get_since(self, tx: Cursor, sequence: int) -> list[T]:
-        """Return all rows with sequence > `sequence`.
-
-        Includes rows with operation == OP_DELETE (-1) — deleted entities
-        remain in the table.  Callers can inspect obj.operation to distinguish
-        live from deleted records.
-        """
         if not self.trackable:
             raise ValueError(f"Table {self.table!r} is not trackable")
         rows = tx.execute(
@@ -650,23 +585,12 @@ class EntitySchema(_typing.Generic[T]):
         return [self._decode_row(r) for r in rows]
 
     def get_log(self, tx: Cursor, commit_id: int) -> list[T]:
-        """Return every log entry recorded under the given commit_id."""
         if not self.trackable:
             raise ValueError(f"Table {self.table!r} is not trackable")
         rows = tx.execute(self._log_by_commit_sql, (commit_id,)).fetchall()
         return [self._decode_log_row(r) for r in rows]
 
     def get_all_pk(self, tx: Cursor, **filters) -> list[Any]:
-        """Return one occurrence of each distinct PK that appears in the log table.
-
-        Useful for discovering every entity ever touched, regardless of its
-        current state (created, updated, or deleted).
-
-        Returns
-        -------
-        Single-PK tables   : list of scalar values   [1, 2, 3, ...]
-        Composite-PK tables: list of tuples          [(1, 'a'), (2, 'b'), ...]
-        """
         if not self.trackable:
             raise ValueError(f"Table {self.table!r} is not trackable")
 
@@ -707,12 +631,6 @@ class EntitySchema(_typing.Generic[T]):
         return list(rows)
 
     def get_latest_logs(self, tx: Cursor, **filters) -> list[T]:
-        """Return the most recent log entry for each distinct PK.
-
-        For each PK that appears in the log, only the row with the highest
-        commit_id is returned.  Filters follow the same chunked-IN strategy
-        as get().
-        """
         if not self.trackable:
             raise ValueError(f"Table {self.table!r} is not trackable")
 
@@ -736,9 +654,8 @@ class EntitySchema(_typing.Generic[T]):
             return inner + f" ON {pk_join} AND l.commit_id = m.max_commit"
 
         if pf.big_col is None:
-            sql    = _build_sql(fixed_clause)
-            # fixed_params appears twice: once for inner subquery, once for outer
-            rows   = tx.execute(sql, fixed_params + fixed_params).fetchall()
+            sql  = _build_sql(fixed_clause)
+            rows = tx.execute(sql, fixed_params + fixed_params).fetchall()
         else:
             vars_for_big = self.chunk_size - len(fixed_params)
             if vars_for_big < 1:
@@ -770,22 +687,14 @@ class EntitySchema(_typing.Generic[T]):
         self,
         tx:        Cursor,
         objs:      Iterable[T] | T,
-        sequence:  int,
+        sequence:  int = None,
     ) -> None:
-        """Insert or replace rows in the current-state table.
-
-        Parameters
-        ----------
-        sequence:
-            Written to the DB-only `sequence` column of every row in this batch.
-            The caller owns the counter.
-        """
         data = [objs] if isinstance(objs, msgspec.Struct) else list(objs)
         if not data:
             return
 
         if self.trackable:
-            vars_per_row = len(self.columns) + 3  # commit_id + operation + sequence
+            vars_per_row = len(self.columns) + 3
             chunk_rows   = max(1, self.chunk_size // vars_per_row)
             for i in range(0, len(data), chunk_rows):
                 chunk  = data[i : i + chunk_rows]
@@ -808,12 +717,6 @@ class EntitySchema(_typing.Generic[T]):
     # ------------------------------------------------------------------
 
     def append_log(self, tx: Cursor, objs: Iterable[T], commit_id: int) -> None:
-        """Append events to the _log table.
-
-        `operation` must be set on every object before calling.
-        `commit_id` is written as a column value only — never stored on objects.
-        `sequence` is not written to the log table.
-        """
         if not self.trackable:
             raise ValueError(f"Table {self.table!r} is not trackable")
 
@@ -822,10 +725,10 @@ class EntitySchema(_typing.Generic[T]):
             return
 
         for obj in data:
-            if obj.operation is None:  # type: ignore[attr-defined]
+            if obj.operation is None:
                 raise ValueError(f"operation must be set before appending to log: {obj!r}")
 
-        vars_per_row = len(self.columns) + 2  # commit_id + operation (no sequence)
+        vars_per_row = len(self.columns) + 2
         chunk_rows   = max(1, self.chunk_size // vars_per_row)
 
         for i in range(0, len(data), chunk_rows):
@@ -834,7 +737,7 @@ class EntitySchema(_typing.Generic[T]):
             for obj in chunk:
                 params.extend(self._to_row(obj))
                 params.append(commit_id)
-                params.append(obj.operation)  # type: ignore[attr-defined]
+                params.append(obj.operation)
             tx.execute(self._build_log_sql(len(chunk)), params)
 
     # ------------------------------------------------------------------
@@ -842,21 +745,12 @@ class EntitySchema(_typing.Generic[T]):
     # ------------------------------------------------------------------
 
     def delete(self, tx: Cursor, **filters) -> None:
-        """Remove rows matching filters.  At least one filter required."""
         if not filters:
             raise ValueError("delete() requires at least one filter")
         pf = _parse_filters(filters)
         self._execute_chunked(tx, "DELETE", pf)
 
     def delete_by_pk(self, tx: Cursor, pk_list: Iterable[Any]) -> None:
-        """Delete rows by primary key value(s).
-
-        Single-PK  → chunked IN clause (fastest).
-        Composite  → temp table with paired tuples, single DELETE.
-
-        For composite PKs pass an iterable of tuples ordered to match
-        self._pk_names.
-        """
         pks = list(pk_list)
         if not pks:
             return
@@ -889,39 +783,81 @@ class EntitySchema(_typing.Generic[T]):
     # ------------------------------------------------------------------
 
     def set_to_delete(self, objs: list[T], commit_id: int) -> None:
-        """Mark structs as DELETE — mutates in place.
-
-        operation  → OP_DELETE (-1)
-        commit_id is left untouched (managed by the caller).
-        """
         for obj in objs:
             obj.commit_id = commit_id
-            obj.operation = OP_DELETE  # type: ignore[attr-defined]
+            obj.operation = OP_DELETE
 
     @staticmethod
-    def replay_value(objs: list[msgspec.Struct]) -> msgspec.Struct | None:
-        """Fold an ordered sequence of log entries into a new current state object."""
+    def merge_logs(objs: list[msgspec.Struct]) -> msgspec.Struct | None:
         current: msgspec.Struct | None = None
         for obj in objs:
             if obj is None:
                 continue
 
-            # Access the operation from the current log entry
             op = getattr(obj, "operation", None)
 
             if current is None:
-                # We only start tracking once we see a CREATE operation
                 if op == OP_CREATE:
-                    # Normalize operation to CREATE (1) in the state table
                     current = replace(obj, operation=OP_CREATE)
             else:
                 if op == OP_DELETE:
-                    # Keep DELETE (-1) to signal logical deletion in the table
                     current = replace(obj)
                 else:
-                    # Any other operation (CREATE/UPDATE) results in an CREATE state
                     current = replace(obj, operation=OP_CREATE)
         return current
+
+    def re_compute(
+            self,
+            tx: Cursor,
+            pk_list: Any,
+            sequence: int,
+            disabled_commits: set[int]
+    ) -> list[T]:
+        """Replay log entries for the given PKs and upsert the merged state.
+
+        For each PK, all valid log rows are fetched in commit_id order, folded via
+        merge_logs, and the resulting objects are bulk-upserted into the
+        current-state table. Commits present in disabled_commits are ignored.
+        PKs whose log produces None (no CREATE ever seen) are silently skipped.
+
+        Returns the list of upserted objects.
+        """
+        if not self.trackable:
+            raise ValueError(f"Table {self.table!r} is not trackable")
+
+        pks = list(pk_list) if not isinstance(pk_list, list) else pk_list
+        if not pks:
+            return []
+
+        log_rows = self._get_log_by_pks(tx, pks)
+
+        # Group by PK, preserving commit_id order (guaranteed by _get_log_by_pks)
+        # and skipping any disabled commits.
+        grouped: dict[Any, list[T]] = {}
+        if len(self._pk_names) == 1:
+            pk_attr = self._pk_names[0]
+            for obj in log_rows:
+                if obj.commit_id in disabled_commits:
+                    continue
+                key = getattr(obj, pk_attr)
+                grouped.setdefault(key, []).append(obj)
+        else:
+            for obj in log_rows:
+                if obj.commit_id in disabled_commits:
+                    continue
+                key = tuple(getattr(obj, name) for name in self._pk_names)
+                grouped.setdefault(key, []).append(obj)
+
+        merged: list[T] = []
+        for entries in grouped.values():
+            result = self.merge_logs(entries)
+            if result is not None:
+                merged.append(result)
+
+        if merged:
+            self.upsert(tx, merged, sequence=sequence)
+
+        return merged
 
 
 # ---------------------------------------------------------------------------
@@ -929,13 +865,6 @@ class EntitySchema(_typing.Generic[T]):
 # ---------------------------------------------------------------------------
 
 def _apply_diff(current: list[int] | None, diff: list[int]) -> list[int]:
-    """Apply a tag diff to the current accumulated tag list.
-
-    diff is a plain list of signed integers:
-        positive  → add tag id to result
-        negative  → remove abs(tag id) from result
-    The result is deduped and sorted by tag id ascending.
-    """
     working: set[int] = set(current) if current else set()
     for tag in diff:
         if tag < 0:
@@ -947,50 +876,89 @@ def _apply_diff(current: list[int] | None, diff: list[int]) -> list[int]:
 
 @dataclass
 class PropertyValueSchema(EntitySchema[T]):
-    """EntitySchema specialised for property-value tables.
-
-    Extends replay_value with an optional multi-tags folding mode.
-
-    Parameters
-    ----------
-    is_multi_tags:
-        When False (default) replay simply returns the last entry — operation
-        is ignored, a missing row is equivalent to value=None.
-        When True the value field is folded entry by entry using operation
-        to decide strategy:
-            operation == OP_DIFF (2)  → apply tag diff to accumulated value
-            anything else             → replace accumulated value entirely
-    """
+    """EntitySchema specialised for property-value tables."""
 
     is_multi_tags: bool = False
 
-    @staticmethod  # type: ignore[override]
-    def replay_value(objs: list[msgspec.Struct], is_multi_tags: bool = False) -> msgspec.Struct | None:
-        """Fold an ordered sequence of log entries into a new current value object."""
-        # Filter out None entries
+    @staticmethod
+    def merge_logs(objs: list[msgspec.Struct], is_multi_tags: bool = False) -> msgspec.Struct | None:
         filtered = [o for o in objs if o is not None]
         if not filtered:
             return None
 
-        # Default mode: return a copy of the last non-None entry
         if not is_multi_tags:
             return msgspec.structs.replace(filtered[-1])
 
         accumulated: list[int] | None = None
 
         for obj in filtered:
-            # msgspec structs are fast, but we assume they have .value and .operation
             val = getattr(obj, "value", None)
-            op = getattr(obj, "operation", None)
+            op  = getattr(obj, "operation", None)
 
             if val is None:
                 accumulated = None
             elif op == OP_DIFF:
                 accumulated = _apply_diff(accumulated, val)
             else:
-                # Create a new list instance to avoid mutating original lists
-                accumulated = list(val) if val is not None else None
+                accumulated = list(val)
 
-        # Return a new object based on the last entry, but with the new accumulated value
         final_val = accumulated if accumulated else None
         return msgspec.structs.replace(filtered[-1], value=final_val)
+
+    def re_compute(
+            self,
+            tx: Cursor,
+            pk_list: Any,
+            sequence: int,
+            disabled_commits: set[int],
+            multi_tags_property_ids: set[int] | None = None,
+    ) -> list[T]:
+        """Replay log entries for the given PKs and upsert the merged state."""
+        if not self.trackable:
+            raise ValueError(f"Table {self.table!r} is not trackable")
+
+        pks = list(pk_list) if not isinstance(pk_list, list) else pk_list
+        if not pks:
+            return []
+
+        log_rows = self._get_log_by_pks(tx, pks)
+
+        # Group only logs with valid commit_ids
+        grouped: dict[Any, list[T]] = {}
+        for obj in log_rows:
+            if obj.commit_id in disabled_commits:
+                continue
+
+            if len(self._pk_names) == 1:
+                key = getattr(obj, self._pk_names[0])
+            else:
+                key = tuple(getattr(obj, name) for name in self._pk_names)
+
+            grouped.setdefault(key, []).append(obj)
+
+        merged: list[T] = []
+
+        for key, entries in grouped.items():
+            # Assumption: property_id is the first PK field
+            prop_id = key[0] if isinstance(key, tuple) else key
+
+            is_multi_tag = (
+                prop_id in multi_tags_property_ids
+                if multi_tags_property_ids is not None
+                else getattr(self, 'is_multi_tags', False)
+            )
+
+            if is_multi_tag:
+                # Multi-tags: Merge all valid logs to calculate the final list state
+                result = PropertyValueSchema.merge_logs(entries, is_multi_tags=True)
+                if result is not None:
+                    merged.append(result)
+            else:
+                # Standard property: The final state is simply the log with the highest valid commit_id
+                latest_log = max(entries, key=lambda e: e.commit_id)
+                merged.append(latest_log)
+
+        if merged:
+            self.upsert(tx, merged, sequence=sequence)
+
+        return merged

@@ -12,6 +12,7 @@ class Commit(msgspec.Struct, array_like=True):
     group_id: Optional[int]
     source: str
     timestamp: datetime
+    active: int
 
 class FileSource(msgspec.Struct, array_like=True):
     id: Annotated[str, PrimaryKey]

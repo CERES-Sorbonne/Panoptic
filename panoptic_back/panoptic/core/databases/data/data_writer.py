@@ -7,7 +7,7 @@ from typing import Any
 from panoptic.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
     TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA
 from panoptic.core.databases.data.data_reader import DataReader
-from panoptic.core.databases.data.helper import EntitySchema, OP_UPDATE, OP_CREATE
+from panoptic.core.databases.data.helper import EntitySchema, OP_UPDATE, OP_CREATE, PropertyValueSchema
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import PropertyType
 from panoptic.models.data import (
@@ -47,7 +47,7 @@ class DataWriter(SQLiteWriter):
             self._upsert_commit_instance_values(tx, data, commit_id, seq_number)
             self._upsert_commit_sha1_values(tx, data, commit_id, seq_number)
 
-            commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now)
+            commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now, active=True)
             COMMITS_SCHEMA.upsert(tx, commit, sequence=seq_number)
             return commit
 
@@ -60,8 +60,9 @@ class DataWriter(SQLiteWriter):
             if group_id is None:
                 group_id = commit_id
 
+            # Not needed for now because we do only logic delete without cleaning the base
             # Process cascade logic first
-            sha1_values, instance_values = self._cascade_delete_logic(tx, data)
+            # sha1_values, instance_values = self._cascade_delete_logic(tx, data)
 
             # Handle revert operations for each table using the same pattern as upserts
             if data.file_sources:
@@ -82,10 +83,42 @@ class DataWriter(SQLiteWriter):
             if data.tags:
                 self._delete_function(tx, TAGS_SCHEMA, commit_id=commit_id, sequence=sequence, id=list(data.tags))
 
-            commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now)
+            commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now, active=True)
             COMMITS_SCHEMA.upsert(tx, commit, sequence=sequence)
             return commit
 
+    def set_commit_active(self, commit_id: int, active: bool):
+        with self.transaction() as tx:
+            sequence = self._exec_get_sequence(tx)
+            commit = COMMITS_SCHEMA.get(tx, id=commit_id)[0]
+            commit.active = 1 if active else 0
+            COMMITS_SCHEMA.upsert(tx, commit)
+
+            commits = COMMITS_SCHEMA.get(tx)
+            disabled = {c.id for c in commits if not c.active}
+
+            def re_compute(shema: EntitySchema):
+                logs = shema.get_log(tx, commit_id)
+                pks = shema.extract_pks(logs)
+                shema.re_compute(tx, pk_list=pks, sequence=sequence, disabled_commits=disabled)
+
+            def re_compute_values(shema: PropertyValueSchema):
+                logs = shema.get_log(tx, commit_id)
+                pks = shema.extract_pks(logs)
+                prop_ids = list({log.property_id for log in logs})
+                props = PROPERTIES_SCHEMA.get_latest_logs(tx, id=prop_ids)
+                multi_tags_props = {p.id for p in props if p.dtype == PropertyType.multi_tags.value}
+                shema.re_compute(tx, pk_list=pks, sequence=sequence, disabled_commits=disabled, multi_tags_property_ids=multi_tags_props)
+
+            re_compute(FILE_SOURCES_SCHEMA)
+            re_compute(FILES_SCHEMA)
+            re_compute(FOLDERS_SCHEMA)
+            re_compute(INSTANCES_SCHEMA)
+            re_compute(PROPERTIES_SCHEMA)
+            re_compute(TAGS_SCHEMA)
+
+            re_compute_values(SHA1_VALUES_SCHEMA)
+            re_compute_values(INSTANCE_VALUES_SCHEMA)
     # --- Cascading Logic ---
 
     def _cascade_delete_logic(self, tx: Cursor, data: DeleteCommit):
@@ -131,7 +164,7 @@ class DataWriter(SQLiteWriter):
         existing = FILE_SOURCES_SCHEMA.get_index(tx, id=list(data.file_sources.keys()))
 
         updated = [
-            FILE_SOURCES_SCHEMA.replay_value([existing.get(s.id), s])
+            FILE_SOURCES_SCHEMA.merge_logs([existing.get(s.id), s])
             for s in sources
         ]
         FILE_SOURCES_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
@@ -145,7 +178,7 @@ class DataWriter(SQLiteWriter):
         existing = FOLDERS_SCHEMA.get_index(tx, id=list(data.folders.keys()))
 
         updated = [
-            FOLDERS_SCHEMA.replay_value([existing.get(f.id), f])
+            FOLDERS_SCHEMA.merge_logs([existing.get(f.id), f])
             for f in folders
         ]
 
@@ -160,7 +193,7 @@ class DataWriter(SQLiteWriter):
         existing = FILES_SCHEMA.get_index(tx, id=list(data.files.keys()))
 
         updated = [
-            FILES_SCHEMA.replay_value([existing.get(f.id), f])
+            FILES_SCHEMA.merge_logs([existing.get(f.id), f])
             for f in files
         ]
 
@@ -175,7 +208,7 @@ class DataWriter(SQLiteWriter):
         existing = INSTANCES_SCHEMA.get_index(tx, id=list(data.instances.keys()))
 
         updated = [
-            INSTANCES_SCHEMA.replay_value([existing.get(i.id), i])
+            INSTANCES_SCHEMA.merge_logs([existing.get(i.id), i])
             for i in instances
         ]
 
@@ -190,7 +223,7 @@ class DataWriter(SQLiteWriter):
         existing = PROPERTIES_SCHEMA.get_index(tx, id=list(data.properties.keys()))
 
         updated = [
-            PROPERTIES_SCHEMA.replay_value([existing.get(p.id), p])
+            PROPERTIES_SCHEMA.merge_logs([existing.get(p.id), p])
             for p in properties
         ]
 
@@ -205,7 +238,7 @@ class DataWriter(SQLiteWriter):
         existing = TAGS_SCHEMA.get_index(tx, id=list(data.tags.keys()))
 
         updated = [
-            TAGS_SCHEMA.replay_value([existing.get(t.id), t])
+            TAGS_SCHEMA.merge_logs([existing.get(t.id), t])
             for t in tags
         ]
 
@@ -237,7 +270,7 @@ class DataWriter(SQLiteWriter):
 
         for pk, value in merge_index.items():
             db_value = db_value_index.get(pk)
-            final_value = INSTANCE_VALUES_SCHEMA.replay_value([db_value, value], is_multi_tags=True)
+            final_value = INSTANCE_VALUES_SCHEMA.merge_logs([db_value, value])
             final_values.append(final_value)
 
         INSTANCE_VALUES_SCHEMA.upsert(tx, final_values, sequence=sequence)
@@ -278,7 +311,7 @@ class DataWriter(SQLiteWriter):
                 db_value = db_value_index.get(pk)
 
                 # Replay/fold the value (replay_value returns a new object via replace())
-                final_value = SHA1_VALUES_SCHEMA.replay_value([db_value, value], is_multi_tags=True)
+                final_value = SHA1_VALUES_SCHEMA.merge_logs([db_value, value])
                 if final_value:
                     final_values.append(final_value)
 
