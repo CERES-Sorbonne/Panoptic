@@ -397,8 +397,6 @@ class EntitySchema(_typing.Generic[T]):
         Slicing to len(self.columns) + 2 captures data + both tracking fields.
         JSON serialisation only touches data col indices (self._json_idx).
         """
-        print("\n")
-        print(obj)
         t   = msgspec.structs.astuple(obj)
         row = list(t[: len(self.columns) + 2])  # data + commit_id + operation
         for i in self._json_idx:

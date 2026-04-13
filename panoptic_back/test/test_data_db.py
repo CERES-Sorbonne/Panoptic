@@ -3,8 +3,9 @@ from pathlib import Path
 
 from panoptic.core.databases.data.commit import CommitBuilder
 from panoptic.core.databases.data.data_writer import DataWriter
-from panoptic.core.databases.data.helper import OP_DELETE
+from panoptic.core.databases.data.helper import OP_DELETE, OP_DIFF, OP_CREATE, OP_UPDATE
 from panoptic.core.databases.registry.registry_db import RegistryDB
+from panoptic.models import PropertyType
 from panoptic.models.data import DeleteCommit, InstanceValue, Sha1Value
 
 
@@ -39,7 +40,6 @@ def test_cycle_file_sources():
     commit2 = CommitBuilder(registry)
     source.root_url = '/tmp/updated'
     commit2.update_file_source(source)
-    print(commit2.data)
     writer.apply_upsert_commit('update', commit2.data)
 
     rows = writer.reader.get_file_sources(id=source.id)
@@ -219,7 +219,7 @@ def test_cycle_instance_values():
 
     write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=42.0)
 
-    commit1.add_instance_value(write)
+    commit1.update_instance_value(write)
 
     writer.apply_upsert_commit('test_cycle', commit1.data)
 
@@ -230,7 +230,7 @@ def test_cycle_instance_values():
     # UPDATE
     commit2 = CommitBuilder(registry)
     write.value = 99.0
-    commit2.add_instance_value(write)
+    commit2.update_instance_value(write)
     writer.apply_upsert_commit('update', commit2.data)
 
     rows = writer.reader.get_instance_values(property_id=prop.id)
@@ -252,7 +252,7 @@ def test_cycle_sha1_values():
 
     # Using the Sha1Value struct directly like the InstanceValue test
     write = Sha1Value(property_id=prop.id, sha1='hash_a', value=1.0)
-    commit1.add_sha1_value(write)
+    commit1.update_sha1_value(write)
 
     writer.apply_upsert_commit('insert', commit1.data)
 
@@ -265,7 +265,7 @@ def test_cycle_sha1_values():
     commit2 = CommitBuilder(registry)
     # Mutate the existing object or create a new one with same PKs
     write.value = 10.0
-    commit2.add_sha1_value(write)
+    commit2.update_sha1_value(write)
     writer.apply_upsert_commit('update', commit2.data)
 
     rows = writer.reader.get_sha1_values(property_id=prop.id)
@@ -277,5 +277,103 @@ def test_cycle_sha1_values():
     writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
 
     # Verification matches the instance_values logic
+    assert len(writer.reader.get_sha1_values(property_id=prop.id)) == 1
+    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE
+
+
+def test_instances_values_tags():
+    registry, writer = _setup()
+
+    # INSERT
+    commit1 = CommitBuilder(registry)
+    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='score')
+    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
+    folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
+    file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
+    instance = commit1.create_instance(file_id=file.id, sha1='abc123')
+
+    write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=[1,2,3])
+
+    commit1.update_instance_value(write)
+
+    writer.apply_upsert_commit('test_cycle', commit1.data)
+
+    rows = writer.reader.get_instance_values(property_id=prop.id)
+    assert len(rows) == 1
+    assert rows[0].value == [1,2,3]
+
+    # UPDATE
+    commit2 = CommitBuilder(registry)
+    write.value = [-1,4]
+    write.operation = OP_DIFF
+    commit2.update_instance_value(write)
+    writer.apply_upsert_commit('update', commit2.data)
+
+    rows = writer.reader.get_instance_values(property_id=prop.id)
+    assert len(rows) == 1
+    assert rows[0].value == [2,3,4]
+
+    commit3 = CommitBuilder(registry)
+    write.value = [1, 4]
+    write.operation = OP_UPDATE
+    commit3.update_instance_value(write)
+    writer.apply_upsert_commit('update', commit3.data)
+
+    rows = writer.reader.get_instance_values(property_id=prop.id)
+    assert len(rows) == 1
+    assert rows[0].value == [1, 4]
+
+    # DELETE
+    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
+    assert len(writer.reader.get_instance_values(property_id=prop.id)) == 1
+    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE
+
+
+def test_sha1_values_tags():
+    registry, writer = _setup()
+
+    # INSERT
+    commit1 = CommitBuilder(registry)
+    # Mode is 'sha1' for sha1_values
+    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='tags')
+
+    # Initial Insert: tags [1, 2, 3] for a specific hash
+    write = Sha1Value(property_id=prop.id, sha1='abc123hash', value=[1, 2, 3])
+    commit1.update_sha1_value(write)
+
+    writer.apply_upsert_commit('insert', commit1.data)
+
+    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    assert len(rows) == 1
+    assert rows[0].value == [1, 2, 3]
+
+    # UPDATE (OP_DIFF)
+    # Use DIFF to remove 1 and add 4. Expected result: [2, 3, 4]
+    commit2 = CommitBuilder(registry)
+    write.value = [-1, 4]
+    write.operation = OP_DIFF
+    commit2.update_sha1_value(write)
+    writer.apply_upsert_commit('diff_update', commit2.data)
+
+    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    assert len(rows) == 1
+    assert rows[0].value == [2, 3, 4]
+
+    # UPDATE (OP_UPDATE)
+    # Use standard UPDATE to overwrite the whole list to [1, 4]
+    commit3 = CommitBuilder(registry)
+    write.value = [1, 4]
+    write.operation = OP_UPDATE
+    commit3.update_sha1_value(write)
+    writer.apply_upsert_commit('full_update', commit3.data)
+
+    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    assert len(rows) == 1
+    assert rows[0].value == [1, 4]
+
+    # DELETE
+    # Logical delete of the property should leave value rows intact
+    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
+
     assert len(writer.reader.get_sha1_values(property_id=prop.id)) == 1
     assert writer.reader.get_properties(id=prop.id)[0].operation == OP_DELETE

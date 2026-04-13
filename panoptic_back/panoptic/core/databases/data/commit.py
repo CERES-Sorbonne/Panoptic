@@ -1,6 +1,6 @@
 from typing import Any
 
-from panoptic.core.databases.data.helper import OP_CREATE, OP_UPDATE
+from panoptic.core.databases.data.helper import OP_CREATE, OP_UPDATE, OP_DIFF
 from panoptic.core.databases.registry.registry_db import RegistryDB
 from panoptic.models.data import (
     UpsertCommit, FileSource, Folder, File,
@@ -133,16 +133,18 @@ class CommitBuilder:
 
 
 
-    def add_instance_value(self, value: InstanceValue):
+    def update_instance_value(self, value: InstanceValue):
         if value.property_id not in self.data.instance_values:
             self.data.instance_values[value.property_id] = []
-        value.operation = OP_UPDATE
+        if value.operation != OP_DIFF:
+            value.operation = OP_UPDATE
         self.data.instance_values[value.property_id].append(value)
 
-    def add_sha1_value(self, value: Sha1Value):
+    def update_sha1_value(self, value: Sha1Value):
         if value.property_id not in self.data.sha1_values:
             self.data.sha1_values[value.property_id] = []
-        value.operation = OP_UPDATE
+        if value.operation != OP_DIFF:
+            value.operation = OP_UPDATE
         self.data.sha1_values[value.property_id].append(value)
 
     def add_sha1_value_write(self, property_id: int, stamp_mode: str = None, sha1s: list[str] = None, values: Any = None):

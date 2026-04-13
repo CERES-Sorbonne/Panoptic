@@ -134,10 +134,6 @@ class DataWriter(SQLiteWriter):
             FILE_SOURCES_SCHEMA.replay_value([existing.get(s.id), s])
             for s in sources
         ]
-        print("\n updated")
-        print(updated)
-        print(sources)
-        print(data.file_sources)
         FILE_SOURCES_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
         FILE_SOURCES_SCHEMA.append_log(tx, objs=sources, commit_id=commit_id)
 
@@ -230,7 +226,7 @@ class DataWriter(SQLiteWriter):
 
         for prop_id, values in data.instance_values.items():
             prop = properties[prop_id]
-            if prop.dtype == PropertyType.multi_tags:
+            if prop.dtype == PropertyType.multi_tags.value:
                 merge_updates.extend(values)
             else:
                 final_values.extend(values)
@@ -240,7 +236,7 @@ class DataWriter(SQLiteWriter):
         db_value_index = INSTANCE_VALUES_SCHEMA.get_by_pk_index(tx, merge_index.keys())
 
         for pk, value in merge_index.items():
-            db_value = db_value_index[pk]
+            db_value = db_value_index.get(pk)
             final_value = INSTANCE_VALUES_SCHEMA.replay_value([db_value, value], is_multi_tags=True)
             final_values.append(final_value)
 
@@ -263,7 +259,7 @@ class DataWriter(SQLiteWriter):
         for prop_id, values in data.sha1_values.items():
             prop = properties[prop_id]
             # If it's a multi-tag property, we need to merge with existing DB state
-            if prop.dtype == PropertyType.multi_tags:
+            if prop.dtype == PropertyType.multi_tags.value:
                 merge_updates.extend(values)
             else:
                 final_values.extend(values)
