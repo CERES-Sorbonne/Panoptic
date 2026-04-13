@@ -1,138 +1,94 @@
 import msgspec
 from datetime import datetime
-from typing import Any
+from typing import Any, Annotated, Optional
+
+from panoptic.core.databases.data.helper import PrimaryKey
+
 
 # --- ENTITY MODELS ---
 
 class Commit(msgspec.Struct, array_like=True):
-    id: int
-    group_id: int | None
+    id: Annotated[int, PrimaryKey]
+    group_id: Optional[int]
     source: str
     timestamp: datetime
 
 class FileSource(msgspec.Struct, array_like=True):
-    id: str
+    id: Annotated[str, PrimaryKey]
     dtype: str
-    name: str | None
-    root_url: str | None
-    commit_id: int
+    name: Optional[str]
+    root_url: Optional[str]
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 class Folder(msgspec.Struct, array_like=True):
-    id: int
-    source_id: str | None
-    path: str | None
-    name: str | None
-    parent: int | None
-    commit_id: int
+    id: Annotated[int, PrimaryKey]
+    source_id: Optional[str]
+    path: Optional[str]
+    name: Optional[str]
+    parent: Optional[int]
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 class File(msgspec.Struct, array_like=True):
-    id: int
-    name: str | None
-    folder_id: int | None
-    sha1: str | None
-    commit_id: int
+    id: Annotated[int, PrimaryKey]
+    name: Optional[str]
+    folder_id: Optional[int]
+    sha1: Optional[str]
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 class Instance(msgspec.Struct, array_like=True):
-    id: int
-    file_id: int | None
-    sha1: str | None
-    commit_id: int
+    id: Annotated[int, PrimaryKey]
+    file_id: Optional[int]
+    sha1: Optional[str]
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 class Property(msgspec.Struct, array_like=True):
-    id: int
-    dtype: str | None
-    mode: str | None
-    name: str | None
-    access: str | None
-    tag_list_id: int | None
-    commit_id: int
+    id: Annotated[int, PrimaryKey]
+    dtype: Optional[str]
+    mode: Optional[str]
+    name: Optional[str]
+    access: Optional[str]
+    tag_list_id: Optional[int]
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
+
+class TagList(msgspec.Struct, array_like=True):
+    id: Annotated[int, PrimaryKey]
+    name: Optional[str]
 
 class Tag(msgspec.Struct, array_like=True):
-    id: int
-    list_id: int | None
-    parents: list[int] | None
-    value: str | None
-    color: int | None
-    commit_id: int
-
-# --- VALUE MODELS ---
+    id: Annotated[int, PrimaryKey]
+    list_id: Optional[int]
+    parents: Optional[list[int]] # Handled as JSON
+    value: Optional[str]
+    color: Optional[int]
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 class InstanceValue(msgspec.Struct, array_like=True):
-    property_id: int
-    instance_id: int
-    value: Any
-    commit_id: int
+    property_id: Annotated[int, PrimaryKey]
+    instance_id: Annotated[int, PrimaryKey]
+    value: Any # Handled as JSON
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 class Sha1Value(msgspec.Struct, array_like=True):
-    property_id: int
-    sha1: str
-    value: Any
-    commit_id: int
-
-# --- HISTORY MODELS ---
-
-class FileSourceHistory(msgspec.Struct, array_like=True):
-    id: str
-    dtype: str | None
-    name: str | None
-    root_url: str | None
-    commit_id: int
-    operation_type: int | None
-
-class FolderHistory(msgspec.Struct, array_like=True):
-    id: int
-    source_id: str | None
-    path: str | None
-    name: str | None
-    parent: int | None
-    commit_id: int
-    operation_type: int | None
-
-class FileHistory(msgspec.Struct, array_like=True):
-    id: int
-    name: str | None
-    folder_id: str | None
-    sha1: str | None
-    commit_id: int
-    operation_type: int | None
-
-class InstanceHistory(msgspec.Struct, array_like=True):
-    id: int
-    file_id: int | None
-    sha1: str | None
-    commit_id: int
-    operation_type: int | None
-
-class PropertyHistory(msgspec.Struct, array_like=True):
-    id: int
-    dtype: str | None
-    mode: str | None
-    name: str | None
-    commit_id: int
-    operation_type: int | None
-
-class TagHistory(msgspec.Struct, array_like=True):
-    id: int
-    property_id: int | None
-    parents: list[int] | None
-    value: str | None
-    color: int | None
-    commit_id: int
-    operation_type: int | None
-
-class InstanceValueHistory(msgspec.Struct, array_like=True):
-    property_id: int
-    instance_id: int
-    value: Any
-    commit_id: int
-    operation_type: int | None
-
-class Sha1ValueHistory(msgspec.Struct, array_like=True):
-    property_id: int
-    sha1: str
-    value: Any
-    commit_id: int
-    operation_type: int | None
+    property_id: Annotated[int, PrimaryKey]
+    sha1: Annotated[str, PrimaryKey]
+    value: Any # Handled as JSON
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
 
 # --- WRITE MODELS ---
 
@@ -158,5 +114,5 @@ class UpsertCommit(msgspec.Struct):
     instances: dict[int, Instance] = msgspec.field(default_factory=dict)
     properties: dict[int, Property] = msgspec.field(default_factory=dict)
     tags: dict[int, Tag] = msgspec.field(default_factory=dict)
-    instance_values: dict[int, PropertyValueWrite] = msgspec.field(default_factory=dict)
-    sha1_values: dict[int, PropertyValueWrite] = msgspec.field(default_factory=dict)
+    instance_values: dict[int, list[InstanceValue]] = msgspec.field(default_factory=dict)
+    sha1_values: dict[int, list[Sha1Value]] = msgspec.field(default_factory=dict)

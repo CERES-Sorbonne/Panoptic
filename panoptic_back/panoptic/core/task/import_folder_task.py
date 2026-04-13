@@ -123,7 +123,7 @@ class ImportFolderTask(Task):
             chunk = folder_nodes[i:i + chunk_size]
             for node in chunk:
                 parent_id = path_to_id.get(node['parent_path']) if node['parent_path'] else None
-                folder = await db.add_folder(node['path'], node['name'], parent_id)
+                folder = await db.create_folder(node['path'], node['name'], parent_id)
                 path_to_id[node['path']] = folder.id
 
             # Yield control to event loop after every chunk of DB writes

@@ -1,105 +1,22 @@
-from panoptic.core.databases.data.helper import Col, EntitySchema
+from panoptic.core.databases.data.helper import Col, EntitySchema, PropertyValueSchema
 from panoptic.core.databases.db_description import DbDescription
+from panoptic.models.data import Commit, FileSource, Folder, File, Instance, Property, TagList, Tag, InstanceValue, \
+    Sha1Value
 
-COMMITS_SCHEMA = EntitySchema(
-    table="commits",
-    trackable=False,
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("group_id", "INTEGER"),
-        Col("source", "TEXT", nullable=False),
-        Col("timestamp", "TEXT", nullable=False),
-    ]
-)
+COMMITS_SCHEMA = EntitySchema(Commit, table="commits")
+FILE_SOURCES_SCHEMA = EntitySchema(FileSource, table="file_sources")
+FOLDERS_SCHEMA = EntitySchema(Folder, table="folders")
+FILES_SCHEMA = EntitySchema(File, table="files")
+INSTANCES_SCHEMA = EntitySchema(Instance, table="instances")
+PROPERTIES_SCHEMA = EntitySchema(Property, table="properties")
+TAG_LISTS_SCHEMA = EntitySchema(TagList, table="tag_lists")
+TAGS_SCHEMA = EntitySchema(Tag, table="tags")
+INSTANCE_VALUES_SCHEMA = PropertyValueSchema(InstanceValue, table="instance_values")
+SHA1_VALUES_SCHEMA = PropertyValueSchema(Sha1Value, table="sha1_values")
 
-FILE_SOURCES_SCHEMA = EntitySchema(
-    table="file_sources",
-    columns=[
-        Col("id", "TEXT", primary_key=True, nullable=False),
-        Col("dtype", "TEXT"),
-        Col("name", "TEXT"),
-        Col("root_url", "TEXT"),
-    ]
-)
-
-FOLDERS_SCHEMA = EntitySchema(
-    table="folders",
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("source_id", "TEXT"),
-        Col("path", "TEXT"),
-        Col("name", "TEXT"),
-        Col("parent", "INTEGER"),
-    ]
-)
-
-FILES_SCHEMA = EntitySchema(
-    table="files",
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("name", "TEXT"),
-        Col("folder_id", "INTEGER"),
-        Col("sha1", "TEXT"),
-    ]
-)
-
-INSTANCES_SCHEMA = EntitySchema(
-    table="instances",
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("file_id", "INTEGER"),
-        Col("sha1", "TEXT"),
-    ]
-)
-
-PROPERTIES_SCHEMA = EntitySchema(
-    table="properties",
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("dtype", "TEXT"),
-        Col("mode", "TEXT"),
-        Col("name", "TEXT"),
-        Col("access", "TEXT"),
-        Col("tag_list_id", "INTEGER"),
-    ]
-)
-
-TAG_LISTS_SHEMA = EntitySchema(
-    table="tag_lists",
-    trackable=False,
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("name", "TEXT"),
-    ]
-)
-
-TAGS_SCHEMA = EntitySchema(
-    table="tags",
-    columns=[
-        Col("id", "INTEGER", primary_key=True, nullable=False),
-        Col("list_id", "INTEGER"),
-        Col("parents", "JSON"),
-        Col("value", "TEXT"),
-        Col("color", "INTEGER"),
-    ]
-)
-
-INSTANCE_VALUES_SCHEMA = EntitySchema(
-    table="instance_values",
-    columns=[
-        Col("property_id", "INTEGER", primary_key=True, nullable=False),
-        Col("instance_id", "INTEGER", primary_key=True, nullable=False),
-        Col("value", "JSON"),
-    ]
-)
-
-SHA1_VALUES_SCHEMA = EntitySchema(
-    table="sha1_values",
-    columns=[
-        Col("property_id", "INTEGER", primary_key=True, nullable=False),
-        Col("sha1", "TEXT", primary_key=True, nullable=False),
-        Col("value", "JSON"),
-    ]
+sequence_table = (
+    "CREATE TABLE IF NOT EXISTS sequence (id INTEGER);"
+    "INSERT INTO sequence (id) VALUES (1);"
 )
 
 ALL_SCHEMAS = [
@@ -109,7 +26,7 @@ ALL_SCHEMAS = [
     FILES_SCHEMA,
     INSTANCES_SCHEMA,
     PROPERTIES_SCHEMA,
-    TAG_LISTS_SHEMA,
+    TAG_LISTS_SCHEMA,
     TAGS_SCHEMA,
     INSTANCE_VALUES_SCHEMA,
     SHA1_VALUES_SCHEMA,
@@ -120,10 +37,14 @@ tables_config = {}
 for s in ALL_SCHEMAS:
     tables_config[s.table] = s.create_table_sql()
     if s.trackable:
-        tables_config[f"{s.table}_reverts"] = s.create_revert_table_sql()
+        tables_config[f"{s.table}_log"] = s.create_log_table_sql()
+
+tables_config['sequence'] = sequence_table
 
 datastore_desc = DbDescription(
     version=1,
     tables=tables_config,
     migrations={}
 )
+
+print(COMMITS_SCHEMA.create_table_sql())
