@@ -46,5 +46,3 @@ datastore_desc = DbDescription(
     tables=tables_config,
     migrations={}
 )
-
-print(COMMITS_SCHEMA.create_table_sql())

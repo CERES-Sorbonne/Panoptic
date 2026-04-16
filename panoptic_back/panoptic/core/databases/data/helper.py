@@ -60,6 +60,8 @@ import msgspec.structs
 import msgspec.json as msgjson
 from msgspec.structs import replace
 
+import numpy as np
+
 # ---------------------------------------------------------------------------
 # Public sentinel
 # ---------------------------------------------------------------------------
@@ -100,6 +102,7 @@ _PY_TO_SQL: dict[Any, str] = {
     bool:              "INTEGER",
     bytes:             "BLOB",
     datetime.datetime: "TIMESTAMP",
+    np.ndarray:        "ARRAY",
 }
 
 _UNION_ORIGINS = {
@@ -259,6 +262,7 @@ class EntitySchema(_typing.Generic[T]):
         self.columns, self.trackable = _introspect(self.struct_cls)
         self._pk_names    = [c.name for c in self.columns if c.primary_key]
         self._json_idx    = [i for i, c in enumerate(self.columns) if c.sql_type == "JSON"]
+        self._array_idx = [i for i, c in enumerate(self.columns) if c.sql_type == "ARRAY"]
         self._decode_strip = 1 if self.trackable else 0
 
         if not self._pk_names:
@@ -342,6 +346,9 @@ class EntitySchema(_typing.Generic[T]):
         for i in self._json_idx:
             if row[i] is not None:
                 row[i] = json.dumps(row[i])
+        for i in self._array_idx:
+            if row[i] is not None:
+                row[i] = row[i].tobytes()
         return row
 
     def _to_row_trackable(self, obj: T, sequence: int) -> list:
@@ -350,6 +357,9 @@ class EntitySchema(_typing.Generic[T]):
         for i in self._json_idx:
             if row[i] is not None:
                 row[i] = json.dumps(row[i])
+        for i in self._array_idx:
+            if row[i] is not None:
+                row[i] = row[i].tobytes()
         row.append(sequence)
         return row
 
@@ -382,7 +392,8 @@ class EntitySchema(_typing.Generic[T]):
         )
 
     def _build_decoders(self):
-        json_idx   = self._json_idx
+        json_idx = self._json_idx
+        array_idx = self._array_idx
         struct_cls = self.struct_cls
         strip_count = self._decode_strip
 
@@ -390,7 +401,7 @@ class EntitySchema(_typing.Generic[T]):
             if strip and strip_count:
                 row = row[:-strip_count]
 
-            if not json_idx:
+            if not json_idx and not array_idx:
                 return msgspec.convert(row, struct_cls)
 
             data = list(row)
@@ -398,10 +409,13 @@ class EntitySchema(_typing.Generic[T]):
                 val = data[i]
                 if val is not None:
                     data[i] = msgjson.decode(val) if isinstance(val, (str, bytes)) else val
-
+            for i in array_idx:
+                val = data[i]
+                if val is not None:
+                    data[i] = np.frombuffer(val, dtype=np.float32)  # ← bytes → np.ndarray
             return msgspec.convert(data, struct_cls)
 
-        self._row_decoder     = lambda r: _run_decode(r, strip=True)
+        self._row_decoder = lambda r: _run_decode(r, strip=True)
         self._log_row_decoder = lambda r: _run_decode(r, strip=False)
 
     # ------------------------------------------------------------------

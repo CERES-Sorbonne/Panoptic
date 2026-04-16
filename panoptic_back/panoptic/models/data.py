@@ -15,7 +15,7 @@ class Commit(msgspec.Struct, array_like=True):
     active: int
 
 class FileSource(msgspec.Struct, array_like=True):
-    id: Annotated[str, PrimaryKey]
+    id: Annotated[int, PrimaryKey]
     dtype: str
     name: Optional[str]
     root_url: Optional[str]
@@ -25,7 +25,7 @@ class FileSource(msgspec.Struct, array_like=True):
 
 class Folder(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
-    source_id: Optional[str]
+    source_id: Optional[int]
     path: Optional[str]
     name: Optional[str]
     parent: Optional[int]

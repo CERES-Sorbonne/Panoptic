@@ -1,17 +1,15 @@
 import datetime
-import json
-from collections import defaultdict
 from sqlite3 import Cursor
 from typing import Any
 
 from panoptic.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
     TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA
 from panoptic.core.databases.data.data_reader import DataReader
-from panoptic.core.databases.data.helper import EntitySchema, OP_UPDATE, OP_CREATE, PropertyValueSchema
+from panoptic.core.databases.data.helper import EntitySchema, PropertyValueSchema
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import PropertyType
 from panoptic.models.data import (
-    Commit, DeleteCommit, UpsertCommit, InstanceValue, Sha1Value, Property, Tag, PropertyValueWrite
+    Commit, DeleteCommit, UpsertCommit, InstanceValue, Sha1Value
 )
 
 OP_STAMP_SET = "stamp_set"
@@ -119,36 +117,37 @@ class DataWriter(SQLiteWriter):
 
             re_compute_values(SHA1_VALUES_SCHEMA)
             re_compute_values(INSTANCE_VALUES_SCHEMA)
-    # --- Cascading Logic ---
 
-    def _cascade_delete_logic(self, tx: Cursor, data: DeleteCommit):
-        sha1_values: list[Sha1Value] = []
-        instance_values: list[InstanceValue] = []
 
-        if data.tags:
-            db_tags: list[Tag] = TAGS_SCHEMA.get(tx, id=list(data.tags))
-            grouping: dict[int, list[Tag]] = defaultdict(list)
-            for t in db_tags:
-                grouping[t.list_id].append(t)
-            db_props: list[Property] = PROPERTIES_SCHEMA.get_latest_logs(tx, tag_list_id=list(grouping.keys()))
-
-            action = [-t.id for t in db_tags]
-
-            for prop in db_props:
-                if prop.mode == "sha1":
-                    values_keys = SHA1_VALUES_SCHEMA.get_all_pk(tx, property_id=prop.id)
-                    operations = [
-                        Sha1Value(property_id=p_id, sha1=sha1, value=action, operation=OP_UPDATE) for
-                        p_id, sha1 in values_keys]
-                    sha1_values.append(operations)
-                else:
-                    values_keys = INSTANCE_VALUES_SCHEMA.get_all_pk(tx, property_id=prop.id)
-                    operations = [
-                        InstanceValue(property_id=p_id, instance_id=i_id, value=action, operation=OP_UPDATE) for
-                        p_id, i_id in values_keys]
-                    instance_values.append(operations)
-
-        return sha1_values, instance_values
+    # TODO: maybe needed later. Or some part needed for database vacuum--- Cascading Logic ---
+    # def _cascade_delete_logic(self, tx: Cursor, data: DeleteCommit):
+    #     sha1_values: list[Sha1Value] = []
+    #     instance_values: list[InstanceValue] = []
+    #
+    #     if data.tags:
+    #         db_tags: list[Tag] = TAGS_SCHEMA.get(tx, id=list(data.tags))
+    #         grouping: dict[int, list[Tag]] = defaultdict(list)
+    #         for t in db_tags:
+    #             grouping[t.list_id].append(t)
+    #         db_props: list[Property] = PROPERTIES_SCHEMA.get_latest_logs(tx, tag_list_id=list(grouping.keys()))
+    #
+    #         action = [-t.id for t in db_tags]
+    #
+    #         for prop in db_props:
+    #             if prop.mode == "sha1":
+    #                 values_keys = SHA1_VALUES_SCHEMA.get_all_pk(tx, property_id=prop.id)
+    #                 operations = [
+    #                     Sha1Value(property_id=p_id, sha1=sha1, value=action, operation=OP_UPDATE) for
+    #                     p_id, sha1 in values_keys]
+    #                 sha1_values.append(operations)
+    #             else:
+    #                 values_keys = INSTANCE_VALUES_SCHEMA.get_all_pk(tx, property_id=prop.id)
+    #                 operations = [
+    #                     InstanceValue(property_id=p_id, instance_id=i_id, value=action, operation=OP_UPDATE) for
+    #                     p_id, i_id in values_keys]
+    #                 instance_values.append(operations)
+    #
+    #     return sha1_values, instance_values
 
 
 
