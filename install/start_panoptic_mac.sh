@@ -1,137 +1,104 @@
 #!/bin/bash
 
-# Désactiver l'arrêt automatique en cas d'erreur pour gérer nous-mêmes les erreurs
+# --- CONFIGURATION ---
+CONFIG_DIR="$HOME/.config"
+CONFIG_FILE="$CONFIG_DIR/.panoptic_config"
 set +e
 
+# --- FONCTIONS ---
+save_path() {
+    mkdir -p "$CONFIG_DIR"
+    echo "$1" > "$CONFIG_FILE"
+}
+
+# --- PRE-REQUIS : XCODE & LIBOMP ---
 if ! xcode-select -p &> /dev/null; then
-    echo "Installation des outils de développement Xcode requis..."
+    echo "Installation des outils de developpement Xcode requis..."
     xcode-select --install
-    read -p "Appuyez sur Entrée une fois l'installation des outils Xcode terminée..."
+    read -p "Appuyez sur Entree une fois l'installation des outils Xcode terminee..."
 fi
 
-# Tentative d'installation de libomp
 LIBOMP_ERROR=false
-
-# Vérifier si libomp est déjà installé
 if [ -f "/opt/homebrew/opt/libomp/lib/libomp.dylib" ]; then
-    echo "libomp est déjà installé"
+    echo "libomp est deja installe"
     export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"
 else
-    echo "Tentative d'installation de libomp via Homebrew..."
-
-    # Vérifier si brew est installé
     if ! command -v brew &> /dev/null; then
-        echo "Homebrew n'est pas installé. Impossible d'installer libomp."
+        echo "Homebrew n'est pas installe. Impossible d'installer libomp."
         LIBOMP_ERROR=true
     else
-        # Tenter d'installer libomp
+        echo "Tentative d'installation de libomp via Homebrew..."
         if brew install libomp 2>/dev/null; then
-            echo "libomp installé avec succès"
             export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"
-
-            # Ajouter l'export au .zshrc si pas déjà présent
-            if ! grep -q "DYLD_LIBRARY_PATH.*libomp" ~/.zshrc 2>/dev/null; then
-                echo 'export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"' >> ~/.zshrc
-                echo "DYLD_LIBRARY_PATH ajouté au .zshrc"
-            fi
-
-            # Vérifier que la bibliothèque est bien présente
-            if [ ! -f "/opt/homebrew/opt/libomp/lib/libomp.dylib" ]; then
-                echo "Erreur : libomp installé mais bibliothèque introuvable"
-                LIBOMP_ERROR=true
-            fi
+            [[ ! $(grep "DYLD_LIBRARY_PATH.*libomp" ~/.zshrc) ]] && echo 'export DYLD_LIBRARY_PATH="/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH"' >> ~/.zshrc
         else
-            echo "Erreur lors de l'installation de libomp (permissions insuffisantes ou autre problème)"
             LIBOMP_ERROR=true
         fi
     fi
 fi
 
-# Vérifier si uv est installé
+# --- INSTALLATION DE UV ---
 if ! command -v uv &> /dev/null; then
-    echo "uv n'est pas installé. Installation en cours..."
+    echo "Installation de uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Vérifier si le dossier ~/panoptic existe
-# Demander à l'utilisateur le nom du dossier d'installation (par défaut : panoptic)
-read -p "Nom du dossier d'installation (par défaut: panoptic) : " INSTALL_NAME
-if [ -z "$INSTALL_NAME" ]; then
-    INSTALL_NAME="panoptic"
-fi
-
-# Chemin complet du dossier d'installation
-INSTALL_DIR="$HOME/$INSTALL_NAME"
-
-# Vérifier si le dossier d'installation existe
-if [ ! -d "$INSTALL_DIR" ]; then
-    echo "Création du dossier $INSTALL_DIR"
+# --- GESTION DU CHEMIN D'INSTALLATION ---
+if [ -f "$CONFIG_FILE" ]; then
+    INSTALL_DIR=$(cat "$CONFIG_FILE")
+    echo "Installation existante detectee dans : $INSTALL_DIR"
+else
+    echo "--- Premiere installation ---"
+    read -p "Nom ou chemin du dossier d'installation (par defaut: $HOME/panoptic) : " USER_INPUT
+    
+    if [ -z "$USER_INPUT" ]; then
+        INSTALL_DIR="$HOME/panoptic"
+    elif [[ "$USER_INPUT" = /* ]]; then
+        INSTALL_DIR="$USER_INPUT"
+    else
+        INSTALL_DIR="$HOME/$USER_INPUT"
+    fi
+    
     mkdir -p "$INSTALL_DIR"
+    save_path "$INSTALL_DIR"
+    echo "Chemin sauvegarde dans $CONFIG_FILE"
 fi
 
-# Se déplacer dans le dossier d'installation
 cd "$INSTALL_DIR" || exit
 
-# Choisir la version de Python en fonction des erreurs libomp
-if [ "$LIBOMP_ERROR" = true ]; then
-    echo "=== Erreur détectée avec libomp ==="
-    echo "Utilisation de Python 3.11 avec torch 2.1.0"
-    PYTHON_VERSION="3.11"
-else
-    echo "=== Aucune erreur détectée ==="
-    echo "Utilisation de Python 3.13"
-    PYTHON_VERSION="3.13"
-fi
+# --- GESTION DE L'ENVIRONNEMENT PYTHON ---
+PYTHON_VERSION=$([ "$LIBOMP_ERROR" = true ] && echo "3.11" || echo "3.13")
 
-# Vérifier si l'environnement virtuel existe
-if [ ! -d ".venv" ]; then
-    echo "Création de l'environnement virtuel Python $PYTHON_VERSION"
+if [ ! -d ".venv" ] || [ "$(.venv/bin/python --version 2>&1 | grep -oE "[0-9]+\.[0-9]+")" != "$PYTHON_VERSION" ]; then
+    echo "Configuration de l'environnement Python $PYTHON_VERSION..."
+    rm -rf .venv
     uv python install $PYTHON_VERSION
     uv venv --python $PYTHON_VERSION
-
-    # Installer torch 2.1.0 si Python 3.11
-    if [ "$PYTHON_VERSION" = "3.11" ]; then
-        echo "Installation de torch 2.1.0..."
-        uv pip install torch==2.1.0 numpy==1.25.2
-    fi
-else
-    # Vérifier la version Python de l'env existant
-    CURRENT_PYTHON=$(.venv/bin/python --version 2>&1 | grep -oE "[0-9]+\.[0-9]+")
-    if [ "$CURRENT_PYTHON" != "$PYTHON_VERSION" ]; then
-        echo "Version Python incorrecte ($CURRENT_PYTHON au lieu de $PYTHON_VERSION). Recréation de l'environnement..."
-        rm -rf .venv
-        uv python install $PYTHON_VERSION
-        uv venv --python $PYTHON_VERSION
-
-        # Installer torch 2.1.0 si Python 3.11
-        if [ "$PYTHON_VERSION" = "3.11" ]; then
-            echo "Installation de torch 2.1.0..."
-            uv pip install torch==2.1.0
-        fi
-    fi
+    [ "$PYTHON_VERSION" = "3.11" ] && uv pip install torch==2.1.0 numpy==1.25.2
 fi
 
-# Installer la dernière version de pip
-uv pip install pip
+uv pip install -U pip
 
-# Vérifier si panoptic est installé
+# --- INSTALLATION / MISE A JOUR PANOPTIC ---
 if ! uv pip show panoptic &> /dev/null; then
-    echo "Panoptic n'est pas installé. Installation en cours..."
+    echo "Installation de Panoptic..."
     uv pip install panoptic
     uv run .venv/bin/panoptic plugins add vision
-else
-    echo "Panoptic est installé. Vérification des mises à jour..."
-    LATEST_VERSION=$(uvx pip index versions panoptic 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
-    CURRENT_VERSION=$(uv pip show panoptic | grep -i "Version:" | sed -E 's/(.*)Version: (.*)/\2/')
-    if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
-        read -p "Une nouvelle version de Panoptic ($LATEST_VERSION) est disponible. Voulez-vous l'installer ? (y/n) " choice
-        if [ "$choice" = "y" ]; then
-            uv pip install --upgrade panoptic
-        fi
+    
+    # --- OPTION TELECHARGEMENT MODELE ---
+    echo "-------------------------------------------------------"
+    read -p "Voulez-vous telecharger le modele CLIP (openai/clip-vit-base-patch32) maintenant ? (y/n) : " DOWNLOAD_CLIP
+    if [[ "$DOWNLOAD_CLIP" =~ ^[Yy]$ ]]; then
+        echo "Telechargement du modele..."
+        uvx --with huggingface_hub huggingface-cli download openai/clip-vit-base-patch32
     fi
+    echo "-------------------------------------------------------"
+else
+    echo "Panoptic est deja installe. Verification des mises a jour..."
+    uv pip install --upgrade panoptic
 fi
 
-# Lancer Panoptic
-uv run .venv/bin/panoptic/panoptic
+# --- LANCEMENT ---
+echo "Lancement de Panoptic..."
+uv run .venv/bin/panoptic
