@@ -88,6 +88,7 @@ fi
 # Vérifier si l'environnement virtuel existe
 if [ ! -d ".venv" ]; then
     echo "Création de l'environnement virtuel Python $PYTHON_VERSION"
+    uv python install $PYTHON_VERSION
     uv venv --python $PYTHON_VERSION
 
     # Installer torch 2.1.0 si Python 3.11
@@ -101,6 +102,7 @@ else
     if [ "$CURRENT_PYTHON" != "$PYTHON_VERSION" ]; then
         echo "Version Python incorrecte ($CURRENT_PYTHON au lieu de $PYTHON_VERSION). Recréation de l'environnement..."
         rm -rf .venv
+        uv python install $PYTHON_VERSION
         uv venv --python $PYTHON_VERSION
 
         # Installer torch 2.1.0 si Python 3.11
@@ -110,7 +112,7 @@ else
         fi
     fi
 fi
-source .venv/bin/activate
+
 # Installer la dernière version de pip
 uv pip install pip
 
@@ -118,6 +120,7 @@ uv pip install pip
 if ! uv pip show panoptic &> /dev/null; then
     echo "Panoptic n'est pas installé. Installation en cours..."
     uv pip install panoptic
+    uv run .venv/bin/panoptic plugins add vision
 else
     echo "Panoptic est installé. Vérification des mises à jour..."
     LATEST_VERSION=$(uvx pip index versions panoptic 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
@@ -129,7 +132,6 @@ else
         fi
     fi
 fi
-uv run panoptic plugins add vision
 
 # Lancer Panoptic
-uv run panoptic
+uv run .venv/bin/panoptic/panoptic
