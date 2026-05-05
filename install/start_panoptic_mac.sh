@@ -47,8 +47,17 @@ fi
 # --- GESTION DU CHEMIN D'INSTALLATION ---
 if [ -f "$CONFIG_FILE" ]; then
     INSTALL_DIR=$(cat "$CONFIG_FILE")
-    echo "Installation existante detectee dans : $INSTALL_DIR"
-else
+    if [ ! -d "$INSTALL_DIR" ]; then
+        echo "Dossier d'installation introuvable : $INSTALL_DIR"
+        echo "Reinitialisation de la configuration..."
+        rm -f "$CONFIG_FILE"
+        INSTALL_DIR=""
+    else
+        echo "Installation existante detectee dans : $INSTALL_DIR"
+    fi
+fi
+
+if [ -z "$INSTALL_DIR" ]; then
     echo "--- Premiere installation ---"
     read -p "Nom ou chemin du dossier d'installation (par defaut: $HOME/panoptic) : " USER_INPUT
     
@@ -64,8 +73,6 @@ else
     save_path "$INSTALL_DIR"
     echo "Chemin sauvegarde dans $CONFIG_FILE"
 fi
-
-cd "$INSTALL_DIR" || exit
 
 # --- GESTION DE L'ENVIRONNEMENT PYTHON ---
 PYTHON_VERSION=$([ "$LIBOMP_ERROR" = true ] && echo "3.11" || echo "3.13")
@@ -91,7 +98,7 @@ if ! uv pip show panoptic &> /dev/null; then
     read -p "Voulez-vous telecharger le modele CLIP (openai/clip-vit-base-patch32) maintenant ? (y/n) : " DOWNLOAD_CLIP
     if [[ "$DOWNLOAD_CLIP" =~ ^[Yy]$ ]]; then
         echo "Telechargement du modele..."
-        uvx --with huggingface_hub huggingface-cli download openai/clip-vit-base-patch32
+        uvx --from huggingface_hub hf download openai/clip-vit-base-patch32
     fi
     echo "-------------------------------------------------------"
 else
