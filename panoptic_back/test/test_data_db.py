@@ -3,32 +3,33 @@ from pathlib import Path
 
 from panoptic.core.databases.data.commit import CommitBuilder
 from panoptic.core.databases.data.data_writer import DataWriter
-from panoptic.core.databases.data.helper import OP_DELETE, OP_DIFF, OP_CREATE, OP_UPDATE
+from panoptic.core.databases.entity_schema import OP_DELETE, OP_DIFF, OP_CREATE, OP_UPDATE
+from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.core.databases.registry.registry_db import RegistryDB
 from panoptic.models import PropertyType
 from panoptic.models.data import DeleteCommit, InstanceValue, Sha1Value
 
 
 def _setup():
-    reg_path = Path("~/tmp/registry.db").expanduser()
-    db_path = Path("~/tmp/data.db").expanduser()
-    reg_path.parent.mkdir(parents=True, exist_ok=True)
+    project_path = Path("~/tmp/project.db").expanduser()
+    data_path = Path("~/tmp/data.db").expanduser()
+    project_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if reg_path.exists(): reg_path.unlink()
-    if db_path.exists(): db_path.unlink()
+    if project_path.exists(): project_path.unlink()
+    if data_path.exists(): data_path.unlink()
 
-    registry = RegistryDB(str(reg_path))
-    registry.start()
-    writer = DataWriter(str(db_path))
+    project = ProjectDB(str(project_path))
+    project.start()
+    writer = DataWriter(str(data_path))
     writer.start()
-    return registry, writer
+    return project, writer
 
 
 def test_cycle_file_sources():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp/data')
     writer.apply_upsert_commit('insert', commit1.data)
 
@@ -37,7 +38,7 @@ def test_cycle_file_sources():
     assert rows[0].root_url == '/tmp/data'
 
     # UPDATE
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     source.root_url = '/tmp/updated'
     commit2.update_file_source(source)
     writer.apply_upsert_commit('update', commit2.data)
@@ -65,16 +66,16 @@ def test_cycle_file_sources():
 
 
 def test_cycle_folders():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp/photos', name='photos', parent=None)
     writer.apply_upsert_commit('insert', commit1.data)
 
     # UPDATE (Commit 2)
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     folder.name = 'renamed'
     commit2.update_folder(folder)
     writer.apply_upsert_commit('update', commit2.data)
@@ -98,17 +99,17 @@ def test_cycle_folders():
 
 
 def test_cycle_files():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp/photos', name='photos', parent=None)
     file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
     writer.apply_upsert_commit('insert', commit1.data)
 
     # UPDATE (Commit 2)
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     file.name = 'img_renamed.jpg'
     commit2.update_file(file)
     writer.apply_upsert_commit('update', commit2.data)
@@ -129,10 +130,10 @@ def test_cycle_files():
 
 
 def test_cycle_instances():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
     file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
@@ -140,7 +141,7 @@ def test_cycle_instances():
     writer.apply_upsert_commit('insert', commit1.data)
 
     # UPDATE (Commit 2)
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     instance.sha1 = 'def456'
     commit2.update_instance(instance)
     writer.apply_upsert_commit('update', commit2.data)
@@ -161,15 +162,15 @@ def test_cycle_instances():
 
 
 def test_cycle_properties():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     prop = commit1.create_property(dtype='tags', mode='sha1', name='color')
     writer.apply_upsert_commit('insert', commit1.data)
 
     # UPDATE (Commit 2)
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     prop.name = 'color_renamed'
     commit2.update_property(prop)
     writer.apply_upsert_commit('update', commit2.data)
@@ -190,16 +191,16 @@ def test_cycle_properties():
 
 
 def test_cycle_tags():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     prop = commit1.create_property(dtype='tags', mode='sha1', name='genre')
     tag = commit1.create_tag(list_id=prop.id, value='Rock', color=0xFF0000, parents=[1, 2])
     writer.apply_upsert_commit('insert', commit1.data)
 
     # UPDATE (Commit 2)
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     tag.value = 'Jazz'
     commit2.update_tag(tag)
     writer.apply_upsert_commit('update', commit2.data)
@@ -220,10 +221,10 @@ def test_cycle_tags():
 
 
 def test_cycle_instance_values():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     prop = commit1.create_property(dtype='number', mode='id', name='score')
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
@@ -234,7 +235,7 @@ def test_cycle_instance_values():
     writer.apply_upsert_commit('test_cycle', commit1.data)
 
     # UPDATE (Commit 2)
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     write.value = 99.0
     commit2.update_instance_value(write)
     writer.apply_upsert_commit('update', commit2.data)
@@ -253,10 +254,10 @@ def test_cycle_instance_values():
 
 
 def test_instances_values_tags():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='score')
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
@@ -267,14 +268,14 @@ def test_instances_values_tags():
     writer.apply_upsert_commit('insert', commit1.data)
 
     # DIFF (Commit 2): [2, 3, 4]
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     write.value = [-1, 4]
     write.operation = OP_DIFF
     commit2.update_instance_value(write)
     writer.apply_upsert_commit('diff', commit2.data)
 
     # UPDATE (Commit 3): [1, 4]
-    commit3 = CommitBuilder(registry)
+    commit3 = CommitBuilder(project)
     write.value = [1, 4]
     write.operation = OP_UPDATE
     commit3.update_instance_value(write)
@@ -295,10 +296,10 @@ def test_instances_values_tags():
 
 
 def test_sha1_values_tags():
-    registry, writer = _setup()
+    project, writer = _setup()
 
     # INSERT (Commit 1)
-    commit1 = CommitBuilder(registry)
+    commit1 = CommitBuilder(project)
     prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='tags')
 
     # Initial state: [1, 2, 3]
@@ -308,7 +309,7 @@ def test_sha1_values_tags():
 
     # DIFF (Commit 2)
     # Applying [-1, 4] -> Should result in [2, 3, 4]
-    commit2 = CommitBuilder(registry)
+    commit2 = CommitBuilder(project)
     write.value = [-1, 4]
     write.operation = OP_DIFF
     commit2.update_sha1_value(write)
@@ -316,7 +317,7 @@ def test_sha1_values_tags():
 
     # FULL UPDATE (Commit 3)
     # Overwriting with [1, 4]
-    commit3 = CommitBuilder(registry)
+    commit3 = CommitBuilder(project)
     write.value = [1, 4]
     write.operation = OP_UPDATE
     commit3.update_sha1_value(write)

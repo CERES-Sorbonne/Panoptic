@@ -3,7 +3,7 @@ from typing import Any, Annotated, Optional
 import msgspec
 import numpy
 
-from panoptic.core.databases.data.helper import PrimaryKey
+from panoptic.core.databases.entity_schema import PrimaryKey
 
 
 class VectorType(msgspec.Struct, array_like=True):

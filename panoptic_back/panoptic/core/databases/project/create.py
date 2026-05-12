@@ -1,4 +1,4 @@
-from panoptic.core.databases.data.helper import EntitySchema
+from panoptic.core.databases.entity_schema import EntitySchema
 from panoptic.core.databases.db_description import DbDescription
 from panoptic.core.databases.key_value_shema import KeyValueSchema
 from panoptic.core.databases.project.models import IdRegistry, ProjectConfig, PluginData, TabData, UserDefaults
@@ -16,6 +16,7 @@ ALL_SCHEMAS = [
     TAB_DATA_SCHEMA,
     USER_DEFAULTS_SCHEMA,
 ]
+
 
 # Build the tables dictionary dynamically
 tables_config = {}

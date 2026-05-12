@@ -1,4 +1,4 @@
-from panoptic.core.databases.data.helper import EntitySchema
+from panoptic.core.databases.entity_schema import EntitySchema
 from panoptic.core.databases.db_description import DbDescription
 from panoptic.core.databases.media.models import VectorType, Vector, ImageType, Image, ImageAtlas, Map
 

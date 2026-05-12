@@ -807,7 +807,6 @@ class EntitySchema(_typing.Generic[T]):
         for obj in objs:
             if obj is None:
                 continue
-
             op = getattr(obj, "operation", None)
 
             if current is None:

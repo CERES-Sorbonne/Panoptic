@@ -1,182 +1,133 @@
+import logging
 from pathlib import Path
+from typing import Union, List, TypeVar, Optional
 
-from panoptic.core.databases.media.models import ImageType, VectorType, Map
-from panoptic.core.databases.project.create import project_db_desc, ID_REGISTRY_SHEMA, TAB_DATA_SCHEMA, \
-    PLUGIN_DATA_SCHEMA, USER_DEFAULTS_SCHEMA
+# From your provided snippets
+from panoptic.core.databases.project.create import (
+    project_db_desc,
+    ID_REGISTRY_SHEMA,  # The KeyValueSchema instance
+    TAB_DATA_SCHEMA,
+    PLUGIN_DATA_SCHEMA,
+    USER_DEFAULTS_SCHEMA
+)
 from panoptic.core.databases.project.models import TabData, PluginData, UserDefaults
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import Tag, Property, Instance
 from panoptic.models.data import File, Folder, FileSource, Commit
+from panoptic.core.databases.media.models import ImageType, VectorType, Map
+
+T = TypeVar("T")
 
 
 class ProjectDB(SQLiteWriter):
     def __init__(self, path: str | Path):
         super().__init__(path, description=project_db_desc)
 
-    def allocate(self, key: str, number: int = 1) -> int | range:
+    def start(self):
+        super().start()
+        # Initialize the registry table using the Schema helper
+        with self.transaction() as tx:
+            ID_REGISTRY_SHEMA.ensure_keys(tx)
+        logging.info("ProjectDB registry initialized.")
+
+    def allocate(self, key: str, number: int = 1) -> Union[int, range]:
+        """
+        Generic allocation logic using ID_REGISTRY_SHEMA.
+        Returns a single int if number=1, or a range if number > 1.
+        """
+        # ID_REGISTRY_SHEMA._field_names contains ['files', 'folders', etc.]
         if key not in ID_REGISTRY_SHEMA._field_names:
             raise ValueError(f"Key '{key}' is not a valid registry key.")
+
         with self.transaction() as tx:
+            # 1. Get current ID (KeyValueSchema handles JSON loads and defaults)
             current_id = ID_REGISTRY_SHEMA.get_key(tx, key)
+
+            # 2. Calculate next boundary
             next_id = current_id + number
+
+            # 3. Save back (KeyValueSchema handles JSON dumps and upsert)
             ID_REGISTRY_SHEMA.set_key(tx, key, next_id)
-            return range(current_id, current_id + number)
 
-    # --- Allocation Methods ---
-    def allocate_commits(self, commits: list[Commit]) -> list[Commit]:
-        if not commits:
-            return commits
+            if number > 1:
+                return range(current_id, next_id)
+            return current_id
 
-        n = len(commits)
-        ids = self.allocate('commits', n)
+    def _handle_allocation(self, key: str, items_or_n: Union[List[T], int]) -> Union[int, range, List[T]]:
+        """Polymorphic helper to support Registry-style (int) or List-style (objects)."""
+        if isinstance(items_or_n, int):
+            return self.allocate(key, items_or_n)
 
-        for commit, id_val in zip(commits, ids):
-            commit.id = id_val
+        n = len(items_or_n)
+        if n == 0:
+            return items_or_n
 
-        return commits
+        ids = self.allocate(key, n)
+        # Ensure we have an iterable for zip (range is already iterable)
+        id_iter = ids if isinstance(ids, range) else [ids]
 
-    def allocate_file_sources(self, file_sources: list[FileSource]) -> list[FileSource]:
-        if not file_sources:
-            return file_sources
+        for obj, id_val in zip(items_or_n, id_iter):
+            obj.id = id_val
 
-        n = len(file_sources)
-        ids = self.allocate('file_sources', n)
+        return items_or_n
 
-        for source, id_val in zip(file_sources, ids):
-            source.id = id_val
+    # --- Allocation Wrappers ---
 
-        return file_sources
+    def allocate_commits(self, val: Union[List[Commit], int] = 1):
+        return self._handle_allocation('commits', val)
 
-    def allocate_folders(self, folders: list[Folder]) -> list[Folder]:
-        if not folders:
-            return folders
+    def allocate_file_sources(self, val: Union[List[FileSource], int] = 1):
+        return self._handle_allocation('file_sources', val)
 
-        n = len(folders)
-        ids = self.allocate('folders', n)
+    def allocate_folders(self, val: Union[List[Folder], int] = 1):
+        return self._handle_allocation('folders', val)
 
-        for folder, id_val in zip(folders, ids):
-            folder.id = id_val
+    def allocate_files(self, val: Union[List[File], int] = 1):
+        return self._handle_allocation('files', val)
 
-        return folders
+    def allocate_instances(self, val: Union[List[Instance], int] = 1):
+        return self._handle_allocation('instances', val)
 
-    def allocate_files(self, files: list[File]) -> list[File]:
-        if not files:
-            return files
+    def allocate_properties(self, val: Union[List[Property], int] = 1):
+        return self._handle_allocation('properties', val)
 
-        n = len(files)
-        ids = self.allocate('files', n)
+    def allocate_tags(self, val: Union[List[Tag], int] = 1):
+        return self._handle_allocation('tags', val)
 
-        for file_obj, id_val in zip(files, ids):
-            file_obj.id = id_val
+    def allocate_maps(self, val: Union[List[Map], int] = 1):
+        return self._handle_allocation('maps', val)
 
-        return files
+    def allocate_vector_types(self, val: Union[List[VectorType], int] = 1):
+        return self._handle_allocation('vector_types', val)
 
-    def allocate_instances(self, instances: list[Instance]) -> list[Instance]:
-        if not instances:
-            return instances
+    def allocate_image_types(self, val: Union[List[ImageType], int] = 1):
+        return self._handle_allocation('image_types', val)
 
-        n = len(instances)
-        ids = self.allocate('instances', n)
-
-        for instance, id_val in zip(instances, ids):
-            instance.id = id_val
-
-        return instances
-
-    def allocate_properties(self, properties: list[Property]) -> list[Property]:
-        if not properties:
-            return properties
-
-        n = len(properties)
-        ids = self.allocate('properties', n)
-
-        for prop, id_val in zip(properties, ids):
-            prop.id = id_val
-
-        return properties
-
-    def allocate_tags(self, tags: list[Tag]) -> list[Tag]:
-        if not tags:
-            return tags
-
-        n = len(tags)
-        ids = self.allocate('tags', n)
-
-        for tag, id_val in zip(tags, ids):
-            tag.id = id_val
-
-        return tags
-
-    def allocate_maps(self, maps: list[Map]) -> list[Map]:
-        if not maps:
-            return maps
-
-        n = len(maps)
-        ids = self.allocate('maps', n)
-
-        for map_obj, id_val in zip(maps, ids):
-            map_obj.id = id_val
-
-        return maps
-
-    def allocate_vector_types(self, vector_types: list[VectorType]) -> list[VectorType]:
-        if not vector_types:
-            return vector_types
-
-        n = len(vector_types)
-        ids = self.allocate('vector_types', n)
-
-        for v_type, id_val in zip(vector_types, ids):
-            v_type.id = id_val
-
-        return vector_types
-
-    def allocate_image_types(self, image_types: list[ImageType]) -> list[ImageType]:
-        if not image_types:
-            return image_types
-
-        n = len(image_types)
-        ids = self.allocate('image_types', n)
-
-        for i_type, id_val in zip(image_types, ids):
-            i_type.id = id_val
-
-        return image_types
+    # --- Data Access Methods ---
 
     def set_tab_data(self, tab: TabData):
-        TAB_DATA_SCHEMA.upsert(self.conn, tab)
-        self.conn.commit()
+        with self.transaction() as tx:
+            TAB_DATA_SCHEMA.upsert(tx, tab)
 
-    def get_tab_data(self, tab_id: str):
-        return TAB_DATA_SCHEMA.get(self.conn, id=tab_id)[0]
+    def get_tab_data(self, tab_id: str) -> Optional[TabData]:
+        rows = TAB_DATA_SCHEMA.get(self.conn, id=tab_id)
+        return rows[0] if rows else None
 
-    def get_user_tabs(self, user_id: str):
+    def get_user_tabs(self, user_id: str) -> List[TabData]:
         return TAB_DATA_SCHEMA.get(self.conn, user_id=user_id)
 
     def set_plugin_data(self, data: PluginData):
-        PLUGIN_DATA_SCHEMA.upsert(self.conn, data)
-        self.conn.commit()
+        with self.transaction() as tx:
+            PLUGIN_DATA_SCHEMA.upsert(tx, data)
 
-    def get_plugin_data(self, plugin_id: int, key: str):
-        return PLUGIN_DATA_SCHEMA.get(self.conn, plugin_id=plugin_id, key=key)[0]
-
-    def get_all_plugin_data(self, plugin_id: int):
-        return PLUGIN_DATA_SCHEMA.get(self.conn, plugin_id=plugin_id)
+    def get_plugin_data(self, plugin_id: int, key: str) -> Optional[PluginData]:
+        rows = PLUGIN_DATA_SCHEMA.get(self.conn, plugin_id=plugin_id, key=key)
+        return rows[0] if rows else None
 
     def set_user_defaults(self, defaults: UserDefaults):
-        USER_DEFAULTS_SCHEMA.upsert(self.conn, defaults)
-        self.conn.commit()
+        with self.transaction() as tx:
+            USER_DEFAULTS_SCHEMA.upsert(tx, defaults)
 
-    def get_user_defaults(self, user_id: str, key: str):
-        return USER_DEFAULTS_SCHEMA.get(self.conn, user_id=user_id, key=key)[0]
-
-    def get_all_user_defaults(self, user_id: str):
-        return USER_DEFAULTS_SCHEMA.get(self.conn, user_id=user_id)
-
-
-# db = ProjectDB('./tmp.db')
-# db.start()
-# db.set_tab_data(TabData(id="lala", user_id="me", state={'test': 1}, selection=None))
-# print(db.get_user_tabs(user_id='me'))
-# print(db.get_tab_data(tab_id="lala"))
-
+    def get_user_defaults(self, user_id: str, key: str) -> Optional[UserDefaults]:
+        rows = USER_DEFAULTS_SCHEMA.get(self.conn, user_id=user_id, key=key)
+        return rows[0] if rows else None

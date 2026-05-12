@@ -1,5 +1,5 @@
-from panoptic.core.databases.data.helper import Col, EntitySchema, PropertyValueSchema
 from panoptic.core.databases.db_description import DbDescription
+from panoptic.core.databases.entity_schema import EntitySchema, PropertyValueSchema
 from panoptic.models.data import Commit, FileSource, Folder, File, Instance, Property, TagList, Tag, InstanceValue, \
     Sha1Value
 

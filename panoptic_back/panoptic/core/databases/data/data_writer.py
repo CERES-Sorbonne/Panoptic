@@ -5,7 +5,7 @@ from typing import Any
 from panoptic.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
     TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA
 from panoptic.core.databases.data.data_reader import DataReader
-from panoptic.core.databases.data.helper import EntitySchema, PropertyValueSchema
+from panoptic.core.databases.entity_schema import EntitySchema, PropertyValueSchema
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import PropertyType
 from panoptic.models.data import (

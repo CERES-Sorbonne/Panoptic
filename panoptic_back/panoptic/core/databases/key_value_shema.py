@@ -95,17 +95,26 @@ class KeyValueSchema(_typing.Generic[T]):
     # ------------------------------------------------------------------
     # Read
     # ------------------------------------------------------------------
-
     def get_key(self, tx: Cursor, key: str) -> Any:
         """Return the decoded value for a single key, or None if absent."""
         if key not in self._field_names:
             raise KeyError(f"{key!r} is not a field of {self.struct_cls.__name__!r}")
+
         row = tx.execute(
             f"SELECT value FROM {self.table} WHERE key = ?", (key,)
         ).fetchone()
+
         if row is None or row[0] is None:
             return None
-        return json.loads(row[0])
+
+        val = row[0]
+
+        # If it's already a number or bool (common with some SQLite drivers),
+        # just return it. Only json.loads if it's a string/bytes.
+        if isinstance(val, (str, bytes, bytearray)):
+            return json.loads(val)
+
+        return val
 
     def get(self, tx: Cursor) -> T:
         """Return a fully-populated struct instance, seeding defaults first.

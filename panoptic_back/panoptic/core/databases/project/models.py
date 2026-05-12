@@ -3,7 +3,7 @@ from typing import Any, Annotated, Optional
 import msgspec
 import numpy
 
-from panoptic.core.databases.data.helper import PrimaryKey
+from panoptic.core.databases.entity_schema import PrimaryKey
 
 class IdRegistry(msgspec.Struct, array_like=True):
     file_sources: int = 1
@@ -23,8 +23,6 @@ class ProjectConfig(msgspec.Struct, array_like=True):
     uuid: str
     name: str
     description: str
-
-    use_multi_user: bool = False
 
 
 class PluginData(msgspec.Struct, array_like=True):

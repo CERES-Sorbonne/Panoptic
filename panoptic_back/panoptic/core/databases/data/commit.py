@@ -1,19 +1,18 @@
-from typing import Any
-
-from panoptic.core.databases.data.helper import OP_CREATE, OP_UPDATE, OP_DIFF
-from panoptic.core.databases.registry.registry_db import RegistryDB
+from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE, OP_DIFF
+from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.models.data import (
     UpsertCommit, FileSource, Folder, File,
-    Instance, Property, Tag, PropertyValueWrite, InstanceValue, Sha1Value
+    Instance, Property, Tag, InstanceValue, Sha1Value
 )
 
+
 class CommitBuilder:
-    def __init__(self, registry: RegistryDB):
-        self.registry = registry
+    def __init__(self, project: ProjectDB):
+        self.project = project
         self.data = UpsertCommit()
 
     def create_file_source(self, dtype: str, name: str, root_url: str) -> FileSource:
-        fs_id = str(self.registry.allocate_file_sources())
+        fs_id = self.project.allocate_file_sources()
         fs = FileSource(
             id=fs_id,
             dtype=dtype,
@@ -25,8 +24,8 @@ class CommitBuilder:
         self.data.file_sources[fs_id] = fs
         return fs
 
-    def create_folder(self, source_id: str, path: str, name: str, parent: int | None = None) -> Folder:
-        f_id = self.registry.allocate_folders()
+    def create_folder(self, source_id: int, path: str, name: str, parent: int | None = None) -> Folder:
+        f_id = self.project.allocate_folders()
         folder = Folder(
             id=f_id,
             source_id=source_id,
@@ -40,7 +39,7 @@ class CommitBuilder:
         return folder
 
     def create_file(self, name: str, folder_id: int, sha1: str) -> File:
-        file_id = self.registry.allocate_files()
+        file_id = self.project.allocate_files()
         file = File(
             id=file_id,
             name=name,
@@ -53,7 +52,7 @@ class CommitBuilder:
         return file
 
     def create_instance(self, file_id: int, sha1: str) -> Instance:
-        inst_id = self.registry.allocate_instances()
+        inst_id = self.project.allocate_instances()
         instance = Instance(
             id=inst_id,
             file_id=file_id,
@@ -65,7 +64,7 @@ class CommitBuilder:
         return instance
 
     def create_property(self, dtype: str, mode: str, name: str, access='write', tag_list_id=None) -> Property:
-        prop_id = self.registry.allocate_properties()
+        prop_id = self.project.allocate_properties()
         if tag_list_id is None:
             tag_list_id = prop_id
         prop = Property(
@@ -82,7 +81,7 @@ class CommitBuilder:
         return prop
 
     def create_tag(self, list_id: int, value: str, color: int, parents: list[int] = None) -> Tag:
-        tag_id = self.registry.allocate_tags()
+        tag_id = self.project.allocate_tags()
         tag = Tag(
             id=tag_id,
             list_id=list_id,
@@ -119,19 +118,17 @@ class CommitBuilder:
         tag.operation = OP_UPDATE
         self.data.tags[tag.id] = tag
 
-    def create_instance_value_write(self, property_id: int, stamp_mode: str = None, ids: list[int] = None, values: Any = None):
-        if property_id in self.data.instance_values:
-            raise ValueError(f'Write order for property {property_id} already exists.')
-
-        value_write = PropertyValueWrite(
-            stamp_mode=stamp_mode,
-            keys=ids or [],
-            values=values
-        )
-        self.data.instance_values[property_id] = value_write
-        return value_write
-
-
+    # def create_instance_value_write(self, property_id: int, stamp_mode: str = None, ids: list[int] = None, values: Any = None):
+    #     if property_id in self.data.instance_values:
+    #         raise ValueError(f'Write order for property {property_id} already exists.')
+    #
+    #     value_write = PropertyValueWrite(
+    #         stamp_mode=stamp_mode,
+    #         keys=ids or [],
+    #         values=values
+    #     )
+    #     self.data.instance_values[property_id] = value_write
+    #     return value_write
 
     def update_instance_value(self, value: InstanceValue):
         if value.property_id not in self.data.instance_values:
@@ -147,17 +144,17 @@ class CommitBuilder:
             value.operation = OP_UPDATE
         self.data.sha1_values[value.property_id].append(value)
 
-    def add_sha1_value_write(self, property_id: int, stamp_mode: str = None, sha1s: list[str] = None, values: Any = None):
-        if property_id in self.data.instance_values:
-            raise ValueError(f'Write order for property {property_id} already exists.')
-
-        value_write = PropertyValueWrite(
-            stamp_mode=stamp_mode,
-            keys=sha1s or [],
-            values=values
-        )
-        self.data.sha1_values[property_id] = value_write
-        return value_write
-
-    def build(self) -> UpsertCommit:
-        return self.data
+    # def add_sha1_value_write(self, property_id: int, stamp_mode: str = None, sha1s: list[str] = None, values: Any = None):
+    #     if property_id in self.data.instance_values:
+    #         raise ValueError(f'Write order for property {property_id} already exists.')
+    #
+    #     value_write = PropertyValueWrite(
+    #         stamp_mode=stamp_mode,
+    #         keys=sha1s or [],
+    #         values=values
+    #     )
+    #     self.data.sha1_values[property_id] = value_write
+    #     return value_write
+    #
+    # def build(self) -> UpsertCommit:
+    #     return self.data

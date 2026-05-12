@@ -2,7 +2,7 @@ import msgspec
 from datetime import datetime
 from typing import Any, Annotated, Optional
 
-from panoptic.core.databases.data.helper import PrimaryKey
+from panoptic.core.databases.entity_schema import PrimaryKey
 
 
 # --- ENTITY MODELS ---
@@ -109,7 +109,7 @@ class DeleteCommit(msgspec.Struct):
     tags: set[int] = msgspec.field(default_factory=set)
 
 class UpsertCommit(msgspec.Struct):
-    file_sources: dict[str, FileSource] = msgspec.field(default_factory=dict)
+    file_sources: dict[int, FileSource] = msgspec.field(default_factory=dict)
     folders: dict[int, Folder] = msgspec.field(default_factory=dict)
     files: dict[int, File] = msgspec.field(default_factory=dict)
     instances: dict[int, Instance] = msgspec.field(default_factory=dict)
