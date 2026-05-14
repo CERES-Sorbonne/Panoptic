@@ -6,18 +6,20 @@ from panoptic.core.databases.data.data_writer import DataWriter
 from panoptic.core.databases.media.create import datastore_desc
 from panoptic.core.databases.media.media_db import MediaDB
 from panoptic.core.databases.media.models import ImageAtlas, ImageType, Image, Map, Vector, VectorType
+from panoptic.core.databases.panoptic.models import PluginKey
 from panoptic.core.databases.project.models import ProjectConfig, TabData, UserDefaults
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.models.data import (
     Commit, DeleteCommit, File, FileSource, Folder, Instance,
     InstanceValue, Property, Sha1Value, Tag, UpsertCommit,
 )
+from panoptic2.core.plugin.action_registry import ActionRegistry
 from panoptic2.core.task.task import Task
 from panoptic2.core.task.task_manager import TaskManager
 
 
 class Project2:
-    def __init__(self, folder: Path, on_update: Callable = None):
+    def __init__(self, folder: Path, plugin_keys: list[PluginKey] = None, on_update: Callable = None):
         self.folder           = Path(folder)
         self.project_db_path  = self.folder / 'project.db'
         self.data_db_path     = self.folder / 'data.db'
@@ -25,6 +27,14 @@ class Project2:
 
         self.config: ProjectConfig = ProjectConfig()
         self.task_manager = TaskManager(on_update=on_update)
+        self.action       = ActionRegistry()
+        self.plugins: list = []   # list[APlugin] — typed loosely to avoid circular import
+
+        self._plugin_keys = plugin_keys or []
+
+        # Event callback lists
+        self._on_instance_import_callbacks: list[Callable] = []
+        self._on_folder_delete_callbacks:   list[Callable] = []
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -38,6 +48,9 @@ class Project2:
             pass  # seeds data.db schema
         with MediaDB(str(self.media_db_path), datastore_desc) as db:
             db.ensure_default_image_types()
+        if self._plugin_keys:
+            from panoptic2.core.plugin.load_plugin_task import LoadPluginTask
+            self.task_manager.add_task(LoadPluginTask(self, self._plugin_keys))
 
     def close(self):
         self.task_manager.close()
@@ -277,3 +290,54 @@ class Project2:
 
     def get_task_states(self):
         return self.task_manager.get_states()
+
+    # ------------------------------------------------------------------
+    # Plugins
+    # ------------------------------------------------------------------
+
+    def add_plugin(self, plugin) -> None:
+        self.plugins.append(plugin)
+
+    # ------------------------------------------------------------------
+    # Plugin param storage  (reuses UserDefaults table, user_id='plugin.<name>')
+    # ------------------------------------------------------------------
+
+    def get_plugin_params(self, plugin_name: str) -> dict | None:
+        with self._project_db() as db:
+            row = db.get_user_defaults(user_id=f'plugin.{plugin_name}', key='params')
+            return row.data if row else None
+
+    def set_plugin_params(self, plugin_name: str, params: dict) -> None:
+        from panoptic.core.databases.project.models import UserDefaults
+        with self._project_db() as db:
+            db.set_user_defaults(UserDefaults(
+                user_id=f'plugin.{plugin_name}',
+                key='params',
+                data=params,
+            ))
+
+    # ------------------------------------------------------------------
+    # Events  (triggered by Project2 write methods)
+    # ------------------------------------------------------------------
+
+    def on_instance_import(self, callback: Callable) -> None:
+        self._on_instance_import_callbacks.append(callback)
+
+    def on_folder_delete(self, callback: Callable) -> None:
+        self._on_folder_delete_callbacks.append(callback)
+
+    def _trigger_instance_import(self, instances: list) -> None:
+        for cb in self._on_instance_import_callbacks:
+            try:
+                cb(instances)
+            except Exception:
+                import logging
+                logging.exception('on_instance_import callback failed')
+
+    def _trigger_folder_delete(self, folders: list) -> None:
+        for cb in self._on_folder_delete_callbacks:
+            try:
+                cb(folders)
+            except Exception:
+                import logging
+                logging.exception('on_folder_delete callback failed')
