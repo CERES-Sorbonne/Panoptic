@@ -203,3 +203,5 @@ mini/
 *.pkl
 
 /panoptic_back/clusters/
+
+.obsidian
