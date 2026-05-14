@@ -20,9 +20,9 @@ class IdRegistry(msgspec.Struct, array_like=True):
 
 
 class ProjectConfig(msgspec.Struct, array_like=True):
-    uuid: str
-    name: str
-    description: str
+    uuid: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class PluginData(msgspec.Struct, array_like=True):

@@ -18,9 +18,10 @@ def _setup():
 def test_cycle_projects():
     db = _setup()
     path = "/home/user/project_alpha"
+    uid = "abcdefgh"
 
     # CREATE
-    project = db.add_project(path=path, excluded_plugins=["plugin_v1"])
+    project = db.add_project(uid=uid, path=path, excluded_plugins=["plugin_v1"])
     projects = db.get_projects()
     assert len(projects) == 1
     assert projects[0].path == path
@@ -106,9 +107,9 @@ def test_cycle_plugins():
 def test_multiple_entities():
     """Ensure that adding different types of entities doesn't interfere with each other."""
     db = _setup()
-
+    puid = 'abcdefgh'
     db.add_user(str(uuid.uuid4()), "Bob", "User")
-    db.add_project("/tmp/p1")
+    db.add_project(puid, "/tmp/p1")
     db.add_plugin("p.id", "/path", "type", "src")
 
     assert len(db.get_users()) == 1

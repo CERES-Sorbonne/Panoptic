@@ -3,7 +3,7 @@ from pathlib import Path
 
 from panoptic.core.project.project import Project
 from panoptic.models import PropertyType, Property, PropertyMode, InstanceProperty, DbCommit, Instance
-from panoptic.utils import Trie, RelativePathTrie
+from panoptic.utils import RelativePathTrie
 
 TAG_ID = 1
 MULTI_TAGS_ID = 2

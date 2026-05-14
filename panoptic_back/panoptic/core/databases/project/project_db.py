@@ -1,4 +1,5 @@
 import logging
+import uuid
 from pathlib import Path
 from typing import Union, List, TypeVar, Optional
 
@@ -8,12 +9,12 @@ from panoptic.core.databases.project.create import (
     ID_REGISTRY_SHEMA,  # The KeyValueSchema instance
     TAB_DATA_SCHEMA,
     PLUGIN_DATA_SCHEMA,
-    USER_DEFAULTS_SCHEMA
+    USER_DEFAULTS_SCHEMA, PROJECT_CONFIG_SHEMA
 )
-from panoptic.core.databases.project.models import TabData, PluginData, UserDefaults
+from panoptic.core.databases.project.models import TabData, PluginData, UserDefaults, ProjectConfig
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import Tag, Property, Instance
-from panoptic.models.data import File, Folder, FileSource, Commit
+from panoptic.models.data import File, Folder, FileSource
 from panoptic.core.databases.media.models import ImageType, VectorType, Map
 
 T = TypeVar("T")
@@ -22,13 +23,28 @@ T = TypeVar("T")
 class ProjectDB(SQLiteWriter):
     def __init__(self, path: str | Path):
         super().__init__(path, description=project_db_desc)
+        self.config: ProjectConfig = ProjectConfig()
 
-    def start(self):
+    def start(self, name: str = None):
         super().start()
-        # Initialize the registry table using the Schema helper
         with self.transaction() as tx:
             ID_REGISTRY_SHEMA.ensure_keys(tx)
+            PROJECT_CONFIG_SHEMA.ensure_keys(tx)
+
+        self.config = PROJECT_CONFIG_SHEMA.get(self.conn)
+        if not self.config.uuid:
+            self.config = ProjectConfig(uuid=str(uuid.uuid4()), name=name or self.db_path.parent.name, description=None)
+            with self.transaction() as tx:
+                PROJECT_CONFIG_SHEMA.set(tx, self.config)
+            logging.info(f"Created new project with id: {self.config.uuid}")
+
         logging.info("ProjectDB registry initialized.")
+
+    def set_name(self, name: str):
+        self.config = ProjectConfig(uuid=self.config.uuid, name=name, description=self.config.description)
+        with self.transaction() as tx:
+            PROJECT_CONFIG_SHEMA.set(tx, self.config)
+
 
     def allocate(self, key: str, number: int = 1) -> Union[int, range]:
         """
@@ -72,9 +88,6 @@ class ProjectDB(SQLiteWriter):
         return items_or_n
 
     # --- Allocation Wrappers ---
-
-    def allocate_commits(self, val: Union[List[Commit], int] = 1):
-        return self._handle_allocation('commits', val)
 
     def allocate_file_sources(self, val: Union[List[FileSource], int] = 1):
         return self._handle_allocation('file_sources', val)

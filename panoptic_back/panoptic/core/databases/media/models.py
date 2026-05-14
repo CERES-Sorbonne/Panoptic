@@ -25,9 +25,11 @@ class Vector(msgspec.Struct, array_like=True):
 
 class ImageType(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
-    type: str
-    width: Optional[int]
-    height: Optional[int]
+    name: str               # purpose label, e.g. 'small', 'large', 'preview'
+    format: str             # 'jpeg' | 'webp' | 'png'
+    width: Optional[int]    # max width in px; None = no constraint
+    height: Optional[int]   # max height in px; None = no constraint
+    auto_gen: bool = True   # generate at import time; False = defer to explicit user action
 
 class Image(msgspec.Struct, array_like=True):
     type_id: Annotated[int, PrimaryKey]

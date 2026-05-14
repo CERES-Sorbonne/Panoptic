@@ -1,10 +1,14 @@
+import logging
+import uuid
+
 from panoptic.core.databases.panoptic.create import (
     panoptic_db_desc,
+    PANOPTIC_CONFIG_SCHEMA,
     USERS_SCHEMA,
     PROJECTS_SCHEMA,
     PLUGINS_SCHEMA,
 )
-from panoptic.core.databases.panoptic.models import User, ProjectKey, PluginKey
+from panoptic.core.databases.panoptic.models import PanopticConfig, User, ProjectKey, PluginKey
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 
 
@@ -12,7 +16,19 @@ class PanopticDB(SQLiteWriter):
 
     def __init__(self, path: str):
         super().__init__(path, panoptic_db_desc)
+        self.config: PanopticConfig = PanopticConfig()
         self.start()
+        self._init_config()
+
+    def _init_config(self):
+        with self.transaction() as tx:
+            PANOPTIC_CONFIG_SCHEMA.ensure_keys(tx)
+        self.config = PANOPTIC_CONFIG_SCHEMA.get(self.conn)
+        if not self.config.uuid:
+            self.config = PanopticConfig(uuid=str(uuid.uuid4()), name=self.config.name, description=self.config.description)
+            with self.transaction() as tx:
+                PANOPTIC_CONFIG_SCHEMA.set(tx, self.config)
+            logging.info(f"Created new Panoptic instance with id: {self.config.uuid}")
 
     # ------------------------------------------------------------------
     # Projects
@@ -21,9 +37,12 @@ class PanopticDB(SQLiteWriter):
     def get_projects(self) -> list[ProjectKey]:
         return PROJECTS_SCHEMA.get(self.conn)
 
-    def add_project(self, path: str, excluded_plugins: list[str] = None) -> ProjectKey:
+    def add_project(self, uid: str, path: str, name: str = None, excluded_plugins: list[str] = None) -> ProjectKey:
+        from pathlib import Path as _Path
         project = ProjectKey(
+            uid=uid,
             path=path,
+            name=name or _Path(path).name,
             excluded_plugins=excluded_plugins or [],
         )
         with self.transaction() as tx:
@@ -35,9 +54,9 @@ class PanopticDB(SQLiteWriter):
             PROJECTS_SCHEMA.upsert(tx, project)
         return project
 
-    def delete_project(self, path: str) -> None:
+    def delete_project(self, uid: str) -> None:
         with self.transaction() as tx:
-            PROJECTS_SCHEMA.delete(tx, path=path)
+            PROJECTS_SCHEMA.delete(tx, uid=uid)
 
     # ------------------------------------------------------------------
     # Users

@@ -6,9 +6,11 @@ from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.models import Tag
 from panoptic.models.data import File
 
+project_db_path = Path("~/tmp/project.db").expanduser()
+
 
 def _setup():
-    db_path = Path("~/tmp/project.db").expanduser()
+    db_path = project_db_path
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     if db_path.exists():
@@ -39,20 +41,18 @@ def test_file_allocation_with_tracking():
 
 
 def test_image_type_allocation():
-    """Ensures ImageType objects match the (id, type, width, height) schema."""
     db = _setup()
 
-    # ImageType(id, type, width, height)
     i_types = [
-        ImageType(id=-1, type="thumbnail", width=128, height=128),
-        ImageType(id=-1, type="preview", width=1024, height=None)
+        ImageType(id=-1, name='thumbnail', format='jpeg', width=128,  height=128),
+        ImageType(id=-1, name='preview',   format='webp', width=1024, height=None),
     ]
 
     db.allocate_image_types(i_types)
 
     assert i_types[0].id == 1
     assert i_types[1].id == 2
-    assert i_types[0].type == "thumbnail"
+    assert i_types[0].name == 'thumbnail'
     assert i_types[1].height is None
 
 
@@ -88,6 +88,25 @@ def test_registry_increment_persistence():
 
     # Starts at 1, so C should be 3
     assert tags_batch_2[0].id == 3
+
+
+def test_new_db_has_uuid():
+    """Verifies that a newly created ProjectDB has a non-empty UUID in its config."""
+    db = _setup()
+
+    assert db.config.uuid is not None
+    assert len(db.config.uuid) > 0
+
+def test_uuid_persists_across_restart():
+    """Verifies that reopening an existing DB yields the same UUID."""
+    db = _setup()
+    original_uuid = db.config.uuid
+    db.close()
+
+    db2 = ProjectDB(str(project_db_path))
+    db2.start()
+
+    assert db2.config.uuid == original_uuid
 
 
 def test_user_defaults_and_plugin_data_isolation():

@@ -122,7 +122,6 @@ class KeyValueSchema(_typing.Generic[T]):
         Fields missing from the DB (or stored as NULL) fall back to the
         struct's own default; if there is none, the field is set to None.
         """
-        self.ensure_keys(tx)
         rows = tx.execute(f"SELECT key, value FROM {self.table}").fetchall()
         row_map: dict[str, Any] = {}
         for k, v in rows:
@@ -138,7 +137,7 @@ class KeyValueSchema(_typing.Generic[T]):
             else:
                 kwargs[f.name] = None
 
-        return msgspec.convert(kwargs, self.struct_cls)
+        return self.struct_cls(**kwargs)
 
     # ------------------------------------------------------------------
     # Write

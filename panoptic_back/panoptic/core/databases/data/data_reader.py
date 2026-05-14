@@ -20,6 +20,15 @@ class DataReader(SQLiteReader):
         result = self.conn.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()
         return result[0] if result else 0
 
+    def get_max_sequence(self) -> int:
+        result = self.conn.execute("SELECT COALESCE(MAX(id), 0) FROM sequence").fetchone()
+        return result[0] if result else 0
+
+    def get_commits_since(self, last_commit_id: int) -> List[Commit]:
+        sql = f"SELECT * FROM {COMMITS_SCHEMA.table} WHERE id > ? ORDER BY id ASC"
+        rows = self.conn.execute(sql, (last_commit_id,)).fetchall()
+        return [COMMITS_SCHEMA._decode_row(r) for r in rows]
+
     def get_commits(self, offset: int = None, limit: int = None, group_id: int = None) -> List[Commit]:
         sql = f"SELECT * FROM {COMMITS_SCHEMA.table}"
         params = []

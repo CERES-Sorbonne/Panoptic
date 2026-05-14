@@ -70,6 +70,18 @@ class PrimaryKey:
     """Marker placed inside Annotated[T, PrimaryKey] to designate PK columns."""
 
 
+@dataclass
+class Index:
+    """Marker placed inside Annotated[T, Index] to create a DB index on a column.
+
+    Examples
+    --------
+        sha1:   Annotated[str, Index]            # simple lookup index
+        email:  Annotated[str, Index(unique=True)]  # unique constraint
+    """
+    unique: bool = False
+
+
 # ---------------------------------------------------------------------------
 # Operation constants
 # ---------------------------------------------------------------------------
@@ -130,6 +142,8 @@ def _sql_type(py_type: Any) -> str:
 
     if unwrapped is Any:
         return "JSON"
+    if unwrapped in (list, dict):
+        return "JSON"
     if origin in (list, dict):
         return "JSON"
     if origin is not None:
@@ -146,10 +160,12 @@ def _sql_type(py_type: Any) -> str:
 
 @dataclass
 class Col:
-    name:        str
-    sql_type:    str
-    primary_key: bool = False
-    nullable:    bool = True
+    name:         str
+    sql_type:     str
+    primary_key:  bool = False
+    nullable:     bool = True
+    indexed:      bool = False
+    unique_index: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -171,19 +187,30 @@ def _introspect(struct_cls: type) -> tuple[list[Col], bool]:
         hint  = hints[f.name]
         is_pk = False
 
+        is_indexed      = False
+        is_unique_index = False
+
         if get_origin(hint) is _typing.Annotated:
             base, *metadata = get_args(hint)
             is_pk = any(
                 m is PrimaryKey or (isinstance(m, type) and issubclass(m, PrimaryKey))
                 for m in metadata
             )
+            for m in metadata:
+                if isinstance(m, Index):
+                    is_indexed      = True
+                    is_unique_index = m.unique
+                elif m is Index:
+                    is_indexed = True
             hint = base
 
         cols.append(Col(
-            name        = f.name,
-            sql_type    = _sql_type(hint),
-            primary_key = is_pk,
-            nullable    = _is_optional(hint),
+            name         = f.name,
+            sql_type     = _sql_type(hint),
+            primary_key  = is_pk,
+            nullable     = _is_optional(hint),
+            indexed      = is_indexed,
+            unique_index = is_unique_index,
         ))
 
     return cols, is_trackable
@@ -254,9 +281,10 @@ class EntitySchema(_typing.Generic[T]):
     trackable: bool      = field(init=False, repr=False)
     _pk_names: list[str] = field(init=False, repr=False)
     _json_idx: list[int] = field(init=False, repr=False)
+    _array_idx: list[int] = field(init=False, repr=False)
     _decode_strip: int   = field(init=False, repr=False)
 
-    _log_by_commit_sql: str = field(init=False, repr=False)
+    _log_by_commit_sql: str = field(init=False, repr=False, default='')
 
     def __post_init__(self) -> None:
         self.columns, self.trackable = _introspect(self.struct_cls)
@@ -298,17 +326,25 @@ class EntitySchema(_typing.Generic[T]):
         if composite_pk:
             definitions.append(f"    PRIMARY KEY ({', '.join(self._pk_names)})")
 
-        idx_seq = ""
+        extra_indexes: list[str] = []
         if self.trackable:
-            idx_seq = (
+            extra_indexes.append(
                 f"CREATE INDEX IF NOT EXISTS idx_{self.table}_sequence"
                 f" ON {self.table} (sequence);"
             )
+        for c in self.columns:
+            if c.indexed:
+                unique = "UNIQUE " if c.unique_index else ""
+                extra_indexes.append(
+                    f"CREATE {unique}INDEX IF NOT EXISTS idx_{self.table}_{c.name}"
+                    f" ON {self.table} ({c.name});"
+                )
+
         return (
             f"CREATE TABLE IF NOT EXISTS {self.table} (\n"
             + ",\n".join(definitions)
             + "\n);\n"
-            + idx_seq
+            + "\n".join(extra_indexes)
         )
 
     def create_log_table_sql(self) -> str:
@@ -392,16 +428,26 @@ class EntitySchema(_typing.Generic[T]):
         )
 
     def _build_decoders(self):
-        json_idx = self._json_idx
+        json_idx  = self._json_idx
         array_idx = self._array_idx
-        struct_cls = self.struct_cls
+        struct_cls  = self.struct_cls
         strip_count = self._decode_strip
+
+        hints       = get_type_hints(struct_cls, include_extras=True)
+        fields_list = [f for f in msgspec.structs.fields(struct_cls) if f.name not in _TRACKING_FIELDS]
+        bool_idx = []
+        for i, f in enumerate(fields_list):
+            hint = hints[f.name]
+            if get_origin(hint) is _typing.Annotated:
+                hint = get_args(hint)[0]
+            if _unwrap_optional(hint) is bool:
+                bool_idx.append(i)
 
         def _run_decode(row: tuple, strip: bool) -> T:
             if strip and strip_count:
                 row = row[:-strip_count]
 
-            if not json_idx and not array_idx:
+            if not json_idx and not array_idx and not bool_idx:
                 return msgspec.convert(row, struct_cls)
 
             data = list(row)
@@ -412,7 +458,10 @@ class EntitySchema(_typing.Generic[T]):
             for i in array_idx:
                 val = data[i]
                 if val is not None:
-                    data[i] = np.frombuffer(val, dtype=np.float32)  # ← bytes → np.ndarray
+                    data[i] = np.frombuffer(val, dtype=np.float32)
+            for i in bool_idx:
+                if data[i] is not None:
+                    data[i] = bool(data[i])
             return msgspec.convert(data, struct_cls)
 
         self._row_decoder = lambda r: _run_decode(r, strip=True)
@@ -669,7 +718,7 @@ class EntitySchema(_typing.Generic[T]):
 
         if pf.big_col is None:
             sql  = _build_sql(fixed_clause)
-            rows = tx.execute(sql, fixed_params + fixed_params).fetchall()
+            rows = tx.execute(sql, fixed_params).fetchall()
         else:
             vars_for_big = self.chunk_size - len(fixed_params)
             if vars_for_big < 1:

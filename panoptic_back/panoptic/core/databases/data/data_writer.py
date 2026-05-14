@@ -4,7 +4,6 @@ from typing import Any
 
 from panoptic.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
     TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA
-from panoptic.core.databases.data.data_reader import DataReader
 from panoptic.core.databases.entity_schema import EntitySchema, PropertyValueSchema
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import PropertyType
@@ -23,13 +22,11 @@ def set_commit(objs: list[Any], commit_id: int):
 class DataWriter(SQLiteWriter):
     def __init__(self, path: str):
         super().__init__(path=path, description=datastore_desc)
-        self.reader = DataReader(path)
-        self.reader.start()
 
     def apply_upsert_commit(self, source: str, data: UpsertCommit, group_id: int = None) -> Commit:
         with self.transaction() as tx:
             seq_number = self._exec_get_sequence(tx)
-            current_max = self.reader.get_max_commit_id()
+            current_max = tx.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()[0]
             commit_id = current_max + 1
             now = datetime.datetime.now()
             if group_id is None:
@@ -52,7 +49,7 @@ class DataWriter(SQLiteWriter):
     def apply_delete_commit(self, source: str, data: DeleteCommit, group_id: int = None) -> Commit:
         with self.transaction() as tx:
             sequence = self._exec_get_sequence(tx)
-            current_max = self.reader.get_max_commit_id()
+            current_max = tx.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()[0]
             commit_id = current_max + 1
             now = datetime.datetime.now()
             if group_id is None:

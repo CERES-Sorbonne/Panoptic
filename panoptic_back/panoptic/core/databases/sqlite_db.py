@@ -21,7 +21,8 @@ class SQLiteWriter:
             str(self.db_path),
             timeout=self.timeout,
             isolation_level=None,
-            detect_types=sqlite3.PARSE_DECLTYPES
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            check_same_thread=False,
         )
         self.is_loaded = False
 
@@ -62,6 +63,14 @@ class SQLiteWriter:
             self.conn = None
             self.is_loaded = False
             logging.debug("Database connection closed.")
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
 
     def __del__(self):
         """Safety hook for garbage collection."""

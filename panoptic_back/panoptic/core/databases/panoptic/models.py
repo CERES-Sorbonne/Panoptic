@@ -2,22 +2,24 @@ from typing import Annotated, Optional
 
 import msgspec
 
-from panoptic.core.databases.entity_schema import PrimaryKey
+from panoptic.core.databases.entity_schema import PrimaryKey, Index
 
 
 class PanopticConfig(msgspec.Struct, array_like=True):
-    uuid: str
-    name: str
-    description: str
+    uuid: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 class User(msgspec.Struct, array_like=True):
     uuid: Annotated[str, PrimaryKey]
-    name: str
+    name: Annotated[str, Index(unique=True)]
     description: str
     password_hash: Optional[str]
 
 class ProjectKey(msgspec.Struct, array_like=True):
-    path: Annotated[str, PrimaryKey]
+    uid: Annotated[str, PrimaryKey]
+    path: str
+    name: str
     excluded_plugins: list[str]
 
 class PluginKey(msgspec.Struct, array_like=True):

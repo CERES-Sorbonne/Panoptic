@@ -9,6 +9,7 @@ from datetime import datetime
 from importlib import metadata
 from pathlib import Path
 
+from panoptic.core.databases.panoptic.models import ProjectKey
 from panoptic.core.panoptic_db.db_connection import DbConnection
 from panoptic.core.panoptic_db.panoptic_db import PanopticDb
 from panoptic.core.plugin import clone_repo
@@ -26,19 +27,23 @@ PANOPTICML_PLUGIN_RESERVED_NAME = 'panopticml'
 
 class Panoptic:
     def __init__(self, data_path: str = None):
-        self.global_file_path = get_datadir() / 'panoptic' / 'projects.json'
-
         db_name = os.getenv("PANOPTIC_DB_NAME", "panoptic.db")
-        self.sqlite_file_path = get_datadir() / 'panoptic' / db_name
+        self.sqlite_file_path = get_datadir() / 'panoptic2' / db_name
 
         if data_path:
             self.sqlite_file_path = Path(data_path)
 
-        verify_panoptic_data()
-        self.data = PanopticData(projects=[])
-        self.project_id = None
-        self.project: Project | None = None
-        self.open_projects: dict[int, Project] = {}
+        self.registered_projects: list[ProjectKey] = []
+        self.registered_plugins: list[PluginKey] = []
+
+        self.loaded_projects: dict = {}
+
+
+        # verify_panoptic_data()
+        # self.data = PanopticData(projects=[])
+        # self.project_id = None
+        # self.project: Project | None = None
+        # self.open_projects: dict[int, Project] = {}
         self.version = panoptic_version
 
         self.db: PanopticDb | None = None

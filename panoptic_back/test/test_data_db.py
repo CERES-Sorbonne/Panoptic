@@ -2,10 +2,10 @@ import json
 from pathlib import Path
 
 from panoptic.core.databases.data.commit import CommitBuilder
+from panoptic.core.databases.data.data_reader import DataReader
 from panoptic.core.databases.data.data_writer import DataWriter
 from panoptic.core.databases.entity_schema import OP_DELETE, OP_DIFF, OP_CREATE, OP_UPDATE
 from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic.core.databases.registry.registry_db import RegistryDB
 from panoptic.models import PropertyType
 from panoptic.models.data import DeleteCommit, InstanceValue, Sha1Value
 
@@ -22,18 +22,20 @@ def _setup():
     project.start()
     writer = DataWriter(str(data_path))
     writer.start()
-    return project, writer
+    reader = DataReader(str(data_path))
+    reader.start()
+    return project, writer, reader
 
 
 def test_cycle_file_sources():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT
     commit1 = CommitBuilder(project)
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp/data')
     writer.apply_upsert_commit('insert', commit1.data)
 
-    rows = writer.reader.get_file_sources(id=source.id)
+    rows = reader.get_file_sources(id=source.id)
     assert len(rows) == 1
     assert rows[0].root_url == '/tmp/data'
 
@@ -43,30 +45,30 @@ def test_cycle_file_sources():
     commit2.update_file_source(source)
     writer.apply_upsert_commit('update', commit2.data)
 
-    rows = writer.reader.get_file_sources(id=source.id)
+    rows = reader.get_file_sources(id=source.id)
     assert len(rows) == 1
     assert rows[0].root_url == '/tmp/updated'
 
     # DELETE (Logical)
     writer.apply_delete_commit('delete', DeleteCommit(file_sources={source.id}))
-    rows = writer.reader.get_file_sources(id=source.id)
+    rows = reader.get_file_sources(id=source.id)
     assert len(rows) == 1
     assert rows[0].operation == OP_DELETE
 
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_file_sources(id=source.id)
+    rows = reader.get_file_sources(id=source.id)
     assert len(rows) == 1
     assert rows[0].operation == OP_CREATE
 
     writer.set_commit_active(2, False)
-    rows = writer.reader.get_file_sources(id=source.id)
+    rows = reader.get_file_sources(id=source.id)
     assert len(rows) == 1
     assert rows[0].root_url == '/tmp/data'
     assert rows[0].operation == OP_CREATE
 
 
 def test_cycle_folders():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -85,21 +87,21 @@ def test_cycle_folders():
 
     # REVERT DELETE
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_folders(id=folder.id)
+    rows = reader.get_folders(id=folder.id)
     assert len(rows) == 1
     assert rows[0].name == 'renamed'
     assert rows[0].operation == OP_CREATE
 
     # REVERT UPDATE
     writer.set_commit_active(2, False)
-    rows = writer.reader.get_folders(id=folder.id)
+    rows = reader.get_folders(id=folder.id)
     assert len(rows) == 1
     assert rows[0].name == 'photos'
     assert rows[0].operation == OP_CREATE
 
 
 def test_cycle_files():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -119,18 +121,18 @@ def test_cycle_files():
 
     # REVERT DELETE
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_files(id=file.id)
+    rows = reader.get_files(id=file.id)
     assert rows[0].operation == OP_CREATE
     assert rows[0].name == 'img_renamed.jpg'
 
     # REVERT UPDATE
     writer.set_commit_active(2, False)
-    rows = writer.reader.get_files(id=file.id)
+    rows = reader.get_files(id=file.id)
     assert rows[0].name == 'img.jpg'
 
 
 def test_cycle_instances():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -151,18 +153,18 @@ def test_cycle_instances():
 
     # REVERT DELETE
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_instances(id=instance.id)
+    rows = reader.get_instances(id=instance.id)
     assert rows[0].operation == OP_CREATE
     assert rows[0].sha1 == 'def456'
 
     # REVERT UPDATE
     writer.set_commit_active(2, False)
-    rows = writer.reader.get_instances(id=instance.id)
+    rows = reader.get_instances(id=instance.id)
     assert rows[0].sha1 == 'abc123'
 
 
 def test_cycle_properties():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -180,18 +182,18 @@ def test_cycle_properties():
 
     # REVERT DELETE
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_properties(id=prop.id)
+    rows = reader.get_properties(id=prop.id)
     assert rows[0].operation == OP_CREATE
     assert rows[0].name == 'color_renamed'
 
     # REVERT UPDATE
     writer.set_commit_active(2, False)
-    rows = writer.reader.get_properties(id=prop.id)
+    rows = reader.get_properties(id=prop.id)
     assert rows[0].name == 'color'
 
 
 def test_cycle_tags():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -210,18 +212,18 @@ def test_cycle_tags():
 
     # REVERT DELETE
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_tags(id=tag.id)
+    rows = reader.get_tags(id=tag.id)
     assert rows[0].operation == OP_CREATE
     assert rows[0].value == 'Jazz'
 
     # REVERT UPDATE
     writer.set_commit_active(2, False)
-    rows = writer.reader.get_tags(id=tag.id)
+    rows = reader.get_tags(id=tag.id)
     assert rows[0].value == 'Rock'
 
 
 def test_cycle_instance_values():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -245,16 +247,16 @@ def test_cycle_instance_values():
 
     # REVERT DELETE
     writer.set_commit_active(3, False)
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_CREATE
-    assert float(writer.reader.get_instance_values(property_id=prop.id)[0].value) == 99.0
+    assert reader.get_properties(id=prop.id)[0].operation == OP_CREATE
+    assert float(reader.get_instance_values(property_id=prop.id)[0].value) == 99.0
 
     # REVERT UPDATE
     writer.set_commit_active(2, False)
-    assert float(writer.reader.get_instance_values(property_id=prop.id)[0].value) == 42.0
+    assert float(reader.get_instance_values(property_id=prop.id)[0].value) == 42.0
 
 
 def test_instances_values_tags():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -286,17 +288,17 @@ def test_instances_values_tags():
 
     # REVERT DELETE
     writer.set_commit_active(4, False)
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_CREATE
+    assert reader.get_properties(id=prop.id)[0].operation == OP_CREATE
 
     # REVERT FULL UPDATE -> Should go back to the Diff state [2, 3, 4]
     writer.set_commit_active(1, False)
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_instance_values(property_id=prop.id)
+    rows = reader.get_instance_values(property_id=prop.id)
     assert rows[0].value == [4]
 
 
 def test_sha1_values_tags():
-    project, writer = _setup()
+    project, writer, reader = _setup()
 
     # INSERT (Commit 1)
     commit1 = CommitBuilder(project)
@@ -331,12 +333,12 @@ def test_sha1_values_tags():
     # 1. Revert Delete (Disable Commit 4)
     writer.set_commit_active(4, False)
     # Property should no longer be marked OP_DELETE
-    assert writer.reader.get_properties(id=prop.id)[0].operation == OP_CREATE
+    assert reader.get_properties(id=prop.id)[0].operation == OP_CREATE
     # Values should still be at the last known state [1, 4]
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    rows = reader.get_sha1_values(property_id=prop.id)
     assert rows[0].value == [1, 4]
 
     writer.set_commit_active(1, False)
     writer.set_commit_active(3, False)
-    rows = writer.reader.get_sha1_values(property_id=prop.id)
+    rows = reader.get_sha1_values(property_id=prop.id)
     assert rows[0].value == [4]
