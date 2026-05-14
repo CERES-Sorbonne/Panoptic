@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ui_broadcast_watcher.md",
+                "file": "to fix.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ui_broadcast_watcher"
+              "title": "to fix"
             }
           }
         ],
@@ -109,7 +109,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "ui_broadcast_watcher.md",
+                "file": "to fix.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +119,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Rétrolien pour ui_broadcast_watcher"
+              "title": "Rétrolien pour to fix"
             }
           },
           {
@@ -128,12 +128,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "ui_broadcast_watcher.md",
+                "file": "to fix.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Liens sortants de ui_broadcast_watcher"
+              "title": "Liens sortants de to fix"
             }
           },
           {
@@ -171,13 +171,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "ui_broadcast_watcher.md",
+                "file": "to fix.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Plan de ui_broadcast_watcher"
+              "title": "Plan de to fix"
             }
           }
         ]
@@ -200,8 +200,8 @@
   },
   "active": "0e10bdd62ff1d036",
   "lastOpenFiles": [
-    "project2_architecture.md",
     "ui_broadcast_watcher.md",
+    "project2_architecture.md",
     "task_manager_rewrite.md",
     "to fix.md",
     "panoptic2_architecture.md",
