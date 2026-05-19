@@ -20,7 +20,7 @@ class IdRegistry(msgspec.Struct, array_like=True):
 
 
 class ProjectConfig(msgspec.Struct, array_like=True):
-    uuid: Optional[str] = None
+    id: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
 

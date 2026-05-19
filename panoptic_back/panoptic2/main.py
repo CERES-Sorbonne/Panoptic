@@ -21,7 +21,7 @@ from panoptic2.routes.project_routes import project_router
 
 def start():
     db_path = os.getenv('PANOPTIC_DB', os.path.expanduser('~/.panoptic2/panoptic.db'))
-    PORT    = int(os.getenv('PANOPTIC_PORT', 8001))
+    PORT    = int(os.getenv('PANOPTIC_PORT', 8000))
     HOST    = os.getenv('PANOPTIC_HOST', None)
 
     panoptic = Panoptic2(db_path)

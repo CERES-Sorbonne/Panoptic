@@ -32,16 +32,16 @@ class ProjectDB(SQLiteWriter):
             PROJECT_CONFIG_SHEMA.ensure_keys(tx)
 
         self.config = PROJECT_CONFIG_SHEMA.get(self.conn)
-        if not self.config.uuid:
-            self.config = ProjectConfig(uuid=str(uuid.uuid4()), name=name or self.db_path.parent.name, description=None)
+        if not self.config.id:
+            self.config = ProjectConfig(id=str(uuid.uuid4()), name=name or self.db_path.parent.name, description=None)
             with self.transaction() as tx:
                 PROJECT_CONFIG_SHEMA.set(tx, self.config)
-            logging.info(f"Created new project with id: {self.config.uuid}")
+            logging.info(f"Created new project with id: {self.config.id}")
 
         logging.info("ProjectDB registry initialized.")
 
     def set_name(self, name: str):
-        self.config = ProjectConfig(uuid=self.config.uuid, name=name, description=self.config.description)
+        self.config = ProjectConfig(id=self.config.id, name=name, description=self.config.description)
         with self.transaction() as tx:
             PROJECT_CONFIG_SHEMA.set(tx, self.config)
 

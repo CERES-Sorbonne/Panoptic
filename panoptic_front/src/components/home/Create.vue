@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ModalId } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { goNext } from '@/utils/utils';
 
 const panoptic = usePanopticStore()
@@ -16,12 +16,20 @@ const validForm = computed(() => path.value != '' && name.value != '')
 function setPath(p: string) {
     if(p) {
        path.value = p
+       localStorage.setItem('default_project_path', p)
     }
 }
 
 function prompPath() {
     panoptic.showModal(ModalId.FOLDERSELECTION, {callback: setPath, mode: 'create'})
 }
+
+onMounted(() => {
+    let local = localStorage.getItem('default_project_path')
+    if(local) {
+        path.value = local
+    }
+})
 
 </script>
 

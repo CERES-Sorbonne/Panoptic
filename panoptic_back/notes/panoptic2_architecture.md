@@ -194,7 +194,7 @@ When loading a project, `load_project` must verify that the `ProjectKey.uid` sto
 
 ```python
 def load_project(self, uid: str) -> Project2:
-    key = next((p for p in self.db.get_projects() if p.uid == uid), None)
+    key = next((p for p in self.db.get_projects() if p.id == uid), None)
     if not key:
         raise ValueError(f"Project {uid!r} is not registered")
 

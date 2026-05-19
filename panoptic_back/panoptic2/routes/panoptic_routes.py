@@ -48,19 +48,19 @@ class ProjectImportRequest(BaseModel):
     path: str
 
 class ProjectUpdateRequest(BaseModel):
-    uid: str
+    id: str
     name: str | None = None
     excluded_plugins: list[str] | None = None
 
 class ProjectDeleteRequest(BaseModel):
-    uid: str
+    id: str
     delete_files: bool = False
 
 class ProjectLoadRequest(BaseModel):
-    uid: str
+    id: str
 
 class ProjectCloseRequest(BaseModel):
-    uid: str
+    id: str
 
 
 @panoptic_router.post('/create_project')
@@ -70,7 +70,7 @@ async def create_project_route(req: ProjectCreateRequest, request: Request):
         key = get_panoptic().create_project(req.name, req.path)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    await get_server()._load_project(key.uid, connection_id)
+    await get_server()._load_project(key.id, connection_id)
     return _json(get_panoptic().get_state())
 
 
@@ -81,7 +81,7 @@ async def import_project_route(req: ProjectImportRequest, request: Request):
         key = get_panoptic().import_project(req.path)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    await get_server()._load_project(key.uid, connection_id)
+    await get_server()._load_project(key.id, connection_id)
     return _json(get_panoptic().get_state())
 
 
@@ -89,7 +89,7 @@ async def import_project_route(req: ProjectImportRequest, request: Request):
 async def load_project_route(req: ProjectLoadRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
     try:
-        await get_server()._load_project(req.uid, connection_id)
+        await get_server()._load_project(req.id, connection_id)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return _json(get_panoptic().get_state())
@@ -98,14 +98,14 @@ async def load_project_route(req: ProjectLoadRequest, request: Request):
 @panoptic_router.post('/close')
 async def close_project_route(req: ProjectCloseRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
-    await get_server()._close_project(req.uid, connection_id)
+    await get_server()._close_project(req.id, connection_id)
     return _json(get_panoptic().get_state())
 
 
 @panoptic_router.post('/update_project')
 def update_project_route(req: ProjectUpdateRequest):
     try:
-        get_panoptic().update_project(req.uid, name=req.name, excluded_plugins=req.excluded_plugins)
+        get_panoptic().update_project(req.id, name=req.name, excluded_plugins=req.excluded_plugins)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return _json(get_panoptic().get_state())
@@ -113,7 +113,7 @@ def update_project_route(req: ProjectUpdateRequest):
 
 @panoptic_router.post('/delete_project')
 async def delete_project_route(req: ProjectDeleteRequest):
-    get_panoptic().delete_project(req.uid, delete_files=req.delete_files)
+    get_panoptic().delete_project(req.id, delete_files=req.delete_files)
     return _json(get_panoptic().get_state())
 
 

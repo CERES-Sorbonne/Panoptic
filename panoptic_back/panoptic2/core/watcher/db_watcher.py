@@ -9,18 +9,18 @@ from panoptic.core.databases.data.data_reader import DataReader
 class DbWatcher:
     """Polls data.db every 100ms and calls broadcast_fn with new commit IDs.
 
-    broadcast_fn is async: Callable[[project_uid: str, commit_ids: list[int]], Coroutine]
+    broadcast_fn is async: Callable[[project_id: str, commit_ids: list[int]], Coroutine]
     The watcher runs entirely inside the asyncio event loop — never in a thread.
     """
 
     def __init__(
         self,
         data_db_path: Path,
-        project_uid: str,
+        project_id: str,
         broadcast_fn: Callable[[str, list[int]], Coroutine],
     ):
         self._data_db_path  = Path(data_db_path)
-        self._project_uid   = project_uid
+        self._project_id    = project_id
         self._broadcast_fn  = broadcast_fn
         self._last_seq:  int  = 0
         self._running:   bool = False
@@ -44,7 +44,7 @@ class DbWatcher:
         self._last_seq = max(c.id for c in commits)
         commit_ids = [c.id for c in commits]
         try:
-            await self._broadcast_fn(self._project_uid, commit_ids)
+            await self._broadcast_fn(self._project_id, commit_ids)
         except Exception:
             logging.exception("DbWatcher: error in broadcast_fn")
 

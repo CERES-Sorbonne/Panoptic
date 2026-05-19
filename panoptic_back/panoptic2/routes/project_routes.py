@@ -1,4 +1,4 @@
-"""Project-level routes — prefixed /projects/{project_uid}."""
+"""Project-level routes — prefixed /projects/{project_id}."""
 from __future__ import annotations
 
 import logging
@@ -19,7 +19,7 @@ from panoptic2.core.project.project import Project2
 from panoptic2.models.action_models import ActionContext
 from panoptic2.routes.deps import get_project
 
-project_router = APIRouter(prefix='/projects/{project_uid}')
+project_router = APIRouter(prefix='/projects/{project_id}')
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ def _json(obj) -> Response:
     return Response(msgspec.json.encode(obj), media_type='application/json')
 
 
-def _dep(project_uid: str) -> Project2:
-    return get_project(project_uid)
+def _dep(project_id: str) -> Project2:
+    return get_project(project_id)
 
 
 # ---------------------------------------------------------------------------

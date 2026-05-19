@@ -74,6 +74,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     }
 
     function updateServerState(state: PanopticServerState) {
+        console.log(state)
         serverState.value = state
     }
 

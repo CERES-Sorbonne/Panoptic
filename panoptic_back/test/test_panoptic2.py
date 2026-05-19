@@ -59,7 +59,7 @@ def test_create_project(panoptic: Panoptic2, project_folder: Path):
 
     assert key.name == 'My Project'
     assert key.path == str(project_folder)
-    assert key.uid  # non-empty UUID
+    assert key.id  # non-empty UUID
     assert (project_folder / 'project.db').exists(), 'project.db missing'
     assert (project_folder / 'data.db').exists(),    'data.db missing'
     assert (project_folder / 'media.db').exists(),   'media.db missing'
@@ -76,19 +76,19 @@ def test_get_projects_returns_created(panoptic: Panoptic2, project_folder: Path)
     key = panoptic.create_project('P', project_folder)
     projects = panoptic.get_projects()
     assert len(projects) == 1
-    assert projects[0].uid == key.uid
+    assert projects[0].id == key.id
 
 
 def test_import_project(panoptic: Panoptic2, tmp_path: Path):
     # Seed a project folder using Project2 directly
     folder = tmp_path / 'existing_project'
     with Project2(folder) as proj:
-        uid = proj.config.uuid
+        uid = proj.config.id
 
     key = panoptic.import_project(folder)
-    assert key.uid == uid
+    assert key.id == uid
     assert key.name == folder.name
-    assert panoptic.get_projects()[0].uid == uid
+    assert panoptic.get_projects()[0].id == uid
 
 
 def test_import_project_no_db_raises(panoptic: Panoptic2, tmp_path: Path):
@@ -109,76 +109,76 @@ def test_import_project_duplicate_path_raises(panoptic: Panoptic2, tmp_path: Pat
 
 def test_load_project_returns_project2(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    project = panoptic.load_project(key.uid)
+    project = panoptic.load_project(key.id)
     assert isinstance(project, Project2)
-    assert project.config.uuid == key.uid
+    assert project.config.id == key.id
 
 
 def test_load_project_same_instance_returned_twice(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    p1 = panoptic.load_project(key.uid)
-    p2 = panoptic.load_project(key.uid)
+    p1 = panoptic.load_project(key.id)
+    p2 = panoptic.load_project(key.id)
     assert p1 is p2
 
 
 def test_load_project_unknown_uid_raises(panoptic: Panoptic2):
     with pytest.raises(ValueError, match='not registered'):
-        panoptic.load_project('nonexistent-uid')
+        panoptic.load_project('nonexistent-id')
 
 
 def test_get_project_before_load_returns_none(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    assert panoptic.get_project(key.uid) is None
+    assert panoptic.get_project(key.id) is None
 
 
 def test_get_project_after_load_returns_instance(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    panoptic.load_project(key.uid)
-    assert panoptic.get_project(key.uid) is not None
+    panoptic.load_project(key.id)
+    assert panoptic.get_project(key.id) is not None
 
 
 def test_close_project_removes_from_loaded(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    panoptic.load_project(key.uid)
-    assert panoptic.get_project(key.uid) is not None
-    panoptic.close_project(key.uid)
-    assert panoptic.get_project(key.uid) is None
+    panoptic.load_project(key.id)
+    assert panoptic.get_project(key.id) is not None
+    panoptic.close_project(key.id)
+    assert panoptic.get_project(key.id) is None
 
 
 def test_close_project_not_loaded_is_noop(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    panoptic.close_project(key.uid)  # should not raise
+    panoptic.close_project(key.id)  # should not raise
 
 
 def test_delete_project_removes_registration(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    panoptic.delete_project(key.uid)
+    panoptic.delete_project(key.id)
     assert panoptic.get_projects() == []
 
 
 def test_delete_project_with_files_removes_folder(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
     assert project_folder.exists()
-    panoptic.delete_project(key.uid, delete_files=True)
+    panoptic.delete_project(key.id, delete_files=True)
     assert not project_folder.exists()
 
 
 def test_delete_project_without_files_keeps_folder(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    panoptic.delete_project(key.uid, delete_files=False)
+    panoptic.delete_project(key.id, delete_files=False)
     assert project_folder.exists()
 
 
 def test_update_project_name(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('Old Name', project_folder)
-    updated = panoptic.update_project(key.uid, name='New Name')
+    updated = panoptic.update_project(key.id, name='New Name')
     assert updated.name == 'New Name'
     assert panoptic.get_projects()[0].name == 'New Name'
 
 
 def test_update_project_excluded_plugins(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    updated = panoptic.update_project(key.uid, excluded_plugins=['plugin_a'])
+    updated = panoptic.update_project(key.id, excluded_plugins=['plugin_a'])
     assert updated.excluded_plugins == ['plugin_a']
 
 
@@ -194,8 +194,8 @@ def test_load_project_uuid_mismatch_raises(panoptic: Panoptic2, tmp_path: Path):
     shutil.rmtree(folder_a)
     shutil.copytree(folder_b, folder_a)
 
-    with pytest.raises(ValueError, match='UUID mismatch'):
-        panoptic.load_project(key_a.uid)
+    with pytest.raises(ValueError, match='ID mismatch'):
+        panoptic.load_project(key_a.id)
 
 
 def test_panoptic_close_closes_loaded_projects(tmp_path: Path, project_folder: Path):
@@ -203,8 +203,8 @@ def test_panoptic_close_closes_loaded_projects(tmp_path: Path, project_folder: P
     p = Panoptic2(db_path)
     p.start()
     key = p.create_project('P', project_folder)
-    p.load_project(key.uid)
-    assert p.get_project(key.uid) is not None
+    p.load_project(key.id)
+    assert p.get_project(key.id) is not None
     p.close()
     # After close the db is gone; no in-memory projects remain
     assert p.db is None
@@ -217,7 +217,7 @@ def test_panoptic_close_closes_loaded_projects(tmp_path: Path, project_folder: P
 def test_create_user(panoptic: Panoptic2):
     user = panoptic.create_user('alice', description='test user')
     assert user.name == 'alice'
-    assert user.uuid  # non-empty
+    assert user.id  # non-empty
 
 
 def test_get_users(panoptic: Panoptic2):
@@ -247,7 +247,7 @@ def test_get_user_by_name_missing_returns_none(panoptic: Panoptic2):
 
 def test_delete_user(panoptic: Panoptic2):
     user = panoptic.create_user('alice')
-    panoptic.delete_user(user.uuid)
+    panoptic.delete_user(user.id)
     assert panoptic.get_user_by_name('alice') is None
 
 
@@ -304,8 +304,8 @@ def test_each_login_returns_distinct_token(panoptic: Panoptic2):
 
 def test_get_state(panoptic: Panoptic2, project_folder: Path):
     key = panoptic.create_project('P', project_folder)
-    panoptic.load_project(key.uid)
+    panoptic.load_project(key.id)
 
     state = panoptic.get_state()
-    assert any(p.uid == key.uid for p in state.projects)
-    assert key.uid in state.loaded_project_uids
+    assert any(p.id == key.id for p in state.projects)
+    assert key.id in state.loaded_project_ids

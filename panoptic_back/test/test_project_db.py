@@ -94,19 +94,19 @@ def test_new_db_has_uuid():
     """Verifies that a newly created ProjectDB has a non-empty UUID in its config."""
     db = _setup()
 
-    assert db.config.uuid is not None
-    assert len(db.config.uuid) > 0
+    assert db.config.id is not None
+    assert len(db.config.id) > 0
 
 def test_uuid_persists_across_restart():
     """Verifies that reopening an existing DB yields the same UUID."""
     db = _setup()
-    original_uuid = db.config.uuid
+    original_id = db.config.id
     db.close()
 
     db2 = ProjectDB(str(project_db_path))
     db2.start()
 
-    assert db2.config.uuid == original_uuid
+    assert db2.config.id == original_id
 
 
 def test_user_defaults_and_plugin_data_isolation():

@@ -25,8 +25,8 @@ def get_server() -> PanopticServer2:
     return _server
 
 
-def get_project(project_uid: str) -> Project2:
-    project = _panoptic.get_project(project_uid)
+def get_project(project_id: str) -> Project2:
+    project = _panoptic.get_project(project_id)
     if project is None:
-        raise HTTPException(status_code=404, detail=f'Project {project_uid!r} is not loaded')
+        raise HTTPException(status_code=404, detail=f'Project {project_id!r} is not loaded')
     return project

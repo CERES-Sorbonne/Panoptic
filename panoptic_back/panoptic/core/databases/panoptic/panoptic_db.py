@@ -24,11 +24,11 @@ class PanopticDB(SQLiteWriter):
         with self.transaction() as tx:
             PANOPTIC_CONFIG_SCHEMA.ensure_keys(tx)
         self.config = PANOPTIC_CONFIG_SCHEMA.get(self.conn)
-        if not self.config.uuid:
-            self.config = PanopticConfig(uuid=str(uuid.uuid4()), name=self.config.name, description=self.config.description)
+        if not self.config.id:
+            self.config = PanopticConfig(id=str(uuid.uuid4()), name=self.config.name, description=self.config.description)
             with self.transaction() as tx:
                 PANOPTIC_CONFIG_SCHEMA.set(tx, self.config)
-            logging.info(f"Created new Panoptic instance with id: {self.config.uuid}")
+            logging.info(f"Created new Panoptic instance with id: {self.config.id}")
 
     # ------------------------------------------------------------------
     # Projects
@@ -37,10 +37,10 @@ class PanopticDB(SQLiteWriter):
     def get_projects(self) -> list[ProjectKey]:
         return PROJECTS_SCHEMA.get(self.conn)
 
-    def add_project(self, uid: str, path: str, name: str = None, excluded_plugins: list[str] = None) -> ProjectKey:
+    def add_project(self, id_: str, path: str, name: str = None, excluded_plugins: list[str] = None) -> ProjectKey:
         from pathlib import Path as _Path
         project = ProjectKey(
-            uid=uid,
+            id=id_,
             path=path,
             name=name or _Path(path).name,
             excluded_plugins=excluded_plugins or [],
@@ -54,9 +54,9 @@ class PanopticDB(SQLiteWriter):
             PROJECTS_SCHEMA.upsert(tx, project)
         return project
 
-    def delete_project(self, uid: str) -> None:
+    def delete_project(self, id_: str) -> None:
         with self.transaction() as tx:
-            PROJECTS_SCHEMA.delete(tx, uid=uid)
+            PROJECTS_SCHEMA.delete(tx, id=id_)
 
     # ------------------------------------------------------------------
     # Users
@@ -65,9 +65,9 @@ class PanopticDB(SQLiteWriter):
     def get_users(self) -> list[User]:
         return USERS_SCHEMA.get(self.conn)
 
-    def add_user(self, uid: str, name: str, description: str, password_hash: str = None) -> User:
+    def add_user(self, id_: str, name: str, description: str, password_hash: str = None) -> User:
         user = User(
-            uuid=uid,
+            id=id_,
             name=name,
             description=description,
             password_hash=password_hash,
@@ -80,9 +80,9 @@ class PanopticDB(SQLiteWriter):
         with self.transaction() as tx:
             USERS_SCHEMA.upsert(tx, user)
 
-    def delete_user(self, user_uuid: str) -> None:
+    def delete_user(self, user_id: str) -> None:
         with self.transaction() as tx:
-            USERS_SCHEMA.delete(tx, uuid=user_uuid)
+            USERS_SCHEMA.delete(tx, id=user_id)
 
     # ------------------------------------------------------------------
     # Plugins

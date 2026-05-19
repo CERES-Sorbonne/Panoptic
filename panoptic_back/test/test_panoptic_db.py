@@ -21,7 +21,7 @@ def test_cycle_projects():
     uid = "abcdefgh"
 
     # CREATE
-    project = db.add_project(uid=uid, path=path, excluded_plugins=["plugin_v1"])
+    project = db.add_project(id_=uid, path=path, excluded_plugins=["plugin_v1"])
     projects = db.get_projects()
     assert len(projects) == 1
     assert projects[0].path == path
@@ -48,7 +48,7 @@ def test_cycle_users():
 
     # CREATE
     user = db.add_user(
-        uid=uid,
+        id_=uid,
         name="Alice",
         description="Admin User",
         password_hash="hash123"
@@ -56,7 +56,7 @@ def test_cycle_users():
     users = db.get_users()
     assert len(users) == 1
     assert users[0].name == "Alice"
-    assert users[0].uuid == uid
+    assert users[0].id == uid
 
     # UPDATE
     user.name = "Alice Updated"

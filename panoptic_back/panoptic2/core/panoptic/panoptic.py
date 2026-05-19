@@ -24,7 +24,7 @@ class Panoptic2:
         self._installer: PluginInstaller | None  = None
 
         self._loaded_projects: dict[str, Project2] = {}
-        self._sessions:        dict[str, str]       = {}  # token → user_uuid
+        self._sessions:        dict[str, str]       = {}  # token → user_id
         self._lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -64,7 +64,7 @@ class Panoptic2:
             loaded = list(self._loaded_projects.keys())
         return PanopticState(
             projects=self.db.get_projects(),
-            loaded_project_uids=loaded,
+            loaded_project_ids=loaded,
             plugins=self.db.get_plugins(),
             users=self.db.get_users(),
         )
@@ -84,9 +84,9 @@ class Panoptic2:
         # Project2.start() creates the folder and seeds the DBs
         project = Project2(p)
         project.start()
-        uid = project.config.uuid
+        id_ = project.config.id
         project.close()
-        return self.db.add_project(uid=uid, path=str(p), name=name)
+        return self.db.add_project(id_=id_, path=str(p), name=name)
 
     def import_project(self, path: str | Path) -> ProjectKey:
         """Register an existing project folder that already has a project.db."""
@@ -96,60 +96,60 @@ class Panoptic2:
         if any(k.path == str(p) for k in self.db.get_projects()):
             raise ValueError(f"Path {str(p)!r} is already registered")
         with ProjectDB(p / 'project.db') as db:
-            uid = db.config.uuid
-        return self.db.add_project(uid=uid, path=str(p), name=p.name)
+            id_ = db.config.id
+        return self.db.add_project(id_=id_, path=str(p), name=p.name)
 
-    def load_project(self, uid: str) -> Project2:
-        """Start a Project2 instance for the given uid and keep it in memory."""
+    def load_project(self, id_: str) -> Project2:
+        """Start a Project2 instance for the given id and keep it in memory."""
         with self._lock:
-            if uid in self._loaded_projects:
-                return self._loaded_projects[uid]
+            if id_ in self._loaded_projects:
+                return self._loaded_projects[id_]
 
-        key = next((k for k in self.db.get_projects() if k.uid == uid), None)
+        key = next((k for k in self.db.get_projects() if k.id == id_), None)
         if not key:
-            raise ValueError(f"Project {uid!r} is not registered")
+            raise ValueError(f"Project {id_!r} is not registered")
 
         # Integrity check — detect copied/moved project folders
         with ProjectDB(Path(key.path) / 'project.db') as db:
-            actual_uid = db.config.uuid
-        if actual_uid != uid:
+            actual_id = db.config.id
+        if actual_id != id_:
             raise ValueError(
-                f"UUID mismatch: registered as {uid!r} but project.db contains "
-                f"{actual_uid!r}. Re-import the project to fix the registration."
+                f"ID mismatch: registered as {id_!r} but project.db contains "
+                f"{actual_id!r}. Re-import the project to fix the registration."
             )
 
         project = Project2(Path(key.path))
         project.start()
 
         with self._lock:
-            self._loaded_projects[uid] = project
+            self._loaded_projects[id_] = project
         return project
 
-    def close_project(self, uid: str):
+    def close_project(self, id_: str):
         with self._lock:
-            project = self._loaded_projects.pop(uid, None)
+            project = self._loaded_projects.pop(id_, None)
         if project:
             project.close()
 
-    def get_project(self, uid: str) -> Optional[Project2]:
+    def get_project(self, id_: str) -> Optional[Project2]:
         with self._lock:
-            return self._loaded_projects.get(uid)
+            return self._loaded_projects.get(id_)
 
-    def delete_project(self, uid: str, delete_files: bool = False):
-        self.close_project(uid)
-        key = next((k for k in self.db.get_projects() if k.uid == uid), None)
-        self.db.delete_project(uid)
+    def delete_project(self, id_: str, delete_files: bool = False):
+        self.close_project(id_)
+        key = next((k for k in self.db.get_projects() if k.id == id_), None)
+        self.db.delete_project(id_)
         if delete_files and key:
             p = Path(key.path)
             if p.exists():
                 shutil.rmtree(p)
 
-    def update_project(self, uid: str, name: str = None, excluded_plugins: list[str] = None) -> ProjectKey:
-        key = next((k for k in self.db.get_projects() if k.uid == uid), None)
+    def update_project(self, id_: str, name: str = None, excluded_plugins: list[str] = None) -> ProjectKey:
+        key = next((k for k in self.db.get_projects() if k.id == id_), None)
         if not key:
-            raise ValueError(f"Project {uid!r} is not registered")
+            raise ValueError(f"Project {id_!r} is not registered")
         updated = ProjectKey(
-            uid=key.uid,
+            id=key.id,
             path=key.path,
             name=name if name is not None else key.name,
             excluded_plugins=excluded_plugins if excluded_plugins is not None else key.excluded_plugins,
@@ -167,7 +167,7 @@ class Panoptic2:
         if self.get_user_by_name(name):
             raise ValueError(f"User {name!r} already exists")
         return self.db.add_user(
-            uid=str(uuid.uuid4()),
+            id_=str(uuid.uuid4()),
             name=name,
             description=description,
             password_hash=_hash_password(password) if password else None,
@@ -176,8 +176,8 @@ class Panoptic2:
     def update_user(self, user: User) -> None:
         self.db.update_user(user)
 
-    def delete_user(self, user_uuid: str) -> None:
-        self.db.delete_user(user_uuid)
+    def delete_user(self, user_id: str) -> None:
+        self.db.delete_user(user_id)
 
     def get_user_by_name(self, name: str) -> Optional[User]:
         return next((u for u in self.db.get_users() if u.name == name), None)
@@ -192,7 +192,7 @@ class Panoptic2:
             raise ValueError("Invalid credentials")
         token = str(uuid.uuid4())
         with self._lock:
-            self._sessions[token] = user.uuid
+            self._sessions[token] = user.id
         return token
 
     def logout(self, token: str) -> None:
@@ -201,10 +201,10 @@ class Panoptic2:
 
     def get_user_from_token(self, token: str) -> Optional[User]:
         with self._lock:
-            user_uuid = self._sessions.get(token)
-        if not user_uuid:
+            user_id = self._sessions.get(token)
+        if not user_id:
             return None
-        return next((u for u in self.db.get_users() if u.uuid == user_uuid), None)
+        return next((u for u in self.db.get_users() if u.id == user_id), None)
 
     # ------------------------------------------------------------------
     # Plugin management
