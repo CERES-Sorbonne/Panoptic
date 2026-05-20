@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, PluginAddPayload, Notif, NotifType, IngoredPluginPayload, ApiRequestDescription, PanopticState, ProjectRef } from './models'
+import { DirInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User } from './models'
 import { PluginKey, usePanopticStore } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -15,9 +15,9 @@ export const panopticApi = axios.create({
 
 panopticApi.interceptors.request.use(config => {
     const panoptic = usePanopticStore()
-    if (panoptic.clientState.connectionId) {
+    if (panoptic.connectionState?.connectionId) {
         config.params = config.params || {};
-        config.params.connection_id = panoptic.clientState.connectionId;
+        config.params.connection_id = panoptic.connectionState?.connectionId;
     }
     return config
 })
@@ -57,44 +57,43 @@ export async function apiGetFilesystemCount(path: string) {
 }
 
 
-export async function apiGetPanopticState() {
-    let res = await panopticApi.get('/panoptic_state')
-    return res.data as PanopticState
+export async function apiGetProjects() {
+    const res = await panopticApi.get('/projects')
+    return keysToCamel(res.data) as ProjectRef[]
 }
 
-export async function apiLoadProject(projectId: number) {
-    let res = await panopticApi.post('/load', { project_id: projectId })
-    return res.data as PanopticState
-}
-
-export async function apiCloseProject(projectId: number) {
-    let res = await panopticApi.post('/close', { project_id: projectId })
-    return res.data as PanopticState
-}
-
-export async function apiDeleteProject(projectId: number, deleteFiles: boolean) {
-    let res = await panopticApi.post('/delete_project', { id: projectId, delete_files: deleteFiles })
-    return res.data as PanopticState
-}
-
-export async function apiUpdateProject(project: ProjectRef) {
-    let res = await panopticApi.post('/update_project', {id: project.id, name: project.name, ignored_plugins: project.ignoredPlugins})
-    return res.data as PanopticState
-}
-
-export async function apiCreateProject(path: string, name: string) {
-    let res = await panopticApi.post('/create_project', { path, name })
-    return res.data as PanopticState
-}
-
-export async function apiImportProject(path: string) {
-    let res = await panopticApi.post('/import_project', { path })
-    return res.data as PanopticState
+export async function apiGetUsers() {
+    const res = await panopticApi.get('/users')
+    return keysToCamel(res.data) as User[]
 }
 
 export async function apiGetPlugins() {
-    let res = await panopticApi.get('/plugins')
+    const res = await panopticApi.get('/plugins')
     return keysToCamel(res.data) as PluginKey[]
+}
+
+export async function apiLoadProject(projectId: number) {
+    await panopticApi.post('/load', { id: projectId })
+}
+
+export async function apiCloseProject(projectId: number) {
+    await panopticApi.post('/close', { id: projectId })
+}
+
+export async function apiDeleteProject(projectId: number, deleteFiles: boolean) {
+    await panopticApi.post('/delete_project', { id: projectId, delete_files: deleteFiles })
+}
+
+export async function apiUpdateProject(project: ProjectRef) {
+    await panopticApi.post('/update_project', { id: project.id, name: project.name, excluded_plugins: project.excludedPlugins })
+}
+
+export async function apiCreateProject(path: string, name: string) {
+    await panopticApi.post('/create_project', { path, name })
+}
+
+export async function apiImportProject(path: string) {
+    await panopticApi.post('/import_project', { path })
 }
 
 export async function apiAddPlugin(payload: PluginAddPayload) {

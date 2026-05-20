@@ -8,9 +8,10 @@ import subprocess
 import sys
 from sys import platform
 
+import anyio
 import msgspec
 import psutil
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import FileResponse, Response
@@ -28,12 +29,22 @@ def _json(obj) -> Response:
 
 
 # ---------------------------------------------------------------------------
-# Panoptic state
+# Panoptic state — split into focused endpoints
 # ---------------------------------------------------------------------------
 
-@panoptic_router.get('/panoptic_state')
-def get_panoptic_state():
-    return _json(get_panoptic().get_state())
+@panoptic_router.get('/projects')
+def get_projects_route():
+    return _json(get_panoptic().get_projects_state())
+
+
+@panoptic_router.get('/plugins')
+def get_plugins_state_route():
+    return _json(get_panoptic().get_plugins())
+
+
+@panoptic_router.get('/users')
+def get_users_route():
+    return _json(get_panoptic().get_users())
 
 
 # ---------------------------------------------------------------------------
@@ -67,22 +78,26 @@ class ProjectCloseRequest(BaseModel):
 async def create_project_route(req: ProjectCreateRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
     try:
-        key = get_panoptic().create_project(req.name, req.path)
+        key = await anyio.to_thread.run_sync(
+            lambda: get_panoptic().create_project(req.name, req.path)
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
     await get_server()._load_project(key.id, connection_id)
-    return _json(get_panoptic().get_state())
+    return _json(get_panoptic().get_projects_state())
 
 
 @panoptic_router.post('/import_project')
 async def import_project_route(req: ProjectImportRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
     try:
-        key = get_panoptic().import_project(req.path)
+        key = await anyio.to_thread.run_sync(
+            lambda: get_panoptic().import_project(req.path)
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
     await get_server()._load_project(key.id, connection_id)
-    return _json(get_panoptic().get_state())
+    return _json(get_panoptic().get_projects_state())
 
 
 @panoptic_router.post('/load')
@@ -92,29 +107,31 @@ async def load_project_route(req: ProjectLoadRequest, request: Request):
         await get_server()._load_project(req.id, connection_id)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return _json(get_panoptic().get_state())
+    return _json(get_panoptic().get_projects_state())
 
 
 @panoptic_router.post('/close')
 async def close_project_route(req: ProjectCloseRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
     await get_server()._close_project(req.id, connection_id)
-    return _json(get_panoptic().get_state())
+    return _json(get_panoptic().get_projects_state())
 
 
 @panoptic_router.post('/update_project')
-def update_project_route(req: ProjectUpdateRequest):
+def update_project_route(req: ProjectUpdateRequest, background_tasks: BackgroundTasks):
     try:
         get_panoptic().update_project(req.id, name=req.name, excluded_plugins=req.excluded_plugins)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return _json(get_panoptic().get_state())
+    background_tasks.add_task(get_server()._emit_update_projects)
+    return _json(get_panoptic().get_projects_state())
 
 
 @panoptic_router.post('/delete_project')
-async def delete_project_route(req: ProjectDeleteRequest):
+def delete_project_route(req: ProjectDeleteRequest, background_tasks: BackgroundTasks):
     get_panoptic().delete_project(req.id, delete_files=req.delete_files)
-    return _json(get_panoptic().get_state())
+    background_tasks.add_task(get_server()._emit_update_projects)
+    return _json(get_panoptic().get_projects_state())
 
 
 # ---------------------------------------------------------------------------
@@ -128,11 +145,6 @@ class AddPluginRequest(BaseModel):
 
 class DeletePluginRequest(BaseModel):
     plugin_id: str
-
-
-@panoptic_router.get('/plugins')
-def get_plugins_route():
-    return _json(get_panoptic().get_plugins())
 
 
 @panoptic_router.post('/plugins')

@@ -11,6 +11,7 @@ from panoptic.core.databases.panoptic.create import (
 from panoptic.core.databases.panoptic.models import PanopticConfig, User, ProjectKey, PluginKey
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 
+DEFAULT_USER_ID = "default"
 
 class PanopticDB(SQLiteWriter):
 
@@ -29,6 +30,13 @@ class PanopticDB(SQLiteWriter):
             with self.transaction() as tx:
                 PANOPTIC_CONFIG_SCHEMA.set(tx, self.config)
             logging.info(f"Created new Panoptic instance with id: {self.config.id}")
+
+        with self.transaction() as tx:
+            users = USERS_SCHEMA.get(tx, id=DEFAULT_USER_ID)
+            if not users:
+                default_user = User(id=DEFAULT_USER_ID, name="default", description="default user", password_hash=None)
+                USERS_SCHEMA.upsert(tx, default_user)
+
 
     # ------------------------------------------------------------------
     # Projects

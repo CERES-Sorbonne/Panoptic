@@ -213,7 +213,7 @@ const steps = props.tutorial === 'home' ? steps_home : step_projects
 
 let currentStep = parseInt(localStorage.getItem('currentStep') || '0')
 
-const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) && panoptic.serverState.projects.length > 0)
+const hasProjects = computed(() => panoptic.projects.length > 0)
 const showTutorial = computed(() => ((!hasProjects.value) || project.showTutorial))
 
 watch(showTutorial, async () => {

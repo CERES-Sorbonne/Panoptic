@@ -8,7 +8,7 @@ from typing import Optional
 from panoptic.core.databases.panoptic.models import PluginKey, ProjectKey, User
 from panoptic.core.databases.panoptic.panoptic_db import PanopticDB
 from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic2.core.panoptic.models import PanopticState
+from panoptic2.core.panoptic.models import ProjectState
 from panoptic2.core.plugin.plugin_installer import (
     SOURCE_GIT, SOURCE_PATH, SOURCE_PIP, PluginInstaller,
 )
@@ -59,15 +59,19 @@ class Panoptic2:
     # State
     # ------------------------------------------------------------------
 
-    def get_state(self) -> PanopticState:
+    def get_projects_state(self) -> list[ProjectState]:
         with self._lock:
-            loaded = list(self._loaded_projects.keys())
-        return PanopticState(
-            projects=self.db.get_projects(),
-            loaded_project_ids=loaded,
-            plugins=self.db.get_plugins(),
-            users=self.db.get_users(),
-        )
+            loaded = set(self._loaded_projects.keys())
+        return [
+            ProjectState(
+                id=k.id,
+                path=k.path,
+                name=k.name,
+                excluded_plugins=k.excluded_plugins,
+                loaded=k.id in loaded,
+            )
+            for k in self.db.get_projects()
+        ]
 
     # ------------------------------------------------------------------
     # Project management

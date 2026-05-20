@@ -740,8 +740,8 @@ export interface ProjectId {
 }
 
 export interface ProjectRef extends ProjectId {
-    isOpen: boolean
-    ignoredPlugins: string[]
+    loaded: boolean
+    excludedPlugins: string[]
 }
 
 
@@ -754,25 +754,10 @@ export interface UserState extends User {
     connectedTo?: string
 }
 
-export interface PanopticServerState {
-    version: string
-    projects: ProjectRef[]
-    plugins: PluginKey[]
-    users: User[]
-    askUser: boolean
-}
-
-export interface PanopticClientState {
+export interface ConnectionState {
     connectionId: string
-    connectedProject?: number
-    connectedAt: string; // datetime
     user: UserState
-}
-
-
-export interface PanopticState {
-    server: PanopticServerState
-    client: PanopticClientState
+    connectedProject?: string
 }
 
 export interface ProjectState {

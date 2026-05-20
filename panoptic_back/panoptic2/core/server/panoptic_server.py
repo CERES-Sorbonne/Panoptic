@@ -5,7 +5,7 @@ Responsibilities:
 - Connection-state tracking: sid → connection_id → project_id
 - DbWatcher lifecycle per loaded project
 - sync→async callback bridge for task updates
-- Broadcasts: server_state, client_state, commits, tasks
+- Broadcasts: update_projects, update_plugins, update_users, connection_state, commits, tasks
 """
 
 import asyncio
@@ -16,22 +16,26 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+import anyio
+
 import socketio
 
+from panoptic.core.databases.panoptic.models import User
+from panoptic.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
 from panoptic.models.models import TaskState
-from panoptic2.core.panoptic.models import PanopticState
 from panoptic2.core.panoptic.panoptic import Panoptic2
 from panoptic2.core.watcher.db_watcher import DbWatcher
 
 
 # ---------------------------------------------------------------------------
-# Client state
+# Connection state
 # ---------------------------------------------------------------------------
 
 @dataclass
-class ClientState:
+class ConnectionState:
     connection_id: str
-    connected_project: Optional[str] = None   # project id or None
+    user: User
+    connected_project: Optional[str] = None
     connected_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -41,6 +45,7 @@ class ClientState:
     def to_dict(self) -> dict:
         return {
             'connection_id': self.connection_id,
+            'user': {'id': self.user.id, 'name': self.user.name},
             'connected_project': self.connected_project,
         }
 
@@ -55,9 +60,9 @@ class PanopticServer2:
         self._sio      = sio
 
         # Connection state
-        self._sid_to_connection_id:   dict[str, str]        = {}
-        self._connection_id_to_sids:  dict[str, list[str]]  = {}
-        self._client_states:          dict[str, ClientState] = {}
+        self._sid_to_connection_id:   dict[str, str]             = {}
+        self._connection_id_to_sids:  dict[str, list[str]]       = {}
+        self._connection_states:      dict[str, ConnectionState] = {}
         self._connect_id_counter = 0
 
         # DbWatcher per loaded project (id → watcher)
@@ -88,15 +93,21 @@ class PanopticServer2:
             client_connection_id = (auth or {}).get('connection_id')
             connection_id = client_connection_id or self._next_connection_id()
 
-            if connection_id not in self._client_states:
-                self._client_states[connection_id] = ClientState(connection_id=connection_id)
+            if connection_id not in self._connection_states:
+                default_user = self._get_default_user()
+                self._connection_states[connection_id] = ConnectionState(
+                    connection_id=connection_id,
+                    user=default_user,
+                )
 
             self._sid_to_connection_id[sid] = connection_id
             self._connection_id_to_sids.setdefault(connection_id, []).append(sid)
 
             logging.info(f"connect sid={sid} connection_id={connection_id}")
-            await self._emit_server_state(sids=[sid])
-            await self._emit_client_state(connection_id)
+            await self._emit_update_projects(sids=[sid])
+            await self._emit_update_plugins(sids=[sid])
+            await self._emit_update_users(sids=[sid])
+            await self._emit_connection_state(connection_id)
 
         @sio.event
         async def disconnect(sid):
@@ -112,7 +123,7 @@ class PanopticServer2:
 
             if not sids:
                 self._connection_id_to_sids.pop(connection_id, None)
-                self._client_states.pop(connection_id, None)
+                self._connection_states.pop(connection_id, None)
                 logging.info(f"connection {connection_id} fully disconnected")
             else:
                 logging.info(f"disconnect sid={sid}, {len(sids)} sids remain for {connection_id}")
@@ -141,7 +152,9 @@ class PanopticServer2:
     # ------------------------------------------------------------------
 
     async def _load_project(self, id_: str, connection_id: str) -> None:
-        project = self._panoptic.load_project(id_)
+        project = await anyio.to_thread.run_sync(
+            lambda: self._panoptic.load_project(id_)
+        )
 
         # Start DbWatcher if not already running for this project
         if id_ not in self._watchers:
@@ -151,29 +164,31 @@ class PanopticServer2:
         if self._panoptic.get_project(id_).task_manager._on_update is None:
             project.task_manager._on_update = self._make_task_callback(id_)
 
-        state = self._client_states.get(connection_id)
+        state = self._connection_states.get(connection_id)
         if state:
             state.connected_project = id_
 
-        await self._emit_client_state(connection_id)
-        await self._emit_server_state()
+        await self._emit_connection_state(connection_id)
+        await self._emit_update_projects()
 
     async def _close_project(self, id_: str, connection_id: str) -> None:
         # Only close the watcher when no connection is still on this project
         remaining = sum(
-            1 for s in self._client_states.values()
+            1 for s in self._connection_states.values()
             if s.connected_project == id_ and s.connection_id != connection_id
         )
         if remaining == 0:
             self._detach_watcher(id_)
-            self._panoptic.close_project(id_)
+            await anyio.to_thread.run_sync(
+                lambda: self._panoptic.close_project(id_)
+            )
 
-        state = self._client_states.get(connection_id)
+        state = self._connection_states.get(connection_id)
         if state:
             state.connected_project = None
 
-        await self._emit_client_state(connection_id)
-        await self._emit_server_state()
+        await self._emit_connection_state(connection_id)
+        await self._emit_update_projects()
 
     # ------------------------------------------------------------------
     # Watcher management
@@ -204,24 +219,27 @@ class PanopticServer2:
             return
         await self._sio.emit('commits', {'project_id': id_, 'commit_ids': commit_ids}, to=sids)
 
-    async def _emit_server_state(self, sids: list[str] = None) -> None:
-        state: PanopticState = self._panoptic.get_state()
-        payload = {
-            'projects':           [_struct_to_dict(p) for p in state.projects],
-            'loaded_project_ids': state.loaded_project_ids,
-            'plugins':            [_struct_to_dict(p) for p in state.plugins],
-            'users':              [_struct_to_dict(u) for u in state.users],
-        }
-        await self._sio.emit('server_state', payload, to=sids)
+    async def _emit_update_projects(self, sids: list[str] = None) -> None:
+        await self._sio.emit('update_projects', to=sids)
 
-    async def _emit_client_state(self, connection_id: str) -> None:
-        state = self._client_states.get(connection_id)
+    async def _emit_update_plugins(self, sids: list[str] = None) -> None:
+        await self._sio.emit('update_plugins', to=sids)
+
+    async def _emit_update_users(self, sids: list[str] = None) -> None:
+        await self._sio.emit('update_users', to=sids)
+
+    async def _emit_connection_state(self, connection_id: str) -> None:
+        state = self._connection_states.get(connection_id)
         if state is None:
             return
         sids = self._connection_id_to_sids.get(connection_id)
         if not sids:
             return
-        await self._sio.emit('client_state', state.to_dict(), to=sids)
+        await self._sio.emit('connection_state', state.to_dict(), to=sids)
+
+    def _get_default_user(self) -> User:
+        users = self._panoptic.get_users()
+        return next((u for u in users if u.id == DEFAULT_USER_ID), users[0])
 
     # ------------------------------------------------------------------
     # Task callback bridge  (sync thread → async event loop)
@@ -254,7 +272,7 @@ class PanopticServer2:
 
     def _get_project_sids(self, id_: str) -> list[str]:
         result = []
-        for conn_id, state in self._client_states.items():
+        for conn_id, state in self._connection_states.items():
             if state.connected_project == id_:
                 result.extend(self._connection_id_to_sids.get(conn_id, []))
         return result
@@ -265,11 +283,3 @@ class PanopticServer2:
         return hashlib.sha1(raw.encode()).hexdigest()
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _struct_to_dict(obj) -> dict:
-    """Convert a msgspec.Struct to a plain dict regardless of array_like encoding."""
-    import msgspec
-    return msgspec.structs.asdict(obj)

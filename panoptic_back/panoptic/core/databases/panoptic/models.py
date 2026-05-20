@@ -13,7 +13,7 @@ class PanopticConfig(msgspec.Struct, array_like=True):
 class User(msgspec.Struct, array_like=True):
     id: Annotated[str, PrimaryKey]
     name: Annotated[str, Index(unique=True)]
-    description: str
+    description: Optional[str]
     password_hash: Optional[str]
 
 class ProjectKey(msgspec.Struct, array_like=True):

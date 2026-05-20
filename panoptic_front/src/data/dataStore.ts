@@ -60,7 +60,7 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======================
     async function init() {
         const panopticStore = usePanopticStore()
-        const projectId = panopticStore.clientState.connectedProject
+        const projectId = panopticStore.connectionState?.connectedProject
         baseImgUrl.value = `${SERVER_PREFIX}/projects/${projectId}/image/`
         baseUrl.value = `${SERVER_PREFIX}/projects/${projectId}/`
         let dbFolders = await apiGetFolders()
@@ -122,7 +122,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     function importInstances(toImport: Instance[]) {
         const panopticStore = usePanopticStore()
-        const projectId = panopticStore.clientState.connectedProject
+        const projectId = panopticStore.connectionState?.connectedProject
 
         for (let img of toImport) {
             const values = getComputedValues(img)

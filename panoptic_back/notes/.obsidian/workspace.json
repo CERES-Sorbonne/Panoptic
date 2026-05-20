@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "main2_plan.md",
+                "file": "routes_reference.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "main2_plan"
+              "title": "routes_reference"
             }
           }
         ],
@@ -200,8 +200,9 @@
   },
   "active": "0e10bdd62ff1d036",
   "lastOpenFiles": [
-    "plugin_architecture.md",
     "main2_plan.md",
+    "routes_reference.md",
+    "plugin_architecture.md",
     "to fix.md",
     "ui_broadcast_watcher.md",
     "project2_architecture.md",

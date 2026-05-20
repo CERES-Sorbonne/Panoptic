@@ -2,10 +2,9 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { io, Socket } from 'socket.io-client'
 import {
+    ConnectionState,
     DbCommit,
     Folder,
-    PanopticClientState,
-    PanopticServerState,
     PointMap,
     ProjectSettings,
     ProjectState,
@@ -54,21 +53,28 @@ export const useSocketStore = defineStore('socketStore', () => {
             usePanopticStore().setFailedConnect()
         });
 
-        socket.on('server_state', (data) => {
-            const state = keysToCamel(data) as PanopticServerState
-            usePanopticStore().updateServerState(state)
+        socket.on('update_projects', () => {
+            usePanopticStore().fetchProjects()
         })
 
-        socket.on('client_state', (data) => {
-            const state = keysToCamel(data) as PanopticClientState
-            usePanopticStore().updateClientState(state)
+        socket.on('update_plugins', () => {
+            usePanopticStore().fetchPlugins()
+        })
+
+        socket.on('update_users', () => {
+            usePanopticStore().fetchUsers()
+        })
+
+        socket.on('connection_state', (data) => {
+            const state = keysToCamel(data) as ConnectionState
+            usePanopticStore().updateConnectionState(state)
             if (state.connectionId) {
                 setConnectionId(state.connectionId)
             }
         })
 
         socket.on('disconnect', () => {
-            usePanopticStore().updateClientState(undefined)
+            usePanopticStore().updateConnectionState(undefined)
         })
 
         socket.on('project_state', (data: ProjectState) => {

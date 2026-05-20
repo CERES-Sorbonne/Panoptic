@@ -2,8 +2,7 @@
 import Create from '@/components/home/Create.vue';
 import Options from '@/components/home/Options.vue';
 import { usePanopticStore } from '@/data/panopticStore';
-import router from '@/router';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import Tutorial from '@/tutorials/Tutorial.vue';
 import Egg from '@/tutorials/Egg.vue';
 import PluginForm from '@/components/forms/PluginForm.vue';
@@ -21,21 +20,19 @@ const pluginFormElem = ref(null)
 const show = ref(true)
 const langs = ['fr', 'en']
 
-const hasProjects = computed(() => Array.isArray(panoptic.serverState.projects) && panoptic.serverState.projects.length > 0)
+const hasProjects = computed(() => panoptic.projects.length > 0)
 
 const showFirstModal = computed(() => !hasProjects.value)
 const showTutorial = computed(() => !hasProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.serverState.plugins.some(p => p.type == PluginType.PIP && p.source == 'panopticml'))
+const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.type == PluginType.PIP && p.source == 'panopticml'))
 
 const usePlugins = computed(() => {
     const res = {}
-    const projects = panoptic.serverState.projects
-    const plugins = panoptic.serverState.plugins
-    projects.forEach(project => {
+    panoptic.projects.forEach(project => {
         res[project.id] = {}
-        plugins.forEach(plugin => res[project.id][plugin.name] = true)
-        project.ignoredPlugins.forEach(pId => res[project.id][pId] = false)
+        panoptic.plugins.forEach(plugin => res[project.id][plugin.name] = true)
+        project.excludedPlugins.forEach(pId => res[project.id][pId] = false)
     })
     return res
 })
@@ -70,13 +67,11 @@ async function rerender() {
 }
 
 async function updateIgnorePlugin(project: ProjectRef, pluginName: string, value: boolean) {
-    console.log(project.id, pluginName, value)
-    if(!value && !project.ignoredPlugins.includes(pluginName)) {
-        project.ignoredPlugins.push(pluginName)
-    } else if (value && project.ignoredPlugins.includes(pluginName)) {
-        project.ignoredPlugins = project.ignoredPlugins.filter(n => n !== pluginName)
+    if (!value && !project.excludedPlugins.includes(pluginName)) {
+        project.excludedPlugins.push(pluginName)
+    } else if (value && project.excludedPlugins.includes(pluginName)) {
+        project.excludedPlugins = project.excludedPlugins.filter(n => n !== pluginName)
     }
-    console.log(project.ignoredPlugins)
     await panoptic.updateProject(project)
 }
 
@@ -96,14 +91,12 @@ async function downloadPackagesInfos() {
     }
 }
 
-onMounted(() => {
-    if (panoptic.isProjectLoaded) {
-        router.push('/view')
-    }
+watch(() => panoptic.projectsLoaded, (loaded) => {
+    if (!loaded) return
     if (showFirstModal.value) {
         panoptic.showModal(ModalId.FIRSTMODAL)
     }
-})
+}, { immediate: true })
 
 </script>
 
@@ -114,7 +107,7 @@ onMounted(() => {
 
         <div class="window2 d-flex ">
             <div v-if="hasProjects" class="project-menu">
-                <div v-for="project in panoptic.serverState.projects" class="d-flex">
+                <div v-for="project in panoptic.projects" class="d-flex">
                     <div class="project flex-grow-1 overflow-hidden" @click="panoptic.loadProject(project.id)">
                         <h5 class="m-0">{{ project.name }}</h5>
                         <div class="m-0 p-0 text-wrap text-break dimmed-2" style="font-size: 13px;">{{
@@ -133,7 +126,7 @@ onMounted(() => {
                                     </div>
                                     <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
                                     </div>
-                                    <div v-for="p in panoptic.serverState.plugins" class="mt-1">
+                                    <div v-for="p in panoptic.plugins" class="mt-1">
                                         <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.name]"
                                             @change="e => updateIgnorePlugin(project, p.name, (e.target as any).checked)" />{{
                                                 p.name }}
@@ -154,7 +147,7 @@ onMounted(() => {
                         </div>
                         <h1 class="m-0 p-0">Panoptic</h1>
                         <div class="d-flex justify-content-center gap-1">
-                            <h6 class="dimmed-2 mt-1">Version {{ panoptic.serverState.version }} </h6>
+                            <h6 class="dimmed-2 mt-1">Version {{ panoptic.version }} </h6>
                             <wTT message='main.home.version_tooltip'><i class="bb bi-bug" style="margin-right:0.5rem"
                                     @click="downloadPackagesInfos"></i></wTT>
                         </div>
@@ -187,7 +180,7 @@ onMounted(() => {
                     <div class="flex-grow-1 plugin-preview" style="overflow-y: auto;">
                         <PluginForm v-if="showPluginForm" @cancel="showPluginForm = false" ref="pluginFormElem" />
                         <div v-else>
-                            <div v-for="plugin in panoptic.serverState.plugins" style="display: inline-block;">
+                            <div v-for="plugin in panoptic.plugins" style="display: inline-block;">
                                 <PluginOptionsDropdown :plugin="plugin"></PluginOptionsDropdown>
                             </div>
                         </div>

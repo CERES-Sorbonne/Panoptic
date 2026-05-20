@@ -32,7 +32,7 @@ onMounted(() => {
     </template>
     <template v-if="panoptic.isConnected">
         <template v-if="!panoptic.isUserValid">
-            <div><UserSelection :users="panoptic.serverState.users" @connect-user="u => socketStore.connectUser(u.id)"/></div>
+            <div><UserSelection :users="panoptic.users" @connect-user="u => socketStore.connectUser(u.id)"/></div>
         </template>
         <template v-else>
             <RouterView />

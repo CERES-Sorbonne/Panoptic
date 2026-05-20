@@ -38,16 +38,16 @@ export const projectApi = axios.create({
 
 projectApi.interceptors.request.use(config => {
     const panoptic = usePanopticStore()
-    const projectId = panoptic.clientState.connectedProject
+    const projectId = panoptic.connectionState?.connectedProject
     if (projectId) {
         config.url = `/projects/${projectId}${config.url}`
     } else {
         // TODO: maybe we should throw an error here?
         console.error("No project selected for API call")
     }
-    if (panoptic.clientState.connectionId) {
+    if (panoptic.connectionState?.connectionId) {
         config.params = config.params || {};
-        config.params.connection_id = panoptic.clientState.connectionId
+        config.params.connection_id = panoptic.connectionState?.connectionId
     }
     return config
 })
@@ -353,7 +353,7 @@ export async function apiSetSettings(settings: ProjectSettings) {
 
 export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
     const panoptic = usePanopticStore()
-    const projectId = panoptic.clientState.connectedProject
+    const projectId = panoptic.connectionState?.connectedProject
     const url = `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/db_state_stream`
     const response = await fetch(url, {
         method: 'GET',
