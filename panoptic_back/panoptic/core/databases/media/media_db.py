@@ -73,6 +73,13 @@ class MediaDB(SQLiteWriter):
     # Vector
     # ------------------------------------------------------------------
 
+    def get_vector_stats(self) -> dict:
+        rows = self.conn.execute(
+            "SELECT type_id, COUNT(DISTINCT sha1) FROM vectors GROUP BY type_id"
+        ).fetchall()
+        count = {r[0]: r[1] for r in rows} if rows else {}
+        return {'count': count, 'sha1_count': 0}  # sha1_count overridden by Project2
+
     def get_vectors(self, **filters) -> list[Vector]:
         return VECTOR_SHEMA.get(self.conn, **filters)
 

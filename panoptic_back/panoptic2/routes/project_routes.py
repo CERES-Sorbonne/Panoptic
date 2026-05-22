@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import orjson
 from sys import platform
+from typing import Any, Optional
 
 import msgspec
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,11 +13,16 @@ from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
 from panoptic.models.data import (
-    Commit, DeleteCommit, Folder, Instance, Property, Sha1Value,
-    Tag, InstanceValue, UpsertCommit,
+    Commit, DeleteCommit, FileValue, Folder, Instance, Property, Sha1Value,
+    Tag, InstanceValue, UpsertCommit, File, FileSource,
 )
+from panoptic.models.models import ProjectSettings
 from panoptic2.core.project.project import Project2
 from panoptic2.models.action_models import ActionContext
+from panoptic2.models.stream_models import (
+    FileValuesColumn, FullInstance, ImageValuesColumn, InstanceValuesColumn,
+    LoadState, StreamChunk, StreamResult,
+)
 from panoptic2.routes.deps import get_project
 
 project_router = APIRouter(prefix='/projects/{project_id}')
@@ -36,33 +42,246 @@ def _dep(project_id: str) -> Project2:
     return get_project(project_id)
 
 
+_TRACKING_FIELDS = frozenset({'commit_id', 'operation'})
+
+def _db_to_dict(obj: msgspec.Struct) -> dict:
+    """Convert a DB model (array_like Struct) to a plain dict, dropping tracking fields."""
+    return {
+        f.name: getattr(obj, f.name)
+        for f in msgspec.structs.fields(obj)
+        if f.name not in _TRACKING_FIELDS
+    }
+
+
 # ---------------------------------------------------------------------------
 # State — initial full load (ndjson stream)
 # ---------------------------------------------------------------------------
 
 @project_router.get('/db_state_stream')
 def stream_db_state(project: Project2 = Depends(_dep)):
-    """Stream full project state as newline-delimited JSON chunks."""
+    """Stream full project state as newline-delimited JSON LoadResult chunks."""
+    import json as _json
+    import os as _os
+
     def _generate():
-        # Each chunk: { "type": "...", "data": [...] }
-        for entity_type, getter in [
-            ('properties',      project.get_properties),
-            ('tags',            project.get_tags),
-            ('folders',         project.get_folders),
-            ('files',           project.get_files),
-            ('instances',       project.get_instances),
-            ('instance_values', project.get_instance_values),
-            ('sha1_values',     project.get_sha1_values),
-        ]:
-            try:
-                items = getter()
-                chunk = {'type': entity_type, 'data': msgspec.to_builtins(items)}
-                yield orjson.dumps(chunk) + b'\n'
-            except Exception:
-                logger.exception(f'db_state_stream: error loading {entity_type}')
-        yield orjson.dumps({'type': 'done'}) + b'\n'
+        # Capture sequence BEFORE entity reads so any concurrent write during the
+        # stream is caught by the first delta call (duplicates are idempotent).
+        with project._data_reader() as _sr:
+            start_sequence = _sr.get_next_sequence() - 1
+
+        files           = project.get_files()
+        properties      = project.get_properties()
+        tags            = project.get_tags()
+        instances       = project.get_instances()
+        instance_values = project.get_instance_values()
+        sha1_values     = project.get_sha1_values()
+        file_values     = project.get_file_values()
+
+        n_inst = len(instances)
+        n_iv   = len(instance_values)
+        n_sv   = len(sha1_values)
+        n_fv   = len(file_values)
+
+        base_state = LoadState(
+            max_instance=n_inst, max_instance_value=n_iv,
+            max_image_value=n_sv, max_file_value=n_fv,
+        )
+
+        # ---- Chunk 1: properties + tags ----
+        yield msgspec.json.encode(StreamResult(
+            chunk=StreamChunk(
+                properties=[_db_to_dict(p) for p in properties],
+                tags=[_db_to_dict(t) for t in tags],
+                property_groups=[],
+            ),
+            state=msgspec.structs.replace(
+                base_state,
+                finished_property=True,
+                finished_tags=True,
+                finished_property_groups=True,
+            ),
+        )) + b'\n'
+
+        # ---- Chunk 2: instances (file join for folder_id / file_id / name / extension) ----
+        file_map = {f.id: f for f in files}
+        stream_instances = []
+        for inst in instances:
+            f         = file_map.get(inst.file_id)
+            full_name = (f.name or '') if f else ''
+            basename  = _os.path.basename(full_name)
+            extension = _os.path.splitext(basename)[1].lstrip('.')
+            stream_instances.append(FullInstance(
+                id=inst.id,
+                sha1=inst.sha1,
+                name=basename,
+                ahash='',
+                width=1,
+                height=1,
+                url=full_name,
+                folder_id=f.folder_id if f else None,
+                file_id=inst.file_id,
+                extension=extension,
+                properties={},
+            ))
+        yield msgspec.json.encode(StreamResult(
+            chunk=StreamChunk(instances=stream_instances),
+            state=msgspec.structs.replace(
+                base_state,
+                finished_property=True,
+                finished_tags=True,
+                finished_property_groups=True,
+                finished_instance=True,
+                counter_instance=n_inst,
+            ),
+        )) + b'\n'
+
+        # ---- Chunk 3: columnar values ----
+        # Each value is re-encoded as a JSON string because the frontend
+        # calls JSON.parse() on every entry (matching the v1 wire format).
+        iv_cols: dict[int, InstanceValuesColumn] = {}
+        for iv in instance_values:
+            col = iv_cols.setdefault(iv.property_id, InstanceValuesColumn(iv.property_id, [], []))
+            col.ids.append(iv.instance_id)
+            col.values.append(_json.dumps(iv.value))
+
+        sv_cols: dict[int, ImageValuesColumn] = {}
+        for sv in sha1_values:
+            col = sv_cols.setdefault(sv.property_id, ImageValuesColumn(sv.property_id, [], []))
+            col.sha1s.append(sv.sha1)
+            col.values.append(_json.dumps(sv.value))
+
+        fv_cols: dict[int, FileValuesColumn] = {}
+        for fv in file_values:
+            col = fv_cols.setdefault(fv.property_id, FileValuesColumn(fv.property_id, [], []))
+            col.file_ids.append(fv.file_id)
+            col.values.append(_json.dumps(fv.value))
+
+        yield msgspec.json.encode(StreamResult(
+            instance_values=list(iv_cols.values()),
+            image_values=list(sv_cols.values()),
+            file_values=list(fv_cols.values()),
+            state=LoadState(
+                finished_property=True,
+                finished_tags=True,
+                finished_property_groups=True,
+                finished_instance=True,
+                finished_instance_values=True,
+                finished_image_values=True,
+                finished_file_values=True,
+                counter_instance=n_inst,
+                counter_instance_value=n_iv,
+                counter_image_value=n_sv,
+                counter_file_value=n_fv,
+                max_instance=n_inst,
+                max_instance_value=n_iv,
+                max_image_value=n_sv,
+                max_file_value=n_fv,
+                max_sequence=start_sequence,
+            ),
+        )) + b'\n'
 
     return StreamingResponse(_generate(), media_type='application/x-ndjson')
+
+
+@project_router.get('/delta')
+def get_delta(since: int, project: Project2 = Depends(_dep)):
+    """Return all rows changed since `since` as a single StreamResult JSON response."""
+    import json as _json
+    import os as _os
+    from panoptic.core.databases.entity_schema import OP_DELETE
+
+    with project._data_reader() as reader:
+        raw = reader.get_delta(since)
+
+    sequence  = raw['sequence']
+    file_map  = {f.id: f for f in raw['files']}
+
+    # Split entities into upserts vs deletes
+    upsert_instances  = [x for x in raw['instances']       if x.operation != OP_DELETE]
+    delete_instances  = [x.id for x in raw['instances']    if x.operation == OP_DELETE]
+    upsert_properties = [x for x in raw['properties']      if x.operation != OP_DELETE]
+    delete_properties = [x.id for x in raw['properties']   if x.operation == OP_DELETE]
+    upsert_tags       = [x for x in raw['tags']             if x.operation != OP_DELETE]
+    delete_tags       = [x.id for x in raw['tags']          if x.operation == OP_DELETE]
+
+    upsert_iv = [x for x in raw['instance_values'] if x.operation != OP_DELETE]
+    delete_iv = [{'property_id': x.property_id, 'instance_id': x.instance_id}
+                 for x in raw['instance_values'] if x.operation == OP_DELETE]
+
+    upsert_sv = [x for x in raw['image_values'] if x.operation != OP_DELETE]
+    delete_sv = [{'property_id': x.property_id, 'sha1': x.sha1}
+                 for x in raw['image_values'] if x.operation == OP_DELETE]
+
+    upsert_fv = [x for x in raw['file_values'] if x.operation != OP_DELETE]
+    delete_fv = [{'property_id': x.property_id, 'file_id': x.file_id}
+                 for x in raw['file_values'] if x.operation == OP_DELETE]
+
+    # Build FullInstances for upserted instances
+    full_instances = []
+    for inst in upsert_instances:
+        f         = file_map.get(inst.file_id)
+        full_name = (f.name or '') if f else ''
+        basename  = _os.path.basename(full_name)
+        extension = _os.path.splitext(basename)[1].lstrip('.')
+        full_instances.append(FullInstance(
+            id=inst.id,
+            sha1=inst.sha1,
+            name=basename,
+            ahash='',
+            width=1,
+            height=1,
+            url=full_name,
+            folder_id=f.folder_id if f else None,
+            file_id=inst.file_id,
+            extension=extension,
+            properties={},
+        ))
+
+    # Build columnar value structs for upserted values
+    iv_cols: dict[int, InstanceValuesColumn] = {}
+    for iv in upsert_iv:
+        col = iv_cols.setdefault(iv.property_id, InstanceValuesColumn(iv.property_id, [], []))
+        col.ids.append(iv.instance_id)
+        col.values.append(_json.dumps(iv.value))
+
+    sv_cols: dict[int, ImageValuesColumn] = {}
+    for sv in upsert_sv:
+        col = sv_cols.setdefault(sv.property_id, ImageValuesColumn(sv.property_id, [], []))
+        col.sha1s.append(sv.sha1)
+        col.values.append(_json.dumps(sv.value))
+
+    fv_cols: dict[int, FileValuesColumn] = {}
+    for fv in upsert_fv:
+        col = fv_cols.setdefault(fv.property_id, FileValuesColumn(fv.property_id, [], []))
+        col.file_ids.append(fv.file_id)
+        col.values.append(_json.dumps(fv.value))
+
+    all_finished = LoadState(
+        finished_property=True, finished_instance=True, finished_tags=True,
+        finished_instance_values=True, finished_image_values=True,
+        finished_file_values=True, finished_property_groups=True,
+        max_sequence=sequence,
+    )
+    result = StreamResult(
+        state=all_finished,
+        chunk=StreamChunk(
+            instances=full_instances or None,
+            properties=[_db_to_dict(p) for p in upsert_properties] or None,
+            tags=[_db_to_dict(t) for t in upsert_tags] or None,
+            empty_instances=delete_instances or None,
+            empty_properties=delete_properties or None,
+            empty_tags=delete_tags or None,
+            empty_instance_values=delete_iv or None,
+            empty_image_values=delete_sv or None,
+            empty_file_values=delete_fv or None,
+        ) if (full_instances or upsert_properties or upsert_tags or
+              delete_instances or delete_properties or delete_tags or
+              delete_iv or delete_sv or delete_fv) else None,
+        instance_values=list(iv_cols.values()) or None,
+        image_values=list(sv_cols.values()) or None,
+        file_values=list(fv_cols.values()) or None,
+    )
+    return Response(content=msgspec.json.encode(result), media_type='application/json')
 
 
 @project_router.get('/db_state')
@@ -76,6 +295,21 @@ def get_db_state(project: Project2 = Depends(_dep)):
         'instance_values': project.get_instance_values(),
         'sha1_values':     project.get_sha1_values(),
     })
+
+
+@project_router.get('/project_state')
+def get_project_state(project: Project2 = Depends(_dep)):
+    plugins = [p.get_description().model_dump(by_alias=True) for p in project.plugins]
+    tasks = [t.model_dump(mode='json') for t in project.get_task_states()]
+    settings = ProjectSettings().model_dump(by_alias=True)
+    return {
+        'id': project.config.id,
+        'name': project.config.name,
+        'path': str(project.folder),
+        'tasks': tasks,
+        'plugins': plugins,
+        'settings': settings,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +328,55 @@ def get_tags(project: Project2 = Depends(_dep)):
 
 @project_router.get('/folders')
 def get_folders(project: Project2 = Depends(_dep)):
+    return _json([_db_to_dict(f) for f in project.get_folders()])
+
+
+class _PathRequest(BaseModel):
+    path: str
+
+
+class _IdRequest(BaseModel):
+    id: int
+
+
+@project_router.post('/folders')
+def add_folder(req: _PathRequest, project: Project2 = Depends(_dep)):
+    project.import_folder(req.path)
     return _json(project.get_folders())
+
+
+@project_router.post('/reimport_folder')
+def reimport_folder(req: _IdRequest, project: Project2 = Depends(_dep)):
+    folders = project.get_folders()
+    folder = next((f for f in folders if f.id == req.id), None)
+    if not folder:
+        raise HTTPException(404, f'Folder {req.id} not found')
+    if not folder.path:
+        raise HTTPException(400, f'Folder {req.id} has no path')
+    project.import_folder(folder.path)
+    return _json(folders)
+
+
+@project_router.delete('/folder')
+def delete_folder(folder_id: int, project: Project2 = Depends(_dep)):
+    all_folders = project.get_folders()
+    all_files   = project.get_files()
+    all_insts   = project.get_instances()
+
+    folder_ids: set[int] = set()
+    queue = [folder_id]
+    while queue:
+        fid = queue.pop()
+        folder_ids.add(fid)
+        for f in all_folders:
+            if f.parent == fid and f.id not in folder_ids:
+                queue.append(f.id)
+
+    file_ids = {f.id for f in all_files if f.folder_id in folder_ids}
+    inst_ids = {i.id for i in all_insts if i.file_id in file_ids}
+
+    project.apply_delete_commit('ui', DeleteCommit(folders=folder_ids, files=file_ids, instances=inst_ids))
+    return {'ok': True}
 
 
 @project_router.get('/instances')
@@ -106,26 +388,170 @@ def get_instances(project: Project2 = Depends(_dep)):
 # Commits  (write / undo / redo)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Commit input models (frontend-friendly: arrays, id<0 = new)
+# ---------------------------------------------------------------------------
+
+class _PropIn(BaseModel):
+    id: int = -1
+    name: Optional[str] = None
+    type: Optional[str] = None     # frontend field → DB dtype
+    dtype: Optional[str] = None    # also accepted
+    mode: Optional[str] = None
+    property_group_id: Optional[int] = None  # not yet stored in Property struct
+
+class _TagIn(BaseModel):
+    id: int = -1
+    property_id: Optional[int] = None  # maps to Tag.list_id
+    parents: list[int] = []
+    value: Optional[str] = None
+    color: int = -1
+
+class _IVIn(BaseModel):
+    property_id: int
+    instance_id: int
+    value: Any = None
+
+class _SVIn(BaseModel):
+    property_id: int
+    sha1: str
+    value: Any = None
+
+class _FVIn(BaseModel):
+    property_id: int
+    file_id: int
+    value: Any = None
+
+class _PGIn(BaseModel):
+    id: int = -1
+    name: Optional[str] = None
+
+class UpsertRequest(BaseModel):
+    properties: list[_PropIn] = []
+    tags: list[_TagIn] = []
+    instance_values: list[_IVIn] = []
+    image_values: list[_SVIn] = []
+    file_values: list[_FVIn] = []
+    property_groups: list[_PGIn] = []
+    instances: list[Any] = []  # passthrough — not yet supported
+
+class DeleteRequest(BaseModel):
+    empty_instances: list[int] = []
+    empty_properties: list[int] = []
+    empty_tags: list[int] = []
+    empty_property_groups: list[int] = []
+    empty_instance_values: list[_IVIn] = []
+    empty_image_values: list[_SVIn] = []
+    empty_file_values: list[_FVIn] = []
+
+
+def _to_ids(val: Any, n: int) -> range:
+    """Normalise allocate_* return to always be iterable."""
+    if isinstance(val, int):
+        return range(val, val + n)
+    return val
+
+
 @project_router.post('/commit/upsert')
-async def upsert_commit_route(request: Request, project: Project2 = Depends(_dep)):
-    body = await request.body()
-    try:
-        commit_data = msgspec.json.decode(body, type=UpsertCommit)
-    except Exception as e:
-        raise HTTPException(400, f'Invalid UpsertCommit: {e}')
-    commit = project.apply_upsert_commit('ui', commit_data)
-    return _json(commit)
+def upsert_commit_route(req: UpsertRequest, project: Project2 = Depends(_dep)):
+    from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE
+
+    upsert = UpsertCommit()
+    prop_id_map: dict[int, int] = {}
+
+    # Properties — allocate IDs for id < 0
+    new_props = [p for p in req.properties if p.id < 0]
+    upd_props  = [p for p in req.properties if p.id >= 0]
+
+    if new_props:
+        ids = _to_ids(project.allocate_properties(len(new_props)), len(new_props))
+        for p, pid in zip(new_props, ids):
+            prop_id_map[p.id] = pid
+            upsert.properties[pid] = Property(
+                id=pid, dtype=p.type or p.dtype or 'text',
+                mode=p.mode or 'sha1', name=p.name or '',
+                access='write', tag_list_id=pid,
+                commit_id=0, operation=OP_CREATE,
+            )
+    for p in upd_props:
+        upsert.properties[p.id] = Property(
+            id=p.id, dtype=p.type or p.dtype or 'text',
+            mode=p.mode or 'sha1', name=p.name or '',
+            access='write', tag_list_id=p.id,
+            commit_id=0, operation=OP_UPDATE,
+        )
+
+    # Tags — allocate IDs for id < 0
+    new_tags = [t for t in req.tags if t.id < 0]
+    upd_tags  = [t for t in req.tags if t.id >= 0]
+
+    if new_tags:
+        ids = _to_ids(project.allocate_tags(len(new_tags)), len(new_tags))
+        for t, tid in zip(new_tags, ids):
+            list_id = prop_id_map.get(t.property_id, t.property_id)
+            upsert.tags[tid] = Tag(
+                id=tid, list_id=list_id, parents=t.parents,
+                value=t.value or '', color=t.color,
+                commit_id=0, operation=OP_CREATE,
+            )
+    for t in upd_tags:
+        list_id = prop_id_map.get(t.property_id, t.property_id)
+        upsert.tags[t.id] = Tag(
+            id=t.id, list_id=list_id, parents=t.parents,
+            value=t.value or '', color=t.color,
+            commit_id=0, operation=OP_UPDATE,
+        )
+
+    # Instance values (grouped by property_id for UpsertCommit)
+    for iv in req.instance_values:
+        pid = prop_id_map.get(iv.property_id, iv.property_id)
+        upsert.instance_values.setdefault(pid, []).append(
+            InstanceValue(property_id=pid, instance_id=iv.instance_id,
+                          value=iv.value, commit_id=0, operation=OP_UPDATE)
+        )
+
+    # Sha1 values (grouped by property_id for UpsertCommit)
+    for sv in req.image_values:
+        pid = prop_id_map.get(sv.property_id, sv.property_id)
+        upsert.sha1_values.setdefault(pid, []).append(
+            Sha1Value(property_id=pid, sha1=sv.sha1,
+                      value=sv.value, commit_id=0, operation=OP_UPDATE)
+        )
+
+    # File values (grouped by property_id for UpsertCommit)
+    for fv in req.file_values:
+        pid = prop_id_map.get(fv.property_id, fv.property_id)
+        upsert.file_values.setdefault(pid, []).append(
+            FileValue(property_id=pid, file_id=fv.file_id,
+                      value=fv.value, commit_id=0, operation=OP_UPDATE)
+        )
+
+    if upsert.properties or upsert.tags or upsert.instance_values or upsert.sha1_values or upsert.file_values:
+        project.apply_upsert_commit('ui', upsert)
+
+    return {
+        'properties': [
+            {'id': p.id, 'dtype': p.dtype, 'mode': p.mode, 'name': p.name}
+            for p in upsert.properties.values()
+        ],
+        'tags': [
+            {'id': t.id, 'list_id': t.list_id, 'value': t.value,
+             'parents': t.parents, 'color': t.color}
+            for t in upsert.tags.values()
+        ],
+    }
 
 
 @project_router.post('/commit/delete')
-async def delete_commit_route(request: Request, project: Project2 = Depends(_dep)):
-    body = await request.body()
-    try:
-        commit_data = msgspec.json.decode(body, type=DeleteCommit)
-    except Exception as e:
-        raise HTTPException(400, f'Invalid DeleteCommit: {e}')
-    commit = project.apply_delete_commit('ui', commit_data)
-    return _json(commit)
+def delete_commit_route(req: DeleteRequest, project: Project2 = Depends(_dep)):
+    delete = DeleteCommit(
+        instances=set(req.empty_instances),
+        properties=set(req.empty_properties),
+        tags=set(req.empty_tags),
+    )
+    if delete.instances or delete.properties or delete.tags:
+        project.apply_delete_commit('ui', delete)
+    return {'ok': True}
 
 
 @project_router.post('/undo')
@@ -215,26 +641,27 @@ def get_image_medium(sha1: str, project: Project2 = Depends(_dep)):
 # Actions & plugins
 # ---------------------------------------------------------------------------
 
-class ExecuteActionRequest(BaseModel):
-    function: str
+class ActionContextRequest(BaseModel):
     instance_ids: list[int] | None = None
     group_name: str | None = None
     ui_inputs: dict = {}
 
 
+class ExecuteActionRequest(BaseModel):
+    function: str
+    context: ActionContextRequest = ActionContextRequest()
+
+
 @project_router.post('/action_execute')
 def execute_action(req: ExecuteActionRequest, project: Project2 = Depends(_dep)):
     ctx = ActionContext(
-        instance_ids=req.instance_ids,
-        group_name=req.group_name,
-        ui_inputs=req.ui_inputs,
+        instance_ids=req.context.instance_ids,
+        group_name=req.context.group_name,
+        ui_inputs=req.context.ui_inputs,
     )
-    try:
-        result = project.action.call(req.function, ctx)
-    except KeyError:
+    if req.function not in project.action.actions:
         raise HTTPException(404, f'Action {req.function!r} not found')
-    except Exception as e:
-        raise HTTPException(500, str(e))
+    result = project.action.call(req.function, ctx)
     return result  # ActionResult is a dataclass — FastAPI serialises it
 
 
@@ -245,6 +672,20 @@ def get_actions(project: Project2 = Depends(_dep)):
 
 @project_router.get('/plugins_info')
 def get_plugins_info(project: Project2 = Depends(_dep)):
+    return [p.get_description() for p in project.plugins]
+
+
+class PluginParamsRequest(BaseModel):
+    plugin: str
+    params: dict
+
+
+@project_router.post('/plugin_params')
+def update_plugin_params(req: PluginParamsRequest, project: Project2 = Depends(_dep)):
+    try:
+        project.update_plugin_params(req.plugin, req.params)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
     return [p.get_description() for p in project.plugins]
 
 
@@ -276,7 +717,7 @@ def set_ui_data(req: UiDataRequest, project: Project2 = Depends(_dep), user_id: 
 
 @project_router.get('/list_maps')
 def list_maps(project: Project2 = Depends(_dep)):
-    return _json(project.get_maps())
+    return [_db_to_dict(m) for m in project.get_maps()]
 
 
 @project_router.get('/map/{map_id}')
@@ -284,7 +725,7 @@ def get_map(map_id: int, project: Project2 = Depends(_dep)):
     maps = project.get_maps(id=map_id)
     if not maps:
         raise HTTPException(404, f'Map {map_id} not found')
-    return _json(maps[0])
+    return _db_to_dict(maps[0])
 
 
 @project_router.delete('/map')
@@ -296,14 +737,17 @@ def delete_map(map_id: int, project: Project2 = Depends(_dep)):
 @project_router.get('/atlas/{atlas_id}')
 def get_atlas(atlas_id: int, project: Project2 = Depends(_dep)):
     atlases = project.get_image_atlases(id=atlas_id)
-    if not atlases:
-        raise HTTPException(404, f'Atlas {atlas_id} not found')
-    return _json(atlases[0])
+    return _json(atlases[0] if atlases else None)
 
 
 @project_router.get('/vector_types')
 def get_vector_types(project: Project2 = Depends(_dep)):
     return _json(project.get_vector_types())
+
+
+@project_router.get('/vector_stats')
+def get_vector_stats(project: Project2 = Depends(_dep)):
+    return _json(project.get_vector_stats())
 
 
 # ---------------------------------------------------------------------------

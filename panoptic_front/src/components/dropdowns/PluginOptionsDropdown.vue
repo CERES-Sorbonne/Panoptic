@@ -18,7 +18,7 @@ async function updatePlugin() {
     isUpdateSucess.value = false
     await nextTick()
     try {
-        let res = await panoptic.updatePlugin(props.plugin.name)
+        let res = await panoptic.updatePlugin(props.plugin.id)
         isUpdateSucess.value = res
     }
     catch {
@@ -32,14 +32,14 @@ async function updatePlugin() {
         <template #button>
             <div>
                 <span class="bb">
-                    {{ props.plugin.name }}
+                    {{ props.plugin.id }}
                     <i class="bi bi-three-dots-vertical"></i>
                 </span>
             </div>
         </template>
         <template #popup>
             <div class="p-2">
-                <div class="bb" @click="panoptic.delPlugin(props.plugin.name)">
+                <div class="bb" @click="panoptic.delPlugin(props.plugin.id)">
                     <i class="bi bi-trash me-1" /> {{ $t('plugin.remove') }}
                 </div>
                 <div class="bb" @click="updatePlugin">
@@ -49,21 +49,21 @@ async function updatePlugin() {
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <i v-if="isUpdateSucess" class="bi bi-check2 text-success me-1"></i>
-                    <span v-if="props.plugin.source">{{ $t('plugin.update') }}</span>
+                    <span v-if="props.plugin.sourcePath">{{ $t('plugin.update') }}</span>
                     <span v-else>{{ $t('plugin.update_local') }}</span>
                 </div>
 
                 <div class="custom-hr mt-1 mb-1" />
                 <div style="max-width: 200px; word-break: break-all;">
-                    <div v-if="plugin.path">
+                    <div v-if="plugin.installPath">
                         <span>{{ $t('plugin.path') }}</span>
                         <br />
-                        <span class="text-secondary">{{ plugin.path }}</span>
+                        <span class="text-secondary">{{ plugin.installPath }}</span>
                     </div>
-                    <div v-if="plugin.source">
+                    <div v-if="plugin.sourcePath">
                         <span>{{ $t('plugin.source') }}</span>
                         <br />
-                        <span class="text-secondary">{{ plugin.type }} {{ plugin.source }}</span>
+                        <span class="text-secondary">{{ plugin.sourceType }} {{ plugin.sourcePath }}</span>
                     </div>
                 </div>
             </div>

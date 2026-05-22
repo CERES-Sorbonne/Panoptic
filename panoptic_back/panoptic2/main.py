@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import socketio
 import uvicorn
 from fastapi import FastAPI
+from fastapi.exceptions import HTTPException, RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -34,6 +35,7 @@ def start():
     async def lifespan(app: FastAPI):
         server.on_startup()
         yield
+        await server.shutdown()
         panoptic.close()
 
     app = FastAPI(lifespan=lifespan, title='Panoptic2')
@@ -55,6 +57,22 @@ def start():
     set_dependencies(panoptic, server)
     app.include_router(panoptic_router)
     app.include_router(project_router)
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            headers={'Access-Control-Allow-Origin': '*'},
+            content={'name': 'HTTPException', 'message': str(exc.detail)},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            headers={'Access-Control-Allow-Origin': '*'},
+            content={'name': 'ValidationError', 'message': str(exc)},
+        )
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: BaseException):

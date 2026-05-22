@@ -34,8 +34,9 @@ class LoadPluginTask(Task):
                 break
             try:
                 module = _import_plugin(key)
+                interface = self._project.make_plugin_interface(key.id)
                 plugin = module.plugin_class(
-                    project=self._project,
+                    project=interface,
                     plugin_path=key.install_path,
                     name=key.id,
                 )

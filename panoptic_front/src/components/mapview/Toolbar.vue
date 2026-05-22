@@ -45,6 +45,7 @@ function changeTool(tool: string) {
 }
 
 function deleteMap() {
+    if (props.selectedMap == null) return
     useDataStore().deleteMap(props.selectedMap)
 }
 

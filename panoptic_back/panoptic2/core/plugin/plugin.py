@@ -3,30 +3,26 @@ from __future__ import annotations
 
 from abc import ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
 from pydantic import BaseModel
 
-from panoptic2.core.plugin.action_registry import ActionRegistry, build_function_description
 from panoptic2.core.plugin.plugin_interface import PluginProjectInterface
 from panoptic2.models.action_models import (
     FunctionDescription, PluginBaseParamsDescription, PluginDescription,
 )
 
-if TYPE_CHECKING:
-    from panoptic2.core.project.project import Project2
-
 
 class APlugin(ABC):
-    def __init__(self, name: str, project: Project2, plugin_path: str):
+    def __init__(self, name: str, project: PluginProjectInterface, plugin_path: str):
         self.name        = name
-        self._project    = project
-        self.project     = PluginProjectInterface(project)
+        self.project     = project          # the interface — only project access for plugins
         self.plugin_path = plugin_path
-        self.params: Any | None = None
+        self.params: Any = None
+        self.vector_types: list = []        # populated in start() from media.db
 
         slug = '_'.join(name.split()).lower()
-        self.data_path = Path(project.folder) / 'plugin_data' / slug
+        self.data_path = project.base_path / 'plugin_data' / slug
         self.data_path.mkdir(parents=True, exist_ok=True)
 
         self.registered_functions: list[FunctionDescription] = []
@@ -37,19 +33,20 @@ class APlugin(ABC):
 
     def start(self) -> None:
         self._load_params()
+        self.vector_types = self.project.get_vector_types(source=self.name)
         self._start()
 
     def _start(self) -> None:
         """Override in subclass for plugin-specific initialisation."""
 
     # ------------------------------------------------------------------
-    # Params  (stored per-project in ProjectDB key-value)
+    # Params
     # ------------------------------------------------------------------
 
     def _load_params(self) -> None:
         if self.params is None:
             return
-        stored = self._project.get_plugin_params(self.name)
+        stored = self.project.load_params()
         if stored:
             try:
                 self.params = self.params.__class__(**{**self.params.dict(), **stored})
@@ -58,8 +55,10 @@ class APlugin(ABC):
 
     def update_params(self, params: Any) -> Any:
         if self.params is not None and isinstance(self.params, BaseModel):
-            self.params = self.params.model_copy(update=params if isinstance(params, dict) else params.dict())
-        self._project.set_plugin_params(self.name, self.params.dict() if self.params else {})
+            self.params = self.params.model_copy(
+                update=params if isinstance(params, dict) else params.dict()
+            )
+        self.project.save_params(self.params.dict() if self.params else {})
         return self.params
 
     # ------------------------------------------------------------------
@@ -67,12 +66,12 @@ class APlugin(ABC):
     # ------------------------------------------------------------------
 
     def add_action_easy(self, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
-        desc = self._project.action.easy_add(self, fn, hooks)
+        desc = self.project.register_action(fn, hooks)
         self.registered_functions.append(desc)
         return desc
 
     def add_action(self, fn: Callable, description: FunctionDescription) -> FunctionDescription:
-        self._project.action.add(fn, description)
+        self.project.register_action_with_desc(fn, description)
         self.registered_functions.append(description)
         return description
 

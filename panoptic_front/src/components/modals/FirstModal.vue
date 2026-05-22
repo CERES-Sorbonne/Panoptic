@@ -9,7 +9,7 @@ const panoptic = usePanopticStore()
 
 const isLoadingPlugin = ref(false)
 
-const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.source && p.source.includes('panopticml')))
+const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourcePath && p.sourcePath.includes('panopticml')))
 
 
 async function installPlugin() {

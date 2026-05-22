@@ -9,8 +9,8 @@ import PluginForm from '@/components/forms/PluginForm.vue';
 import PanopticIcon from '@/components/icons/PanopticIcon.vue';
 import { ModalId, PluginType, ProjectRef } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
-import Dropdown from '@/components/dropdowns/Dropdown.vue';
-import PluginOptionsDropdown from '@/components/dropdowns/PluginOptionsDropdown.vue';
+import Dropdown from '@/components/Dropdowns/Dropdown.vue';
+import PluginOptionsDropdown from '@/components/Dropdowns/PluginOptionsDropdown.vue';
 
 const panoptic = usePanopticStore()
 
@@ -25,13 +25,13 @@ const hasProjects = computed(() => panoptic.projects.length > 0)
 const showFirstModal = computed(() => !hasProjects.value)
 const showTutorial = computed(() => !hasProjects.value && panoptic.openModalId !== ModalId.FIRSTMODAL)
 
-const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.type == PluginType.PIP && p.source == 'panopticml'))
+const hasPanopticMlPlugin = computed(() => panoptic.plugins.some(p => p.sourceType == PluginType.PIP && p.sourcePath == 'panopticml'))
 
 const usePlugins = computed(() => {
     const res = {}
     panoptic.projects.forEach(project => {
         res[project.id] = {}
-        panoptic.plugins.forEach(plugin => res[project.id][plugin.name] = true)
+        panoptic.plugins.forEach(plugin => res[project.id][plugin.id] = true)
         project.excludedPlugins.forEach(pId => res[project.id][pId] = false)
     })
     return res
@@ -127,9 +127,9 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
                                     <div style="border-top: 1px solid var(--border-color); width: 100%;" class="mt-1">
                                     </div>
                                     <div v-for="p in panoptic.plugins" class="mt-1">
-                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.name]"
-                                            @change="e => updateIgnorePlugin(project, p.name, (e.target as any).checked)" />{{
-                                                p.name }}
+                                        <input type="checkbox" class="me-1" :checked="usePlugins[project.id][p.id]"
+                                            @change="e => updateIgnorePlugin(project, p.id, (e.target as any).checked)" />{{
+                                                p.id }}
                                     </div>
                                     <!-- <div class="m-1 base-hover p-1"><i class="bi bi-pen me-1"></i>rename</div> -->
                                 </div>

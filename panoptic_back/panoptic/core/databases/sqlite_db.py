@@ -59,6 +59,7 @@ class SQLiteWriter:
     def close(self):
         """Manually closes the database connection."""
         if self.conn:
+            self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             self.conn.close()
             self.conn = None
             self.is_loaded = False

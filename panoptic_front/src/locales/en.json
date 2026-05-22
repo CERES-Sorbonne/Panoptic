@@ -414,6 +414,7 @@
             "instance": "Instance properties",
             "instances": "All instances properties",
             "image": "Image properties",
+            "file": "File properties",
             "delete": "Do you really want to delete property"
         }
     },

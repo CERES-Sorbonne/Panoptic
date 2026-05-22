@@ -34,6 +34,13 @@ class Task(ABC):
             except Exception as e:
                 logging.error(f"Progress callback failed: {e}")
 
+    def on_last(self) -> None:
+        """Called by TaskManager after the last queued/running task of this key finishes.
+        Override to trigger post-batch work (e.g. rebuilding a Faiss index after all
+        vector computation tasks complete).
+        """
+        pass
+
     @abstractmethod
     def start(self):
         pass

@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, Folder, FolderIndex, ImageAtlas, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
+import { CommitHistory, DbCommit, FilePropertyValue, FileValuesArray, Folder, FolderIndex, ImageAtlas, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadResult, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
 import { buildPropertyGroupOrder, objValues } from "./builder";
-import { apiAddFolder, apiCommit, apiDeleteFolder, apiDeleteMap, apiDeleteVectorType, apiGetAtlas, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
+import { apiAddFolder, apiCommitUpsert, apiCommitDelete, apiDeleteFolder, apiDeleteMap, apiDeleteVectorType, apiGetAtlas, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
 import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
 import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, hasPropertyChanges, isFinished, isTag } from "@/utils/utils";
 import { useTabStore } from "./tabStore";
@@ -34,6 +34,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
     const history = ref<CommitHistory>({ undo: [], redo: [] })
     const sha1Index = shallowRef<Sha1ToInstances>({})
+    const fileIndex = shallowRef<{ [fileId: number]: Instance[] }>({})
 
     const loadState = ref<LoadState>(null)
 
@@ -43,6 +44,7 @@ export const useDataStore = defineStore('dataStore', () => {
     // =======Computed=======
     // =======================
     const isLoaded = ref(false)
+    const lastSequence = ref<number>(0)
     const folderRoots = computed(() => {
         return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
     })
@@ -72,23 +74,27 @@ export const useDataStore = defineStore('dataStore', () => {
 
         const vecTypes = await apiGetVectorTypes()
         importVectorTypes(vecTypes)
-        // console.log('start stream')
+        console.log('start stream')
         apiStreamLoadState(async (v) => {
-            // console.log('apply')
+            console.log('apply', v)
             if (v.instanceValues) {
                 importInstanceValuesArray(v.instanceValues)
             }
             if (v.imageValues) {
                 importImageValuesArray(v.imageValues)
             }
+            if (v.fileValues) {
+                importFileValuesArray(v.fileValues)
+            }
             if (v.chunk) {
                 applyCommit(v.chunk, true)
             }
-            // console.log(v.state)
+            console.log(v.state)
             loadState.value = v.state
 
             if (isFinished(v.state)) {
                 // console.log('stop stream')
+                lastSequence.value = v.state.maxSequence ?? 0
                 const tabStore = useTabStore()
                 await tabStore.init()
                 triggerRefs()
@@ -145,6 +151,12 @@ export const useDataStore = defineStore('dataStore', () => {
                 }
                 sha1Index.value[img.sha1].push(img)
 
+                if (img.fileId != null) {
+                    if (!Array.isArray(fileIndex.value[img.fileId])) {
+                        fileIndex.value[img.fileId] = []
+                    }
+                    fileIndex.value[img.fileId].push(img)
+                }
             }
             for (let i = 0; i < values.length; i++) {
                 img.properties[-i - 1] = values[i]
@@ -154,9 +166,13 @@ export const useDataStore = defineStore('dataStore', () => {
         }
     }
 
-    function importProperties(toImport: Property[]) {
+    function importProperties(toImport: any[]) {
         const someNew = toImport.some(p => properties.value[p.id] == undefined)
-        for (let property of toImport) {
+        for (let raw of toImport) {
+            // DB model uses dtype; frontend model uses type
+            const property: Property = raw.dtype !== undefined
+                ? { ...raw, type: raw.dtype }
+                : raw
             if (property.id in properties.value) {
                 property.tags = properties.value[property.id].tags
             }
@@ -169,9 +185,13 @@ export const useDataStore = defineStore('dataStore', () => {
         }
     }
 
-    function importTags(toImport: Tag[]) {
+    function importTags(toImport: any[]) {
         const updated = new Set<number>()
-        for (let tag of toImport) {
+        for (let raw of toImport) {
+            // DB model uses list_id (camelCased to listId); frontend model uses propertyId
+            let tag: Tag = raw.listId !== undefined
+                ? { ...raw, propertyId: raw.listId }
+                : raw
             if (tag.id == deletedID) continue
 
             if (tags.value[tag.id]) {
@@ -265,6 +285,8 @@ export const useDataStore = defineStore('dataStore', () => {
         const props = properties.value
         const insts = instances.value
 
+        console.log(imageValuesArrays)
+
         for (let arr of imageValuesArrays) {
             const propertyId = arr.propertyId
             const isTagProperty = isTag(props[propertyId].type)
@@ -281,6 +303,46 @@ export const useDataStore = defineStore('dataStore', () => {
                         updateTagCount(insts[img.id].properties[propertyId], value)
                     }
 
+                    instances.value[img.id].properties[propertyId] = value
+                    dirtyInstances.add(img.id)
+                }
+            }
+        }
+    }
+
+    function importFileValues(fileValues: FilePropertyValue[]) {
+        for (let v of fileValues) {
+            if (v.value == undefined) continue
+            if (fileIndex.value[v.fileId] == undefined) continue
+            for (let img of fileIndex.value[v.fileId]) {
+                if (isTag(properties.value[v.propertyId].type)) {
+                    updateTagCount(instances.value[img.id].properties[v.propertyId], v.value)
+                }
+                instances.value[img.id].properties[v.propertyId] = v.value
+                dirtyInstances.add(img.id)
+            }
+        }
+    }
+
+    function importFileValuesArray(fileValuesArrays: FileValuesArray[]) {
+        const props = properties.value
+        const insts = instances.value
+
+        for (let arr of fileValuesArrays) {
+            const propertyId = arr.propertyId
+            const isTagProperty = isTag(props[propertyId].type)
+
+            for (let i = 0; i < arr.fileIds.length; i++) {
+                const fileId = arr.fileIds[i]
+                const value = JSON.parse(arr.values[i])
+
+                if (value == undefined) continue
+                if (fileIndex.value[fileId] == undefined) continue
+
+                for (let img of fileIndex.value[fileId]) {
+                    if (isTagProperty) {
+                        updateTagCount(insts[img.id].properties[propertyId], value)
+                    }
                     instances.value[img.id].properties[propertyId] = value
                     dirtyInstances.add(img.id)
                 }
@@ -324,7 +386,21 @@ export const useDataStore = defineStore('dataStore', () => {
                     }
                 })
             })
-
+        }
+        if (commit.emptyFileValues) {
+            commit.emptyFileValues.forEach(v => {
+                const imgs = fileIndex.value[v.fileId]
+                if (!imgs) return
+                imgs.forEach(i => {
+                    if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
+                        updateTagCount(instances.value[i.id].properties[v.propertyId], [])
+                    }
+                    if (instances.value[i.id]) {
+                        delete instances.value[i.id].properties[v.propertyId]
+                        dirtyInstances.add(i.id)
+                    }
+                })
+            })
         }
         if (commit.emptyInstanceValues) {
             commit.emptyInstanceValues.forEach(v => {
@@ -382,6 +458,9 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.imageValues?.length) {
             importImageValues(commit.imageValues)
         }
+        if (commit.fileValues?.length) {
+            importFileValues(commit.fileValues)
+        }
         if (commit.history) {
             history.value = commit.history
         }
@@ -404,6 +483,7 @@ export const useDataStore = defineStore('dataStore', () => {
         propertyGroups.value = {}
         tags.value = {}
         sha1Index.value = {}
+        fileIndex.value = {}
         vectorTypes.value = []
         vectorStats.value = { count: {}, sha1Count: 0 }
 
@@ -413,16 +493,39 @@ export const useDataStore = defineStore('dataStore', () => {
         history.value = { undo: [], redo: [] }
         onUndo.value = 0
         isLoaded.value = false
+        lastSequence.value = 0
+    }
+
+    function applyDelta(delta: LoadResult) {
+        const needsPropertyTree = delta.chunk ? hasPropertyChanges(delta.chunk) : false
+        if (delta.chunk) applyCommit(delta.chunk, true)
+        if (delta.instanceValues) importInstanceValuesArray(delta.instanceValues)
+        if (delta.imageValues) importImageValuesArray(delta.imageValues)
+        if (delta.fileValues) importFileValuesArray(delta.fileValues)
+        if (delta.state?.maxSequence > lastSequence.value) {
+            lastSequence.value = delta.state.maxSequence
+        }
+        triggerRefs()
+        if (needsPropertyTree) {
+            computePropertyTree()
+        }
     }
 
     async function sendCommit(commit: DbCommit, undo?: boolean, disableTrigger?: boolean) {
-        // console.log('send commit', commit)
-        // TODO: verify. disable trigger need as is should now be handled by socket route this function has now no control over this
-        if (undo) {
-            commit.undo = true
+        const hasUpsert = !!(commit.properties?.length || commit.tags?.length ||
+            commit.instanceValues?.length || commit.imageValues?.length || commit.fileValues?.length ||
+            commit.propertyGroups?.length || commit.instances?.length)
+        const hasDelete = !!(commit.emptyInstances?.length || commit.emptyProperties?.length ||
+            commit.emptyTags?.length || commit.emptyPropertyGroups?.length ||
+            commit.emptyInstanceValues?.length || commit.emptyImageValues?.length || commit.emptyFileValues?.length)
+
+        let res: DbCommit = {}
+        if (hasUpsert) {
+            res = await apiCommitUpsert(commit)
         }
-        const res = await apiCommit(commit)
-        // applyCommit(res, disableTrigger)
+        if (hasDelete) {
+            await apiCommitDelete(commit)
+        }
         return res
     }
 
@@ -431,6 +534,7 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(folders)
         triggerRef(instances)
         triggerRef(sha1Index)
+        triggerRef(fileIndex)
         triggerRef(tags)
         triggerRef(propertyGroups)
         emitOnChange()
@@ -479,6 +583,7 @@ export const useDataStore = defineStore('dataStore', () => {
         const mode = properties.value[propertyId].mode
         const instanceValues: InstancePropertyValue[] = []
         const imageValues: ImagePropertyValue[] = []
+        const fileValues: FilePropertyValue[] = []
         if (mode == PropertyMode.id) {
             const values = images.map(i => ({ propertyId: propertyId, instanceId: i.id, value: value } as InstancePropertyValue))
             instanceValues.push(...values)
@@ -487,7 +592,16 @@ export const useDataStore = defineStore('dataStore', () => {
             const values = images.map(i => ({ propertyId: propertyId, sha1: i.sha1, value: value } as ImagePropertyValue))
             imageValues.push(...values)
         }
-        await sendCommit({ instanceValues: instanceValues, imageValues: imageValues }, true)
+        if (mode == PropertyMode.file) {
+            const seen = new Set<number>()
+            for (const img of images) {
+                if (img.fileId != null && !seen.has(img.fileId)) {
+                    seen.add(img.fileId)
+                    fileValues.push({ propertyId, fileId: img.fileId, value })
+                }
+            }
+        }
+        await sendCommit({ instanceValues, imageValues, fileValues }, true)
     }
 
     async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[], dontEmit?: boolean) {
@@ -630,6 +744,7 @@ export const useDataStore = defineStore('dataStore', () => {
         for (let instance of updatedInstances) {
             if (instances.value[instance.id] != undefined) continue
             let folder = folders.value[instance.folderId]
+            if (!folder) continue
             folder.count += 1
             folder = folders.value[folder.parent]
             while (folder) {
@@ -641,6 +756,7 @@ export const useDataStore = defineStore('dataStore', () => {
             if (instances.value[id] == undefined) continue
             const instance = instances.value[id]
             let folder = folders.value[instance.folderId]
+            if (!folder) continue
             folder.count -= 1
             folder = folders.value[folder.parent]
             while (folder) {
@@ -810,7 +926,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     return {
-        init, getTmpId, loadState, isLoaded,
+        init, getTmpId, loadState, isLoaded, lastSequence, applyDelta,
         onChange,
         folders, instances, properties, tags, history, vectorTypes, vectorStats,
         folderRoots, sha1Index, instanceList, propertyList, tagList,

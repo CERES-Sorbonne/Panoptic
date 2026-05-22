@@ -427,6 +427,7 @@
             "instance": "Propriétés de l'instance",
             "instances": "Propriété des instances",
             "image": "Propriétés d'image",
+            "file": "Propriétés du fichier",
             "delete": "Voulez vous vraiment supprimer la propriété"
         }
     },

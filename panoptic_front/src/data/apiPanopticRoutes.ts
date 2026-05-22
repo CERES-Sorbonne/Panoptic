@@ -3,7 +3,7 @@
  */
 
 import axios from 'axios'
-import { DirInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User } from './models'
+import { DirInfo, PluginAddPayload, Notif, NotifType, ApiRequestDescription, ProjectRef, User, PluginType } from './models'
 import { PluginKey, usePanopticStore } from './panopticStore'
 import { keysToCamel, keysToSnake } from '@/utils/utils'
 
@@ -39,6 +39,7 @@ panopticApi.interceptors.response.use(response => response, (error) => {
 
     const notif: Notif = { type: NotifType.ERROR, name: 'BackendError: ' + errorName, message: message, request: req, unexpected: true, traceback: traceback }
     panoptic.notify(notif)
+    return Promise.reject(error)
 })
 
 export async function apiGetFilesystemInfo() {
@@ -69,18 +70,23 @@ export async function apiGetUsers() {
 
 export async function apiGetPlugins() {
     const res = await panopticApi.get('/plugins')
-    return keysToCamel(res.data) as PluginKey[]
+    return (res.data as any[]).map(p => ({
+        id: p[0],
+        installPath: p[1],
+        sourceType: p[2] as PluginType,
+        sourcePath: p[3],
+    })) as PluginKey[]
 }
 
-export async function apiLoadProject(projectId: number) {
+export async function apiLoadProject(projectId: string) {
     await panopticApi.post('/load', { id: projectId })
 }
 
-export async function apiCloseProject(projectId: number) {
+export async function apiCloseProject(projectId: string) {
     await panopticApi.post('/close', { id: projectId })
 }
 
-export async function apiDeleteProject(projectId: number, deleteFiles: boolean) {
+export async function apiDeleteProject(projectId: string, deleteFiles: boolean) {
     await panopticApi.post('/delete_project', { id: projectId, delete_files: deleteFiles })
 }
 
@@ -97,17 +103,15 @@ export async function apiImportProject(path: string) {
 }
 
 export async function apiAddPlugin(payload: PluginAddPayload) {
-    let res = await panopticApi.post('/plugins', payload)
-    return res.data as string[]
+    await panopticApi.post('/plugins', { name: payload.name, source: payload.source, source_type: payload.type })
 }
 
-export async function apiDelPlugin(name: string) {
-    let res = await panopticApi.delete('/plugins', { params: { name } })
-    return res.data as string[]
+export async function apiDelPlugin(pluginId: string) {
+    await panopticApi.delete('/plugins', { params: { plugin_id: pluginId } })
 }
 
-export async function apiUpdatePlugin(name: string) {
-    let res = await panopticApi.post('/plugin/update', {name})
+export async function apiUpdatePlugin(pluginId: string) {
+    let res = await panopticApi.post('/plugin/update', { plugin_id: pluginId })
     return res.data as boolean
 }
 

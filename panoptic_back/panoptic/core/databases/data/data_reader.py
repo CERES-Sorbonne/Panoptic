@@ -3,12 +3,12 @@ from typing import List
 from panoptic.core.databases.data.create import (
     COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
     INSTANCES_SCHEMA, PROPERTIES_SCHEMA, TAGS_SCHEMA,
-    INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA
+    INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA
 )
 from panoptic.core.databases.sqlite_reader import SQLiteReader
 from panoptic.models.data import (
     Commit, FileSource, Folder, File, Instance,
-    Property, Tag, InstanceValue, Sha1Value
+    Property, Tag, InstanceValue, Sha1Value, FileValue
 )
 
 
@@ -20,7 +20,7 @@ class DataReader(SQLiteReader):
         result = self.conn.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()
         return result[0] if result else 0
 
-    def get_max_sequence(self) -> int:
+    def get_next_sequence(self) -> int:
         result = self.conn.execute("SELECT COALESCE(MAX(id), 0) FROM sequence").fetchone()
         return result[0] if result else 0
 
@@ -72,3 +72,28 @@ class DataReader(SQLiteReader):
 
     def get_sha1_values(self, **filters) -> List[Sha1Value]:
         return SHA1_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_file_values(self, **filters) -> List[FileValue]:
+        return FILE_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_delta(self, since: int) -> dict:
+        data = {
+            'instances':       INSTANCES_SCHEMA.get_since(self.conn, since),
+            'files':           FILES_SCHEMA.get_since(self.conn, since),
+            'folders':         FOLDERS_SCHEMA.get_since(self.conn, since),
+            'properties':      PROPERTIES_SCHEMA.get_since(self.conn, since),
+            'tags':            TAGS_SCHEMA.get_since(self.conn, since),
+            'instance_values': INSTANCE_VALUES_SCHEMA.get_since(self.conn, since),
+            'image_values':    SHA1_VALUES_SCHEMA.get_since(self.conn, since),
+            'file_values':     FILE_VALUES_SCHEMA.get_since(self.conn, since),
+        }
+        max_seq = since
+        for table in ('instances', 'files', 'folders', 'properties', 'tags',
+                      'instance_values', 'sha1_values', 'file_values'):
+            row = self.conn.execute(
+                f"SELECT MAX(sequence) FROM {table} WHERE sequence > ?", (since,)
+            ).fetchone()
+            if row and row[0] is not None:
+                max_seq = max(max_seq, row[0])
+        data['sequence'] = max_seq
+        return data

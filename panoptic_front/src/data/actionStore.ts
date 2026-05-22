@@ -82,6 +82,11 @@ export const useActionStore = defineStore('actionStore', () => {
         Object.keys(defaultActions).forEach(k => defaultActions[k] = undefined)
     }
 
+    async function reload() {
+        loaded.value = false
+        await init()
+    }
+
     async function updateDefaultParams() {
         const defaults = {}
         for (let action of objValues(index.value)) {
@@ -203,7 +208,7 @@ export const useActionStore = defineStore('actionStore', () => {
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction, hasVectorFunction,
         getSimilarImages, getContext,
-        clear, init, callComputeVector,
+        clear, init, reload, callComputeVector,
         textSearchFunctions
     }
 })

@@ -91,6 +91,14 @@ class Sha1Value(msgspec.Struct, array_like=True):
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
+class FileValue(msgspec.Struct, array_like=True):
+    property_id: Annotated[int, PrimaryKey]
+    file_id:     Annotated[int, PrimaryKey]
+    value: Any # Handled as JSON
+    # Tracking fields
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
+
 # --- WRITE MODELS ---
 
 class PropertyValueWrite(msgspec.Struct, array_like=True):
@@ -117,3 +125,4 @@ class UpsertCommit(msgspec.Struct):
     tags: dict[int, Tag] = msgspec.field(default_factory=dict)
     instance_values: dict[int, list[InstanceValue]] = msgspec.field(default_factory=dict)
     sha1_values: dict[int, list[Sha1Value]] = msgspec.field(default_factory=dict)
+    file_values: dict[int, list[FileValue]] = msgspec.field(default_factory=dict)

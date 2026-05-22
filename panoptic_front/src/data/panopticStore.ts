@@ -30,10 +30,10 @@ export interface Project {
 }
 
 export interface PluginKey {
-    name: string
-    source: string
-    type: PluginType
-    path?: string
+    id: string
+    sourcePath: string
+    sourceType: PluginType
+    installPath?: string
 }
 
 
@@ -72,6 +72,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     async function fetchPlugins() {
         plugins.value = await apiGetPlugins()
+        console.log(plugins.value)
     }
 
     async function fetchUsers() {
@@ -100,18 +101,18 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     // Project management
     // ---------------------------------------------------------------
 
-    async function loadProject(projectId: number) {
+    async function loadProject(projectId: string) {
         project.clear()
         await apiLoadProject(projectId)
     }
 
-    async function closeProject(projectId: number) {
+    async function closeProject(projectId: string) {
         notifs.value = []
         project.clear()
         await apiCloseProject(projectId)
     }
 
-    async function deleteProject(projectId: number) {
+    async function deleteProject(projectId: string) {
         const deleteFiles: boolean = window.confirm("Would you also like to delete the associated files?")
         await apiDeleteProject(projectId, deleteFiles)
         await fetchProjects()

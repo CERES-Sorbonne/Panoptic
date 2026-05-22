@@ -80,6 +80,7 @@ class PropertyType(Enum):
 class PropertyMode(Enum):
     id = 'id'
     sha1 = 'sha1'
+    file = 'file'
 
 
 @dataclass(slots=True)

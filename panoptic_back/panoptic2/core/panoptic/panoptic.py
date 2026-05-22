@@ -122,7 +122,9 @@ class Panoptic2:
                 f"{actual_id!r}. Re-import the project to fix the registration."
             )
 
-        project = Project2(Path(key.path))
+        all_plugins = self.db.get_plugins()
+        project_plugins = [p for p in all_plugins if p.id not in key.excluded_plugins]
+        project = Project2(Path(key.path), plugin_keys=project_plugins)
         project.start()
 
         with self._lock:

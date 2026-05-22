@@ -13,6 +13,7 @@ export interface Instance {
     url: string
     // fullUrl: string
     folderId: number
+    fileId: number
     extension: string
     properties: {
         [id: number]: any
@@ -78,7 +79,8 @@ export enum PropertyType {
 
 export enum PropertyMode {
     sha1 = 'sha1',
-    id = 'id'
+    id = 'id',
+    file = 'file'
 }
 
 export interface PropertyValue {
@@ -102,9 +104,21 @@ export interface ImagePropertyValue {
     value: any
 }
 
+export interface FilePropertyValue {
+    propertyId: number
+    fileId: number
+    value: any
+}
+
 export interface ImageValuesArray {
     propertyId: number
     sha1s: string[]
+    values: any[]
+}
+
+export interface FileValuesArray {
+    propertyId: number
+    fileIds: number[]
     values: any[]
 }
 
@@ -435,7 +449,7 @@ export interface PluginDefaultParams {
 export enum PluginType {
     PIP = "pip",
     GIT = "git",
-    LOCAL = "local"
+    LOCAL = "path"
 }
 
 export interface PluginAddPayload {
@@ -537,6 +551,7 @@ export interface DbCommit {
     emptyTags?: number[]
     emptyInstanceValues?: InstancePropertyValue[]
     emptyImageValues?: ImagePropertyValue[]
+    emptyFileValues?: FilePropertyValue[]
 
     instances?: Instance[]
     propertyGroups?: PropertyGroup[]
@@ -544,6 +559,7 @@ export interface DbCommit {
     tags?: Tag[]
     instanceValues?: InstancePropertyValue[]
     imageValues?: ImagePropertyValue[]
+    fileValues?: FilePropertyValue[]
 
     undo?: boolean
     history?: CommitHistory
@@ -691,6 +707,7 @@ export interface LoadResult {
     state: LoadState
     instanceValues?: InstanceValuesArray[]
     imageValues?: ImageValuesArray[]
+    fileValues?: FileValuesArray[]
 }
 
 export interface LoadState {
@@ -699,15 +716,20 @@ export interface LoadState {
     finishedTags?: boolean
     finishedInstanceValues?: boolean
     finishedImageValues?: boolean
+    finishedFileValues?: boolean
     finishedPropertyGroups?: boolean
 
     counterInstance: number
     counterInstanceValue: number
     counterImageValue: number
+    counterFileValue: number
 
     maxInstance: number
     maxInstanceValue: number
     maxImageValue: number
+    maxFileValue: number
+
+    maxSequence: number
 }
 
 export enum UploadError {
@@ -761,7 +783,7 @@ export interface ConnectionState {
 }
 
 export interface ProjectState {
-    id: number
+    id: string
     name: string
     path: string
     tasks: TaskState[]

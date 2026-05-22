@@ -5,15 +5,13 @@ import inspect
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
+from panoptic.core.databases.media.models import VectorType
 from panoptic2.models.action_models import (
     ActionContext, ActionResult, FunctionDescription, OwnVectorType,
     ParamDescription, PropertyId, InputFile,
 )
-
-if TYPE_CHECKING:
-    from panoptic2.core.plugin.plugin import APlugin
 
 # String type tags understood by the UI
 _TYPE_MAP: dict = {
@@ -25,6 +23,7 @@ _TYPE_MAP: dict = {
     PropertyId:    'property',
     ActionContext: 'context',
     OwnVectorType: 'own_vector_type',
+    VectorType:    'vector_type',
     InputFile:     'input_file',
 }
 
@@ -75,12 +74,12 @@ def _build_param_descriptions(fn: Callable) -> list[ParamDescription]:
     return result
 
 
-def build_function_description(plugin: APlugin, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
+def build_function_description(plugin_name: str, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
     fn_name = fn.__name__
     doc = fn.__doc__ or ''
     description = doc[:doc.index('@')].strip() if '@' in doc else doc.strip() or None
     return FunctionDescription(
-        id=f'{plugin.name}.{fn_name}',
+        id=f'{plugin_name}.{fn_name}',
         name=fn_name,
         description=description,
         params=_build_param_descriptions(fn),
@@ -111,7 +110,7 @@ class Action:
                 raw = param_type(raw)
             elif desc.type in ('own_vector_type', 'vector_type'):
                 if isinstance(raw, dict):
-                    raw = param_type(**raw)
+                    raw = VectorType(**raw)
             kwargs[desc.name] = raw
         return self._fn(ctx, **kwargs)
 
@@ -127,8 +126,8 @@ class ActionRegistry:
     def add(self, fn: Callable, description: FunctionDescription) -> None:
         self.actions[description.id] = Action(fn, description)
 
-    def easy_add(self, plugin: APlugin, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
-        desc = build_function_description(plugin, fn, hooks)
+    def easy_add(self, plugin_name: str, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
+        desc = build_function_description(plugin_name, fn, hooks)
         self.add(fn, desc)
         return desc
 

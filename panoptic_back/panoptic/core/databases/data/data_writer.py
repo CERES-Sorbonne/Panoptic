@@ -3,12 +3,13 @@ from sqlite3 import Cursor
 from typing import Any
 
 from panoptic.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
-    TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA
+    TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, \
+    FILE_VALUES_SCHEMA
 from panoptic.core.databases.entity_schema import EntitySchema, PropertyValueSchema
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models import PropertyType
 from panoptic.models.data import (
-    Commit, DeleteCommit, UpsertCommit, InstanceValue, Sha1Value
+    Commit, DeleteCommit, UpsertCommit, InstanceValue, Sha1Value, FileValue
 )
 
 OP_STAMP_SET = "stamp_set"
@@ -41,6 +42,7 @@ class DataWriter(SQLiteWriter):
             self._upsert_commit_tags(tx, data, commit_id, seq_number)
             self._upsert_commit_instance_values(tx, data, commit_id, seq_number)
             self._upsert_commit_sha1_values(tx, data, commit_id, seq_number)
+            self._upsert_commit_file_values(tx, data, commit_id, seq_number)
 
             commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now, active=True)
             COMMITS_SCHEMA.upsert(tx, commit, sequence=seq_number)
@@ -317,6 +319,39 @@ class DataWriter(SQLiteWriter):
 
         # Log the original intent (all_updates contains the actual OP_ADD/OP_SUB ops)
         SHA1_VALUES_SCHEMA.append_log(tx, all_updates, commit_id=commit_id)
+
+    def _upsert_commit_file_values(self, tx: Cursor, data: UpsertCommit, commit_id: int, sequence: int):
+        if not data.file_values:
+            return
+
+        p_ids = list(data.file_values.keys())
+        properties = PROPERTIES_SCHEMA.get_index(tx, id=p_ids)
+
+        all_updates: list[FileValue] = []
+        merge_updates: list[FileValue] = []
+        final_values: list[FileValue] = []
+
+        for prop_id, values in data.file_values.items():
+            prop = properties[prop_id]
+            if prop.dtype == PropertyType.multi_tags.value:
+                merge_updates.extend(values)
+            else:
+                final_values.extend(values)
+            all_updates.extend(values)
+
+        if merge_updates:
+            merge_index = FILE_VALUES_SCHEMA.list_to_index(merge_updates)
+            db_value_index = FILE_VALUES_SCHEMA.get_by_pk_index(tx, list(merge_index.keys()))
+            for pk, value in merge_index.items():
+                db_value = db_value_index.get(pk)
+                final_value = FILE_VALUES_SCHEMA.merge_logs([db_value, value])
+                if final_value:
+                    final_values.append(final_value)
+
+        if final_values:
+            FILE_VALUES_SCHEMA.upsert(tx, final_values, sequence=sequence)
+
+        FILE_VALUES_SCHEMA.append_log(tx, all_updates, commit_id=commit_id)
 
     @staticmethod
     def _delete_function(tx: Cursor, shema: EntitySchema, commit_id: int, sequence: int, **fields):

@@ -114,6 +114,7 @@ projectApi.interceptors.response.use(response => response, (error) => {
 
     const notif: Notif = { type: NotifType.ERROR, name: 'BackendError: ' + errorName, message: message, request: req, unexpected: true, traceback: traceback }
     panoptic.notify(notif)
+    return Promise.reject(error)
 })
 
 export async function apiGetProjectState() {
@@ -265,9 +266,13 @@ export async function apiGetVectorInfo() {
     return res.data as ProjectVectorDescription
 }
 
+export function mapVectorType(p: any[]): VectorType {
+    return { id: p[0], source: p[1], params: p[2] }
+}
+
 export async function apiGetVectorTypes() {
     let res = await projectApi.get('/vector_types')
-    return res.data as VectorType[]
+    return (res.data as any[]).map(mapVectorType) as VectorType[]
 }
 
 export async function apiGetVectorStats() {
@@ -323,17 +328,29 @@ export async function apiRedo() {
     return keysToCamel(res.data) as DbCommit
 }
 
-export async function apiCommit(commit: DbCommit) {
-    const fixed: any = keysToSnake(deepCopy(commit))
-    if (commit.instances) fixed.instances = commit.instances.map(i => keysToSnake(i))
-    if (commit.properties) fixed.properties = commit.properties.map(p => keysToSnake(p))
-    if (commit.tags) fixed.tags = commit.tags.map(t => keysToSnake(t))
-    if (commit.instanceValues) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
-    if (commit.imageValues) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
-
-    // console.log(fixed)
-    const res = await projectApi.post('/commit', fixed)
+export async function apiCommitUpsert(commit: DbCommit): Promise<DbCommit> {
+    const fixed: any = {}
+    if (commit.properties?.length) fixed.properties = commit.properties.map(p => keysToSnake(p))
+    if (commit.tags?.length) fixed.tags = commit.tags.map(t => keysToSnake(t))
+    if (commit.instanceValues?.length) fixed.instance_values = commit.instanceValues.map(v => keysToSnake(v))
+    if (commit.imageValues?.length) fixed.image_values = commit.imageValues.map(v => keysToSnake(v))
+    if (commit.fileValues?.length) fixed.file_values = commit.fileValues.map(v => keysToSnake(v))
+    if (commit.propertyGroups?.length) fixed.property_groups = commit.propertyGroups.map(g => keysToSnake(g))
+    if (commit.instances?.length) fixed.instances = commit.instances.map(i => keysToSnake(i))
+    const res = await projectApi.post('/commit/upsert', fixed)
     return keysToCamel(res.data) as DbCommit
+}
+
+export async function apiCommitDelete(commit: DbCommit): Promise<void> {
+    const fixed: any = {}
+    if (commit.emptyInstances?.length) fixed.empty_instances = commit.emptyInstances
+    if (commit.emptyProperties?.length) fixed.empty_properties = commit.emptyProperties
+    if (commit.emptyTags?.length) fixed.empty_tags = commit.emptyTags
+    if (commit.emptyPropertyGroups?.length) fixed.empty_property_groups = commit.emptyPropertyGroups
+    if (commit.emptyInstanceValues?.length) fixed.empty_instance_values = commit.emptyInstanceValues.map(v => keysToSnake(v))
+    if (commit.emptyImageValues?.length) fixed.empty_image_values = commit.emptyImageValues.map(v => keysToSnake(v))
+    if (commit.emptyFileValues?.length) fixed.empty_file_values = commit.emptyFileValues.map(v => keysToSnake(v))
+    await projectApi.post('/commit/delete', fixed)
 }
 
 export async function apiGetHistory() {
@@ -434,4 +451,9 @@ export async function apiBenchmark() {
 export async function apiGetAtlas(atlasId: number) {
     const res = await projectApi.get('/atlas/' + String(atlasId))
     return keysToCamel(res.data) as ImageAtlas
+}
+
+export async function apiGetDelta(since: number): Promise<LoadResult> {
+    const res = await projectApi.get(`/delta?since=${since}`)
+    return keysToCamel(res.data) as LoadResult
 }

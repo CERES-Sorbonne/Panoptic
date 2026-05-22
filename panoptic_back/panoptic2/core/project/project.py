@@ -10,7 +10,7 @@ from panoptic.core.databases.panoptic.models import PluginKey
 from panoptic.core.databases.project.models import ProjectConfig, TabData, UserDefaults
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.models.data import (
-    Commit, DeleteCommit, File, FileSource, Folder, Instance,
+    Commit, DeleteCommit, File, FileSource, FileValue, Folder, Instance,
     InstanceValue, Property, Sha1Value, Tag, UpsertCommit,
 )
 from panoptic2.core.plugin.action_registry import ActionRegistry
@@ -167,6 +167,10 @@ class Project2:
         with self._data_reader() as r:
             return r.get_sha1_values(**filters)
 
+    def get_file_values(self, **filters) -> List[FileValue]:
+        with self._data_reader() as r:
+            return r.get_file_values(**filters)
+
     # ------------------------------------------------------------------
     # Writes  (DataWriter open/close per call)
     # ------------------------------------------------------------------
@@ -222,6 +226,14 @@ class Project2:
     def delete_vector_type(self, vector_type_id: int):
         with self._media_db() as db:
             db.delete_vector_type(vector_type_id)
+
+    def get_vector_stats(self) -> dict:
+        with self._media_db() as db:
+            stats = db.get_vector_stats()
+        with self._data_reader() as r:
+            row = r.conn.execute("SELECT COUNT(DISTINCT sha1) FROM instances").fetchone()
+            stats['sha1_count'] = row[0] if row else 0
+        return stats
 
     def get_vectors(self, **filters) -> List[Vector]:
         with self._media_db() as db:
@@ -279,6 +291,10 @@ class Project2:
     # Tasks
     # ------------------------------------------------------------------
 
+    def import_folder(self, path: str) -> Task:
+        from panoptic2.core.task.import_folder_task import ImportFolderTask
+        return self.add_task(ImportFolderTask(self, path))
+
     def add_task(self, task: Task, high_priority: bool = False) -> Task:
         return self.task_manager.add_task(task, high_priority=high_priority)
 
@@ -298,23 +314,25 @@ class Project2:
     def add_plugin(self, plugin) -> None:
         self.plugins.append(plugin)
 
-    # ------------------------------------------------------------------
-    # Plugin param storage  (reuses UserDefaults table, user_id='plugin.<name>')
-    # ------------------------------------------------------------------
+    def make_plugin_interface(self, plugin_name: str):
+        from panoptic2.core.plugin.plugin_interface import PluginProjectInterface
+        return PluginProjectInterface(
+            plugin_name=plugin_name,
+            base_path=self.folder,
+            data_db_path=self.data_db_path,
+            media_db_path=self.media_db_path,
+            project_db_path=self.project_db_path,
+            task_manager=self.task_manager,
+            action_registry=self.action,
+            register_instance_import=self.on_instance_import,
+            register_folder_delete=self.on_folder_delete,
+        )
 
-    def get_plugin_params(self, plugin_name: str) -> dict | None:
-        with self._project_db() as db:
-            row = db.get_user_defaults(user_id=f'plugin.{plugin_name}', key='params')
-            return row.data if row else None
-
-    def set_plugin_params(self, plugin_name: str, params: dict) -> None:
-        from panoptic.core.databases.project.models import UserDefaults
-        with self._project_db() as db:
-            db.set_user_defaults(UserDefaults(
-                user_id=f'plugin.{plugin_name}',
-                key='params',
-                data=params,
-            ))
+    def update_plugin_params(self, plugin_name: str, params: dict) -> None:
+        plugin = next((p for p in self.plugins if p.name == plugin_name), None)
+        if plugin is None:
+            raise KeyError(f'Plugin {plugin_name!r} is not loaded')
+        plugin.update_params(params)
 
     # ------------------------------------------------------------------
     # Events  (triggered by Project2 write methods)

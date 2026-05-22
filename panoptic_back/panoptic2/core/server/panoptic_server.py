@@ -65,8 +65,12 @@ class PanopticServer2:
         self._connection_states:      dict[str, ConnectionState] = {}
         self._connect_id_counter = 0
 
-        # DbWatcher per loaded project (id → watcher)
-        self._watchers: dict[str, DbWatcher] = {}
+        # DbWatcher per loaded project (id → watcher) + its asyncio task
+        self._watchers:      dict[str, DbWatcher]          = {}
+        self._watcher_tasks: dict[str, asyncio.Task]       = {}
+
+        # Last known project per user (user_id → project_id), in-memory only
+        self._user_last_project: dict[str, str | None] = {}
 
         # asyncio loop — set in on_startup()
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -80,6 +84,25 @@ class PanopticServer2:
     def on_startup(self) -> None:
         """Call from FastAPI/uvicorn startup hook to capture the running event loop."""
         self._loop = asyncio.get_running_loop()
+
+    async def shutdown(self) -> None:
+        """Tear down all watchers so every DataReader connection closes before the
+        process exits. Without this, SQLite leaves behind -wal/-shm files."""
+        watcher_ids = list(self._watchers.keys())
+        for id_ in watcher_ids:
+            await self._detach_watcher(id_)
+        # Final TRUNCATE checkpoint on every still-loaded project's data DB.
+        # The readers are now gone, so the checkpoint will succeed.
+        await anyio.to_thread.run_sync(self._checkpoint_all_projects)
+
+    def _checkpoint_all_projects(self) -> None:
+        from panoptic.core.databases.data.data_writer import DataWriter
+        for project in self._panoptic._loaded_projects.values():
+            try:
+                with DataWriter(str(project.data_db_path)) as w:
+                    w.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except Exception:
+                logging.exception("WAL checkpoint failed for %s", project.data_db_path)
 
     # ------------------------------------------------------------------
     # Socket.IO event registration
@@ -107,7 +130,19 @@ class PanopticServer2:
             await self._emit_update_projects(sids=[sid])
             await self._emit_update_plugins(sids=[sid])
             await self._emit_update_users(sids=[sid])
-            await self._emit_connection_state(connection_id)
+
+            # Restore last project for this user if one is remembered
+            state = self._connection_states[connection_id]
+            last_project = self._user_last_project.get(state.user.id)
+            known_ids = {p.id for p in self._panoptic.db.get_projects()}
+            if last_project and last_project in known_ids and state.connected_project is None:
+                try:
+                    await self._load_project(last_project, connection_id)
+                except Exception:
+                    logging.exception(f"auto-restore project {last_project!r} failed")
+                    await self._emit_connection_state(connection_id)
+            else:
+                await self._emit_connection_state(connection_id)
 
         @sio.event
         async def disconnect(sid):
@@ -167,6 +202,7 @@ class PanopticServer2:
         state = self._connection_states.get(connection_id)
         if state:
             state.connected_project = id_
+            self._user_last_project[state.user.id] = id_
 
         await self._emit_connection_state(connection_id)
         await self._emit_update_projects()
@@ -178,7 +214,7 @@ class PanopticServer2:
             if s.connected_project == id_ and s.connection_id != connection_id
         )
         if remaining == 0:
-            self._detach_watcher(id_)
+            await self._detach_watcher(id_)
             await anyio.to_thread.run_sync(
                 lambda: self._panoptic.close_project(id_)
             )
@@ -186,6 +222,7 @@ class PanopticServer2:
         state = self._connection_states.get(connection_id)
         if state:
             state.connected_project = None
+            self._user_last_project[state.user.id] = None
 
         await self._emit_connection_state(connection_id)
         await self._emit_update_projects()
@@ -198,26 +235,31 @@ class PanopticServer2:
         watcher = DbWatcher(
             data_db_path=data_db_path,
             project_id=id_,
-            broadcast_fn=self._broadcast_commits,
+            broadcast_fn=self._broadcast_update,
         )
         self._watchers[id_] = watcher
-        # _attach_watcher is always called from an async context, so ensure_future is safe.
-        asyncio.ensure_future(watcher.run())
+        task = asyncio.ensure_future(watcher.run())
+        self._watcher_tasks[id_] = task
 
-    def _detach_watcher(self, id_: str) -> None:
-        watcher = self._watchers.pop(id_, None)
-        if watcher:
-            watcher.stop()
+    async def _detach_watcher(self, id_: str) -> None:
+        self._watchers.pop(id_, None)
+        task = self._watcher_tasks.pop(id_, None)
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
     # ------------------------------------------------------------------
     # Async broadcast helpers
     # ------------------------------------------------------------------
 
-    async def _broadcast_commits(self, id_: str, commit_ids: list[int]) -> None:
+    async def _broadcast_update(self, id_: str, sequence: int) -> None:
         sids = self._get_project_sids(id_)
         if not sids:
             return
-        await self._sio.emit('commits', {'project_id': id_, 'commit_ids': commit_ids}, to=sids)
+        await self._sio.emit('db_update', {'project_id': id_, 'sequence': sequence}, to=sids)
 
     async def _emit_update_projects(self, sids: list[str] = None) -> None:
         await self._sio.emit('update_projects', to=sids)
@@ -246,12 +288,40 @@ class PanopticServer2:
     # ------------------------------------------------------------------
 
     def _make_task_callback(self, id_: str):
-        """Return a sync callable that bridges task updates into the event loop."""
-        loop  = self._loop
-        sio   = self._sio
+        """Return a sync callable that bridges task updates into the event loop.
+
+        Throttled to at most 4 socket emissions per second; finished/stopped
+        states always bypass the throttle so the UI sees the final state.
+        """
+        import time as _time
+
+        loop   = self._loop
+        sio    = self._sio
         server = self
 
+        _INTERVAL  = 0.25          # seconds between emissions
+        _last: list[float] = [0.0] # mutable cell; mutated only from the task thread
+        _plugins_info_sent: set[str] = set()  # task IDs that already triggered plugins_info
+
         def on_update(states: list[TaskState]) -> None:
+            now = _time.monotonic()
+            # Only bypass throttle when no task is actively running (terminal state).
+            # Checking `any(finished)` would always be True once LoadPluginTask finishes
+            # because TaskManager keeps finished tasks in its registry indefinitely.
+            terminal = not any(s.running for s in states)
+            if not terminal and now - _last[0] < _INTERVAL:
+                return
+            _last[0] = now
+
+            # Only fire plugins_info once per LoadPluginTask instance (stale finished
+            # tasks stay in get_states() forever, so we must deduplicate by task ID).
+            new_plugin_done = [
+                s for s in states
+                if s.key == 'LoadPluginTask' and s.finished and s.id not in _plugins_info_sent
+            ]
+            plugin_task_finished = bool(new_plugin_done)
+            _plugins_info_sent.update(s.id for s in new_plugin_done)
+
             payload = {
                 'project_id': id_,
                 'tasks': [s.model_dump(mode='json') for s in states],
@@ -261,6 +331,8 @@ class PanopticServer2:
                 sids = server._get_project_sids(id_)
                 if sids:
                     await sio.emit('tasks', payload, to=sids)
+                    if plugin_task_finished:
+                        await sio.emit('plugins_info', {'project_id': id_}, to=sids)
 
             loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_emit()))
 

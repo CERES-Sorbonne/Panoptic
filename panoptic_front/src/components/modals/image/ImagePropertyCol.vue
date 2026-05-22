@@ -36,6 +36,7 @@ const closed = reactive({})
 
 const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed && p.id != deletedID))
 const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed && p.id != deletedID))
+const fileProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.file && !p.computed && p.id != deletedID))
 const metaProperties = computed(() => data.propertyList.filter(p => p.id < 0 && p.id != deletedID))
 
 
@@ -97,6 +98,20 @@ function toggleClosed(index: number) {
                     <i class="bi bi-plus btn-icon" style="font-size: 25px;"></i>
                     <span>{{ $t('main.nav.properties.add_property') }}</span>
                 </div>
+            </template>
+            <template v-if="fileProperties.length">
+                <div class="option" @click="toggleClosed(3)">
+                    <span>
+                        <i v-if="closed[3]" class="bi bi-caret-right-fill" />
+                        <i v-else class="bi bi-caret-down-fill"></i>
+                    </span>
+                    {{ $t('common.properties.file') }}
+                </div>
+                <template v-if="!closed[3]">
+                    <PropertyInputTable :image="props.image.image" :properties="fileProperties"
+                        :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
+                        @hoverEnd="emits('hoverEnd')" />
+                </template>
             </template>
             <div class="option" @click="toggleClosed(2)">
                 <span>

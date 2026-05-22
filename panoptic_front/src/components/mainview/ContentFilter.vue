@@ -107,7 +107,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         </div>
 
         <div class="ms-3">
-            <HistoryDropdown />
+            <!-- <HistoryDropdown /> -->
         </div>
         <div>
             <SelectionStamp v-if="hasSelectedImages" class="ms-5" style="font-size: 14px;"

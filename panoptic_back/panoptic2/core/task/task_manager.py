@@ -85,13 +85,30 @@ class TaskManager:
             task.start()
         except Exception:
             logging.exception(f"Task {task.id} failed")
-            task.state.running = False
-            task.state.finished = True
         finally:
             task.state.running = False
             task.state.finished = True
             task._finished_event.set()
             self._emit()
+        self._maybe_on_last(task)
+
+    def _maybe_on_last(self, task: Task) -> None:
+        with self._condition:
+            pending = any(
+                t.key == task.key
+                for q in (self._high_queue, self._normal_queue)
+                for t in q
+            )
+            running = any(
+                t.state.running
+                for t in self._tasks.values()
+                if t.key == task.key and t.id != task.id
+            )
+        if not pending and not running:
+            try:
+                task.on_last()
+            except Exception:
+                logging.exception(f"Task {task.id!r} on_last() failed")
 
     def _on_progress(self, state: TaskState):
         self._emit()

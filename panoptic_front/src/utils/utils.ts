@@ -435,6 +435,7 @@ export function isFinished(state: LoadState): boolean {
         state.finishedTags &&
         state.finishedInstanceValues &&
         state.finishedImageValues &&
+        state.finishedFileValues &&
         state.finishedPropertyGroups
 }
 

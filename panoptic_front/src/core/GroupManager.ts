@@ -743,6 +743,7 @@ export class GroupManager {
         groups.add(0) // add root group
         for (let groupId of groups) {
             const group = this.result.index[groupId]
+            if (!group) continue
             if (group.type == GroupType.Cluster) continue
             group.dirty = true
             group.images = group.images.filter(i => !removed.has(i.id) && !updated.has(i.id))

@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { io, Socket } from 'socket.io-client'
 import {
@@ -9,12 +9,12 @@ import {
     ProjectSettings,
     ProjectState,
     TaskState,
-    VectorType
 } from './models'
 import { keysToCamel } from '@/utils/utils'
 import { usePanopticStore } from '@/data/panopticStore'
 import { useProjectStore } from './projectStore'
 import { useDataStore } from './dataStore'
+import { apiGetDelta, mapVectorType } from './apiProjectRoutes'
 
 const CONNECTION_ID_KEY = 'panoptic_connection_id'
 
@@ -29,6 +29,30 @@ function setConnectionId(id: string) {
 export const useSocketStore = defineStore('socketStore', () => {
     let socket: Socket = null
     const loaded = ref(false)
+
+    let isSyncing = false
+    let pendingUpdate = false
+
+    async function processDelta() {
+        const dataStore = useDataStore()
+        if (!dataStore.isLoaded || isSyncing) return
+        isSyncing = true
+        pendingUpdate = false
+        try {
+            console.log('last sequence', dataStore.lastSequence)
+            const delta = await apiGetDelta(dataStore.lastSequence)
+            console.log('receive delta', delta)
+            dataStore.applyDelta(delta)
+        } finally {
+            isSyncing = false
+            if (pendingUpdate) processDelta()
+        }
+    }
+
+    // Flush any update that arrived while the initial stream load was still in progress
+    watch(() => useDataStore().isLoaded, (isLoaded) => {
+        if (isLoaded && pendingUpdate) processDelta()
+    })
 
     function init() {
         const connectionId = getConnectionId()
@@ -81,15 +105,14 @@ export const useSocketStore = defineStore('socketStore', () => {
             useProjectStore().importState(keysToCamel(data))
         })
 
-        socket.on('commit', (data) => {
-            const commits = keysToCamel(data) as DbCommit[]
-            useDataStore().applyMultipleCommits(commits)
+        socket.on('db_update', () => {
+            pendingUpdate = true
+            processDelta()
         })
 
         socket.on('tasks', (data) => {
-            const tasks = keysToCamel(data) as TaskState[]
-            console.log(tasks)
-            useProjectStore().importTasks(tasks)
+            const payload = keysToCamel(data) as { projectId: string, tasks: TaskState[] }
+            useProjectStore().importTasks(payload.tasks ?? [])
         })
 
         socket.on('project_settings', (data) => {
@@ -105,8 +128,8 @@ export const useSocketStore = defineStore('socketStore', () => {
             location.reload()
         })
 
-        socket.on('vector_types', (data: VectorType[]) => {
-            useDataStore().importVectorTypes(keysToCamel(data))
+        socket.on('vector_types', (data: any[]) => {
+            useDataStore().importVectorTypes(data.map(mapVectorType))
         })
 
         socket.on('maps', (mapList: PointMap[]) => {
@@ -114,6 +137,10 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('atlas', () => useDataStore().loadAtlas())
+
+        socket.on('plugins_info', () => {
+            useProjectStore().fetchPluginsInfo()
+        })
     }
 
     function close() {

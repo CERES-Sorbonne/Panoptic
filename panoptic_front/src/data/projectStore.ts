@@ -58,7 +58,6 @@ export const useProjectStore = defineStore('projectStore', () => {
         await dataStore.init()
         await actionStore.init()
 
-
         // usePanopticStore().showModal(ModalId.TAG, {})
     }
 
@@ -162,8 +161,15 @@ export const useProjectStore = defineStore('projectStore', () => {
         if (!state.value) return
         state.value.tasks = tasks
     }
+
     function importSettings(settings: ProjectSettings) {
         state.value.settings = settings
+    }
+
+    async function fetchPluginsInfo() {
+        if (!state.value) return
+        state.value.plugins = await apiGetPluginsInfo()
+        await actionStore.reload()
     }
 
     return {
@@ -177,6 +183,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         uploadPropFile,
         setPluginParams, saveUiState,
         call, importTasks,
+        fetchPluginsInfo,
         updateScoreInterval,
         // setActionFunctions, hasGroupFunction, hasSimilaryFunction,
         reload,
