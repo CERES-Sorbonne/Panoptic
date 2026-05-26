@@ -409,7 +409,7 @@ export class GroupManager {
 
         console.timeEnd('Group Update')
         if (emit) {
-            // // console.log('Group Update Emit')
+            // console.log('Group Update Emit')
             this.onResultChange.emit(this.result)
         }
         return this.result
@@ -731,6 +731,12 @@ export class GroupManager {
         const data = useDataStore()
         this.invalidateIterators()
         this.removeSha1Groups()
+
+        const oldGroupIds: { [id: number]: number[] } = {}
+        for (let id of updated) {
+            oldGroupIds[id] = [...(this.result.imageToGroups[id] ?? [])]
+        }
+
         let groups = new Set<number>()
         for (let instanceId of removed) {
             if (!this.result.imageToGroups[instanceId]) continue
@@ -778,9 +784,24 @@ export class GroupManager {
             this.groupLeafsBySha1()
         }
 
-        // console.log('Group Update Emit')
         this.computeImageOrder()
-        this.onResultChange.emit(this.result)
+
+        let structureChanged = removed.size > 1
+        console.log(removed)
+        if (!structureChanged) {
+            for (let id of updated) {
+                const before = oldGroupIds[id] ?? []
+                const after = this.result.imageToGroups[id] ?? []
+                console.log(id, before, after)
+                if (before.length !== after.length || before.some(g => !after.includes(g))) {
+                    structureChanged = true
+                    break
+                }
+            }
+        }
+        if (structureChanged) {
+            this.onResultChange.emit(this.result)
+        }
         return this.result
     }
 
