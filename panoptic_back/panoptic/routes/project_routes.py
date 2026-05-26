@@ -66,63 +66,71 @@ async def stream_db_state(project: Project = Depends(get_project_from_id)):
         state = LoadState()
         chunk_size = 10_000
 
+        # 1. Initialize metadata counts
         state.max_instance_value = await project.db.get_instance_values_count()
         state.max_image_value = await project.db.get_image_values_count()
         state.max_instance = await project.db.get_instances_count()
 
-        while not state.finished():
-            if not state.finished_property:
-                props = await project.db.get_properties(computed=True)
-                chunk = DbCommit(properties=props)
-                state.finished_property = True
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
+        # Helper to yield and format
+        def format_chunk(chunk=None, instance_values=None, image_values=None):
+            return orjson.dumps(asdict(LoadResult(
+                state=state,
+                chunk=chunk,
+                instance_values=instance_values,
+                image_values=image_values
+            ))) + b'\n'
 
-            if not state.finished_property_groups:
-                groups = await project.db.get_property_groups()
-                chunk = DbCommit(property_groups=groups)
-                state.finished_property_groups = True
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
+        # 2. Stream Properties
+        props = await project.db.get_properties(computed=True)
+        state.finished_property = True
+        yield format_chunk(chunk=DbCommit(properties=props))
 
-            if not state.finished_tags:
-                tags = await project.db.get_tags()
-                chunk = DbCommit(tags=tags)
-                state.finished_tags = True
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
+        # 3. Stream Property Groups
+        groups = await project.db.get_property_groups()
+        state.finished_property_groups = True
+        yield format_chunk(chunk=DbCommit(property_groups=groups))
 
-            if not state.finished_instance:
-                instances, end = await project.db.stream_instances(state.counter_instance, chunk_size)
-                chunk = DbCommit(instances=instances)
-                state.counter_instance += len(instances)
-                state.finished_instance = end
-                yield orjson.dumps(asdict(LoadResult(chunk=chunk, state=state))) + b'\n'
+        # 4. Stream Tags
+        tags = await project.db.get_tags()
+        state.finished_tags = True
+        yield format_chunk(chunk=DbCommit(tags=tags))
 
-            elif not state.finished_instance_values:
-                async for groups in group_property_stream(project.db.stream_instance_property_values_raw(chunk_size)):
-                    arr_list = [
-                        InstanceValuesArray(property_id=pid, ids=ids, values=vals)
-                        for pid, ids, vals in groups
-                    ]
-                    state.counter_instance_value += sum(len(a.values) for a in arr_list)
-                    yield orjson.dumps(asdict(LoadResult(state=state, instance_values=arr_list))) + b'\n'
-                state.finished_instance_values = True
+        # 5. Stream Instances (Paginated)
+        while not state.finished_instance:
+            instances, end = await project.db.stream_instances(state.counter_instance, chunk_size)
+            state.counter_instance += len(instances)
+            state.finished_instance = end
+            yield format_chunk(chunk=DbCommit(instances=instances))
 
-            elif not state.finished_image_values:
-                async for groups in group_property_stream(project.db.stream_image_property_values_raw(chunk_size)):
-                    arr_list = [
-                        ImageValuesArray(property_id=pid, sha1s=sha1s, values=vals)
-                        for pid, sha1s, vals in groups
-                    ]
-                    state.counter_image_value += sum(len(a.values) for a in arr_list)
-                    yield orjson.dumps(asdict(LoadResult(state=state, image_values=arr_list))) + b'\n'
-                state.finished_image_values = True
+        # 6. Stream Instance Values
+        async for groups in group_property_stream(project.db.stream_instance_property_values_raw(chunk_size)):
+            arr_list = [
+                InstanceValuesArray(property_id=pid, ids=ids, values=vals)
+                for pid, ids, vals in groups
+            ]
+            state.counter_instance_value += sum(len(a.values) for a in arr_list)
+            # Frontend sees state updating progressively here
+            yield format_chunk(instance_values=arr_list)
+        state.finished_instance_values = True
+        yield format_chunk()  # Final state update for this section
 
-            yield orjson.dumps(asdict(LoadResult(state=state))) + b'\n'
+        # 7. Stream Image Values
+        async for groups in group_property_stream(project.db.stream_image_property_values_raw(chunk_size)):
+            arr_list = [
+                ImageValuesArray(property_id=pid, sha1s=sha1s, values=vals)
+                for pid, sha1s, vals in groups
+            ]
+            state.counter_image_value += sum(len(a.values) for a in arr_list)
+            yield format_chunk(image_values=arr_list)
+        state.finished_image_values = True
+
+        # 8. Final heartbeat/closure chunk
+        yield format_chunk()
 
     return StreamingResponse(
         load_routine(),
-        media_type="application/x-ndjson"  # or "text/event-stream"
+        media_type="application/x-ndjson"
     )
-
 
 @project_router.get("/property")
 async def get_properties_route(project: Project = Depends(get_project_from_id)) -> list[Property]:

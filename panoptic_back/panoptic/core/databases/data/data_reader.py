@@ -76,6 +76,30 @@ class DataReader(SQLiteReader):
     def get_file_values(self, **filters) -> List[FileValue]:
         return FILE_VALUES_SCHEMA.get(self.conn, **filters)
 
+    def count_instance_values(self) -> int:
+        return self.conn.execute(f"SELECT COUNT(*) FROM {INSTANCE_VALUES_SCHEMA.table}").fetchone()[0]
+
+    def count_sha1_values(self) -> int:
+        return self.conn.execute(f"SELECT COUNT(*) FROM {SHA1_VALUES_SCHEMA.table}").fetchone()[0]
+
+    def count_file_values(self) -> int:
+        return self.conn.execute(f"SELECT COUNT(*) FROM {FILE_VALUES_SCHEMA.table}").fetchone()[0]
+
+    def iter_instance_values(self, batch_size: int):
+        cursor = self.conn.execute(f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table}")
+        while rows := cursor.fetchmany(batch_size):
+            yield [INSTANCE_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+    def iter_sha1_values(self, batch_size: int):
+        cursor = self.conn.execute(f"SELECT * FROM {SHA1_VALUES_SCHEMA.table}")
+        while rows := cursor.fetchmany(batch_size):
+            yield [SHA1_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+    def iter_file_values(self, batch_size: int):
+        cursor = self.conn.execute(f"SELECT * FROM {FILE_VALUES_SCHEMA.table}")
+        while rows := cursor.fetchmany(batch_size):
+            yield [FILE_VALUES_SCHEMA._decode_row(r) for r in rows]
+
     def get_delta(self, since: int) -> dict:
         data = {
             'instances':       INSTANCES_SCHEMA.get_since(self.conn, since),

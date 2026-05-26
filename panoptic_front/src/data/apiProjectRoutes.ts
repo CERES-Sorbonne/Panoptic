@@ -30,7 +30,7 @@ import {
     PointMap,
     ImageAtlas
 } from './models'
-import { deepCopy, keysToCamel, keysToSnake } from '@/utils/utils'
+import { deepCopy, keysToCamel, keysToSnake, sleep } from '@/utils/utils'
 
 export const projectApi = axios.create({
     baseURL: (import.meta as any).env.VITE_API_ROUTE,
@@ -415,7 +415,8 @@ export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
             // Keep the last incomplete line in the buffer
             buffer = lines.pop() || ''
 
-            // Process all complete lines
+            // Process all complete lines, yielding to the renderer between each
+            // so Vue reactive updates are painted before the next chunk arrives.
             for (const line of lines) {
                 const trimmed = line.trim()
                 if (!trimmed) continue // Skip empty lines

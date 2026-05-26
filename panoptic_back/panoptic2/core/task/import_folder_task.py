@@ -194,6 +194,10 @@ class ImportFolderTask(Task):
         rate = self.state.done / elapsed if elapsed > 0 else 0
         print(f'Import done:{self.state.done} instances in {elapsed}s ({rate} img/s)')
 
+    def on_last(self) -> None:
+        from panoptic2.core.task.generate_atlas_task import GenerateAtlasTask
+        self._project.add_task(GenerateAtlasTask(self._project))
+
     # ------------------------------------------------------------------
     # Filesystem scan
     # ------------------------------------------------------------------

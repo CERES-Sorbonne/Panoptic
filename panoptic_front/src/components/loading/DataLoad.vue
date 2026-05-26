@@ -59,6 +59,15 @@ const data = useDataStore()
                     <Percentage :current="data.loadState.counterImageValue" :max="data.loadState.maxImageValue"
                         :force="data.loadState.finishedImageValues" />
                 </div>
+
+                <!-- FileValues -->
+                <div class="d-flex text-secondary" style="font-size: 14px;">
+                    <div class="me-1">FileValues</div>
+                    <LoadWheel class="me-2" :loading="!data.loadState.finishedFileValues" />
+                    <i v-if="data.loadState.finishedFileValues" class="bi bi-check text-success" />
+                    <Percentage :current="data.loadState.counterFileValue" :max="data.loadState.maxFileValue"
+                        :force="data.loadState.finishedFileValues" />
+                </div>
             </div>
         </div>
     </div>

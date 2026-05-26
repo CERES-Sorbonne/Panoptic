@@ -36,7 +36,8 @@ class SQLiteReader:
             f"file:{self.db_path}?mode=ro",
             uri=True,
             timeout=self.timeout,
-            detect_types=sqlite3.PARSE_DECLTYPES
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            check_same_thread=False,
         )
 
         # row_factory = None ensures rows are returned as tuples,

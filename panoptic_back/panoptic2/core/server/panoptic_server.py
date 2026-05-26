@@ -302,6 +302,7 @@ class PanopticServer2:
         _INTERVAL  = 0.25          # seconds between emissions
         _last: list[float] = [0.0] # mutable cell; mutated only from the task thread
         _plugins_info_sent: set[str] = set()  # task IDs that already triggered plugins_info
+        _atlas_sent: set[str] = set()         # task IDs that already triggered atlas event
 
         def on_update(states: list[TaskState]) -> None:
             now = _time.monotonic()
@@ -322,6 +323,13 @@ class PanopticServer2:
             plugin_task_finished = bool(new_plugin_done)
             _plugins_info_sent.update(s.id for s in new_plugin_done)
 
+            new_atlas_done = [
+                s for s in states
+                if s.key == 'GenerateAtlasTask' and s.finished and s.id not in _atlas_sent
+            ]
+            atlas_task_finished = bool(new_atlas_done)
+            _atlas_sent.update(s.id for s in new_atlas_done)
+
             payload = {
                 'project_id': id_,
                 'tasks': [s.model_dump(mode='json') for s in states],
@@ -333,6 +341,8 @@ class PanopticServer2:
                     await sio.emit('tasks', payload, to=sids)
                     if plugin_task_finished:
                         await sio.emit('plugins_info', {'project_id': id_}, to=sids)
+                    if atlas_task_finished:
+                        await sio.emit('atlas', {'project_id': id_}, to=sids)
 
             loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_emit()))
 

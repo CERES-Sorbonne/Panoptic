@@ -57,6 +57,9 @@ def _db_to_dict(obj: msgspec.Struct) -> dict:
 # State — initial full load (ndjson stream)
 # ---------------------------------------------------------------------------
 
+_STREAM_BATCH = 1_000
+
+
 @project_router.get('/db_state_stream')
 def stream_db_state(project: Project2 = Depends(_dep)):
     """Stream full project state as newline-delimited JSON LoadResult chunks."""
@@ -69,116 +72,134 @@ def stream_db_state(project: Project2 = Depends(_dep)):
         with project._data_reader() as _sr:
             start_sequence = _sr.get_next_sequence() - 1
 
-        files           = project.get_files()
-        properties      = project.get_properties()
-        tags            = project.get_tags()
-        instances       = project.get_instances()
-        instance_values = project.get_instance_values()
-        sha1_values     = project.get_sha1_values()
-        file_values     = project.get_file_values()
-
-        n_inst = len(instances)
-        n_iv   = len(instance_values)
-        n_sv   = len(sha1_values)
-        n_fv   = len(file_values)
-
-        base_state = LoadState(
-            max_instance=n_inst, max_instance_value=n_iv,
-            max_image_value=n_sv, max_file_value=n_fv,
-        )
-
-        # ---- Chunk 1: properties + tags ----
+        # ---- Chunk 1: properties — yielded as soon as read ----
+        properties = project.get_properties()
         yield msgspec.json.encode(StreamResult(
-            chunk=StreamChunk(
-                properties=[_db_to_dict(p) for p in properties],
-                tags=[_db_to_dict(t) for t in tags],
-                property_groups=[],
-            ),
-            state=msgspec.structs.replace(
-                base_state,
-                finished_property=True,
-                finished_tags=True,
-                finished_property_groups=True,
-            ),
+            chunk=StreamChunk(properties=[_db_to_dict(p) for p in properties], property_groups=[]),
+            state=LoadState(finished_property=True, finished_property_groups=True),
         )) + b'\n'
 
-        # ---- Chunk 2: instances (file join for folder_id / file_id / name / extension) ----
-        file_map = {f.id: f for f in files}
-        stream_instances = []
-        for inst in instances:
-            f         = file_map.get(inst.file_id)
-            full_name = (f.name or '') if f else ''
-            basename  = _os.path.basename(full_name)
-            extension = _os.path.splitext(basename)[1].lstrip('.')
-            stream_instances.append(FullInstance(
-                id=inst.id,
-                sha1=inst.sha1,
-                name=basename,
-                ahash='',
-                width=1,
-                height=1,
-                url=full_name,
-                folder_id=f.folder_id if f else None,
-                file_id=inst.file_id,
-                extension=extension,
-                properties={},
-            ))
+        # ---- Chunk 2: tags ----
+        tags = project.get_tags()
         yield msgspec.json.encode(StreamResult(
-            chunk=StreamChunk(instances=stream_instances),
-            state=msgspec.structs.replace(
-                base_state,
-                finished_property=True,
-                finished_tags=True,
-                finished_property_groups=True,
-                finished_instance=True,
-                counter_instance=n_inst,
-            ),
+            chunk=StreamChunk(tags=[_db_to_dict(t) for t in tags]),
+            state=LoadState(finished_property=True, finished_property_groups=True, finished_tags=True),
         )) + b'\n'
 
-        # ---- Chunk 3: columnar values ----
+        # ---- Chunks 3…N: instances in batches ----
+        files     = project.get_files()
+        instances = project.get_instances()
+        n_inst    = len(instances)
+        file_map  = {f.id: f for f in files}
+        counter   = 0
+        for batch_start in range(0, max(n_inst, 1), _STREAM_BATCH):
+            batch = instances[batch_start:batch_start + _STREAM_BATCH]
+            stream_instances = []
+            for inst in batch:
+                f         = file_map.get(inst.file_id)
+                full_name = (f.name or '') if f else ''
+                basename  = _os.path.basename(full_name)
+                extension = _os.path.splitext(basename)[1].lstrip('.')
+                stream_instances.append(FullInstance(
+                    id=inst.id,
+                    sha1=inst.sha1,
+                    name=basename,
+                    ahash='',
+                    width=1,
+                    height=1,
+                    url=full_name,
+                    folder_id=f.folder_id if f else None,
+                    file_id=inst.file_id,
+                    extension=extension,
+                    properties={},
+                ))
+            counter += len(batch)
+            yield msgspec.json.encode(StreamResult(
+                chunk=StreamChunk(instances=stream_instances),
+                state=LoadState(
+                    max_instance=n_inst,
+                    finished_property=True,
+                    finished_property_groups=True,
+                    finished_tags=True,
+                    finished_instance=counter >= n_inst,
+                    counter_instance=counter,
+                ),
+            )) + b'\n'
+
+        # ---- Values: streamed in batches via fetchmany (single scan per table) ----
+        # COUNT(*) is O(1) in SQLite and gives us the max for the progress bars.
+        # iter_*_values() uses cursor.fetchmany() — one SELECT, no rescanning.
         # Each value is re-encoded as a JSON string because the frontend
         # calls JSON.parse() on every entry (matching the v1 wire format).
-        iv_cols: dict[int, InstanceValuesColumn] = {}
-        for iv in instance_values:
-            col = iv_cols.setdefault(iv.property_id, InstanceValuesColumn(iv.property_id, [], []))
-            col.ids.append(iv.instance_id)
-            col.values.append(_json.dumps(iv.value))
+        with project._data_reader() as reader:
+            n_iv = reader.count_instance_values()
+            n_sv = reader.count_sha1_values()
+            n_fv = reader.count_file_values()
 
-        sv_cols: dict[int, ImageValuesColumn] = {}
-        for sv in sha1_values:
-            col = sv_cols.setdefault(sv.property_id, ImageValuesColumn(sv.property_id, [], []))
-            col.sha1s.append(sv.sha1)
-            col.values.append(_json.dumps(sv.value))
+            iv_counter = 0
+            for batch in reader.iter_instance_values(_STREAM_BATCH):
+                iv_cols: dict[int, InstanceValuesColumn] = {}
+                for iv in batch:
+                    col = iv_cols.setdefault(iv.property_id, InstanceValuesColumn(iv.property_id, [], []))
+                    col.ids.append(iv.instance_id)
+                    col.values.append(_json.dumps(iv.value))
+                iv_counter += len(batch)
+                yield msgspec.json.encode(StreamResult(
+                    instance_values=list(iv_cols.values()),
+                    state=LoadState(
+                        max_instance=n_inst, max_instance_value=n_iv,
+                        max_image_value=n_sv, max_file_value=n_fv,
+                        finished_property=True, finished_property_groups=True,
+                        finished_tags=True, finished_instance=True,
+                        finished_instance_values=iv_counter >= n_iv,
+                        counter_instance=n_inst, counter_instance_value=iv_counter,
+                    ),
+                )) + b'\n'
 
-        fv_cols: dict[int, FileValuesColumn] = {}
-        for fv in file_values:
-            col = fv_cols.setdefault(fv.property_id, FileValuesColumn(fv.property_id, [], []))
-            col.file_ids.append(fv.file_id)
-            col.values.append(_json.dumps(fv.value))
+            sv_counter = 0
+            for batch in reader.iter_sha1_values(_STREAM_BATCH):
+                sv_cols: dict[int, ImageValuesColumn] = {}
+                for sv in batch:
+                    col = sv_cols.setdefault(sv.property_id, ImageValuesColumn(sv.property_id, [], []))
+                    col.sha1s.append(sv.sha1)
+                    col.values.append(_json.dumps(sv.value))
+                sv_counter += len(batch)
+                yield msgspec.json.encode(StreamResult(
+                    image_values=list(sv_cols.values()),
+                    state=LoadState(
+                        max_instance=n_inst, max_instance_value=n_iv,
+                        max_image_value=n_sv, max_file_value=n_fv,
+                        finished_property=True, finished_property_groups=True,
+                        finished_tags=True, finished_instance=True,
+                        finished_instance_values=True,
+                        finished_image_values=sv_counter >= n_sv,
+                        counter_instance=n_inst, counter_instance_value=n_iv,
+                        counter_image_value=sv_counter,
+                    ),
+                )) + b'\n'
 
-        yield msgspec.json.encode(StreamResult(
-            instance_values=list(iv_cols.values()),
-            image_values=list(sv_cols.values()),
-            file_values=list(fv_cols.values()),
-            state=LoadState(
-                finished_property=True,
-                finished_tags=True,
-                finished_property_groups=True,
-                finished_instance=True,
-                finished_instance_values=True,
-                finished_image_values=True,
-                finished_file_values=True,
-                counter_instance=n_inst,
-                counter_instance_value=n_iv,
-                counter_image_value=n_sv,
-                counter_file_value=n_fv,
-                max_instance=n_inst,
-                max_instance_value=n_iv,
-                max_image_value=n_sv,
-                max_file_value=n_fv,
-                max_sequence=start_sequence,
-            ),
-        )) + b'\n'
+            fv_counter = 0
+            for batch in reader.iter_file_values(_STREAM_BATCH):
+                fv_cols: dict[int, FileValuesColumn] = {}
+                for fv in batch:
+                    col = fv_cols.setdefault(fv.property_id, FileValuesColumn(fv.property_id, [], []))
+                    col.file_ids.append(fv.file_id)
+                    col.values.append(_json.dumps(fv.value))
+                fv_counter += len(batch)
+                yield msgspec.json.encode(StreamResult(
+                    file_values=list(fv_cols.values()),
+                    state=LoadState(
+                        max_instance=n_inst, max_instance_value=n_iv,
+                        max_image_value=n_sv, max_file_value=n_fv,
+                        finished_property=True, finished_property_groups=True,
+                        finished_tags=True, finished_instance=True,
+                        finished_instance_values=True, finished_image_values=True,
+                        finished_file_values=fv_counter >= n_fv,
+                        counter_instance=n_inst, counter_instance_value=n_iv,
+                        counter_image_value=n_sv, counter_file_value=fv_counter,
+                        max_sequence=start_sequence,
+                    ),
+                )) + b'\n'
 
     return StreamingResponse(_generate(), media_type='application/x-ndjson')
 

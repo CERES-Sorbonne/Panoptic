@@ -65,18 +65,14 @@ export const useDataStore = defineStore('dataStore', () => {
         const projectId = panopticStore.connectionState?.connectedProject
         baseImgUrl.value = `${SERVER_PREFIX}/projects/${projectId}/image/`
         baseUrl.value = `${SERVER_PREFIX}/projects/${projectId}/`
-        let dbFolders = await apiGetFolders()
+
+        // Fetch folders and vector types in parallel, then start the stream
+        // immediately — atlas and history run concurrently with the stream.
+        const [dbFolders, vecTypes] = await Promise.all([apiGetFolders(), apiGetVectorTypes()])
         importFolders(dbFolders)
-        // console.time('Request')
-        // // let dbState = await apiGetDbState()
-        // console.timeEnd('Request')
-
-
-        const vecTypes = await apiGetVectorTypes()
         importVectorTypes(vecTypes)
-        console.log('start stream')
+
         apiStreamLoadState(async (v) => {
-            console.log('apply', v)
             if (v.instanceValues) {
                 importInstanceValuesArray(v.instanceValues)
             }
@@ -89,11 +85,9 @@ export const useDataStore = defineStore('dataStore', () => {
             if (v.chunk) {
                 applyCommit(v.chunk, true)
             }
-            console.log(v.state)
             loadState.value = v.state
 
             if (isFinished(v.state)) {
-                // console.log('stop stream')
                 lastSequence.value = v.state.maxSequence ?? 0
                 const tabStore = useTabStore()
                 await tabStore.init()
@@ -104,11 +98,7 @@ export const useDataStore = defineStore('dataStore', () => {
             }
         })
 
-        // console.time('commit')
-        // // applyCommit(dbState)
-        // console.timeEnd('commit')
-        await loadAtlas()
-        await getHistory()
+        await Promise.all([loadAtlas(), getHistory()])
     }
 
     function getTmpId() {
@@ -493,6 +483,7 @@ export const useDataStore = defineStore('dataStore', () => {
         history.value = { undo: [], redo: [] }
         onUndo.value = 0
         isLoaded.value = false
+        loadState.value = null
         lastSequence.value = 0
     }
 
