@@ -40,6 +40,11 @@ let groupToPoints: { [groupId: number]: string[] } = {}
 const selectedGroups = ref<{ [groupId: number]: boolean }>({})
 const points = shallowRef<PointData[]>([])
 
+// Instances corresponding to map points — used for clustering so only visible images are clustered
+const mapInstances = computed<Instance[]>(() =>
+    points.value.map(p => data.instances[p.id]).filter(Boolean) as Instance[]
+)
+
 
 function computeBox(images: Instance[], color: string) {
     let minX = 0, minY = 0, maxX = 0, maxY = 0
@@ -322,16 +327,17 @@ onUnmounted(() => {
 <template>
     <div class="main-layout">
         <div class="toolbar-container">
-            <Toolbar 
-                v-model:mouse-mode="mouseMode" 
+            <Toolbar
+                v-model:mouse-mode="mouseMode"
                 v-model:image-size="props.tab.state.mapOptions.imageSize"
-                v-model:show-point="props.tab.state.mapOptions.showPoints" 
+                v-model:show-point="props.tab.state.mapOptions.showPoints"
                 :selected-map="props.tab.state.mapOptions.selectedMap"
                 @update:selected-map="id => props.tab.state.mapOptions.selectedMap = id"
                 :color-option="props.tab.state.mapOptions.groupOption"
-                @update:color-option="opt => {props.tab.state.mapOptions.groupOption = opt; props.tab.saveState();}" 
+                @update:color-option="opt => {props.tab.state.mapOptions.groupOption = opt; props.tab.saveState();}"
                 :has-maps="data.hasMaps"
                 :images="tab.collection.groupManager.result.root.images"
+                :map-images="mapInstances"
                 @clusters="cc => { clusters = cc; generateGroups()}"
                 @delete:map="deleteMap"
             />

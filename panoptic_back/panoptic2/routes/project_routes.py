@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 import msgspec
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -57,7 +58,7 @@ def _db_to_dict(obj: msgspec.Struct) -> dict:
 # State — initial full load (ndjson stream)
 # ---------------------------------------------------------------------------
 
-_STREAM_BATCH = 1_000
+_STREAM_BATCH = 10_000
 
 
 @project_router.get('/db_state_stream')
@@ -758,7 +759,27 @@ def delete_map(map_id: int, project: Project2 = Depends(_dep)):
 @project_router.get('/atlas/{atlas_id}')
 def get_atlas(atlas_id: int, project: Project2 = Depends(_dep)):
     atlases = project.get_image_atlases(id=atlas_id)
-    return _json(atlases[0] if atlases else None)
+    if not atlases:
+        return Response(b'null', media_type='application/json')
+    a = atlases[0]
+    # ImageAtlas is array_like=True for DB efficiency; serialize as dict for the frontend
+    return Response(msgspec.json.encode({
+        'id': a.id,
+        'atlas_nb': a.atlas_nb,
+        'width': a.width,
+        'height': a.height,
+        'cell_width': a.cell_width,
+        'cell_height': a.cell_height,
+        'sha1_mapping': a.sha1_mapping,
+    }), media_type='application/json')
+
+
+@project_router.get('/atlas_sheet/{atlas_id}/{sheet_nb}')
+def get_atlas_sheet(atlas_id: int, sheet_nb: int, project: Project2 = Depends(_dep)):
+    path = project.folder / 'atlas' / f'{atlas_id}_{sheet_nb}.png'
+    if not path.exists():
+        raise HTTPException(404, f'Atlas sheet {atlas_id}/{sheet_nb} not found')
+    return FileResponse(str(path), media_type='image/png')
 
 
 @project_router.get('/vector_types')

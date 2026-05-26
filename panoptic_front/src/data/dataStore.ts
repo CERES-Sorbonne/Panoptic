@@ -534,7 +534,6 @@ export const useDataStore = defineStore('dataStore', () => {
     async function addTag(propertyId: number, tagValue: string, parentIds: number[] = undefined, color = -1): Promise<Tag> {
         const tag: Tag = { id: -1, propertyId: propertyId, value: tagValue, parents: parentIds ?? [], color: color }
         const res = await sendCommit({ tags: [tag] }, true, true)
-        triggerRef(tags)
         return res.tags[0]
     }
 

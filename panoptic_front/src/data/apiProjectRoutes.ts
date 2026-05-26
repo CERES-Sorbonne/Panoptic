@@ -415,11 +415,11 @@ export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
             // Keep the last incomplete line in the buffer
             buffer = lines.pop() || ''
 
-            // Process all complete lines, yielding to the renderer between each
-            // so Vue reactive updates are painted before the next chunk arrives.
+            // Process all complete lines from this read() call without pausing
+            // between them — pausing per line causes TCP backpressure accumulation.
             for (const line of lines) {
                 const trimmed = line.trim()
-                if (!trimmed) continue // Skip empty lines
+                if (!trimmed) continue
 
                 try {
                     const data = JSON.parse(trimmed)
@@ -428,6 +428,10 @@ export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
                 } catch (e) {
                     console.error('Failed to parse line:', trimmed, e)
                 }
+            }
+            // One paint flush per read() so Vue updates are visible between bursts.
+            if (lines.length > 0) {
+                await new Promise(r => requestAnimationFrame(r))
             }
         }
     } finally {

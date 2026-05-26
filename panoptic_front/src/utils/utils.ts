@@ -353,7 +353,7 @@ export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionCont
                     scoreIndex[sha1] = group.scores.values[i]
                 })
             }
-            group.sha1s.forEach(sha1 => sha1Index[sha1].forEach(i => instances.push(data.instances[i])))
+            group.sha1s.forEach(sha1 => sha1Index[sha1]?.forEach(i => instances.push(data.instances[i])))
         }
         const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
         res.meta.score = Math.round(group.score?.value ?? undefined)

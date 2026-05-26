@@ -111,25 +111,16 @@ function GroupToLines(it: GroupIterator) {
 
 function computeLines() {
     if (!props.groupManager.result.root) return
-    // console.log('compute lines')
-    // console.time('compute lines2')
-    clear()
     let it = props.groupManager.getGroupIterator()
     if(!it.group) return
     const lines = []
     while (it) {
         const group = it.group
-        groupIdx[group.id] = imageLines.value.length
+        groupIdx[group.id] = lines.length
         lines.push(...GroupToLines(it))
         it = it.nextGroup()
     }
     imageLines.value = lines
-    // avoid edge cases where function still runs but scroller already disapeared
-    if (!scroller.value) return
-    scroller.value.updateVisibleItems(true)
-    // console.log(imageLines.value.length)
-    // console.timeEnd('compute lines')
-    // nextTick(() => console.timeEnd('compute lines2'))
 
 }
 
@@ -274,35 +265,29 @@ watch(() => props.imageSize, () => {
 })
 
 watch(visiblePropertiesNb, () => {
-    // console.time('update-visible')
-    let scroll = scroller.value.getScroll().start
-    let totalSize = scroller.value.totalSize
-    let ratio = scroll / totalSize
-    const lines = []
-    imageLines.value.forEach(l => {
-        if (l.type == 'images') {
-            l.size = imageLineSize.value
+    // Find which item is at the top of the viewport before sizes change
+    const scrollPos = scroller.value.getScroll().start
+    let topItemIdx = 0
+    let cumSize = 0
+    for (let i = 0; i < imageLines.value.length; i++) {
+        if (cumSize + imageLines.value[i].size > scrollPos) {
+            topItemIdx = i
+            break
         }
-        else if (l.type == 'piles') {
-            l.size = pileLineSize.value
-        }
-        lines.push(l)
+        cumSize += imageLines.value[i].size
+    }
+
+    const lines = imageLines.value.map(l => {
+        if (l.type == 'images') return { ...l, size: imageLineSize.value }
+        if (l.type == 'piles') return { ...l, size: pileLineSize.value }
+        return l
     })
     imageLines.value = lines
-    // scroller.value.updateVisibleItems(true)
-    nextTick(() => {
-        let goal = scroller.value.totalSize * ratio
 
-        scroller.value.scrollToPosition(goal)
+    nextTick(() => {
+        scroller.value.scrollToItem(topItemIdx)
         scroller.value.updateVisibleItems(true)
-        nextTick(() => {
-            scroller.value.scrollToPosition(goal - 10)
-            nextTick(() => scroller.value.updateVisibleItems(true))
-        })
-        nextTick(() => scroller.value.updateVisibleItems(true))
-        // requestIdleCallback(() => requestIdleCallback(() => scroller.value.updateVisibleItems(false, true)))
     })
-    // console.timeEnd('update-visible')
 })
 
 let resizeWidthHandler = undefined

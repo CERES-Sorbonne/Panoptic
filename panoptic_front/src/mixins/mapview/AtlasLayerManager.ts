@@ -48,6 +48,7 @@ export class AtlasLayerManager {
 
         // Group points by sheet index
         const sheetPointsMap: PointData[][] = Array.from({ length: atlas.atlasNb }, () => [])
+        console.log(atlas)
         for (let p of points) {
             if (!atlas.sha1Mapping[p.sha1]) continue
             let sheetIndex = atlas.sha1Mapping[p.sha1][0]

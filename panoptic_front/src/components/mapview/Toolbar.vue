@@ -7,7 +7,6 @@ import ActionButton2 from '../actions/ActionButton2.vue'
 import { useI18n } from 'vue-i18n'
 import { Instance } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
-import { useTabStore } from '@/data/tabStore'
 
 const { t } = useI18n()
 
@@ -21,6 +20,7 @@ const props = defineProps<{
     colorOption: string
     hasMaps: boolean
     images: Instance[]
+    mapImages?: Instance[]
 }>()
 
 const emits = defineEmits([
@@ -54,7 +54,6 @@ async function updateMap(event) {
     emits('update:selectedMap', event.value.id)
 }
 
-const selectedImages = computed(() => Object.keys(useTabStore().getMainTab().collection.groupManager.selectedImages.value).map(Number).map(id => data.instances[id]))
 </script>
 
 <template>
@@ -69,7 +68,7 @@ const selectedImages = computed(() => Object.keys(useTabStore().getMainTab().col
             </div>
         </div>
         <div class="toolbar-item ">
-            <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @call="updateMap" :images="selectedImages">
+            <ActionButton2 action="map" class="bb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @call="updateMap" :images="props.images">
                 <i class="bi bi-boxes" /> {{ $t('map.create') }}
             </ActionButton2>
         </div>
@@ -84,7 +83,7 @@ const selectedImages = computed(() => Object.keys(useTabStore().getMainTab().col
         </div>
 
         <div v-if="props.colorOption === 'cluster'" class="toobar-item">
-            <ActionButton2 :images="props.images" action="group" class="sb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @groups="clusters => emits('clusters', clusters)">
+            <ActionButton2 :images="props.mapImages ?? props.images" action="group" class="sb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @groups="clusters => emits('clusters', clusters)">
                 <img class="cluster-icon" src="/icons/network2_white.svg" />
             </ActionButton2>
         </div>
