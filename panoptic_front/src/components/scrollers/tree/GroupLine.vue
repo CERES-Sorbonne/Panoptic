@@ -182,7 +182,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         @mouseleave="hoverGroup = false">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
-            <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
+            <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"> </div>
         </div>
         <div @click="toggleClosed" class="align-self-center me-2" style="cursor: pointer;">
             <i v-if="closed" class="bi bi-caret-right-fill" style="margin-left: 1px;"></i>
@@ -281,7 +281,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 }
 
 .group-line-border {
-    height: 100%;
+    height: 30px;
     border-left: 1px solid var(--border-color);
     padding-left: 10px;
 }
