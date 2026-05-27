@@ -5,23 +5,22 @@
 
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { TabState } from "./models";
+import { TabData, TabState } from "./models";
 import { TabManager } from "@/core/TabManager";
 import { buildTabState, objValues } from "./builder";
 import { useProjectStore } from "./projectStore";
-import { apiGetTabs, apiSetTabs } from "./apiProjectRoutes";
+import { apiGetAllTabs, apiCreateTab, apiUpdateTabState, apiDeleteTab, apiGetUIData, apiSetUIData } from "./apiProjectRoutes";
 
-const TAB_LIST_KEY = 'tab_list'
-const TAB_PREFIX = 'tab_id_'
 export const TAB_MODEL_VERSION = 7
+const TAB_ORDER_KEY = 'tab_order'
 
-let managers: { [tabId: number]: TabManager } = {}
+let managers: { [tabId: string]: TabManager } = {}
 
 export const useTabStore = defineStore('tabStore', () => {
     const loaded = ref(false)
-    const mainTab = ref(null)
+    const mainTab = ref<string>(null)
 
-    const loadedTabs = ref([])
+    const loadedTabs = ref<string[]>([])
 
     async function init() {
         await loadTabsFromStorage()
@@ -36,18 +35,18 @@ export const useTabStore = defineStore('tabStore', () => {
     }
 
     function importTab(tab: TabState) {
-        let id = tab.id
+        const id = tab.id
         if (loadedTabs.value.includes(id)) {
             console.warn('import tab that already exist. why ?')
             return
         }
-        loadedTabs.value.push(tab.id)
-        let manager = new TabManager(tab)
-        managers[tab.id] = manager
+        loadedTabs.value.push(id)
+        const manager = new TabManager(tab)
+        managers[id] = manager
         manager.deactivate()
     }
 
-    function getTab(id: number) {
+    function getTab(id: string) {
         return managers[id]
     }
 
@@ -55,20 +54,44 @@ export const useTabStore = defineStore('tabStore', () => {
         return managers[mainTab.value]
     }
 
+    async function saveTabOrder() {
+        await apiSetUIData(TAB_ORDER_KEY, loadedTabs.value)
+    }
+
     async function loadTabsFromStorage() {
-        const tabs = await apiGetTabs()
-        const tabList = objValues(tabs)
-        const toLoad = []
-        for (let tab of tabList) {
-            if (!tab || tab.version != TAB_MODEL_VERSION) continue
-            toLoad.push(tab)
+        const [tabs, savedOrder] = await Promise.all([
+            apiGetAllTabs(),
+            apiGetUIData(TAB_ORDER_KEY) as Promise<string[] | null>,
+        ])
+
+        const validTabs = new Map<string, TabState>()
+        for (const tabData of tabs) {
+            const state = tabData.state
+            if (!state || state.version != TAB_MODEL_VERSION) continue
+            validTabs.set(state.id, state)
         }
 
-        for (let tab of toLoad) {
+        // Restore saved order, keeping only tabs that still exist in the DB.
+        // Tabs not present in savedOrder (e.g. created on another client) are
+        // appended at the end in their DB-returned order.
+        const order: string[] = savedOrder ?? []
+        const ordered: TabState[] = []
+        for (const id of order) {
+            const state = validTabs.get(id)
+            if (state) {
+                ordered.push(state)
+                validTabs.delete(id)
+            }
+        }
+        for (const state of validTabs.values()) {
+            ordered.push(state)
+        }
+
+        for (const tab of ordered) {
             importTab(tab)
         }
 
-        if (!toLoad.length) {
+        if (!ordered.length) {
             await addTab()
         }
 
@@ -80,31 +103,30 @@ export const useTabStore = defineStore('tabStore', () => {
         }
     }
 
-    async function addTab(name?: string, isSelection?: boolean) {
+    async function addTab(name?: string, isSelection?: boolean, selection?: number[]) {
         const tab = buildTabState()
         tab.isSelection = isSelection
-        let id = 1
-        if (loadedTabs.value.length) {
-            let maxId = Math.max(...loadedTabs.value)
-            id = maxId + 1
-        }
+        const id = crypto.randomUUID()
         tab.id = id
         if (name) tab.name = name
         importTab(tab)
-        await saveTabsToStorage()
+        await Promise.all([
+            apiCreateTab(id, tab, selection),
+            saveTabOrder(),
+        ])
         mainTab.value = id
         managers[id].isNew = true
         await selectMainTab(id)
         return tab
     }
 
-    async function deleteTab(id: number) {
-        let tabs = loadedTabs.value
-        loadedTabs.value = tabs.filter(t => t != id)
+    async function deleteTab(id: string) {
+        loadedTabs.value = loadedTabs.value.filter(t => t != id)
         delete managers[id]
-        await saveTabsToStorage()
-        console.log('locaded tabs', loadedTabs.value)
-        console.log('main tab', mainTab.value, id)
+        await Promise.all([
+            apiDeleteTab(id),
+            saveTabOrder(),
+        ])
         if (mainTab.value == id && loadedTabs.value.length) {
             await selectMainTab(loadedTabs.value[0])
         } else if (!loadedTabs.value.length) {
@@ -112,10 +134,10 @@ export const useTabStore = defineStore('tabStore', () => {
         }
     }
 
-    async function selectMainTab(id: number) {
+    async function selectMainTab(id: string) {
         if (!managers[id]) return
 
-        for (let manager of objValues(managers)) {
+        for (const manager of objValues(managers)) {
             manager.deactivate()
         }
 
@@ -127,16 +149,13 @@ export const useTabStore = defineStore('tabStore', () => {
         await useProjectStore().saveUiState()
     }
 
-    async function saveTabsToStorage() {
-        const tabs = {}
-        for (let id of loadedTabs.value) {
-            tabs[id] = managers[id].state
-        }
-        await apiSetTabs(tabs)
+    async function updateTabStateInStorage(id: string) {
+        if (!managers[id]) return
+        await apiUpdateTabState(id, managers[id].state)
     }
 
     return {
-        loaded, init, clear, getTab, mainTab, deleteTab, addTab, loadedTabs, selectMainTab, getMainTab, saveTabsToStorage
+        loaded, init, clear, getTab, mainTab, deleteTab, addTab, loadedTabs, selectMainTab, getMainTab, updateTabStateInStorage
     }
 
 })

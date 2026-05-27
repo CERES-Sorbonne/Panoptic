@@ -273,7 +273,13 @@
             "computed": "Généré",
             "source": "Source",
             "params": "Paramètres",
-            "createNewType": "Créer de nouveaux vecteurs",
+            "createNewVectorType": "Ajouter un type de vecteur",
+            "createNewImageType": "Ajouter un type d'image",
+            "cancel": "Annuler",
+            "name": "Nom",
+            "format": "Format",
+            "maxSize": "Taille max",
+            "autoOnImport": "Auto à l'import",
             "function": "Fonction",
             "computeNow": "Calculer maintenant",
             "computeNowTooltip": "Ne cochez pas si vous souhaitez lancer le calcul manuellement plus tard",
@@ -285,7 +291,8 @@
             "large": "Grand",
             "px": "px",
             "imageStorage": "Stockage des images complète",
-            "fullImage": "Image complète"
+            "fullImage": "Image complète",
+            "calc": "calculer"
         },
         "import": {
             "data": "Données",
@@ -392,7 +399,9 @@
         },
         "action": {
             "execute": "Execute une fonction plugin sur les instances",
-            "group": "Execute une fonction de clustering sur les instances"
+            "group": "Execute une fonction de clustering sur les instances",
+            "similar": "Trouver des images similaires",
+            "map": "Execute une fonction de carte"
         },
         "stamp": {
             "add": "ajouter",

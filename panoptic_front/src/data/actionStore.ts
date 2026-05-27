@@ -5,7 +5,7 @@ import { computed, reactive, ref, watch } from "vue";
 import { objValues } from "./builder";
 import { useDataStore } from "./dataStore";
 import { sourceFromFunction } from "@/utils/utils";
-import { apiGetActions, apiGetUIData, apiSetUIData } from "./apiProjectRoutes";
+import { apiGetActions, apiGetAllUIData, apiSetUIDataBulk } from "./apiProjectRoutes";
 
 export const useActionStore = defineStore('actionStore', () => {
     const project = useProjectStore()
@@ -37,25 +37,11 @@ export const useActionStore = defineStore('actionStore', () => {
     }
 
     async function loadActions(actions: ActionFunctions) {
-        const defaults = await apiGetUIData('param_defaults')
-
-        let actionIndex = actions
-        if (defaults) {
-            for (let actionKey in actionIndex) {
-                const action = actionIndex[actionKey]
-                for (let param of action.params) {
-                    if (defaults[param.id] !== undefined) {
-                        param.defaultValue = defaults[param.id]
-                    }
-                }
-            }
-        }
-
-        index.value = actionIndex
+        index.value = actions
 
         for (let key in defaultActions) {
             if (defaultActions[key] && index.value[defaultActions[key]] == undefined) {
-                defaultActions[key] == undefined
+                defaultActions[key] = undefined
             }
             if (defaultActions[key] == undefined) {
                 const valid = objValues(index.value).find(a => a.hooks.includes(key))
@@ -65,10 +51,9 @@ export const useActionStore = defineStore('actionStore', () => {
             }
         }
 
-        await getDefaultActions()
-        await getDefaultParams()
-
-        // console.log(index.value)
+        const allUIData = await apiGetAllUIData()
+        _applyDefaultActions(allUIData)
+        _applyDefaultParams(allUIData)
     }
 
     async function getSimilarImages(ctx: ActionContext) {
@@ -87,24 +72,26 @@ export const useActionStore = defineStore('actionStore', () => {
         await init()
     }
 
-    async function updateDefaultParams() {
-        const defaults = {}
-        for (let action of objValues(index.value)) {
-            for (let param of action.params) {
-                defaults[action.id + '.' + param.name] = param.defaultValue
+    async function updateDefaultParams(funcId: string) {
+        const action = index.value[funcId]
+        if (!action) return
+        const bulk: Record<string, any> = {}
+        for (let param of action.params) {
+            if (param.defaultValue != null) {
+                bulk[`param.${funcId}.${param.name}`] = param.defaultValue
             }
         }
-        await apiSetUIData('param_defaults', defaults)
+        if (Object.keys(bulk).length) {
+            await apiSetUIDataBulk(bulk)
+        }
     }
 
-    async function getDefaultParams() {
-        const res = await apiGetUIData('param_defaults')
-        if (!res) return
+    function _applyDefaultParams(allUIData: Record<string, any>) {
         for (let action of objValues(index.value)) {
             for (let param of action.params) {
-                const key = action.id + '.' + param.name
-                if (key in res) {
-                    param.defaultValue = res[key]
+                const key = `param.${action.id}.${param.name}`
+                if (key in allUIData) {
+                    param.defaultValue = allUIData[key]
                 }
             }
         }
@@ -112,20 +99,26 @@ export const useActionStore = defineStore('actionStore', () => {
 
     async function updateDefaultActions(defaults: any) {
         Object.assign(defaultActions, defaults)
-        await apiSetUIData('default_actions', defaultActions)
-    }
-
-    async function getDefaultActions() {
-        const res = await apiGetUIData('default_actions')
-        if (!res) {
-            return
-        }
-        for (let key of Object.keys(res)) {
-            if (!index.value[res[key]]) {
-                delete res[key]
+        const bulk: Record<string, any> = {}
+        for (let key in defaults) {
+            if (defaults[key] != null) {
+                bulk[`default_action.${key}`] = defaults[key]
             }
         }
-        Object.assign(defaultActions, res)
+        if (Object.keys(bulk).length) {
+            await apiSetUIDataBulk(bulk)
+        }
+    }
+
+    function _applyDefaultActions(allUIData: Record<string, any>) {
+        for (let key of Object.keys(allUIData)) {
+            if (!key.startsWith('default_action.')) continue
+            const actionKey = key.slice('default_action.'.length)
+            if (!(actionKey in defaultActions)) continue
+            const funcId = allUIData[key]
+            if (funcId && !index.value[funcId]) continue
+            defaultActions[actionKey] = funcId
+        }
     }
 
     function getContext(funcName: string) {

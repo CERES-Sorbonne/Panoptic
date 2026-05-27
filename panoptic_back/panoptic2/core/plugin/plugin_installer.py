@@ -9,7 +9,7 @@ from pathlib import Path
 
 import requests
 
-from panoptic.core.databases.panoptic.models import PluginKey
+from panoptic2.core.databases.panoptic.models import PluginKey
 
 
 SOURCE_PIP  = 'pip'

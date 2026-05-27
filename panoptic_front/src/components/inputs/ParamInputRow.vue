@@ -4,6 +4,7 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 import { ParamDescription, VectorType } from '@/data/models';
+import { useActionStore } from '@/data/actionStore.js';
 
 const data = useDataStore()
 
@@ -25,6 +26,8 @@ function focus() {
         elem.value.focus()
     }
 }
+
+console.log(useActionStore().index)
 
 function initValues() {
     localValue.value = props.input.defaultValue

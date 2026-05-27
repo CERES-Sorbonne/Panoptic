@@ -2,6 +2,7 @@
 import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
 import { ActionResult, GroupScoreList, Instance, ScoreInterval } from '@/data/models';
 import { computed, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
+import { watchDebounced } from '@vueuse/core';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
@@ -150,6 +151,7 @@ watch(useFilter, updateSimilarGroup)
 watch(scoreInterval, () => {
     project.updateScoreInterval(actions.defaultActions['similar'].id, scoreInterval)
 })
+watchDebounced(() => project.uiState.similarityImageSize, () => project.saveUiState(), { debounce: 400 })
 </script>
 
 <template>

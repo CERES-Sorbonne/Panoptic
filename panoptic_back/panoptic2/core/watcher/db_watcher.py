@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Callable, Coroutine
 
-from panoptic.core.databases.data.data_reader import DataReader
+from panoptic2.core.databases.data.data_reader import DataReader
 
 
 class DbWatcher:

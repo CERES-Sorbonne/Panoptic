@@ -1,21 +1,23 @@
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
-from panoptic.core.databases.data.data_reader import DataReader
-from panoptic.core.databases.data.data_writer import DataWriter
-from panoptic.core.databases.media.create import datastore_desc
-from panoptic.core.databases.media.media_db import MediaDB
-from panoptic.core.databases.media.models import ImageAtlas, ImageType, Image, Map, Vector, VectorType
-from panoptic.core.databases.panoptic.models import PluginKey
-from panoptic.core.databases.project.models import ProjectConfig, TabData, UserDefaults
-from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic.models.data import (
+from panoptic2.core.databases.data.data_reader import DataReader
+from panoptic2.core.databases.data.data_writer import DataWriter
+from panoptic2.core.databases.media.create import datastore_desc
+from panoptic2.core.databases.media.media_db import MediaDB
+from panoptic2.core.databases.media.models import ImageAtlas, ImageType, Image, Map, Vector, VectorType
+from panoptic2.core.databases.panoptic.models import PluginKey
+from panoptic2.core.databases.project.models import ProjectConfig, TabData, UserDefaults
+from panoptic2.core.databases.project.project_db import ProjectDB
+from panoptic2.core.databases.data.models import (
     Commit, DeleteCommit, File, FileSource, FileValue, Folder, Instance,
     InstanceValue, Property, Sha1Value, Tag, UpsertCommit,
 )
 from panoptic2.core.plugin.action_registry import ActionRegistry
 from panoptic2.core.task.task import Task
 from panoptic2.core.task.task_manager import TaskManager
+from panoptic2.core.importer.importer import Importer2
+from panoptic2.core.exporter import Exporter2
 
 
 class Project2:
@@ -29,6 +31,8 @@ class Project2:
         self.task_manager = TaskManager(on_update=on_update)
         self.action       = ActionRegistry()
         self.plugins: list = []   # list[APlugin] — typed loosely to avoid circular import
+        self.importer     = Importer2(self)
+        self.exporter     = Exporter2(self)
 
         self._plugin_keys = plugin_keys or []
 
@@ -195,6 +199,14 @@ class Project2:
         with self._media_db() as db:
             return db.get_image_types(**filters)
 
+    def get_image_stats(self) -> dict:
+        with self._media_db() as db:
+            counts = db.get_image_stats()
+        with self._data_reader() as r:
+            row = r.conn.execute("SELECT COUNT(DISTINCT sha1) FROM instances").fetchone()
+            sha1_count = row[0] if row else 0
+        return {'counts': counts, 'sha1_count': sha1_count}
+
     def upsert_image_type(self, image_type: ImageType):
         with self._media_db() as db:
             db.upsert_image_type(image_type)
@@ -279,13 +291,25 @@ class Project2:
         with self._project_db() as db:
             return db.get_user_tabs(user_id)
 
+    def delete_tab_data(self, tab_id: str):
+        with self._project_db() as db:
+            db.delete_tab_data(tab_id)
+
     def get_user_defaults(self, user_id: str, key: str) -> Optional[UserDefaults]:
         with self._project_db() as db:
             return db.get_user_defaults(user_id, key)
 
+    def get_all_user_defaults(self, user_id: str) -> list[UserDefaults]:
+        with self._project_db() as db:
+            return db.get_all_user_defaults(user_id)
+
     def set_user_defaults(self, defaults: UserDefaults):
         with self._project_db() as db:
             db.set_user_defaults(defaults)
+
+    def set_user_defaults_bulk(self, items: list[UserDefaults]):
+        with self._project_db() as db:
+            db.set_user_defaults_bulk(items)
 
     # ------------------------------------------------------------------
     # Tasks

@@ -65,9 +65,9 @@ onMounted(() => data.updateVectorStats())
             </tbody>
         </table>
         <div v-if="!create && actions.hasVectorFunction">
-            <span class="bb" @click="create = true">{{$t('modals.settings.createNewType')}} <i class="bi bi-plus" /></span>
+            <span class="bb" @click="create = true">{{$t('modals.settings.createNewVectorType')}} <i class="bi bi-plus" /></span>
         </div>
-        <SectionDivider v-if="create"><span style="margin-left: 3px;">{{$t('modals.settings.createNewType')}}</span></SectionDivider>
+        <SectionDivider v-if="create"><span style="margin-left: 3px;">{{$t('modals.settings.createNewVectorType')}}</span></SectionDivider>
         <div v-if="create">
             <ActionSelectFlat :action="'vector_type'" :size="15" @cancel="create = false"
                 @added="data.updateVectorTypes()" />

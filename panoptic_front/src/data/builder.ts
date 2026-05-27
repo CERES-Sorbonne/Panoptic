@@ -9,7 +9,7 @@ import { TAB_MODEL_VERSION } from "./tabStore";
 export function buildTabState(): TabState {
     return reactive({
         version: TAB_MODEL_VERSION,
-        id: -1,
+        id: '',
         name: 'New Tab',
         display: 'tree',
         filterState: createFilterState(),

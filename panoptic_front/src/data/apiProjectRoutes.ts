@@ -13,7 +13,10 @@ import {
     ProjectVectorDescription,
     VectorDescription,
     ActionFunctions,
-    TabIndex,
+    TabState,
+    TabData,
+    ImageType,
+    ImageStats,
     CommitHistory,
     ActionResult,
     Update,
@@ -161,17 +164,21 @@ export async function apiDeleteFolder(folderId: number) {
     return keysToCamel(res.data)
 }
 
-export async function apiGetTabs() {
-    let res = await apiGetUIData('tabs')
-    if (!res) {
-        return {} as TabIndex
-    }
-    return res as TabIndex
+export async function apiGetAllTabs(): Promise<TabData[]> {
+    let res = await projectApi.get('/tabs')
+    return (res.data ?? []) as TabData[]
 }
 
-export async function apiSetTabs(tabs: TabIndex) {
-    let res = await apiSetUIData('tabs', tabs)
-    return res.data
+export async function apiCreateTab(id: string, state: TabState, selection?: number[]) {
+    await projectApi.post('/tabs', { id, state, selection: selection ?? null })
+}
+
+export async function apiUpdateTabState(id: string, state: TabState) {
+    await projectApi.put(`/tabs/${id}`, { state })
+}
+
+export async function apiDeleteTab(id: string) {
+    await projectApi.delete(`/tabs/${id}`)
 }
 
 export const apiUploadPropFile = async (file: any) => {
@@ -239,17 +246,22 @@ export async function apiUpdatePlugin(name: string) {
 
 export async function apiGetPluginsInfo() {
     let res = await projectApi.get('/plugins_info')
-    return res.data as PluginDescription[]
+    return keysToCamel(res.data) as PluginDescription[]
 }
 
 export async function apiSetPluginParams(plugin: string, params: any) {
     let res = await projectApi.post('/plugin_params', { plugin, params })
-    return res.data as PluginDescription[]
+    return keysToCamel(res.data) as PluginDescription[]
 }
 
 export async function apiGetActions() {
     let res = await projectApi.get('/actions')
-    return res.data as ActionFunctions
+    const raw = res.data
+    const result: ActionFunctions = {}
+    for (const key in raw) {
+        result[key] = keysToCamel(raw[key])
+    }
+    return result as ActionFunctions
 }
 
 export async function apiCallActions(req: ExecuteActionPayload) {
@@ -294,8 +306,18 @@ export async function apiGetUIData(key: string) {
     return res.data as any
 }
 
+export async function apiGetAllUIData() {
+    let res = await projectApi.get('/ui_data')
+    return res.data as Record<string, any>
+}
+
 export async function apiSetUIData(key: string, data: any) {
     let res = await projectApi.post('/ui_data', { key, data })
+    return res.data as any
+}
+
+export async function apiSetUIDataBulk(data: Record<string, any>) {
+    let res = await projectApi.post('/ui_data_bulk', data)
     return res.data as any
 }
 
@@ -356,6 +378,25 @@ export async function apiCommitDelete(commit: DbCommit): Promise<void> {
 export async function apiGetHistory() {
     const res = await projectApi.get('/history')
     return res.data as CommitHistory
+}
+
+export async function apiGetImageTypes(): Promise<ImageType[]> {
+    const res = await projectApi.get('/image_types')
+    return keysToCamel(res.data) as ImageType[]
+}
+
+export async function apiUpsertImageType(type: ImageType): Promise<ImageType> {
+    const res = await projectApi.post('/image_types', keysToSnake(type))
+    return keysToCamel(res.data) as ImageType
+}
+
+export async function apiDeleteImageType(typeId: number) {
+    await projectApi.delete(`/image_types/${typeId}`)
+}
+
+export async function apiGetImageStats(): Promise<ImageStats> {
+    const res = await projectApi.get('/image_stats')
+    return keysToCamel(res.data) as ImageStats
 }
 
 export async function apiGetSettings() {

@@ -7,17 +7,17 @@ from sys import platform
 from typing import Any, Optional
 
 import msgspec
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
-from panoptic.models.data import (
+from panoptic2.core.databases.data.models import (
     Commit, DeleteCommit, FileValue, Folder, Instance, Property, Sha1Value,
     Tag, InstanceValue, UpsertCommit, File, FileSource,
 )
-from panoptic.models.models import ProjectSettings
+from panoptic2.models.models import ProjectSettings
 from panoptic2.core.project.project import Project2
 from panoptic2.models.action_models import ActionContext
 from panoptic2.models.stream_models import (
@@ -210,7 +210,7 @@ def get_delta(since: int, project: Project2 = Depends(_dep)):
     """Return all rows changed since `since` as a single StreamResult JSON response."""
     import json as _json
     import os as _os
-    from panoptic.core.databases.entity_schema import OP_DELETE
+    from panoptic2.core.databases.entity_schema import OP_DELETE
 
     with project._data_reader() as reader:
         raw = reader.get_delta(since)
@@ -476,7 +476,7 @@ def _to_ids(val: Any, n: int) -> range:
 
 @project_router.post('/commit/upsert')
 def upsert_commit_route(req: UpsertRequest, project: Project2 = Depends(_dep)):
-    from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE
+    from panoptic2.core.databases.entity_schema import OP_CREATE, OP_UPDATE
 
     upsert = UpsertCommit()
     prop_id_map: dict[int, int] = {}
@@ -720,6 +720,12 @@ class UiDataRequest(BaseModel):
     data: object
 
 
+@project_router.get('/ui_data')
+def get_all_ui_data(project: Project2 = Depends(_dep), user_id: str = 'default'):
+    rows = project.get_all_user_defaults(user_id=user_id)
+    return {row.key: row.data for row in rows}
+
+
 @project_router.get('/ui_data/{key:path}')
 def get_ui_data(key: str, project: Project2 = Depends(_dep), user_id: str = 'default'):
     result = project.get_user_defaults(user_id=user_id, key=key)
@@ -728,8 +734,58 @@ def get_ui_data(key: str, project: Project2 = Depends(_dep), user_id: str = 'def
 
 @project_router.post('/ui_data')
 def set_ui_data(req: UiDataRequest, project: Project2 = Depends(_dep), user_id: str = 'default'):
-    from panoptic.core.databases.project.models import UserDefaults
+    from panoptic2.core.databases.project.models import UserDefaults
     project.set_user_defaults(UserDefaults(user_id=user_id, key=req.key, data=req.data))
+    return {'ok': True}
+
+
+@project_router.post('/ui_data_bulk')
+def set_ui_data_bulk(data: dict, project: Project2 = Depends(_dep), user_id: str = 'default'):
+    from panoptic2.core.databases.project.models import UserDefaults
+    items = [UserDefaults(user_id=user_id, key=k, data=v) for k, v in data.items()]
+    project.set_user_defaults_bulk(items)
+    return {'ok': True}
+
+
+# ---------------------------------------------------------------------------
+# Tabs
+# ---------------------------------------------------------------------------
+
+class _CreateTabRequest(BaseModel):
+    id: str
+    state: Any
+    selection: Optional[list] = None
+
+
+class _UpdateTabStateRequest(BaseModel):
+    state: Any
+
+
+@project_router.get('/tabs')
+def get_tabs(project: Project2 = Depends(_dep)):
+    tabs = project.get_user_tabs(user_id='default')
+    return _json([_db_to_dict(t) for t in tabs])
+
+
+@project_router.post('/tabs')
+def create_tab(req: _CreateTabRequest, project: Project2 = Depends(_dep)):
+    from panoptic2.core.databases.project.models import TabData
+    project.set_tab_data(TabData(id=req.id, user_id='default', state=req.state, selection=req.selection))
+    return {'ok': True}
+
+
+@project_router.put('/tabs/{tab_id}')
+def update_tab(tab_id: str, req: _UpdateTabStateRequest, project: Project2 = Depends(_dep)):
+    existing = project.get_tab_data(tab_id)
+    selection = existing.selection if existing else None
+    from panoptic2.core.databases.project.models import TabData
+    project.set_tab_data(TabData(id=tab_id, user_id='default', state=req.state, selection=selection))
+    return {'ok': True}
+
+
+@project_router.delete('/tabs/{tab_id}')
+def delete_tab(tab_id: str, project: Project2 = Depends(_dep)):
+    project.delete_tab_data(tab_id)
     return {'ok': True}
 
 
@@ -793,26 +849,313 @@ def get_vector_stats(project: Project2 = Depends(_dep)):
 
 
 # ---------------------------------------------------------------------------
-# Not-yet-ported routes — return 501 so the UI fails gracefully
+# Settings  (V2 stores no custom settings yet — defaults always returned)
 # ---------------------------------------------------------------------------
 
-@project_router.post('/import/upload')
-async def import_upload_stub(): raise HTTPException(501, 'Import not yet implemented in panoptic2')
+@project_router.get('/settings')   # TODO: needs testing
+def get_settings(project: Project2 = Depends(_dep)):
+    return ProjectSettings()
 
-@project_router.post('/import/parse')
-async def import_parse_stub(): raise HTTPException(501, 'Import not yet implemented in panoptic2')
 
-@project_router.post('/import/confirm')
-async def import_confirm_stub(): raise HTTPException(501, 'Import not yet implemented in panoptic2')
+@project_router.post('/settings')  # TODO: needs testing
+def post_settings(settings: ProjectSettings, project: Project2 = Depends(_dep)):
+    # V2 does not yet persist per-project settings; echo back what was received.
+    return settings
 
-@project_router.post('/import/tags')
-async def import_tags_stub(): raise HTTPException(501, 'Import not yet implemented in panoptic2')
 
-@project_router.post('/export')
-async def export_stub(): raise HTTPException(501, 'Export not yet implemented in panoptic2')
+# ---------------------------------------------------------------------------
+# Image types
+# ---------------------------------------------------------------------------
 
-@project_router.get('/settings')
-async def get_settings_stub(): raise HTTPException(501, 'Settings not yet implemented in panoptic2')
+class _ImageTypeRequest(BaseModel):
+    id: int = -1
+    name: str
+    format: str
+    width: Optional[int] = None
+    height: Optional[int] = None
+    auto_gen: bool = True
 
-@project_router.post('/settings')
-async def post_settings_stub(): raise HTTPException(501, 'Settings not yet implemented in panoptic2')
+
+@project_router.get('/image_types')
+def get_image_types(project: Project2 = Depends(_dep)):
+    types = project.get_image_types()
+    return _json([_db_to_dict(t) for t in types])
+
+
+@project_router.post('/image_types')
+def upsert_image_type(req: _ImageTypeRequest, project: Project2 = Depends(_dep)):
+    from panoptic2.core.databases.media.models import ImageType
+    if req.id < 0:
+        type_id = project.allocate_image_types(1)
+    else:
+        type_id = req.id
+    image_type = ImageType(
+        id=type_id, name=req.name, format=req.format,
+        width=req.width, height=req.height, auto_gen=req.auto_gen,
+    )
+    project.upsert_image_type(image_type)
+    return _json(_db_to_dict(image_type))
+
+
+@project_router.delete('/image_types/{type_id}')
+def delete_image_type(type_id: int, project: Project2 = Depends(_dep)):
+    project.delete_image_type(type_id)
+    return {'ok': True}
+
+
+@project_router.get('/image_stats')
+def get_image_stats(project: Project2 = Depends(_dep)):
+    return project.get_image_stats()
+
+
+# ---------------------------------------------------------------------------
+# Tags — merge
+# ---------------------------------------------------------------------------
+
+class _TagMergeRequest(BaseModel):
+    tag_ids: list[int]
+
+
+@project_router.post('/tags/merge')  # TODO: needs testing
+def merge_tags_route(req: _TagMergeRequest, project: Project2 = Depends(_dep)):
+    from panoptic2.core.databases.entity_schema import OP_UPDATE
+
+    tag_ids = req.tag_ids
+    if len(tag_ids) < 2:
+        raise HTTPException(400, 'Select at least 2 tags to merge')
+
+    all_tags = project.get_tags()
+    tag_map  = {t.id: t for t in all_tags}
+
+    main_id     = tag_ids[0]
+    removed_ids = set(tag_ids[1:])
+    merge_set   = set(tag_ids)
+
+    main_tag = tag_map.get(main_id)
+    if not main_tag:
+        raise HTTPException(404, f'Tag {main_id} not found')
+    list_id = main_tag.list_id
+    if not all(tag_map.get(tid) and tag_map[tid].list_id == list_id for tid in tag_ids):
+        raise HTTPException(400, 'All tags must belong to the same property')
+
+    # Update main tag: union of all merged parents, excluding the removed set
+    all_parent_ids = {
+        p for tid in tag_ids
+        for p in (tag_map[tid].parents or [])
+        if p not in removed_ids and p != main_id
+    }
+    upsert = UpsertCommit()
+    upsert.tags[main_id] = Tag(
+        id=main_id, list_id=list_id, parents=list(all_parent_ids),
+        value=main_tag.value, color=main_tag.color, commit_id=0, operation=OP_UPDATE,
+    )
+
+    # Fix tags whose parents reference any removed id
+    for t in all_tags:
+        if t.id in merge_set:
+            continue
+        if not any(p in removed_ids for p in (t.parents or [])):
+            continue
+        new_parents: list[int] = []
+        has_main = False
+        for p in (t.parents or []):
+            if p not in removed_ids and p != main_id:
+                new_parents.append(p)
+            elif not has_main:
+                new_parents.append(main_id)
+                has_main = True
+        upsert.tags[t.id] = Tag(
+            id=t.id, list_id=t.list_id, parents=new_parents,
+            value=t.value, color=t.color, commit_id=0, operation=OP_UPDATE,
+        )
+
+    # Fix property values that contain any removed tag id
+    props = project.get_properties()
+    prop  = next((p for p in props if p.tag_list_id == list_id), None)
+    if prop:
+        if prop.mode == 'sha1':
+            for v in project.get_sha1_values(property_id=prop.id):
+                val = v.value
+                if not isinstance(val, list) or not any(tid in removed_ids for tid in val):
+                    continue
+                new_val: list[int] = []
+                has_main = False
+                for tid in val:
+                    if tid not in removed_ids and tid != main_id:
+                        new_val.append(tid)
+                    elif not has_main:
+                        new_val.append(main_id)
+                        has_main = True
+                upsert.sha1_values.setdefault(prop.id, []).append(
+                    Sha1Value(property_id=v.property_id, sha1=v.sha1,
+                              value=new_val, commit_id=0, operation=OP_UPDATE)
+                )
+        else:
+            for v in project.get_instance_values(property_id=prop.id):
+                val = v.value
+                if not isinstance(val, list) or not any(tid in removed_ids for tid in val):
+                    continue
+                new_val = []
+                has_main = False
+                for tid in val:
+                    if tid not in removed_ids and tid != main_id:
+                        new_val.append(tid)
+                    elif not has_main:
+                        new_val.append(main_id)
+                        has_main = True
+                upsert.instance_values.setdefault(prop.id, []).append(
+                    InstanceValue(property_id=v.property_id, instance_id=v.instance_id,
+                                  value=new_val, commit_id=0, operation=OP_UPDATE)
+                )
+
+    if upsert.tags or upsert.instance_values or upsert.sha1_values:
+        project.apply_upsert_commit('ui', upsert)
+
+    project.apply_delete_commit('ui', DeleteCommit(tags=removed_ids))
+    return {'ok': True}
+
+
+# ---------------------------------------------------------------------------
+# Vectors — info / delete / default
+# ---------------------------------------------------------------------------
+
+@project_router.get('/vectors_info')   # TODO: needs testing
+def get_vectors_info(project: Project2 = Depends(_dep)):
+    vector_types = project.get_vector_types()
+    # Retrieve the stored default vector id (None if never set)
+    row = project.get_user_defaults(user_id='system', key='default_vector_id')
+    default_id = row.data if row else None
+    return _json({'vector_types': vector_types, 'default_vector_id': default_id})
+
+
+@project_router.post('/delete_vector_type')  # TODO: needs testing
+def delete_vector_type_route(req: _IdRequest, project: Project2 = Depends(_dep)):
+    project.delete_vector_type(req.id)
+    return _json(project.get_vector_types())
+
+
+@project_router.post('/default_vectors')  # TODO: needs testing
+def set_default_vectors(req: _IdRequest, project: Project2 = Depends(_dep)):
+    from panoptic2.core.databases.project.models import UserDefaults
+    project.set_user_defaults(UserDefaults(user_id='system', key='default_vector_id', data=req.id))
+    vector_types = project.get_vector_types()
+    return _json({'vector_types': vector_types, 'default_vector_id': req.id})
+
+
+# ---------------------------------------------------------------------------
+# Delete empty instance clones
+# ---------------------------------------------------------------------------
+
+@project_router.post('/delete_empty_clones')  # TODO: needs testing
+def delete_empty_clones_route(project: Project2 = Depends(_dep)):
+    from collections import defaultdict
+
+    all_instances = project.get_instances()
+
+    # An instance is "empty" if no InstanceValue references it
+    non_empty_ids = {v.instance_id for v in project.get_instance_values()}
+    # Also treat instances whose sha1 has stored values as non-empty
+    sha1s_with_values = {v.sha1 for v in project.get_sha1_values()}
+    non_empty_ids |= {i.id for i in all_instances if i.sha1 and i.sha1 in sha1s_with_values}
+
+    empty_insts = [i for i in all_instances if i.id not in non_empty_ids]
+
+    # Group by sha1 and delete all but the lowest id per group
+    sha1_groups: dict[str, list[int]] = defaultdict(list)
+    for inst in empty_insts:
+        if inst.sha1:
+            sha1_groups[inst.sha1].append(inst.id)
+
+    to_delete: set[int] = set()
+    for ids in sha1_groups.values():
+        if len(ids) > 1:
+            to_delete.update(sorted(ids)[1:])
+
+    if to_delete:
+        project.apply_delete_commit('ui', DeleteCommit(instances=to_delete))
+
+    return {'deleted': len(to_delete)}
+
+
+# ---------------------------------------------------------------------------
+# CSV import
+# ---------------------------------------------------------------------------
+
+class _ImportConfirmRequest(BaseModel):
+    exclude: list[int] = []
+    properties: dict[str, Any] = {}   # col_index_str → {id, name, dtype, mode}
+
+
+@project_router.post('/import/upload')   # TODO: needs testing
+async def import_upload(file: UploadFile, project: Project2 = Depends(_dep)):
+    """Save the uploaded CSV to the project folder and parse its headers."""
+    content   = await file.read()
+    save_path = project.folder / (file.filename or 'import.csv')
+    save_path.write_bytes(content)
+    return project.importer.parse_headers(str(save_path))
+
+
+@project_router.post('/import/parse')   # TODO: needs testing
+def import_parse(
+    relative: bool = False,
+    fusion: str = 'new',
+    project: Project2 = Depends(_dep),
+):
+    """Map CSV rows to existing instance IDs."""
+    return project.importer.verify_mapping(relative=relative, fusion=fusion)
+
+
+@project_router.post('/import/confirm')   # TODO: needs testing
+def import_confirm(req: _ImportConfirmRequest, project: Project2 = Depends(_dep)):
+    """Write imported CSV data to the database."""
+    project.importer.import_data_and_commit(
+        exclude=req.exclude,
+        properties=req.properties,
+    )
+    return {'ok': True}
+
+
+@project_router.post('/import/tags')   # TODO: needs testing
+async def import_tags(
+    file: UploadFile,
+    property_id: int = Form(...),
+    project: Project2 = Depends(_dep),
+):
+    """Import a tag hierarchy CSV (name; color; parents) into a tag property."""
+    content = await file.read()
+    project.importer.import_tags(content, property_id)
+    return _json(project.get_tags())
+
+
+# ---------------------------------------------------------------------------
+# Export
+# ---------------------------------------------------------------------------
+
+class _ExportRequest(BaseModel):
+    name: str | None = None
+    images: list[int] | None = None        # instance ids to export; None = all
+    properties: list[int] = []
+    export_images: bool = False
+    key: str = 'id'
+
+
+@project_router.post('/export')   # TODO: needs testing
+def export_route(req: _ExportRequest, project: Project2 = Depends(_dep)):
+    import subprocess, sys
+    export_path = project.exporter.export_data(
+        path=str(project.folder),
+        name=req.name,
+        instance_ids=req.images,
+        properties=req.properties,
+        copy_images=req.export_images,
+        key=req.key,
+    )
+    # Try to reveal the folder in the file manager (best-effort, non-blocking)
+    try:
+        if sys.platform == 'darwin':
+            subprocess.Popen(['open', export_path])
+        elif sys.platform.startswith('linux'):
+            subprocess.Popen(['xdg-open', export_path])
+    except Exception:
+        pass
+    return {'path': export_path}

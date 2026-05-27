@@ -218,7 +218,7 @@ export interface ScoreInterval {
 
 export interface TabState {
     version: number
-    id: number
+    id: string
     name: string
     display: string
     selected?: boolean
@@ -246,21 +246,14 @@ export interface MapOptions {
 }
 
 export interface TabData {
-    version: number
-    id: number
-    name: string
-    display: string
-
-    filterState: FilterState
-    sortState: SortState,
-    groupState: GroupState,
-
-
-
+    id: string
+    user_id: string
+    state: TabState | null
+    selection: number[] | null
 }
 
 export interface TabIndex {
-    [tabId: number]: TabState
+    [tabId: string]: TabState
 }
 
 
@@ -595,8 +588,22 @@ export interface ProjectSettings {
     saveFileRaw: boolean
 }
 
+export interface ImageType {
+    id: number
+    name: string
+    format: string
+    width: number | null
+    height: number | null
+    autoGen: boolean
+}
+
+export interface ImageStats {
+    counts: { [typeId: number]: number }
+    sha1Count: number
+}
+
 export interface UiState {
-    activeTab?: number
+    activeTab?: string
     lang?: string
     similarityIntervals: { [key: string]: ScoreInterval },
     similarityImageSize: number

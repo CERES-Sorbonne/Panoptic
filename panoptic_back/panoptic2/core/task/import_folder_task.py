@@ -4,9 +4,9 @@ import logging
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from panoptic.core.databases.entity_schema import OP_CREATE
-from panoptic.core.databases.media.models import Image
-from panoptic.models.data import File, FileSource, FileValue, Folder, Instance, Property, UpsertCommit
+from panoptic2.core.databases.entity_schema import OP_CREATE
+from panoptic2.core.databases.media.models import Image
+from panoptic2.core.databases.data.models import File, FileSource, FileValue, Folder, Instance, Property, UpsertCommit
 from panoptic2.core.task.task import Task
 
 logger = logging.getLogger('ImportFolderTask')

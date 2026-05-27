@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from panoptic.core.databases.panoptic.models import PluginKey
+from panoptic2.core.databases.panoptic.models import PluginKey
 from panoptic2.core.task.task import Task
 
 if TYPE_CHECKING:

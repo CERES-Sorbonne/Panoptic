@@ -5,9 +5,9 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from panoptic.core.databases.panoptic.models import PluginKey, ProjectKey, User
-from panoptic.core.databases.panoptic.panoptic_db import PanopticDB
-from panoptic.core.databases.project.project_db import ProjectDB
+from panoptic2.core.databases.panoptic.models import PluginKey, ProjectKey, User
+from panoptic2.core.databases.panoptic.panoptic_db import PanopticDB
+from panoptic2.core.databases.project.project_db import ProjectDB
 from panoptic2.core.panoptic.models import ProjectState
 from panoptic2.core.plugin.plugin_installer import (
     SOURCE_GIT, SOURCE_PATH, SOURCE_PIP, PluginInstaller,

@@ -6,7 +6,7 @@ import { nextTick, onMounted, ref, watch } from 'vue';
 const tabStore = useTabStore()
 
 const props = defineProps<{
-    id?: number
+    id?: string
 }>()
 
 let tab: TabManager

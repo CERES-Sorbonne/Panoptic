@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image as PilImage
 
-from panoptic.core.databases.media.models import ImageAtlas
+from panoptic2.core.databases.media.models import ImageAtlas
 from panoptic2.core.task.task import Task
 
 logger = logging.getLogger('GenerateAtlasTask')

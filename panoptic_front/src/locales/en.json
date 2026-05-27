@@ -268,7 +268,13 @@
             "computed": "Computed",
             "source": "Source",
             "params": "Params",
-            "createNewType": "Create New Type",
+            "createNewVectorType": "Add vector type",
+            "createNewImageType": "Add image type",
+            "cancel": "Cancel",
+            "name": "Name",
+            "format": "Format",
+            "maxSize": "Max size",
+            "autoOnImport": "Auto on import",
             "function": "Function",
             "computeNow": "Compute now",
             "computeNowTooltip": "Don't check if you want to start compute manually later",
@@ -382,7 +388,9 @@
         },
         "action": {
             "execute": "Run a plugin function",
-            "group": "Run a clustering function"
+            "group": "Run a clustering function",
+            "similar": "Find similar images",
+            "map": "Run a map function"
         },
         "stamp": {
             "add": "add",

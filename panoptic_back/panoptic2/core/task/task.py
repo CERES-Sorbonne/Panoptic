@@ -3,7 +3,7 @@ import threading
 from abc import ABC, abstractmethod
 from typing import Callable
 
-from panoptic.models.models import TaskState
+from panoptic2.models.models import TaskState
 
 
 class Task(ABC):

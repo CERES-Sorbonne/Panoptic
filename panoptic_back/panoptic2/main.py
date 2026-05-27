@@ -5,10 +5,20 @@ import os
 import traceback
 from contextlib import asynccontextmanager
 
+import msgspec
+import msgspec.structs
 import socketio
 import uvicorn
 from fastapi import FastAPI
+import fastapi.encoders as _fe
 from fastapi.exceptions import HTTPException, RequestValidationError
+
+def _encode_msgspec_struct(s: msgspec.Struct) -> dict:
+    return {f: getattr(s, f) for f in s.__struct_fields__}
+
+_fe.ENCODERS_BY_TYPE[msgspec.Struct] = _encode_msgspec_struct
+_fe.encoders_by_class_tuples[_encode_msgspec_struct] = (msgspec.Struct,)
+
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse

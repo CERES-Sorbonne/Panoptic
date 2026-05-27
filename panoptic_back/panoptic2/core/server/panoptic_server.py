@@ -20,11 +20,12 @@ import anyio
 
 import socketio
 
-from panoptic.core.databases.panoptic.models import User
-from panoptic.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
-from panoptic.models.models import TaskState
+from panoptic2.core.databases.panoptic.models import User
+from panoptic2.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
+from panoptic2.models.models import TaskState
 from panoptic2.core.panoptic.panoptic import Panoptic2
 from panoptic2.core.watcher.db_watcher import DbWatcher
+from panoptic2.core.plugin.plugin_watcher import PluginWatcher, WATCH_PLUGINS
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +70,10 @@ class PanopticServer2:
         self._watchers:      dict[str, DbWatcher]          = {}
         self._watcher_tasks: dict[str, asyncio.Task]       = {}
 
+        # PluginWatcher per loaded project (only active when PANOPTIC_WATCH_PLUGINS=1)
+        self._plugin_watchers:      dict[str, PluginWatcher] = {}
+        self._plugin_watcher_tasks: dict[str, asyncio.Task]  = {}
+
         # Last known project per user (user_id → project_id), in-memory only
         self._user_last_project: dict[str, str | None] = {}
 
@@ -91,12 +96,13 @@ class PanopticServer2:
         watcher_ids = list(self._watchers.keys())
         for id_ in watcher_ids:
             await self._detach_watcher(id_)
+            await self._detach_plugin_watcher(id_)
         # Final TRUNCATE checkpoint on every still-loaded project's data DB.
         # The readers are now gone, so the checkpoint will succeed.
         await anyio.to_thread.run_sync(self._checkpoint_all_projects)
 
     def _checkpoint_all_projects(self) -> None:
-        from panoptic.core.databases.data.data_writer import DataWriter
+        from panoptic2.core.databases.data.data_writer import DataWriter
         for project in self._panoptic._loaded_projects.values():
             try:
                 with DataWriter(str(project.data_db_path)) as w:
@@ -195,6 +201,10 @@ class PanopticServer2:
         if id_ not in self._watchers:
             self._attach_watcher(id_, project.data_db_path)
 
+        # Start PluginWatcher if hot-reload is enabled
+        if WATCH_PLUGINS and id_ not in self._plugin_watchers:
+            self._attach_plugin_watcher(id_, project)
+
         # Wire task callback if not yet wired
         if self._panoptic.get_project(id_).task_manager._on_update is None:
             project.task_manager._on_update = self._make_task_callback(id_)
@@ -215,6 +225,7 @@ class PanopticServer2:
         )
         if remaining == 0:
             await self._detach_watcher(id_)
+            await self._detach_plugin_watcher(id_)
             await anyio.to_thread.run_sync(
                 lambda: self._panoptic.close_project(id_)
             )
@@ -244,6 +255,28 @@ class PanopticServer2:
     async def _detach_watcher(self, id_: str) -> None:
         self._watchers.pop(id_, None)
         task = self._watcher_tasks.pop(id_, None)
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+    def _attach_plugin_watcher(self, id_: str, project) -> None:
+        print(f'[PluginWatcher] _attach_plugin_watcher: project={id_!r}, plugin_keys={[k.id for k in project._plugin_keys]}')
+        watcher = PluginWatcher(project)
+        for key in project._plugin_keys:
+            watcher.watch(key)
+        if not watcher._watching:
+            print('[PluginWatcher] no watchable paths found — skipping')
+            return
+        self._plugin_watchers[id_] = watcher
+        task = asyncio.ensure_future(watcher.run())
+        self._plugin_watcher_tasks[id_] = task
+
+    async def _detach_plugin_watcher(self, id_: str) -> None:
+        self._plugin_watchers.pop(id_, None)
+        task = self._plugin_watcher_tasks.pop(id_, None)
         if task and not task.done():
             task.cancel()
             try:

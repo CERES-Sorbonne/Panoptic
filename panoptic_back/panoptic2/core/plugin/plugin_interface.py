@@ -10,14 +10,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, List
 
-from panoptic.core.databases.data.data_reader import DataReader
-from panoptic.core.databases.data.data_writer import DataWriter
-from panoptic.core.databases.media.create import datastore_desc
-from panoptic.core.databases.media.media_db import MediaDB
-from panoptic.core.databases.media.models import Map, Vector, VectorType
-from panoptic.core.databases.project.models import UserDefaults
-from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic.models.data import (
+from panoptic2.core.databases.data.data_reader import DataReader
+from panoptic2.core.databases.data.data_writer import DataWriter
+from panoptic2.core.databases.media.create import datastore_desc
+from panoptic2.core.databases.media.media_db import MediaDB
+from panoptic2.core.databases.media.models import Map, Vector, VectorType
+from panoptic2.core.databases.project.models import UserDefaults
+from panoptic2.core.databases.project.project_db import ProjectDB
+from panoptic2.core.databases.data.models import (
     Commit, DeleteCommit, File, FileSource, Folder, Instance, InstanceValue,
     Property, Sha1Value, Tag, UpsertCommit, FileValue,
 )

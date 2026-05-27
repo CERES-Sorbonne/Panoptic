@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable
 
-from panoptic.core.databases.media.models import VectorType
+from panoptic2.core.databases.media.models import VectorType
 from panoptic2.models.action_models import (
     ActionContext, ActionResult, FunctionDescription, OwnVectorType,
     ParamDescription, PropertyId, InputFile,
@@ -21,7 +21,6 @@ _TYPE_MAP: dict = {
     bool:          'bool',
     Path:          'path',
     PropertyId:    'property',
-    ActionContext: 'context',
     OwnVectorType: 'own_vector_type',
     VectorType:    'vector_type',
     InputFile:     'input_file',

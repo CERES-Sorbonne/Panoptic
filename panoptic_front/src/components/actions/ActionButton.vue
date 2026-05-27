@@ -26,7 +26,6 @@ const emits = defineEmits(['instances', 'groups'])
 const localInputs = ref<ParamDescription[]>([])
 const defaultFunction = computed(() => actions.defaultActions[props.action])
 const localFunction = ref<string>(null)
-const setDefault = ref(false)
 const loading = ref(false)
 const dropdownElem = ref(null)
 const showFunctionSelect = ref(false)
@@ -86,17 +85,15 @@ async function call() {
         console.error(e)
     }
     try {
-        if (setDefault.value) {
-            const funcId = localFunction.value
-            for (let i in localInputs.value) {
-                actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
-            }
-            await actions.updateDefaultParams()
-
-            const update = {}
-            update[props.action] = localFunction.value
-            await actions.updateDefaultActions(update)
+        const funcId = localFunction.value
+        for (let i in localInputs.value) {
+            actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
         }
+        await actions.updateDefaultParams(funcId)
+
+        const update = {}
+        update[props.action] = localFunction.value
+        await actions.updateDefaultActions(update)
     } catch (e) {
 
     }
@@ -180,10 +177,7 @@ watch(localFunction, loadInput)
                                 </div>
                                 
                                 <div class="d-flex flex-center p-1 bar" :class="{'no-shadow': localInputs.length == 0}">
-                                    <div class="me-1"><input type="checkbox" v-model="setDefault"
-                                            style="position: relative; top: 2px" /></div>
-                                    <div class="text-secondary" style="white-space: nowrap;">{{ $t('action.default') }}</div>
-                                    <div class="ms-2 flex-grow-1"></div>
+                                    <div class="flex-grow-1"></div>
                                     <div class="bb" @click="hide">{{ $t('cancel') }}</div>
                                     <div class="bb" @click="call(); hide();">{{ $t('call') }}</div>
                                 </div>

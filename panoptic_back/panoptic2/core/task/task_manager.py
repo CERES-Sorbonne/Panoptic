@@ -4,7 +4,7 @@ import threading
 from collections import defaultdict
 from typing import Callable
 
-from panoptic.models.models import TaskState
+from panoptic2.models.models import TaskState
 from panoptic2.core.task.task import Task
 
 PRIORITY_HIGH   = 0
