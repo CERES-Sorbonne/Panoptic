@@ -5,8 +5,9 @@
  *   - This store: raw typed arrays, no Vue overhead, EventEmitter for changes.
  *   - fullColumnStatus: the only reactive object — observed by Vue for loading indicators.
  *
- * Property value columns are lazy. Everything else (slots, metadata, folders, properties,
- * tags) is expected to be loaded eagerly by the caller after init().
+ * Property value columns are lazy. Slot map and metadata are built by init(), which
+ * streams the same endpoint as dataStore independently so both can be initialised
+ * in parallel from projectStore.
  *
  * See: panoptic_front/notes/new_data_store_design.md
  */
@@ -14,8 +15,8 @@
 import { defineStore } from 'pinia'
 import { markRaw, reactive } from 'vue'
 import { PropertyType } from './models'
-import { EventEmitter } from '@/utils/utils'
-import { projectApi } from './apiProjectRoutes'
+import { EventEmitter, isFinished } from '@/utils/utils'
+import { apiStreamLoadState, projectApi } from './apiProjectRoutes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,19 +39,20 @@ interface PendingCall {
     reject:  (err: unknown) => void
 }
 
-export interface InstanceInitData {
+interface SlotInitData {
     id:       number
     sha1:     string
     folderId: number
     width:    number
     height:   number
-    deleted?: boolean
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const INSTANCE_VALUES_DEBOUNCE_MS  = 50
 export const INCREMENTAL_UPDATE_THRESHOLD = 10_000
+
+const DELETED_ID = -999999999
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -65,7 +67,7 @@ function makeColumn(kind: ColumnData['kind'], size: number): ColumnData {
     switch (kind) {
         case 'numeric': {
             const data = new Float64Array(size)
-            data.fill(NaN) // NaN = null value; 0 is a valid value
+            data.fill(NaN) // NaN = null value; 0 is a real value
             return { kind, data }
         }
         case 'bool':   return { kind, data: new Uint8Array(size).fill(255) }
@@ -103,7 +105,7 @@ function buildInvertedIndex(sparse: TagSparse, count: number): Record<number, nu
     return tmp
 }
 
-// ─── Backend API stubs (endpoints to be implemented) ─────────────────────────
+// ─── Backend API stubs (subset endpoints to be implemented on backend) ────────
 
 async function apiGetInstanceValues(
     ids:     number[],
@@ -125,11 +127,10 @@ async function apiGetFullColumn(propId: number): Promise<{ ids: number[]; values
 export const useColumnStore = defineStore('columnStore', () => {
 
     // ── Slot management ────────────────────────────────────────────────────
-    // slotMap is the inner core: every operation starts here.
     const slotMap = markRaw(new Map<number, number>()) // instanceId → slot
-    let slotToId    = new Int32Array(0)               // slot → instanceId
+    let slotToId    = new Int32Array(0)
     let slotCount   = 0
-    let deletedMask = new Uint8Array(0)               // 1 = deleted
+    let deletedMask = new Uint8Array(0)
 
     // ── Metadata columns (always built at init) ────────────────────────────
     const sha1Column: string[] = []
@@ -150,7 +151,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     const tagInverted:         Record<number, Int32Array> = markRaw({})
     const _tagInvertedPromise: Record<number, Promise<void>> = {}
 
-    // ── Selection (non-reactive — components subscribe to onSelectionChange) ─
+    // ── Selection (non-reactive) ───────────────────────────────────────────
     let selectionMask = new Uint8Array(0)
     const onSelectionChange = new EventEmitter()
 
@@ -164,22 +165,47 @@ export const useColumnStore = defineStore('columnStore', () => {
     const _pendingCalls: PendingCall[] = []
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Initialisation
+    // Initialisation — self-contained, called from projectStore
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Call once after the initial load stream completes.
-     * Builds slot map + metadata columns for all instances.
-     * Property columns remain empty until required.
+     * Streams instance metadata and property types independently from the backend.
+     * Called from projectStore.init() in parallel with dataStore.init().
+     * Property value columns remain empty (lazy) until required.
      */
-    function init(
-        instances:     InstanceInitData[],
-        propertyTypes: Record<number, PropertyType>
-    ) {
+    async function init() {
+        const instanceBuffer: SlotInitData[] = []
+        const propTypeBuffer: Record<number, PropertyType> = {}
+
+        await apiStreamLoadState((result) => {
+            if (result.chunk?.instances) {
+                for (const inst of result.chunk.instances) {
+                    if (inst.id === DELETED_ID) continue
+                    instanceBuffer.push({
+                        id:       inst.id,
+                        sha1:     inst.sha1,
+                        folderId: inst.folderId,
+                        width:    inst.width,
+                        height:   inst.height,
+                    })
+                }
+            }
+            if (result.chunk?.properties) {
+                for (const prop of result.chunk.properties) {
+                    if (prop.id !== DELETED_ID) propTypeBuffer[prop.id] = prop.type
+                }
+            }
+            if (isFinished(result.state)) {
+                _buildSlots(instanceBuffer, propTypeBuffer)
+            }
+        })
+    }
+
+    function _buildSlots(instances: SlotInitData[], propTypes: Record<number, PropertyType>) {
         const n = instances.length
 
-        slotToId    = new Int32Array(n)
-        deletedMask = new Uint8Array(n)
+        slotToId      = new Int32Array(n)
+        deletedMask   = new Uint8Array(n)
         folderColumn  = new Int32Array(n)
         widthColumn   = new Int32Array(n)
         heightColumn  = new Int32Array(n)
@@ -196,13 +222,34 @@ export const useColumnStore = defineStore('columnStore', () => {
             folderColumn[s] = inst.folderId
             widthColumn[s]  = inst.width
             heightColumn[s] = inst.height
-            if (inst.deleted) deletedMask[s] = 1
         }
         slotCount = n
 
-        for (const [idStr, type] of Object.entries(propertyTypes)) {
+        for (const [idStr, type] of Object.entries(propTypes)) {
             registerProperty(Number(idStr), type)
         }
+    }
+
+    function clear() {
+        slotMap.clear()
+        slotToId    = new Int32Array(0)
+        slotCount   = 0
+        deletedMask = new Uint8Array(0)
+
+        sha1Column.length = 0
+        folderColumn  = new Int32Array(0)
+        widthColumn   = new Int32Array(0)
+        heightColumn  = new Int32Array(0)
+
+        for (const k of Object.keys(columnData))    delete columnData[Number(k)]
+        for (const k of Object.keys(columnFetched)) delete columnFetched[Number(k)]
+        for (const k of Object.keys(_propTypes))    delete _propTypes[Number(k)]
+        for (const k of Object.keys(fullColumnStatus)) delete fullColumnStatus[Number(k)]
+        for (const k of Object.keys(_fullColumnPromise)) delete _fullColumnPromise[Number(k)]
+        for (const k of Object.keys(tagInverted))        delete tagInverted[Number(k)]
+        for (const k of Object.keys(_tagInvertedPromise)) delete _tagInvertedPromise[Number(k)]
+
+        selectionMask = new Uint8Array(0)
     }
 
     function registerProperty(propId: number, type: PropertyType) {
@@ -236,7 +283,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Cell writes (internal + used by applyCommit)
+    // Cell writes
     // ─────────────────────────────────────────────────────────────────────────
 
     function _ensureColumn(propId: number): ColumnData {
@@ -262,7 +309,7 @@ export const useColumnStore = defineStore('columnStore', () => {
                 break
             case 'tag':
                 col.sparse[slot] = Array.isArray(value) ? value : null
-                col.csr = undefined // invalidate — rebuilt on next requireFullColumn
+                col.csr = undefined // invalidate — rebuilt by next requireFullColumn
                 break
         }
         columnFetched[propId][slot] = 1
@@ -272,10 +319,6 @@ export const useColumnStore = defineStore('columnStore', () => {
     // Commit application
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Apply a commit from the server or an undo/redo operation.
-     * Emits onChange with the dirty instance ids and property ids.
-     */
     function applyCommit(updates: Array<{ instanceId: number; propertyId: number; value: any }>) {
         if (updates.length === 0) return
 
@@ -291,7 +334,6 @@ export const useColumnStore = defineStore('columnStore', () => {
         }
 
         if (dirtyInstances.length === 0) return
-
         onChange.emit({ propIds: [...dirtyProps], instanceIds: dirtyInstances } satisfies ChangePayload)
     }
 
@@ -299,12 +341,6 @@ export const useColumnStore = defineStore('columnStore', () => {
     // Batch fetch — requireInstanceValues
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Fetch property values for a subset of instances.
-     * Already-cached cells are skipped. Uncached cells are batched across all
-     * concurrent callers and sent in one combined API call per debounce window.
-     * Returns a Map of instanceId → { propId: value } from the cache after fetch.
-     */
     async function requireInstanceValues(
         instanceIds: number[],
         propIds:     number[]
@@ -325,14 +361,13 @@ export const useColumnStore = defineStore('columnStore', () => {
 
         if (needIds.size > 0) {
             await new Promise<void>((resolve, reject) => {
-                for (const id of needIds)   _pendingIds.add(id)
+                for (const id  of needIds)   _pendingIds.add(id)
                 for (const pid of needProps) _pendingProps.add(pid)
                 _pendingCalls.push({ resolve, reject })
                 _scheduleBatch()
             })
         }
 
-        // Assemble result from cache (now fully populated)
         const result = new Map<number, Record<number, any>>()
         for (const id of instanceIds) {
             const slot = slotMap.get(id)
@@ -346,17 +381,15 @@ export const useColumnStore = defineStore('columnStore', () => {
 
     function _scheduleBatch() {
         if (_batchTimer !== null) return
-        // setTimeout(0): merges all same-tick callers (multiple <InstanceData> mounts).
-        // Scroll events fire on a later tick and naturally form their own batch.
         _batchTimer = setTimeout(_flushBatch, 0)
     }
 
     async function _flushBatch() {
         _batchTimer = null
 
-        const ids    = [..._pendingIds]
-        const props  = [..._pendingProps]
-        const calls  = [..._pendingCalls]
+        const ids   = [..._pendingIds]
+        const props = [..._pendingProps]
+        const calls = [..._pendingCalls]
 
         _pendingIds.clear()
         _pendingProps.clear()
@@ -370,7 +403,6 @@ export const useColumnStore = defineStore('columnStore', () => {
         try {
             const raw = await apiGetInstanceValues(ids, props)
 
-            // Write fetched values into columns
             for (const [idStr, values] of Object.entries(raw)) {
                 const slot = slotMap.get(Number(idStr))
                 if (slot === undefined) continue
@@ -379,8 +411,8 @@ export const useColumnStore = defineStore('columnStore', () => {
                 }
             }
 
-            // Mark all requested (id, prop) pairs as fetched, even if API returned no value.
-            // This prevents re-fetching null/absent values on every render.
+            // Mark all requested pairs fetched even if the API returned no value,
+            // so we don't re-fetch null/absent values on every render.
             for (const id of ids) {
                 const slot = slotMap.get(id)
                 if (slot === undefined) continue
@@ -397,13 +429,9 @@ export const useColumnStore = defineStore('columnStore', () => {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Full column fetch — for CollectionManager (filter / sort / group)
+    // Full column fetch — for CollectionManager
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Fetch the complete column for propId. Idempotent — concurrent callers
-     * share one in-flight promise. Builds CSR for tag columns after loading.
-     */
     async function requireFullColumn(propId: number): Promise<void> {
         if (fullColumnStatus[propId] === 'loaded') return
         if (_fullColumnPromise[propId]) return _fullColumnPromise[propId]
@@ -420,7 +448,6 @@ export const useColumnStore = defineStore('columnStore', () => {
                     _writeSlot(propId, slot, values[i])
                 }
 
-                // Build CSR for tag columns (enables fast sequential scan in CollectionManager)
                 const col = columnData[propId]
                 if (col?.kind === 'tag') {
                     col.csr = buildCSR(col.sparse, slotCount)
@@ -437,11 +464,6 @@ export const useColumnStore = defineStore('columnStore', () => {
         return _fullColumnPromise[propId]
     }
 
-    /**
-     * Build the tag inverted index for propId.
-     * Requires the full column — calls requireFullColumn first.
-     * tagInverted[tagId] is a sorted Int32Array of slot indices.
-     */
     async function requireTagInverted(propId: number): Promise<void> {
         await requireFullColumn(propId)
         if (_tagInvertedPromise[propId]) return _tagInvertedPromise[propId]
@@ -449,7 +471,6 @@ export const useColumnStore = defineStore('columnStore', () => {
         _tagInvertedPromise[propId] = (async () => {
             const col = columnData[propId]
             if (!col || col.kind !== 'tag') return
-
             const tmp = buildInvertedIndex(col.sparse, slotCount)
             for (const [tagIdStr, slots] of Object.entries(tmp)) {
                 tagInverted[Number(tagIdStr)] = new Int32Array(slots).sort()
@@ -481,7 +502,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     // ─────────────────────────────────────────────────────────────────────────
 
     return {
-        // Slot management (non-reactive; read typed arrays directly)
+        // Slot management (non-reactive — read typed arrays directly)
         slotMap,
         get slotToId()    { return slotToId },
         get slotCount()   { return slotCount },
@@ -493,7 +514,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         get widthColumn()   { return widthColumn },
         get heightColumn()  { return heightColumn },
 
-        // Property columns (non-reactive; subscribe to onChange for updates)
+        // Property columns (non-reactive — subscribe to onChange for updates)
         columnData,
         columnFetched,
         tagInverted,
@@ -510,6 +531,7 @@ export const useColumnStore = defineStore('columnStore', () => {
 
         // Store API
         init,
+        clear,
         registerProperty,
         applyCommit,
         requireInstanceValues,

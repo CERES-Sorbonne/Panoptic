@@ -14,6 +14,7 @@ import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
 import { useI18n } from 'vue-i18n';
 import { useActionStore } from "./actionStore";
+import { useColumnStore } from "./dataStore2";
 
 export const test = shallowRef({ count: 0 })
 
@@ -55,7 +56,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         loaded.value = true
-        await dataStore.init()
+        await Promise.all([dataStore.init(), useColumnStore().init()])
         await actionStore.init()
 
         // usePanopticStore().showModal(ModalId.TAG, {})
@@ -79,6 +80,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         dataStore.clear()
         tabStore.clear()
         actionStore.clear()
+        useColumnStore().clear()
 
     }
 

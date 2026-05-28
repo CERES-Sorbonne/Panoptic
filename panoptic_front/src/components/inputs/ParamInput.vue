@@ -5,7 +5,7 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import PropertyDropdown from '../properties/PropertyDropdown.vue';
 import { useDataStore } from '@/data/dataStore';
 import { ParamDescription, VectorType } from '@/data/models';
-import VectorTypeDropdown from '../dropdowns/VectorTypeDropdown.vue';
+import VectorTypeDropdown from '../Dropdowns/VectorTypeDropdown.vue';
 
 const data = useDataStore()
 

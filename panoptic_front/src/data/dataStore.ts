@@ -8,6 +8,7 @@ import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParent
 import { useTabStore } from "./tabStore";
 import { usePanopticStore } from "./panopticStore";
 import { SERVER_PREFIX } from "./apiPanopticRoutes";
+import { useColumnStore } from "./dataStore2";
 
 export const deletedID = -999999999
 const deletedName = 'Deleted'
@@ -457,6 +458,34 @@ export const useDataStore = defineStore('dataStore', () => {
 
         if (!disableTrigger && hasPropertyChanges(commit)) {
             computePropertyTree()
+        }
+
+        // Forward value changes to column store so it stays in sync.
+        // Only runs after init (slotCount > 0). Expands sha1/file-keyed values
+        // into per-instance updates using the indexes already built in this store.
+        if (isLoaded.value) {
+            const colUpdates: Array<{ instanceId: number; propertyId: number; value: any }> = []
+
+            commit.instanceValues?.forEach(v =>
+                colUpdates.push({ instanceId: v.instanceId, propertyId: v.propertyId, value: v.value }))
+            commit.emptyInstanceValues?.forEach(v =>
+                colUpdates.push({ instanceId: v.instanceId, propertyId: v.propertyId, value: null }))
+
+            commit.imageValues?.forEach(v =>
+                sha1Index.value[v.sha1]?.forEach(i =>
+                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: v.value })))
+            commit.emptyImageValues?.forEach(v =>
+                sha1Index.value[v.sha1]?.forEach(i =>
+                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: null })))
+
+            commit.fileValues?.forEach(v =>
+                fileIndex.value[v.fileId]?.forEach(i =>
+                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: v.value })))
+            commit.emptyFileValues?.forEach(v =>
+                fileIndex.value[v.fileId]?.forEach(i =>
+                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: null })))
+
+            if (colUpdates.length > 0) useColumnStore().applyCommit(colUpdates)
         }
 
         if (disableTrigger) return

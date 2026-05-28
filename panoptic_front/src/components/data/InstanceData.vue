@@ -13,6 +13,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onUnmounted } from 'vue'
 import { useColumnStore } from '@/data/dataStore2'
+import type { ChangePayload } from '@/data/dataStore2'
 import type { Instance } from '@/data/models'
 
 const props = defineProps<{
@@ -30,8 +31,6 @@ const instances = reactive<Record<number, Instance>>({})
 // Reactive Set so v-if / :class bindings on selected.has(id) update automatically
 const selected = reactive<Set<number>>(new Set())
 
-// Rebuild selected set when selection changes.
-// O(instanceIds.length) per click — negligible for the ~200 items a scroll window shows.
 function _syncSelection(ids: number[]) {
     selected.clear()
     for (const id of ids) {
@@ -40,9 +39,30 @@ function _syncSelection(ids: number[]) {
     }
 }
 
+// Patch reactive instances when a commit changes cells we're displaying.
+// Only runs for (instanceId, propId) pairs this component is actually showing.
+function _onDataChange({ instanceIds, propIds }: ChangePayload) {
+    const watchedIds  = new Set(props.instanceIds)
+    const watchedProps = new Set(props.propIds)
+
+    for (const id of instanceIds) {
+        if (!watchedIds.has(id) || !instances[id]) continue
+        const slot = store.slotMap.get(id)
+        if (slot === undefined) continue
+        for (const pid of propIds) {
+            if (!watchedProps.has(pid)) continue
+            instances[id].properties[pid] = store.readSlot(pid, slot)
+        }
+    }
+}
+
 const _onSelectionChange = () => _syncSelection(props.instanceIds)
 store.onSelectionChange.addListener(_onSelectionChange)
-onUnmounted(() => store.onSelectionChange.removeListener(_onSelectionChange))
+store.onChange.addListener(_onDataChange)
+onUnmounted(() => {
+    store.onSelectionChange.removeListener(_onSelectionChange)
+    store.onChange.removeListener(_onDataChange)
+})
 
 watch(
     [() => props.instanceIds, () => props.propIds],
