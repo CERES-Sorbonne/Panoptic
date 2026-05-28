@@ -499,7 +499,14 @@ export async function apiGetAtlas(atlasId: number) {
     return keysToCamel(res.data) as ImageAtlas
 }
 
-export async function apiGetDelta(since: number): Promise<LoadResult> {
-    const res = await projectApi.get(`/delta?since=${since}`)
+export async function apiGetDelta(
+    since: number,
+    opts?: { fullPropIds?: number[]; pointPropIds?: number[]; instanceIds?: number[] }
+): Promise<LoadResult> {
+    const params: Record<string, string> = { since: String(since) }
+    if (opts?.fullPropIds?.length)  params.full_prop_ids  = opts.fullPropIds.join(',')
+    if (opts?.pointPropIds?.length) params.point_prop_ids = opts.pointPropIds.join(',')
+    if (opts?.instanceIds?.length)  params.instance_ids   = opts.instanceIds.join(',')
+    const res = await projectApi.get('/delta', { params })
     return keysToCamel(res.data) as LoadResult
 }

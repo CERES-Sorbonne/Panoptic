@@ -240,6 +240,7 @@ class Importer2:
         key_data  = df[self.file_key].to_list()
         instances = self.project.get_instances()
         files     = {f.id: f for f in self.project.get_files()}
+        folders   = {f.id: f for f in self.project.get_folders()}
         inst_map  = {i.id: i for i in instances}
 
         # Determine which instance ids have at least one value (for fusion='new')
@@ -265,7 +266,9 @@ class Importer2:
             for inst in instances:
                 f = files.get(inst.file_id)
                 if f and f.name:
-                    trie.insert_path(f.name, inst.id)
+                    folder = folders.get(f.folder_id)
+                    full_path = os.path.join(folder.path, f.name) if folder and folder.path else f.name
+                    trie.insert_path(full_path, inst.id)
 
             search = trie.search_relative if relative else trie.search_absolute
             for val in key_data:

@@ -54,6 +54,20 @@ export const INCREMENTAL_UPDATE_THRESHOLD = 10_000
 
 const DELETED_ID = -999999999
 
+// Reserved negative property IDs for always-loaded metadata columns.
+// These are passed to requireInstanceValues / readSlot exactly like property IDs —
+// the store resolves them from the metadata arrays without a network fetch.
+export const META = {
+    WIDTH:     -1,
+    HEIGHT:    -2,
+    SHA1:      -3,
+    FOLDER_ID: -4,
+} as const
+
+function isMetaId(id: number): boolean {
+    return id === META.WIDTH || id === META.HEIGHT || id === META.SHA1 || id === META.FOLDER_ID
+}
+
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
 function propertyKind(type: PropertyType): ColumnData['kind'] {
@@ -158,6 +172,10 @@ export const useColumnStore = defineStore('columnStore', () => {
     // ── Change emitter ─────────────────────────────────────────────────────
     const onChange = new EventEmitter()
 
+    // ── Reactive instance map — shared across all InstanceData registrations ──
+    const instances = reactive<Record<number, { id: number, properties: Record<number, any> }>>({})
+    const _registrations = new Map<string, { instanceIds: number[], propIds: number[] }>()
+
     // ── Batch fetch state ──────────────────────────────────────────────────
     let _batchTimer: ReturnType<typeof setTimeout> | null = null
     const _pendingIds   = new Set<number>()
@@ -241,6 +259,9 @@ export const useColumnStore = defineStore('columnStore', () => {
         widthColumn   = new Int32Array(0)
         heightColumn  = new Int32Array(0)
 
+        for (const k of Object.keys(instances))     delete instances[Number(k)]
+        _registrations.clear()
+
         for (const k of Object.keys(columnData))    delete columnData[Number(k)]
         for (const k of Object.keys(columnFetched)) delete columnFetched[Number(k)]
         for (const k of Object.keys(_propTypes))    delete _propTypes[Number(k)]
@@ -264,6 +285,10 @@ export const useColumnStore = defineStore('columnStore', () => {
     // ─────────────────────────────────────────────────────────────────────────
 
     function readSlot(propId: number, slot: number): any {
+        if (propId === META.WIDTH)     return widthColumn[slot]
+        if (propId === META.HEIGHT)    return heightColumn[slot]
+        if (propId === META.SHA1)      return sha1Column[slot]
+        if (propId === META.FOLDER_ID) return folderColumn[slot]
         const col = columnData[propId]
         if (!col) return undefined
         switch (col.kind) {
@@ -275,6 +300,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     }
 
     function isFetched(propId: number, slot: number): boolean {
+        if (isMetaId(propId)) return slotCount > 0  // metadata is always available after init
         return columnFetched[propId]?.[slot] === 1
     }
 
@@ -319,6 +345,65 @@ export const useColumnStore = defineStore('columnStore', () => {
     // Commit application
     // ─────────────────────────────────────────────────────────────────────────
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Instance registration — used by InstanceData components
+    // ─────────────────────────────────────────────────────────────────────────
+
+    function register(key: string, instanceIds: number[], propIds: number[]) {
+        _registrations.set(key, { instanceIds: [...instanceIds], propIds: [...propIds] })
+
+        // Synchronous pre-fill from typed-array cache
+        for (const id of instanceIds) {
+            if (!instances[id]) instances[id] = { id, properties: {} }
+            const slot = slotMap.get(id)
+            if (slot === undefined) continue
+            for (const pid of propIds) {
+                instances[id].properties[pid] = readSlot(pid, slot)
+            }
+        }
+
+        // Async fetch for any missing cells — updates instances when done
+        if (instanceIds.length && propIds.length) {
+            requireInstanceValues(instanceIds, propIds).then(result => {
+                for (const [id, values] of result) {
+                    const inst = instances[id]
+                    if (!inst) continue
+                    for (const [pidStr, value] of Object.entries(values)) {
+                        inst.properties[Number(pidStr)] = value
+                    }
+                }
+            }).catch(() => {})
+        }
+    }
+
+    function unregister(key: string) {
+        _registrations.delete(key)
+    }
+
+    function getFullyLoadedPropIds(): number[] {
+        return Object.keys(fullColumnStatus)
+            .map(Number)
+            .filter(id => fullColumnStatus[id] === 'loaded')
+    }
+
+    function getRegisteredPropIds(): number[] {
+        const ids = new Set<number>()
+        for (const { propIds } of _registrations.values()) {
+            for (const id of propIds) {
+                if (!isMetaId(id)) ids.add(id)
+            }
+        }
+        return [...ids]
+    }
+
+    function getRegisteredInstanceIds(): number[] {
+        const ids = new Set<number>()
+        for (const { instanceIds } of _registrations.values()) {
+            for (const id of instanceIds) ids.add(id)
+        }
+        return [...ids]
+    }
+
     function applyCommit(updates: Array<{ instanceId: number; propertyId: number; value: any }>) {
         if (updates.length === 0) return
 
@@ -331,6 +416,9 @@ export const useColumnStore = defineStore('columnStore', () => {
             _writeSlot(propertyId, slot, value)
             dirtyInstances.push(instanceId)
             dirtyProps.add(propertyId)
+
+            const inst = instances[instanceId]
+            if (inst) inst.properties[propertyId] = value
         }
 
         if (dirtyInstances.length === 0) return
@@ -419,6 +507,13 @@ export const useColumnStore = defineStore('columnStore', () => {
                 for (const pid of props) {
                     _ensureColumn(pid)
                     columnFetched[pid][slot] = 1
+                }
+                // Sync into the reactive instances map if this id is registered
+                const inst = instances[id]
+                if (inst) {
+                    for (const pid of props) {
+                        inst.properties[pid] = readSlot(pid, slot)
+                    }
                 }
             }
 
@@ -529,9 +624,17 @@ export const useColumnStore = defineStore('columnStore', () => {
         // Selection (non-reactive)
         get selectionMask() { return selectionMask },
 
+        // Reactive instance map (shared across InstanceData registrations)
+        instances,
+
         // Store API
         init,
         clear,
+        register,
+        unregister,
+        getFullyLoadedPropIds,
+        getRegisteredPropIds,
+        getRegisteredInstanceIds,
         registerProperty,
         applyCommit,
         requireInstanceValues,

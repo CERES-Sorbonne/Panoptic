@@ -131,10 +131,10 @@ watch(() => inputs.requestInput, async (val) => {
                     <PropertyIcon :type="property.type" style="margin-right: 3px;" />
                     <span v-if="property.type == PropertyType._folders">
                         <TagBadge
-                            :name="data.folders[data.instances[props.instance.id].properties[props.property.id]].name"
+                            :name="data.folders[props.instance.properties[props.property.id]]?.name"
                             :color="-1" />
                     </span>
-                    <span v-else>{{ data.instances[props.instance.id].properties[props.property.id] }}</span>
+                    <span v-else>{{ props.instance.properties[props.property.id] }}</span>
                 </div>
             </div>
         </template>

@@ -554,6 +554,12 @@ class EntitySchema(_typing.Generic[T]):
     # Read
     # ------------------------------------------------------------------
 
+    def select(self, tx: Cursor, columns: list[str], **filters) -> list[tuple]:
+        """Return raw tuples for the given columns with optional chunked filters."""
+        col_clause = ', '.join(columns)
+        pf = _parse_filters(filters)
+        return self._execute_chunked(tx, f'SELECT {col_clause}', pf)
+
     def get(self, tx: Cursor, **filters) -> list[T]:
         pf   = _parse_filters(filters)
         rows = self._execute_chunked(tx, "SELECT *", pf)

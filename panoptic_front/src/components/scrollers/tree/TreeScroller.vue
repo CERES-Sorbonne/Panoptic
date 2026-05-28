@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, onUnmounted } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -8,6 +8,8 @@ import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
+import InstanceData from '@/components/data/InstanceData.vue';
+import { META } from '@/data/dataStore2';
 
 const panoptic = usePanopticStore()
 
@@ -75,6 +77,58 @@ const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId 
 
 provide('hideImg', hideFromModal)
 
+// ── Window-level batch registration ──────────────────────────────────────────
+// RecycleScroller reports which items are active via @update(startIndex, endIndex).
+// We derive all instance IDs in that window and register them in one shot so the
+// backend is hit with a single batched request instead of one per image cell.
+
+const windowStart = ref(0)
+const windowEnd   = ref(0)
+
+function onScrollerUpdate(startIndex: number, endIndex: number) {
+    windowStart.value = startIndex
+    windowEnd.value   = endIndex
+}
+
+const windowIds = computed(() => {
+    const ids: number[] = []
+    const lines = imageLines.value
+    if (!lines.length) return ids
+
+    // Clamp reported indices to valid range
+    let start = Math.max(0, Math.min(windowStart.value, lines.length - 1))
+    let end   = Math.max(0, Math.min(windowEnd.value,   lines.length - 1))
+
+    // Expand backwards until 5 image/pile lines before the visible window
+    let preCount = 0
+    while (start > 0 && preCount < 5) {
+        start--
+        if (lines[start].type === 'images' || lines[start].type === 'piles') preCount++
+    }
+
+    // Expand forwards until 5 image/pile lines after the visible window
+    let postCount = 0
+    while (end < lines.length - 1 && postCount < 5) {
+        end++
+        if (lines[end].type === 'images' || lines[end].type === 'piles') postCount++
+    }
+
+    for (let i = start; i <= end; i++) {
+        const line = lines[i]
+        if (line.type === 'images' || line.type === 'piles') {
+            for (const it of (line as ImageLine).data) {
+                ids.push(it.image.id)
+            }
+        }
+    }
+    return ids
+})
+
+const windowPropIds = computed(() => [
+    META.WIDTH, META.HEIGHT, META.SHA1,
+    ...(props.properties?.map(p => p.id) ?? [])
+])
+
 defineExpose({
     scrollTo,
     computeLines,
@@ -120,8 +174,20 @@ function computeLines() {
         lines.push(...GroupToLines(it))
         it = it.nextGroup()
     }
-    imageLines.value = lines
 
+    // Avoid a full RecycleScroller reconciliation when only content changed but
+    // IDs and sizes are identical — this prevents CenteredImage from remounting
+    // and flashing blank while loadedSha1 resets.
+    const old = imageLines.value
+    if (old.length === lines.length && old.every((l, i) => l.id === lines[i].id && l.size === lines[i].size)) {
+        // Patch data in-place so ImageIterator references stay current without
+        // triggering a full re-render.
+        for (let i = 0; i < lines.length; i++) old[i].data = lines[i].data
+        return
+    }
+    // Wrap in reactive() so RecycleScroller's z (accumulator computed) tracks
+    // item.size mutations — enabling in-place size updates without a full reset.
+    imageLines.value = lines.map(l => shallowReactive(l))
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -265,29 +331,43 @@ watch(() => props.imageSize, () => {
 })
 
 watch(visiblePropertiesNb, () => {
-    // Find which item is at the top of the viewport before sizes change
+    const lines = imageLines.value
+    if (!lines.length) return
+
+    // Snapshot current scroll position before any layout change
     const scrollPos = scroller.value.getScroll().start
-    let topItemIdx = 0
+
+    // Find the index of the item sitting at the top of the viewport
+    let topItemIdx = lines.length - 1
     let cumSize = 0
-    for (let i = 0; i < imageLines.value.length; i++) {
-        if (cumSize + imageLines.value[i].size > scrollPos) {
-            topItemIdx = i
-            break
-        }
-        cumSize += imageLines.value[i].size
+    for (let i = 0; i < lines.length; i++) {
+        if (cumSize + lines[i].size > scrollPos) { topItemIdx = i; break }
+        cumSize += lines[i].size
     }
 
-    const lines = imageLines.value.map(l => {
-        if (l.type == 'images') return { ...l, size: imageLineSize.value }
-        if (l.type == 'piles') return { ...l, size: pileLineSize.value }
-        return l
-    })
-    imageLines.value = lines
+    // Pre-compute exact pixel offset of that item in the NEW layout so we can
+    // restore it in the same nextTick flush — before the browser paints.
+    let newScrollPos = 0
+    for (let i = 0; i < topItemIdx; i++) {
+        const l = lines[i]
+        if (l.type === 'images') newScrollPos += imageLineSize.value
+        else if (l.type === 'piles') newScrollPos += pileLineSize.value
+        else newScrollPos += l.size
+    }
 
-    nextTick(() => {
-        scroller.value.scrollToItem(topItemIdx)
-        scroller.value.updateVisibleItems(true)
-    })
+    // Set scroll first so that when z's watcher fires pe(false) it reads the
+    // correct scrollTop and positions items at the right offset immediately.
+    scroller.value.$el.scrollTop = newScrollPos
+
+    // Mutate sizes on the reactive line objects. Because RecycleScroller's
+    // accumulator (z) is a computed that reads item.size, these mutations mark
+    // z dirty. RecycleScroller's own q(z, ...) watcher then calls pe(false).
+    // pe(false) skips Oe() when the visible range is stable — no full pool
+    // reset, no LIFO slot scramble, no sha1 changes, no blank flash.
+    for (const l of lines) {
+        if (l.type === 'images') l.size = imageLineSize.value
+        else if (l.type === 'piles') l.size = pileLineSize.value
+    }
 })
 
 let resizeWidthHandler = undefined
@@ -302,8 +382,9 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
 </script>
 
 <template>
+    <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
-        :buffer="400" :min-item-size="0" :emitUpdate="false" @update="" :page-mode="false" :prerender="0">
+        :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">
         <template v-slot="{ item, index, active }">
             <template v-if="active">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
@@ -339,7 +420,7 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
             <!-- </DynamicScrollerItem> -->
         </template>
     </RecycleScroller>
-    <!-- </RecycleScroller> -->
+    </InstanceData>
 </template>
 
 <style scoped>

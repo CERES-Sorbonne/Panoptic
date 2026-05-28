@@ -3,10 +3,11 @@ import io
 import logging
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
 
 from panoptic2.core.databases.entity_schema import OP_CREATE
 from panoptic2.core.databases.media.models import Image
-from panoptic2.core.databases.data.models import File, FileSource, FileValue, Folder, Instance, Property, UpsertCommit
+from panoptic2.core.databases.data.models import File, FileSource, Folder, Instance, UpsertCommit
 from panoptic2.core.task.task import Task
 
 logger = logging.getLogger('ImportFolderTask')
@@ -14,17 +15,6 @@ logger = logging.getLogger('ImportFolderTask')
 IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
 MAX_WORKERS = min(os.cpu_count() or 4, 10)
 WRITE_BATCH = 60
-
-# Default properties created (once) for every project, keyed by mode='file'.
-# Names match keys returned by _process_one so the write loop needs no extra mapping.
-FILE_METADATA_PROPS = [
-    ('width',     'width'),
-    ('height',    'height'),
-    ('path',      'path'),
-    ('sha1',      'sha1'),
-    ('extension', 'text'),
-    ('file_size', 'number'),
-]
 
 # (type_id, format, max_width, max_height)
 ImageTypeSpec = tuple[int, str, int | None, int | None]
@@ -48,28 +38,30 @@ def _process_one(
     except Exception:
         return None
 
-    sha1      = hashlib.sha1(raw).hexdigest()
-    file_size = len(raw)
+    sha1       = hashlib.sha1(raw).hexdigest()
+    created_at = datetime.fromtimestamp(os.stat(path).st_mtime)
     width = height = None
     images = []
 
+    fmt = None
     try:
         with PilImage.open(io.BytesIO(raw)) as img:
             width, height = img.size
+            fmt = (img.format or '').lower() or None
             if image_types:
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
                 img.load()
-                for type_id, fmt, max_w, max_h in image_types:
-                    data = _render(img, fmt, max_w, max_h)
+                for type_id, image_fmt, max_w, max_h in image_types:
+                    data = _render(img, image_fmt, max_w, max_h)
                     images.append((type_id, data))
     except Exception as e:
         logger.error('PIL failed on %s: %s', path, e)
 
     return {
         'path': path, 'folder_id': folder_id, 'sha1': sha1,
-        'images': images, 'width': width, 'height': height, 'file_size': file_size,
-        'extension': os.path.splitext(path)[1].lstrip('.').lower(),
+        'images': images, 'width': width, 'height': height, 'format': fmt,
+        'created_at': created_at,
     }
 
 
@@ -102,57 +94,35 @@ class ImportFolderTask(Task):
             if t.auto_gen
         ]
 
-    def _ensure_metadata_properties(self) -> dict[str, int]:
-        """Create default file-metadata properties if they don't exist yet.
-
-        Returns a mapping {property_name: property_id} for all FILE_METADATA_PROPS.
-        """
-        existing = {p.name: p.id for p in self._project.get_properties(mode='file')}
-        needed = [(name, dtype) for name, dtype in FILE_METADATA_PROPS if name not in existing]
-
-        if needed:
-            ids = self._project.allocate_properties(len(needed))
-            if isinstance(ids, int):
-                ids = range(ids, ids + 1)
-            commit = UpsertCommit()
-            for (name, dtype), prop_id in zip(needed, ids):
-                commit.properties[prop_id] = Property(
-                    id=prop_id, dtype=dtype, mode='file', name=name,
-                    access=None, tag_list_id=None, commit_id=0, operation=OP_CREATE,
-                )
-            self._project.apply_upsert_commit('import', commit)
-            for (name, _), prop_id in zip(needed, ids):
-                existing[name] = prop_id
-
-        return {name: existing[name] for name, _ in FILE_METADATA_PROPS if name in existing}
-
     def start(self):
         import time
         t0 = time.monotonic()
-        self._meta_props = self._ensure_metadata_properties()
 
-        # Scan first — we need the path lists before hitting the DB
         folder_nodes, image_paths = self._scan(self._folder_path)
 
-        # Query only for the paths we actually found — never loads the full table
-        folder_paths  = [n['path'] for n in folder_nodes]
+        folder_paths = [n['path'] for n in folder_nodes]
         existing_folders = {
             f.path: f.id
             for f in self._project.get_folders(path=folder_paths)
             if f.path
         }
+
+        path_to_folder_id = self._import_folder_tree(folder_nodes, existing_folders)
+
+        all_folder_ids = list(set(path_to_folder_id.values()))
         existing_files = {
-            f.name
-            for f in self._project.get_files(name=image_paths)
-            if f.name
+            (f.folder_id, f.name)
+            for f in self._project.get_files(folder_id=all_folder_ids)
+            if f.name and f.folder_id is not None
         }
 
-        image_paths = [p for p in image_paths if p not in existing_files]
+        image_paths = [
+            p for p in image_paths
+            if (path_to_folder_id.get(os.path.dirname(p)), os.path.basename(p)) not in existing_files
+        ]
 
         self.state.total = len(image_paths)
         self._notify()
-
-        path_to_folder_id = self._import_folder_tree(folder_nodes, existing_folders)
 
         items = [
             (path, path_to_folder_id.get(os.path.dirname(path)))
@@ -290,20 +260,20 @@ class ImportFolderTask(Task):
 
         for info, fid, iid in zip(results, file_ids, inst_ids):
             commit.files[fid] = File(
-                id=fid, name=info['path'], folder_id=info['folder_id'],
-                sha1=info['sha1'], commit_id=0, operation=OP_CREATE,
+                id=fid,
+                name=os.path.basename(info['path']),
+                folder_id=info['folder_id'],
+                sha1=info['sha1'],
+                width=info.get('width'),
+                height=info.get('height'),
+                format=info.get('format'),
+                created_at=info.get('created_at'),
+                commit_id=0, operation=OP_CREATE,
             )
             commit.instances[iid] = Instance(
                 id=iid, file_id=fid, sha1=info['sha1'],
                 commit_id=0, operation=OP_CREATE,
             )
-            for name, prop_id in self._meta_props.items():
-                value = info.get(name)
-                if value is not None:
-                    commit.file_values.setdefault(prop_id, []).append(
-                        FileValue(property_id=prop_id, file_id=fid, value=value,
-                                  commit_id=0, operation=OP_CREATE)
-                    )
             for type_id, data in info.get('images', []):
                 media.append(Image(type_id=type_id, sha1=info['sha1'], data=data))
 

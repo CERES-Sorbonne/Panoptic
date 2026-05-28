@@ -1,114 +1,55 @@
-<!-- Renderless component. Fetches property values for a set of instances and
-     exposes them through a slot. All instances are pre-initialized synchronously
-     so instances[id].properties[propId] is always safe — no ?. needed in templates.
+<!-- Renderless component. Registers interest in (instanceIds × propIds) with the
+     ColumnStore. The store builds and maintains the reactive instances map; this
+     component just declares what it needs and cleans up on unmount.
 
      Usage:
        <InstanceData :instance-ids="visibleIds" :prop-ids="[namePropId, datePropId]"
-                     v-slot="{ instances, selected, loading, error }">
+                     v-slot="{ instances, selected }">
          <MyCard v-for="id in visibleIds" :key="id"
                  :name="instances[id].properties[namePropId]"
                  :selected="selected.has(id)" />
        </InstanceData>
 -->
 <script setup lang="ts">
-import { ref, reactive, watch, onUnmounted } from 'vue'
+defineOptions({ inheritAttrs: false })
+import { reactive, getCurrentInstance, onUnmounted, watch } from 'vue'
 import { useColumnStore } from '@/data/dataStore2'
-import type { ChangePayload } from '@/data/dataStore2'
-import type { Instance } from '@/data/models'
 
 const props = defineProps<{
-    instanceIds: number[]
-    propIds:     number[]
+    instanceIds?: number[]
+    propIds:      number[]
 }>()
 
-const store   = useColumnStore()
-const loading = ref(false)
-const error   = ref<string | null>(null)
+const store = useColumnStore()
+const uid   = String(getCurrentInstance()!.uid)
 
-// instances[id].properties[propId] — always defined before render (pre-initialized below)
-const instances = reactive<Record<number, Instance>>({})
+const selected = reactive(new Set<number>())
 
-// Reactive Set so v-if / :class bindings on selected.has(id) update automatically
-const selected = reactive<Set<number>>(new Set())
-
-function _syncSelection(ids: number[]) {
+function syncSelection() {
     selected.clear()
-    for (const id of ids) {
+    for (const id of (props.instanceIds ?? [])) {
         const slot = store.slotMap.get(id)
         if (slot !== undefined && store.isSelected(slot)) selected.add(id)
     }
 }
 
-// Patch reactive instances when a commit changes cells we're displaying.
-// Only runs for (instanceId, propId) pairs this component is actually showing.
-function _onDataChange({ instanceIds, propIds }: ChangePayload) {
-    const watchedIds  = new Set(props.instanceIds)
-    const watchedProps = new Set(props.propIds)
-
-    for (const id of instanceIds) {
-        if (!watchedIds.has(id) || !instances[id]) continue
-        const slot = store.slotMap.get(id)
-        if (slot === undefined) continue
-        for (const pid of propIds) {
-            if (!watchedProps.has(pid)) continue
-            instances[id].properties[pid] = store.readSlot(pid, slot)
-        }
-    }
-}
-
-const _onSelectionChange = () => _syncSelection(props.instanceIds)
-store.onSelectionChange.addListener(_onSelectionChange)
-store.onChange.addListener(_onDataChange)
+store.onSelectionChange.addListener(syncSelection)
 onUnmounted(() => {
-    store.onSelectionChange.removeListener(_onSelectionChange)
-    store.onChange.removeListener(_onDataChange)
+    store.onSelectionChange.removeListener(syncSelection)
+    store.unregister(uid)
 })
 
 watch(
     [() => props.instanceIds, () => props.propIds],
-    async ([ids, propIds]) => {
-        // ── Synchronous: runs before first render ──────────────────────────
-        // Remove stale entries
-        const newSet = new Set(ids)
-        for (const id of Object.keys(instances).map(Number)) {
-            if (!newSet.has(id)) delete instances[id]
-        }
-        // Pre-initialize every requested id so the template never sees undefined
-        for (const id of ids) {
-            if (!instances[id]) {
-                instances[id] = { id, properties: {} } as Instance
-            }
-        }
-        _syncSelection(ids)
-
-        if (!ids.length || !propIds.length) return
-
-        // ── Async: fetch missing cells, fill in place ──────────────────────
-        loading.value = true
-        error.value   = null
-        try {
-            const result = await store.requireInstanceValues(ids, propIds)
-            // Vue tracks each assignment individually — only changed cells re-render
-            for (const [id, values] of result) {
-                for (const [propId, value] of Object.entries(values)) {
-                    instances[id].properties[Number(propId)] = value
-                }
-            }
-        } catch (e) {
-            error.value = String(e)
-        } finally {
-            loading.value = false
-        }
+    ([ids, propIds]) => {
+        if (!ids) return
+        store.register(uid, ids, propIds)
+        syncSelection()
     },
     { immediate: true, deep: false }
 )
 </script>
 
 <template>
-    <slot
-        :instances="instances"
-        :selected="selected"
-        :loading="loading"
-        :error="error"
-    />
+    <slot :instances="store.instances" :selected="selected" />
 </template>

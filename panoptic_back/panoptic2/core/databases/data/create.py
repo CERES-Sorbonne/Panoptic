@@ -50,8 +50,92 @@ def _migrate_v1_to_v2(writer):
     writer.conn.executescript(FILE_VALUES_SCHEMA.create_log_table_sql())
 
 
+def _migrate_v2_to_v3(writer):
+    """Consolidated migration from v2 (first deployed version):
+    - add system_key to properties
+    - add width/height/format/created_at to files
+    - fix file name to basename only
+    - backfill new columns from old file_values
+    - remove old mode='file' metadata properties
+    """
+    import json as _json
+    import os as _os
+
+    # system_key on properties
+    if writer._table_exists('properties'):
+        writer.conn.execute("ALTER TABLE properties ADD COLUMN system_key TEXT")
+    if writer._table_exists('properties_log'):
+        writer.conn.execute("ALTER TABLE properties_log ADD COLUMN system_key TEXT")
+
+    # new file columns
+    if writer._table_exists('files'):
+        for col_def in ('width INTEGER', 'height INTEGER', 'format TEXT', 'created_at TIMESTAMP'):
+            writer.conn.execute(f"ALTER TABLE files ADD COLUMN {col_def}")
+    if writer._table_exists('files_log'):
+        for col_def in ('width INTEGER', 'height INTEGER', 'format TEXT', 'created_at TIMESTAMP'):
+            writer.conn.execute(f"ALTER TABLE files_log ADD COLUMN {col_def}")
+
+    if not writer._table_exists('files'):
+        return
+
+    # Fix name: strip folder path prefix so only the filename remains
+    rows = writer.conn.execute(
+        "SELECT f.id, f.name, fo.path FROM files f "
+        "LEFT JOIN folders fo ON fo.id = f.folder_id"
+    ).fetchall()
+    name_updates = []
+    for file_id, name, folder_path in rows:
+        if not name:
+            continue
+        if folder_path and name.startswith(folder_path):
+            basename = name[len(folder_path):].lstrip('/\\')
+        else:
+            basename = _os.path.basename(name)
+        if basename != name:
+            name_updates.append((basename, file_id))
+    if name_updates:
+        writer.conn.executemany("UPDATE files SET name = ? WHERE id = ?", name_updates)
+
+    if not writer._table_exists('file_values') or not writer._table_exists('properties'):
+        return
+
+    # Backfill width, height, format from old file_values
+    prop_rows = writer.conn.execute(
+        "SELECT id, name FROM properties WHERE mode = 'file' AND name IN ('width', 'height', 'extension')"
+    ).fetchall()
+    col_map = {'width': 'width', 'height': 'height', 'extension': 'format'}
+    for prop_id, prop_name in prop_rows:
+        col = col_map[prop_name]
+        fv_rows = writer.conn.execute(
+            "SELECT file_id, value FROM file_values WHERE property_id = ?", (prop_id,)
+        ).fetchall()
+        updates = []
+        for file_id, raw in fv_rows:
+            try:
+                val = _json.loads(raw) if isinstance(raw, (str, bytes)) else raw
+                if val is not None:
+                    updates.append((val, file_id))
+            except Exception:
+                pass
+        if updates:
+            writer.conn.executemany(f"UPDATE files SET {col} = ? WHERE id = ?", updates)
+
+    # Remove all mode='file' metadata properties and their values
+    old_ids = [r[0] for r in writer.conn.execute(
+        "SELECT id FROM properties WHERE mode = 'file'"
+    ).fetchall()]
+    if old_ids:
+        ph = ','.join('?' * len(old_ids))
+        writer.conn.execute(f"DELETE FROM file_values WHERE property_id IN ({ph})", old_ids)
+        if writer._table_exists('file_values_log'):
+            writer.conn.execute(f"DELETE FROM file_values_log WHERE property_id IN ({ph})", old_ids)
+        writer.conn.execute(f"DELETE FROM properties WHERE id IN ({ph})", old_ids)
+        if writer._table_exists('properties_log'):
+            writer.conn.execute(f"DELETE FROM properties_log WHERE id IN ({ph})", old_ids)
+
+
 datastore_desc = DbDescription(
-    version=2,
+    version=3,
     tables=tables_config,
-    migrations={1: _migrate_v1_to_v2},
+    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3},
 )

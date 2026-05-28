@@ -1,3 +1,5 @@
+import sqlite3
+import threading
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
@@ -13,6 +15,19 @@ from panoptic2.core.databases.data.models import (
     Commit, DeleteCommit, File, FileSource, FileValue, Folder, Instance,
     InstanceValue, Property, Sha1Value, Tag, UpsertCommit,
 )
+from panoptic2.core.databases.entity_schema import OP_CREATE
+
+_SYSTEM_PROPERTIES = [
+    # (system_key, dtype, mode)
+    ('id',         'id',     'file'),
+    ('sha1',       'sha1',   'file'),
+    ('folder',     'folder', 'file'),
+    ('name',       'text',   'file'),
+    ('format',     'text',   'file'),
+    ('width',      'number', 'file'),
+    ('height',     'number', 'file'),
+    ('created_at', 'date',   'file'),
+]
 from panoptic2.core.plugin.action_registry import ActionRegistry
 from panoptic2.core.task.task import Task
 from panoptic2.core.task.task_manager import TaskManager
@@ -36,6 +51,14 @@ class Project2:
 
         self._plugin_keys = plugin_keys or []
 
+        # Persistent media DB — opened once in start(), closed in close()
+        # Used for writes; reads use thread-local connections via _media_read_conn()
+        self._media: MediaDB | None = None
+        # Thread-local lightweight read connections for hot-path image reads
+        self._media_read_local = threading.local()
+        # In-memory image type cache — loaded on start(), refreshed on every write
+        self._image_types: list[ImageType] = []
+
         # Event callback lists
         self._on_instance_import_callbacks: list[Callable] = []
         self._on_folder_delete_callbacks:   list[Callable] = []
@@ -50,14 +73,37 @@ class Project2:
             self.config = db.config
         with DataWriter(str(self.data_db_path)) as _:
             pass  # seeds data.db schema
-        with MediaDB(str(self.media_db_path), datastore_desc) as db:
-            db.ensure_default_image_types()
+        self._media = MediaDB(str(self.media_db_path), datastore_desc)
+        self._media.start()
+        self._media.ensure_default_image_types()
+        self._image_types = self._media.get_image_types()
+        self._ensure_system_properties()
         if self._plugin_keys:
             from panoptic2.core.plugin.load_plugin_task import LoadPluginTask
             self.task_manager.add_task(LoadPluginTask(self, self._plugin_keys))
 
+    def _ensure_system_properties(self):
+        existing_keys = {p.system_key for p in self.get_properties() if p.system_key}
+        needed = [(key, dtype, mode) for key, dtype, mode in _SYSTEM_PROPERTIES if key not in existing_keys]
+        if not needed:
+            return
+        ids = self.allocate_properties(len(needed))
+        if isinstance(ids, int):
+            ids = range(ids, ids + 1)
+        commit = UpsertCommit()
+        for (key, dtype, mode), prop_id in zip(needed, ids):
+            commit.properties[prop_id] = Property(
+                id=prop_id, dtype=dtype, mode=mode, name=key,
+                access='read', tag_list_id=None, system_key=key,
+                commit_id=0, operation=OP_CREATE,
+            )
+        self.apply_upsert_commit('system', commit)
+
     def close(self):
         self.task_manager.close()
+        if self._media:
+            self._media.close()
+            self._media = None
 
     def __enter__(self):
         self.start()
@@ -81,6 +127,20 @@ class Project2:
 
     def _media_db(self) -> MediaDB:
         return MediaDB(str(self.media_db_path), datastore_desc)
+
+    def _media_read_conn(self) -> sqlite3.Connection:
+        """Return a thread-local read connection to media.db.
+
+        Created once per thread on first use — just connect() + two PRAGMAs.
+        No migration or schema setup needed since _media.start() already did that.
+        """
+        local = self._media_read_local
+        if not hasattr(local, 'conn'):
+            conn = sqlite3.connect(str(self.media_db_path), check_same_thread=False)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            local.conn = conn
+        return local.conn
 
     # ------------------------------------------------------------------
     # Project config
@@ -192,88 +252,104 @@ class Project2:
             w.set_commit_active(commit_id, active)
 
     # ------------------------------------------------------------------
-    # Media  (MediaDB open/close per call)
+    # Media  (all use the persistent self._media connection)
     # ------------------------------------------------------------------
 
     def get_image_types(self, **filters) -> List[ImageType]:
-        with self._media_db() as db:
-            return db.get_image_types(**filters)
+        if not filters:
+            return self._image_types
+        return self._media.get_image_types(**filters)
 
     def get_image_stats(self) -> dict:
-        with self._media_db() as db:
-            counts = db.get_image_stats()
+        counts = self._media.get_image_stats()
         with self._data_reader() as r:
             row = r.conn.execute("SELECT COUNT(DISTINCT sha1) FROM instances").fetchone()
             sha1_count = row[0] if row else 0
         return {'counts': counts, 'sha1_count': sha1_count}
 
     def upsert_image_type(self, image_type: ImageType):
-        with self._media_db() as db:
-            db.upsert_image_type(image_type)
+        self._media.upsert_image_type(image_type)
+        self._image_types = self._media.get_image_types()
 
     def delete_image_type(self, image_type_id: int):
-        with self._media_db() as db:
-            db.delete_image_type(image_type_id)
+        self._media.delete_image_type(image_type_id)
+        self._image_types = self._media.get_image_types()
+
+    def get_file_path_for_sha1(self, sha1: str) -> str | None:
+        with self._data_reader() as r:
+            return r.get_file_path_for_sha1(sha1)
 
     def get_images(self, **filters) -> List[Image]:
-        with self._media_db() as db:
-            return db.get_images(**filters)
+        return self._media.get_images(**filters)
+
+    def get_best_image_bytes(self, sha1: str, size: int | None) -> bytes | None:
+        """Return thumbnail bytes for sha1 using cached type selection.
+
+        size=None → largest stored type.
+        size=N   → smallest type whose max dimension >= N; falls back to largest.
+        """
+        types = self._image_types
+        if not types:
+            return None
+        sized = [(t.id, t.width or 0, t.height or 0) for t in types if t.width or t.height]
+        if not sized:
+            type_id = types[0].id
+        elif size is None:
+            type_id = max(sized, key=lambda t: max(t[1], t[2]))[0]
+        else:
+            candidates = [t for t in sized if max(t[1], t[2]) >= size]
+            type_id = (
+                min(candidates, key=lambda t: max(t[1], t[2]))[0]
+                if candidates else
+                max(sized, key=lambda t: max(t[1], t[2]))[0]
+            )
+        row = self._media_read_conn().execute(
+            "SELECT data FROM images WHERE type_id=? AND sha1=?", (type_id, sha1)
+        ).fetchone()
+        return row[0] if row else None
 
     def upsert_images(self, images: List[Image]):
-        with self._media_db() as db:
-            db.upsert_images(images)
+        self._media.upsert_images(images)
 
     def delete_image(self, type_id: int, sha1: str):
-        with self._media_db() as db:
-            db.delete_image(type_id, sha1)
+        self._media.delete_image(type_id, sha1)
 
     def get_vector_types(self, **filters) -> List[VectorType]:
-        with self._media_db() as db:
-            return db.get_vector_types(**filters)
+        return self._media.get_vector_types(**filters)
 
     def upsert_vector_type(self, vector_type: VectorType):
-        with self._media_db() as db:
-            db.upsert_vector_type(vector_type)
+        self._media.upsert_vector_type(vector_type)
 
     def delete_vector_type(self, vector_type_id: int):
-        with self._media_db() as db:
-            db.delete_vector_type(vector_type_id)
+        self._media.delete_vector_type(vector_type_id)
 
     def get_vector_stats(self) -> dict:
-        with self._media_db() as db:
-            stats = db.get_vector_stats()
+        stats = self._media.get_vector_stats()
         with self._data_reader() as r:
             row = r.conn.execute("SELECT COUNT(DISTINCT sha1) FROM instances").fetchone()
             stats['sha1_count'] = row[0] if row else 0
         return stats
 
     def get_vectors(self, **filters) -> List[Vector]:
-        with self._media_db() as db:
-            return db.get_vectors(**filters)
+        return self._media.get_vectors(**filters)
 
     def upsert_vectors(self, vectors: List[Vector]):
-        with self._media_db() as db:
-            db.upsert_vectors(vectors)
+        self._media.upsert_vectors(vectors)
 
     def get_image_atlases(self, **filters) -> List[ImageAtlas]:
-        with self._media_db() as db:
-            return db.get_image_atlases(**filters)
+        return self._media.get_image_atlases(**filters)
 
     def upsert_image_atlas(self, atlas: ImageAtlas):
-        with self._media_db() as db:
-            db.upsert_image_atlas(atlas)
+        self._media.upsert_image_atlas(atlas)
 
     def get_maps(self, **filters) -> List[Map]:
-        with self._media_db() as db:
-            return db.get_maps(**filters)
+        return self._media.get_maps(**filters)
 
     def upsert_map(self, map_: Map):
-        with self._media_db() as db:
-            db.upsert_map(map_)
+        self._media.upsert_map(map_)
 
     def delete_map(self, map_id: int):
-        with self._media_db() as db:
-            db.delete_map(map_id)
+        self._media.delete_map(map_id)
 
     # ------------------------------------------------------------------
     # UI state  (ProjectDB open/close per call)

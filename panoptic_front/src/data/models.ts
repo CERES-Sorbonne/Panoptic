@@ -18,14 +18,10 @@ export interface Instance {
     properties: {
         [id: number]: any
     }
+    imageUrl: string   // base URL — append ?size=N for a specific thumbnail size
     dist?: number
     containerRatio?: number
     containerMaxRatio?: number
-
-    urlSmall: string
-    urlMedium: string
-    urlLarge: string
-    urlRaw: string
 }
 
 export interface InstanceIndex {
@@ -44,6 +40,7 @@ export interface Property {
     name: string
     type: PropertyType
     mode: PropertyMode
+    systemKey?: string
     propertyGroupId?: number
     computed?: boolean
     tags?: TagIndex

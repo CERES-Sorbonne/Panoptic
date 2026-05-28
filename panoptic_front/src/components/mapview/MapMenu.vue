@@ -44,7 +44,7 @@ function toggleCollapse() {
             <div class="mb-2    "></div>
             <div class="image-container">
                 <Zoomable v-if="hoverImage" :image="hoverImage" class="">
-                    <CenteredImage :image="hoverImage" :width="260" :height="200" style="margin-left: 10px;" />
+                    <CenteredImage :sha1="hoverImage.sha1" :image-width="hoverImage.width" :image-height="hoverImage.height" :width="260" :height="200" style="margin-left: 10px;" />
                 </Zoomable>
             </div>
 

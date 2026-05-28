@@ -80,7 +80,7 @@ function computeSeries() {
         const xValue = firstPropType === PropertyType.date ? new Date(propValue.value).getTime() : propValue.value
         xValues.push(xValue)
         if (firstProp.name in res) {
-            res[firstProp.name].data.push({ x: xValue, y: group.images.length, images: group.images.slice(0, 20).map(i => i.urlSmall) })
+            res[firstProp.name].data.push({ x: xValue, y: group.images.length, images: group.images.slice(0, 20).map(i => i.imageUrl + '?size=256') })
         }
         else {
             const childValues = group.children.map(el => el.meta.propertyValues[0].value)
@@ -95,7 +95,7 @@ function computeSeries() {
                     }
                     res[childValue] = { data: [], name: value }
                 }
-                res[child.meta.propertyValues[0].value].data.push({ x: xValue, y: child.images.length, images: child.images.slice(0, 20).map(i => i.urlSmall) })
+                res[child.meta.propertyValues[0].value].data.push({ x: xValue, y: child.images.length, images: child.images.slice(0, 20).map(i => i.imageUrl + '?size=256') })
             }
             // console.log(xValue, missingValues)
             for (let missing of missingValues) {

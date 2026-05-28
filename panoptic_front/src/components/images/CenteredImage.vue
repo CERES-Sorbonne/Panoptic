@@ -1,79 +1,74 @@
 <script setup lang="ts">
-import { Instance } from '@/data/models';
-import { computed, ref } from 'vue';
+import { SERVER_PREFIX } from '@/data/apiPanopticRoutes'
+import { usePanopticStore } from '@/data/panopticStore'
+import { computed, ref, watch, onUnmounted } from 'vue'
 
 const props = defineProps<{
-    image: Instance
-    width: number,
-    height: number,
-    noClick?: boolean,
-    border?: number,
-    isZoom?: boolean
+    sha1?:        string
+    imageWidth?:  number
+    imageHeight?: number
+    width:        number
+    height:       number
+    noClick?:     boolean
+    border?:      number
+    isZoom?:      boolean
 }>()
 
-const hover = ref(false)
-const imageElem = ref(null)
-const invisible = ref(false)
-const loadedImage = ref(null)
+const panoptic   = usePanopticStore()
+const loadedSha1 = ref<string | null>(null)
+const activeUrl  = ref('')
+let loadTimer: ReturnType<typeof setTimeout> | null = null
+
+function buildUrl(sha1: string): string {
+    const projectId = panoptic.connectionState?.connectedProject
+    const size      = Math.ceil(Math.max(props.width, props.height))
+    return `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${sha1}?size=${size}`
+}
+
+watch(() => props.sha1, (sha1) => {
+    if (loadTimer) clearTimeout(loadTimer)
+    activeUrl.value = ''
+    loadedSha1.value = null
+    if (!sha1) return
+    loadTimer = setTimeout(() => {
+        activeUrl.value = buildUrl(sha1)
+        loadTimer = null
+    }, 20)
+}, { immediate: true })
+
+onUnmounted(() => {
+    if (loadTimer) clearTimeout(loadTimer)
+    activeUrl.value = ''
+})
 
 const imageSize = computed(() => {
-    if (!props.image) {
-        return { w: 0, h: 0 }
-    }
-    let imgRatio = props.image.width / props.image.height
-    let divRatio = props.width / props.height
-
-    if (divRatio > imgRatio) {
-        return { w: props.height * imgRatio, h: props.height }
-    }
+    if (!props.imageWidth || !props.imageHeight) return { w: 0, h: 0 }
+    const imgRatio = props.imageWidth / props.imageHeight
+    const divRatio = props.width / props.height
+    if (divRatio > imgRatio) return { w: props.height * imgRatio, h: props.height }
     return { w: props.width, h: props.width / imgRatio }
-
 })
 
-const imageUrl = computed(() => {
-    let img = props.image
-    const size = Math.max(props.width, props.height)
-
-    if(size < 150) return img.urlSmall
-    if(size < 300) return img.urlMedium
-    if(size < 1024) return img.urlLarge
-    return img.urlRaw
-})
-
-const loadedImageUrl = computed(() => {
-    let img = loadedImage.value
-    if (!img) return
-
-    const size = Math.max(props.width, props.height)
-
-    if(size < 150) return img.urlSmall
-    if(size < 300) return img.urlMedium
-    if(size < 1024) return img.urlLarge
-    return img.urlRaw
-})
+const loadedImageUrl = computed(() => loadedSha1.value ? buildUrl(loadedSha1.value) : null)
 
 function onLoad() {
-    loadedImage.value = props.image
+    loadedSha1.value = props.sha1
 }
 </script>
 
 <template>
-    <div class="center-container" @mouseenter="hover = true" @mouseleave="hover = false" ref="imageElem"
+    <div class="center-container"
         :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }">
         <div class="center-content">
-            <img v-if="!invisible && loadedImageUrl" :src="loadedImageUrl"
+            <img v-if="loadedImageUrl" :src="loadedImageUrl"
                 :style="{ width: imageSize.w + 'px', height: imageSize.h + 'px', border: props.border > 0 ? (props.border + 'px solid var(--border-color)') : 'none', borderRadius: props.border > 0 ? '3px' : '' }"
                 @load="onLoad">
-            <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="imageUrl" @load="onLoad" />
+            <img style="opacity: 0; position: absolute; width: 0; height: 0;" :src="activeUrl" @load="onLoad" />
         </div>
     </div>
 </template>
 
 <style scoped>
-.other {
-    height: 100vh;
-}
-
 .center-container {
     text-align: center;
     margin: 0;
@@ -92,30 +87,5 @@ img {
     max-width: 100%;
     height: auto;
     vertical-align: middle;
-}
-
-.image-container {
-    text-align: center;
-    background-color: white;
-    position: relative;
-    /* border: 1px solid var(--border-color); */
-}
-
-
-.box-shadow {
-    position: relative;
-}
-
-.box-shadow::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    -webkit-box-shadow: inset 0 0 10px 10px #000;
-    -moz-box-shadow: inset 0 0 10px 10px #000;
-    box-shadow: inset 0px 2px 3px var(--border-color);
-    overflow: hidden;
 }
 </style>

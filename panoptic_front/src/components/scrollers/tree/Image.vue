@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { computed, inject, provide, ref } from 'vue'
-import SelectCircle from '@/components/inputs/SelectCircle.vue';
+import { computed, inject, ref } from 'vue'
+import SelectCircle from '@/components/inputs/SelectCircle.vue'
 import wTT from '../../tooltips/withToolTip.vue'
-import { ImageIterator } from '@/core/GroupManager';
-import { ModalId, Property } from '@/data/models';
-import { usePanopticStore } from '@/data/panopticStore';
-import Zoomable from '@/components/Zoomable.vue';
-import { useDataStore } from '@/data/dataStore';
-import CenteredImage from '@/components/images/CenteredImage.vue';
-import TreePropertyInput from './TreePropertyInput.vue';
+import { ImageIterator } from '@/core/GroupManager'
+import { ModalId, Property } from '@/data/models'
+import { usePanopticStore } from '@/data/panopticStore'
+import Zoomable from '@/components/Zoomable.vue'
+import CenteredImage from '@/components/images/CenteredImage.vue'
+import TreePropertyInput from './TreePropertyInput.vue'
+import { useColumnStore, META } from '@/data/dataStore2'
 
 const panoptic = usePanopticStore()
-const data = useDataStore()
-
+const store    = useColumnStore()
 
 const props = defineProps({
     image: ImageIterator,
@@ -23,65 +22,87 @@ const props = defineProps({
     constraintWidth: Boolean,
     noBorder: Boolean,
     properties: Array<Property>,
-    selected: Boolean,
     selectedPreview: Boolean
 })
 
 const emits = defineEmits(['resize', 'update:selected'])
 
-const instance = computed(() => Object.assign({}, data.instances[props.image.image.id]))
-const image = computed(() => instance.value)
+// Read from the shared reactive instances map registered by the parent TreeScroller.
+// Falls back to an empty-properties stub so template expressions never throw.
+const inst = computed(() =>
+    store.instances[props.image.image.id] ?? { id: props.image.image.id, properties: {} }
+)
 
-const containerElem = ref(null)
-const hover = ref(false)
+const isSelected = computed(() => {
+    const slot = store.slotMap.get(props.image.image.id)
+    return slot !== undefined && store.isSelected(slot)
+})
 
-
-const imageSizes = computed(() => {
-    let ratio = image.value.width / image.value.height
-
+function getSizes(width: number, height: number) {
+    if (!width || !height) return { width: props.size, height: props.size }
+    const ratio = width / height
     let h = props.size
     let w = h * ratio
-
     if (ratio > 2) {
         w = props.size * 2
         h = w / ratio
     }
-
     return { width: w, height: h }
-})
+}
 
-const imageContainerStyle = computed(() => `width: ${Math.max(imageSizes.value.width, props.size) + 2}px; height: ${props.size}px;`)
-const imageStyle = computed(() => `width: ${imageSizes.value.width - 2}px; height: ${imageSizes.value.height}px;`)
-const width = computed(() => Math.max(Number(props.size), imageSizes.value.width))
-const widthStyle = computed(() => `width: ${Math.max(Number(props.size), imageSizes.value.width) +2}px;`)
+function instSizes(inst: { properties: Record<number, any> }) {
+    return getSizes(inst.properties[META.WIDTH], inst.properties[META.HEIGHT])
+}
 
-const hideImg = inject('hideImg')
+function instWidth(inst: { properties: Record<number, any> }) {
+    return Math.max(instSizes(inst).width, props.size)
+}
 
-const score = computed(() => {
-    let group = props.image.group
-    if(!group.scores) return undefined
-    return group.scores.valueIndex[props.image.image.id]
-})
-
+const hover    = ref(false)
+const hideImg  = inject('hideImg')
 const inputKey = inject('inputKey') as string
 
+const score = computed(() => {
+    const group = props.image.group
+    if (!group.scores) return undefined
+    return group.scores.valueIndex[props.image.image.id]
+})
 </script>
 
 <template>
-    <div class="full-container" :style="widthStyle" :class="(!props.noBorder ? 'img-border' : '')" ref="containerElem">
+    <div
+        class="full-container"
+        :class="(!props.noBorder ? 'img-border' : '')"
+        :style="`width: ${instWidth(inst) + 2}px;`"
+    >
         <Zoomable v-if="!hideImg" :image="props.image.image">
-            <div :style="imageContainerStyle" class="img-container"
-                @click="panoptic.showModal(ModalId.IMAGE, props.image)" @mouseenter="hover = true"
-                @mouseleave="hover = false">
+            <div
+                class="img-container"
+                :style="`width: ${instWidth(inst) + 2}px; height: ${props.size}px;`"
+                @click="panoptic.showModal(ModalId.IMAGE, props.image)"
+                @mouseenter="hover = true"
+                @mouseleave="hover = false"
+            >
                 <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
-                <!-- <img :src="props.size < (128) ? image.url : image.fullUrl" :style="imageStyle" /> -->
-                <CenteredImage :image="props.image.image" :width="Math.max(imageSizes.width, props.size)" :height="props.size"
-                style="position: absolute; top:0"
+
+                <CenteredImage
+                    :sha1="inst.properties[META.SHA1]"
+                    :image-width="inst.properties[META.WIDTH]"
+                    :image-height="inst.properties[META.HEIGHT]"
+                    :width="instWidth(inst)"
+                    :height="props.size"
+                    style="position: absolute; top: 0"
                 />
 
-                <div v-if="hover || props.selected" class="w-100 box-shadow" :style="imageContainerStyle"></div>
-                <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
-                    @update:model-value="v => emits('update:selected', v)" class="select" :light-mode="true" />
+                <div v-if="hover || isSelected" class="w-100 box-shadow"
+                    :style="`width: ${instWidth(inst) + 2}px; height: ${props.size}px;`" />
+                <SelectCircle
+                    v-if="hover || isSelected"
+                    :model-value="isSelected"
+                    @update:model-value="v => emits('update:selected', v)"
+                    class="select"
+                    :light-mode="true"
+                />
             </div>
         </Zoomable>
 
@@ -89,14 +110,23 @@ const inputKey = inject('inputKey') as string
             message="main.view.instances_tooltip" :click="false">
             <div class="image-count">{{ props.image.sha1Group.images.length }}</div>
         </wTT>
+
         <div class="prop-container" v-if="props.properties.length && !props.hideProperties">
-            <div v-for="property, index in props.properties">
+            <div v-for="property, index in props.properties" :key="property.id">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
-                <TreePropertyInput :group-id="props.image.groupId" :input-key="inputKey" :property="property" :instance="instance" :width="width" :idx="props.image.getImageOrder()" />
+                <TreePropertyInput
+                    :group-id="props.image.groupId"
+                    :input-key="inputKey"
+                    :property="property"
+                    :instance="inst"
+                    :width="instWidth(inst)"
+                    :idx="props.image.getImageOrder()"
+                />
             </div>
         </div>
+
         <div v-if="props.selectedPreview" class="w-100 h-100"
-            style="position: absolute; top:0; left: 0; background-color: rgba(0, 0, 255, 0.127);"></div>
+            style="position: absolute; top: 0; left: 0; background-color: rgba(0, 0, 255, 0.127);" />
     </div>
 </template>
 
@@ -132,6 +162,8 @@ const inputKey = inject('inputKey') as string
 .full-container {
     position: relative;
     background-color: white;
+    margin-bottom: 7px;
+    margin-right: 7px;
 }
 
 .img-border {
@@ -152,19 +184,6 @@ const inputKey = inject('inputKey') as string
     padding-top: 0px;
     padding-bottom: 0px;
     font-size: 12px;
-}
-
-img {
-    max-height: 100%;
-    max-width: 100%;
-    /* width: auto;
-    height: auto; */
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
 }
 
 .select {

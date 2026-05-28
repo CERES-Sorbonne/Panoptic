@@ -106,8 +106,8 @@ def stream_db_state(project: Project2 = Depends(_dep)):
                     sha1=inst.sha1,
                     name=basename,
                     ahash='',
-                    width=1,
-                    height=1,
+                    width=f.width or 0,
+                    height=f.height or 0,
                     url=full_name,
                     folder_id=f.folder_id if f else None,
                     file_id=inst.file_id,
@@ -202,18 +202,54 @@ def stream_db_state(project: Project2 = Depends(_dep)):
                     ),
                 )) + b'\n'
 
+        # Always emit a final chunk so the frontend unblocks even when all value
+        # tables are empty and none of the iter_* loops above executed.
+        yield msgspec.json.encode(StreamResult(
+            state=LoadState(
+                max_instance=n_inst, max_instance_value=n_iv,
+                max_image_value=n_sv, max_file_value=n_fv,
+                finished_property=True, finished_property_groups=True,
+                finished_tags=True, finished_instance=True,
+                finished_instance_values=True, finished_image_values=True,
+                finished_file_values=True,
+                counter_instance=n_inst, counter_instance_value=n_iv,
+                counter_image_value=n_sv, counter_file_value=n_fv,
+                max_sequence=start_sequence,
+            ),
+        )) + b'\n'
+
     return StreamingResponse(_generate(), media_type='application/x-ndjson')
 
 
 @project_router.get('/delta')
-def get_delta(since: int, project: Project2 = Depends(_dep)):
-    """Return all rows changed since `since` as a single StreamResult JSON response."""
+def get_delta(
+    since: int,
+    full_prop_ids: str | None = None,
+    point_prop_ids: str | None = None,
+    instance_ids: str | None = None,
+    project: Project2 = Depends(_dep),
+):
+    """Return all rows changed since `since` as a single StreamResult JSON response.
+
+    Optional filter params (comma-separated integers):
+    - full_prop_ids:  return value changes for ALL instances for these property IDs
+    - point_prop_ids: return value changes only for the supplied instance_ids
+    - instance_ids:   instance IDs used as the filter for point_prop_ids
+    """
     import json as _json
     import os as _os
     from panoptic2.core.databases.entity_schema import OP_DELETE
 
+    def _parse(s: str | None) -> list[int] | None:
+        return [int(x) for x in s.split(',') if x] if s else None
+
     with project._data_reader() as reader:
-        raw = reader.get_delta(since)
+        raw = reader.get_delta(
+            since,
+            full_prop_ids=_parse(full_prop_ids),
+            point_prop_ids=_parse(point_prop_ids),
+            instance_ids=_parse(instance_ids),
+        )
 
     sequence  = raw['sequence']
     file_map  = {f.id: f for f in raw['files']}
@@ -250,8 +286,8 @@ def get_delta(since: int, project: Project2 = Depends(_dep)):
             sha1=inst.sha1,
             name=basename,
             ahash='',
-            width=1,
-            height=1,
+            width=f.width or 0 if f else 0,
+            height=f.height or 0 if f else 0,
             url=full_name,
             folder_id=f.folder_id if f else None,
             file_id=inst.file_id,
@@ -404,6 +440,55 @@ def delete_folder(folder_id: int, project: Project2 = Depends(_dep)):
 @project_router.get('/instances')
 def get_instances(project: Project2 = Depends(_dep)):
     return _json(project.get_instances())
+
+
+@project_router.get('/instances/values')
+def get_instance_values_batch(
+    ids: str,
+    prop_ids: str,
+    project: Project2 = Depends(_dep),
+):
+    """Batch-fetch values for a subset of instances × properties (lazy ColumnStore load)."""
+    instance_ids = [int(x) for x in ids.split(',') if x.strip()]
+    pid_list     = [int(x) for x in prop_ids.split(',') if x.strip()]
+    if not instance_ids or not pid_list:
+        return Response(b'{}', media_type='application/json')
+
+    props = {p.id: p for p in project.get_properties()}
+    result: dict[int, dict[int, Any]] = {}
+
+    with project._data_reader() as reader:
+        for pid in pid_list:
+            prop = props.get(pid)
+            if prop is None:
+                continue
+            values = reader.get_values_for_instances(
+                instance_ids, pid, prop.mode or 'id', prop.system_key
+            )
+            for inst_id, val in values.items():
+                result.setdefault(inst_id, {})[pid] = val
+
+    return Response(content=orjson.dumps(result, option=orjson.OPT_NON_STR_KEYS), media_type='application/json')
+
+
+@project_router.get('/instances/column/{prop_id}')
+def get_property_column(
+    prop_id: int,
+    project: Project2 = Depends(_dep),
+):
+    """Fetch all values for a single property column (lazy ColumnStore full-column load)."""
+    props = {p.id: p for p in project.get_properties()}
+    prop  = props.get(prop_id)
+    if prop is None:
+        raise HTTPException(404, f'Property {prop_id} not found')
+
+    with project._data_reader() as reader:
+        ids, values = reader.get_full_column(prop_id, prop.mode or 'id', prop.system_key)
+
+    return Response(
+        content=orjson.dumps({'ids': ids, 'values': values}),
+        media_type='application/json',
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -610,18 +695,18 @@ def get_history(project: Project2 = Depends(_dep)):
 # Images
 # ---------------------------------------------------------------------------
 
-def _get_image_bytes(project: Project2, sha1: str, type_id: int) -> bytes | None:
-    images = project.get_images(type_id=type_id, sha1=sha1)
-    return images[0].data if images else None
+@project_router.get('/image/by_size/{sha1:path}')
+def get_image_by_size(sha1: str, size: int | None = None, project: Project2 = Depends(_dep)):
+    """Serve a stored thumbnail. size=N picks the best fit; omit for the largest available."""
+    data = project.get_best_image_bytes(sha1, size)
+    if data:
+        return Response(data, media_type='image/jpeg')
+    return get_image_raw(sha1, project)
 
 
 @project_router.get('/image/small/{sha1:path}')
 def get_image_small(sha1: str, project: Project2 = Depends(_dep)):
-    data = _get_image_bytes(project, sha1, type_id=1)
-    if data:
-        return Response(data, media_type='image/jpeg')
-    # fall back to large
-    data = _get_image_bytes(project, sha1, type_id=2)
+    data = project.get_best_image_bytes(sha1, 256)
     if data:
         return Response(data, media_type='image/jpeg')
     raise HTTPException(404, f'Image {sha1} not found')
@@ -629,10 +714,7 @@ def get_image_small(sha1: str, project: Project2 = Depends(_dep)):
 
 @project_router.get('/image/large/{sha1:path}')
 def get_image_large(sha1: str, project: Project2 = Depends(_dep)):
-    data = _get_image_bytes(project, sha1, type_id=2)
-    if data:
-        return Response(data, media_type='image/jpeg')
-    data = _get_image_bytes(project, sha1, type_id=1)
+    data = project.get_best_image_bytes(sha1, None)
     if data:
         return Response(data, media_type='image/jpeg')
     raise HTTPException(404, f'Image {sha1} not found')
@@ -642,16 +724,13 @@ def get_image_large(sha1: str, project: Project2 = Depends(_dep)):
 def get_image_raw(sha1: str, project: Project2 = Depends(_dep)):
     from pathlib import Path
     from starlette.responses import FileResponse as FR
-    # Instance → File to find original path on disk
-    for inst in project.get_instances():
-        if inst.sha1 != sha1:
-            continue
-        for f in project.get_files():
-            if f.id == inst.file_id and f.name and Path(f.name).exists():
-                return FR(f.name)
-        break
-    # Fall back to largest stored thumbnail
-    return get_image_large(sha1, project)
+    path = project.get_file_path_for_sha1(sha1)
+    if path and Path(path).exists():
+        return FR(path)
+    data = project.get_best_image_bytes(sha1, None)
+    if data:
+        return Response(data, media_type='image/jpeg')
+    raise HTTPException(404, f'Image {sha1} not found')
 
 
 @project_router.get('/image/medium/{sha1:path}')

@@ -14,6 +14,7 @@ import { keysToCamel } from '@/utils/utils'
 import { usePanopticStore } from '@/data/panopticStore'
 import { useProjectStore } from './projectStore'
 import { useDataStore } from './dataStore'
+import { useColumnStore } from './dataStore2'
 import { apiGetDelta, mapVectorType } from './apiProjectRoutes'
 
 const CONNECTION_ID_KEY = 'panoptic_connection_id'
@@ -39,9 +40,12 @@ export const useSocketStore = defineStore('socketStore', () => {
         isSyncing = true
         pendingUpdate = false
         try {
-            console.log('last sequence', dataStore.lastSequence)
-            const delta = await apiGetDelta(dataStore.lastSequence)
-            console.log('receive delta', delta)
+            const colStore = useColumnStore()
+            const fullPropIds  = colStore.getFullyLoadedPropIds()
+            const allRegProps  = colStore.getRegisteredPropIds()
+            const pointPropIds = allRegProps.filter(id => !fullPropIds.includes(id))
+            const instanceIds  = colStore.getRegisteredInstanceIds()
+            const delta = await apiGetDelta(dataStore.lastSequence, { fullPropIds, pointPropIds, instanceIds })
             dataStore.applyDelta(delta)
         } finally {
             isSyncing = false

@@ -124,10 +124,7 @@ export const useDataStore = defineStore('dataStore', () => {
         for (let img of toImport) {
             const values = getComputedValues(img)
 
-            img.urlSmall = `${SERVER_PREFIX}/projects/${projectId}/image/small/${img.sha1}`
-            img.urlMedium = `${SERVER_PREFIX}/projects/${projectId}/image/medium/${img.sha1}`
-            img.urlLarge = `${SERVER_PREFIX}/projects/${projectId}/image/large/${img.sha1}`
-            img.urlRaw = `${SERVER_PREFIX}/projects/${projectId}/image/raw/${img.sha1}`
+            img.imageUrl = `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${img.sha1}`
 
             let res = computeContainerRatio(img)
             img.containerRatio = res.ratio
@@ -528,6 +525,35 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRefs()
         if (needsPropertyTree) {
             computePropertyTree()
+        }
+
+        // Forward columnar value arrays to the ColumnStore (these bypass applyCommit).
+        if (isLoaded.value && (delta.instanceValues?.length || delta.imageValues?.length || delta.fileValues?.length)) {
+            const colUpdates: Array<{ instanceId: number; propertyId: number; value: any }> = []
+
+            delta.instanceValues?.forEach(arr => {
+                for (let i = 0; i < arr.ids.length; i++) {
+                    colUpdates.push({ instanceId: Number(arr.ids[i]), propertyId: arr.propertyId, value: JSON.parse(arr.values[i]) })
+                }
+            })
+
+            delta.imageValues?.forEach(arr => {
+                for (let i = 0; i < arr.sha1s.length; i++) {
+                    const value = JSON.parse(arr.values[i])
+                    sha1Index.value[arr.sha1s[i]]?.forEach(img =>
+                        colUpdates.push({ instanceId: img.id, propertyId: arr.propertyId, value }))
+                }
+            })
+
+            delta.fileValues?.forEach(arr => {
+                for (let i = 0; i < arr.fileIds.length; i++) {
+                    const value = JSON.parse(arr.values[i])
+                    fileIndex.value[arr.fileIds[i]]?.forEach(img =>
+                        colUpdates.push({ instanceId: img.id, propertyId: arr.propertyId, value }))
+                }
+            })
+
+            if (colUpdates.length > 0) useColumnStore().applyCommit(colUpdates)
         }
     }
 

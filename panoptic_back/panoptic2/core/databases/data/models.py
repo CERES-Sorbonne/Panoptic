@@ -36,6 +36,10 @@ class File(msgspec.Struct, array_like=True):
     name: Optional[str]
     folder_id: Optional[int]
     sha1: Optional[str]
+    width: Optional[int] = None
+    height: Optional[int] = None
+    format: Optional[str] = None
+    created_at: Optional[datetime] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
@@ -53,6 +57,7 @@ class Property(msgspec.Struct, array_like=True):
     name: Optional[str]
     access: Optional[str]
     tag_list_id: Optional[int]
+    system_key: Optional[str] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 

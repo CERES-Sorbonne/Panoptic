@@ -1,4 +1,5 @@
-from typing import List
+import json
+from typing import Any, List
 
 from panoptic2.core.databases.data.create import (
     COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
@@ -10,6 +11,20 @@ from panoptic2.core.databases.data.models import (
     Commit, FileSource, Folder, File, Instance,
     Property, Tag, InstanceValue, Sha1Value, FileValue
 )
+
+# Maps a system_key to (source_table, column_name).
+# 'instance' columns live directly on the instances table.
+# 'file'     columns live on the files table, reached via instance.file_id.
+SYSTEM_KEY_SOURCE: dict[str, tuple[str, str]] = {
+    'id':         ('instance', 'id'),
+    'sha1':       ('instance', 'sha1'),
+    'folder':     ('file',     'folder_id'),
+    'name':       ('file',     'name'),
+    'format':     ('file',     'format'),
+    'width':      ('file',     'width'),
+    'height':     ('file',     'height'),
+    'created_at': ('file',     'created_at'),
+}
 
 
 class DataReader(SQLiteReader):
@@ -100,17 +115,187 @@ class DataReader(SQLiteReader):
         while rows := cursor.fetchmany(batch_size):
             yield [FILE_VALUES_SCHEMA._decode_row(r) for r in rows]
 
-    def get_delta(self, since: int) -> dict:
+    # ------------------------------------------------------------------
+    # Lazy column fetch (used by the ColumnStore endpoints)
+    # ------------------------------------------------------------------
+
+    def get_values_for_instances(
+        self,
+        instance_ids: list[int],
+        prop_id: int,
+        mode: str,
+        system_key: str | None,
+    ) -> dict[int, Any]:
+        """Return {instance_id: value} for the given property and instance subset."""
+        if not instance_ids:
+            return {}
+
+        if system_key:
+            return self._system_values_for_instances(instance_ids, system_key)
+
+        if mode == 'id':
+            rows = INSTANCE_VALUES_SCHEMA.get(self.conn, property_id=prop_id, instance_id=instance_ids)
+            return {v.instance_id: v.value for v in rows}
+
+        if mode == 'sha1':
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'], id=instance_ids)
+            sha1_to_ids: dict[str, list[int]] = {}
+            for inst_id, sha1 in inst_rows:
+                if sha1:
+                    sha1_to_ids.setdefault(sha1, []).append(inst_id)
+            if not sha1_to_ids:
+                return {}
+            val_rows = SHA1_VALUES_SCHEMA.get(self.conn, property_id=prop_id, sha1=list(sha1_to_ids))
+            result: dict[int, Any] = {}
+            for v in val_rows:
+                for inst_id in sha1_to_ids[v.sha1]:
+                    result[inst_id] = v.value
+            return result
+
+        if mode == 'file':
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'], id=instance_ids)
+            file_to_ids: dict[int, list[int]] = {}
+            for inst_id, file_id in inst_rows:
+                if file_id is not None:
+                    file_to_ids.setdefault(file_id, []).append(inst_id)
+            if not file_to_ids:
+                return {}
+            val_rows = FILE_VALUES_SCHEMA.get(self.conn, property_id=prop_id, file_id=list(file_to_ids))
+            result: dict[int, Any] = {}
+            for v in val_rows:
+                for inst_id in file_to_ids[v.file_id]:
+                    result[inst_id] = v.value
+            return result
+
+        return {}
+
+    def get_full_column(
+        self,
+        prop_id: int,
+        mode: str,
+        system_key: str | None,
+    ) -> tuple[list[int], list[Any]]:
+        """Return (instance_ids, values) for all instances for the given property."""
+        if system_key:
+            return self._system_full_column(system_key)
+
+        if mode == 'id':
+            rows = INSTANCE_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
+            return [v.instance_id for v in rows], [v.value for v in rows]
+
+        if mode == 'sha1':
+            val_rows = SHA1_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
+            sha1_to_val = {v.sha1: v.value for v in val_rows}
+            if not sha1_to_val:
+                return [], []
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'])
+            ids, values = [], []
+            for inst_id, sha1 in inst_rows:
+                if sha1 in sha1_to_val:
+                    ids.append(inst_id)
+                    values.append(sha1_to_val[sha1])
+            return ids, values
+
+        if mode == 'file':
+            val_rows = FILE_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
+            file_to_val = {v.file_id: v.value for v in val_rows}
+            if not file_to_val:
+                return [], []
+            inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'])
+            ids, values = [], []
+            for inst_id, file_id in inst_rows:
+                if file_id in file_to_val:
+                    ids.append(inst_id)
+                    values.append(file_to_val[file_id])
+            return ids, values
+
+        return [], []
+
+    def _system_values_for_instances(self, instance_ids: list[int], system_key: str) -> dict[int, Any]:
+        source, col = SYSTEM_KEY_SOURCE[system_key]
+        if source == 'instance':
+            rows = INSTANCES_SCHEMA.select(self.conn, ['id', col], id=instance_ids)
+            return {r[0]: r[1] for r in rows}
+        # file-sourced: resolve file_id first, then look up the column on files
+        inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'], id=instance_ids)
+        file_ids = [r[1] for r in inst_rows if r[1] is not None]
+        if not file_ids:
+            return {}
+        file_rows = FILES_SCHEMA.select(self.conn, ['id', col], id=file_ids)
+        file_to_val = {r[0]: r[1] for r in file_rows}
+        return {r[0]: file_to_val[r[1]] for r in inst_rows if r[1] in file_to_val}
+
+    def _system_full_column(self, system_key: str) -> tuple[list[int], list[Any]]:
+        source, col = SYSTEM_KEY_SOURCE[system_key]
+        if source == 'instance':
+            rows = INSTANCES_SCHEMA.select(self.conn, ['id', col])
+            return [r[0] for r in rows], [r[1] for r in rows]
+        # file-sourced
+        inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'])
+        file_ids = [r[1] for r in inst_rows if r[1] is not None]
+        if not file_ids:
+            return [r[0] for r in inst_rows], [None] * len(inst_rows)
+        file_rows = FILES_SCHEMA.select(self.conn, ['id', col], id=file_ids)
+        file_to_val = {r[0]: r[1] for r in file_rows}
+        ids = [r[0] for r in inst_rows]
+        values = [file_to_val.get(r[1]) for r in inst_rows]
+        return ids, values
+
+    def get_file_path_for_sha1(self, sha1: str) -> str | None:
+        """Return the full filesystem path for the first file matching sha1, or None."""
+        row = self.conn.execute(
+            "SELECT fo.path, f.name"
+            " FROM files f JOIN folders fo ON fo.id = f.folder_id"
+            " WHERE f.sha1 = ? AND f.name IS NOT NULL AND fo.path IS NOT NULL"
+            " LIMIT 1",
+            (sha1,),
+        ).fetchone()
+        if not row:
+            return None
+        return f"{row[0]}/{row[1]}"
+
+    def get_delta(
+        self,
+        since: int,
+        full_prop_ids: list[int] | None = None,
+        point_prop_ids: list[int] | None = None,
+        instance_ids: list[int] | None = None,
+    ) -> dict:
+        """Return all rows changed since `since`.
+
+        When filter params are provided, value tables are scoped:
+        - full_prop_ids:  return changed values for ALL instances (column reload)
+        - point_prop_ids + instance_ids: return changed values only for those instances
+        - sha1/file value tables: filtered by property_id only (no instance_id column)
+
+        The max sequence is always computed over unfiltered tables so that
+        lastSequence advances past rows the caller chose not to fetch.
+        """
         data = {
-            'instances':       INSTANCES_SCHEMA.get_since(self.conn, since),
-            'files':           FILES_SCHEMA.get_since(self.conn, since),
-            'folders':         FOLDERS_SCHEMA.get_since(self.conn, since),
-            'properties':      PROPERTIES_SCHEMA.get_since(self.conn, since),
-            'tags':            TAGS_SCHEMA.get_since(self.conn, since),
-            'instance_values': INSTANCE_VALUES_SCHEMA.get_since(self.conn, since),
-            'image_values':    SHA1_VALUES_SCHEMA.get_since(self.conn, since),
-            'file_values':     FILE_VALUES_SCHEMA.get_since(self.conn, since),
+            'instances':  INSTANCES_SCHEMA.get_since(self.conn, since),
+            'files':      FILES_SCHEMA.get_since(self.conn, since),
+            'folders':    FOLDERS_SCHEMA.get_since(self.conn, since),
+            'properties': PROPERTIES_SCHEMA.get_since(self.conn, since),
+            'tags':       TAGS_SCHEMA.get_since(self.conn, since),
         }
+
+        filtering = full_prop_ids is not None or point_prop_ids is not None
+        if not filtering:
+            data['instance_values'] = INSTANCE_VALUES_SCHEMA.get_since(self.conn, since)
+            data['image_values']    = SHA1_VALUES_SCHEMA.get_since(self.conn, since)
+            data['file_values']     = FILE_VALUES_SCHEMA.get_since(self.conn, since)
+        else:
+            all_prop_ids = list({*(full_prop_ids or []), *(point_prop_ids or [])})
+            data['instance_values'] = self._iv_since_filtered(
+                since, full_prop_ids or [], point_prop_ids or [], instance_ids or []
+            )
+            data['image_values'] = self._values_since_prop_filter(
+                SHA1_VALUES_SCHEMA, since, all_prop_ids
+            )
+            data['file_values'] = self._values_since_prop_filter(
+                FILE_VALUES_SCHEMA, since, all_prop_ids
+            )
+
         max_seq = since
         for table in ('instances', 'files', 'folders', 'properties', 'tags',
                       'instance_values', 'sha1_values', 'file_values'):
@@ -121,3 +306,55 @@ class DataReader(SQLiteReader):
                 max_seq = max(max_seq, row[0])
         data['sequence'] = max_seq
         return data
+
+    def _iv_since_filtered(
+        self,
+        since: int,
+        full_prop_ids: list[int],
+        point_prop_ids: list[int],
+        instance_ids: list[int],
+    ) -> list:
+        rows = []
+        if full_prop_ids:
+            rows += self._query_iv_since(since, full_prop_ids, None)
+        if point_prop_ids and instance_ids:
+            rows += self._query_iv_since(since, point_prop_ids, instance_ids)
+        return rows
+
+    def _query_iv_since(
+        self,
+        since: int,
+        prop_ids: list[int],
+        instance_ids: list[int] | None,
+    ) -> list:
+        if not prop_ids:
+            return []
+        prop_ph = ','.join('?' * len(prop_ids))
+        if instance_ids is None:
+            sql = (f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table} "
+                   f"WHERE sequence > ? AND property_id IN ({prop_ph})")
+            rows = self.conn.execute(sql, [since, *prop_ids]).fetchall()
+            return [INSTANCE_VALUES_SCHEMA._decode_row(r) for r in rows]
+
+        # Chunk instance_ids to stay within SQLite's 999-variable limit
+        fixed = 1 + len(prop_ids)  # since + prop_ids placeholders
+        chunk_size = max(1, 900 - fixed)
+        result = []
+        for i in range(0, len(instance_ids), chunk_size):
+            chunk = instance_ids[i:i + chunk_size]
+            inst_ph = ','.join('?' * len(chunk))
+            sql = (f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table} "
+                   f"WHERE sequence > ? AND property_id IN ({prop_ph}) "
+                   f"AND instance_id IN ({inst_ph})")
+            rows = self.conn.execute(sql, [since, *prop_ids, *chunk]).fetchall()
+            result += [INSTANCE_VALUES_SCHEMA._decode_row(r) for r in rows]
+        return result
+
+    def _values_since_prop_filter(self, schema, since: int, prop_ids: list[int]) -> list:
+        if not prop_ids:
+            return []
+        prop_ph = ','.join('?' * len(prop_ids))
+        sql = (f"SELECT * FROM {schema.table} "
+               f"WHERE sequence > ? AND property_id IN ({prop_ph})")
+        rows = self.conn.execute(sql, [since, *prop_ids]).fetchall()
+        return [schema._decode_row(r) for r in rows]

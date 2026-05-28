@@ -181,7 +181,7 @@ watch(() => props.properties, () => {
             width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <Zoomable :image="image">
-                <CenteredImage :image="image" :width="tab.imageSize - 1" :height="rowHeight - 2" />
+                <CenteredImage :sha1="image.sha1" :image-width="image.width" :image-height="image.height" :width="tab.imageSize - 1" :height="rowHeight - 2" />
                 <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.imageSize + 'px' }"
                     style="position: absolute; top:0; left:0; right: 0px; bottom: 0px;"></div>
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
