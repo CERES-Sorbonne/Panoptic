@@ -98,7 +98,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 isLoaded.value = true
             }
         })
-
+        // isLoaded.value = true
         await Promise.all([loadAtlas(), getHistory()])
     }
 
@@ -935,8 +935,8 @@ export const useDataStore = defineStore('dataStore', () => {
         vectorStats.value = await apiGetVectorStats()
     }
     async function loadMaps(mapList?: PointMap[]) {
-        let idx = {...maps.value}
-        if(!mapList){
+        let idx = { ...maps.value }
+        if (!mapList) {
             mapList = await apiListMaps()
             idx = {}
         }

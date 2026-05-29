@@ -75,12 +75,33 @@ class Project2:
             pass  # seeds data.db schema
         self._media = MediaDB(str(self.media_db_path), datastore_desc)
         self._media.start()
-        self._media.ensure_default_image_types()
+        self._ensure_default_image_types()
         self._image_types = self._media.get_image_types()
         self._ensure_system_properties()
         if self._plugin_keys:
             from panoptic2.core.plugin.load_plugin_task import LoadPluginTask
             self.task_manager.add_task(LoadPluginTask(self, self._plugin_keys))
+
+    def _ensure_default_image_types(self):
+        existing = self._media.get_image_types()
+        if not existing:
+            # New project: create defaults through the allocator so the counter
+            # advances to the correct value automatically.
+            defaults = [
+                ImageType(id=0, name='small', format='jpeg', width=256,  height=256,  auto_gen=True),
+                ImageType(id=0, name='large', format='jpeg', width=1024, height=1024, auto_gen=True),
+            ]
+            self.allocate_image_types(defaults)
+            for t in defaults:
+                self._media.upsert_image_type(t)
+        else:
+            # Existing project: sync the counter past the highest existing ID so
+            # future allocations never collide with already-used IDs.
+            max_id = max(t.id for t in existing)
+            with ProjectDB(self.project_db_path) as db:
+                current = db.allocate('image_types', 0)  # peek without advancing
+                if current <= max_id:
+                    db.allocate('image_types', max_id + 1 - current)
 
     def _ensure_system_properties(self):
         existing_keys = {p.system_key for p in self.get_properties() if p.system_key}

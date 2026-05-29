@@ -409,75 +409,54 @@ export async function apiSetSettings(settings: ProjectSettings) {
     return keysToCamel(res.data)
 }
 
-export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
-    const panoptic = usePanopticStore()
-    const projectId = panoptic.connectionState?.connectedProject
-    const url = `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/db_state_stream`
-    const response = await fetch(url, {
-        method: 'GET',
-    })
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch data from the stream')
-    }
-
+async function _streamNdjson(url: string, callback: (data: LoadResult) => void) {
+    const response = await fetch(url, { method: 'GET' })
+    if (!response.ok) throw new Error('Failed to fetch data from the stream')
     const reader = response.body?.getReader()
-    if (!reader) {
-        throw new Error('No reader available')
-    }
+    if (!reader) throw new Error('No reader available')
 
     const decoder = new TextDecoder()
     let buffer = ''
-
     try {
         while (true) {
             const { done, value } = await reader.read()
-
             if (done) {
-                // Process any remaining data in buffer
                 if (buffer.trim()) {
-                    try {
-                        const data = JSON.parse(buffer)
-                        const res = keysToCamel(data)
-                        await callback(res)
-                    } catch (e) {
-                        console.error('Failed to parse final chunk:', buffer, e)
-                    }
+                    try { await callback(keysToCamel(JSON.parse(buffer))) }
+                    catch (e) { console.error('Failed to parse final chunk:', buffer, e) }
                 }
                 break
             }
-
-            // Decode the chunk and append to buffer
             buffer += decoder.decode(value, { stream: true })
-
-            // Split by newlines and process complete lines
             const lines = buffer.split('\n')
-            
-            // Keep the last incomplete line in the buffer
             buffer = lines.pop() || ''
-
-            // Process all complete lines from this read() call without pausing
-            // between them — pausing per line causes TCP backpressure accumulation.
             for (const line of lines) {
                 const trimmed = line.trim()
                 if (!trimmed) continue
-
-                try {
-                    const data = JSON.parse(trimmed)
-                    const res = keysToCamel(data)
-                    await callback(res)
-                } catch (e) {
-                    console.error('Failed to parse line:', trimmed, e)
-                }
+                try { await callback(keysToCamel(JSON.parse(trimmed))) }
+                catch (e) { console.error('Failed to parse line:', trimmed, e) }
             }
-            // One paint flush per read() so Vue updates are visible between bursts.
-            if (lines.length > 0) {
-                await new Promise(r => requestAnimationFrame(r))
-            }
+            if (lines.length > 0) await new Promise(r => requestAnimationFrame(r))
         }
     } finally {
         reader.releaseLock()
     }
+}
+
+export async function apiStreamSlimState(callback: (data: LoadResult) => void) {
+    const projectId = usePanopticStore().connectionState?.connectedProject
+    await _streamNdjson(
+        `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/db_state_slim`,
+        callback
+    )
+}
+
+export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
+    const projectId = usePanopticStore().connectionState?.connectedProject
+    await _streamNdjson(
+        `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/db_state_stream`,
+        callback
+    )
 }
 
 export async function apiPostDeleteEmptyClones() {

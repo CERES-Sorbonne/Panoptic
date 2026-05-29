@@ -13,10 +13,10 @@
  */
 
 import { defineStore } from 'pinia'
-import { markRaw, reactive } from 'vue'
+import { markRaw, reactive, ref } from 'vue'
 import { PropertyType } from './models'
 import { EventEmitter, isFinished } from '@/utils/utils'
-import { apiStreamLoadState, projectApi } from './apiProjectRoutes'
+import { apiStreamSlimState, projectApi } from './apiProjectRoutes'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -169,6 +169,12 @@ export const useColumnStore = defineStore('columnStore', () => {
     let selectionMask = new Uint8Array(0)
     const onSelectionChange = new EventEmitter()
 
+    // ── Init state (reactive — observed by DataLoad) ───────────────────────
+    const isReady          = ref(false)
+    const propertiesReady  = ref(false)
+    const tagsReady        = ref(false)
+    const initProgress     = reactive({ current: 0, total: 0 })
+
     // ── Change emitter ─────────────────────────────────────────────────────
     const onChange = new EventEmitter()
 
@@ -192,10 +198,16 @@ export const useColumnStore = defineStore('columnStore', () => {
      * Property value columns remain empty (lazy) until required.
      */
     async function init() {
+        isReady.value         = false
+        propertiesReady.value = false
+        tagsReady.value       = false
+        initProgress.current  = 0
+        initProgress.total    = 0
+
         const instanceBuffer: SlotInitData[] = []
         const propTypeBuffer: Record<number, PropertyType> = {}
 
-        await apiStreamLoadState((result) => {
+        await apiStreamSlimState((result) => {
             if (result.chunk?.instances) {
                 for (const inst of result.chunk.instances) {
                     if (inst.id === DELETED_ID) continue
@@ -213,8 +225,15 @@ export const useColumnStore = defineStore('columnStore', () => {
                     if (prop.id !== DELETED_ID) propTypeBuffer[prop.id] = prop.type
                 }
             }
+            if (result.state?.finishedProperty) propertiesReady.value = true
+            if (result.chunk?.tags)             tagsReady.value = true
+            if (result.state) {
+                if (result.state.maxInstance)      initProgress.total   = result.state.maxInstance
+                if (result.state.counterInstance)  initProgress.current = result.state.counterInstance
+            }
             if (isFinished(result.state)) {
                 _buildSlots(instanceBuffer, propTypeBuffer)
+                isReady.value = true
             }
         })
     }
@@ -613,6 +632,12 @@ export const useColumnStore = defineStore('columnStore', () => {
         columnData,
         columnFetched,
         tagInverted,
+
+        // Reactive init state
+        isReady,
+        propertiesReady,
+        tagsReady,
+        initProgress,
 
         // Reactive status — the only Vue-observable state in this store
         fullColumnStatus,
