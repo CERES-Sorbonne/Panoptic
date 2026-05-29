@@ -187,8 +187,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
 </script>
 
 <template>
-    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden" @mouseenter="hoverGroup = true"
-        @mouseleave="hoverGroup = false">
+    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"> </div>

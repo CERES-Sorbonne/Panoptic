@@ -180,18 +180,20 @@ function computeLines() {
         it = it.nextGroup()
     }
     
-    imageLines.value = lines.map(l => shallowReactive(l))
+    imageLines.value = lines
     console.timeEnd('compute Lines')
+    console.log(imageLines.value.length)
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
     let lineWidth = totalWidth
     let newLine = []
     let actualWidth = 0
+    let groupLineIndex = 0 // <-- ADD LOCAL COUNTER
 
     let addLine = (line) => {
         lines.push({
-            id: parentGroup.id + '|img-' + lines.length,
+            id: parentGroup.id + '|img-' + groupLineIndex++, // <-- USE LOCAL COUNTER
             type: 'images',
             data: line,
             groupId: parentGroup.id,
@@ -202,9 +204,7 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
     }
 
     let imgIt = ImageIterator.fromGroupIterator(it)
-    // <-- UPDATED: Check imgIt.isValid instead of imgIt.image
-    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId && lines.length) {
-
+    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId && lines.length !== undefined) {
         let imgWidth = imageHeight + 12
         if (actualWidth + imgWidth < lineWidth) {
             newLine.push(imgIt)
@@ -231,10 +231,11 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
     let lineWidth = totalWidth
     let newLine: ImageIterator[] = []
     let actualWidth = 0
+    let groupLineIndex = 0 // <-- ADD LOCAL COUNTER
 
     let addLine = (line: ImageIterator[]) => {
         lines.push({
-            id: parentGroup.id + '|img-' + lines.length,
+            id: parentGroup.id + '|pile-' + groupLineIndex++, // <-- USE LOCAL COUNTER (changed to 'pile' for uniqueness)
             type: 'piles',
             data: line,
             groupId: parentGroup.id,
@@ -244,7 +245,6 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
     }
 
     let imgIt = ImageIterator.fromGroupIterator(it)
-    // <-- UPDATED: Check imgIt.isValid instead of implicitly checking the object
     while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId) {
         let imgWidth = imageHeight + 10
         if (actualWidth + imgWidth < lineWidth) {
@@ -377,7 +377,7 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
     <RecycleScroller :items="imageLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
         :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">
         <template v-slot="{ item, index, active }">
-            <template v-if="active">
+            <template v-if="true">
                 <!-- <DynamicScrollerItem :item="item" :active="active" :data-index="index" :size-dependencies="[item.size]"> -->
                 <div v-if="item.type == 'group' && !props.hideGroup">
                     <GroupLineVue :item="item" :hover-border="hoverGroupBorder" :parent-ids="getParents(item.data)"
