@@ -174,19 +174,7 @@ function computeLines() {
         lines.push(...GroupToLines(it))
         it = it.nextGroup()
     }
-
-    // Avoid a full RecycleScroller reconciliation when only content changed but
-    // IDs and sizes are identical — this prevents CenteredImage from remounting
-    // and flashing blank while loadedSha1 resets.
-    const old = imageLines.value
-    if (old.length === lines.length && old.every((l, i) => l.id === lines[i].id && l.size === lines[i].size)) {
-        // Patch data in-place so ImageIterator references stay current without
-        // triggering a full re-render.
-        for (let i = 0; i < lines.length; i++) old[i].data = lines[i].data
-        return
-    }
-    // Wrap in reactive() so RecycleScroller's z (accumulator computed) tracks
-    // item.size mutations — enabling in-place size updates without a full reset.
+    
     imageLines.value = lines.map(l => shallowReactive(l))
 }
 
@@ -330,12 +318,13 @@ watch(() => props.imageSize, () => {
     nextTick(computeLines)
 })
 
+const margin_scroll_offset = 4
 watch(visiblePropertiesNb, () => {
     const lines = imageLines.value
     if (!lines.length) return
 
     // Snapshot current scroll position before any layout change
-    const scrollPos = scroller.value.getScroll().start
+    const scrollPos = scroller.value.getScroll().start + margin_scroll_offset
 
     // Find the index of the item sitting at the top of the viewport
     let topItemIdx = lines.length - 1
@@ -357,7 +346,7 @@ watch(visiblePropertiesNb, () => {
 
     // Set scroll first so that when z's watcher fires pe(false) it reads the
     // correct scrollTop and positions items at the right offset immediately.
-    scroller.value.$el.scrollTop = newScrollPos
+    scroller.value.$el.scrollTop = newScrollPos - margin_scroll_offset
 
     // Mutate sizes on the reactive line objects. Because RecycleScroller's
     // accumulator (z) is a computed that reads item.size, these mutations mark

@@ -792,7 +792,7 @@ export class GroupManager {
             for (let id of updated) {
                 const before = oldGroupIds[id] ?? []
                 const after = this.result.imageToGroups[id] ?? []
-                console.log(id, before, after)
+                // console.log(id, before, after)
                 if (before.length !== after.length || before.some(g => !after.includes(g))) {
                     structureChanged = true
                     break

@@ -856,7 +856,6 @@ export const useDataStore = defineStore('dataStore', () => {
         if (!save) {
             save = buildPropertyGroupOrder()
         }
-
         const props = objValues(properties.value).filter(p => p.id != deletedID)
         const groups = objValues(propertyGroups.value)
 
@@ -893,7 +892,7 @@ export const useDataStore = defineStore('dataStore', () => {
         propertyTree.value = tree
         propertyOrder.value.groups = groupOrder
         propertyOrder.value.properties = propsOrder
-
+        triggerRef(propertyOrder)
     }
 
     async function triggerPropertyTreeChange() {
