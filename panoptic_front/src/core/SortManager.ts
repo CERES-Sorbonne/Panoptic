@@ -39,11 +39,6 @@ export interface SortResult {
     slots: Int32Array
 }
 
-interface SortableImage {
-    slot: number
-    values: any[]
-}
-
 export function createSortState(): SortState {
     return reactive({ sortBy: [], options: {} })
 }
@@ -70,88 +65,243 @@ export const sortParser: { [type in PropertyType]?: any } = {
     [PropertyType._id]:       (x: number)   => x,
 }
 
-// Slot is the direct column index — no slotMap lookup needed.
-function readSortValue(slot: number, property: Property, folders: FolderIndex): any {
+// ── Columnar sort core ─────────────────────────────────────────────────────
+//
+// SortCols is a slot-indexed struct-of-arrays: cols[k][slot] = sort key of
+// property k for that slot. Float64Array for numeric types (direct typed-array
+// element access, cache-line friendly), string[] for string types.
+//
+// Indexed by slot value (not position in the result) so the cache stays valid
+// across insertions/removals without position-mapping recomputation.
+// updateSortCols() refreshes only the dirty subset in O(N × P) after a data
+// change, avoiding a full O(M × P) rebuild on every incremental update.
+
+type SortCols = (Float64Array | string[])[]
+
+function isNumericSortProp(p: Property): boolean {
+    switch (p.type) {
+        case PropertyType.checkbox:
+        case PropertyType.color:
+        case PropertyType.date:
+        case PropertyType.multi_tags:
+        case PropertyType.number:
+        case PropertyType._height:
+        case PropertyType._width:
+        case PropertyType._id:
+            return true
+        default:
+            return false
+    }
+}
+
+function numericSortValue(
+    slot: number, p: Property,
+    col: ReturnType<typeof useColumnStore>, folders: FolderIndex
+): number {
+    const raw = col.readSlot(p.id, slot)
+    const parser = sortParser[p.type]
+    const v = parser ? parser(raw, folders) : raw
+    if (v == null) return Number.NEGATIVE_INFINITY
+    const n = +v
+    return isNaN(n) ? Number.NEGATIVE_INFINITY : n
+}
+
+function stringSortValue(
+    slot: number, p: Property,
+    col: ReturnType<typeof useColumnStore>, folders: FolderIndex
+): string {
+    const raw = col.readSlot(p.id, slot)
+    // Tag columns store number[] (tag IDs); resolve to the first tag's label.
+    if (p.type === PropertyType.tag) {
+        const tagLabel = (Array.isArray(raw) && raw.length > 0) ? p.tags?.[raw[0]]?.value : undefined
+        return tagLabel ? tagLabel.toLocaleLowerCase() : LAST_STRING
+    }
+    const parser = sortParser[p.type]
+    const v = parser ? parser(raw, folders) : raw
+    return v != null ? String(v) : LAST_STRING
+}
+
+// Build fresh slot-indexed column arrays for all slots in the input.
+// Allocates typed arrays of size maxSlot+1; useColumnStore() is hoisted
+// once per call instead of once per slot.
+function buildSortCols(
+    slots: Int32Array, properties: Property[], maxSlot: number, folders: FolderIndex
+): SortCols {
     const col = useColumnStore()
-    let value = col.readSlot(property.id, slot)
-
-    if (property.type == PropertyType.tag) {
-        value = (Array.isArray(value) && value.length > 0)
-            ? property.tags?.[value[0]]?.value
-            : undefined
-    }
-    return sortParser[property.type]?.(value, folders) ?? value
-}
-
-function buildSortable(slots: number[], properties: Property[]): SortableImage[] {
-    const data = useDataStore()
-    return slots.map(s => ({
-        slot: s,
-        values: properties.map(p => readSortValue(s, p, data.folders)),
-    }))
-}
-
-function compareSortable(a: SortableImage, b: SortableImage, orders: number[]): number {
-    for (let i = 0; i < a.values.length; i++) {
-        if (a.values[i] == b.values[i]) continue
-        return (a.values[i] < b.values[i] ? -1 : 1) * orders[i]
-    }
-    return a.slot - b.slot
-}
-
-function runSort(sortable: SortableImage[], orders: number[]) {
-    sortable.sort((a, b) => compareSortable(a, b, orders))
-}
-
-function insertSort(
-    old: Int32Array,
-    updatedSlots: Set<number>,
-    removedSlots: Set<number>,
-    properties: Property[],
-    orders: number[]
-): Int32Array {
-    const updatedSortable = buildSortable([...updatedSlots], properties)
-    runSort(updatedSortable, orders)
-
-    const res: number[] = []
-    let oldIndex = 0
-    let nowIndex = 0
-
-    while (nowIndex < updatedSortable.length) {
-        const insertAt = binaryFindIndex(old, updatedSortable[nowIndex], oldIndex, properties, orders)
-        for (let i = oldIndex; i < insertAt; i++) {
-            const s = old[i]
-            if (!updatedSlots.has(s) && !removedSlots.has(s)) res.push(s)
-            oldIndex++
+    return properties.map(p => {
+        if (isNumericSortProp(p)) {
+            const arr = new Float64Array(maxSlot + 1)
+            // Fast path: for plain numeric columns (number, _width, _height, _id, color)
+            // read directly from the Float64Array buffer — avoids readSlot + sortParser overhead.
+            const raw = col.getRawBuffer(p.id)
+            if (raw instanceof Float64Array) {
+                for (let i = 0; i < slots.length; i++) {
+                    const v = raw[slots[i]]
+                    arr[slots[i]] = isNaN(v) ? Number.NEGATIVE_INFINITY : v
+                }
+                return arr
+            }
+            for (let i = 0; i < slots.length; i++) {
+                arr[slots[i]] = numericSortValue(slots[i], p, col, folders)
+            }
+            return arr
         }
-        res.push(updatedSortable[nowIndex].slot)
-        nowIndex++
-    }
-    for (let i = oldIndex; i < old.length; i++) {
-        const s = old[i]
-        if (!updatedSlots.has(s) && !removedSlots.has(s)) res.push(s)
-    }
-    return new Int32Array(res)
+        const arr: string[] = new Array(maxSlot + 1).fill(LAST_STRING)
+        for (let i = 0; i < slots.length; i++) {
+            arr[slots[i]] = stringSortValue(slots[i], p, col, folders)
+        }
+        return arr
+    })
 }
 
-function binaryFindIndex(target: Int32Array, elem: SortableImage, startIndex: number, properties: Property[], orders: number[]): number {
-    if (startIndex >= target.length) return startIndex
-    let lo = startIndex
-    let hi = target.length
+// Refresh column values for a subset of slots after a data change.
+// Only touches the dirty slots; everything else in cols remains valid.
+function updateSortCols(
+    cols: SortCols, slots: number[], properties: Property[], maxSlot: number, folders: FolderIndex
+): void {
+    const col = useColumnStore()
+    for (let k = 0; k < properties.length; k++) {
+        const p = properties[k]
+        const arr = cols[k]
+        if (arr instanceof Float64Array) {
+            for (const s of slots) {
+                if (s <= maxSlot) arr[s] = numericSortValue(s, p, col, folders)
+            }
+        } else {
+            for (const s of slots) {
+                if (s <= maxSlot) arr[s] = stringSortValue(s, p, col, folders)
+            }
+        }
+    }
+}
+
+function compareSlotsByCols(slotA: number, slotB: number, cols: SortCols, orders: number[]): number {
+    for (let k = 0; k < cols.length; k++) {
+        const va = cols[k][slotA], vb = cols[k][slotB]
+        if (va < vb) return -orders[k]
+        if (va > vb) return orders[k]
+    }
+    return slotA - slotB
+}
+
+// Sort slots without a JS comparator by packing all column ranks + the original
+// position index into a single Float64 per element:
+//   packed[i] = sortKey(i) * n + i
+// Calling Float64Array.sort() with no comparator runs native C++ TimSort —
+// no JS function call overhead per comparison (vs ~1.7M calls at ~30ns each).
+// Decode after sort: originalIndex = packed[j] % n, slot = slots[originalIndex].
+// Returns null if values would overflow float64 safe integer range (rare; falls
+// back to comparison sort).
+function sortByPackedKey(slots: Int32Array, sortCols: SortCols, orders: number[]): Int32Array | null {
+    const n = slots.length
+    if (n === 0) return slots
+
+    const colRanks: Uint32Array[] = []
+    const numUniques: number[] = []
+    let keyScale = 1
+
+    for (let k = 0; k < sortCols.length; k++) {
+        const col = sortCols[k]
+        const ascending = orders[k] === 1
+
+        const vals: any[] = new Array(n)
+        if (col instanceof Float64Array) {
+            for (let i = 0; i < n; i++) vals[i] = col[slots[i]]
+        } else {
+            for (let i = 0; i < n; i++) vals[i] = (col as string[])[slots[i]]
+        }
+
+        const unique: any[] = Array.from(new Set(vals))
+        if (col instanceof Float64Array) unique.sort((a, b) => a - b)
+        else unique.sort()
+
+        const numUnique = unique.length
+        // packed[i] = sortKey * n + i; check (keyScale * numUnique) * n fits in MAX_SAFE_INTEGER
+        if (keyScale > Number.MAX_SAFE_INTEGER / numUnique / (n + 1)) return null
+        keyScale *= numUnique
+
+        const rankMap = new Map<any, number>()
+        for (let j = 0; j < numUnique; j++) {
+            rankMap.set(unique[j], ascending ? j : numUnique - 1 - j)
+        }
+
+        const ranks = new Uint32Array(n)
+        for (let i = 0; i < n; i++) ranks[i] = rankMap.get(vals[i]) ?? 0
+        colRanks.push(ranks)
+        numUniques.push(numUnique)
+    }
+
+    // Build packed sort keys
+    const packed = new Float64Array(n)
+    let multiplier = 1
+    for (let k = colRanks.length - 1; k >= 0; k--) {
+        const ranks = colRanks[k]
+        for (let i = 0; i < n; i++) packed[i] += ranks[i] * multiplier
+        multiplier *= numUniques[k]
+    }
+    // Embed original position as tiebreaker: packed[i] = sortKey * n + i
+    for (let i = 0; i < n; i++) packed[i] = packed[i] * n + i
+
+    // Native typed-array sort — no JS comparator, runs in C++
+    packed.sort()
+
+    // Decode: packed[j] % n is the original position index
+    const result = new Int32Array(n)
+    for (let i = 0; i < n; i++) result[i] = slots[packed[i] % n]
+    return result
+}
+
+// Binary-search the insertion point for slot within sorted[startIndex..end].
+// Reads sort keys from slot-indexed cols — no object allocation per step.
+function binaryFindSlotIndex(
+    sorted: Int32Array, slot: number, startIndex: number,
+    cols: SortCols, orders: number[]
+): number {
+    if (startIndex >= sorted.length) return sorted.length
+    let lo = startIndex, hi = sorted.length
     let dist = hi - lo
     while (dist > 10) {
-        const center = Math.floor(lo + dist / 2)
-        const cmp = compareSortable(elem, buildSortable([target[center]], properties)[0], orders)
-        if (cmp == 0) return center
+        const center = lo + (dist >> 1)
+        const cmp = compareSlotsByCols(slot, sorted[center], cols, orders)
+        if (cmp === 0) return center
         if (cmp < 0) hi = center + 1
         else lo = center
         dist = hi - lo
     }
     for (let i = lo; i < hi; i++) {
-        if (compareSortable(elem, buildSortable([target[i]], properties)[0], orders) < 0) return i
+        if (compareSlotsByCols(slot, sorted[i], cols, orders) < 0) return i
     }
-    return target.length
+    return hi
 }
+
+// Merge-insert insertSlots (pre-sorted by cols) into old sorted result,
+// filtering out removed and re-inserted (updated) slots from old.
+// Pre-allocates the maximum possible result size to avoid any dynamic push().
+function mergeInsertSorted(
+    old: Int32Array, insertSlots: Int32Array,
+    removedSet: Set<number>, updatedSet: Set<number>,
+    cols: SortCols, orders: number[]
+): Int32Array {
+    const buf = new Int32Array(old.length + insertSlots.length)
+    let resLen = 0, oldIdx = 0, nowIdx = 0
+
+    while (nowIdx < insertSlots.length) {
+        const insertAt = binaryFindSlotIndex(old, insertSlots[nowIdx], oldIdx, cols, orders)
+        for (let i = oldIdx; i < insertAt; i++) {
+            const s = old[i]
+            if (!updatedSet.has(s) && !removedSet.has(s)) buf[resLen++] = s
+            oldIdx++
+        }
+        buf[resLen++] = insertSlots[nowIdx++]
+    }
+    for (let i = oldIdx; i < old.length; i++) {
+        const s = old[i]
+        if (!updatedSet.has(s) && !removedSet.has(s)) buf[resLen++] = s
+    }
+    return buf.slice(0, resLen)
+}
+
+// ── SortManager ────────────────────────────────────────────────────────────
 
 export class SortManager {
     state: SortState
@@ -159,6 +309,12 @@ export class SortManager {
 
     onResultChange: EventEmitter
     onStateChange: EventEmitter
+
+    // Slot-indexed column arrays cached after sort() for use in updateSelection().
+    // _sortCols[k][slot] = sort key of property k for that slot.
+    // Refreshed incrementally by updateSortCols() on data changes.
+    private _sortCols: SortCols | null = null
+    private _sortColsMaxSlot = 0
 
     constructor(state?: SortState) {
         this.onResultChange = new EventEmitter()
@@ -183,6 +339,7 @@ export class SortManager {
 
     clear() {
         this.result = { slots: new Int32Array(0), order: {} }
+        this._sortCols = null
     }
 
     async sort(slots: Int32Array, emit?: boolean): Promise<SortResult> {
@@ -192,18 +349,40 @@ export class SortManager {
         const data = useDataStore()
         const properties = this.state.sortBy.map(id => data.properties[id])
         const orders = this.state.sortBy.map(id =>
-            this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
+            this.state.options[id].direction === SortDirection.Ascending ? 1 : -1)
 
-        const sortable = buildSortable(Array.from(slots), properties)
-        runSort(sortable, orders)
+        // Single pass to find max slot for typed-array allocation
+        let maxSlot = 0
+        for (let i = 0; i < slots.length; i++) if (slots[i] > maxSlot) maxSlot = slots[i]
 
-        const newSlots = new Int32Array(sortable.length)
-        this.result.order = {}
-        for (let i = 0; i < sortable.length; i++) {
-            newSlots[i] = sortable[i].slot
-            this.result.order[sortable[i].slot] = i
+        // Build and cache slot-indexed columns (one sequential pass per property)
+        this._sortCols = buildSortCols(slots, properties, maxSlot, data.folders)
+        this._sortColsMaxSlot = maxSlot
+
+        // Sort using packed-key native sort (no JS comparator — pure C++ TimSort).
+        // Falls back to comparison sort only when float64 range would overflow.
+        let sorted: Int32Array
+        if (properties.length === 0) {
+            sorted = slots.slice()
+        } else {
+            sorted = sortByPackedKey(slots, this._sortCols, orders)
+            ?? (() => {
+                const s = slots.slice()
+                if (properties.length === 1) {
+                    const col0 = this._sortCols[0], ord0 = orders[0]
+                    s.sort((a, b) => { const d = col0[a] < col0[b] ? -ord0 : col0[a] > col0[b] ? ord0 : 0; return d || a - b })
+                } else {
+                    const cols = this._sortCols
+                    s.sort((a, b) => compareSlotsByCols(a, b, cols, orders))
+                }
+                return s
+            })()
         }
-        this.result.slots = newSlots
+
+        this.result.order = {}
+        for (let i = 0; i < sorted.length; i++) this.result.order[sorted[i]] = i
+        this.result.slots = sorted
+
         console.timeEnd('Sort')
         if (emit) this.onResultChange.emit(this.result)
         return this.result
@@ -212,12 +391,12 @@ export class SortManager {
     // updated/removed are instance IDs from FilterManager.updateSelection.
     // Converts to slots once, then operates entirely on slot indices.
     updateSelection(updated: Set<number>, removed: Set<number>): SortResult {
-        console.time('SortUpdate')
+
         const col = useColumnStore()
         const data = useDataStore()
         const properties = this.state.sortBy.map(id => data.properties[id])
         const orders = this.state.sortBy.map(id =>
-            this.state.options[id].direction == SortDirection.Ascending ? 1 : -1)
+            this.state.options[id].direction === SortDirection.Ascending ? 1 : -1)
 
         const updatedSlots = new Set<number>()
         for (const id of updated) {
@@ -230,13 +409,43 @@ export class SortManager {
             if (s !== undefined) removedSlots.add(s)
         }
 
-        const res = insertSort(this.result.slots, updatedSlots, removedSlots, properties, orders)
+        // Check if any updated slot exceeds the cached column range
+        let needsRebuild = !this._sortCols
+        if (!needsRebuild) {
+            for (const s of updatedSlots) {
+                if (s > this._sortColsMaxSlot) { needsRebuild = true; break }
+            }
+        }
+
+        if (needsRebuild) {
+            // Safety net: build from scratch using all currently-relevant slots
+            let maxSlot = this._sortColsMaxSlot
+            for (const s of updatedSlots) if (s > maxSlot) maxSlot = s
+            const allSlots = new Int32Array(this.result.slots.length + updatedSlots.size)
+            let j = 0
+            for (let i = 0; i < this.result.slots.length; i++) allSlots[j++] = this.result.slots[i]
+            for (const s of updatedSlots) allSlots[j++] = s
+            this._sortCols = buildSortCols(allSlots, properties, maxSlot, data.folders)
+            this._sortColsMaxSlot = maxSlot
+        } else {
+            // Refresh only the dirty slots in the cached columns — O(N × P)
+            updateSortCols(this._sortCols, [...updatedSlots], properties, this._sortColsMaxSlot, data.folders)
+        }
+
+        // Sort the updated slots by current criteria, then merge-insert into result
+        const cols = this._sortCols
+        let insertArr = sortByPackedKey(Int32Array.from(updatedSlots), cols, orders)
+        if (!insertArr) {
+            insertArr = Int32Array.from(updatedSlots)
+            insertArr.sort((a, b) => compareSlotsByCols(a, b, cols, orders))
+        }
+
+        const res = mergeInsertSorted(this.result.slots, insertArr, removedSlots, updatedSlots, cols, orders)
         this.result.slots = res
         this.result.order = {}
-        for (let i = 0; i < res.length; i++) {
-            this.result.order[res[i]] = i
-        }
-        console.timeEnd('SortUpdate')
+        for (let i = 0; i < res.length; i++) this.result.order[res[i]] = i
+
+
         return this.result
     }
 
@@ -249,6 +458,7 @@ export class SortManager {
         if (option) this.state.options[propertyId] = option
         else if (!this.state.options[propertyId]) this.state.options[propertyId] = buildSortOption()
         if (!this.state.sortBy.includes(propertyId)) this.state.sortBy.push(propertyId)
+        this._sortCols = null  // invalidate — caller must re-sort
         this.onStateChange.emit()
     }
 
@@ -256,6 +466,7 @@ export class SortManager {
         const index = this.state.sortBy.indexOf(propertyId)
         if (index < 0) return
         this.state.sortBy.splice(index, 1)
+        this._sortCols = null  // invalidate — caller must re-sort
         this.onStateChange.emit()
     }
 
@@ -264,5 +475,6 @@ export class SortManager {
         Object.keys(this.state.options)
             .filter(id => !properties[Number(id)] || properties[Number(id)].id == deletedID)
             .forEach(id => delete this.state.options[Number(id)])
+        this._sortCols = null  // invalidate — caller must re-sort
     }
 }

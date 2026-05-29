@@ -58,7 +58,6 @@ export class CollectionManager {
         // Trigger full update whenever the column store finishes (re)loading.
         // immediate:true handles the case where a tab is created after init completes.
         watch(() => col.isReady, (ready) => {
-            console.log('[CM] isReady watch fired, ready=', ready)
             if (ready) this.update()
         }, { immediate: true })
 
@@ -92,11 +91,10 @@ export class CollectionManager {
             if (instanceIds) {
                 const filterUpdate = await this.filterManager.updateSelection(instanceIds)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
-                this.groupManager.lastOrder = this.sortManager.result.order
                 if (this.groupManager.result.root) {
                     this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 } else {
-                    this.groupManager.group(this.sortManager.result.slots, this.sortManager.result.order, true)
+                    this.groupManager.group(this.sortManager.result.slots, true)
                 }
                 this.runState.isDirty = false
             } else {
@@ -107,12 +105,11 @@ export class CollectionManager {
 
     async update() {
         const col = useColumnStore()
-        console.log('[CM.update] isReady=', col.isReady, 'slotCount=', col.slotCount())
         if (!col.isReady) return
 
         const count       = col.slotCount()
-        const deleted     = col.deletedMask
-        const instanceIds = col.instanceIds
+        const deleted     = col.deletedMask()
+        const instanceIds = col.instanceIds()
 
         // Build Int32Array of active slots — no Instance objects created.
         let slots: Int32Array
@@ -140,22 +137,19 @@ export class CollectionManager {
             slots = new Int32Array(sel)
         }
 
-        console.log('[CM.update] active slots=', slots.length)
         const filterRes = await this.filterManager.filter(slots)
-        console.log('[CM.update] after filter=', filterRes.slots.length)
         const sortRes   = await this.sortManager.sort(filterRes.slots)
-        console.log('[CM.update] after sort=', sortRes.slots.length, '→ calling group(emit=true)')
-        this.groupManager.group(sortRes.slots, sortRes.order, true)
+        this.groupManager.group(sortRes.slots, true)
         this.runState.isDirty = false
     }
 
     private async onFilter(result: FilterResult) {
         const sortRes = await this.sortManager.sort(result.slots)
-        this.groupManager.group(sortRes.slots, sortRes.order, true)
+        this.groupManager.group(sortRes.slots, true)
     }
 
     private onSort(result: SortResult) {
-        this.groupManager.sort(result.order, true)
+        this.groupManager.group(result.slots, true)
     }
 
     private onGroup() {

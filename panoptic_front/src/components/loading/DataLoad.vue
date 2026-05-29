@@ -51,6 +51,7 @@ const pct = computed(() => {
                     <LoadWheel class="me-2" :loading="!state?.finishedInstance" />
                     <i v-if="state?.finishedInstance" class="bi bi-check text-success" />
                     <Percentage :current="pct" :max="100" :force="!!state?.finishedInstance" />
+                    <span v-if="colStore.instanceCount > 0" class="ms-1" style="font-size:12px;">{{ colStore.instanceCount.toLocaleString() }}</span>
                 </div>
             </template>
 

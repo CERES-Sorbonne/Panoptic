@@ -165,9 +165,13 @@ function GroupToLines(it: GroupIterator) {
 }
 
 function computeLines() {
+    console.time('compute Lines')
     if (!props.groupManager.result.root) return
     let it = props.groupManager.getGroupIterator()
-    if(!it?.group.slots.length) return
+    if(!it?.group.slots.length) {
+        imageLines.value = []
+        return
+    }
     const lines = []
     while (it) {
         const group = it.group
@@ -177,6 +181,7 @@ function computeLines() {
     }
     
     imageLines.value = lines.map(l => shallowReactive(l))
+    console.timeEnd('compute Lines')
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
