@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import TagOptionsDropdown from '@/components/dropdowns/TagOptionsDropdown.vue';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
-import { deletedID, useDataStore } from '@/data/dataStore';
+import { useDataStore } from '@/data/dataStore';
 import { keyState } from '@/data/keyState';
-import { Tag } from '@/data/models';
+import { deletedID, Tag } from '@/data/models';
 import { sum } from '@/utils/utils';
 import { ref, watch, computed, onMounted } from 'vue'
 import draggableComponent from 'vuedraggable';

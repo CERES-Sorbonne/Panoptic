@@ -4,6 +4,7 @@ import { ActionContext, ActionFunctions, ExecuteActionPayload, FunctionDescripti
 import { computed, reactive, ref, watch } from "vue";
 import { objValues } from "./builder";
 import { useDataStore } from "./dataStore";
+import { useMediaStore } from "./mediaStore";
 import { sourceFromFunction } from "@/utils/utils";
 import { apiGetActions, apiGetAllUIData, apiSetUIDataBulk } from "./apiProjectRoutes";
 
@@ -123,6 +124,7 @@ export const useActionStore = defineStore('actionStore', () => {
 
     function getContext(funcName: string) {
         const data = useDataStore()
+        const media = useMediaStore()
         const ctx: ActionContext = { uiInputs: {} }
         const act = index.value[funcName]
         for (let param of act.params) {
@@ -134,15 +136,15 @@ export const useActionStore = defineStore('actionStore', () => {
             if (baseValue != undefined) {
                 if (param.type == 'vector_type') {
                     const type_id = baseValue.id
-                    if (data.vectorTypes.findIndex(v => v.id == type_id) < 0) {
+                    if (media.vectorTypes.findIndex(v => v.id == type_id) < 0) {
                         baseValue = undefined
                     }
                 }
                 if (param.type == 'own_vector_type') {
                     const type_id = baseValue.id
                     const source = sourceFromFunction(funcName)
-                    const index = data.vectorTypes.findIndex(v => v.id == type_id)
-                    if (index < 0 || data.vectorTypes[index].source != source) {
+                    const index = media.vectorTypes.findIndex(v => v.id == type_id)
+                    if (index < 0 || media.vectorTypes[index].source != source) {
                         baseValue = undefined
                     }
                 }
@@ -156,13 +158,13 @@ export const useActionStore = defineStore('actionStore', () => {
             // Find any value to set
             if (baseValue == undefined) {
                 if (param.type == 'vector_type') {
-                    if (data.vectorTypes.length) {
-                        baseValue = data.vectorTypes[0]
+                    if (media.vectorTypes.length) {
+                        baseValue = media.vectorTypes[0]
                     }
                 }
                 if (param.type == 'own_vector_type') {
                     const source = sourceFromFunction(funcName)
-                    let first = data.vectorTypes.find(v => v.source == source)
+                    let first = media.vectorTypes.find(v => v.source == source)
                     if (first) {
                         baseValue = first
                     }

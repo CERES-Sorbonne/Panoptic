@@ -167,7 +167,7 @@ watch(() => keyState.right, (state) => {
                     <div class="history text-center" v-if="navigationHistory.length > 0" ref="historyElem">
                         <b>{{ $t('modals.image.history') }}</b>
                         <div v-for="it, index in navigationHistory" class="bordered">
-                            <CenteredImage :sha1="it.image.sha1" :image-width="it.image.width" :image-height="it.image.height" :width="100" :height="100" @click="rollback(index)" />
+                            <CenteredImage :instance-id="it.image.id" :width="100" :height="100" @click="rollback(index)" />
                         </div>
                     </div>
                 </div>

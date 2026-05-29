@@ -10,8 +10,8 @@ import { computed, onMounted, ref, watch } from 'vue';
 import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
-import { Property, Tag, PropertyType, TagIndex } from '@/data/models';
-import { deletedID, useDataStore } from '@/data/dataStore';
+import { deletedID, Property, Tag, PropertyType, TagIndex } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
 import { objValues, sum } from '@/utils/utils';
 
 const data = useDataStore()

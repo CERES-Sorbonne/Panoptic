@@ -1,7 +1,7 @@
 from panoptic2.core.databases.db_description import DbDescription
-from panoptic2.core.databases.entity_schema import EntitySchema, PropertyValueSchema
+from panoptic2.core.databases.entity_schema import EntitySchema, PropertyValueSchema, OP_DELETE
 from panoptic2.core.databases.data.models import Commit, FileSource, Folder, File, Instance, Property, TagList, Tag, InstanceValue, \
-    Sha1Value, FileValue
+    Sha1Value, FileValue, InstanceTagValue, Sha1TagValue
 
 COMMITS_SCHEMA = EntitySchema(Commit, table="commits")
 FILE_SOURCES_SCHEMA = EntitySchema(FileSource, table="file_sources")
@@ -14,6 +14,8 @@ TAGS_SCHEMA = EntitySchema(Tag, table="tags")
 INSTANCE_VALUES_SCHEMA = PropertyValueSchema(InstanceValue, table="instance_values")
 SHA1_VALUES_SCHEMA = PropertyValueSchema(Sha1Value, table="sha1_values")
 FILE_VALUES_SCHEMA = PropertyValueSchema(FileValue, table="file_values")
+INSTANCE_TAG_VALUES_SCHEMA = EntitySchema(InstanceTagValue, table="instance_tag_values")
+SHA1_TAG_VALUES_SCHEMA = EntitySchema(Sha1TagValue, table="sha1_tag_values")
 
 sequence_table = (
     "CREATE TABLE IF NOT EXISTS sequence (id INTEGER);"
@@ -32,6 +34,8 @@ ALL_SCHEMAS = [
     INSTANCE_VALUES_SCHEMA,
     SHA1_VALUES_SCHEMA,
     FILE_VALUES_SCHEMA,
+    INSTANCE_TAG_VALUES_SCHEMA,
+    SHA1_TAG_VALUES_SCHEMA,
 ]
 
 # Build the tables dictionary dynamically
@@ -134,8 +138,16 @@ def _migrate_v2_to_v3(writer):
             writer.conn.execute(f"DELETE FROM properties_log WHERE id IN ({ph})", old_ids)
 
 
+def _migrate_v3_to_v4(writer):
+    """Add instance_tag_values and sha1_tag_values tables (introduced in v4)."""
+    writer.conn.executescript(INSTANCE_TAG_VALUES_SCHEMA.create_table_sql())
+    writer.conn.executescript(INSTANCE_TAG_VALUES_SCHEMA.create_log_table_sql())
+    writer.conn.executescript(SHA1_TAG_VALUES_SCHEMA.create_table_sql())
+    writer.conn.executescript(SHA1_TAG_VALUES_SCHEMA.create_log_table_sql())
+
+
 datastore_desc = DbDescription(
-    version=3,
+    version=4,
     tables=tables_config,
-    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3},
+    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4},
 )

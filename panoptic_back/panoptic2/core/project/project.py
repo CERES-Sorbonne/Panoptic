@@ -21,6 +21,7 @@ _SYSTEM_PROPERTIES = [
     # (system_key, dtype, mode)
     ('id',         'id',     'file'),
     ('sha1',       'sha1',   'file'),
+    ('file_id',    'number', 'id'),
     ('folder',     'folder', 'file'),
     ('name',       'text',   'file'),
     ('format',     'text',   'file'),
@@ -255,6 +256,10 @@ class Project2:
     def get_file_values(self, **filters) -> List[FileValue]:
         with self._data_reader() as r:
             return r.get_file_values(**filters)
+
+    def get_tag_counts(self, property_id: int | None = None) -> list[dict]:
+        with self._data_reader() as r:
+            return r.get_tag_counts(property_id=property_id)
 
     # ------------------------------------------------------------------
     # Writes  (DataWriter open/close per call)

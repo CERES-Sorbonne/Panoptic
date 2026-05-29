@@ -3,7 +3,7 @@ import { ScrollerLine, Property, ImageLine } from '@/data/models';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
 import { Ref, computed, onMounted } from 'vue';
-
+import { useColumnStore } from '@/data/columnStore'; // <-- Import columnStore
 
 const props = defineProps<{
     imageSize: number,
@@ -19,15 +19,32 @@ const props = defineProps<{
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update:selected-image'])
 
+const columnStore = useColumnStore() // <-- Initialize columnStore
+
+// Helper function to resolve an iterator's slot to an instance ID
+function getImageId(imageIt: any): number {
+    return columnStore.instanceIds()[imageIt.slot]
+}
+
 const selected = computed(() => {
     const res = {}
-    props.item.data.forEach(it => res[it.image.id] = props.selectedImages.value[it.image.id])
+    props.item.data.forEach(it => {
+        const id = getImageId(it)
+        if (id !== undefined) {
+            res[id] = props.selectedImages.value[id]
+        }
+    })
     return res
 })
 
 const preview = computed(() => {
     const res = {}
-    props.item.data.forEach(it => res[it.image.id] = props.preview?.value[it.image.id])
+    props.item.data.forEach(it => {
+        const id = getImageId(it)
+        if (id !== undefined) {
+            res[id] = props.preview?.value[id]
+        }
+    })
     return res
 })
 </script>
@@ -39,8 +56,10 @@ const preview = computed(() => {
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <Image :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="selected[imageIt.image.id]" :selectedPreview="preview[imageIt.image.id]"
-            @update:selected="v => emits('update:selected-image', { id: imageIt.image.id, value: v })"
+            :properties="props.properties" 
+            :selected="selected[getImageId(imageIt)]" 
+            :selectedPreview="preview[getImageId(imageIt)]"
+            @update:selected="v => emits('update:selected-image', { id: getImageId(imageIt), value: v })"
             v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
 
     </div>

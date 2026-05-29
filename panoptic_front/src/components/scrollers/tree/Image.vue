@@ -8,13 +8,14 @@ import { usePanopticStore } from '@/data/panopticStore'
 import Zoomable from '@/components/Zoomable.vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from './TreePropertyInput.vue'
-import { useColumnStore, META } from '@/data/dataStore2'
+import { useColumnStore } from '@/data/columnStore'
+import { useInstanceStore } from '@/data/instanceStore.js'
 
 const panoptic = usePanopticStore()
 const store    = useColumnStore()
 
 const props = defineProps({
-    image: ImageIterator,
+    image: { type: ImageIterator, required: true },
     size: { type: Number, default: 100 },
     index: Number,
     groupId: Number,
@@ -27,36 +28,23 @@ const props = defineProps({
 
 const emits = defineEmits(['resize', 'update:selected'])
 
-// Read from the shared reactive instances map registered by the parent TreeScroller.
-// Falls back to an empty-properties stub so template expressions never throw.
-const inst = computed(() =>
-    store.instances[props.image.image.id] ?? { id: props.image.image.id, properties: {} }
-)
+// ── RESOLVE INSTANCE ID FROM SLOT ───────────────────────────────────────────
+const instanceId = computed(() => store.instanceIds()[props.image.slot])
 
-const isSelected = computed(() => {
-    const slot = store.slotMap.get(props.image.image.id)
-    return slot !== undefined && store.isSelected(slot)
+// Reactive per-instance property values (for TreePropertyInput).
+// FIX 1: Provide a structural fallback value (-1) to keep the type checks happy before data streams in
+const inst = computed(() => {
+    const id = instanceId.value
+    if (id === undefined || isNaN(id)) {
+        return { id: -1, properties: {} }
+    }
+    return useInstanceStore().instanceData[id] ?? { id: id, properties: {}, baseUrl: '', sha1: '' }
 })
 
-function getSizes(width: number, height: number) {
-    if (!width || !height) return { width: props.size, height: props.size }
-    const ratio = width / height
-    let h = props.size
-    let w = h * ratio
-    if (ratio > 2) {
-        w = props.size * 2
-        h = w / ratio
-    }
-    return { width: w, height: h }
-}
-
-function instSizes(inst: { properties: Record<number, any> }) {
-    return getSizes(inst.properties[META.WIDTH], inst.properties[META.HEIGHT])
-}
-
-function instWidth(inst: { properties: Record<number, any> }) {
-    return Math.max(instSizes(inst).width, props.size)
-}
+// OPTIMIZATION: Use the slot index directly from the iterator
+const isSelected = computed(() => {
+    return props.image.slot !== undefined && store.isSelected(props.image.slot)
+})
 
 const hover    = ref(false)
 const hideImg  = inject('hideImg')
@@ -64,8 +52,8 @@ const inputKey = inject('inputKey') as string
 
 const score = computed(() => {
     const group = props.image.group
-    if (!group.scores) return undefined
-    return group.scores.valueIndex[props.image.image.id]
+    if (!group.scores || instanceId.value === undefined) return undefined
+    return group.scores.valueIndex[instanceId.value]
 })
 </script>
 
@@ -73,29 +61,26 @@ const score = computed(() => {
     <div
         class="full-container"
         :class="(!props.noBorder ? 'img-border' : '')"
-        :style="`width: ${instWidth(inst) + 2}px;`"
+        :style="`width: ${props.size + 2}px;`"
     >
-        <Zoomable v-if="!hideImg" :image="props.image.image">
+        <Zoomable v-if="!hideImg && instanceId !== undefined" :image="inst">
             <div
                 class="img-container"
-                :style="`width: ${instWidth(inst) + 2}px; height: ${props.size}px;`"
+                :style="`width: ${props.size + 2}px; height: ${props.size}px;`"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)"
                 @mouseenter="hover = true"
                 @mouseleave="hover = false"
             >
                 <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
-
                 <CenteredImage
-                    :sha1="inst.properties[META.SHA1]"
-                    :image-width="inst.properties[META.WIDTH]"
-                    :image-height="inst.properties[META.HEIGHT]"
-                    :width="instWidth(inst)"
+                    :instance-id="instanceId"
+                    :width="props.size"
                     :height="props.size"
                     style="position: absolute; top: 0"
                 />
 
                 <div v-if="hover || isSelected" class="w-100 box-shadow"
-                    :style="`width: ${instWidth(inst) + 2}px; height: ${props.size}px;`" />
+                    :style="`width: ${props.size + 2}px; height: ${props.size}px;`" />
                 <SelectCircle
                     v-if="hover || isSelected"
                     :model-value="isSelected"
@@ -106,12 +91,19 @@ const score = computed(() => {
             </div>
         </Zoomable>
 
-        <wTT v-if="props.image.sha1Group && props.image.sha1Group.images.length > 1"
+        <div v-else-if="!hideImg" 
+            class="d-flex align-items-center justify-content-center bg-light text-muted border border-secondary-subtle"
+            :style="`width: ${props.size + 2}px; height: ${props.size}px;`"
+        >
+            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        </div>
+
+        <wTT v-if="props.image.sha1Group && props.image.sha1Group.slots?.length > 1"
             message="main.view.instances_tooltip" :click="false">
-            <div class="image-count">{{ props.image.sha1Group.images.length }}</div>
+            <div class="image-count">{{ props.image.sha1Group.slots.length }}</div>
         </wTT>
 
-        <div class="prop-container" v-if="props.properties.length && !props.hideProperties">
+        <div class="prop-container" v-if="props.properties.length && !props.hideProperties && instanceId !== undefined">
             <div v-for="property, index in props.properties" :key="property.id">
                 <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
                 <TreePropertyInput
@@ -119,7 +111,7 @@ const score = computed(() => {
                     :input-key="inputKey"
                     :property="property"
                     :instance="inst"
-                    :width="instWidth(inst)"
+                    :width="props.size"
                     :idx="props.image.getImageOrder()"
                 />
             </div>
@@ -129,7 +121,6 @@ const score = computed(() => {
             style="position: absolute; top: 0; left: 0; background-color: rgba(0, 0, 255, 0.127);" />
     </div>
 </template>
-
 <style scoped>
 .image-count {
     position: absolute;

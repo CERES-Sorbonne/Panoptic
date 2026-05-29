@@ -8,10 +8,11 @@ import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
+import { useColumnStore } from '@/data/columnStore'; // <-- Imported columnStore
 import InstanceData from '@/components/data/InstanceData.vue';
-import { META } from '@/data/dataStore2';
 
 const panoptic = usePanopticStore()
+const columnStore = useColumnStore() // <-- Initialized store to map slots to IDs
 
 const props = defineProps<{
     imageSize: number,
@@ -117,17 +118,17 @@ const windowIds = computed(() => {
         const line = lines[i]
         if (line.type === 'images' || line.type === 'piles') {
             for (const it of (line as ImageLine).data) {
-                ids.push(it.image.id)
+                // <-- RESOLVE ID: Map the iterator's slot to the backend instanceId
+                const instanceId = columnStore.instanceIds()[it.slot]
+                if (instanceId !== undefined && !isNaN(instanceId)) {
+                    ids.push(instanceId)
+                }
             }
         }
     }
     return ids
 })
-
-const windowPropIds = computed(() => [
-    META.WIDTH, META.HEIGHT, META.SHA1,
-    ...(props.properties?.map(p => p.id) ?? [])
-])
+const windowPropIds = computed(() => props.properties?.map(p => p.id)??[])
 
 defineExpose({
     scrollTo,
@@ -166,7 +167,7 @@ function GroupToLines(it: GroupIterator) {
 function computeLines() {
     if (!props.groupManager.result.root) return
     let it = props.groupManager.getGroupIterator()
-    if(!it.group) return
+    if(!it?.group.slots.length) return
     const lines = []
     while (it) {
         const group = it.group
@@ -196,10 +197,10 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
     }
 
     let imgIt = ImageIterator.fromGroupIterator(it)
-    while (imgIt?.image && imgIt.groupId == it.groupId && lines.length) {
+    // <-- UPDATED: Check imgIt.isValid instead of imgIt.image
+    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId && lines.length) {
 
-        let img = imgIt.image
-        let imgWidth = (imageHeight * img.containerMaxRatio) + 12
+        let imgWidth = imageHeight + 12
         if (actualWidth + imgWidth < lineWidth) {
             newLine.push(imgIt)
             actualWidth += imgWidth
@@ -208,7 +209,6 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
         }
         if (newLine.length == 0) {
             newLine.push(imgIt)
-            // throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
         newLine = [imgIt]
@@ -239,10 +239,9 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
     }
 
     let imgIt = ImageIterator.fromGroupIterator(it)
-    while (imgIt && imgIt.groupId == it.groupId) {
-        let group = imgIt.sha1Group
-        let img = imgIt.image
-        let imgWidth = (imageHeight * img.containerMaxRatio) + 10
+    // <-- UPDATED: Check imgIt.isValid instead of implicitly checking the object
+    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId) {
+        let imgWidth = imageHeight + 10
         if (actualWidth + imgWidth < lineWidth) {
             newLine.push(imgIt)
             actualWidth += imgWidth
@@ -250,7 +249,6 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
             continue
         }
         if (newLine.length == 0) {
-            // newLine.push(group)
             throw new Error('Images seems to be to big for the line')
         }
         addLine(newLine)
@@ -298,12 +296,12 @@ function openGroup(groupId) {
 
 function updateImageSelection(data: { id: number, value: boolean }, item: ImageLine) {
     const iterator = props.groupManager.findImageIterator(item.groupId, data.id)
-    props.groupManager.toggleImageIterator(iterator, keyState.shift)
+    if (iterator) props.groupManager.toggleImageIterator(iterator, keyState.shift)
 }
 
 function toggleGroupSelect(groupId: number) {
     const iterator = props.groupManager.getGroupIterator(groupId)
-    props.groupManager.toggleGroupIterator(iterator, keyState.shift)
+    if (iterator) props.groupManager.toggleGroupIterator(iterator, keyState.shift)
 }
 
 function triggerUpdate() {
@@ -314,7 +312,6 @@ function triggerUpdate() {
 onMounted(computeLines)
 
 watch(() => props.imageSize, () => {
-    // console.log('image size compute')
     nextTick(computeLines)
 })
 

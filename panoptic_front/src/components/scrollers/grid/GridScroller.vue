@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import RecycleScroller from '@/components/Scroller/src/components/RecycleScroller.vue';
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
 import { Group, GroupManager, GroupType, ImageIterator } from '@/core/GroupManager';
@@ -10,6 +10,7 @@ import GridScrollerLine from './GridScrollerLine.vue';
 import {RecycleScroller} from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
 import { TabManager } from '@/core/TabManager';
+import InstanceData from '@/components/data/InstanceData.vue';
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
@@ -41,6 +42,14 @@ const visibleProperties = computed(() => props.selectedProperties.filter(p => {
 
 const tabState = computed(() => props.tab.state)
 
+const windowStart = ref(0)
+const windowEnd = ref(0)
+
+function onScrollerUpdate(startIndex: number, endIndex: number) {
+    windowStart.value = startIndex
+    windowEnd.value = endIndex
+}
+
 const totalPropWidth = computed(() => {
     const options =tabState.value.propertyOptions
     let propSum = visibleProperties.value.map(p => options[p.id]?.size ?? 0).reduce((a, b) => a + b, 0)
@@ -64,8 +73,39 @@ const scrollerStyle = computed(() => ({
 
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
+const windowIds = computed(() => {
+    const ids: number[] = []
+    const lines = rowLines.value
+    if (!lines.length) return ids
+
+    let start = Math.max(0, Math.min(windowStart.value, lines.length - 1))
+    let end   = Math.max(0, Math.min(windowEnd.value,   lines.length - 1))
+
+    let preCount = 0
+    while (start > 0 && preCount < 5) {
+        start--
+        if (lines[start].type === 'image' || lines[start].type === 'pile') preCount++
+    }
+    let postCount = 0
+    while (end < lines.length - 1 && postCount < 5) {
+        end++
+        if (lines[end].type === 'image' || lines[end].type === 'pile') postCount++
+    }
+
+    for (let i = start; i <= end; i++) {
+        const line = lines[i]
+        if (line.type === 'image') {
+            ids.push((line as RowLine).data.id)
+        } else if (line.type === 'pile') {
+            for (const img of (line as PileRowLine).data.images) ids.push(img.id)
+        }
+    }
+    return ids
+})
+
+const windowPropIds = computed(() => visibleProperties.value.map(p => p.id))
+
 let dataLines = []
-let lineCenter = 0
 function computeLines() {
     console.time('Table compute lines')
     const lines = []
@@ -94,44 +134,11 @@ function computeLines() {
     lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length })
 
     dataLines = lines
-    setLines(lines, oldScroll)
-    console.log(lines[0])
-    scroller.value.updateVisibleItems(true)
+    rowLines.value = lines
+    scroller.value?.updateVisibleItems(true)
     console.timeEnd('Table compute lines')
 }
 
-function setLines(lines: ScrollerLine[], center: number) {
-    // console.log('center', center)
-    const start = Math.max(center - props.height * 2, 0)
-    const end = Math.max(center + props.height * 3, props.height * 3)
-    // console.log('set lines', start, center, end)
-    let lineSelection = []
-    let acc = 0
-    let startOffset = undefined
-    let endOffset = 0
-    for(const line of lines) {
-        if(acc + line.size > start && (acc < end || lineSelection.length < 100)) {
-            if(startOffset === undefined) {
-                startOffset = acc
-            }
-            lineSelection.push(line)
-        }
-        else if(acc >= end) {
-            endOffset += line.size
-        }
-        acc += line.size
-    }
-    lineSelection = [
-        { id: '__pre__', type: 'fillter', size: startOffset, index: lines.length },
-        ...lineSelection,
-        { id: '__post__', type: 'fillter', size: endOffset, index: lines.length }
-    ]
-    rowLines.value = lineSelection
-    lineCenter = center
-    if(scroller.value) {
-        scroller.value.scrollToPosition(center)
-    }
-}
 
 function computeGroupLine(group: Group) {
     // console.log(group)
@@ -163,7 +170,7 @@ function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
 function computePileLine(it: ImageIterator) {
     const group = it.sha1Group
     const res: PileRowLine = {
-        id: group.id + '-sha1:' + String(group.images[0].sha1),
+        id: group.id + '-sha1:' + String(group.images[0].id),
         data: group,
         type: 'pile',
         size: lineSizes[group.images[0].id] ?? (tabState.value.imageSize + 4),
@@ -180,41 +187,8 @@ function resizeHeight(item: ScrollerLine, h) {
     if (item.type == 'image') {
         lineSizes[item.data.id] = item.size
     }
-    // setLines(dataLines, oldScroll)
 }
 
-let oldScroll = 0
-let oldIndex = 0
-function handleUpdate() {
-    // console.log("handle update")
-    let newScroll = scroller.value.getScroll().start
-    let sizes = scroller.value.sizes
-    let length = rowLines.value.length
-    let last = length - 1
-    if (oldIndex > last) {
-        oldScroll = 0
-        oldIndex = 0
-    }
-
-    let newIndex = 0
-    if (newScroll > oldScroll) {
-        for (let i = oldIndex; i < length; i++) {
-            newIndex = i
-            if (sizes[i].accumulator > newScroll) break
-        }
-    } else {
-        for (let i = oldIndex; i >= 0; i--) {
-            newIndex = i
-            if (sizes[i].accumulator - sizes[i].size < newScroll) break
-        }
-    }
-    oldScroll = newScroll
-    oldIndex = newIndex
-
-    if(Math.abs(newScroll - lineCenter) > props.height) {
-        setLines(dataLines, newScroll)
-    }
-}
 
 function openGroup(groupId: number) {
     props.manager.openGroup(groupId, true)
@@ -254,31 +228,25 @@ onUnmounted(() => {
     props.manager.onResultChange.removeListener(changeHandler)
 })
 
-watch(() => tabState.value.imageSize, (now,old) => {
-    let hook = 0
+watch(() => tabState.value.imageSize, (now) => {
+    if (!scroller.value || !dataLines.length) return
+    const scrollPos = scroller.value.getScroll().start
+
+    let topIdx = 0
     let acc = 0
-    for(const l of dataLines) {
-        if(acc >= oldScroll) {
-            hook = l.index
-            break
-        }
-        acc += l.size
+    for (let i = 0; i < dataLines.length; i++) {
+        if (acc + dataLines[i].size > scrollPos) { topIdx = i; break }
+        acc += dataLines[i].size
     }
 
-    const currentLineIds = new Set(rowLines.value.map(l => l.index))
-    dataLines.filter(l => !currentLineIds.has(l.index)).forEach(l => l.size = now)
+    const visibleIds = new Set(rowLines.value.slice(windowStart.value, windowEnd.value + 1).map((l: any) => l.id))
+    dataLines.forEach(l => {
+        if (!visibleIds.has(l.id) && (l.type === 'image' || l.type === 'pile')) l.size = now + 4
+    })
 
-    let goalPosition = 0
-    acc = 0
-    for(const l of dataLines) {
-        if(l.index == hook) {
-            goalPosition = acc
-            break
-        }
-        acc += l.size
-    }
-    setLines(dataLines, goalPosition)
-
+    let newScrollPos = 0
+    for (let i = 0; i < topIdx; i++) newScrollPos += dataLines[i].size
+    scroller.value.scrollToPosition(newScrollPos)
 })
 
 </script>
@@ -288,9 +256,9 @@ watch(() => tabState.value.imageSize, (now,old) => {
         <TableHeader :tab="props.tab" :manager="props.manager" :properties="visibleProperties" :missing-width="missingWidth"
             :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
-        <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle" 
-            :emitUpdate="true" :page-mode="false" :prerender="400" class="p-0 m-0" @scroll="handleUpdate"
-            @scroll-start="handleUpdate">
+        <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
+        <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle"
+            :emitUpdate="true" :page-mode="false" :prerender="400" class="p-0 m-0" @update="onScrollerUpdate">
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active && !hideFromModal">
@@ -300,9 +268,9 @@ watch(() => tabState.value.imageSize, (now,old) => {
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"
                         @resizeHeight="h => resizeHeight(item, h)" />
                 </template>
-                <!-- </DynamicScrollerItem> -->
             </template>
         </RecycleScroller>
+        </InstanceData>
     </div>
 </template>
 

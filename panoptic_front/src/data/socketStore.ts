@@ -14,7 +14,8 @@ import { keysToCamel } from '@/utils/utils'
 import { usePanopticStore } from '@/data/panopticStore'
 import { useProjectStore } from './projectStore'
 import { useDataStore } from './dataStore'
-import { useColumnStore } from './dataStore2'
+import { useMediaStore } from './mediaStore'
+import { useColumnStore } from './columnStore'
 import { apiGetDelta, mapVectorType } from './apiProjectRoutes'
 
 const CONNECTION_ID_KEY = 'panoptic_connection_id'
@@ -40,12 +41,8 @@ export const useSocketStore = defineStore('socketStore', () => {
         isSyncing = true
         pendingUpdate = false
         try {
-            const colStore = useColumnStore()
-            const fullPropIds  = colStore.getFullyLoadedPropIds()
-            const allRegProps  = colStore.getRegisteredPropIds()
-            const pointPropIds = allRegProps.filter(id => !fullPropIds.includes(id))
-            const instanceIds  = colStore.getRegisteredInstanceIds()
-            const delta = await apiGetDelta(dataStore.lastSequence, { fullPropIds, pointPropIds, instanceIds })
+            const fullPropIds = useColumnStore().getFullyLoadedPropIds()
+            const delta = await apiGetDelta(dataStore.lastSequence, { fullPropIds, pointPropIds: [], instanceIds: [] })
             dataStore.applyDelta(delta)
         } finally {
             isSyncing = false
@@ -133,14 +130,14 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('vector_types', (data: any[]) => {
-            useDataStore().importVectorTypes(data.map(mapVectorType))
+            useMediaStore().importVectorTypes(data.map(mapVectorType))
         })
 
         socket.on('maps', (mapList: PointMap[]) => {
-            useDataStore().loadMaps(mapList)
+            useMediaStore().loadMaps(mapList)
         })
 
-        socket.on('atlas', () => useDataStore().loadAtlas())
+        socket.on('atlas', () => useMediaStore().loadAtlas())
 
         socket.on('plugins_info', () => {
             useProjectStore().fetchPluginsInfo()

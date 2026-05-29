@@ -4,13 +4,19 @@ from typing import Any, List
 from panoptic2.core.databases.data.create import (
     COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
     INSTANCES_SCHEMA, PROPERTIES_SCHEMA, TAGS_SCHEMA,
-    INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA
+    INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
+    INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
 )
 from panoptic2.core.databases.sqlite_reader import SQLiteReader
 from panoptic2.core.databases.data.models import (
     Commit, FileSource, Folder, File, Instance,
-    Property, Tag, InstanceValue, Sha1Value, FileValue
+    Property, Tag, InstanceValue, Sha1Value, FileValue,
+    InstanceTagValue, Sha1TagValue,
 )
+from panoptic2.models.models import PropertyType
+from panoptic2.core.databases.entity_schema import OP_CREATE, OP_DELETE, OP_DELETE
+
+_TAG_DTYPES = {PropertyType.tag.value, PropertyType.multi_tags.value}
 
 # Maps a system_key to (source_table, column_name).
 # 'instance' columns live directly on the instances table.
@@ -18,6 +24,7 @@ from panoptic2.core.databases.data.models import (
 SYSTEM_KEY_SOURCE: dict[str, tuple[str, str]] = {
     'id':         ('instance', 'id'),
     'sha1':       ('instance', 'sha1'),
+    'file_id':    ('instance', 'file_id'),
     'folder':     ('file',     'folder_id'),
     'name':       ('file',     'name'),
     'format':     ('file',     'format'),
@@ -91,6 +98,12 @@ class DataReader(SQLiteReader):
     def get_file_values(self, **filters) -> List[FileValue]:
         return FILE_VALUES_SCHEMA.get(self.conn, **filters)
 
+    def get_instance_tag_values(self, **filters) -> List[InstanceTagValue]:
+        return INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, **filters)
+
+    def get_sha1_tag_values(self, **filters) -> List[Sha1TagValue]:
+        return SHA1_TAG_VALUES_SCHEMA.get(self.conn, **filters)
+
     def count_instance_values(self) -> int:
         return self.conn.execute(f"SELECT COUNT(*) FROM {INSTANCE_VALUES_SCHEMA.table}").fetchone()[0]
 
@@ -115,9 +128,31 @@ class DataReader(SQLiteReader):
         while rows := cursor.fetchmany(batch_size):
             yield [FILE_VALUES_SCHEMA._decode_row(r) for r in rows]
 
+    def iter_instance_base(self, batch_size: int):
+        """Yield batches of (ids, sha1s, file_ids) for all non-deleted instances.
+
+        All three lists in each batch share the same positional order so
+        sha1s[i] and file_ids[i] correspond to ids[i].
+        """
+        cursor = self.conn.execute(
+            f"SELECT id, sha1, file_id FROM {INSTANCES_SCHEMA.table}"
+            f" WHERE operation != ?",
+            (OP_DELETE,),
+        )
+        while rows := cursor.fetchmany(batch_size):
+            yield (
+                [r[0] for r in rows],
+                [r[1] for r in rows],
+                [r[2] for r in rows],
+            )
+
     # ------------------------------------------------------------------
     # Lazy column fetch (used by the ColumnStore endpoints)
     # ------------------------------------------------------------------
+
+    def _is_tag_property(self, prop_id: int) -> bool:
+        props = PROPERTIES_SCHEMA.get(self.conn, id=prop_id)
+        return bool(props and props[0].dtype in _TAG_DTYPES)
 
     def get_values_for_instances(
         self,
@@ -134,6 +169,8 @@ class DataReader(SQLiteReader):
             return self._system_values_for_instances(instance_ids, system_key)
 
         if mode == 'id':
+            if self._is_tag_property(prop_id):
+                return self._tag_values_for_instances(instance_ids, prop_id)
             rows = INSTANCE_VALUES_SCHEMA.get(self.conn, property_id=prop_id, instance_id=instance_ids)
             return {v.instance_id: v.value for v in rows}
 
@@ -145,6 +182,8 @@ class DataReader(SQLiteReader):
                     sha1_to_ids.setdefault(sha1, []).append(inst_id)
             if not sha1_to_ids:
                 return {}
+            if self._is_tag_property(prop_id):
+                return self._sha1_tag_values_for_instances(sha1_to_ids, prop_id)
             val_rows = SHA1_VALUES_SCHEMA.get(self.conn, property_id=prop_id, sha1=list(sha1_to_ids))
             result: dict[int, Any] = {}
             for v in val_rows:
@@ -169,6 +208,26 @@ class DataReader(SQLiteReader):
 
         return {}
 
+    def _tag_values_for_instances(self, instance_ids: list[int], prop_id: int) -> dict[int, Any]:
+        tag_rows = INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, instance_id=instance_ids, operation=OP_CREATE)
+        result: dict[int, list[int]] = {}
+        for r in tag_rows:
+            result.setdefault(r.instance_id, []).append(r.tag_id)
+        return result
+
+    def _sha1_tag_values_for_instances(self, sha1_to_ids: dict[str, list[int]], prop_id: int) -> dict[int, Any]:
+        tag_rows = SHA1_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, sha1=list(sha1_to_ids), operation=OP_CREATE)
+        sha1_to_tags: dict[str, list[int]] = {}
+        for r in tag_rows:
+            sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
+        result: dict[int, Any] = {}
+        for sha1, inst_ids in sha1_to_ids.items():
+            tags = sha1_to_tags.get(sha1)
+            if tags:
+                for inst_id in inst_ids:
+                    result[inst_id] = tags
+        return result
+
     def get_full_column(
         self,
         prop_id: int,
@@ -180,10 +239,14 @@ class DataReader(SQLiteReader):
             return self._system_full_column(system_key)
 
         if mode == 'id':
+            if self._is_tag_property(prop_id):
+                return self._full_tag_column_by_instance(prop_id)
             rows = INSTANCE_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
             return [v.instance_id for v in rows], [v.value for v in rows]
 
         if mode == 'sha1':
+            if self._is_tag_property(prop_id):
+                return self._full_tag_column_by_sha1(prop_id)
             val_rows = SHA1_VALUES_SCHEMA.get(self.conn, property_id=prop_id)
             sha1_to_val = {v.sha1: v.value for v in val_rows}
             if not sha1_to_val:
@@ -210,6 +273,28 @@ class DataReader(SQLiteReader):
             return ids, values
 
         return [], []
+
+    def _full_tag_column_by_instance(self, prop_id: int) -> tuple[list[int], list[Any]]:
+        tag_rows = INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, operation=OP_CREATE)
+        grouped: dict[int, list[int]] = {}
+        for r in tag_rows:
+            grouped.setdefault(r.instance_id, []).append(r.tag_id)
+        return list(grouped.keys()), list(grouped.values())
+
+    def _full_tag_column_by_sha1(self, prop_id: int) -> tuple[list[int], list[Any]]:
+        tag_rows = SHA1_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, operation=OP_CREATE)
+        sha1_to_tags: dict[str, list[int]] = {}
+        for r in tag_rows:
+            sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
+        if not sha1_to_tags:
+            return [], []
+        inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'])
+        ids, values = [], []
+        for inst_id, sha1 in inst_rows:
+            if sha1 in sha1_to_tags:
+                ids.append(inst_id)
+                values.append(sha1_to_tags[sha1])
+        return ids, values
 
     def _system_values_for_instances(self, instance_ids: list[int], system_key: str) -> dict[int, Any]:
         source, col = SYSTEM_KEY_SOURCE[system_key]
@@ -296,9 +381,43 @@ class DataReader(SQLiteReader):
                 FILE_VALUES_SCHEMA, since, all_prop_ids
             )
 
+        # Merge instance_tag_values back into instance_values shape: {instance_id: [tag_ids]}
+        itv_since = INSTANCE_TAG_VALUES_SCHEMA.get_since(self.conn, since)
+        if itv_since:
+            grouped_itv: dict[tuple, list[int]] = {}
+            for r in itv_since:
+                grouped_itv.setdefault((r.instance_id, r.property_id), []).append(r.tag_id)
+            # Reconstruct full tag list from current junction state for affected (instance, property) pairs
+            merged_iv = data.get('instance_values', [])
+            affected_pairs = list(grouped_itv.keys())
+            for inst_id, prop_id in affected_pairs:
+                full_tags = [r.tag_id for r in INSTANCE_TAG_VALUES_SCHEMA.get(
+                    self.conn, instance_id=inst_id, property_id=prop_id)]
+                merged_iv.append(InstanceValue(
+                    property_id=prop_id, instance_id=inst_id,
+                    value=full_tags if full_tags else None,
+                ))
+            data['instance_values'] = merged_iv
+
+        stv_since = SHA1_TAG_VALUES_SCHEMA.get_since(self.conn, since)
+        if stv_since:
+            grouped_stv: dict[tuple, list[int]] = {}
+            for r in stv_since:
+                grouped_stv.setdefault((r.sha1, r.property_id), [])
+            merged_sv = data.get('image_values', [])
+            for sha1, prop_id in grouped_stv.keys():
+                full_tags = [r.tag_id for r in SHA1_TAG_VALUES_SCHEMA.get(
+                    self.conn, sha1=sha1, property_id=prop_id)]
+                merged_sv.append(Sha1Value(
+                    property_id=prop_id, sha1=sha1,
+                    value=full_tags if full_tags else None,
+                ))
+            data['image_values'] = merged_sv
+
         max_seq = since
         for table in ('instances', 'files', 'folders', 'properties', 'tags',
-                      'instance_values', 'sha1_values', 'file_values'):
+                      'instance_values', 'sha1_values', 'file_values',
+                      'instance_tag_values', 'sha1_tag_values'):
             row = self.conn.execute(
                 f"SELECT MAX(sequence) FROM {table} WHERE sequence > ?", (since,)
             ).fetchone()
@@ -306,6 +425,65 @@ class DataReader(SQLiteReader):
                 max_seq = max(max_seq, row[0])
         data['sequence'] = max_seq
         return data
+
+    def get_tag_counts(self, property_id: int | None = None) -> list[dict]:
+        """Return [{tag_id, instance_count, sha1_count}] from both junction tables."""
+        where = "WHERE property_id = ?" if property_id is not None else ""
+        params = (property_id,) if property_id is not None else ()
+        where_op = f"WHERE operation = {OP_CREATE}" if not where else f"{where} AND operation = {OP_CREATE}"
+        sql = f"""
+            SELECT tag_id,
+                   SUM(instance_count) AS instance_count,
+                   SUM(sha1_count)     AS sha1_count
+            FROM (
+                SELECT tag_id,
+                       COUNT(DISTINCT instance_id) AS instance_count,
+                       0                           AS sha1_count
+                FROM {INSTANCE_TAG_VALUES_SCHEMA.table}
+                {where_op}
+                GROUP BY tag_id
+                UNION ALL
+                SELECT tag_id,
+                       0                       AS instance_count,
+                       COUNT(DISTINCT sha1)    AS sha1_count
+                FROM {SHA1_TAG_VALUES_SCHEMA.table}
+                {where_op}
+                GROUP BY tag_id
+            )
+            GROUP BY tag_id
+        """
+        rows = self.conn.execute(sql, params + params).fetchall()
+        return [{'tag_id': r[0], 'instance_count': r[1], 'sha1_count': r[2]} for r in rows]
+
+    def count_instances_per_tag(self, property_id: int | None = None) -> dict[int, int]:
+        """Return {tag_id: count of distinct instance_ids} from instance_tag_values."""
+        if property_id is not None:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT instance_id) FROM instance_tag_values"
+                " WHERE property_id = ? GROUP BY tag_id",
+                (property_id,),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT instance_id) FROM instance_tag_values"
+                " GROUP BY tag_id"
+            ).fetchall()
+        return {tag_id: count for tag_id, count in rows}
+
+    def count_sha1s_per_tag(self, property_id: int | None = None) -> dict[int, int]:
+        """Return {tag_id: count of distinct sha1s} from sha1_tag_values."""
+        if property_id is not None:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT sha1) FROM sha1_tag_values"
+                " WHERE property_id = ? GROUP BY tag_id",
+                (property_id,),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT tag_id, COUNT(DISTINCT sha1) FROM sha1_tag_values"
+                " GROUP BY tag_id"
+            ).fetchall()
+        return {tag_id: count for tag_id, count in rows}
 
     def _iv_since_filtered(
         self,

@@ -25,7 +25,9 @@ const properties = computed(() => {
 function update() {
     props.groupManager.clear()
     props.groupManager.setSha1Mode(false)
-    const images = data.sha1Index[props.image.sha1]
+    const sha1 = data.getSysField(props.image.id, 'sha1')
+    const ids = sha1 ? (data.sha1Index[sha1] ?? []) : []
+    const images = ids.map(id => data.instances[id]).filter(Boolean)
     props.groupManager.group(images, undefined, true)
 }
 

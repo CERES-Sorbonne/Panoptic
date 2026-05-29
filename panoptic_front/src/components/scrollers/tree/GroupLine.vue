@@ -9,11 +9,13 @@ import { Group, GroupManager, GroupTree, GroupType, buildGroup } from '@/core/Gr
 import { DbCommit, GroupLine, GroupResult, ImagePropertyValue, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Sha1ToInstances, Tag, buildTag } from '@/data/models'
 import ActionButton from '@/components/actions/ActionButton.vue'
 import { useDataStore } from '@/data/dataStore'
+import { useColumnStore } from '@/data/columnStore' // <-- Imported columnStore
 import { allChildrenSha1Groups } from '@/utils/utils'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import WithToolTip from '../../tooltips/withToolTip.vue'
 
 const data = useDataStore()
+const columnStore = useColumnStore() // <-- Initialized column store
 
 const props = defineProps<{
     item: GroupLine
@@ -28,18 +30,29 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:o
 
 const hoverGroup = ref(false)
 const group = computed(() => props.item.data)
-const images = computed(() => props.item.data.images)
+
+// ── RESOLVE SLOTS TO IMAGES ──────────────────────────────────────────────────
+// Maps the new array of slots back to simulated instance objects with resolved IDs
+// to preserve absolute compatibility with the rest of your system.
+const images = computed(() => {
+    const slots = props.item.data.slots ?? []
+    return slots.map(slot => ({
+        id: columnStore.instanceIds()[slot]
+    }))
+})
+
 const subgroups = computed(() => props.item.data.children ?? [])
-const hasImages = computed(() => props.item.data.images.length > 0)
+const hasImages = computed(() => images.value.length > 0)
+
 const hasSubgroups = computed(() => {
-    return props.item.data.children.length > 0 && props.item.data.subGroupType != GroupType.Sha1
+    return subgroups.value.length > 0 && props.item.data.subGroupType != GroupType.Sha1
 })
 const properties = computed(() => props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId]))
 const propertyValues = computed(() => props.item.data.meta.propertyValues)
 const closed = computed(() => props.item.data.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
-const selected = computed(() => !props.item.data.images.some(i => !props.manager.selectedImages.value[i.id]))
+const selected = computed(() => !images.value.some(i => !props.manager.selectedImages.value[i.id]))
 
 const groupName = computed(() => {
     if (props.item.data.type == GroupType.All) return 'All'
@@ -71,7 +84,6 @@ async function recommandImages() {
 
 function toggleClosed() {
     if (closed.value) {
-        // props.groupIndex[props.item.id].closed = false
         props.manager.toggleGroup(props.item.data.id, false)
         emits('group:open', props.item.id)
     }
@@ -83,13 +95,11 @@ function toggleClosed() {
 
 function closeChildren() {
     subgroups.value.forEach((g: Group) => props.manager.closeGroup(g.id))
-    // props.manager.onChange.emit()
     emits('group:close', subgroups.value.map((g: Group) => g.id))
 }
 
 function openChildren() {
     subgroups.value.forEach((g: Group) => props.manager.openGroup(g.id))
-    // props.manager.onChange.emit()
     emits('group:open', subgroups.value.map((g: Group) => g.id))
 }
 
@@ -104,7 +114,7 @@ async function saveHirachy(ignoreParents?: boolean) {
     const property: Property = { id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: mode }
     let id = 0
     const idFunc = () => { id -= 1; return id }
-    const tagToImages: { [tagId: number]: Instance[] } = {}
+    const tagToImages: { [tagId: number]: any[] } = {}
     let tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
 
     if (ignoreParents) {
@@ -130,13 +140,10 @@ async function saveHirachy(ignoreParents?: boolean) {
             if (mode == PropertyMode.id) {
                 instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [Number(tagId)] })
             } else {
-                imageValues.push({ propertyId: property.id, sha1: img.sha1, value: [Number(tagId)] })
+                imageValues.push({ propertyId: property.id, sha1: data.getSysField(img.id, 'sha1'), value: [Number(tagId)] })
             }
-
         }
     }
-
-    // await data.setPropertyValues(instanceValues, [])
 
     const commit: DbCommit = {
         properties: [property],
@@ -146,16 +153,14 @@ async function saveHirachy(ignoreParents?: boolean) {
     }
 
     await data.sendCommit(commit)
-
     saving.value = false
 }
 
-function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: Instance[] }, propertyId: number) {
+function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: any[] }, propertyId: number) {
     const res: Tag[] = []
     const prefix = parentTag?.value ?? ('Clustering_' + children.length)
     const parents = []
     if (parentTag) {
-        // parents.push(...parentTag.parents, parentTag.id)
         parents.push(parentTag.id)
     }
 
@@ -169,7 +174,11 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             const subRes = childrenToTags(child.children, idFunc, tag, tagToImages, propertyId)
             res.push(...subRes)
         } else {
-            tagToImages[tag.id] = child.images
+            // <-- UPDATED: Read from child.slots and resolve to instance objects matching shape expectations
+            const childSlots = child.slots ?? []
+            tagToImages[tag.id] = childSlots.map(slot => ({
+                id: columnStore.instanceIds()[slot]
+            }))
         }
     }
     return res
@@ -208,8 +217,10 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         <div v-if="group.type == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
             <ClusterBadge v-if="group.score" :value="Math.round(group.score.value)" />
         </div>
-        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ group.images.length }} Images
+        
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ images.length }} Images
         </div>
+        
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
@@ -221,7 +232,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             </div>
 
             <div class="ms-1" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="group.images" @groups="addClusters" />
+                <ActionButton action="group" :images="images" @groups="addClusters" />
             </div>
             <div class="ms-1">
                 <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
@@ -250,7 +261,6 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                 <div class="sbb cluster-close" @click="saveHirachy(true)">
                     <span style="">
                         <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
-                        <!-- <i v-if="!saving" class="bi bi-diagram-3"></i> -->
                         <div v-if="saving" class="spinner-border spinner-border-sm text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -261,9 +271,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
                 style="font-size: 14px;">
                 <div class="cluster-close" @click="clear"><i class="bi bi-x-lg" /></div>
             </wTT>
-            <!-- <span v-if="group.isSha1Group">lala</span> -->
         </template>
-
     </div>
 </template>
 

@@ -2,7 +2,7 @@ import msgspec
 from datetime import datetime
 from typing import Any, Annotated, Optional
 
-from panoptic2.core.databases.entity_schema import PrimaryKey
+from panoptic2.core.databases.entity_schema import PrimaryKey, Index
 
 
 # --- ENTITY MODELS ---
@@ -92,6 +92,20 @@ class FileValue(msgspec.Struct, array_like=True):
     property_id: Annotated[int, PrimaryKey]
     file_id:     Annotated[int, PrimaryKey]
     value: Any
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
+
+class InstanceTagValue(msgspec.Struct, array_like=True):
+    instance_id: Annotated[int, PrimaryKey]
+    property_id: Annotated[int, PrimaryKey]
+    tag_id:      Annotated[int, PrimaryKey, Index]
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
+
+class Sha1TagValue(msgspec.Struct, array_like=True):
+    sha1:        Annotated[str, PrimaryKey]
+    property_id: Annotated[int, PrimaryKey]
+    tag_id:      Annotated[int, PrimaryKey, Index]
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 

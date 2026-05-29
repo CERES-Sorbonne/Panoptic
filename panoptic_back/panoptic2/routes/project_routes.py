@@ -381,6 +381,21 @@ def get_delta(
     return Response(content=msgspec.json.encode(result), media_type='application/json')
 
 
+@project_router.get('/init_state')
+def get_init_state(project: Project2 = Depends(_dep)):
+    """Lightweight init payload: file sources, folders, tags, properties + current sequence."""
+    with project._data_reader() as reader:
+        sequence = reader.get_next_sequence() - 1
+
+    return _json({
+        'file_sources': [_db_to_dict(fs) for fs in project.get_file_sources()],
+        'folders':      [_db_to_dict(f)  for f  in project.get_folders()],
+        'properties':   [_db_to_dict(p)  for p  in project.get_properties()],
+        'tags':         [_db_to_dict(t)  for t  in project.get_tags()],
+        'sequence':     sequence,
+    })
+
+
 @project_router.get('/db_state')
 def get_db_state(project: Project2 = Depends(_dep)):
     return _json({
@@ -421,6 +436,11 @@ def get_properties(project: Project2 = Depends(_dep)):
 @project_router.get('/tags')
 def get_tags(project: Project2 = Depends(_dep)):
     return _json(project.get_tags())
+
+
+@project_router.get('/tags/counts')
+def get_tag_counts(property_id: int | None = None, project: Project2 = Depends(_dep)):
+    return project.get_tag_counts(property_id=property_id)
 
 
 @project_router.get('/folders')
@@ -528,6 +548,26 @@ def get_property_column(
         content=orjson.dumps({'ids': ids, 'values': values}),
         media_type='application/json',
     )
+
+
+@project_router.get('/instances/base')
+def stream_instances_base(project: Project2 = Depends(_dep)):
+    """Stream instance base columns as batched NDJSON for ColumnStore initialisation.
+
+    Each line: {"ids": [...], "sha1s": [...], "file_ids": [...]}
+    All three arrays are the same length; sha1s[i] and file_ids[i] correspond
+    to ids[i]. IDs are sent once per batch — not repeated across chunks.
+    """
+    def _generate():
+        with project._data_reader() as reader:
+            for ids, sha1s, file_ids in reader.iter_instance_base(_STREAM_BATCH):
+                yield msgspec.json.encode({
+                    'ids':      ids,
+                    'sha1s':    sha1s,
+                    'file_ids': file_ids,
+                }) + b'\n'
+
+    return StreamingResponse(_generate(), media_type='application/x-ndjson')
 
 
 # ---------------------------------------------------------------------------

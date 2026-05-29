@@ -26,7 +26,7 @@ const image = computed(() => props.pile.images[0])
             <div :style="imageContainerStyle" class="img-container" @click="panoptic.showModal(ModalId.IMAGE, { image })">
                 <!-- <div class="image-count" v-if="props.pile.images.length > 1">{{ props.pile.images.length }}</div> -->
                 <!-- <img :src="image.url" :style="imageStyle" /> -->
-                 <CenteredImage :sha1="image.sha1" :image-width="image.width" :image-height="image.height" :width="props.size-2" :height="props.size-1" />
+                 <CenteredImage :instance-id="image.id" :width="props.size-2" :height="props.size-1" />
             </div>
         </Zoomable>
         <div class="d-flex flex-row">

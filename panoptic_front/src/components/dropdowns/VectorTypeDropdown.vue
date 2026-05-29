@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, onMounted, watch } from 'vue'
 import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useMediaStore } from '@/data/mediaStore';
 import { VectorType } from '@/data/models';
 
-const data = useDataStore()
+const media = useMediaStore()
 const props = defineProps<{
     modelValue?: VectorType
     source?: string
@@ -21,7 +21,7 @@ function vectorName(vectorType: VectorType) {
 }
 
 function updateVectorOptions() {
-    let vectors = data.vectorTypes
+    let vectors = media.vectorTypes
     
     // Filter by source if needed
     if (props.filterBySource && props.source) {
@@ -38,8 +38,8 @@ function updateVectorOptions() {
     }
 }
 
-watch(() => data.vectorTypes, () => updateVectorOptions())
-watch(selectedVector, (val) => emits('update:modelValue', data.vectorTypes.find(v => v.id == val)))
+watch(() => media.vectorTypes, () => updateVectorOptions())
+watch(selectedVector, (val) => emits('update:modelValue', media.vectorTypes.find(v => v.id == val)))
 watch(() => props.modelValue, (val) => selectedVector.value = val.id)
 watch(() => props.source, () => updateVectorOptions())
 

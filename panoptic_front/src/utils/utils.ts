@@ -1,7 +1,7 @@
 import { buildGroup, Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
-import { deletedID, useDataStore } from "@/data/dataStore"
-import { PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
+import { useDataStore } from "@/data/dataStore"
+import { deletedID, PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
 import { Ref, computed, inject, ref, watch } from "vue"
 import chroma from 'chroma-js';

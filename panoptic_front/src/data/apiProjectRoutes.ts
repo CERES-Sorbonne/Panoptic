@@ -409,7 +409,7 @@ export async function apiSetSettings(settings: ProjectSettings) {
     return keysToCamel(res.data)
 }
 
-async function _streamNdjson(url: string, callback: (data: LoadResult) => void) {
+async function _streamNdjson<T>(url: string, callback: (data: T) => void | Promise<void>) {
     const response = await fetch(url, { method: 'GET' })
     if (!response.ok) throw new Error('Failed to fetch data from the stream')
     const reader = response.body?.getReader()
@@ -457,6 +457,25 @@ export async function apiStreamLoadState(callback: (data: LoadResult) => void) {
         `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/db_state_stream`,
         callback
     )
+}
+
+export type InstanceBaseBatch = {
+    ids: number[]
+    sha1s: (string | null)[]
+    fileIds: (number | null)[]
+}
+
+export async function apiStreamInstanceBase(callback: (batch: InstanceBaseBatch) => void | Promise<void>) {
+    const projectId = usePanopticStore().connectionState?.connectedProject
+    await _streamNdjson<InstanceBaseBatch>(
+        `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/instances/base`,
+        callback,
+    )
+}
+
+export async function apiGetInitState() {
+    const res = await projectApi.get('/init_state')
+    return keysToCamel(res.data)
 }
 
 export async function apiPostDeleteEmptyClones() {

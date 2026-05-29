@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
-import { buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
-import { deletedID, useDataStore } from '@/data/dataStore';
+import { deletedID, buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
 import { computeTagToInstance, deepCopy, isTag } from '@/utils/utils';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
@@ -37,8 +37,8 @@ const property = computed(() => {
     }
     return prop
 })
-const properties = computed(() => data.propertyList.filter(p => isTag(p.type) && p.id != deletedID))
-const tags = computed(() => data.tagList.filter(t => t.propertyId == property.value?.id))
+const properties = computed(() => (data.propertyList ?? []).filter(p => isTag(p.type) && p.id != deletedID))
+const tags = computed(() => (data.tagList ?? []).filter(t => t.propertyId == property.value?.id))
 
 
 const selectedTags = computed(() => selectedTagIds.value.map(tId => data.tags[tId]))
@@ -199,7 +199,7 @@ function onDragEnd() {
 }
 
 function updateTagToInstance() {
-    tagToInstance.value = computeTagToInstance(data.instanceList, properties.value, data.tagList, data.tags)
+    tagToInstance.value = computeTagToInstance(data.instanceList ?? [], properties.value, data.tagList ?? [], data.tags ?? {})
 }
 
 async function mergeTags() {

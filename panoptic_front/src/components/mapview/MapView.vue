@@ -2,6 +2,7 @@
 import { ref, shallowRef, onMounted, watch, computed, onUnmounted, nextTick } from 'vue'
 import { Colors, greyColor, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
+import { useMediaStore } from '@/data/mediaStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors, isTag, sleep } from '@/utils/utils'
 import { Group } from '@/core/GroupManager'
@@ -18,6 +19,7 @@ const DIMMED_TINT = '#CCCCCC'
 const SELECTED_TINT = '#5DACFF'
 
 const data = useDataStore()
+const media = useMediaStore()
 const props = defineProps<{
     tab: TabManager
 }>()
@@ -194,12 +196,12 @@ function generateGroups() {
 }
 
 async function showMap(mapId: number) {
-    if (!data.maps[mapId]) return
-    if (!data.maps[mapId].data) await data.loadMapData(mapId)
+    if (!media.maps[mapId]) return
+    if (!media.maps[mapId].data) await media.loadMapData(mapId)
 
     sha1ToPoint = {}
     const res: PointData[] = []
-    const values = data.maps[mapId].data
+    const values = media.maps[mapId].data
 
     const validSha1s = new Set()
     props.tab.collection.filterManager.result.images.forEach(i => validSha1s.add(i.sha1))
@@ -234,7 +236,7 @@ async function showMap(mapId: number) {
     generateGroups()
 
     if (renderer.value) {
-        const atlas = data.atlas
+        const atlas = media.atlas
         if(!atlas) {
             hasAtlas.value = false
             return
@@ -266,8 +268,7 @@ const handleLasso = (selectedPoints: PointData[]) => {
 }
 
 async function deleteMap(mapId: number) {
-    await data.deleteMap(mapId)
-
+    await media.deleteMap(mapId)
 }
 
 function onGroupManager() {
@@ -308,13 +309,13 @@ watch(mapWidth, () => console.log("map width", mapWidth.value))
 
 watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), {deep: true})
 
-watch(() => data.atlas, async () => {
+watch(() => media.atlas, async () => {
     showMap(props.tab.state.mapOptions.selectedMap)
 })
 
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
-    await data.loadMaps()
+    await media.loadMaps()
     showMap(props.tab.state.mapOptions.selectedMap)
     if (renderer.value) renderer.value.setMouseMode(mouseMode.value)
 })
@@ -335,7 +336,7 @@ onUnmounted(() => {
                 @update:selected-map="id => props.tab.state.mapOptions.selectedMap = id"
                 :color-option="props.tab.state.mapOptions.groupOption"
                 @update:color-option="opt => {props.tab.state.mapOptions.groupOption = opt; props.tab.saveState();}"
-                :has-maps="data.hasMaps"
+                :has-maps="media.hasMaps"
                 :images="tab.collection.groupManager.result.root.images"
                 :map-images="mapInstances"
                 @clusters="cc => { clusters = cc; generateGroups()}"

@@ -10,11 +10,11 @@ import { ExecuteActionPayload, PluginDescription, ProjectSettings, ScoreInterval
 import { apiUploadPropFile, apiGetPluginsInfo, apiSetPluginParams, apiGetActions, apiCallActions, apiSetSettings, apiGetUIData, apiSetUIData, apiGetProjectState } from "./apiProjectRoutes";
 import { deepCopy } from "@/utils/utils";
 import { useDataStore } from "./dataStore";
+import { useMediaStore } from "./mediaStore";
 import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
 import { useI18n } from 'vue-i18n';
 import { useActionStore } from "./actionStore";
-import { useColumnStore } from "./dataStore2";
 
 export const test = shallowRef({ count: 0 })
 
@@ -22,6 +22,7 @@ export const softwareUiVersion = 2
 
 export const useProjectStore = defineStore('projectStore', () => {
     const dataStore = useDataStore()
+    const mediaStore = useMediaStore()
     const tabStore = useTabStore()
     const actionStore = useActionStore()
     const { locale } = useI18n();
@@ -56,7 +57,7 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         loaded.value = true
-        await Promise.all([dataStore.init(), useColumnStore().init()])
+        await Promise.all([dataStore.init(), mediaStore.init()])
         await actionStore.init()
 
         // usePanopticStore().showModal(ModalId.TAG, {})
@@ -78,9 +79,9 @@ export const useProjectStore = defineStore('projectStore', () => {
 
 
         dataStore.clear()
+        mediaStore.clear()
         tabStore.clear()
         actionStore.clear()
-        useColumnStore().clear()
 
     }
 

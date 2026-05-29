@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useColumnStore } from '@/data/dataStore2'
+import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
 import LoadWheel from './LoadWheel.vue'
 import Percentage from './Percentage.vue'
 
 const colStore = useColumnStore()
 const data     = useDataStore()
-
-const foldersReady = computed(() => data.folderRoots.length > 0)
 
 const loadingColumns = computed(() =>
     Object.entries(colStore.fullColumnStatus)
@@ -18,39 +16,41 @@ const loadingColumns = computed(() =>
             return { id, name: data.properties[id]?.name ?? `#${id}` }
         })
 )
-const showPanel = computed(() => !colStore.isReady || loadingColumns.value.length > 0)
+const showPanel = computed(() => !data.isLoaded || loadingColumns.value.length > 0)
+
+const state = computed(() => data.loadState)
+const pct = computed(() => {
+    if (!state.value || !state.value.maxInstance) return 0
+    return Math.round(state.value.counterInstance / state.value.maxInstance * 100)
+})
 </script>
 
 <template>
     <div v-if="showPanel" class="center">
         <div class="text-start" style="display: inline-block; min-width: 220px;">
 
-            <!-- Init phase: slim stream in progress -->
-            <template v-if="!colStore.isReady">
+            <!-- Init phase: main stream in progress -->
+            <template v-if="!data.isLoaded">
                 <div class="d-flex align-items-center text-secondary row-gap mb-1">
                     <div class="label">Folders</div>
-                    <LoadWheel class="me-2" :loading="!foldersReady" />
-                    <i v-if="foldersReady" class="bi bi-check text-success" />
+                    <LoadWheel class="me-2" :loading="!data.folderRoots.length" />
+                    <i v-if="data.folderRoots.length" class="bi bi-check text-success" />
                 </div>
                 <div class="d-flex align-items-center text-secondary row-gap mb-1">
                     <div class="label">Properties</div>
-                    <LoadWheel class="me-2" :loading="!colStore.propertiesReady" />
-                    <i v-if="colStore.propertiesReady" class="bi bi-check text-success" />
+                    <LoadWheel class="me-2" :loading="!state?.finishedProperty" />
+                    <i v-if="state?.finishedProperty" class="bi bi-check text-success" />
                 </div>
                 <div class="d-flex align-items-center text-secondary row-gap mb-1">
                     <div class="label">Tags</div>
-                    <LoadWheel class="me-2" :loading="!colStore.tagsReady" />
-                    <i v-if="colStore.tagsReady" class="bi bi-check text-success" />
+                    <LoadWheel class="me-2" :loading="!state?.finishedTags" />
+                    <i v-if="state?.finishedTags" class="bi bi-check text-success" />
                 </div>
                 <div class="d-flex align-items-center text-secondary row-gap">
                     <div class="label">Instances</div>
-                    <LoadWheel class="me-2" :loading="!colStore.isReady" />
-                    <i v-if="colStore.isReady" class="bi bi-check text-success" />
-                    <Percentage
-                        :current="colStore.initProgress.current"
-                        :max="colStore.initProgress.total"
-                        :force="colStore.isReady"
-                    />
+                    <LoadWheel class="me-2" :loading="!state?.finishedInstance" />
+                    <i v-if="state?.finishedInstance" class="bi bi-check text-success" />
+                    <Percentage :current="pct" :max="100" :force="!!state?.finishedInstance" />
                 </div>
             </template>
 

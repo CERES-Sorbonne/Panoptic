@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
-import { Property, PropertyType, Instance } from '@/data/models';
-import { deletedID, useDataStore } from '@/data/dataStore';
+import { deletedID, Property, PropertyType, Instance } from '@/data/models';
+import { useDataStore } from '@/data/dataStore';
 import { isTag } from '@/utils/utils';
 import TagBadge from '@/components/tagtree/TagBadge.vue';
 import DBInput from '@/components/property_inputs/DBInput.vue';

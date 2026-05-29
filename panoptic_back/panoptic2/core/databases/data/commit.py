@@ -1,4 +1,4 @@
-from panoptic2.core.databases.entity_schema import OP_CREATE, OP_UPDATE, OP_DIFF
+from panoptic2.core.databases.entity_schema import OP_CREATE, OP_UPDATE
 from panoptic2.core.databases.project.project_db import ProjectDB
 from panoptic2.core.databases.data.models import (
     UpsertCommit, FileSource, Folder, File,
@@ -133,15 +133,13 @@ class CommitBuilder:
     def update_instance_value(self, value: InstanceValue):
         if value.property_id not in self.data.instance_values:
             self.data.instance_values[value.property_id] = []
-        if value.operation != OP_DIFF:
-            value.operation = OP_UPDATE
+        value.operation = OP_UPDATE
         self.data.instance_values[value.property_id].append(value)
 
     def update_sha1_value(self, value: Sha1Value):
         if value.property_id not in self.data.sha1_values:
             self.data.sha1_values[value.property_id] = []
-        if value.operation != OP_DIFF:
-            value.operation = OP_UPDATE
+        value.operation = OP_UPDATE
         self.data.sha1_values[value.property_id].append(value)
 
     # def add_sha1_value_write(self, property_id: int, stamp_mode: str = None, sha1s: list[str] = None, values: Any = None):

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
-import { deletedID, useDataStore } from '@/data/dataStore'
-import { PropertyType, Property } from '@/data/models'
+import { useDataStore } from '@/data/dataStore'
+import { deletedID, PropertyType, Property } from '@/data/models'
 import TextInput from './TextInput.vue'
 
 const data = useDataStore()

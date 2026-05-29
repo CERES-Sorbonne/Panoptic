@@ -3,12 +3,6 @@ import { Folder, FolderIndex, Instance, TagIndex } from "./models"
 import { GroupManager } from "@/core/GroupManager"
 import { useDataStore } from "./dataStore"
 
-export function computeContainerRatio(img: Instance) {
-    let ratio = img.width / img.height
-    let maxRatio = Math.max(Math.min(2, ratio), 1)
-    return {ratio, maxRatio}
-}
-
 export function buildFolderNodes(folders: Array<Folder>) {
     let res = {} as FolderIndex
     folders.forEach(f => {
@@ -64,14 +58,24 @@ export function computeTagCount() {
 }
 
 export function countImagePerFolder(folders: FolderIndex, images: Instance[]) {
-    const folderToParents: {[fId: number]: number[]} = {} 
+    const data = useDataStore()
+    const folderProp = Object.values(data.properties).find(p => p.systemKey === 'folder')
+    const folderPropId = folderProp?.id
+    const folderToParents: {[fId: number]: number[]} = {}
     const folderList = Object.values(folders) as Folder[]
     folderList.forEach(folder => {
         folderToParents[folder.id] = getFolderAndParents(folder)
         folder.count = 0
     })
 
-    images.forEach(img => folderToParents[img.folderId].forEach(id => folders[id].count += 1))
+    images.forEach(img => {
+        if (folderPropId === undefined) return
+        const slot = data.slotMap.get(img.id)
+        const folderId: number = slot !== undefined ? data.readSlot(folderPropId, slot) : undefined
+        if (folderId != null && folderToParents[folderId]) {
+            folderToParents[folderId].forEach(id => folders[id].count += 1)
+        }
+    })
 }
 
 export function setTagsChildren(tags: TagIndex) {

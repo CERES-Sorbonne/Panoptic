@@ -1,15 +1,18 @@
 /**
  * CollectionManager
- * Is responsible to connect the different managers together for reactivity
+ * Connects FilterManager → SortManager → GroupManager.
+ * All three managers operate on Int32Array of column-store slot indices.
+ * Instance objects are never allocated in this pipeline.
  */
 
-import { CollectionState, InstanceIndex } from "@/data/models";
-import { FilterManager, FilterResult, FilterState } from "./FilterManager";
+import { CollectionState } from "@/data/models";
+import { FilterContext, FilterManager, FilterResult, FilterState } from "./FilterManager";
 import { SortManager, SortResult, SortState } from "./SortManager";
 import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
-import { EventEmitter, objValues } from "@/utils/utils";
+import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
-import { Reactive, Ref, reactive } from "vue";
+import { useColumnStore } from "@/data/columnStore";
+import { Reactive, Ref, reactive, watch } from "vue";
 
 export interface RunCollectionState {
     isDirty: boolean
@@ -21,7 +24,6 @@ export function createCollectionState(): CollectionState {
 }
 
 export class CollectionManager {
-    images: InstanceIndex
     state: CollectionState
     filterManager: FilterManager
     sortManager: SortManager
@@ -32,7 +34,10 @@ export class CollectionManager {
     onStateChange: EventEmitter
 
     constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
-        this.filterManager = new FilterManager(filterState)
+        const data = useDataStore()
+        const col = useColumnStore()
+        const ctx: FilterContext = { properties: data.properties, tags: data.tags, folders: data.folders }
+        this.filterManager = new FilterManager(ctx, filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
         this.state = reactive({ autoReload: true })
@@ -48,8 +53,14 @@ export class CollectionManager {
 
         this.filterManager.onStateChange.addListener(this.setDirty.bind(this))
 
-        const data = useDataStore()
         data.onChange.addListener(this.updateInstances.bind(this))
+
+        // Trigger full update whenever the column store finishes (re)loading.
+        // immediate:true handles the case where a tab is created after init completes.
+        watch(() => col.isReady, (ready) => {
+            console.log('[CM] isReady watch fired, ready=', ready)
+            if (ready) this.update()
+        }, { immediate: true })
 
         this.onStateChange = new EventEmitter()
     }
@@ -68,16 +79,12 @@ export class CollectionManager {
 
     async setDirty(instanceIds?: Set<number>) {
         this.runState.isDirty = true
-        if (!this.runState.active) {
-            return
-        }
+        if (!this.runState.active) return
 
-        if(this.state.filterBySelection) {
-            let selected = this.groupManager.selectedImages
-            for(let id of Array.from(instanceIds)) {
-                if(!selected[id]) {
-                    instanceIds.delete(id)
-                }
+        if (this.state.filterBySelection) {
+            const selected = this.groupManager.selectedImages
+            for (const id of Array.from(instanceIds)) {
+                if (!selected[id]) instanceIds.delete(id)
             }
         }
 
@@ -89,43 +96,62 @@ export class CollectionManager {
                 if (this.groupManager.result.root) {
                     this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 } else {
-                    this.groupManager.group(this.sortManager.result.images, this.sortManager.result.order, true)
+                    this.groupManager.group(this.sortManager.result.slots, this.sortManager.result.order, true)
                 }
-
                 this.runState.isDirty = false
             } else {
                 this.update()
             }
-
         }
     }
 
     async update() {
-        const data = useDataStore()
+        const col = useColumnStore()
+        console.log('[CM.update] isReady=', col.isReady, 'slotCount=', col.slotCount())
+        if (!col.isReady) return
+
+        const count       = col.slotCount()
+        const deleted     = col.deletedMask
+        const instanceIds = col.instanceIds
+
+        // Build Int32Array of active slots — no Instance objects created.
+        let slots: Int32Array
         if (this.state.instances) {
-            this.images = {}
-            this.state.instances.forEach(i => this.images[i] = data.instances[i])
+            const allowed = new Set(this.state.instances)
+            const sub: number[] = []
+            for (let s = 0; s < count; s++) {
+                if (!deleted[s] && allowed.has(instanceIds[s])) sub.push(s)
+            }
+            slots = new Int32Array(sub)
         } else {
-            this.images = data.instances
-        }
-        if (!this.images) return
-
-        
-        let images = objValues(this.images)
-        if(this.state.filterBySelection) {
-            let selected = this.groupManager.selectedImages.value
-            images = images.filter(i => selected[i.id])
+            const all: number[] = []
+            for (let s = 0; s < count; s++) {
+                if (!deleted[s]) all.push(s)
+            }
+            slots = new Int32Array(all)
         }
 
-        const filterRes = await this.filterManager.filter(images)
-        const sortRes = this.sortManager.sort(filterRes.images)
-        this.groupManager.group(sortRes.images, sortRes.order, true)
+        if (this.state.filterBySelection) {
+            const selected = this.groupManager.selectedImages.value
+            const sel: number[] = []
+            for (let i = 0; i < slots.length; i++) {
+                if (selected[instanceIds[slots[i]]]) sel.push(slots[i])
+            }
+            slots = new Int32Array(sel)
+        }
+
+        console.log('[CM.update] active slots=', slots.length)
+        const filterRes = await this.filterManager.filter(slots)
+        console.log('[CM.update] after filter=', filterRes.slots.length)
+        const sortRes   = await this.sortManager.sort(filterRes.slots)
+        console.log('[CM.update] after sort=', sortRes.slots.length, '→ calling group(emit=true)')
+        this.groupManager.group(sortRes.slots, sortRes.order, true)
         this.runState.isDirty = false
     }
 
-    private onFilter(result: FilterResult) {
-        const sortRes = this.sortManager.sort(result.images)
-        this.groupManager.group(sortRes.images, sortRes.order, true)
+    private async onFilter(result: FilterResult) {
+        const sortRes = await this.sortManager.sort(result.slots)
+        this.groupManager.group(sortRes.slots, sortRes.order, true)
     }
 
     private onSort(result: SortResult) {

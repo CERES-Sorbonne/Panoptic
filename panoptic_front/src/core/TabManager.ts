@@ -87,7 +87,7 @@ export class TabManager {
 
     getVisibleProperties() {
         const data = useDataStore()
-        return data.propertyList.filter(p => this.isVisibleProperty(p.id))
+        return (data.propertyList ?? []).filter(p => this.isVisibleProperty(p.id))
     }
 
     getVisibleSha1Properties() {

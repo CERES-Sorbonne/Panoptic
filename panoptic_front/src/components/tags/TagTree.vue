@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TagBadge from "@/components/tagtree/TagBadge.vue";
-import { deletedID, useDataStore } from "@/data/dataStore";
-import { Property, Tag } from "@/data/models";
+import { useDataStore } from "@/data/dataStore";
+import { deletedID, Property, Tag } from "@/data/models";
 import { useProjectStore } from "@/data/projectStore";
 import { sum } from "@/utils/utils";
 import { computed, nextTick, onMounted, ref, watch } from "vue";

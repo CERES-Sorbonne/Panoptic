@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "project2_architecture.md",
+                "file": "instance_tag_value_refactor.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "project2_architecture"
+              "title": "instance_tag_value_refactor"
             }
           }
         ],
@@ -200,6 +200,8 @@
   },
   "active": "0e10bdd62ff1d036",
   "lastOpenFiles": [
+    "project2_architecture.md",
+    "instance_tag_value_refactor.md",
     "routes_reference.md",
     "plugin_architecture.md",
     "plugin_system_migration.md",
@@ -209,7 +211,6 @@
     "main2_plan.md",
     "to fix.md",
     "ui_broadcast_watcher.md",
-    "project2_architecture.md",
     "task_manager_rewrite.md",
     "panoptic2_architecture.md",
     "project_class.md"

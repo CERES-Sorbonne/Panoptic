@@ -52,7 +52,7 @@ function test() {
 
 <template>
     <div class="glass-box" style="overflow: auto; height: 100%;" @click="test">
-        <CenteredImage :sha1="i.sha1" :image-width="i.width" :image-height="i.height" v-for="i in images" :width="100" :height="100" />
+        <CenteredImage :instance-id="i.id" v-for="i in images" :width="100" :height="100" />
     </div>
 </template>
 

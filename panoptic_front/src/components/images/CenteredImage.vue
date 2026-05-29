@@ -1,37 +1,43 @@
 <script setup lang="ts">
 import { SERVER_PREFIX } from '@/data/apiPanopticRoutes'
 import { usePanopticStore } from '@/data/panopticStore'
+import { useDataStore } from '@/data/dataStore'
 import { computed, ref, watch, onUnmounted } from 'vue'
+import { useInstanceStore } from '@/data/instanceStore';
 
 const props = defineProps<{
-    sha1?:        string
-    imageWidth?:  number
-    imageHeight?: number
-    width:        number
-    height:       number
-    noClick?:     boolean
-    border?:      number
-    isZoom?:      boolean
+    instanceId:  number
+    width:       number
+    height:      number
+    noClick?:    boolean
+    border?:     number
+    isZoom?:     boolean
 }>()
 
 const panoptic   = usePanopticStore()
-const loadedSha1 = ref<string | null>(null)
+const data       = useDataStore()
+const instanceStore = useInstanceStore()
+const loadedUrl  = ref<string | null>(null)
 const activeUrl  = ref('')
 let loadTimer: ReturnType<typeof setTimeout> | null = null
 
-function buildUrl(sha1: string): string {
+const sha1 = computed(() => instanceStore.instanceData[props.instanceId]?.sha1 as string | undefined)
+const imageWidth  = computed(() => instanceStore.instanceData[props.instanceId]?.width  as number | undefined)
+const imageHeight = computed(() => instanceStore.instanceData[props.instanceId]?.height as number | undefined)
+
+function buildUrl(s: string): string {
     const projectId = panoptic.connectionState?.connectedProject
     const size      = Math.ceil(Math.max(props.width, props.height))
-    return `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${sha1}?size=${size}`
+    return `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${s}?size=${size}`
 }
 
-watch(() => props.sha1, (sha1) => {
+watch(sha1, (s) => {
     if (loadTimer) clearTimeout(loadTimer)
     activeUrl.value = ''
-    loadedSha1.value = null
-    if (!sha1) return
+    loadedUrl.value = null
+    if (!s) return
     loadTimer = setTimeout(() => {
-        activeUrl.value = buildUrl(sha1)
+        activeUrl.value = buildUrl(s)
         loadTimer = null
     }, 20)
 }, { immediate: true })
@@ -42,17 +48,17 @@ onUnmounted(() => {
 })
 
 const imageSize = computed(() => {
-    if (!props.imageWidth || !props.imageHeight) return { w: 0, h: 0 }
-    const imgRatio = props.imageWidth / props.imageHeight
+    if (!imageWidth.value || !imageHeight.value) return { w: 0, h: 0 }
+    const imgRatio = imageWidth.value / imageHeight.value
     const divRatio = props.width / props.height
     if (divRatio > imgRatio) return { w: props.height * imgRatio, h: props.height }
     return { w: props.width, h: props.width / imgRatio }
 })
 
-const loadedImageUrl = computed(() => loadedSha1.value ? buildUrl(loadedSha1.value) : null)
+const loadedImageUrl = computed(() => loadedUrl.value)
 
 function onLoad() {
-    loadedSha1.value = props.sha1
+    loadedUrl.value = activeUrl.value
 }
 </script>
 

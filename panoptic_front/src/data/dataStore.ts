@@ -1,215 +1,306 @@
-import { defineStore } from "pinia";
-import { computed, ref, shallowRef, triggerRef } from "vue";
-import { CommitHistory, DbCommit, FilePropertyValue, FileValuesArray, Folder, FolderIndex, ImageAtlas, ImagePropertyValue, ImageValuesArray, Instance, InstanceIndex, InstancePropertyValue, InstanceValuesArray, LoadResult, LoadState, MapIndex, PointMap, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex, PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType, Sha1ToInstances, Tag, TagIndex, UIDataKeys, VectorStats, VectorType } from "./models";
-import { buildPropertyGroupOrder, objValues } from "./builder";
-import { apiAddFolder, apiCommitUpsert, apiCommitDelete, apiDeleteFolder, apiDeleteMap, apiDeleteVectorType, apiGetAtlas, apiGetFolders, apiGetHistory, apiGetMap, apiGetUIData, apiGetVectorStats, apiGetVectorTypes, apiListMaps, apiMergeTags, apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData, apiStreamLoadState, apiUndo } from "./apiProjectRoutes";
-import { buildFolderNodes, computeContainerRatio, setTagsChildren } from "./storeutils";
-import { EventEmitter, deepCopy, getComputedValues, getTagChildren, getTagParents, hasPropertyChanges, isFinished, isTag } from "@/utils/utils";
-import { useTabStore } from "./tabStore";
-import { usePanopticStore } from "./panopticStore";
-import { SERVER_PREFIX } from "./apiPanopticRoutes";
-import { useColumnStore } from "./dataStore2";
+import { defineStore } from 'pinia'
+import { computed, ref, shallowRef, triggerRef } from 'vue'
+import {
+    CommitHistory, DbCommit, FilePropertyValue, FileValuesArray, Folder, FolderIndex,
+    ImagePropertyValue, ImageValuesArray, Instance, InstancePropertyValue, InstanceValuesArray,
+    LoadResult, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex,
+    PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType,
+    Tag, TagIndex, UIDataKeys,
+} from './models'
+import { buildPropertyGroupOrder, objValues } from './builder'
+import {
+    apiAddFolder, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
+    apiGetHistory, apiGetInitState, apiGetUIData, apiMergeTags,
+    apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
+    apiUndo,
+} from './apiProjectRoutes'
+import { buildFolderNodes, setTagsChildren } from './storeutils'
+import {
+    EventEmitter, deepCopy, getTagChildren, getTagParents,
+    hasPropertyChanges, isTag,
+} from '@/utils/utils'
+import { useTabStore } from './tabStore'
+import { usePanopticStore } from './panopticStore'
+import { SERVER_PREFIX } from './apiPanopticRoutes'
+import { useColumnStore } from './columnStore'
+import { useInstanceStore } from './instanceStore'
 
-export const deletedID = -999999999
-const deletedName = 'Deleted'
+export interface ChangePayload {
+    propIds:     number[]
+    instanceIds: number[]
+}
+
+export const deletedID   = -9999999
+export const deletedName = 'Deleted'
 
 export const useDataStore = defineStore('dataStore', () => {
 
-    const onChange = new EventEmitter()
-    const dirtyInstances = new Set()
-    let tmpIdCounter = -100
+    const columnStore   = useColumnStore()
+    const instanceStore = useInstanceStore()
 
-    const folders = shallowRef<FolderIndex>({})
-    const instances = shallowRef<InstanceIndex>({})
-    const properties = shallowRef<PropertyIndex>({})
-    const propertyOrder = shallowRef<PropertyGroupOrder>(buildPropertyGroupOrder())
-    const propertyTree = ref<PropertyGroupNode[]>([])
+    const properties     = shallowRef<PropertyIndex>({})
+    const tags           = shallowRef<TagIndex>({})
+    const folders        = shallowRef<FolderIndex>({})
     const propertyGroups = shallowRef<PropertyGroupIndex>({})
-    const tags = shallowRef<TagIndex>({})
-    const vectorTypes = ref<VectorType[]>([])
-    const vectorStats = ref<VectorStats>({ count: {}, sha1Count: 0 })
-    const baseImgUrl = shallowRef('')
-    const baseUrl = shallowRef('')
-    const maps = shallowRef<MapIndex>({})
-    const atlas = ref<ImageAtlas>()
+    const propertyOrder  = shallowRef<PropertyGroupOrder>(buildPropertyGroupOrder())
+    const propertyTree   = ref<PropertyGroupNode[]>([])
+    const history        = ref<CommitHistory>({ undo: [], redo: [] })
+    const baseImgUrl     = shallowRef('')
+    const baseUrl        = shallowRef('')
 
-    const history = ref<CommitHistory>({ undo: [], redo: [] })
-    const sha1Index = shallowRef<Sha1ToInstances>({})
-    const fileIndex = shallowRef<{ [fileId: number]: Instance[] }>({})
+    const dirtyInstances = new Set<number>()
+    const dirtyPropIds   = new Set<number>()
 
-    const loadState = ref<LoadState>(null)
+    const isLoaded      = ref(false)
+    const lastSequence  = ref<number>(0)
 
-    const onUndo = ref(0)
+    const onUndo        = ref(0)
+    const onChange      = new EventEmitter()
 
-    // =======================
-    // =======Computed=======
-    // =======================
-    const isLoaded = ref(false)
-    const lastSequence = ref<number>(0)
-    const folderRoots = computed(() => {
-        return Object.values(folders.value).filter(f => f.parent == null) as Folder[]
-    })
-    const instanceList = computed(() => objValues(instances.value).filter(i => i.id != deletedID))
-    const propertyList = computed(() => objValues(properties.value).sort((a, b) => propertyOrder.value.properties[a.id] - propertyOrder.value.properties[b.id]))
-    const tagList = computed(() => objValues(tags.value).filter(t => t.id != deletedID))
+    const propertyList       = computed(() => Object.values(properties.value).filter(f => f.id != deletedID))
+    const folderRoots        = computed(() => Object.values(folders.value).filter(f => f.parent == null) as Folder[])
+    const tagList            = computed(() => objValues(tags.value).filter(t => t.id !== deletedID))
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
 
-    const hasMaps = computed(() => objValues(maps.value).length > 0)
-    const hasAtlas = computed(() => atlas.value?.id !== undefined)
-
-
-    // =======================
-    // =======Functions=======
-    // =======================
-    async function init() {
-        const panopticStore = usePanopticStore()
-        const projectId = panopticStore.connectionState?.connectedProject
-        baseImgUrl.value = `${SERVER_PREFIX}/projects/${projectId}/image/`
-        baseUrl.value = `${SERVER_PREFIX}/projects/${projectId}/`
-
-        // Fetch folders and vector types in parallel, then start the stream
-        // immediately — atlas and history run concurrently with the stream.
-        const [dbFolders, vecTypes] = await Promise.all([apiGetFolders(), apiGetVectorTypes()])
-        importFolders(dbFolders)
-        importVectorTypes(vecTypes)
-
-        apiStreamLoadState(async (v) => {
-            if (v.instanceValues) {
-                importInstanceValuesArray(v.instanceValues)
-            }
-            if (v.imageValues) {
-                importImageValuesArray(v.imageValues)
-            }
-            if (v.fileValues) {
-                importFileValuesArray(v.fileValues)
-            }
-            if (v.chunk) {
-                applyCommit(v.chunk, true)
-            }
-            loadState.value = v.state
-
-            if (isFinished(v.state)) {
-                lastSequence.value = v.state.maxSequence ?? 0
-                const tabStore = useTabStore()
-                await tabStore.init()
-                triggerRefs()
-                await computePropertyTree()
-
-                isLoaded.value = true
-            }
-        })
-        // isLoaded.value = true
-        await Promise.all([loadAtlas(), getHistory()])
-    }
-
-    function getTmpId() {
-        tmpIdCounter -= 1
-        return tmpIdCounter
-    }
-
-    function emitOnChange() {
-        onChange.emit(dirtyInstances)
-        dirtyInstances.clear()
-    }
-
-    function importVectorTypes(types: VectorType[]) {
-        vectorTypes.value = types
-    }
-
-
-    function importInstances(toImport: Instance[]) {
-        const panopticStore = usePanopticStore()
-        const projectId = panopticStore.connectionState?.connectedProject
-
-        for (let img of toImport) {
-            const values = getComputedValues(img)
-
-            img.imageUrl = `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${img.sha1}`
-
-            let res = computeContainerRatio(img)
-            img.containerRatio = res.ratio
-            img.containerMaxRatio = res.maxRatio
-
-            if (instances.value[img.id]) {
-                img.properties = Object.assign(instances.value[img.id].properties, img.properties)
-            }
-            else {
-                if (!Array.isArray(sha1Index.value[img.sha1])) {
-                    sha1Index.value[img.sha1] = []
-                }
-                sha1Index.value[img.sha1].push(img)
-
-                if (img.fileId != null) {
-                    if (!Array.isArray(fileIndex.value[img.fileId])) {
-                        fileIndex.value[img.fileId] = []
-                    }
-                    fileIndex.value[img.fileId].push(img)
-                }
-            }
-            for (let i = 0; i < values.length; i++) {
-                img.properties[-i - 1] = values[i]
-            }
-            instances.value[img.id] = img
-            dirtyInstances.add(img.id)
+    function _systemKeyIndex(): Record<string, number> {
+        const idx: Record<string, number> = {}
+        for (const p of Object.values(properties.value)) {
+            if (p.systemKey) idx[p.systemKey] = p.id
         }
+        return idx
+    }
+
+    function importFolders(folderList: Folder[]) {
+        const updatedNodes = buildFolderNodes(folderList)
+        for (const f of objValues(updatedNodes)) {
+            if (f.id in folders.value) f.count = folders.value[f.id].count
+        }
+        folders.value = updatedNodes
     }
 
     function importProperties(toImport: any[]) {
-        const someNew = toImport.some(p => properties.value[p.id] == undefined)
-        for (let raw of toImport) {
-            // DB model uses dtype; frontend model uses type
-            const property: Property = raw.dtype !== undefined
-                ? { ...raw, type: raw.dtype }
-                : raw
-            if (property.id in properties.value) {
-                property.tags = properties.value[property.id].tags
-            }
+        for (const raw of toImport) {
+            const property: Property = raw.dtype !== undefined ? { ...raw, type: raw.dtype } : raw
+            if (property.id in properties.value) property.tags = properties.value[property.id].tags
             properties.value[property.id] = property
+            columnStore.registerProperty(property.id, property.type)
         }
-        if (someNew) {
-            // const tabStore = useTabStore()
-            // const tab = tabStore.getTab(tabStore.mainTab)
-            // tab.verifyState()
+    }
+
+    function _initColumnStore() {
+        const sysKeys = _systemKeyIndex()
+        const instanceId = sysKeys['id']
+        const sha1Id     = sysKeys['sha1']
+        const fileIdId   = sysKeys['file_id']
+        if (instanceId !== undefined && sha1Id !== undefined && fileIdId !== undefined) {
+            if (columnStore.systemProps.INSTANCE_ID === null) {
+                columnStore.init(instanceId, sha1Id, fileIdId)
+            }
         }
     }
 
     function importTags(toImport: any[]) {
         const updated = new Set<number>()
-        for (let raw of toImport) {
-            // DB model uses list_id (camelCased to listId); frontend model uses propertyId
-            let tag: Tag = raw.listId !== undefined
-                ? { ...raw, propertyId: raw.listId }
-                : raw
-            if (tag.id == deletedID) continue
-
-            if (tags.value[tag.id]) {
-                tag.count = tags.value[tag.id].count
-                instanceList.value.forEach(i => dirtyInstances.add(i.id))
-            } else {
-                tag.count = 0
-            }
-            tag.parents = tag.parents.filter(p => p != 0)
+        for (const raw of toImport) {
+            let tag: Tag = raw.listId !== undefined ? { ...raw, propertyId: raw.listId } : raw
+            if (tag.id === deletedID) continue
+            tag.count = tags.value[tag.id]?.count ?? 0
+            tag.parents = tag.parents.filter(p => p !== 0)
             tags.value[tag.id] = tag
             if (!(tag.propertyId in properties.value)) {
                 console.warn('Property ' + tag.propertyId + ' must be loaded before importing tags')
                 continue
             }
-            if (!properties.value[tag.propertyId].tags) {
-                properties.value[tag.propertyId].tags = {}
-            }
+            if (!properties.value[tag.propertyId].tags) properties.value[tag.propertyId].tags = {}
             properties.value[tag.propertyId].tags[tag.id] = tag
             updated.add(tag.propertyId)
-
         }
-        for (let propId of updated) {
-            setTagsChildren(properties.value[propId].tags)
-        }
-        for (let tag of objValues(tags.value)) {
+        for (const propId of updated) setTagsChildren(properties.value[propId].tags)
+        for (const tag of objValues(tags.value)) {
             tag.allChildren = getTagChildren(tag, tags.value)
             tag.allChildren.splice(tag.allChildren.indexOf(tag.id), 1)
             tag.allParents = getTagParents(tag, tags.value)
         }
+    }
 
+    function importPropertyGroups(groups: PropertyGroup[]) {
+        for (const group of groups) propertyGroups.value[group.id] = group
+    }
+
+    function triggerRefs() {
+        triggerRef(properties)
+        triggerRef(folders)
+        triggerRef(tags)
+        triggerRef(propertyGroups)
+
+        if (dirtyInstances.size > 0 || dirtyPropIds.size > 0) {
+            onChange.emit(Array.from(dirtyInstances))
+            dirtyInstances.clear()
+            dirtyPropIds.clear()
+        }
+    }
+
+    function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
+        const props = properties.value
+
+        // --- Execute Removals ---
+        if (commit.emptyPropertyGroups) {
+            for (const id of commit.emptyPropertyGroups) delete propertyGroups.value[id]
+        }
+        if (commit.emptyProperties?.length) {
+            for (const id of commit.emptyProperties) {
+                props[id].id = deletedID
+                props[id].name = deletedName
+            }
+        }
+        if (commit.emptyTags) {
+            for (const id of commit.emptyTags) {
+                tags.value[id].id = deletedID
+                tags.value[id].value = deletedName
+            }
+        }
+        if (commit.emptyInstances) {
+            for (const id of commit.emptyInstances) {
+                if (instanceStore.markDeleted) instanceStore.markDeleted(id)
+                columnStore.markSlotDeleted(id)
+                dirtyInstances.add(id)
+            }
+        }
+
+        // --- Execute Imports ---
+        if (commit.instances?.length) {
+            for (const inst of commit.instances as any[]) {
+                instanceStore.instanceData[inst.id] = inst
+                dirtyInstances.add(inst.id)
+            }
+        }
+        if (commit.propertyGroups?.length) importPropertyGroups(commit.propertyGroups)
+        if (commit.properties?.length)     importProperties(commit.properties)
+        if (commit.tags?.length)           importTags(commit.tags)
+
+        if (commit.history) history.value = commit.history
+
+        if (disableTrigger) return
+        if (hasPropertyChanges(commit)) computePropertyTree()
+        properties.value = props
+        triggerRefs()
+    }
+
+    function applyMultipleCommits(commits: DbCommit[]) {
+        let reloadGroupProp = false
+        for (const commit of commits) {
+            if (hasPropertyChanges(commit)) reloadGroupProp = true
+            applyCommit(commit, true)
+        }
+        triggerRefs()
+        if (reloadGroupProp) computePropertyTree()
+    }
+
+    function applyDelta(delta: LoadResult) {
+        const needsPropertyTree = delta.chunk ? hasPropertyChanges(delta.chunk) : false
+        if (delta.chunk)           applyCommit(delta.chunk, true)
+        
+        columnStore.updateFromLoadResult(delta)
+        instanceStore.updateFromLoadResult(delta)
+
+        if (delta.state?.maxSequence > lastSequence.value) lastSequence.value = delta.state.maxSequence
+        triggerRefs()
+        if (needsPropertyTree) computePropertyTree()
+    }
+
+    async function init() {
+        const panopticStore = usePanopticStore()
+        const projectId = panopticStore.connectionState?.connectedProject
+        baseImgUrl.value = `${SERVER_PREFIX}/projects/${projectId}/image/`
+        baseUrl.value    = `${SERVER_PREFIX}/projects/${projectId}/`
+
+        const initData = await apiGetInitState()
+        if (initData.folders?.length)    importFolders(initData.folders)
+        if (initData.properties?.length) importProperties(initData.properties)
+        if (initData.tags?.length)       importTags(initData.tags)
+        lastSequence.value = initData.sequence ?? 0
+
+        _initColumnStore()
+        columnStore.markReady()
+
+        const tabStore = useTabStore()
+        await tabStore.init()
+        triggerRefs()
+        await computePropertyTree()
+        isLoaded.value = true
+
+        await getHistory()
+    }
+
+    function clear() {
+        columnStore.clear()
+        instanceStore.clear()
+
+        properties.value     = {}
+        tags.value           = {}
+        folders.value        = {}
+        propertyGroups.value = {}
+        propertyOrder.value  = buildPropertyGroupOrder()
+        history.value        = { undo: [], redo: [] }
+
+        onChange.clear()
+        dirtyInstances.clear()
+        dirtyPropIds.clear()
+        isLoaded.value     = false
+        lastSequence.value = 0
+        onUndo.value       = 0
+    }
+
+    async function sendCommit(commit: DbCommit): Promise<DbCommit> {
+        const hasUpsert = !!(
+            commit.properties?.length || commit.tags?.length ||
+            commit.instanceValues?.length || commit.imageValues?.length ||
+            commit.fileValues?.length || commit.propertyGroups?.length ||
+            commit.instances?.length
+        )
+        const hasDelete = !!(
+            commit.emptyInstances?.length || commit.emptyProperties?.length ||
+            commit.emptyTags?.length || commit.emptyPropertyGroups?.length ||
+            commit.emptyInstanceValues?.length || commit.emptyImageValues?.length ||
+            commit.emptyFileValues?.length
+        )
+        let res: DbCommit = {}
+        if (hasUpsert) res = await apiCommitUpsert(commit)
+        if (hasDelete) await apiCommitDelete(commit)
+        return res
+    }
+
+    async function addTag(propertyId: number, tagValue: string, parentIds?: number[], color = -1): Promise<Tag> {
+        const tag: Tag = { id: -1, propertyId, value: tagValue, parents: parentIds ?? [], color }
+        const res = await sendCommit({ tags: [tag] })
+        return res.tags[0]
+    }
+
+    async function addTagParent(tagId: number, parentId: number) {
+        const tag = Object.assign({}, tags.value[tagId])
+        tag.parents.push(parentId)
+        await sendCommit({ tags: [tag] })
+    }
+
+    async function deleteTagParent(tagId: number, parentId: number) {
+        const tag = Object.assign({}, tags.value[tagId])
+        tag.parents = tag.parents.filter(p => p !== parentId)
+        await sendCommit({ tags: [tag] })
+    }
+
+    async function deleteTag(tagId: number, dontAsk?: boolean) {
+        if (!dontAsk) {
+            const tag = tags.value[tagId]
+            if (!confirm('Delete tag: ' + tag.value + ' (ID: ' + tagId + ') ?')) return
+        }
+        await sendCommit({ emptyTags: [tagId] })
+    }
+
+    async function updateTag(tagId: number, value?: any, color?: number) {
+        const tag = Object.assign({}, tags.value[tagId])
+        if (value !== undefined) tag.value = value
+        if (color !== undefined) tag.color = color
+        await sendCommit({ tags: [tag] })
     }
 
     async function mergeTags(tagIds: number[]) {
@@ -217,504 +308,16 @@ export const useDataStore = defineStore('dataStore', () => {
         applyCommit(commit)
     }
 
-    function importInstanceValues(instanceValues: InstancePropertyValue[]) {
-        const props = properties.value
-        const insts = instances.value
-        for (let v of instanceValues) {
-            if (v.value == undefined) continue
-            if (isTag(props[v.propertyId].type)) {
-                updateTagCount(insts[v.instanceId].properties[v.propertyId], v.value)
-            }
-            instances.value[v.instanceId].properties[v.propertyId] = v.value
-            dirtyInstances.add(v.instanceId)
-        }
-
-    }
-
-    function importImageValues(instanceValues: ImagePropertyValue[]) {
-        for (let v of instanceValues) {
-            if (v.value == undefined) continue
-            if (sha1Index.value[v.sha1] == undefined) continue
-            for (let img of sha1Index.value[v.sha1]) {
-                if (isTag(properties.value[v.propertyId].type)) {
-                    updateTagCount(instances.value[img.id].properties[v.propertyId], v.value)
-                }
-                instances.value[img.id].properties[v.propertyId] = v.value
-                dirtyInstances.add(img.id)
-            }
-        }
-    }
-
-    function importInstanceValuesArray(instanceValuesArrays: InstanceValuesArray[]) {
-        const props = properties.value
-        const insts = instances.value
-
-        for (let arr of instanceValuesArrays) {
-            const propertyId = arr.propertyId
-            const isTagProperty = isTag(props[propertyId].type)
-
-            for (let i = 0; i < arr.ids.length; i++) {
-                const instanceId = arr.ids[i]
-                const value = JSON.parse(arr.values[i])
-
-                if (value == undefined) continue
-
-                if (isTagProperty) {
-                    updateTagCount(insts[instanceId].properties[propertyId], value)
-                }
-
-                instances.value[instanceId].properties[propertyId] = value
-                dirtyInstances.add(instanceId)
-            }
-        }
-    }
-
-    function importImageValuesArray(imageValuesArrays: ImageValuesArray[]) {
-        const props = properties.value
-        const insts = instances.value
-
-        console.log(imageValuesArrays)
-
-        for (let arr of imageValuesArrays) {
-            const propertyId = arr.propertyId
-            const isTagProperty = isTag(props[propertyId].type)
-
-            for (let i = 0; i < arr.sha1s.length; i++) {
-                const sha1 = arr.sha1s[i]
-                const value = JSON.parse(arr.values[i])
-
-                if (value == undefined) continue
-                if (sha1Index.value[sha1] == undefined) continue
-
-                for (let img of sha1Index.value[sha1]) {
-                    if (isTagProperty) {
-                        updateTagCount(insts[img.id].properties[propertyId], value)
-                    }
-
-                    instances.value[img.id].properties[propertyId] = value
-                    dirtyInstances.add(img.id)
-                }
-            }
-        }
-    }
-
-    function importFileValues(fileValues: FilePropertyValue[]) {
-        for (let v of fileValues) {
-            if (v.value == undefined) continue
-            if (fileIndex.value[v.fileId] == undefined) continue
-            for (let img of fileIndex.value[v.fileId]) {
-                if (isTag(properties.value[v.propertyId].type)) {
-                    updateTagCount(instances.value[img.id].properties[v.propertyId], v.value)
-                }
-                instances.value[img.id].properties[v.propertyId] = v.value
-                dirtyInstances.add(img.id)
-            }
-        }
-    }
-
-    function importFileValuesArray(fileValuesArrays: FileValuesArray[]) {
-        const props = properties.value
-        const insts = instances.value
-
-        for (let arr of fileValuesArrays) {
-            const propertyId = arr.propertyId
-            const isTagProperty = isTag(props[propertyId].type)
-
-            for (let i = 0; i < arr.fileIds.length; i++) {
-                const fileId = arr.fileIds[i]
-                const value = JSON.parse(arr.values[i])
-
-                if (value == undefined) continue
-                if (fileIndex.value[fileId] == undefined) continue
-
-                for (let img of fileIndex.value[fileId]) {
-                    if (isTagProperty) {
-                        updateTagCount(insts[img.id].properties[propertyId], value)
-                    }
-                    instances.value[img.id].properties[propertyId] = value
-                    dirtyInstances.add(img.id)
-                }
-            }
-        }
-    }
-
-    function importPropertyGroups(groups: PropertyGroup[]) {
-        for (let group of groups) {
-            propertyGroups.value[group.id] = group
-        }
-    }
-
-    function applyMultipleCommits(commits: DbCommit[]) {
-        let reloadGroupProp = false
-        for (let commit of commits) {
-            if (hasPropertyChanges(commit)) {
-                reloadGroupProp = true
-            }
-            applyCommit(commit, true)
-        }
-        triggerRefs()
-        if (reloadGroupProp) {
-            computePropertyTree()
-        }
-    }
-
-    function applyCommit(commit: DbCommit, disableTrigger?: boolean) {
-        updateFolderCount(commit.instances, commit.emptyInstances)
-        const props = properties.value
-
-        if (commit.emptyImageValues) {
-            commit.emptyImageValues.forEach(v => {
-                sha1Index.value[v.sha1].forEach(i => {
-                    if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
-                        updateTagCount(instances.value[i.id].properties[v.propertyId], [])
-                    }
-                    if (instances.value[i.id]) {
-                        delete instances.value[i.id].properties[v.propertyId]
-                        dirtyInstances.add(i.id)
-                    }
-                })
-            })
-        }
-        if (commit.emptyFileValues) {
-            commit.emptyFileValues.forEach(v => {
-                const imgs = fileIndex.value[v.fileId]
-                if (!imgs) return
-                imgs.forEach(i => {
-                    if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
-                        updateTagCount(instances.value[i.id].properties[v.propertyId], [])
-                    }
-                    if (instances.value[i.id]) {
-                        delete instances.value[i.id].properties[v.propertyId]
-                        dirtyInstances.add(i.id)
-                    }
-                })
-            })
-        }
-        if (commit.emptyInstanceValues) {
-            commit.emptyInstanceValues.forEach(v => {
-                if (props[v.propertyId] && isTag(props[v.propertyId].type)) {
-                    updateTagCount(instances.value[v.instanceId].properties[v.propertyId], [])
-                }
-                if (instances.value[v.instanceId]) {
-                    delete instances.value[v.instanceId].properties[v.propertyId]
-                    dirtyInstances.add(v.instanceId)
-                }
-
-            })
-
-        }
-        if (commit.emptyTags) {
-            commit.emptyTags.forEach(i => {
-                tags.value[i].id = deletedID
-                tags.value[i].value = deletedName
-            })
-
-        }
-        if (commit.emptyPropertyGroups) {
-            for (let id of commit.emptyPropertyGroups) {
-                delete propertyGroups.value[id]
-            }
-        }
-        if (commit.emptyProperties?.length) {
-            commit.emptyProperties.forEach(i => {
-                props[i].id = deletedID
-                props[i].name = deletedName
-            })
-        }
-        if (commit.emptyInstances) {
-            commit.emptyInstances.forEach(i => {
-                instances.value[i].id = deletedID
-                dirtyInstances.add(i)
-            })
-
-        }
-        if (commit.instances?.length) {
-            importInstances(commit.instances)
-        }
-        if (commit.propertyGroups?.length) {
-            importPropertyGroups(commit.propertyGroups)
-        }
-        if (commit.properties?.length) {
-            importProperties(commit.properties)
-        }
-        if (commit.tags?.length) {
-            importTags(commit.tags)
-        }
-        if (commit.instanceValues?.length) {
-            importInstanceValues(commit.instanceValues)
-        }
-        if (commit.imageValues?.length) {
-            importImageValues(commit.imageValues)
-        }
-        if (commit.fileValues?.length) {
-            importFileValues(commit.fileValues)
-        }
-        if (commit.history) {
-            history.value = commit.history
-        }
-
-        if (!disableTrigger && hasPropertyChanges(commit)) {
-            computePropertyTree()
-        }
-
-        // Forward value changes to column store so it stays in sync.
-        // Only runs after init (slotCount > 0). Expands sha1/file-keyed values
-        // into per-instance updates using the indexes already built in this store.
-        if (isLoaded.value) {
-            const colUpdates: Array<{ instanceId: number; propertyId: number; value: any }> = []
-
-            commit.instanceValues?.forEach(v =>
-                colUpdates.push({ instanceId: v.instanceId, propertyId: v.propertyId, value: v.value }))
-            commit.emptyInstanceValues?.forEach(v =>
-                colUpdates.push({ instanceId: v.instanceId, propertyId: v.propertyId, value: null }))
-
-            commit.imageValues?.forEach(v =>
-                sha1Index.value[v.sha1]?.forEach(i =>
-                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: v.value })))
-            commit.emptyImageValues?.forEach(v =>
-                sha1Index.value[v.sha1]?.forEach(i =>
-                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: null })))
-
-            commit.fileValues?.forEach(v =>
-                fileIndex.value[v.fileId]?.forEach(i =>
-                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: v.value })))
-            commit.emptyFileValues?.forEach(v =>
-                fileIndex.value[v.fileId]?.forEach(i =>
-                    colUpdates.push({ instanceId: i.id, propertyId: v.propertyId, value: null })))
-
-            if (colUpdates.length > 0) useColumnStore().applyCommit(colUpdates)
-        }
-
-        if (disableTrigger) return
-
-        properties.value = props
-        triggerRefs()
-    }
-
-    function clear() {
-        folders.value = {}
-        instances.value = {}
-        properties.value = {}
-        propertyOrder.value = buildPropertyGroupOrder()
-        propertyGroups.value = {}
-        tags.value = {}
-        sha1Index.value = {}
-        fileIndex.value = {}
-        vectorTypes.value = []
-        vectorStats.value = { count: {}, sha1Count: 0 }
-
-        onChange.clear()
-        dirtyInstances.clear()
-
-        history.value = { undo: [], redo: [] }
-        onUndo.value = 0
-        isLoaded.value = false
-        loadState.value = null
-        lastSequence.value = 0
-    }
-
-    function applyDelta(delta: LoadResult) {
-        const needsPropertyTree = delta.chunk ? hasPropertyChanges(delta.chunk) : false
-        if (delta.chunk) applyCommit(delta.chunk, true)
-        if (delta.instanceValues) importInstanceValuesArray(delta.instanceValues)
-        if (delta.imageValues) importImageValuesArray(delta.imageValues)
-        if (delta.fileValues) importFileValuesArray(delta.fileValues)
-        if (delta.state?.maxSequence > lastSequence.value) {
-            lastSequence.value = delta.state.maxSequence
-        }
-        triggerRefs()
-        if (needsPropertyTree) {
-            computePropertyTree()
-        }
-
-        // Forward columnar value arrays to the ColumnStore (these bypass applyCommit).
-        if (isLoaded.value && (delta.instanceValues?.length || delta.imageValues?.length || delta.fileValues?.length)) {
-            const colUpdates: Array<{ instanceId: number; propertyId: number; value: any }> = []
-
-            delta.instanceValues?.forEach(arr => {
-                for (let i = 0; i < arr.ids.length; i++) {
-                    colUpdates.push({ instanceId: Number(arr.ids[i]), propertyId: arr.propertyId, value: JSON.parse(arr.values[i]) })
-                }
-            })
-
-            delta.imageValues?.forEach(arr => {
-                for (let i = 0; i < arr.sha1s.length; i++) {
-                    const value = JSON.parse(arr.values[i])
-                    sha1Index.value[arr.sha1s[i]]?.forEach(img =>
-                        colUpdates.push({ instanceId: img.id, propertyId: arr.propertyId, value }))
-                }
-            })
-
-            delta.fileValues?.forEach(arr => {
-                for (let i = 0; i < arr.fileIds.length; i++) {
-                    const value = JSON.parse(arr.values[i])
-                    fileIndex.value[arr.fileIds[i]]?.forEach(img =>
-                        colUpdates.push({ instanceId: img.id, propertyId: arr.propertyId, value }))
-                }
-            })
-
-            if (colUpdates.length > 0) useColumnStore().applyCommit(colUpdates)
-        }
-    }
-
-    async function sendCommit(commit: DbCommit, undo?: boolean, disableTrigger?: boolean) {
-        const hasUpsert = !!(commit.properties?.length || commit.tags?.length ||
-            commit.instanceValues?.length || commit.imageValues?.length || commit.fileValues?.length ||
-            commit.propertyGroups?.length || commit.instances?.length)
-        const hasDelete = !!(commit.emptyInstances?.length || commit.emptyProperties?.length ||
-            commit.emptyTags?.length || commit.emptyPropertyGroups?.length ||
-            commit.emptyInstanceValues?.length || commit.emptyImageValues?.length || commit.emptyFileValues?.length)
-
-        let res: DbCommit = {}
-        if (hasUpsert) {
-            res = await apiCommitUpsert(commit)
-        }
-        if (hasDelete) {
-            await apiCommitDelete(commit)
-        }
-        return res
-    }
-
-    function triggerRefs() {
-        triggerRef(properties)
-        triggerRef(folders)
-        triggerRef(instances)
-        triggerRef(sha1Index)
-        triggerRef(fileIndex)
-        triggerRef(tags)
-        triggerRef(propertyGroups)
-        emitOnChange()
-    }
-
-    async function addTag(propertyId: number, tagValue: string, parentIds: number[] = undefined, color = -1): Promise<Tag> {
-        const tag: Tag = { id: -1, propertyId: propertyId, value: tagValue, parents: parentIds ?? [], color: color }
-        const res = await sendCommit({ tags: [tag] }, true, true)
-        return res.tags[0]
-    }
-
-    async function addTagParent(tagId: number, parentId: number) {
-        const tag: Tag = Object.assign({}, tags.value[tagId])
-        tag.parents.push(parentId)
-        const res = await sendCommit({ tags: [tag] })
-    }
-
-    async function deleteTagParent(tagId: number, parentId: number) {
-        const tag: Tag = Object.assign({}, tags.value[tagId])
-        tag.parents = tag.parents.filter(p => p != parentId)
-        await sendCommit({ tags: [tag] })
-    }
-
-    async function deleteTag(tagId: number, dontAsk?: boolean) {
-        if (!dontAsk) {
-            const tag = tags.value[tagId]
-            let ok = confirm('Delete tag: ' + tag.value + ' (ID: ' + tagId + ') ?')
-            if (!ok) return
-        }
-        sendCommit({ emptyTags: [tagId] })
-        // await tabManager.collection.update()
-
-    }
-
-    async function addProperty(name: string, type: PropertyType, mode: PropertyMode, group?: number) {
-        const prop: Property = { id: -1, name: name, type: type, mode: mode, propertyGroupId: group ?? null }
+    async function addProperty(name: string, type: PropertyType, mode: PropertyMode, group?: number): Promise<Property> {
+        const prop: Property = { id: -1, name, type, mode, propertyGroupId: group ?? null }
         const res = await sendCommit({ properties: [prop] })
         return res.properties[0]
     }
 
-    async function setPropertyValue(propertyId: number, images: Instance[] | Instance, value: any, dontEmit?: boolean) {
-        if (!Array.isArray(images)) {
-            images = [images]
-        }
-        const mode = properties.value[propertyId].mode
-        const instanceValues: InstancePropertyValue[] = []
-        const imageValues: ImagePropertyValue[] = []
-        const fileValues: FilePropertyValue[] = []
-        if (mode == PropertyMode.id) {
-            const values = images.map(i => ({ propertyId: propertyId, instanceId: i.id, value: value } as InstancePropertyValue))
-            instanceValues.push(...values)
-        }
-        if (mode == PropertyMode.sha1) {
-            const values = images.map(i => ({ propertyId: propertyId, sha1: i.sha1, value: value } as ImagePropertyValue))
-            imageValues.push(...values)
-        }
-        if (mode == PropertyMode.file) {
-            const seen = new Set<number>()
-            for (const img of images) {
-                if (img.fileId != null && !seen.has(img.fileId)) {
-                    seen.add(img.fileId)
-                    fileValues.push({ propertyId, fileId: img.fileId, value })
-                }
-            }
-        }
-        await sendCommit({ instanceValues, imageValues, fileValues }, true)
-    }
-
-    async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[], dontEmit?: boolean) {
-        await sendCommit({ instanceValues: instanceValues, imageValues: imageValues }, true)
-    }
-
-    async function setTagPropertyValue(propertyId: number, images: Instance[] | Instance, value: any) {
-        if (!Array.isArray(images)) {
-            images = [images]
-        }
-        const currentValues = images.map(i => ({ value: i.properties[propertyId] ?? [], img: i }))
-        if (properties.value[propertyId].mode == PropertyMode.id) {
-            const values: InstancePropertyValue[] = currentValues.map(v => ({
-                propertyId: propertyId,
-                instanceId: v.img.id,
-                value: Array.from(new Set([...v.value, ...value]))
-            }))
-            await sendCommit({ instanceValues: values })
-        }
-        else {
-            const values: ImagePropertyValue[] = currentValues.map(v => ({
-                propertyId: propertyId,
-                sha1: v.img.sha1,
-                value: Array.from(new Set([...v.value, ...value]))
-            }))
-            await sendCommit({ imageValues: values })
-        }
-    }
-
-    async function updateTag(tagId: number, value?: any, color?: number) {
-        const tag = Object.assign({}, tags.value[tagId])
-        if (value) {
-            tag.value = value
-        }
-        if (color != undefined) {
-            tag.color = color
-        }
-        await sendCommit({ tags: [tag] })
-    }
-
-    async function addFolder(folder: string) {
-        await apiAddFolder(folder)
-        // const updated = await apiGetFolders()
-        // const updatedNodes = buildFolderNodes(updated)
-        // for (let f of objValues(updatedNodes)) {
-        //     if (f.id in folders.value) {
-        //         f.count = folders.value[f.id].count
-        //     }
-        // }
-        // folders.value = updatedNodes
-    }
-
-    async function importFolders(folderList: Folder[]) {
-        const updatedNodes = buildFolderNodes(folderList)
-        for (let f of objValues(updatedNodes)) {
-            if (f.id in folders.value) {
-                f.count = folders.value[f.id].count
-            }
-        }
-        folders.value = updatedNodes
-    }
-
     async function updateProperty(propertyId: number, name?: string, group?: number) {
         const prop = deepCopy(properties.value[propertyId])
-        prop.name = name
-        if (group !== undefined) {
-            prop.propertyGroupId = group
-        }
+        if (name !== undefined) prop.name = name
+        if (group !== undefined) prop.propertyGroupId = group
         await sendCommit({ properties: [prop] })
         await useTabStore().getMainTab().update()
     }
@@ -727,25 +330,82 @@ export const useDataStore = defineStore('dataStore', () => {
         await tab.update()
     }
 
-    function updateTagCount(oldTags: number[], newTags: number[]) {
-        if (oldTags == undefined) {
-            oldTags = []
+    async function setPropertyValue(propertyId: number, imgs: Instance[] | Instance, value: any) {
+        if (!Array.isArray(imgs)) imgs = [imgs]
+        const mode = properties.value[propertyId].mode
+        const instanceValues: InstancePropertyValue[] = []
+        const imageValues:    ImagePropertyValue[]    = []
+        const fileValues:     FilePropertyValue[]     = []
+        if (mode === PropertyMode.id) {
+            instanceValues.push(...imgs.map(i => ({ propertyId, instanceId: i.id, value })))
         }
-        if (newTags == undefined) {
-            newTags = []
+        if (mode === PropertyMode.sha1) {
+            imageValues.push(...imgs.map(i => ({ propertyId, sha1: (i as any).sha1, value })))
         }
-        if (!Array.isArray(oldTags)) oldTags = [oldTags]
-        if (!Array.isArray(newTags)) newTags = [newTags]
+        if (mode === PropertyMode.file) {
+            const seen = new Set<number>()
+            for (const img of imgs) {
+                const fileId = (img as any).fileId
+                if (fileId != null && !seen.has(fileId)) {
+                    seen.add(fileId)
+                    fileValues.push({ propertyId, fileId, value })
+                }
+            }
+        }
+        await sendCommit({ instanceValues, imageValues, fileValues })
+    }
 
-        const old = new Set(oldTags)
-        const now = new Set(newTags)
+    async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
+        await sendCommit({ instanceValues, imageValues })
+    }
 
-        const added = newTags.filter(t => !old.has(t))
-        const removed = oldTags.filter(t => !now.has(t))
-        added.forEach(t => tags.value[t].count += 1)
-        // added.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count += 1))
-        removed.forEach(t => tags.value[t].count -= 1)
-        // removed.forEach(t => tags.value[t].allParents.forEach((t2) => tags.value[t2].count -= 1))
+    async function setTagPropertyValue(propertyId: number, imgs: Instance[] | Instance, value: any) {
+        if (!Array.isArray(imgs)) imgs = [imgs]
+        const mode = properties.value[propertyId].mode
+        if (mode === PropertyMode.id) {
+            const values: InstancePropertyValue[] = imgs.map(i => {
+                const slot = columnStore.slotMap.get(i.id)
+                const current: number[] = (slot !== undefined ? columnStore.readSlot(propertyId, slot) : null) ?? []
+                return { propertyId, instanceId: i.id, value: Array.from(new Set([...current, ...value])) }
+            })
+            await sendCommit({ instanceValues: values })
+        } else {
+            const values: ImagePropertyValue[] = imgs.map(i => {
+                const slot = columnStore.slotMap.get(i.id)
+                const current: number[] = (slot !== undefined ? columnStore.readSlot(propertyId, slot) : null) ?? []
+                return { propertyId, sha1: (i as any).sha1, value: Array.from(new Set([...current, ...value])) }
+            })
+            await sendCommit({ imageValues: values })
+        }
+    }
+
+    async function addPropertyGroup(name: string) {
+        await sendCommit({ propertyGroups: [{ id: -1, name }] })
+    }
+
+    async function updatePropertyGroup(id: number, name: string) {
+        await sendCommit({ propertyGroups: [{ id, name }] })
+    }
+
+    async function deletePropertyGroup(id: number) {
+        await sendCommit({ emptyPropertyGroups: [id] })
+    }
+
+    async function addFolder(folder: string) {
+        await apiAddFolder(folder)
+    }
+
+    async function reImportFolder(folderId: number) {
+        const updated = await apiReImportFolder(folderId)
+        const updatedNodes = buildFolderNodes(updated)
+        for (const f of objValues(updatedNodes)) {
+            if (f.id in folders.value) f.count = folders.value[f.id].count
+        }
+        folders.value = updatedNodes
+    }
+
+    async function deleteFolder(folderId: number) {
+        await apiDeleteFolder(folderId)
     }
 
     async function undo() {
@@ -763,64 +423,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function getHistory() {
-        const res = await apiGetHistory()
-        history.value = res
-    }
-
-    async function reImportFolder(folderId: number) {
-        const updated = await apiReImportFolder(folderId)
-        const updatedNodes = buildFolderNodes(updated)
-        for (let f of objValues(updatedNodes)) {
-            if (f.id in folders.value) {
-                f.count = folders.value[f.id].count
-            }
-        }
-        folders.value = updatedNodes
-    }
-
-    async function deleteFolder(folderId: number) {
-        await apiDeleteFolder(folderId)
-        // location.reload()
-    }
-
-    function updateFolderCount(updatedInstances: Instance[], deletedInstances: number[]) {
-        updatedInstances = updatedInstances ?? []
-        deletedInstances = deletedInstances ?? []
-        for (let instance of updatedInstances) {
-            if (instances.value[instance.id] != undefined) continue
-            let folder = folders.value[instance.folderId]
-            if (!folder) continue
-            folder.count += 1
-            folder = folders.value[folder.parent]
-            while (folder) {
-                folder.count += 1
-                folder = folders.value[folder.parent]
-            }
-        }
-        for (let id of deletedInstances) {
-            if (instances.value[id] == undefined) continue
-            const instance = instances.value[id]
-            let folder = folders.value[instance.folderId]
-            if (!folder) continue
-            folder.count -= 1
-            folder = folders.value[folder.parent]
-            while (folder) {
-                folder.count -= 1
-                folder = folders.value[folder.parent]
-            }
-        }
-    }
-
-    async function addPropertyGroup(name: string) {
-        await sendCommit({ propertyGroups: [{ id: -1, name }] }, false, false)
-    }
-
-    async function updatePropertyGroup(id: number, name: string) {
-        await sendCommit({ propertyGroups: [{ id: id, name: name }] }, false, false)
-    }
-
-    async function deletePropertyGroup(id: number) {
-        await sendCommit({ emptyPropertyGroups: [id] })
+        history.value = await apiGetHistory()
     }
 
     async function deleteEmptyClones() {
@@ -829,8 +432,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function getPropertyOrderFromStorage() {
-        const res = await apiGetUIData(UIDataKeys.PROPERTY_ORDER)
-        return res as PropertyGroupOrder
+        return (await apiGetUIData(UIDataKeys.PROPERTY_ORDER)) as PropertyGroupOrder
     }
 
     async function savePropertyOrderToStorage() {
@@ -838,25 +440,21 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     function mergeOrder<T extends { id: number }>(items: T[], orderDict: Record<number, number>): Record<number, number> {
-        const result: Record<number, number> = {};
-        const baseOrder = Number.MAX_SAFE_INTEGER / 2;
-
+        const result: Record<number, number> = {}
+        const baseOrder = Number.MAX_SAFE_INTEGER / 2
         for (const item of items) {
-            if (orderDict.hasOwnProperty(item.id)) {
-                result[item.id] = orderDict[item.id];
-            } else {
-                result[item.id] = baseOrder + item.id;
-            }
+            result[item.id] = orderDict.hasOwnProperty(item.id)
+                ? orderDict[item.id]
+                : baseOrder + item.id
         }
-        return result;
+        return result
     }
 
     async function computePropertyTree() {
         let save = await getPropertyOrderFromStorage()
-        if (!save) {
-            save = buildPropertyGroupOrder()
-        }
-        const props = objValues(properties.value).filter(p => p.id != deletedID)
+        if (!save) save = buildPropertyGroupOrder()
+
+        const props  = objValues(properties.value).filter(p => p.id !== deletedID)
         const groups = objValues(propertyGroups.value)
 
         const groupOrder = mergeOrder(groups, save.groups)
@@ -864,125 +462,80 @@ export const useDataStore = defineStore('dataStore', () => {
 
         const tree: PropertyGroupNode[] = groups.map(g => ({ groupId: g.id, propertyIds: [] }))
         tree.sort((a, b) => groupOrder[a.groupId] - groupOrder[b.groupId])
-        tree.push({ groupId: PropertyGroupId.DEFAULT, propertyIds: [] })
+        tree.push({ groupId: PropertyGroupId.DEFAULT,  propertyIds: [] })
         tree.push({ groupId: PropertyGroupId.COMPUTED, propertyIds: [] })
 
         const groupToProperties: { [groupId: number]: number[] } = {}
-        tree.forEach(n => {
-            groupToProperties[n.groupId] = []
-        })
+        tree.forEach(n => { groupToProperties[n.groupId] = [] })
         props.forEach(p => {
-            if (p.computed) {
-                p.propertyGroupId = PropertyGroupId.COMPUTED
-            }
-            if (p.propertyGroupId == undefined) {
-                p.propertyGroupId = PropertyGroupId.DEFAULT
-            }
-            if (groupToProperties[p.propertyGroupId]) {
-                groupToProperties[p.propertyGroupId].push(p.id)
-            }
-
+            if (p.computed) p.propertyGroupId = PropertyGroupId.COMPUTED
+            if (p.propertyGroupId == undefined) p.propertyGroupId = PropertyGroupId.DEFAULT
+            if (groupToProperties[p.propertyGroupId]) groupToProperties[p.propertyGroupId].push(p.id)
         })
-
         tree.forEach(n => {
             n.propertyIds = groupToProperties[n.groupId]
             n.propertyIds.sort((a, b) => propsOrder[a] - propsOrder[b])
         })
 
         propertyTree.value = tree
-        propertyOrder.value.groups = groupOrder
+        propertyOrder.value.groups     = groupOrder
         propertyOrder.value.properties = propsOrder
         triggerRef(propertyOrder)
     }
 
     async function triggerPropertyTreeChange() {
-        const groupOrder = {}
-        const propOrder = {}
-
+        const groupOrder: Record<number, number> = {}
+        const propOrder:  Record<number, number> = {}
         for (let i = 0; i < propertyTree.value.length; i++) {
             const val = propertyTree.value[i]
-            if (val.groupId >= 0) {
-                groupOrder[val.groupId] = i
-            }
+            if (val.groupId >= 0) groupOrder[val.groupId] = i
         }
-
         let i = 0
-        for (let node of propertyTree.value) {
-            for (let prop of node.propertyIds) {
-                i += 1
-                propOrder[prop] = i
-            }
+        for (const node of propertyTree.value) {
+            for (const prop of node.propertyIds) { i++; propOrder[prop] = i }
         }
-
         propertyOrder.value.properties = propOrder
-        propertyOrder.value.groups = groupOrder
-
+        propertyOrder.value.groups     = groupOrder
         await savePropertyOrderToStorage()
         triggerRef(properties)
     }
 
-    async function updateVectorTypes() {
-        vectorTypes.value = await apiGetVectorTypes()
+    function getSysField(instanceId: number, key: string): any {
+        const propId = _systemKeyIndex()[key]
+        if (propId === undefined) return undefined
+        const slot = columnStore.slotMap.get(instanceId)
+        if (slot === undefined) return undefined
+        return columnStore.readSlot(propId, slot)
     }
 
-    async function deleteVectorType(id: number) {
-        await apiDeleteVectorType(id)
-        await updateVectorTypes()
-    }
-
-    async function updateVectorStats() {
-        vectorStats.value = await apiGetVectorStats()
-    }
-    async function loadMaps(mapList?: PointMap[]) {
-        let idx = { ...maps.value }
-        if (!mapList) {
-            mapList = await apiListMaps()
-            idx = {}
-        }
-        if (!mapList) {
-            return
-        }
-        for (let m of mapList) {
-            if (!idx[m.id]) {
-                idx[m.id] = m
-            }
-        }
-        maps.value = idx
-    }
-
-    async function loadMapData(mapId: number) {
-        console.log(mapId)
-        // throw new TypeError(String(mapId))
-        const map = await apiGetMap(mapId)
-        maps.value[map.id] = map
-        triggerRef(maps)
-    }
-
-    async function deleteMap(mapId: number) {
-        await apiDeleteMap(mapId)
-        await loadMaps()
-        console.log(maps.value)
-        // maps.value = {}
-    }
-
-    async function loadAtlas() {
-        atlas.value = await apiGetAtlas(0)
+    function getSysId(key: string) {
+        const propId = _systemKeyIndex()[key]
+        return propId
     }
 
     return {
-        init, getTmpId, loadState, isLoaded, lastSequence, applyDelta,
-        onChange,
-        folders, instances, properties, tags, history, vectorTypes, vectorStats,
-        folderRoots, sha1Index, instanceList, propertyList, tagList,
-        propertyTree, triggerPropertyTreeChange,
-        addFolder, reImportFolder, deleteFolder,
-        addProperty, deleteProperty, updateProperty, setPropertyValue, setTagPropertyValue, setPropertyValues,
-        addTag, deleteTagParent, updateTag, addTagParent, deleteTag, mergeTags, deleteEmptyClones,
-        applyCommit, sendCommit, undo, redo, onUndo,
-        addPropertyGroup, propertyGroups, propertyGroupsList, updatePropertyGroup, deletePropertyGroup,
-        updateVectorTypes, deleteVectorType, updateVectorStats,
-        clear,
-        importFolders, importVectorTypes, applyMultipleCommits, baseImgUrl, baseUrl, loadMaps, maps, loadMapData, hasMaps, deleteMap, hasAtlas, atlas, loadAtlas
-    }
+        init, clear, isLoaded, lastSequence, applyDelta, applyCommit,
+        applyMultipleCommits, sendCommit,
 
+        folders, instances: instanceStore.instanceData, properties, tags, history,
+        propertyGroups, propertyGroupsList, propertyTree, propertyOrder,
+
+        folderRoots, tagList,
+
+        onChange,
+        get onSelectionChange() { return columnStore.onSelectionChange },
+
+        onUndo, baseImgUrl, baseUrl,
+        addFolder, reImportFolder, deleteFolder,
+        addProperty, updateProperty, deleteProperty,
+        setPropertyValue, setTagPropertyValue, setPropertyValues,
+        addTag, addTagParent, deleteTagParent, updateTag, deleteTag, mergeTags,
+        addPropertyGroup, updatePropertyGroup, deletePropertyGroup,
+        deleteEmptyClones, undo, redo,
+        triggerPropertyTreeChange, computePropertyTree,
+        importFolders,
+        propertyList,
+
+        getSysField, getSysId
+    }
 })

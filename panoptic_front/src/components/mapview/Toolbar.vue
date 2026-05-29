@@ -6,11 +6,11 @@ import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue'
 import ActionButton2 from '../actions/ActionButton2.vue'
 import { useI18n } from 'vue-i18n'
 import { Instance } from '@/data/models'
-import { useDataStore } from '@/data/dataStore'
+import { useMediaStore } from '@/data/mediaStore'
 
 const { t } = useI18n()
 
-const data = useDataStore()
+const media = useMediaStore()
 
 const props = defineProps<{
     mouseMode: string
@@ -46,11 +46,11 @@ function changeTool(tool: string) {
 
 function deleteMap() {
     if (props.selectedMap == null) return
-    useDataStore().deleteMap(props.selectedMap)
+    media.deleteMap(props.selectedMap)
 }
 
 async function updateMap(event) {
-    await data.loadMaps()
+    await media.loadMaps()
     emits('update:selectedMap', event.value.id)
 }
 

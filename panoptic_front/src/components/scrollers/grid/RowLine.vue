@@ -6,12 +6,14 @@ import { Group } from '@/core/GroupManager';
 import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
+import { useDataStore } from '@/data/dataStore';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GridPropInput from './GridPropInput.vue';
 import { TabManager } from '@/core/TabManager';
 
 const panoptic = usePanopticStore()
-const project = useProjectStore()
+const project  = useProjectStore()
+const store    = useDataStore()
 
 const props = defineProps<{
     tab: TabManager,
@@ -33,12 +35,18 @@ const hover = ref(false)
 
 
 const tab = computed(() => props.tab.state)
-const image = computed(() => {
+const rawImage = computed(() => {
     if (props.item.type == 'pile') {
         return (props.item as PileRowLine).data.images[0]
     }
     return (props.item as RowLine).data
 })
+
+// Use the reactive instance from the store so property values populated by
+// InstanceData (via register) are reflected here without an extra fetch.
+const image = computed(() =>
+    (store.instances[rawImage.value.id] ?? rawImage.value) as typeof rawImage.value
+)
 
 const pile = computed(() => {
     if (props.item.type == 'pile') {
@@ -99,14 +107,11 @@ const propWidth = computed(() => {
 
 
 const imageSize = computed(() => {
-    let imgRatio = image.value.width / image.value.height
-    let divRatio = 1
-
-    if (divRatio > imgRatio) {
+    const imgRatio = 1
+    if (1 > imgRatio) {
         return { w: tab.value.imageSize * imgRatio, h: tab.value.imageSize }
     }
     return { w: tab.value.imageSize, h: tab.value.imageSize / imgRatio }
-
 })
 
 const inputWidth = computed(() => {
@@ -181,7 +186,7 @@ watch(() => props.properties, () => {
             width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <Zoomable :image="image">
-                <CenteredImage :sha1="image.sha1" :image-width="image.width" :image-height="image.height" :width="tab.imageSize - 1" :height="rowHeight - 2" />
+                <CenteredImage :instance-id="image.id" :width="tab.imageSize - 1" :height="rowHeight - 2" />
                 <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.imageSize + 'px' }"
                     style="position: absolute; top:0; left:0; right: 0px; bottom: 0px;"></div>
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"

@@ -13,37 +13,44 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
 import { reactive, getCurrentInstance, onUnmounted, watch } from 'vue'
-import { useColumnStore } from '@/data/dataStore2'
+import { useColumnStore } from '@/data/columnStore'
+import { useInstanceStore } from '@/data/instanceStore'
+import { usePanopticStore } from '@/data/panopticStore'
+import { useDataStore } from '@/data/dataStore'
 
 const props = defineProps<{
     instanceIds?: number[]
     propIds:      number[]
 }>()
 
-const store = useColumnStore()
-const uid   = String(getCurrentInstance()!.uid)
+const columnStore   = useColumnStore()
+const data          = useDataStore()
+const instanceStore = useInstanceStore()
+const panoptic      = usePanopticStore()
+const uid           = String(getCurrentInstance()!.uid)
 
 const selected = reactive(new Set<number>())
 
 function syncSelection() {
     selected.clear()
     for (const id of (props.instanceIds ?? [])) {
-        const slot = store.slotMap.get(id)
-        if (slot !== undefined && store.isSelected(slot)) selected.add(id)
+        const slot = columnStore.slotMap.get(id)
+        if (slot !== undefined && columnStore.isSelected(slot)) selected.add(id)
     }
 }
 
-store.onSelectionChange.addListener(syncSelection)
+columnStore.onSelectionChange.addListener(syncSelection)
 onUnmounted(() => {
-    store.onSelectionChange.removeListener(syncSelection)
-    store.unregister(uid)
+    columnStore.onSelectionChange.removeListener(syncSelection)
+    instanceStore.unregister(uid)
 })
 
 watch(
     [() => props.instanceIds, () => props.propIds],
     ([ids, propIds]) => {
         if (!ids) return
-        store.register(uid, ids, propIds)
+        const projectId = panoptic.connectionState?.connectedProject ?? ''
+        instanceStore.register(uid, ids, [...propIds, data.getSysId('width'), data.getSysId('height')], projectId)
         syncSelection()
     },
     { immediate: true, deep: false }
@@ -51,5 +58,5 @@ watch(
 </script>
 
 <template>
-    <slot :instances="store.instances" :selected="selected" />
+    <slot :instances="instanceStore.instanceData" :selected="selected" />
 </template>

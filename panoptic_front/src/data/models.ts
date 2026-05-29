@@ -3,7 +3,19 @@ import { Group, GroupState, ImageIterator } from "@/core/GroupManager"
 import { SortState } from "@/core/SortManager"
 import { PluginKey } from "./panopticStore"
 
+export const deletedID = -999999999
+
+// Thin runtime object — only what's needed for display/identity.
+// All other fields (sha1, width, height, folderId, …) live in the column store.
 export interface Instance {
+    id: number
+    imageUrl: string   // base URL — append ?size=N for a specific thumbnail size
+    dist?: number      // similarity score, set by search/recommend paths
+}
+
+// Full shape as received from the server in stream chunks / commits.
+// Used only at import time to populate the column store and index maps.
+export interface RawInstance {
     id: number
     name: string
     sha1: string
@@ -11,24 +23,16 @@ export interface Instance {
     width: number
     height: number
     url: string
-    // fullUrl: string
     folderId: number
     fileId: number
     extension: string
-    properties: {
-        [id: number]: any
-    }
-    imageUrl: string   // base URL — append ?size=N for a specific thumbnail size
-    dist?: number
-    containerRatio?: number
-    containerMaxRatio?: number
 }
 
 export interface InstanceIndex {
     [id: number]: Instance
 }
 
-export type Sha1ToInstances = { [sha1: string]: Instance[] }
+export type Sha1ToInstances = { [sha1: string]: number[] }
 export type Sha1Scores = { [sha1: string]: number }
 
 // ==================================
@@ -121,7 +125,7 @@ export interface FileValuesArray {
 
 export interface InstanceValuesArray {
     propertyId: number
-    ids: string[]
+    ids: number[]
     values: any[]
 }
 
@@ -543,7 +547,7 @@ export interface DbCommit {
     emptyImageValues?: ImagePropertyValue[]
     emptyFileValues?: FilePropertyValue[]
 
-    instances?: Instance[]
+    instances?: RawInstance[]
     propertyGroups?: PropertyGroup[]
     properties?: Property[]
     tags?: Tag[]
