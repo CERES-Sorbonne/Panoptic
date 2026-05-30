@@ -42,7 +42,7 @@ const propertyValues = computed(() => {
 })
 
 function onUpdate() {
-    instanceNb.value = props.manager.result.root.images.length
+    instanceNb.value = props.manager.result.root?.slots.length ?? 0
 }
 
 onMounted(() => props.manager.onResultChange.addListener(onUpdate))
@@ -55,7 +55,7 @@ onUnmounted(() => props.manager.onResultChange.removeListener(onUpdate))
     <div class="m-0 p-0">
         <div class="header-row d-flex flex-row ps-1">
             <span v-if="props.manager.hasResult()" class=" me-1">Images: {{ instanceNb }}</span>
-            <span v-if="props.currentGroup.id != undefined"> ({{ props.currentGroup.images.length }})</span>
+            <span v-if="props.currentGroup.id != undefined"> ({{ props.currentGroup.slots.length }})</span>
             <div class="ms-3 me-1"></div>
             <template v-if="props.currentGroup.id">
                 <template v-for="value, index in propertyValues">

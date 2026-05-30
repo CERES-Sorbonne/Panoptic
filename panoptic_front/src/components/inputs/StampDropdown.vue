@@ -10,7 +10,7 @@ const data = useDataStore()
 const project = useProjectStore()
 
 const props = defineProps<{
-    images: Instance[],
+    images: Instance[] | (() => Instance[]),
     noBorder?: boolean,
     showNumber?: boolean
 }>()
@@ -46,7 +46,8 @@ async function apply() {
     const imageValues: ImagePropertyValue[] = []
 
     for (let propId of Object.keys(stamp).map(Number)) {
-        for (let img of props.images) {
+        const resolvedImages = typeof props.images === 'function' ? props.images() : props.images
+    for (let img of resolvedImages) {
             let stampValue = stamp[propId]
             if (data.properties[propId].type == PropertyType.multi_tags && stampValue) {
                 const oldTags = img.properties[propId] ?? []

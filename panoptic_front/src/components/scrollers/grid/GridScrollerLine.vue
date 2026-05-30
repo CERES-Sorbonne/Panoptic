@@ -6,6 +6,7 @@ import GroupLineVue from './GroupLine.vue';
 import RowLineVue from './RowLine.vue';
 import { SelectedImages } from '@/core/GroupManager';
 import { TabManager } from '@/core/TabManager';
+import { useColumnStore } from '@/data/columnStore';
 
 
 const props = defineProps<{
@@ -26,13 +27,15 @@ const emits = defineEmits({
     'toggle:group': Object
 })
 
+const columnStore = useColumnStore()
 const loaded = ref(true)
 
 const selected = computed(() => {
     if (props.item.type == 'image') {
-        return props.selectedImages.value[props.item.data.id]
-    } else if( props.item.type = 'pile') {
-        return props.selectedImages.value[props.item.data.images[0].id]
+        return props.selectedImages.value[(props.item as RowLine).data.id]
+    } else if (props.item.type == 'pile') {
+        const firstId = columnStore.instanceIds()[(props.item as PileRowLine).data.slots[0]]
+        return props.selectedImages.value[firstId]
     }
 })
 

@@ -151,7 +151,7 @@ watch(() => keyState.right, (state) => {
 
 <template>
     <Modal2 :id="ModalId.IMAGE" @resize="onResize" @show="onShow" @hide="onHide">
-        <template #title><b>ID: {{ image.id }}</b> | {{ image.width }} x {{ image.height }} | {{ image.name
+        <template #title><b>ID: {{ image?.id }}</b> | {{ image?.width }} x {{ image?.height }} | {{ image?.name
         }}</template>
         <template #content="{ data }">
             <div class="h-100" v-if="image">

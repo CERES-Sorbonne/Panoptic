@@ -17,7 +17,7 @@ const actions = useActionStore()
 
 const props = defineProps<{
     action: string
-    images?: Instance[]
+    images?: Instance[] | (() => Instance[])
     propertyIds?: number[]
     groupName?: string
 }>()
@@ -72,7 +72,7 @@ async function call() {
             }
             uiInputs[input.name] = input.defaultValue
         }
-        const imageIds = props.images.map(i => i.id)
+        const imageIds = (typeof props.images === 'function' ? props.images() : (props.images ?? [])).map(i => i.id)
         const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs, groupName: props.groupName }
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)

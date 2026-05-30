@@ -7,6 +7,7 @@ import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
 import { useDataStore } from '@/data/dataStore';
+import { useColumnStore } from '@/data/columnStore';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import GridPropInput from './GridPropInput.vue';
 import { TabManager } from '@/core/TabManager';
@@ -14,6 +15,7 @@ import { TabManager } from '@/core/TabManager';
 const panoptic = usePanopticStore()
 const project  = useProjectStore()
 const store    = useDataStore()
+const columnStore = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager,
@@ -37,7 +39,9 @@ const hover = ref(false)
 const tab = computed(() => props.tab.state)
 const rawImage = computed(() => {
     if (props.item.type == 'pile') {
-        return (props.item as PileRowLine).data.images[0]
+        const group = (props.item as PileRowLine).data as Group
+        const instanceId = columnStore.instanceIds()[group.slots[0]]
+        return store.instances[instanceId] ?? { id: instanceId, imageUrl: '' }
     }
     return (props.item as RowLine).data
 })
@@ -192,7 +196,7 @@ watch(() => props.properties, () => {
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                     @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"
                     class="select" :light-mode="true" />
-                <div class="image-count" v-if="pile?.images.length > 1">{{ pile.images.length }}</div>
+                <div class="image-count" v-if="pile?.slots.length > 1">{{ pile.slots.length }}</div>
             </Zoomable>
         </div>
 

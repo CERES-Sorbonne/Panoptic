@@ -5,6 +5,7 @@ import { SelectedImages } from '@/core/GroupManager';
 import { GroupLine } from '@/data/models';
 import { getGroupParents } from '@/utils/utils';
 import { Ref, computed } from 'vue';
+import { useColumnStore } from '@/data/columnStore';
 
 
 
@@ -15,6 +16,8 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
+
+const columnStore = useColumnStore()
 
 const closed = computed(() => getGroupParents(props.item.data).some(g => g.view.closed) || props.item.data.view.closed)
 
@@ -27,7 +30,10 @@ function toggleClosed() {
     }
 }
 
-const selected = computed(() => !props.item.data.images.some(i => !props.selectedImages.value[i.id]))
+const selected = computed(() => {
+    const ids = columnStore.instanceIds()
+    return !props.item.data.slots.some(s => !props.selectedImages.value[ids[s]])
+})
 
 const propertyValues = computed(() => {
     const res = []

@@ -182,7 +182,6 @@ function computeLines() {
     
     imageLines.value = lines
     console.timeEnd('compute Lines')
-    console.log(imageLines.value.length)
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {

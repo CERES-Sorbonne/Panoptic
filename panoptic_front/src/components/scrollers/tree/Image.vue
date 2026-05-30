@@ -23,6 +23,7 @@ const props = defineProps({
     constraintWidth: Boolean,
     noBorder: Boolean,
     properties: Array<Property>,
+    selected: Boolean,
     selectedPreview: Boolean
 })
 
@@ -41,10 +42,7 @@ const inst = computed(() => {
     return useInstanceStore().instanceData[id] ?? { id: id, properties: {}, baseUrl: '', sha1: '' }
 })
 
-// OPTIMIZATION: Use the slot index directly from the iterator
-const isSelected = computed(() => {
-    return props.image.slot !== undefined && store.isSelected(props.image.slot)
-})
+const isSelected = computed(() => props.selected ?? false)
 
 const hover    = ref(false)
 const hideImg  = inject('hideImg')

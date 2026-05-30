@@ -12,7 +12,8 @@ export interface InstanceEntry {
     sha1: string
     imageUrl: string
     properties: Record<number, any>
-    
+    selected: boolean
+
     width?: number
     height?: number
     [systemKey: string]: any // <-- Index signature to allow dynamic direct keys safely
@@ -51,6 +52,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
                 sha1,
                 imageUrl: `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${sha1}`,
                 properties: {},
+                selected: slot !== undefined ? columnStore.isSelected(slot) : false,
             }
 
             // 2. Direct root key value assignment

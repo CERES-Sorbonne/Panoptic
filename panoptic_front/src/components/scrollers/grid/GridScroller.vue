@@ -9,11 +9,13 @@ import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
 import {RecycleScroller} from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
+import { useColumnStore } from '@/data/columnStore';
 import { TabManager } from '@/core/TabManager';
 import InstanceData from '@/components/data/InstanceData.vue';
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
+const columnStore = useColumnStore()
 
 const props = defineProps({
     tab: TabManager,
@@ -92,12 +94,13 @@ const windowIds = computed(() => {
         if (lines[end].type === 'image' || lines[end].type === 'pile') postCount++
     }
 
+    const colIds = columnStore.instanceIds()
     for (let i = start; i <= end; i++) {
         const line = lines[i]
         if (line.type === 'image') {
             ids.push((line as RowLine).data.id)
         } else if (line.type === 'pile') {
-            for (const img of (line as PileRowLine).data.images) ids.push(img.id)
+            for (const slot of (line as PileRowLine).data.slots) ids.push(colIds[slot])
         }
     }
     return ids
@@ -107,6 +110,7 @@ const windowPropIds = computed(() => visibleProperties.value.map(p => p.id))
 
 let dataLines = []
 function computeLines() {
+    if (!props.manager.result.root) return
     console.time('Table compute lines')
     const lines = []
 
@@ -119,9 +123,7 @@ function computeLines() {
             lines.push(computeGroupLine(group))
             lastGroupId = group.id
         }
-        if (!group.view.closed && group.images.length) {
-            // console.log(group)
-            const images = current.images
+        if (!group.view.closed && group.slots.length) {
             if (group.subGroupType != GroupType.Sha1) {
                 lines.push(computeImageLine(current, group.id, current.imageIdx))
             } else {
@@ -154,12 +156,12 @@ function computeGroupLine(group: Group) {
 }
 
 function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
-    const image = it.image
+    const instanceId = columnStore.instanceIds()[it.slot]
     const res: RowLine = {
-        id: groupId + '-img:' + String(image.id),
-        data: image,
+        id: groupId + '-img:' + String(instanceId),
+        data: { id: instanceId, imageUrl: '' },
         type: 'image',
-        size: lineSizes[image.id] ?? (tabState.value.imageSize + 4),
+        size: lineSizes[instanceId] ?? (tabState.value.imageSize + 4),
         index: imageIndex,
         groupId: groupId,
         iterator: it
@@ -169,23 +171,25 @@ function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
 
 function computePileLine(it: ImageIterator) {
     const group = it.sha1Group
+    const firstId = columnStore.instanceIds()[group.slots[0]]
     const res: PileRowLine = {
-        id: group.id + '-sha1:' + String(group.images[0].id),
+        id: group.id + '-sha1:' + String(firstId),
         data: group,
         type: 'pile',
-        size: lineSizes[group.images[0].id] ?? (tabState.value.imageSize + 4),
+        size: lineSizes[firstId] ?? (tabState.value.imageSize + 4),
         iterator: it
     }
     return res
 }
 
 function resizeHeight(item: ScrollerLine, h) {
-    // console.log('resize')
     if (item.size == h) return
     item.size = h
-    
     if (item.type == 'image') {
-        lineSizes[item.data.id] = item.size
+        lineSizes[(item as RowLine).data.id] = item.size
+    } else if (item.type == 'pile') {
+        const firstId = columnStore.instanceIds()[(item as PileRowLine).data.slots[0]]
+        if (firstId !== undefined) lineSizes[firstId] = item.size
     }
 }
 

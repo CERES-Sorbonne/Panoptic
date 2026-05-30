@@ -31,18 +31,15 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:o
 const hoverGroup = ref(false)
 const group = computed(() => props.item.data)
 
-// ── RESOLVE SLOTS TO IMAGES ──────────────────────────────────────────────────
-// Maps the new array of slots back to simulated instance objects with resolved IDs
-// to preserve absolute compatibility with the rest of your system.
-const images = computed(() => {
-    const slots = props.item.data.slots ?? []
-    return slots.map(slot => ({
-        id: columnStore.instanceIds()[slot]
-    }))
-})
+const slots = computed(() => props.item.data.slots ?? [])
+
+function getImages() {
+    const ids = columnStore.instanceIds()
+    return slots.value.map(slot => ({ id: ids[slot] }))
+}
 
 const subgroups = computed(() => props.item.data.children ?? [])
-const hasImages = computed(() => images.value.length > 0)
+const hasImages = computed(() => slots.value.length > 0)
 
 const hasSubgroups = computed(() => {
     return subgroups.value.length > 0 && props.item.data.subGroupType != GroupType.Sha1
@@ -52,7 +49,10 @@ const propertyValues = computed(() => props.item.data.meta.propertyValues)
 const closed = computed(() => props.item.data.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
-const selected = computed(() => !images.value.some(i => !props.manager.selectedImages.value[i.id]))
+const selected = computed(() => {
+    const ids = columnStore.instanceIds()
+    return !slots.value.some(slot => !props.manager.selectedImages.value[ids[slot]])
+})
 
 const groupName = computed(() => {
     if (props.item.data.type == GroupType.All) return 'All'
@@ -62,13 +62,14 @@ const groupName = computed(() => {
 
 const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v.value != undefined))
 
-const instancesForExecute = computed(() => {
-    const selected = images.value.filter(i => props.manager.selectedImages.value[i.id])
+function instancesForExecute() {
+    const ids = columnStore.instanceIds()
+    const selected = slots.value.filter(slot => props.manager.selectedImages.value[ids[slot]])
     if (selected.length) {
-        return selected
+        return selected.map(slot => ({ id: ids[slot] }))
     }
-    return images.value
-})
+    return getImages()
+}
 
 async function addClusters(groups: Group[]) {
     props.manager.addCustomGroups(props.item.data.id, groups, true)
@@ -217,7 +218,7 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
             <ClusterBadge v-if="group.score" :value="Math.round(group.score.value)" />
         </div>
         
-        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ images.length }} Images
+        <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ slots.length }} Images
         </div>
         
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
@@ -226,12 +227,12 @@ function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tag
         <template v-if="!closed && !props.hideOptions">
             <div v-if="!hasSubgroups" class="ms-1 sbb">
                 <WithToolTip message="dropdown.stamp.paint_group">
-                    <StampDropdown :images="images" :no-border="true" style="font-size: 14px;" :show-number="true" />
+                    <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;" :show-number="true" />
                 </WithToolTip>
             </div>
 
             <div class="ms-1" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="images" @groups="addClusters" />
+                <ActionButton action="group" :images="getImages" @groups="addClusters" />
             </div>
             <div class="ms-1">
                 <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">

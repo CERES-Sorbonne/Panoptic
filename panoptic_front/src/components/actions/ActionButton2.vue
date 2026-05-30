@@ -18,7 +18,7 @@ const panoptic = usePanopticStore()
 
 const props = defineProps<{
     action: string
-    images?: Instance[]
+    images?: Instance[] | (() => Instance[])
     propertyIds?: number[],
     autoCall?: boolean,
     noBorder?: boolean
@@ -61,7 +61,7 @@ function loadInput() {
 
 async function call() {
     if (loading.value) return
-    const imgs = props.images ?? []
+    const imgs = typeof props.images === 'function' ? props.images() : (props.images ?? [])
     loading.value = true
     try {
         const uiInputs = {}
