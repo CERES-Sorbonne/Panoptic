@@ -217,20 +217,11 @@ function applyLeafFilterMaskAnd(
     const n = slots.length
     const propId = property.id
 
-    if (property.type === PropertyType.date) {
-        // Convert filter value once; convert slot values inline as epoch numbers
-        // to avoid 1M Date object allocations per run.
-        const fvNum = filter.value ? +new Date(filter.value) : undefined
-        for (let i = 0; i < n; i++) {
-            if (!mask[i]) continue
-            const raw = col.readSlot(propId, slots[i])
-            if (!operatorFunc(raw ? +new Date(raw) : undefined, fvNum)) mask[i] = 0
-        }
-        return
-    }
-
-    // Fast path for numeric columns (number, _width, _height, _id, color):
-    // work directly on the Float64Array to avoid readSlot + operatorFunc call overhead.
+    // Fast path for numeric columns (number, date, _width, _height, _id, color):
+    // work directly on the Float64Array to avoid readSlot + operatorFunc overhead.
+    // Dates are stored as epoch-ms in the Float64Array, so slot comparisons are plain
+    // number compares — only the filter value needs Date parsing (once, below). This
+    // removes the per-slot `new Date(raw)` allocation the old date path incurred.
     if (property.type !== PropertyType.string) {
         const buf = col.getRawBuffer(propId)
         if (buf instanceof Float64Array) {
@@ -239,7 +230,7 @@ function applyLeafFilterMaskAnd(
             if (op === FilterOperator.notSet) { for (let i = 0; i < n; i++) { if (mask[i] && !isNaN(buf[slots[i]])) mask[i] = 0 }; return }
             // For value operators, undefined filter value means "pass everything"
             if (filter.value == null) return
-            const b = Number(filter.value)
+            const b = property.type === PropertyType.date ? +new Date(filter.value as any) : Number(filter.value)
             if (isNaN(b)) return
             if (op === FilterOperator.lower)   { for (let i = 0; i < n; i++) { if (mask[i] && (isNaN(buf[slots[i]]) || buf[slots[i]] >= b)) mask[i] = 0 }; return }
             if (op === FilterOperator.leq)     { for (let i = 0; i < n; i++) { if (mask[i] && (isNaN(buf[slots[i]]) || buf[slots[i]] >  b)) mask[i] = 0 }; return }
@@ -389,9 +380,10 @@ async function filterByPluginMask(
 ): Promise<void> {
     const col = useColumnStore()
     const sha1PropId = col.systemProps.SHA1
+    const ids = col.instanceIds()
     const activeInstanceIds: number[] = []
     for (let i = 0; i < slots.length; i++) {
-        if (mask[i]) activeInstanceIds.push(col.instanceIds[slots[i]])
+        if (mask[i]) activeInstanceIds.push(ids[slots[i]])
     }
     ctx.instanceIds = activeInstanceIds
     const result = await apiCallActions({ function: fnc, context: ctx } as ExecuteActionPayload)
@@ -542,9 +534,10 @@ export class FilterManager {
 
 
 
+        const ids = col.instanceIds()
         return {
-            updated: new Set(Array.from(updated.valid,   s => col.instanceIds[s])),
-            removed: new Set(Array.from(updated.reject,  s => col.instanceIds[s])),
+            updated: new Set(Array.from(updated.valid,   s => ids[s])),
+            removed: new Set(Array.from(updated.reject,  s => ids[s])),
         }
     }
 

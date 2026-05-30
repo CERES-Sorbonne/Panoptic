@@ -13,7 +13,7 @@
 
 import { deletedID, DateUnit, DateUnitFactor, FolderIndex, GroupScoreList, PropertyID, PropertyIndex, PropertyValue, Score, ScoreList, TagIndex } from "@/data/models";
 import { Ref, reactive, shallowRef, triggerRef } from "vue";
-import { ImageOrder, SortDirection, SortOption, sortParser } from "./SortManager";
+import { SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
@@ -432,31 +432,32 @@ export class GroupManager {
         this.invalidateIterators()
 
         if (this.state.groupBy.length > 0) {
+            // Hoist tagWithParents out of the per-slot loop: build once per grouped tag property.
+            const tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } } = {}
+            for (const propId of this.state.groupBy) {
+                const property = data.properties[propId]
+                if (!isTag(property?.type) || !property.tags) continue
+                const map: { [id: number]: Set<number> } = {}
+                for (const tag of objValues(property.tags)) {
+                    map[tag.id] = new Set(tag.allParents)
+                    map[tag.id].add(tag.id)
+                }
+                tagParentsByProp[propId] = map
+            }
             for (let i = 0; i < slots.length; i++) {
-                this.addInstanceToGroups(slots[i], data.properties, data.tags)
+                this.addInstanceToGroups(slots[i], data.properties, data.tags, tagParentsByProp)
             }
         } else {
             for (let i = 0; i < slots.length; i++) {
                 this.result.root.slots.push(slots[i])
             }
+            this.result.root.dirty = true
         }
-
-        for (const group of objValues(this.result.index)) {
-            if (group.type != GroupType.Cluster) {
-                group.slots.sort((a, b) => (a <= this._posMaxSlot ? this._posArr[a] : 0) - (b <= this._posMaxSlot ? this._posArr[b] : 0))
-            }
-        }
-
-        this.result.imageToGroups = new Map()
-        for (const group of Object.values(this.result.index)) {
-            if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) continue
-            this.saveImagesToGroup(group)
-        }
-
-        setOrder(this.result.root)
+        // Slot re-sort, imageToGroups maintenance, and setOrder are done by the caller
+        // (updateSelection) over the dirty subset only — no full O(n) sweep here.
     }
 
-    addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex) {
+    addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex, tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } }) {
         const col = useColumnStore()
         const keys = []
         let previousKeys = []
@@ -467,14 +468,9 @@ export class GroupManager {
             let value = col.readSlot(propId, slot)
             value = valueParser[property.type](value)
 
-            // Build tagWithParents once per (slot × property) — acceptable for incremental path
-            const tagWithParents: { [id: number]: Set<number> } = {}
-            if (isTag(property.type) && property.tags) {
-                for (const tag of objValues(property.tags)) {
-                    tagWithParents[tag.id] = new Set(tag.allParents)
-                    tagWithParents[tag.id].add(tag.id)
-                }
-            }
+            // tagWithParents is prebuilt once per batch by the caller — hoisted out of the
+            // per-slot loop (previously rebuilt for every slot × property).
+            const tagWithParents = tagParentsByProp[propId] ?? {}
 
             let intervalEnd: Date | undefined
             if (property.type == PropertyType.date) {
@@ -716,14 +712,36 @@ export class GroupManager {
             if (group.children.length < oldLen) group.dirty = true
         }
 
+        // Incrementally maintain imageToGroups instead of rebuilding the whole map (O(n)).
+        // Drop the changed instances' non-cluster (property-leaf) memberships; cluster
+        // memberships are static (clusters don't depend on property values) so they are kept.
+        // Dirty leaves below re-add the up-to-date memberships.
+        const dropMembership = (id: number) => {
+            const set = this.result.imageToGroups.get(id)
+            if (!set) return
+            for (const gid of set) {
+                const g = this.result.index[gid]
+                if (!g || g.type != GroupType.Cluster) set.delete(gid)
+            }
+            if (set.size == 0) this.result.imageToGroups.delete(id)
+        }
+        for (const id of removed) dropMembership(id)
+        for (const id of updated) dropMembership(id)
+
         for (const group of objValues(this.result.index)) {
             if (!group.dirty) continue
             if (group.subGroupType == GroupType.Property) {
                 const option = this.state.options[group.children[0].meta.propertyValues[0].propertyId]
                 sortGroup(group, option)
             }
-            if (group.type == GroupType.Property) {
+            if (group.type != GroupType.Cluster) {
                 group.slots.sort((a, b) => (a <= this._posMaxSlot ? this._posArr[a] : 0) - (b <= this._posMaxSlot ? this._posArr[b] : 0))
+            }
+            // Re-add reverse-index entries for dirty leaves only (property leaves, or root when
+            // ungrouped). sha1 sub-groups were removed at the top of updateSelection, so
+            // children.length === 0 reliably identifies a leaf here.
+            if (group.children.length == 0 && group.type != GroupType.Cluster) {
+                this.saveImagesToGroup(group)
             }
             group.dirty = false
         }
@@ -923,14 +941,18 @@ export class GroupManager {
             } else if (isTagType) {
                 const tagIds = rawBuf?.[s] as number[] | null
                 if (!Array.isArray(tagIds) || !tagIds.length) continue
-                const withParents = new Set<number>()
+                // Dedup expanded parents within this slot without allocating a Set: while
+                // slot s is being processed, any bucket we push s into has s as its last
+                // element until we move on, so a last-element check collapses the duplicate
+                // parents shared across the slot's tags.
                 for (const v of tagIds) {
                     if (!v) continue
                     const parents = tagWithParents[v]
-                    if (parents) for (const p of parents) withParents.add(p)
-                }
-                for (const kv of withParents) {
-                    let arr = buckets.get(kv); if (!arr) { arr = []; buckets.set(kv, arr) }; arr.push(s)
+                    if (!parents) continue
+                    for (const p of parents) {
+                        let arr = buckets.get(p); if (!arr) { arr = []; buckets.set(p, arr) }
+                        if (arr.length === 0 || arr[arr.length - 1] !== s) arr.push(s)
+                    }
                 }
             } else {
                 // Direct buffer read avoids readSlot switch dispatch; cached parser handles type normalization.

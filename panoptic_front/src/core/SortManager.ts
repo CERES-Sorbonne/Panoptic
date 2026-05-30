@@ -35,7 +35,6 @@ export interface SortState {
 export type ImageOrder = { [slot: number]: number }
 
 export interface SortResult {
-    order: ImageOrder
     slots: Int32Array
 }
 
@@ -204,16 +203,24 @@ function sortByPackedKey(slots: Int32Array, sortCols: SortCols, orders: number[]
         const col = sortCols[k]
         const ascending = orders[k] === 1
 
-        const vals: any[] = new Array(n)
+        // Gather this column's values for the input slots. Numeric columns use a
+        // Float64Array (no per-element boxing into a JS array) and the native numeric
+        // TypedArray.sort(); string columns keep a string[].
+        let vals: Float64Array | string[]
+        let unique: Float64Array | string[]
         if (col instanceof Float64Array) {
-            for (let i = 0; i < n; i++) vals[i] = col[slots[i]]
+            const v = new Float64Array(n)
+            for (let i = 0; i < n; i++) v[i] = col[slots[i]]
+            vals = v
+            unique = Float64Array.from(new Set(v))
+            unique.sort()
         } else {
-            for (let i = 0; i < n; i++) vals[i] = (col as string[])[slots[i]]
+            const sc = col as string[]
+            const v: string[] = new Array(n)
+            for (let i = 0; i < n; i++) v[i] = sc[slots[i]]
+            vals = v
+            unique = Array.from(new Set(v)).sort()
         }
-
-        const unique: any[] = Array.from(new Set(vals))
-        if (col instanceof Float64Array) unique.sort((a, b) => a - b)
-        else unique.sort()
 
         const numUnique = unique.length
         // packed[i] = sortKey * n + i; check (keyScale * numUnique) * n fits in MAX_SAFE_INTEGER
@@ -321,7 +328,7 @@ export class SortManager {
         this.onStateChange = new EventEmitter()
         this.state = createSortState()
         if (state) Object.assign(this.state, state)
-        this.result = { slots: new Int32Array(0), order: {} }
+        this.result = { slots: new Int32Array(0) }
     }
 
     // ── Column requirements ────────────────────────────────────────────────
@@ -338,7 +345,7 @@ export class SortManager {
     // ── Public API ─────────────────────────────────────────────────────────
 
     clear() {
-        this.result = { slots: new Int32Array(0), order: {} }
+        this.result = { slots: new Int32Array(0) }
         this._sortCols = null
     }
 
@@ -379,8 +386,6 @@ export class SortManager {
             })()
         }
 
-        this.result.order = {}
-        for (let i = 0; i < sorted.length; i++) this.result.order[sorted[i]] = i
         this.result.slots = sorted
 
         console.timeEnd('Sort')
@@ -442,9 +447,6 @@ export class SortManager {
 
         const res = mergeInsertSorted(this.result.slots, insertArr, removedSlots, updatedSlots, cols, orders)
         this.result.slots = res
-        this.result.order = {}
-        for (let i = 0; i < res.length; i++) this.result.order[res[i]] = i
-
 
         return this.result
     }
