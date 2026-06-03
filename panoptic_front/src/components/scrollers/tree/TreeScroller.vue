@@ -180,7 +180,7 @@ function computeLines() {
         it = it.nextGroup()
     }
     
-    imageLines.value = lines
+    imageLines.value = lines.map(l => shallowReactive(l))
     console.timeEnd('compute Lines')
 }
 
