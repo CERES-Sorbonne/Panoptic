@@ -4,9 +4,11 @@ import StampForm from '../forms/StampForm.vue';
 import { nextTick, reactive, ref } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
 import { useDataStore } from '@/data/dataStore';
+import { useColumnStore } from '@/data/columnStore';
 import { useProjectStore } from '@/data/projectStore';
 
 const data = useDataStore()
+const columnStore = useColumnStore()
 const project = useProjectStore()
 
 const props = defineProps<{
@@ -49,8 +51,10 @@ async function apply() {
         const resolvedImages = typeof props.images === 'function' ? props.images() : props.images
     for (let img of resolvedImages) {
             let stampValue = stamp[propId]
+            const slot = columnStore.slotMap.get(img.id)
+            if (slot === undefined) continue
             if (data.properties[propId].type == PropertyType.multi_tags && stampValue) {
-                const oldTags = img.properties[propId] ?? []
+                const oldTags = (columnStore.readSlot(propId, slot) ?? [])
                 if (!modes[propId]) {
                     stampValue = Array.from(new Set([...oldTags, ...stampValue]))
                 }
@@ -67,7 +71,7 @@ async function apply() {
                 const value: InstancePropertyValue = { propertyId: propId, instanceId: img.id, value: stampValue }
                 instanceValues.push(value)
             } else {
-                const value: ImagePropertyValue = { propertyId: propId, sha1: img.sha1, value: stampValue }
+                const value: ImagePropertyValue = { propertyId: propId, sha1: columnStore.sha1s()[slot], value: stampValue }
                 imageValues.push(value)
             }
         }
