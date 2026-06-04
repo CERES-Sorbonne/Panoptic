@@ -708,7 +708,7 @@ export interface PropertyGroupOrder {
 
 export enum PropertyGroupId {
     DEFAULT = -1,
-    COMPUTED = -2
+    METADATA = -2
 }
 
 export interface LoadResult {

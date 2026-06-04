@@ -549,12 +549,12 @@ export const useDataStore = defineStore('dataStore', () => {
         const tree: PropertyGroupNode[] = groups.map(g => ({ groupId: g.id, propertyIds: [] }))
         tree.sort((a, b) => groupOrder[a.groupId] - groupOrder[b.groupId])
         tree.push({ groupId: PropertyGroupId.DEFAULT,  propertyIds: [] })
-        tree.push({ groupId: PropertyGroupId.COMPUTED, propertyIds: [] })
+        tree.push({ groupId: PropertyGroupId.METADATA, propertyIds: [] })
 
         const groupToProperties: { [groupId: number]: number[] } = {}
         tree.forEach(n => { groupToProperties[n.groupId] = [] })
         props.forEach(p => {
-            if (p.computed) p.propertyGroupId = PropertyGroupId.COMPUTED
+            if (p.systemKey) p.propertyGroupId = PropertyGroupId.METADATA
             if (p.propertyGroupId == undefined) p.propertyGroupId = PropertyGroupId.DEFAULT
             if (groupToProperties[p.propertyGroupId]) groupToProperties[p.propertyGroupId].push(p.id)
         })

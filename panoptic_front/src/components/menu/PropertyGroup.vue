@@ -2,6 +2,7 @@
 import { useDataStore } from '@/data/dataStore';
 import { DbCommit, ModalId, PropertyGroup, PropertyGroupId, PropertyGroupNode } from '@/data/models';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import PropertyOptions from './PropertyOptions.vue';
 import TextInput from '../property_inputs/TextInput.vue';
 import { TabManager } from '@/core/TabManager';
@@ -12,6 +13,7 @@ import WithToolTip from '../tooltips/withToolTip.vue';
 
 const data = useDataStore()
 const panoptic = usePanopticStore()
+const { t } = useI18n()
 
 const props = defineProps<{
     tab: TabManager
@@ -34,8 +36,8 @@ const group = computed(() => {
     if (props.node.groupId == PropertyGroupId.DEFAULT) {
         return { id: PropertyGroupId.DEFAULT, name: 'default' }
     }
-    if (props.node.groupId == PropertyGroupId.COMPUTED) {
-        return { id: PropertyGroupId.COMPUTED, name: 'computed' }
+    if (props.node.groupId == PropertyGroupId.METADATA) {
+        return { id: PropertyGroupId.METADATA, name: t('common.properties.metadata') }
     }
 })
 
