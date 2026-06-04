@@ -563,7 +563,12 @@ class EntitySchema(_typing.Generic[T]):
         pf = _parse_filters(filters)
         return self._execute_chunked(tx, f'SELECT {col_clause}', pf)
 
-    def get(self, tx: Cursor, **filters) -> list[T]:
+    def get(self, tx: Cursor, state: int = 1, **filters) -> list[T]:
+        if self.trackable and 'operation' not in filters:
+            if state == 1:
+                filters['operation'] = [OP_CREATE, OP_UPDATE]
+            elif state == -1:
+                filters['operation'] = OP_DELETE
         pf   = _parse_filters(filters)
         rows = self._execute_chunked(tx, "SELECT *", pf)
         return [self._decode_row(r) for r in rows]
@@ -628,8 +633,8 @@ class EntitySchema(_typing.Generic[T]):
         db_objs = self.get_by_pk_index(tx, pk_list)
         return db_objs
 
-    def get_index(self, tx: Cursor, **filters) -> dict[Any, T]:
-        objs = self.get(tx, **filters)
+    def get_index(self, tx: Cursor, state: int = 1, **filters) -> dict[Any, T]:
+        objs = self.get(tx, state=state, **filters)
         if len(self._pk_names) == 1:
             pk = self._pk_names[0]
             return {getattr(obj, pk): obj for obj in objs}

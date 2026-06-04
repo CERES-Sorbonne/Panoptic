@@ -13,6 +13,7 @@ import { useColumnStore } from '@/data/columnStore' // <-- Imported columnStore
 import { allChildrenSha1Groups } from '@/utils/utils'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import WithToolTip from '../../tooltips/withToolTip.vue'
+import { apiAllocateTags } from '@/data/apiProjectRoutes'
 
 const data = useDataStore()
 const columnStore = useColumnStore() // <-- Initialized column store
@@ -35,7 +36,8 @@ const slots = computed(() => props.item.data.slots ?? [])
 
 function getImages() {
     const ids = columnStore.instanceIds()
-    return slots.value.map(slot => ({ id: ids[slot] }))
+    const sha1s = columnStore.sha1s()
+    return slots.value.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot] }))
 }
 
 const subgroups = computed(() => props.item.data.children ?? [])
@@ -64,9 +66,10 @@ const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v
 
 function instancesForExecute() {
     const ids = columnStore.instanceIds()
+    const sha1s = columnStore.sha1s()
     const selected = slots.value.filter(slot => props.manager.selectedImages.value[ids[slot]])
     if (selected.length) {
-        return selected.map(slot => ({ id: ids[slot] }))
+        return selected.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot] }))
     }
     return getImages()
 }
@@ -107,79 +110,82 @@ function openChildren() {
 const saving = ref(false)
 async function saveHirachy(ignoreParents?: boolean) {
     if (saving.value) return
-
     saving.value = true
+
     const children = group.value.children
     const mode = allChildrenSha1Groups(group.value) ? PropertyMode.sha1 : PropertyMode.id
-    console.log(mode)
+
+    // Count how many tags are needed before allocating
+    const tagCount = countTags(children, ignoreParents)
+
+    // Allocate real IDs for the property and all tags in parallel
     const property: Property = { id: -1, name: 'Clustering', type: PropertyType.multi_tags, mode: mode }
-    let id = 0
-    const idFunc = () => { id -= 1; return id }
+    const [realTagIds, realPropId] = await Promise.all([
+        apiAllocateTags(tagCount),
+        data.sendCommit({ properties: [property] }).then(res => res.properties[0].id),
+    ])
+
+    // Build tags directly with real IDs using an index into the allocated range
+    let idxRef = { i: 0 }
+    const nextId = () => realTagIds[idxRef.i++]
     const tagToImages: { [tagId: number]: any[] } = {}
-    let tags = childrenToTags(children, idFunc, undefined, tagToImages, property.id)
-
-    if (ignoreParents) {
-        const hasChildren = {}
-        for (let tag of tags) {
-            if (tag.parents) {
-                tag.parents.forEach(p => hasChildren[p] = true)
-            }
-        }
-
-        for (let tagId of Object.keys(hasChildren).map(Number)) {
-            delete tagToImages[tagId]
-        }
-        tags = tags.filter(t => !hasChildren[t.id])
-        tags.forEach(t => t.parents = [])
-    }
+    const tags = childrenToTags(children, nextId, undefined, tagToImages, realPropId, ignoreParents)
 
     const instanceValues: InstancePropertyValue[] = []
     const imageValues: ImagePropertyValue[] = []
-    for (let tagId in tagToImages) {
-        const images = tagToImages[tagId]
-        for (let img of images) {
+    for (const tagId in tagToImages) {
+        for (const img of tagToImages[tagId]) {
             if (mode == PropertyMode.id) {
-                instanceValues.push({ propertyId: property.id, instanceId: img.id, value: [Number(tagId)] })
+                instanceValues.push({ propertyId: realPropId, instanceId: img.id, value: [Number(tagId)] })
             } else {
-                imageValues.push({ propertyId: property.id, sha1: data.getSysField(img.id, 'sha1'), value: [Number(tagId)] })
+                imageValues.push({ propertyId: realPropId, sha1: data.getSysField(img.id, 'sha1'), value: [Number(tagId)] })
             }
         }
     }
 
-    const commit: DbCommit = {
-        properties: [property],
-        tags: tags,
-        instanceValues: instanceValues,
-        imageValues: imageValues
-    }
-
-    await data.sendCommit(commit)
+    await data.sendCommit({ tags, instanceValues, imageValues })
     saving.value = false
 }
 
-function childrenToTags(children: Group[], idFunc: Function, parentTag: Tag, tagToImages: { [tagId: number]: any[] }, propertyId: number) {
+function countTags(children: Group[], ignoreParents?: boolean): number {
+    let count = 0
+    for (const child of children) {
+        const hasSubgroups = child.children.length > 0 && child.subGroupType != GroupType.Sha1
+        if (hasSubgroups) {
+            if (!ignoreParents) count++ // parent tag
+            count += countTags(child.children, ignoreParents)
+        } else {
+            count++
+        }
+    }
+    return count
+}
+
+function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag | undefined, tagToImages: { [tagId: number]: any[] }, propertyId: number, ignoreParents?: boolean) {
     const res: Tag[] = []
     const prefix = parentTag?.value ?? ('Clustering_' + children.length)
-    const parents = []
-    if (parentTag) {
-        parents.push(parentTag.id)
-    }
+    const parentIds = parentTag && !ignoreParents ? [parentTag.id] : []
 
     for (let i = 0; i < children.length; i++) {
         const child = children[i]
-        const value = prefix + '.' + i
-        const tag = buildTag(idFunc(), propertyId, value, parents)
-        res.push(tag)
+        const hasSubgroups = child.children.length > 0 && child.subGroupType != GroupType.Sha1
 
-        if (child.children.length && child.subGroupType != GroupType.Sha1) {
-            const subRes = childrenToTags(child.children, idFunc, tag, tagToImages, propertyId)
+        if (hasSubgroups && ignoreParents) {
+            // Skip intermediate parent tags — recurse directly without creating a tag for this level
+            const subRes = childrenToTags(child.children, nextId, parentTag, tagToImages, propertyId, ignoreParents)
             res.push(...subRes)
         } else {
-            // <-- UPDATED: Read from child.slots and resolve to instance objects matching shape expectations
-            const childSlots = child.slots ?? []
-            tagToImages[tag.id] = childSlots.map(slot => ({
-                id: columnStore.instanceIds()[slot]
-            }))
+            const tag = buildTag(nextId(), propertyId, prefix + '.' + i, parentIds)
+            res.push(tag)
+
+            if (hasSubgroups) {
+                const subRes = childrenToTags(child.children, nextId, tag, tagToImages, propertyId, ignoreParents)
+                res.push(...subRes)
+            } else {
+                const childSlots = child.slots ?? []
+                const ids = columnStore.instanceIds()
+                tagToImages[tag.id] = childSlots.map(slot => ({ id: ids[slot] }))
+            }
         }
     }
     return res

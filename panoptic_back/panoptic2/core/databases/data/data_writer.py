@@ -5,7 +5,8 @@ from typing import Any
 from panoptic2.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
     TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, \
     FILE_VALUES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA
-from panoptic2.core.databases.entity_schema import EntitySchema, PropertyValueSchema, OP_CREATE, OP_DELETE
+from msgspec.structs import replace as msgspec_replace
+from panoptic2.core.databases.entity_schema import EntitySchema, PropertyValueSchema, OP_CREATE, OP_UPDATE, OP_DELETE
 from panoptic2.core.databases.sqlite_db import SQLiteWriter
 from panoptic2.models.models import PropertyType
 from panoptic2.core.databases.data.models import (
@@ -60,9 +61,9 @@ class DataWriter(SQLiteWriter):
             if group_id is None:
                 group_id = commit_id
 
-            # Not needed for now because we do only logic delete without cleaning the base
-            # Process cascade logic first
-            # sha1_values, instance_values = self._cascade_delete_logic(tx, data)
+            # Cascade first while entities are still active in the current-state table
+            self._cascade_delete_properties(tx, data, commit_id, sequence)
+            self._cascade_delete_tags(tx, data, commit_id, sequence)
 
             # Handle revert operations for each table using the same pattern as upserts
             if data.file_sources:
@@ -163,6 +164,9 @@ class DataWriter(SQLiteWriter):
         # Get existing state indexed by ID
         existing = FILE_SOURCES_SCHEMA.get_index(tx, id=list(data.file_sources.keys()))
 
+        for s in sources:
+            s.operation = OP_CREATE if s.id not in existing else OP_UPDATE
+
         updated = [
             FILE_SOURCES_SCHEMA.merge_logs([existing.get(s.id), s])
             for s in sources
@@ -176,6 +180,9 @@ class DataWriter(SQLiteWriter):
         set_commit(folders, commit_id)
 
         existing = FOLDERS_SCHEMA.get_index(tx, id=list(data.folders.keys()))
+
+        for f in folders:
+            f.operation = OP_CREATE if f.id not in existing else OP_UPDATE
 
         updated = [
             FOLDERS_SCHEMA.merge_logs([existing.get(f.id), f])
@@ -192,6 +199,9 @@ class DataWriter(SQLiteWriter):
 
         existing = FILES_SCHEMA.get_index(tx, id=list(data.files.keys()))
 
+        for f in files:
+            f.operation = OP_CREATE if f.id not in existing else OP_UPDATE
+
         updated = [
             FILES_SCHEMA.merge_logs([existing.get(f.id), f])
             for f in files
@@ -206,6 +216,9 @@ class DataWriter(SQLiteWriter):
         set_commit(instances, commit_id)
 
         existing = INSTANCES_SCHEMA.get_index(tx, id=list(data.instances.keys()))
+
+        for i in instances:
+            i.operation = OP_CREATE if i.id not in existing else OP_UPDATE
 
         updated = [
             INSTANCES_SCHEMA.merge_logs([existing.get(i.id), i])
@@ -222,6 +235,9 @@ class DataWriter(SQLiteWriter):
 
         existing = PROPERTIES_SCHEMA.get_index(tx, id=list(data.properties.keys()))
 
+        for p in properties:
+            p.operation = OP_CREATE if p.id not in existing else OP_UPDATE
+
         updated = [
             PROPERTIES_SCHEMA.merge_logs([existing.get(p.id), p])
             for p in properties
@@ -236,6 +252,9 @@ class DataWriter(SQLiteWriter):
         set_commit(tags, commit_id)
 
         existing = TAGS_SCHEMA.get_index(tx, id=list(data.tags.keys()))
+
+        for t in tags:
+            t.operation = OP_CREATE if t.id not in existing else OP_UPDATE
 
         updated = [
             TAGS_SCHEMA.merge_logs([existing.get(t.id), t])
@@ -399,6 +418,31 @@ class DataWriter(SQLiteWriter):
             FILE_VALUES_SCHEMA.upsert(tx, final_values, sequence=sequence)
 
         FILE_VALUES_SCHEMA.append_log(tx, all_updates, commit_id=commit_id)
+
+    def _cascade_delete_properties(self, tx: Cursor, data: DeleteCommit, commit_id: int, sequence: int):
+        if not data.properties:
+            return
+        properties = PROPERTIES_SCHEMA.get_index(tx, id=list(data.properties))
+        _tag_dtypes = {PropertyType.tag.value, PropertyType.multi_tags.value}
+
+        tag_prop_ids     = [pid for pid, p in properties.items() if p.dtype in _tag_dtypes]
+        non_tag_prop_ids = [pid for pid, p in properties.items() if p.dtype not in _tag_dtypes]
+
+        if tag_prop_ids:
+            self._delete_function(tx, TAGS_SCHEMA,                commit_id, sequence, list_id=tag_prop_ids)
+            self._delete_function(tx, INSTANCE_TAG_VALUES_SCHEMA, commit_id, sequence, property_id=tag_prop_ids)
+            self._delete_function(tx, SHA1_TAG_VALUES_SCHEMA,     commit_id, sequence, property_id=tag_prop_ids)
+        if non_tag_prop_ids:
+            self._delete_function(tx, INSTANCE_VALUES_SCHEMA, commit_id, sequence, property_id=non_tag_prop_ids)
+            self._delete_function(tx, SHA1_VALUES_SCHEMA,     commit_id, sequence, property_id=non_tag_prop_ids)
+            self._delete_function(tx, FILE_VALUES_SCHEMA,     commit_id, sequence, property_id=non_tag_prop_ids)
+
+    def _cascade_delete_tags(self, tx: Cursor, data: DeleteCommit, commit_id: int, sequence: int):
+        if not data.tags:
+            return
+        tag_ids = list(data.tags)
+        self._delete_function(tx, INSTANCE_TAG_VALUES_SCHEMA, commit_id, sequence, tag_id=tag_ids)
+        self._delete_function(tx, SHA1_TAG_VALUES_SCHEMA,     commit_id, sequence, tag_id=tag_ids)
 
     @staticmethod
     def _delete_function(tx: Cursor, shema: EntitySchema, commit_id: int, sequence: int, **fields):

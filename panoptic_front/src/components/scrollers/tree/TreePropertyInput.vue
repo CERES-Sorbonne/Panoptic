@@ -89,7 +89,18 @@ watch(() => inputs.requestInput, async (val) => {
 </script>
 
 <template>
-    <DBInput v-if="props.instance.id != deletedID" :instance="props.instance" :property-id="props.property.id">
+    <!-- Read-only display for system properties (those with a systemKey) -->
+    <div v-if="props.property.systemKey"
+        class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px; font-size: 14px;">
+        <PropertyIcon :type="property.type" style="margin-right: 3px;" />
+        <span v-if="property.type == PropertyType._folders">
+            <TagBadge :name="data.folders[props.instance.properties[props.property.id]]?.name" :color="-1" />
+        </span>
+        <span v-else>{{ props.instance.properties[props.property.id] }}</span>
+    </div>
+
+    <!-- Editable input for regular properties -->
+    <DBInput v-else-if="props.instance.id != deletedID" :instance="props.instance" :property-id="props.property.id">
         <template #default="{ value, set }">
             <div class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px;font-size: 14px;">
                 <WithToolTip :message="props.property.name">
@@ -125,7 +136,6 @@ watch(() => inputs.requestInput, async (val) => {
                 <RowDateInput v-else-if="props.property.type == PropertyType.date" :model-value="value" :teleport="true"
                     @update:model-value="set" :width="width" ref="focusElem" @focus="onFocus"
                     @tab="inputs.requestInputNav()" @hide="onHide" />
-
 
                 <div v-else class="d-flex flex-row overflow-hidden text-nowrap">
                     <PropertyIcon :type="property.type" style="margin-right: 3px;" />

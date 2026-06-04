@@ -24,6 +24,7 @@ from panoptic2.models.stream_models import (
     FileValuesColumn, FullInstance, ImageValuesColumn, InstanceValuesColumn,
     LoadState, StreamChunk, StreamResult,
 )
+from panoptic2.core.databases.entity_schema import OP_DELETE
 from panoptic2.routes.deps import get_project
 
 project_router = APIRouter(prefix='/projects/{project_id}')
@@ -441,6 +442,12 @@ def get_tags(project: Project2 = Depends(_dep)):
 @project_router.get('/tags/counts')
 def get_tag_counts(property_id: int | None = None, project: Project2 = Depends(_dep)):
     return project.get_tag_counts(property_id=property_id)
+
+
+@project_router.get('/allocate/tags')
+def allocate_tags(n: int = 1, project: Project2 = Depends(_dep)):
+    ids = _to_ids(project.allocate_tags(n), n)
+    return list(ids)
 
 
 @project_router.get('/folders')

@@ -15,7 +15,7 @@ from panoptic2.core.databases.data.models import (
     InstanceTagValue, Sha1TagValue,
 )
 from panoptic2.models.models import PropertyType
-from panoptic2.core.databases.entity_schema import OP_CREATE, OP_DELETE, OP_DELETE
+from panoptic2.core.databases.entity_schema import OP_CREATE, OP_UPDATE, OP_DELETE
 
 _TAG_DTYPES = {PropertyType.tag.value, PropertyType.multi_tags.value}
 

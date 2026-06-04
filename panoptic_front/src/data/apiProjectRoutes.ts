@@ -350,6 +350,11 @@ export async function apiRedo() {
     return keysToCamel(res.data) as DbCommit
 }
 
+export async function apiAllocateTags(n: number): Promise<number[]> {
+    const res = await projectApi.get('/allocate/tags', { params: { n } })
+    return res.data as number[]
+}
+
 export async function apiCommitUpsert(commit: DbCommit): Promise<DbCommit> {
     const fixed: any = {}
     if (commit.properties?.length) fixed.properties = commit.properties.map(p => keysToSnake(p))

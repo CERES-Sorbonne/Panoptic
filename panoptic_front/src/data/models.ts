@@ -177,7 +177,8 @@ export interface DeleteTagResult {
 }
 
 export function buildTag(id: number, propertyId: number, value: string, parents?: number[], color: number = -1) {
-    return { id, propertyId, value, parents: parents ?? [], color: color }
+    const resolvedColor = color === -1 ? Math.floor(Math.random() * 12) % 12 : color
+    return { id, propertyId, value, parents: parents ?? [], color: resolvedColor }
 }
 
 //=============================

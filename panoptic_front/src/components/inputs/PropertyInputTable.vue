@@ -54,8 +54,8 @@ async function paint(index: number, propertyId: number) {
                             {{ data.properties[property.id].name }}
                         </span>
                     </td>
-                    <td v-if="property.id > 0" class="ps-1 border-left" style="width: 100%;">
-                        <GridPropInput v-if="property.id > 0" :property="data.properties[property.id]" :instance="image"
+                    <td v-if="property.id > 0 && !property.systemKey" class="ps-1 border-left" style="width: 100%;">
+                        <GridPropInput :property="data.properties[property.id]" :instance="image"
                             :width="-1" :min-height="property.type == PropertyType.color ? 24 : 20"
                             :ref="e => inputElem[property.id] = e" />
                     </td>
@@ -63,11 +63,11 @@ async function paint(index: number, propertyId: number) {
                         <p v-if="property.type != PropertyType._folders" class="m-0 p-0">{{
                             image.properties[property.id] }}</p>
                         <span v-else>
-                            <TagBadge :name="data.folders[image.properties[property.id]].name" :color="-1" />
+                            <TagBadge v-if="data.folders[image.properties[property.id]]" :name="data.folders[image.properties[property.id]].name" :color="-1" />
                         </span>
                     </td>
 
-                    <td v-if="!property.computed" class="border-left"
+                    <td v-if="!property.computed && !property.systemKey" class="border-left"
                         style="padding: 2px 3px; width: 44px;">
                         <div class="d-flex flex-row justify-content-center align-items-center gap-1">
                             <span class="btn-icon" @mouseup="paint(index, property.id)"
