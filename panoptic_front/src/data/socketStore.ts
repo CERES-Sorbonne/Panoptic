@@ -43,7 +43,7 @@ export const useSocketStore = defineStore('socketStore', () => {
         try {
             const fullPropIds = useColumnStore().getFullyLoadedPropIds()
             const delta = await apiGetDelta(dataStore.lastSequence, { fullPropIds, pointPropIds: [], instanceIds: [] })
-            dataStore.applyDelta(delta)
+            await dataStore.applyDelta(delta)
         } finally {
             isSyncing = false
             if (pendingUpdate) processDelta()

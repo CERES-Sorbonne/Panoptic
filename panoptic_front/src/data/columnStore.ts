@@ -415,6 +415,8 @@ export const useColumnStore = defineStore('columnStore', () => {
                 }
 
                 // UPDATE WHEN LOADED
+                const parseValue = (v: any) => typeof v === 'string' ? JSON.parse(v) : v
+
                 // Process Instance Values
                 if (result.instanceValues) {
                     const chunks = result.instanceValues.filter(v => v.propertyId === propId)
@@ -422,7 +424,7 @@ export const useColumnStore = defineStore('columnStore', () => {
                         const ids = (chunk as any).instanceIds || (chunk as any).ids || []
                         for (let i = 0; i < ids.length; i++) {
                             const slot = slotMap.get(Number(ids[i]))
-                            if (slot !== undefined) writeSlot(propId, slot, chunk.values[i])
+                            if (slot !== undefined) writeSlot(propId, slot, parseValue(chunk.values[i]))
                         }
                     }
                 }
@@ -433,9 +435,10 @@ export const useColumnStore = defineStore('columnStore', () => {
                     for (const chunk of chunks) {
                         for (let i = 0; i < chunk.sha1s.length; i++) {
                             const matchingIds = getInstancesBySha1(chunk.sha1s[i])
+                            const parsed = parseValue(chunk.values[i])
                             for (const id of matchingIds) {
                                 const slot = slotMap.get(id)
-                                if (slot !== undefined) writeSlot(propId, slot, chunk.values[i])
+                                if (slot !== undefined) writeSlot(propId, slot, parsed)
                             }
                         }
                     }
@@ -447,9 +450,10 @@ export const useColumnStore = defineStore('columnStore', () => {
                     for (const chunk of chunks) {
                         for (let i = 0; i < chunk.fileIds.length; i++) {
                             const matchingIds = getInstancesByFileId(chunk.fileIds[i])
+                            const parsed = parseValue(chunk.values[i])
                             for (const id of matchingIds) {
                                 const slot = slotMap.get(id)
-                                if (slot !== undefined) writeSlot(propId, slot, chunk.values[i])
+                                if (slot !== undefined) writeSlot(propId, slot, parsed)
                             }
                         }
                     }

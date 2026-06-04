@@ -7,6 +7,7 @@ import wTT from '../tooltips/withToolTip.vue'
 import { Group } from '@/core/GroupManager';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
+import { useColumnStore } from '@/data/columnStore';
 import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils';
 import ActionSelect from '../actions/ActionSelect.vue';
 import { TabManager } from '@/core/TabManager';
@@ -18,6 +19,7 @@ interface Sha1Pile {
 }
 const data = useDataStore()
 const actions = useActionStore()
+const col = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager
@@ -66,11 +68,16 @@ async function acceptRecommend(image: Instance) {
         }
     })
     await data.setPropertyValues(instanceValues, imageValues)
+    refuseRecommend(image)
 }
 
 function refuseRecommend(image: Instance) {
     if (searchResult.value.isSha1Group) {
-        searchResult.value.images.filter(img => img.sha1 == image.sha1).forEach(img => blacklist.add(img.id))
+        const ids = col.instanceIds()
+        searchResult.value.slots
+            .map(s => data.instances[ids[s]])
+            .filter(img => img?.sha1 == image.sha1)
+            .forEach(img => blacklist.add(img.id))
     } else {
         blacklist.add(image.id)
     }
@@ -82,13 +89,13 @@ function computeLines() {
     // console.log(props.width, props.imageSize)
     let piles = []
     // const images = searchResult.value.images
-    const images = activeImages.map(id => data.instances[id])
+    const images = activeImages.map(id => data.instances[id]).filter(Boolean)
     if (searchResult.value.isSha1Group) {
         const index = {}
         const sha1s = Array.from(new Set(images.map(i => i.sha1)))
         sha1s.forEach(s => index[s] = [])
         images.forEach(i => index[i.sha1].push(i))
-        sha1s.forEach(sha1 => piles.push({ sha1, images: data.sha1Index[sha1] }))
+        sha1s.forEach(sha1 => piles.push({ sha1, images: col.getInstancesBySha1(sha1).map(id => data.instances[id]).filter(Boolean) }))
     }
     else {
         images.forEach(img => piles.push({ sha1: img.sha1, images: [img] }))
@@ -138,17 +145,20 @@ async function getReco() {
     if (!actions.hasSimilaryFunction) return
     const func = actions.defaultActions['similar']
     const ctx = actions.getContext(func)
-    ctx.instanceIds = props.group.images.map(i => i.id)
+    const ids = col.instanceIds()
+    ctx.instanceIds = props.group.slots.map(s => ids[s])
     const res = await actions.getSimilarImages(ctx)
     if (!res) return
     if (!res.groups) throw new Error('No instances in ActionResult')
 
-    let groups = convertSearchGroupResult(res.groups, ctx)
+    let groups = convertSearchGroupResult(res.groups)
     let group = groups[0]
 
     if (useFilter.value) {
-        const valid = new Set(props.tab.collection.filterManager.result.images.map(i => i.id))
-        group.images = group.images.filter(i => valid.has(i.id))
+        const valid = new Set(
+            Array.from(props.tab.collection.filterManager.result.slots).map(s => ids[s])
+        )
+        group.slots = group.slots.filter(s => valid.has(ids[s]))
     }
 
     if (group.scores) {
@@ -159,14 +169,16 @@ async function getReco() {
     propertyValues.length = 0
     let current = props.group
     while (current) {
-        propertyValues.push(...current.meta.propertyValues)
+        if (current.meta.propertyValues) {
+            propertyValues.push(...current.meta.propertyValues)
+        }
         current = current.parent
     }
 
     blacklist.clear()
 
     similarImages.length = 0
-    group.images.forEach(i => similarImages.push(i.id))
+    group.slots.forEach(s => similarImages.push(ids[s]))
     updateActive()
     emits('update')
 }
@@ -192,7 +204,8 @@ function updateActive() {
         return
     }
     activeImages.length = 0
-    const groupImages = new Set(group.images.map(i => i.id))
+    const ids = col.instanceIds()
+    const groupImages = new Set(group.slots.map(s => ids[s]))
     similarImages.forEach( id => {
         if(groupImages.has(id) || blacklist.has(id)) return
         activeImages.push(id)

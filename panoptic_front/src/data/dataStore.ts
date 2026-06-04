@@ -196,12 +196,17 @@ export const useDataStore = defineStore('dataStore', () => {
         if (reloadGroupProp) computePropertyTree()
     }
 
-    function applyDelta(delta: LoadResult) {
+    async function applyDelta(delta: LoadResult) {
         const needsPropertyTree = delta.chunk ? hasPropertyChanges(delta.chunk) : false
         if (delta.chunk)           applyCommit(delta.chunk, true)
-        
-        columnStore.updateFromLoadResult(delta)
+
+        await columnStore.updateFromLoadResult(delta)
         instanceStore.updateFromLoadResult(delta)
+
+        // Mark affected instances dirty so onChange fires and collections re-evaluate
+        delta.instanceValues?.forEach(chunk => chunk.ids?.forEach(id => dirtyInstances.add(id)))
+        delta.imageValues?.forEach(chunk => chunk.sha1s?.forEach(sha1 => columnStore.getInstancesBySha1(sha1).forEach(id => dirtyInstances.add(id))))
+        delta.fileValues?.forEach(chunk => chunk.fileIds?.forEach(fid => columnStore.getInstancesByFileId(fid).forEach(id => dirtyInstances.add(id))))
 
         if (delta.state?.maxSequence > lastSequence.value) lastSequence.value = delta.state.maxSequence
         triggerRefs()
