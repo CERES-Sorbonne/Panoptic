@@ -9,7 +9,7 @@ import {
 } from './models'
 import { buildPropertyGroupOrder, objValues } from './builder'
 import {
-    apiAddFolder, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
+    apiAddFolder, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
     apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
     apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
     apiUndo,
@@ -259,9 +259,10 @@ export const useDataStore = defineStore('dataStore', () => {
         baseUrl.value    = `${SERVER_PREFIX}/projects/${projectId}/`
 
         const initData = await apiGetInitState()
-        if (initData.folders?.length)    importFolders(initData.folders)
-        if (initData.properties?.length) importProperties(initData.properties)
-        if (initData.tags?.length)       importTags(initData.tags)
+        if (initData.folders?.length)        importFolders(initData.folders)
+        if (initData.properties?.length)     importProperties(initData.properties)
+        if (initData.propertyGroups?.length) importPropertyGroups(initData.propertyGroups)
+        if (initData.tags?.length)           importTags(initData.tags)
         lastSequence.value = initData.sequence ?? 0
 
         _initColumnStore()
@@ -466,15 +467,24 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function addPropertyGroup(name: string) {
-        await sendCommit({ propertyGroups: [{ id: -1, name }] })
+        const [id] = await apiAllocatePropertyGroups(1)
+        importPropertyGroups([{ id, name }])
+        triggerRef(propertyGroups)
+        await sendCommit({ propertyGroups: [{ id, name }] })
+        await computePropertyTree()
     }
 
     async function updatePropertyGroup(id: number, name: string) {
+        if (propertyGroups.value[id]) propertyGroups.value[id] = { id, name }
+        triggerRef(propertyGroups)
         await sendCommit({ propertyGroups: [{ id, name }] })
     }
 
     async function deletePropertyGroup(id: number) {
+        delete propertyGroups.value[id]
+        triggerRef(propertyGroups)
         await sendCommit({ emptyPropertyGroups: [id] })
+        await computePropertyTree()
     }
 
     async function addFolder(folder: string) {

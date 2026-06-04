@@ -107,6 +107,9 @@ class ProjectDB(SQLiteWriter):
     def allocate_tags(self, val: Union[List[Tag], int] = 1):
         return self._handle_allocation('tags', val)
 
+    def allocate_property_groups(self, val: Union[List, int] = 1):
+        return self._handle_allocation('property_groups', val)
+
     def allocate_maps(self, val: Union[List[Map], int] = 1):
         return self._handle_allocation('maps', val)
 

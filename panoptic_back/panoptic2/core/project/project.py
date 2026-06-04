@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 import threading
 from pathlib import Path
@@ -51,6 +52,7 @@ class Project2:
         # Event callback lists
         self._on_instance_import_callbacks: list[Callable] = []
         self._on_folder_delete_callbacks:   list[Callable] = []
+        self._on_commit: Optional[Callable[[], None]] = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -198,6 +200,10 @@ class Project2:
         with self._project_db() as db:
             return db.allocate_properties(val)
 
+    def allocate_property_groups(self, val: int = 1):
+        with self._project_db() as db:
+            return db.allocate_property_groups(val)
+
     def allocate_tags(self, val: Union[List[Tag], int] = 1):
         with self._project_db() as db:
             return db.allocate_tags(val)
@@ -242,6 +248,10 @@ class Project2:
         with self._data_reader() as r:
             return r.get_properties(**filters)
 
+    def get_property_groups(self, **filters):
+        with self._data_reader() as r:
+            return r.get_property_groups(**filters)
+
     def get_tags(self, **filters) -> List[Tag]:
         with self._data_reader() as r:
             return r.get_tags(**filters)
@@ -272,15 +282,27 @@ class Project2:
 
     def apply_upsert_commit(self, source: str, commit: UpsertCommit, group_id: int = None) -> Commit:
         with self._data_writer() as w:
-            return w.apply_upsert_commit(source, commit, group_id=group_id)
+            result = w.apply_upsert_commit(source, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
 
     def apply_delete_commit(self, source: str, commit: DeleteCommit, group_id: int = None) -> Commit:
         with self._data_writer() as w:
-            return w.apply_delete_commit(source, commit, group_id=group_id)
+            result = w.apply_delete_commit(source, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
 
     def set_commit_active(self, commit_id: int, active: bool):
         with self._data_writer() as w:
             w.set_commit_active(commit_id, active)
+        self._fire_on_commit()
+
+    def _fire_on_commit(self) -> None:
+        if self._on_commit:
+            try:
+                self._on_commit()
+            except Exception:
+                logging.exception("Project2: error in _on_commit")
 
     # ------------------------------------------------------------------
     # Media  (all use the persistent self._media connection)

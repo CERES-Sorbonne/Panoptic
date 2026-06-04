@@ -80,6 +80,7 @@ async function log(e) {
         if (groupId < 0) {
             groupId = null
         }
+        prop.propertyGroupId = groupId
         await data.updateProperty(prop.id, prop.name, groupId)
         await data.triggerPropertyTreeChange()
     }

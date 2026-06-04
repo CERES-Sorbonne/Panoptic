@@ -24,7 +24,8 @@ from panoptic2.core.databases.panoptic.models import User
 from panoptic2.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
 from panoptic2.models.models import TaskState
 from panoptic2.core.panoptic.panoptic import Panoptic2
-from panoptic2.core.watcher.db_watcher import DbWatcher
+from panoptic2.core.databases.data.data_reader import DataReader
+from panoptic2.core.watcher.db_watcher import DbWatcher, WATCH_PANOPTIC_DB
 from panoptic2.core.plugin.plugin_watcher import PluginWatcher, WATCH_PLUGINS
 
 
@@ -197,8 +198,8 @@ class PanopticServer2:
             lambda: self._panoptic.load_project(id_)
         )
 
-        # Start DbWatcher if not already running for this project
-        if id_ not in self._watchers:
+        # Start DbWatcher if hot-reload is enabled and not already running for this project
+        if WATCH_PANOPTIC_DB and id_ not in self._watchers:
             self._attach_watcher(id_, project.data_db_path)
 
         # Start PluginWatcher if hot-reload is enabled
@@ -208,6 +209,10 @@ class PanopticServer2:
         # Wire task callback if not yet wired
         if self._panoptic.get_project(id_).task_manager._on_update is None:
             project.task_manager._on_update = self._make_task_callback(id_)
+
+        # Wire commit callback if not yet wired
+        if project._on_commit is None:
+            project._on_commit = self._make_commit_callback(id_)
 
         state = self._connection_states.get(connection_id)
         if state:
@@ -380,6 +385,26 @@ class PanopticServer2:
             loop.call_soon_threadsafe(lambda: asyncio.ensure_future(_emit()))
 
         return on_update
+
+    def _make_commit_callback(self, id_: str):
+        """Return a sync callable that bridges commit events into the event loop.
+
+        Reads the current sequence synchronously (one SELECT) in the write thread,
+        then schedules _broadcast_update on the event loop.
+        """
+        loop = self._loop
+
+        def on_commit() -> None:
+            project = self._panoptic.get_project(id_)
+            with DataReader(str(project.data_db_path)) as r:
+                sequence = r.get_next_sequence()
+            loop.call_soon_threadsafe(
+                lambda seq=sequence: asyncio.ensure_future(
+                    self._broadcast_update(id_, seq)
+                )
+            )
+
+        return on_commit
 
     # ------------------------------------------------------------------
     # Helpers

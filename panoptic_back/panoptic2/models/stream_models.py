@@ -34,9 +34,10 @@ class StreamChunk(msgspec.Struct, omit_defaults=True):
     tags: Optional[list[Any]] = None
     property_groups: Optional[list[Any]] = None
     # Delete fields — only present in delta responses, omitted from stream via omit_defaults
-    empty_instances:       Optional[list[int]] = None
-    empty_properties:      Optional[list[int]] = None
-    empty_tags:            Optional[list[int]] = None
+    empty_instances:        Optional[list[int]] = None
+    empty_properties:       Optional[list[int]] = None
+    empty_tags:             Optional[list[int]] = None
+    empty_property_groups:  Optional[list[int]] = None
     empty_instance_values: Optional[list[Any]] = None  # [{property_id, instance_id}]
     empty_image_values:    Optional[list[Any]] = None  # [{property_id, sha1}]
     empty_file_values:     Optional[list[Any]] = None  # [{property_id, file_id}]

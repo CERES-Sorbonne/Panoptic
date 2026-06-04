@@ -2,7 +2,7 @@ from panoptic2.core.databases.entity_schema import OP_CREATE, OP_UPDATE
 from panoptic2.core.databases.project.project_db import ProjectDB
 from panoptic2.core.databases.data.models import (
     UpsertCommit, FileSource, Folder, File,
-    Instance, Property, Tag, InstanceValue, Sha1Value
+    Instance, Property, PropertyGroup, Tag, InstanceValue, Sha1Value
 )
 
 
@@ -62,6 +62,21 @@ class CommitBuilder:
         )
         self.data.instances[inst_id] = instance
         return instance
+
+    def create_property_group(self, name: str) -> PropertyGroup:
+        pg_id = self.project.allocate_property_groups()
+        group = PropertyGroup(
+            id=pg_id,
+            name=name,
+            commit_id=0,
+            operation=OP_CREATE
+        )
+        self.data.property_groups[pg_id] = group
+        return group
+
+    def update_property_group(self, group: PropertyGroup):
+        group.operation = OP_UPDATE
+        self.data.property_groups[group.id] = group
 
     def create_property(self, dtype: str, mode: str, name: str, access='write', tag_list_id=None) -> Property:
         prop_id = self.project.allocate_properties()

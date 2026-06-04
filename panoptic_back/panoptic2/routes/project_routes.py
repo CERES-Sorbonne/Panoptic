@@ -14,7 +14,7 @@ from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
 from panoptic2.core.databases.data.models import (
-    Commit, DeleteCommit, FileValue, Folder, Instance, Property, Sha1Value,
+    Commit, DeleteCommit, FileValue, Folder, Instance, Property, PropertyGroup, Sha1Value,
     Tag, InstanceValue, UpsertCommit, File, FileSource,
 )
 from panoptic2.models.models import ProjectSettings
@@ -73,8 +73,12 @@ def _structural_chunks(project: Project2):
     import os as _os
 
     properties = project.get_properties()
+    property_groups = project.get_property_groups()
     yield msgspec.json.encode(StreamResult(
-        chunk=StreamChunk(properties=[_db_to_dict(p) for p in properties], property_groups=[]),
+        chunk=StreamChunk(
+            properties=[_db_to_dict(p) for p in properties],
+            property_groups=[_db_to_dict(g) for g in property_groups],
+        ),
         state=LoadState(finished_property=True, finished_property_groups=True),
     )) + b'\n'
 
@@ -295,12 +299,14 @@ def get_delta(
     file_map  = {f.id: f for f in raw['files']}
 
     # Split entities into upserts vs deletes
-    upsert_instances  = [x for x in raw['instances']       if x.operation != OP_DELETE]
-    delete_instances  = [x.id for x in raw['instances']    if x.operation == OP_DELETE]
-    upsert_properties = [x for x in raw['properties']      if x.operation != OP_DELETE]
-    delete_properties = [x.id for x in raw['properties']   if x.operation == OP_DELETE]
-    upsert_tags       = [x for x in raw['tags']             if x.operation != OP_DELETE]
-    delete_tags       = [x.id for x in raw['tags']          if x.operation == OP_DELETE]
+    upsert_instances  = [x for x in raw['instances']         if x.operation != OP_DELETE]
+    delete_instances  = [x.id for x in raw['instances']      if x.operation == OP_DELETE]
+    upsert_properties = [x for x in raw['properties']        if x.operation != OP_DELETE]
+    delete_properties = [x.id for x in raw['properties']     if x.operation == OP_DELETE]
+    upsert_tags       = [x for x in raw['tags']               if x.operation != OP_DELETE]
+    delete_tags       = [x.id for x in raw['tags']            if x.operation == OP_DELETE]
+    upsert_groups     = [x for x in raw['property_groups']   if x.operation != OP_DELETE]
+    delete_groups     = [x.id for x in raw['property_groups'] if x.operation == OP_DELETE]
 
     upsert_iv = [x for x in raw['instance_values'] if x.operation != OP_DELETE]
     delete_iv = [{'property_id': x.property_id, 'instance_id': x.instance_id}
@@ -366,14 +372,16 @@ def get_delta(
             instances=full_instances or None,
             properties=[_db_to_dict(p) for p in upsert_properties] or None,
             tags=[_db_to_dict(t) for t in upsert_tags] or None,
+            property_groups=[_db_to_dict(g) for g in upsert_groups] or None,
             empty_instances=delete_instances or None,
             empty_properties=delete_properties or None,
             empty_tags=delete_tags or None,
+            empty_property_groups=delete_groups or None,
             empty_instance_values=delete_iv or None,
             empty_image_values=delete_sv or None,
             empty_file_values=delete_fv or None,
-        ) if (full_instances or upsert_properties or upsert_tags or
-              delete_instances or delete_properties or delete_tags or
+        ) if (full_instances or upsert_properties or upsert_tags or upsert_groups or
+              delete_instances or delete_properties or delete_tags or delete_groups or
               delete_iv or delete_sv or delete_fv) else None,
         instance_values=list(iv_cols.values()) or None,
         image_values=list(sv_cols.values()) or None,
@@ -389,11 +397,12 @@ def get_init_state(project: Project2 = Depends(_dep)):
         sequence = reader.get_next_sequence() - 1
 
     return _json({
-        'file_sources': [_db_to_dict(fs) for fs in project.get_file_sources()],
-        'folders':      [_db_to_dict(f)  for f  in project.get_folders()],
-        'properties':   [_db_to_dict(p)  for p  in project.get_properties()],
-        'tags':         [_db_to_dict(t)  for t  in project.get_tags()],
-        'sequence':     sequence,
+        'file_sources':    [_db_to_dict(fs) for fs in project.get_file_sources()],
+        'folders':         [_db_to_dict(f)  for f  in project.get_folders()],
+        'properties':      [_db_to_dict(p)  for p  in project.get_properties()],
+        'property_groups': [_db_to_dict(g)  for g  in project.get_property_groups()],
+        'tags':            [_db_to_dict(t)  for t  in project.get_tags()],
+        'sequence':        sequence,
     })
 
 
@@ -447,6 +456,12 @@ def get_tag_counts(property_id: int | None = None, project: Project2 = Depends(_
 @project_router.get('/allocate/tags')
 def allocate_tags(n: int = 1, project: Project2 = Depends(_dep)):
     ids = _to_ids(project.allocate_tags(n), n)
+    return list(ids)
+
+
+@project_router.get('/allocate/property_groups')
+def allocate_property_groups(n: int = 1, project: Project2 = Depends(_dep)):
+    ids = _to_ids(project.allocate_property_groups(n), n)
     return list(ids)
 
 
@@ -600,7 +615,7 @@ class _PropIn(BaseModel):
     type: Optional[str] = None     # frontend field → DB dtype
     dtype: Optional[str] = None    # also accepted
     mode: Optional[str] = None
-    property_group_id: Optional[int] = None  # not yet stored in Property struct
+    property_group_id: Optional[int] = None
 
 class _TagIn(BaseModel):
     id: int = -1
@@ -673,6 +688,7 @@ def upsert_commit_route(req: UpsertRequest, project: Project2 = Depends(_dep)):
                 id=pid, dtype=p.type or p.dtype or 'text',
                 mode=p.mode or 'sha1', name=p.name or '',
                 access='write', tag_list_id=pid,
+                property_group_id=p.property_group_id,
                 commit_id=0, operation=OP_CREATE,
             )
     for p in upd_props:
@@ -680,6 +696,7 @@ def upsert_commit_route(req: UpsertRequest, project: Project2 = Depends(_dep)):
             id=p.id, dtype=p.type or p.dtype or 'text',
             mode=p.mode or 'sha1', name=p.name or '',
             access='write', tag_list_id=p.id,
+            property_group_id=p.property_group_id,
             commit_id=0, operation=OP_UPDATE,
         )
 
@@ -728,7 +745,15 @@ def upsert_commit_route(req: UpsertRequest, project: Project2 = Depends(_dep)):
                       value=fv.value, commit_id=0, operation=OP_UPDATE)
         )
 
-    if upsert.properties or upsert.tags or upsert.instance_values or upsert.sha1_values or upsert.file_values:
+    # Property groups (IDs are already real — allocated by the frontend)
+    for g in req.property_groups:
+        upsert.property_groups[g.id] = PropertyGroup(
+            id=g.id, name=g.name or '',
+            commit_id=0, operation=OP_CREATE,
+        )
+
+    if (upsert.properties or upsert.tags or upsert.instance_values
+            or upsert.sha1_values or upsert.file_values or upsert.property_groups):
         project.apply_upsert_commit('ui', upsert)
 
     return {
@@ -741,6 +766,10 @@ def upsert_commit_route(req: UpsertRequest, project: Project2 = Depends(_dep)):
              'parents': t.parents, 'color': t.color}
             for t in upsert.tags.values()
         ],
+        'property_groups': [
+            {'id': g.id, 'name': g.name}
+            for g in upsert.property_groups.values()
+        ],
     }
 
 
@@ -750,8 +779,9 @@ def delete_commit_route(req: DeleteRequest, project: Project2 = Depends(_dep)):
         instances=set(req.empty_instances),
         properties=set(req.empty_properties),
         tags=set(req.empty_tags),
+        property_groups=set(req.empty_property_groups),
     )
-    if delete.instances or delete.properties or delete.tags:
+    if delete.instances or delete.properties or delete.tags or delete.property_groups:
         project.apply_delete_commit('ui', delete)
     return {'ok': True}
 

@@ -369,6 +369,11 @@ export async function apiAllocateTags(n: number): Promise<number[]> {
     return res.data as number[]
 }
 
+export async function apiAllocatePropertyGroups(n: number = 1): Promise<number[]> {
+    const res = await projectApi.get('/allocate/property_groups', { params: { n } })
+    return res.data as number[]
+}
+
 export async function apiCommitUpsert(commit: DbCommit): Promise<DbCommit> {
     const fixed: any = {}
     if (commit.properties?.length) fixed.properties = commit.properties.map(p => keysToSnake(p))

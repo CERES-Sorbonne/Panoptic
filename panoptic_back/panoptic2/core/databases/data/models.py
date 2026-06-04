@@ -58,6 +58,13 @@ class Property(msgspec.Struct, array_like=True):
     access: Optional[str]
     tag_list_id: Optional[int]
     system_key: Optional[str] = None
+    property_group_id: Optional[int] = None
+    commit_id: Optional[int] = None
+    operation: Optional[int] = None
+
+class PropertyGroup(msgspec.Struct, array_like=True):
+    id: Annotated[int, PrimaryKey]
+    name: Optional[str]
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
@@ -121,6 +128,7 @@ class DeleteCommit(msgspec.Struct):
     instances: set[int] = msgspec.field(default_factory=set)
     properties: set[int] = msgspec.field(default_factory=set)
     tags: set[int] = msgspec.field(default_factory=set)
+    property_groups: set[int] = msgspec.field(default_factory=set)
 
 class UpsertCommit(msgspec.Struct):
     file_sources: dict[int, FileSource] = msgspec.field(default_factory=dict)
@@ -129,6 +137,7 @@ class UpsertCommit(msgspec.Struct):
     instances: dict[int, Instance] = msgspec.field(default_factory=dict)
     properties: dict[int, Property] = msgspec.field(default_factory=dict)
     tags: dict[int, Tag] = msgspec.field(default_factory=dict)
+    property_groups: dict[int, PropertyGroup] = msgspec.field(default_factory=dict)
     instance_values: dict[int, list[InstanceValue]] = msgspec.field(default_factory=dict)
     sha1_values: dict[int, list[Sha1Value]] = msgspec.field(default_factory=dict)
     file_values: dict[int, list[FileValue]] = msgspec.field(default_factory=dict)

@@ -12,6 +12,7 @@ class IdRegistry(msgspec.Struct, array_like=True):
     instances: int = 1
     properties: int = 1
     tags: int = 1
+    property_groups: int = 1
 
     vector_types: int = 1
     image_types: int = 1

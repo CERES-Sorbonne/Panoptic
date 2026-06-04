@@ -1,6 +1,6 @@
 from panoptic2.core.databases.db_description import DbDescription
 from panoptic2.core.databases.entity_schema import EntitySchema, PropertyValueSchema, OP_DELETE
-from panoptic2.core.databases.data.models import Commit, FileSource, Folder, File, Instance, Property, TagList, Tag, InstanceValue, \
+from panoptic2.core.databases.data.models import Commit, FileSource, Folder, File, Instance, Property, PropertyGroup, TagList, Tag, InstanceValue, \
     Sha1Value, FileValue, InstanceTagValue, Sha1TagValue
 
 COMMITS_SCHEMA = EntitySchema(Commit, table="commits")
@@ -9,6 +9,7 @@ FOLDERS_SCHEMA = EntitySchema(Folder, table="folders")
 FILES_SCHEMA = EntitySchema(File, table="files")
 INSTANCES_SCHEMA = EntitySchema(Instance, table="instances")
 PROPERTIES_SCHEMA = EntitySchema(Property, table="properties")
+PROPERTY_GROUPS_SCHEMA = EntitySchema(PropertyGroup, table="property_groups")
 TAG_LISTS_SCHEMA = EntitySchema(TagList, table="tag_lists")
 TAGS_SCHEMA = EntitySchema(Tag, table="tags")
 INSTANCE_VALUES_SCHEMA = PropertyValueSchema(InstanceValue, table="instance_values")
@@ -29,6 +30,7 @@ ALL_SCHEMAS = [
     FILES_SCHEMA,
     INSTANCES_SCHEMA,
     PROPERTIES_SCHEMA,
+    PROPERTY_GROUPS_SCHEMA,
     TAG_LISTS_SCHEMA,
     TAGS_SCHEMA,
     INSTANCE_VALUES_SCHEMA,
@@ -146,8 +148,18 @@ def _migrate_v3_to_v4(writer):
     writer.conn.executescript(SHA1_TAG_VALUES_SCHEMA.create_log_table_sql())
 
 
+def _migrate_v4_to_v5(writer):
+    """Add property_groups table and property_group_id column on properties (introduced in v5)."""
+    writer.conn.executescript(PROPERTY_GROUPS_SCHEMA.create_table_sql())
+    writer.conn.executescript(PROPERTY_GROUPS_SCHEMA.create_log_table_sql())
+    if writer._table_exists('properties'):
+        writer.conn.execute("ALTER TABLE properties ADD COLUMN property_group_id INTEGER")
+    if writer._table_exists('properties_log'):
+        writer.conn.execute("ALTER TABLE properties_log ADD COLUMN property_group_id INTEGER")
+
+
 datastore_desc = DbDescription(
-    version=4,
+    version=5,
     tables=tables_config,
-    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4},
+    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4, 4: _migrate_v4_to_v5},
 )

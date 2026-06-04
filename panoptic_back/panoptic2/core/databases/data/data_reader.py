@@ -4,14 +4,14 @@ from typing import Any, List
 from panoptic2.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
 from panoptic2.core.databases.data.create import (
     COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
-    INSTANCES_SCHEMA, PROPERTIES_SCHEMA, TAGS_SCHEMA,
+    INSTANCES_SCHEMA, PROPERTIES_SCHEMA, PROPERTY_GROUPS_SCHEMA, TAGS_SCHEMA,
     INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
     INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
 )
 from panoptic2.core.databases.sqlite_reader import SQLiteReader
 from panoptic2.core.databases.data.models import (
     Commit, FileSource, Folder, File, Instance,
-    Property, Tag, InstanceValue, Sha1Value, FileValue,
+    Property, PropertyGroup, Tag, InstanceValue, Sha1Value, FileValue,
     InstanceTagValue, Sha1TagValue,
 )
 from panoptic2.models.models import PropertyType
@@ -71,6 +71,9 @@ class DataReader(SQLiteReader):
 
     def get_properties(self, **filters) -> List[Property]:
         return PROPERTIES_SCHEMA.get(self.conn, **filters)
+
+    def get_property_groups(self, **filters) -> List[PropertyGroup]:
+        return PROPERTY_GROUPS_SCHEMA.get(self.conn, **filters)
 
     def get_tags(self, **filters) -> List[Tag]:
         return TAGS_SCHEMA.get(self.conn, **filters)
@@ -343,11 +346,12 @@ class DataReader(SQLiteReader):
         lastSequence advances past rows the caller chose not to fetch.
         """
         data = {
-            'instances':  INSTANCES_SCHEMA.get_since(self.conn, since),
-            'files':      FILES_SCHEMA.get_since(self.conn, since),
-            'folders':    FOLDERS_SCHEMA.get_since(self.conn, since),
-            'properties': PROPERTIES_SCHEMA.get_since(self.conn, since),
-            'tags':       TAGS_SCHEMA.get_since(self.conn, since),
+            'instances':       INSTANCES_SCHEMA.get_since(self.conn, since),
+            'files':           FILES_SCHEMA.get_since(self.conn, since),
+            'folders':         FOLDERS_SCHEMA.get_since(self.conn, since),
+            'properties':      PROPERTIES_SCHEMA.get_since(self.conn, since),
+            'property_groups': PROPERTY_GROUPS_SCHEMA.get_since(self.conn, since),
+            'tags':            TAGS_SCHEMA.get_since(self.conn, since),
         }
 
         filtering = full_prop_ids is not None or point_prop_ids is not None
@@ -401,7 +405,7 @@ class DataReader(SQLiteReader):
             data['image_values'] = merged_sv
 
         max_seq = since
-        for table in ('instances', 'files', 'folders', 'properties', 'tags',
+        for table in ('instances', 'files', 'folders', 'properties', 'property_groups', 'tags',
                       'instance_values', 'sha1_values', 'file_values',
                       'instance_tag_values', 'sha1_tag_values'):
             row = self.conn.execute(

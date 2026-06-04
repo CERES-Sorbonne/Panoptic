@@ -1,9 +1,12 @@
 import asyncio
 import logging
+import os
 from pathlib import Path
 from typing import Callable, Coroutine
 
 from panoptic2.core.databases.data.data_reader import DataReader
+
+WATCH_PANOPTIC_DB: bool = os.getenv('WATCH_PANOPTIC_DB', '0') == '1'
 
 
 class DbWatcher:

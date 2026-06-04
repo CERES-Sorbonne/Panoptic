@@ -3,7 +3,7 @@ from sqlite3 import Cursor
 from typing import Any
 
 from panoptic2.core.databases.data.create import datastore_desc, COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, PROPERTIES_SCHEMA, \
-    TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, \
+    PROPERTY_GROUPS_SCHEMA, TAGS_SCHEMA, INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, \
     FILE_VALUES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA
 from msgspec.structs import replace as msgspec_replace
 from panoptic2.core.databases.entity_schema import EntitySchema, PropertyValueSchema, OP_CREATE, OP_UPDATE, OP_DELETE
@@ -11,7 +11,7 @@ from panoptic2.core.databases.sqlite_db import SQLiteWriter
 from panoptic2.models.models import PropertyType
 from panoptic2.core.databases.data.models import (
     Commit, DeleteCommit, UpsertCommit, InstanceValue, Sha1Value, FileValue,
-    InstanceTagValue, Sha1TagValue
+    InstanceTagValue, Sha1TagValue, PropertyGroup
 )
 
 OP_STAMP_SET = "stamp_set"
@@ -40,6 +40,7 @@ class DataWriter(SQLiteWriter):
             self._upsert_commit_folders(tx, data, commit_id, seq_number)
             self._upsert_commit_files(tx, data, commit_id, seq_number)
             self._upsert_commit_instances(tx, data, commit_id, seq_number)
+            self._upsert_commit_property_groups(tx, data, commit_id, seq_number)
             self._upsert_commit_properties(tx, data, commit_id, seq_number)
             self._upsert_commit_tags(tx, data, commit_id, seq_number)
             self._upsert_commit_instance_values(tx, data, commit_id, seq_number)
@@ -83,6 +84,9 @@ class DataWriter(SQLiteWriter):
                                       id=list(data.properties))
             if data.tags:
                 self._delete_function(tx, TAGS_SCHEMA, commit_id=commit_id, sequence=sequence, id=list(data.tags))
+            if data.property_groups:
+                self._delete_function(tx, PROPERTY_GROUPS_SCHEMA, commit_id=commit_id, sequence=sequence,
+                                      id=list(data.property_groups))
 
             commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now, active=True)
             COMMITS_SCHEMA.upsert(tx, commit, sequence=sequence)
@@ -112,6 +116,7 @@ class DataWriter(SQLiteWriter):
             re_compute(FILES_SCHEMA)
             re_compute(FOLDERS_SCHEMA)
             re_compute(INSTANCES_SCHEMA)
+            re_compute(PROPERTY_GROUPS_SCHEMA)
             re_compute(PROPERTIES_SCHEMA)
             re_compute(TAGS_SCHEMA)
 
@@ -227,6 +232,24 @@ class DataWriter(SQLiteWriter):
 
         INSTANCES_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
         INSTANCES_SCHEMA.append_log(tx, objs=instances, commit_id=commit_id)
+
+    def _upsert_commit_property_groups(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
+        if not data.property_groups: return
+        groups = list(data.property_groups.values())
+        set_commit(groups, commit_id)
+
+        existing = PROPERTY_GROUPS_SCHEMA.get_index(tx, id=list(data.property_groups.keys()))
+
+        for g in groups:
+            g.operation = OP_CREATE if g.id not in existing else OP_UPDATE
+
+        updated = [
+            PROPERTY_GROUPS_SCHEMA.merge_logs([existing.get(g.id), g])
+            for g in groups
+        ]
+
+        PROPERTY_GROUPS_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
+        PROPERTY_GROUPS_SCHEMA.append_log(tx, objs=groups, commit_id=commit_id)
 
     def _upsert_commit_properties(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
         if not data.properties: return
