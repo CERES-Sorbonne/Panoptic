@@ -90,12 +90,14 @@ export const useSocketStore = defineStore('socketStore', () => {
             usePanopticStore().fetchUsers()
         })
 
-        socket.on('connection_state', (data) => {
+        socket.on('connection_state', async (data) => {
             const state = keysToCamel(data) as ConnectionState
-            usePanopticStore().updateConnectionState(state)
+            const panoptic = usePanopticStore()
+            panoptic.updateConnectionState(state)
             if (state.connectionId) {
                 setConnectionId(state.connectionId)
             }
+            await panoptic.tryReconnectUser(state)
         })
 
         socket.on('disconnect', () => {
@@ -158,19 +160,9 @@ export const useSocketStore = defineStore('socketStore', () => {
         }
     }
 
-    function connectUser(userId: number) {
-        socket.emit('connect_user', userId)
-    }
-
-    function disconnectUser() {
-        socket.emit('disconnect_user')
-    }
-
     return {
         init,
         close,
         on,
-        connectUser,
-        disconnectUser
     }
 })

@@ -44,7 +44,66 @@ def get_plugins_state_route():
 
 @panoptic_router.get('/users')
 def get_users_route():
-    return _json(get_panoptic().get_users())
+    return _json([msgspec.structs.asdict(u) for u in get_panoptic().get_users()])
+
+
+class UserCreateRequest(BaseModel):
+    name: str
+
+class UserConnectRequest(BaseModel):
+    user_id: str
+
+
+@panoptic_router.post('/users')
+async def create_user_route(req: UserCreateRequest):
+    try:
+        user = get_panoptic().create_user(req.name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    await get_server()._emit_update_users()
+    return _json(msgspec.structs.asdict(user))
+
+
+@panoptic_router.delete('/users/{user_id}')
+async def delete_user_route(user_id: str):
+    from panoptic2.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
+    if user_id == DEFAULT_USER_ID:
+        raise HTTPException(400, "Cannot delete the default user")
+    get_panoptic().delete_user(user_id)
+    await get_server()._emit_update_users()
+    return {}
+
+
+@panoptic_router.post('/connect_user')
+async def connect_user_route(req: UserConnectRequest, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    server = get_server()
+    user = next((u for u in get_panoptic().get_users() if u.id == req.user_id), None)
+    if not user:
+        raise HTTPException(404, "User not found")
+    state = server._connection_states.get(connection_id)
+    if state:
+        state.user = user
+    last_project = server._user_last_project.get(user.id)
+    known_ids = {p.id for p in get_panoptic().db.get_projects()}
+    if last_project and last_project in known_ids and (state is None or state.connected_project != last_project):
+        await server._load_project(last_project, connection_id)
+    else:
+        await server._emit_connection_state(connection_id)
+    return {}
+
+
+@panoptic_router.post('/disconnect_user')
+async def disconnect_user_route(request: Request):
+    connection_id = request.query_params.get('connection_id')
+    server = get_server()
+    from panoptic2.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
+    default_user = next((u for u in get_panoptic().get_users() if u.id == DEFAULT_USER_ID), None)
+    state = server._connection_states.get(connection_id)
+    if state and default_user:
+        state.user = default_user
+    await server._emit_connection_state(connection_id)
+    return {}
 
 
 # ---------------------------------------------------------------------------

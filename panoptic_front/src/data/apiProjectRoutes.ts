@@ -48,9 +48,12 @@ projectApi.interceptors.request.use(config => {
         // TODO: maybe we should throw an error here?
         console.error("No project selected for API call")
     }
+    config.params = config.params || {}
     if (panoptic.connectionState?.connectionId) {
-        config.params = config.params || {};
         config.params.connection_id = panoptic.connectionState?.connectionId
+    }
+    if (panoptic.connectionState?.user?.id) {
+        config.params.user_id = panoptic.connectionState.user.id
     }
     return config
 })

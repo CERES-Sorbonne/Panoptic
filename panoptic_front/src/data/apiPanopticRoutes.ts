@@ -68,6 +68,23 @@ export async function apiGetUsers() {
     return keysToCamel(res.data) as User[]
 }
 
+export async function apiCreateUser(name: string) {
+    const res = await panopticApi.post('/users', { name })
+    return keysToCamel(res.data) as User
+}
+
+export async function apiDeleteUser(userId: string) {
+    await panopticApi.delete(`/users/${userId}`)
+}
+
+export async function apiConnectUser(userId: string) {
+    await panopticApi.post('/connect_user', { user_id: userId })
+}
+
+export async function apiDisconnectUser() {
+    await panopticApi.post('/disconnect_user')
+}
+
 export async function apiGetPlugins() {
     const res = await panopticApi.get('/plugins')
     return (res.data as any[]).map(p => ({

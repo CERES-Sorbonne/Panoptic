@@ -11,6 +11,7 @@ import { ModalId, PluginType, ProjectRef } from '@/data/models';
 import wTT from "@/components/tooltips/withToolTip.vue";
 import Dropdown from '@/components/Dropdowns/Dropdown.vue';
 import PluginOptionsDropdown from '@/components/Dropdowns/PluginOptionsDropdown.vue';
+import UserSelector from '@/components/home/UserSelector.vue';
 
 const panoptic = usePanopticStore()
 
@@ -186,6 +187,10 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
                         </div>
                     </div>
 
+                    <div class="user-section">
+                        <UserSelector />
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -268,5 +273,14 @@ watch(() => panoptic.projectsLoaded, (loaded) => {
     padding: 4px;
     font-size: 15px;
     color: rgb(50, 50, 50);
+}
+
+.user-section {
+    width: 500px;
+    margin: auto;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 16px;
 }
 </style>

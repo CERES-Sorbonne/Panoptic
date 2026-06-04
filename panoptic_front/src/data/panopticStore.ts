@@ -3,9 +3,13 @@ import { computed, ref } from "vue"
 import {
     apiAddPlugin,
     apiCloseProject,
+    apiConnectUser,
     apiCreateProject,
+    apiCreateUser,
     apiDelPlugin,
     apiDeleteProject,
+    apiDeleteUser,
+    apiDisconnectUser,
     apiGetPlugins,
     apiGetProjects,
     apiGetUsers,
@@ -21,6 +25,9 @@ import { useProjectStore } from "./projectStore"
 import { ConnectionState, ModalId, Notif, PluginAddPayload, PluginType, ProjectRef, User } from "./models"
 import { useModalStore } from "./modalStore"
 
+
+const LAST_USER_KEY = 'panoptic_last_user_id'
+const DEFAULT_USER_ID = 'default'
 
 let idCounter = 0
 
@@ -54,6 +61,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const failedConnected = ref(false)
 
     const notifs = ref<Notif[]>([])
+    const hasAttemptedUserReconnect = ref(false)
 
     const isConnected = computed(() => connectionState.value != undefined)
     const isUserValid = computed(() => isConnected.value)
@@ -79,6 +87,41 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         users.value = await apiGetUsers()
     }
 
+    async function createUser(name: string) {
+        await apiCreateUser(name)
+        await fetchUsers()
+    }
+
+    async function deleteUser(userId: string) {
+        await apiDeleteUser(userId)
+        await fetchUsers()
+    }
+
+    async function connectUser(userId: string) {
+        await apiConnectUser(userId)
+        localStorage.setItem(LAST_USER_KEY, userId)
+    }
+
+    async function disconnectUser() {
+        await apiDisconnectUser()
+        localStorage.removeItem(LAST_USER_KEY)
+    }
+
+    async function tryReconnectUser(state: ConnectionState) {
+        if (hasAttemptedUserReconnect.value) return
+        hasAttemptedUserReconnect.value = true
+
+        const savedId = localStorage.getItem(LAST_USER_KEY)
+        if (!savedId || savedId === DEFAULT_USER_ID) return
+        if (state.user?.id && state.user.id !== DEFAULT_USER_ID) return
+
+        try {
+            await apiConnectUser(savedId)
+        } catch {
+            localStorage.removeItem(LAST_USER_KEY)
+        }
+    }
+
     async function fetchVersion() {
         const res = await apiGetVersion()
         if (res?.version) version.value = res.version
@@ -90,9 +133,10 @@ export const usePanopticStore = defineStore('panopticStore', () => {
 
     function updateConnectionState(state: ConnectionState | undefined) {
         connectionState.value = state
+        const pendingReconnect = !hasAttemptedUserReconnect.value && !!localStorage.getItem(LAST_USER_KEY)
         if (state?.connectedProject) {
             router.push('/view')
-        } else if (state) {
+        } else if (state && !pendingReconnect) {
             router.push('/')
         }
     }
@@ -228,7 +272,7 @@ export const usePanopticStore = defineStore('panopticStore', () => {
         modalData, hideModal, showModal, openModalId, isUserValid,
         isProjectLoaded,
         loadProject, closeProject, deleteProject, createProject, importProject, updateProject,
-        fetchProjects, fetchPlugins, fetchUsers,
+        fetchProjects, fetchPlugins, fetchUsers, createUser, deleteUser, connectUser, disconnectUser, tryReconnectUser,
         addPlugin, delPlugin, updatePlugin,
         notifs, clearNotif, notify, delNotif,
         getPackagesInfo,

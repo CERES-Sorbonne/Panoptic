@@ -936,24 +936,24 @@ class _UpdateTabStateRequest(BaseModel):
 
 
 @project_router.get('/tabs')
-def get_tabs(project: Project2 = Depends(_dep)):
-    tabs = project.get_user_tabs(user_id='default')
+def get_tabs(project: Project2 = Depends(_dep), user_id: str = 'default'):
+    tabs = project.get_user_tabs(user_id=user_id)
     return _json([_db_to_dict(t) for t in tabs])
 
 
 @project_router.post('/tabs')
-def create_tab(req: _CreateTabRequest, project: Project2 = Depends(_dep)):
+def create_tab(req: _CreateTabRequest, project: Project2 = Depends(_dep), user_id: str = 'default'):
     from panoptic2.core.databases.project.models import TabData
-    project.set_tab_data(TabData(id=req.id, user_id='default', state=req.state, selection=req.selection))
+    project.set_tab_data(TabData(id=req.id, user_id=user_id, state=req.state, selection=req.selection))
     return {'ok': True}
 
 
 @project_router.put('/tabs/{tab_id}')
-def update_tab(tab_id: str, req: _UpdateTabStateRequest, project: Project2 = Depends(_dep)):
+def update_tab(tab_id: str, req: _UpdateTabStateRequest, project: Project2 = Depends(_dep), user_id: str = 'default'):
     existing = project.get_tab_data(tab_id)
     selection = existing.selection if existing else None
     from panoptic2.core.databases.project.models import TabData
-    project.set_tab_data(TabData(id=tab_id, user_id='default', state=req.state, selection=selection))
+    project.set_tab_data(TabData(id=tab_id, user_id=user_id, state=req.state, selection=selection))
     return {'ok': True}
 
 

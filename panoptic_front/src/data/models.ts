@@ -777,7 +777,7 @@ export interface ProjectRef extends ProjectId {
 
 
 export interface User {
-    id: number
+    id: string
     name: string
 }
 
