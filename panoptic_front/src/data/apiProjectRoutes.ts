@@ -154,6 +154,17 @@ export const apiGetFolders = async () => {
     return res.data
 }
 
+export const apiGetTagCounts = async (propertyId?: number) => {
+    const params = propertyId !== undefined ? { property_id: propertyId } : {}
+    const res = await projectApi.get('/tags/counts', { params })
+    return res.data as { tag_id: number; instance_count: number; sha1_count: number }[]
+}
+
+export const apiGetFolderCounts = async () => {
+    const res = await projectApi.get('/folders/counts')
+    return res.data as Record<string, number>
+}
+
 export const apiImportFolder = async () => {
     let res = await projectApi.post('/folders')
     return res.data

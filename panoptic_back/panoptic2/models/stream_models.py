@@ -89,6 +89,11 @@ class LoadState(msgspec.Struct):
     max_sequence: int = 0
 
 
+class TagCount(msgspec.Struct):
+    tag_id: int
+    count: int
+
+
 class StreamResult(msgspec.Struct, omit_defaults=True):
     """One ndjson line in the db_state_stream response."""
     state: LoadState
@@ -96,3 +101,5 @@ class StreamResult(msgspec.Struct, omit_defaults=True):
     instance_values: Optional[list[InstanceValuesColumn]] = None
     image_values: Optional[list[ImageValuesColumn]] = None
     file_values: Optional[list[FileValuesColumn]] = None
+    tag_counts: Optional[list[TagCount]] = None
+    folder_counts: Optional[dict[int, int]] = None

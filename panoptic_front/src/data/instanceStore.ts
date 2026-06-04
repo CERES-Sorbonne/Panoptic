@@ -210,7 +210,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
             const prop = dataStore.properties?.[arr.propertyId]
             for (let i = 0; i < arr.ids.length; i++) {
                 const value = JSON.parse(arr.values[i])
-                if (value == undefined) continue
+                if (value === undefined) continue
                 const id = Number(arr.ids[i])
                 if (instanceData[id]) {
                     instanceData[id].properties[arr.propertyId] = value
@@ -227,7 +227,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
             const prop = dataStore.properties?.[arr.propertyId]
             for (let i = 0; i < arr.sha1s.length; i++) {
                 const value = JSON.parse(arr.values[i])
-                if (value == undefined) continue
+                if (value === undefined) continue
                 for (const id of columnStore.getInstancesBySha1(arr.sha1s[i])) {
                     if (instanceData[id]) {
                         instanceData[id].properties[arr.propertyId] = value
@@ -245,7 +245,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
             const prop = dataStore.properties?.[arr.propertyId]
             for (let i = 0; i < arr.fileIds.length; i++) {
                 const value = JSON.parse(arr.values[i])
-                if (value == undefined) continue
+                if (value === undefined) continue
                 for (const id of columnStore.getInstancesByFileId(arr.fileIds[i])) {
                     if (instanceData[id]) {
                         instanceData[id].properties[arr.propertyId] = value

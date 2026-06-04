@@ -50,7 +50,8 @@ function onCreate(tag: Tag) {
 }
 
 function onDelete(tagId: number) {
-    emits('update:modelValue', [...safeValue.value.filter(i => i != tagId)])
+    const newValue = safeValue.value.filter(i => i != tagId)
+    emits('update:modelValue', newValue.length > 0 ? newValue : undefined)
     emits('remove', tagId)
     focus()
 }

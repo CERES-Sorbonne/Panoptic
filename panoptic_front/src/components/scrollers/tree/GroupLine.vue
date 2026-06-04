@@ -37,7 +37,7 @@ const slots = computed(() => props.item.data.slots ?? [])
 function getImages() {
     const ids = columnStore.instanceIds()
     const sha1s = columnStore.sha1s()
-    return slots.value.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot] }))
+    return slots.value.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot], sha1: sha1s[slot] }))
 }
 
 const subgroups = computed(() => props.item.data.children ?? [])

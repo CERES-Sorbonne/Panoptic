@@ -471,6 +471,30 @@ class DataReader(SQLiteReader):
             ).fetchall()
         return {tag_id: count for tag_id, count in rows}
 
+    def count_instances_per_folder(self) -> dict[int, int]:
+        """Return {folder_id: instance_count} with counts propagated to parent folders."""
+        rows = self.conn.execute(
+            f"SELECT f.folder_id, COUNT(DISTINCT i.id)"
+            f" FROM {INSTANCES_SCHEMA.table} i"
+            f" JOIN {FILES_SCHEMA.table} f ON f.id = i.file_id"
+            f" GROUP BY f.folder_id"
+        ).fetchall()
+        direct: dict[int, int] = {folder_id: count for folder_id, count in rows if folder_id is not None}
+
+        # Propagate counts up through folder parents
+        folder_rows = self.conn.execute(
+            f"SELECT id, parent FROM {FOLDERS_SCHEMA.table}"
+        ).fetchall()
+        parent_map: dict[int, int | None] = {row[0]: row[1] for row in folder_rows}
+
+        totals: dict[int, int] = dict(direct)
+        for folder_id, count in direct.items():
+            ancestor = parent_map.get(folder_id)
+            while ancestor is not None:
+                totals[ancestor] = totals.get(ancestor, 0) + count
+                ancestor = parent_map.get(ancestor)
+        return totals
+
     def _iv_since_filtered(
         self,
         since: int,

@@ -22,7 +22,7 @@ from panoptic2.core.project.project import Project2
 from panoptic2.models.action_models import ActionContext
 from panoptic2.models.stream_models import (
     FileValuesColumn, FullInstance, ImageValuesColumn, InstanceValuesColumn,
-    LoadState, StreamChunk, StreamResult,
+    LoadState, StreamChunk, StreamResult, TagCount,
 )
 from panoptic2.core.databases.entity_schema import OP_DELETE
 from panoptic2.routes.deps import get_project
@@ -453,6 +453,11 @@ def allocate_tags(n: int = 1, project: Project2 = Depends(_dep)):
 @project_router.get('/folders')
 def get_folders(project: Project2 = Depends(_dep)):
     return _json([_db_to_dict(f) for f in project.get_folders()])
+
+
+@project_router.get('/folders/counts')
+def get_folder_counts(project: Project2 = Depends(_dep)):
+    return project.count_instances_per_folder()
 
 
 class _PathRequest(BaseModel):

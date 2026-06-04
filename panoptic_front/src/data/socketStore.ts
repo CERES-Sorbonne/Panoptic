@@ -122,7 +122,9 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('folders', (data: Folder[]) => {
-            useDataStore().importFolders(keysToCamel(data))
+            const store = useDataStore()
+            store.importFolders(keysToCamel(data))
+            store.fetchFolderCounts()
         })
 
         socket.on('folders_delete', () => {

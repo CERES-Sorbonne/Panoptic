@@ -10,7 +10,7 @@ import {
 import { buildPropertyGroupOrder, objValues } from './builder'
 import {
     apiAddFolder, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
-    apiGetHistory, apiGetInitState, apiGetUIData, apiMergeTags,
+    apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
     apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
     apiUndo,
 } from './apiProjectRoutes'
@@ -197,6 +197,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function applyDelta(delta: LoadResult) {
+        console.log(delta)
         const needsPropertyTree = delta.chunk ? hasPropertyChanges(delta.chunk) : false
         if (delta.chunk)           applyCommit(delta.chunk, true)
 
@@ -211,6 +212,44 @@ export const useDataStore = defineStore('dataStore', () => {
         if (delta.state?.maxSequence > lastSequence.value) lastSequence.value = delta.state.maxSequence
         triggerRefs()
         if (needsPropertyTree) computePropertyTree()
+
+        // Re-fetch all tag counts if any tag property had value changes
+        const allChunks = (delta.instanceValues ?? []).concat(delta.imageValues ?? [])
+        for (let i = 0; i < allChunks.length; i++) {
+            if (isTag(properties.value[allChunks[i].propertyId]?.type)) {
+                fetchTagCounts()
+                break
+            }
+        }
+    }
+
+    function applyTagCounts(counts: { tag_id: number; instance_count: number; sha1_count: number }[]) {
+        for (const { tag_id, instance_count, sha1_count } of counts) {
+            if (tags.value[tag_id]) tags.value[tag_id].count = instance_count + sha1_count
+        }
+        triggerRef(tags)
+    }
+
+    function applyFolderCounts(counts: Record<string, number>) {
+        for (const [id, count] of Object.entries(counts)) {
+            const folderId = Number(id)
+            if (folders.value[folderId]) folders.value[folderId].count = count
+        }
+        triggerRef(folders)
+    }
+
+    async function fetchTagCounts(propertyId?: number) {
+        try {
+            const counts = await apiGetTagCounts(propertyId)
+            applyTagCounts(counts)
+        } catch {}
+    }
+
+    async function fetchFolderCounts() {
+        try {
+            const counts = await apiGetFolderCounts()
+            applyFolderCounts(counts)
+        } catch {}
     }
 
     async function init() {
@@ -235,6 +274,10 @@ export const useDataStore = defineStore('dataStore', () => {
         isLoaded.value = true
 
         await getHistory()
+
+        // Non-blocking: populate counts after the app is usable
+        fetchTagCounts()
+        fetchFolderCounts()
     }
 
     function clear() {
@@ -254,6 +297,40 @@ export const useDataStore = defineStore('dataStore', () => {
         isLoaded.value     = false
         lastSequence.value = 0
         onUndo.value       = 0
+    }
+
+    function applyValuesToColumnStore(
+        instanceValues?: InstancePropertyValue[],
+        imageValues?: ImagePropertyValue[],
+        fileValues?: FilePropertyValue[],
+    ) {
+        const col = columnStore
+        instanceValues?.forEach(v => {
+            const slot = col.slotMap.get(v.instanceId)
+            if (slot !== undefined) {
+                col.writeSlot(v.propertyId, slot, v.value)
+                dirtyInstances.add(v.instanceId)
+            }
+        })
+        imageValues?.forEach(v => {
+            col.getInstancesBySha1(v.sha1).forEach(id => {
+                const slot = col.slotMap.get(id)
+                if (slot !== undefined) {
+                    col.writeSlot(v.propertyId, slot, v.value)
+                    dirtyInstances.add(id)
+                }
+            })
+        })
+        fileValues?.forEach(v => {
+            col.getInstancesByFileId(v.fileId).forEach(id => {
+                const slot = col.slotMap.get(id)
+                if (slot !== undefined) {
+                    col.writeSlot(v.propertyId, slot, v.value)
+                    dirtyInstances.add(id)
+                }
+            })
+        })
+        if (dirtyInstances.size > 0) triggerRefs()
     }
 
     async function sendCommit(commit: DbCommit): Promise<DbCommit> {
@@ -358,10 +435,12 @@ export const useDataStore = defineStore('dataStore', () => {
             }
         }
         await sendCommit({ instanceValues, imageValues, fileValues })
+        applyValuesToColumnStore(instanceValues, imageValues, fileValues)
     }
 
     async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
         await sendCommit({ instanceValues, imageValues })
+        applyValuesToColumnStore(instanceValues, imageValues)
     }
 
     async function setTagPropertyValue(propertyId: number, imgs: Instance[] | Instance, value: any) {
@@ -374,6 +453,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 return { propertyId, instanceId: i.id, value: Array.from(new Set([...current, ...value])) }
             })
             await sendCommit({ instanceValues: values })
+            applyValuesToColumnStore(values)
         } else {
             const values: ImagePropertyValue[] = imgs.map(i => {
                 const slot = columnStore.slotMap.get(i.id)
@@ -381,6 +461,7 @@ export const useDataStore = defineStore('dataStore', () => {
                 return { propertyId, sha1: (i as any).sha1, value: Array.from(new Set([...current, ...value])) }
             })
             await sendCommit({ imageValues: values })
+            applyValuesToColumnStore(undefined, values)
         }
     }
 
@@ -525,6 +606,7 @@ export const useDataStore = defineStore('dataStore', () => {
     return {
         init, clear, isLoaded, lastSequence, applyDelta, applyCommit,
         applyMultipleCommits, sendCommit,
+        fetchTagCounts, fetchFolderCounts,
 
         folders, instances: instanceStore.instanceData, properties, tags, history,
         propertyGroups, propertyGroupsList, propertyTree, propertyOrder,

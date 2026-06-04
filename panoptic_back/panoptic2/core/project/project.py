@@ -262,6 +262,10 @@ class Project2:
         with self._data_reader() as r:
             return r.get_tag_counts(property_id=property_id)
 
+    def count_instances_per_folder(self) -> dict[int, int]:
+        with self._data_reader() as r:
+            return r.count_instances_per_folder()
+
     # ------------------------------------------------------------------
     # Writes  (DataWriter open/close per call)
     # ------------------------------------------------------------------
