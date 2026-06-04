@@ -2,7 +2,8 @@
 import { computed, ref, shallowRef, watch } from 'vue'
 import { deletedID, buildTag, Instance, ModalId, PropertyType, Tag } from '@/data/models';
 import { useDataStore } from '@/data/dataStore';
-import { computeTagToInstance, deepCopy, isTag } from '@/utils/utils';
+import { deepCopy, isTag } from '@/utils/utils';
+import { useColumnStore } from '@/data/columnStore';
 import { usePanopticStore } from '@/data/panopticStore';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
@@ -14,6 +15,7 @@ import { useModalStore } from '@/data/modalStore';
 
 const panoptic = usePanopticStore()
 const data = useDataStore()
+const columnStore = useColumnStore()
 
 const propId = ref(-1)
 // const tagId = ref(-1)
@@ -198,23 +200,61 @@ function onDragEnd() {
     childDisabled.value = false
 }
 
-function updateTagToInstance() {
-    tagToInstance.value = computeTagToInstance(data.instanceList ?? [], properties.value, data.tagList ?? [], data.tags ?? {})
+async function updateTagToInstance() {
+    if (!property.value) return
+
+    const res: { [tId: number]: { id: number }[] } = {}
+    for (const tag of tags.value) {
+        res[tag.id] = []
+    }
+
+    const prop = property.value
+    await columnStore.requireFullColumn(prop.id)
+
+    const col = columnStore.columnData[prop.id]
+    if (!col || col.kind !== 'tag') return
+
+    const idArray = columnStore.instanceIds()
+    const slotCount = columnStore.slotCount()
+
+    for (let s = 0; s < slotCount; s++) {
+        const tagIds = col.sparse[s]
+        if (!tagIds) continue
+
+        const instanceId = idArray[s]
+        const allTags = new Set<number>()
+
+        for (const tId of tagIds) {
+            const tag = data.tags[tId]
+            if (!tag) continue
+            tag.allParents?.forEach(p => allTags.add(p))
+            allTags.add(tId)
+        }
+
+        allTags.forEach(tId => {
+            if (res[tId]) res[tId].push({ id: instanceId })
+        })
+    }
+
+    tagToInstance.value = res as any
 }
 
 async function mergeTags() {
     const list = selectedTagIds.value
-    selectedTagIds.value = [list[0]]
+    if (list.length < 2) return
+    const keepId = list[0]
+    selectedTagIds.value = [keepId]
     await data.mergeTags(list)
+    await updateTagToInstance()
 }
 
 
+watch(propId, async (id) => {
+    if (id !== -1) await updateTagToInstance()
+})
+
 watch(tags, () => {
     updateTagToInstance()
-    // data.tagList.forEach(t => {
-    //     if (tagToInstance.value[t.id]) return
-    //     tagToInstance.value[t.id] = []
-    // })
 })
 
 </script>

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { GroupManager } from '@/core/GroupManager';
-import { Instance, Property } from '@/data/models';
+import { Property } from '@/data/models';
+import { useColumnStore } from '@/data/columnStore';
 import { onMounted, watch, ref, nextTick } from 'vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 
+const columnStore = useColumnStore()
+
 const props = defineProps<{
-    instances: Instance[]
+    instanceIds: number[]
     properties?: Property[]
 }>()
-// const emits = defineEmits([])
 
 const groupManager = new GroupManager()
 const box = ref(null)
@@ -17,8 +19,14 @@ const scroller = ref(null)
 const height = ref(0)
 const width = ref(0)
 
-function update() {
-    groupManager.group(props.instances)
+async function update() {
+    const slots = new Int32Array(props.instanceIds.length)
+    let len = 0
+    for (const id of props.instanceIds) {
+        const slot = columnStore.slotMap.get(id)
+        if (slot !== undefined) slots[len++] = slot
+    }
+    await groupManager.group(slots.subarray(0, len))
 
     width.value = box.value.offsetWidth
     height.value = box.value.offsetHeight
@@ -27,7 +35,7 @@ function update() {
 }
 
 onMounted(update)
-watch(() => props.instances, update)
+watch(() => props.instanceIds, update)
 
 </script>
 

@@ -14,7 +14,7 @@ from panoptic.core.databases.project.models import ProjectConfig, TabData, UserD
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.core.databases.data.models import (
     Commit, DeleteCommit, File, FileSource, FileValue, Folder, Instance,
-    InstanceValue, Property, Sha1Value, Tag, UpsertCommit,
+    InstanceTagValue, InstanceValue, Property, Sha1TagValue, Sha1Value, Tag, UpsertCommit,
 )
 from panoptic.core.databases.entity_schema import OP_CREATE
 from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTIES, SYSTEM_PROPERTY_MAP
@@ -267,6 +267,14 @@ class Project:
     def get_file_values(self, **filters) -> List[FileValue]:
         with self._data_reader() as r:
             return r.get_file_values(**filters)
+
+    def get_instance_tag_values(self, **filters) -> List[InstanceTagValue]:
+        with self._data_reader() as r:
+            return r.get_instance_tag_values(**filters)
+
+    def get_sha1_tag_values(self, **filters) -> List[Sha1TagValue]:
+        with self._data_reader() as r:
+            return r.get_sha1_tag_values(**filters)
 
     def get_tag_counts(self, property_id: int | None = None) -> list[dict]:
         with self._data_reader() as r:

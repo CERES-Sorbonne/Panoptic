@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { Instance, Tag } from '@/data/models';
-import { computed } from 'vue'
+import { computed, getCurrentInstance, onUnmounted, watch } from 'vue'
 import ImagePreview from '../preview/ImagePreview.vue';
 import EditableTag from '../tags/EditableTag.vue';
-import { useDataStore } from '@/data/dataStore';
+import { useInstanceStore } from '@/data/instanceStore';
+import { usePanopticStore } from '@/data/panopticStore';
 
-const data = useDataStore()
+const instanceStore = useInstanceStore()
+const panoptic = usePanopticStore()
+const uid = String(getCurrentInstance()!.uid)
 
 const props = defineProps<{
     tags: Tag[]
@@ -14,13 +17,20 @@ const props = defineProps<{
 
 const emits = defineEmits(['unselect', 'merge'])
 
-const instances = computed(() => {
+const instanceIds = computed(() => {
     const instanceSet = new Set<number>()
-    for (let tag of props.tags) {
-        props.tagToInstance[tag.id].forEach(i => instanceSet.add(i.id))
+    for (const tag of props.tags) {
+        props.tagToInstance[tag.id]?.forEach(i => instanceSet.add(i.id))
     }
-    return Array.from(instanceSet).map(i => data.instances[i])
+    return Array.from(instanceSet)
 })
+
+watch(instanceIds, (ids) => {
+    const projectId = panoptic.connectionState?.connectedProject ?? ''
+    instanceStore.register(uid, ids, [], projectId)
+}, { immediate: true })
+
+onUnmounted(() => instanceStore.unregister(uid))
 
 function mergeSelected() {
     emits('merge')
@@ -42,7 +52,7 @@ function mergeSelected() {
         </div>
 
         <div class="flex-shrink-0" style="height: 4px;"></div>
-        <ImagePreview :instances="instances" />
+        <ImagePreview :instance-ids="instanceIds" />
     </div>
 </template>
 

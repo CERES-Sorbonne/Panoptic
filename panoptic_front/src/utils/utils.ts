@@ -101,6 +101,7 @@ export function getGroupParents(group: Group): Group[] {
 export function getTagChildren(tag: Tag, tags: TagIndex) {
     const res = []
     const recursive = (t: Tag) => {
+        if (!t || t.id === deletedID) return
         res.push(t.id)
         if (t.children) {
             t.children.filter(c => c != deletedID).forEach(cId => recursive(tags[cId]))

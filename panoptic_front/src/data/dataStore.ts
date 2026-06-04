@@ -388,6 +388,7 @@ export const useDataStore = defineStore('dataStore', () => {
     async function mergeTags(tagIds: number[]) {
         const commit = await apiMergeTags(tagIds)
         applyCommit(commit)
+        applyValuesToColumnStore(commit.instanceValues, commit.imageValues)
     }
 
     async function addProperty(name: string, type: PropertyType, mode: PropertyMode, group?: number): Promise<Property> {

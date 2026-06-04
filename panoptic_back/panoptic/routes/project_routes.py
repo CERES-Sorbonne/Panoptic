@@ -1122,7 +1122,7 @@ class _TagMergeRequest(BaseModel):
 
 @project_router.post('/tags/merge')  # TODO: needs testing
 def merge_tags_route(req: _TagMergeRequest, project: Project = Depends(_dep)):
-    from panoptic.core.databases.entity_schema import OP_UPDATE
+    from panoptic.core.databases.entity_schema import OP_UPDATE, OP_CREATE
 
     tag_ids = req.tag_ids
     if len(tag_ids) < 2:
@@ -1173,50 +1173,59 @@ def merge_tags_route(req: _TagMergeRequest, project: Project = Depends(_dep)):
             value=t.value, color=t.color, commit_id=0, operation=OP_UPDATE,
         )
 
-    # Fix property values that contain any removed tag id
+    # Fix property values that contain any removed tag id.
+    # Tag properties store values in the tag-specific tables (one row per tag
+    # assignment) rather than the generic value tables, so we must query
+    # get_sha1_tag_values / get_instance_tag_values.
     props = project.get_properties()
     prop  = next((p for p in props if p.tag_list_id == list_id), None)
     if prop:
         if prop.mode == 'sha1':
-            for v in project.get_sha1_values(property_id=prop.id):
-                val = v.value
-                if not isinstance(val, list) or not any(tid in removed_ids for tid in val):
+            sha1_tags: dict[str, set] = {}
+            for row in project.get_sha1_tag_values(property_id=prop.id, operation=OP_CREATE):
+                sha1_tags.setdefault(row.sha1, set()).add(row.tag_id)
+            for sha1, tag_set in sha1_tags.items():
+                if not any(tid in removed_ids for tid in tag_set):
                     continue
-                new_val: list[int] = []
-                has_main = False
-                for tid in val:
-                    if tid not in removed_ids and tid != main_id:
-                        new_val.append(tid)
-                    elif not has_main:
-                        new_val.append(main_id)
-                        has_main = True
+                new_tag_set = (tag_set - removed_ids) | {main_id}
                 upsert.sha1_values.setdefault(prop.id, []).append(
-                    Sha1Value(property_id=v.property_id, sha1=v.sha1,
-                              value=new_val, commit_id=0, operation=OP_UPDATE)
+                    Sha1Value(property_id=prop.id, sha1=sha1,
+                              value=sorted(new_tag_set), commit_id=0, operation=OP_UPDATE)
                 )
         else:
-            for v in project.get_instance_values(property_id=prop.id):
-                val = v.value
-                if not isinstance(val, list) or not any(tid in removed_ids for tid in val):
+            inst_tags: dict[int, set] = {}
+            for row in project.get_instance_tag_values(property_id=prop.id, operation=OP_CREATE):
+                inst_tags.setdefault(row.instance_id, set()).add(row.tag_id)
+            for inst_id, tag_set in inst_tags.items():
+                if not any(tid in removed_ids for tid in tag_set):
                     continue
-                new_val = []
-                has_main = False
-                for tid in val:
-                    if tid not in removed_ids and tid != main_id:
-                        new_val.append(tid)
-                    elif not has_main:
-                        new_val.append(main_id)
-                        has_main = True
+                new_tag_set = (tag_set - removed_ids) | {main_id}
                 upsert.instance_values.setdefault(prop.id, []).append(
-                    InstanceValue(property_id=v.property_id, instance_id=v.instance_id,
-                                  value=new_val, commit_id=0, operation=OP_UPDATE)
+                    InstanceValue(property_id=prop.id, instance_id=inst_id,
+                                  value=sorted(new_tag_set), commit_id=0, operation=OP_UPDATE)
                 )
 
     if upsert.tags or upsert.instance_values or upsert.sha1_values:
         project.apply_upsert_commit('ui', upsert)
 
     project.apply_delete_commit('ui', DeleteCommit(tags=removed_ids))
-    return {'ok': True}
+
+    return {
+        'empty_tags': list(removed_ids),
+        'tags': [
+            {'id': t.id, 'list_id': t.list_id, 'value': t.value,
+             'parents': t.parents, 'color': t.color}
+            for t in upsert.tags.values()
+        ],
+        'instance_values': [
+            {'property_id': v.property_id, 'instance_id': v.instance_id, 'value': v.value}
+            for vals in upsert.instance_values.values() for v in vals
+        ],
+        'image_values': [
+            {'property_id': v.property_id, 'sha1': v.sha1, 'value': v.value}
+            for vals in upsert.sha1_values.values() for v in vals
+        ],
+    }
 
 
 # ---------------------------------------------------------------------------
