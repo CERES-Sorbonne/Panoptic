@@ -139,6 +139,7 @@ async function removeUser(userId: string, e: Event) {
     border-radius: 8px;
     overflow: hidden;
     background: white;
+    text-align: left;
 }
 
 .user-item {
