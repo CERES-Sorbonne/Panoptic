@@ -1,116 +1,114 @@
+"""Panoptic entry point — FastAPI + Socket.IO backed by Panoptic."""
+from __future__ import annotations
+
 import os
-import tempfile
 import traceback
 import webbrowser
 from contextlib import asynccontextmanager
+
+import msgspec
+import msgspec.structs
+import socketio
 import uvicorn
 from fastapi import FastAPI
+import fastapi.encoders as _fe
+from fastapi.exceptions import HTTPException, RequestValidationError
+
+def _encode_msgspec_struct(s: msgspec.Struct) -> dict:
+    return {f: getattr(s, f) for f in s.__struct_fields__}
+
+_fe.ENCODERS_BY_TYPE[msgspec.Struct] = _encode_msgspec_struct
+_fe.encoders_by_class_tuples[_encode_msgspec_struct] = (msgspec.Struct,)
 
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.gzip import GZipMiddleware
-from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.staticfiles import StaticFiles
-import socketio
 
-from panoptic.core.panoptic import Panoptic
-from panoptic.core.panoptic_server import PanopticServer
-from panoptic.routes.panoptic_routes import selection_router, set_server
+from panoptic.core.panoptic.panoptic import Panoptic
+from panoptic.core.server.panoptic_server import PanopticServer
+from panoptic.routes.deps import set_dependencies
+from panoptic.routes.panoptic_routes import panoptic_router
 from panoptic.routes.project_routes import project_router
-from panoptic.models import PluginType
-from panoptic.routes.panoptic_routes import selection_router
-from panoptic.routes.project_routes import project_router
-from panoptic.utils import get_base_path
 
 
-def start_api(install=False):
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
-        yield
-        await panoptic._close()
+def start():
+    db_path = os.getenv('PANOPTIC_DB', os.path.expanduser('~/.panoptic/panoptic.db'))
+    PORT    = int(os.getenv('PANOPTIC_PORT', 8000))
+    HOST    = os.getenv('PANOPTIC_HOST', None)
 
-    panoptic = Panoptic()
+    panoptic = Panoptic(db_path)
     panoptic.start()
 
-    if install:
-        panoptic.add_plugin(
-            name='PanopticVision',
-            source='panopticml',
-            ptype=PluginType.pip
-        )
+    sio    = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+    server = PanopticServer(panoptic, sio)
 
-    HOST = os.getenv("PANOPTIC_HOST", None)
-    # default port for Panoptic backend is 8000
-    PORT = int(os.getenv("PANOPTIC_PORT", 8000))
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        server.on_startup()
+        yield
+        await server.shutdown()
+        panoptic.close()
 
-    # FastAPI setup
-    app = FastAPI(lifespan=lifespan)
-
-    server = PanopticServer(panoptic)
-    sio_app = socketio.ASGIApp(server.sio)
-    app.mount("/socket.io", sio_app)
+    app = FastAPI(lifespan=lifespan, title='Panoptic')
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=['*'],
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=['*'],
+        allow_headers=['*'],
     )
 
     if os.environ.get('PANOPTIC_REMOTE'):
-        app.add_middleware(GZipMiddleware, minimum_size=1000000, compresslevel=4)
+        from starlette.middleware.gzip import GZipMiddleware
+        app.add_middleware(GZipMiddleware, minimum_size=1_000_000, compresslevel=4)
 
-    BASE_PATH = get_base_path()
-    # base path for the static folder
+    app.mount('/socket.io', socketio.ASGIApp(sio))
 
-    app.include_router(selection_router)
+    set_dependencies(panoptic, server)
+    app.include_router(panoptic_router)
     app.include_router(project_router)
 
-
-    @app.exception_handler(Exception)
-    async def unicorn_exception_handler(request: Request, exc: BaseException):
-        headers = {
-            "Access-Control-Allow-Origin": "*",  # match your CORS settings
-            "Access-Control-Allow-Credentials": "false",
-        }
-
-        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-        name = str(type(exc).__name__)
-        message = str(exc)
-
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
         return JSONResponse(
-            status_code=500,
-            headers=headers,
-            content={"traceback": tb, "name": name, "message": message}
+            status_code=exc.status_code,
+            headers={'Access-Control-Allow-Origin': '*'},
+            content={'name': 'HTTPException', 'message': str(exc.detail)},
         )
 
-    set_server(server)
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            headers={'Access-Control-Allow-Origin': '*'},
+            content={'name': 'ValidationError', 'message': str(exc)},
+        )
 
-    app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: BaseException):
+        tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+        return JSONResponse(
+            status_code=500,
+            headers={'Access-Control-Allow-Origin': '*'},
+            content={'traceback': tb, 'name': type(exc).__name__, 'message': str(exc)},
+        )
 
-    dev_url = 'http://localhost:5173/'
-    prod_url = 'http://localhost:' + str(PORT) + '/'
-    front_url = dev_url if os.getenv("PANOPTIC_ENV", "PROD") == "DEV" else prod_url
+    html_dir = os.path.join(os.path.dirname(__file__), 'html')
+    if os.path.isdir(html_dir):
+        from starlette.staticfiles import StaticFiles
+        app.mount('/', StaticFiles(directory=html_dir, html=True), name='static')
 
     if not os.environ.get('PANOPTIC_REMOTE'):
+        front_url = (
+            'http://localhost:5173/'
+            if os.getenv('PANOPTIC_ENV', 'PROD') == 'DEV'
+            else f'http://localhost:{PORT}/'
+        )
         webbrowser.open(front_url)
-    if os.environ.get('SERVER_MODE'):
-        server.ask_users = True
-
 
     uvicorn.run(app, host=HOST, port=PORT)
 
-def start(test=False, install=False):
-    if test:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            os.environ['PANOPTIC_DATA_DIR'] = tmpdir
-            start_api(install)
-    else:
-        start_api()
 
 if __name__ == '__main__':
-    # start(sys.argv[1]=="test")
     start()
-

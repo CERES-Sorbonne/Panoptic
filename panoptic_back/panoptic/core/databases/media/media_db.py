@@ -5,15 +5,6 @@ from panoptic.core.databases.media.create import (
 from panoptic.core.databases.media.models import VectorType, Vector, ImageType, Image, ImageAtlas, Map
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 
-# Default image types seeded on first open.
-# IDs 1 and 2 are reserved; ProjectDB.allocate_image_types() starts at 1 so
-# custom types added via the UI will receive IDs 3+ after the defaults are in place.
-_DEFAULT_IMAGE_TYPES = [
-    ImageType(id=1, name='small', format='jpeg', width=256,  height=256,  auto_gen=True),
-    ImageType(id=2, name='large', format='jpeg', width=1024, height=1024, auto_gen=True),
-]
-
-
 class MediaDB(SQLiteWriter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,15 +24,15 @@ class MediaDB(SQLiteWriter):
         with self.transaction() as tx:
             IMAGE_TYPE_SHEMA.delete(tx, id=image_type_id)
 
-    def ensure_default_image_types(self) -> None:
-        """Seeds default image types if the table is empty. Call once after start()."""
-        if not IMAGE_TYPE_SHEMA.get(self.conn):
-            with self.transaction() as tx:
-                IMAGE_TYPE_SHEMA.upsert(tx, _DEFAULT_IMAGE_TYPES)
-
     # ------------------------------------------------------------------
     # Image
     # ------------------------------------------------------------------
+
+    def get_image_stats(self) -> dict[int, int]:
+        rows = self.conn.execute(
+            "SELECT type_id, COUNT(DISTINCT sha1) FROM images GROUP BY type_id"
+        ).fetchall()
+        return {r[0]: r[1] for r in rows}
 
     def get_images(self, **filters) -> list[Image]:
         return IMAGE_SHEMA.get(self.conn, **filters)
@@ -78,7 +69,7 @@ class MediaDB(SQLiteWriter):
             "SELECT type_id, COUNT(DISTINCT sha1) FROM vectors GROUP BY type_id"
         ).fetchall()
         count = {r[0]: r[1] for r in rows} if rows else {}
-        return {'count': count, 'sha1_count': 0}  # sha1_count overridden by Project2
+        return {'count': count, 'sha1_count': 0}  # sha1_count overridden by Project
 
     def get_vectors(self, **filters) -> list[Vector]:
         return VECTOR_SHEMA.get(self.conn, **filters)

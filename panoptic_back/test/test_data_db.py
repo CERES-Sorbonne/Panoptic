@@ -9,12 +9,12 @@ from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.models import PropertyType
 from panoptic.models.data import DeleteCommit, InstanceValue, Sha1Value
 
-from panoptic2.core.databases.data.commit import CommitBuilder as CommitBuilder2
-from panoptic2.core.databases.data.data_reader import DataReader as DataReader2
-from panoptic2.core.databases.data.data_writer import DataWriter as DataWriter2
-from panoptic2.core.databases.project.project_db import ProjectDB as ProjectDB2
-from panoptic2.models.models import PropertyType as PropertyType2
-from panoptic2.core.databases.data.models import InstanceValue as InstanceValue2, Sha1Value as Sha1Value2
+from panoptic.core.databases.data.commit import CommitBuilder as CommitBuilder
+from panoptic.core.databases.data.data_reader import DataReader as DataReader
+from panoptic.core.databases.data.data_writer import DataWriter as DataWriter
+from panoptic.core.databases.project.project_db import ProjectDB as ProjectDB
+from panoptic.models.models import PropertyType as PropertyType
+from panoptic.core.databases.data.models import InstanceValue as InstanceValue, Sha1Value as Sha1Value
 
 
 def _setup():
@@ -362,11 +362,11 @@ def _setup2():
     if project_path.exists(): project_path.unlink()
     if data_path.exists(): data_path.unlink()
 
-    project = ProjectDB2(str(project_path))
+    project = ProjectDB(str(project_path))
     project.start()
-    writer = DataWriter2(str(data_path))
+    writer = DataWriter(str(data_path))
     writer.start()
-    reader = DataReader2(str(data_path))
+    reader = DataReader(str(data_path))
     reader.start()
     return project, writer, reader
 
@@ -375,8 +375,8 @@ def test_instance_tag_counts():
     project, writer, reader = _setup2()
 
     # Setup: one multi_tags property (mode=id), two instances, three tags
-    commit1 = CommitBuilder2(project)
-    prop = commit1.create_property(dtype=PropertyType2.multi_tags.value, mode='id', name='labels')
+    commit1 = CommitBuilder(project)
+    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='labels')
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
     file1 = commit1.create_file(name='a.jpg', folder_id=folder.id, sha1='sha_a')
@@ -384,8 +384,8 @@ def test_instance_tag_counts():
     inst1 = commit1.create_instance(file_id=file1.id, sha1='sha_a')
     inst2 = commit1.create_instance(file_id=file2.id, sha1='sha_b')
     # inst1 -> tags [1, 2],  inst2 -> tags [2, 3]
-    commit1.update_instance_value(InstanceValue2(property_id=prop.id, instance_id=inst1.id, value=[1, 2]))
-    commit1.update_instance_value(InstanceValue2(property_id=prop.id, instance_id=inst2.id, value=[2, 3]))
+    commit1.update_instance_value(InstanceValue(property_id=prop.id, instance_id=inst1.id, value=[1, 2]))
+    commit1.update_instance_value(InstanceValue(property_id=prop.id, instance_id=inst2.id, value=[2, 3]))
     writer.apply_upsert_commit('insert', commit1.data)
 
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}
@@ -395,8 +395,8 @@ def test_instance_tag_counts():
     assert all(r['sha1_count'] == 0 for r in counts.values())
 
     # Update inst1 to only [2] — tag 1 should drop to 0 and disappear
-    commit2 = CommitBuilder2(project)
-    commit2.update_instance_value(InstanceValue2(property_id=prop.id, instance_id=inst1.id, value=[2]))
+    commit2 = CommitBuilder(project)
+    commit2.update_instance_value(InstanceValue(property_id=prop.id, instance_id=inst1.id, value=[2]))
     writer.apply_upsert_commit('update', commit2.data)
 
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}
@@ -413,11 +413,11 @@ def test_sha1_tag_counts():
     project, writer, reader = _setup2()
 
     # Setup: one multi_tags property (mode=sha1), two sha1s, three tags
-    commit1 = CommitBuilder2(project)
-    prop = commit1.create_property(dtype=PropertyType2.multi_tags.value, mode='sha1', name='genres')
+    commit1 = CommitBuilder(project)
+    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='genres')
     # sha1_x -> tags [10, 20],  sha1_y -> tags [20, 30]
-    commit1.update_sha1_value(Sha1Value2(property_id=prop.id, sha1='sha1_x', value=[10, 20]))
-    commit1.update_sha1_value(Sha1Value2(property_id=prop.id, sha1='sha1_y', value=[20, 30]))
+    commit1.update_sha1_value(Sha1Value(property_id=prop.id, sha1='sha1_x', value=[10, 20]))
+    commit1.update_sha1_value(Sha1Value(property_id=prop.id, sha1='sha1_y', value=[20, 30]))
     writer.apply_upsert_commit('insert', commit1.data)
 
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}
@@ -427,8 +427,8 @@ def test_sha1_tag_counts():
     assert all(r['instance_count'] == 0 for r in counts.values())
 
     # Overwrite sha1_x with [20] only — tag 10 should disappear
-    commit2 = CommitBuilder2(project)
-    commit2.update_sha1_value(Sha1Value2(property_id=prop.id, sha1='sha1_x', value=[20]))
+    commit2 = CommitBuilder(project)
+    commit2.update_sha1_value(Sha1Value(property_id=prop.id, sha1='sha1_x', value=[20]))
     writer.apply_upsert_commit('update', commit2.data)
 
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}
@@ -441,16 +441,16 @@ def test_tag_counts_mixed():
     """Both instance and sha1 tag values for the same tag_id sum correctly."""
     project, writer, reader = _setup2()
 
-    commit1 = CommitBuilder2(project)
-    prop_id = commit1.create_property(dtype=PropertyType2.multi_tags.value, mode='id', name='p_id')
-    prop_sha1 = commit1.create_property(dtype=PropertyType2.multi_tags.value, mode='sha1', name='p_sha1')
+    commit1 = CommitBuilder(project)
+    prop_id = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='p_id')
+    prop_sha1 = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='p_sha1')
     source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
     folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
     file = commit1.create_file(name='c.jpg', folder_id=folder.id, sha1='sha_c')
     inst = commit1.create_instance(file_id=file.id, sha1='sha_c')
     # Same tag_id=5 appears in both an instance value and a sha1 value
-    commit1.update_instance_value(InstanceValue2(property_id=prop_id.id, instance_id=inst.id, value=[5]))
-    commit1.update_sha1_value(Sha1Value2(property_id=prop_sha1.id, sha1='sha_c', value=[5]))
+    commit1.update_instance_value(InstanceValue(property_id=prop_id.id, instance_id=inst.id, value=[5]))
+    commit1.update_sha1_value(Sha1Value(property_id=prop_sha1.id, sha1='sha_c', value=[5]))
     writer.apply_upsert_commit('insert', commit1.data)
 
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}

@@ -1,118 +1,125 @@
-from __future__ import annotations
-
-import asyncio
+import collections
 import logging
+import threading
 from collections import defaultdict
-from typing import Dict, List, TYPE_CHECKING
+from typing import Callable
 
-if TYPE_CHECKING:
-    from panoptic.core.project.project import Project
-    from panoptic.core.task.task import Task
+from panoptic.models.models import TaskState
+from panoptic.core.task.task import Task
 
-from panoptic.models import TaskState
-from panoptic.utils import EventListener
-
-logger = logging.getLogger('TaskManager')
+PRIORITY_HIGH   = 0
+PRIORITY_NORMAL = 10
 
 
 class TaskManager:
-    def __init__(self, project: Project):
-        self.project = project
-        self._tasks: Dict[str, Task] = {}
-        self._runners: Dict[str, asyncio.Task] = {}
-        self._counters: Dict[str, int] = defaultdict(int)
+    def __init__(self, on_update: Callable[[list[TaskState]], None] = None):
+        self._high_queue:   collections.deque[Task] = collections.deque()
+        self._normal_queue: collections.deque[Task] = collections.deque()
+        self._condition = threading.Condition()
+        self._tasks:    dict[str, Task] = {}
+        self._counters: defaultdict[str, int] = defaultdict(int)
+        self._on_update = on_update
+        self._stop = False
 
-        # Observable event for UI updates
-        self.on_update = EventListener()
+        self._worker = threading.Thread(target=self._worker_loop, daemon=True, name="TaskManager-worker")
+        self._worker.start()
 
-    def add_task(self, task: Task) -> Task:
-        """
-        Assigns a unique ID, connects progress tracking,
-        and schedules the task for execution.
-        """
-        # 1. Identity & State Setup
-        task.id = self._generate_id(task)
-        task.state.id = task.id
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
-        # 2. Connect progress callback to manager's emitter
-        task.on_progress(self._on_progress)
-
-        # 3. Registration
-        self._tasks[task.id] = task
-
-        # 4. Execution
-        # We wrap the run in a native asyncio Task to manage its lifecycle
-        runner = asyncio.create_task(self._run_wrapper(task))
-        self._runners[task.id] = runner
-
-        # Initial UI Update
-        self.on_update.emit(self.get_states())
+    def add_task(self, task: Task, high_priority: bool = False) -> Task:
+        with self._condition:
+            task.id = self._generate_id(task)
+            task.state.id = task.id
+            task.on_progress(self._on_progress)
+            self._tasks[task.id] = task
+            if high_priority:
+                self._high_queue.append(task)
+            else:
+                self._normal_queue.append(task)
+            self._condition.notify()
+        self._emit()
         return task
 
-    # ------------------------------------------------------------------
-    # Lifecycle Management
-    # ------------------------------------------------------------------
-
-    async def _run_wrapper(self, task: Task):
-        """
-        A wrapper around task.start() to handle cleanup,
-        cancellation, and error reporting.
-        """
-        try:
-            # The heart of the task execution
-            await task.start()
-        except asyncio.CancelledError:
-            logger.info(f"Task {task.id} was cancelled.")
-            # Ensure the state reflects cancellation if the task didn't set it
-            task.state.running = False
-        except Exception:
-            logger.exception(f"Task {task.id} raised an unexpected error.")
-            task.state.running = False
-        finally:
-            # Remove from runners regardless of outcome
-            t = self._runners.pop(task.id, None)
-
-            # Final state notification (mark as finished/not running)
-            self.on_update.emit(self.get_states())
-
     def stop_task(self, task_id: str):
-        """Request a task to stop gracefully."""
         task = self._tasks.get(task_id)
         if task:
-            task.stop()  # Sets the internal asyncio.Event()
+            task.stop()
 
-    # ------------------------------------------------------------------
-    # Queries
-    # ------------------------------------------------------------------
+    def dismiss_task(self, task_id: str):
+        with self._condition:
+            self._tasks.pop(task_id, None)
+        self._emit()
 
-    def get_states(self) -> List[TaskState]:
+    def get_states(self) -> list[TaskState]:
         return [t.state for t in self._tasks.values()]
 
-    def get_running(self) -> List[Task]:
-        return [self._tasks[tid] for tid in self._runners]
+    def close(self):
+        with self._condition:
+            self._stop = True
+            self._condition.notify()
+        for task in list(self._tasks.values()):
+            task.stop()
+        self._worker.join(timeout=5)
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+
+    def _worker_loop(self):
+        while True:
+            with self._condition:
+                while not self._stop and not self._high_queue and not self._normal_queue:
+                    self._condition.wait()
+                if self._stop:
+                    break
+                task = self._high_queue.popleft() if self._high_queue else self._normal_queue.popleft()
+
+            self._run_wrapper(task)
+
+    def _run_wrapper(self, task: Task):
+        task.state.running = True
+        self._emit()
+        try:
+            task.start()
+        except Exception:
+            logging.exception(f"Task {task.id} failed")
+        finally:
+            task.state.running = False
+            task.state.finished = True
+            task._finished_event.set()
+            self._emit()
+        self._maybe_on_last(task)
+
+    def _maybe_on_last(self, task: Task) -> None:
+        with self._condition:
+            pending = any(
+                t.key == task.key
+                for q in (self._high_queue, self._normal_queue)
+                for t in q
+            )
+            running = any(
+                t.state.running
+                for t in self._tasks.values()
+                if t.key == task.key and t.id != task.id
+            )
+        if not pending and not running:
+            try:
+                task.on_last()
+            except Exception:
+                logging.exception(f"Task {task.id!r} on_last() failed")
+
+    def _on_progress(self, state: TaskState):
+        self._emit()
+
+    def _emit(self):
+        if self._on_update:
+            try:
+                self._on_update(self.get_states())
+            except Exception as e:
+                logging.error(f"TaskManager on_update callback failed: {e}")
 
     def _generate_id(self, task: Task) -> str:
         self._counters[task.key] += 1
         return f"{task.key}#{self._counters[task.key]}"
-
-    def _on_progress(self, state: TaskState):
-        """Triggered whenever a task calls self._notify()."""
-        self.on_update.emit(self.get_states())
-
-    # ------------------------------------------------------------------
-    # Cleanup
-    # ------------------------------------------------------------------
-
-    async def close(self):
-        """Gracefully shut down all running tasks."""
-        # First, signal all tasks to stop their internal loops
-        for task in self.get_running():
-            task.stop()
-
-        if self._runners:
-            # Allow tasks a moment to clean up (e.g., closing file handles)
-            # return_exceptions=True prevents one crash from stopping other cleanups
-            await asyncio.gather(*self._runners.values(), return_exceptions=True)
-
-        self._runners.clear()
-        logger.info("TaskManager closed. All tasks stopped.")

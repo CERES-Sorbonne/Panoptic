@@ -1,128 +1,135 @@
+"""CSV and image exporter for Panoptic V2."""
 from __future__ import annotations
 
 import datetime
 import os
 import shutil
-from typing import List, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import polars as pl
 
-from panoptic.utils import get_local_paths
-
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
-from panoptic.models import PropertyType, Instance, Property, Folder
 
 
-def _copy_images(images: List[Instance], destination_folder: str) -> None:
-    os.makedirs(destination_folder, exist_ok=True)
-    for image in images:
-        # url = image.url.replace("/images/", "", 1)
-        url = image.url
-        try:
-            shutil.copy(url, destination_folder)
-        except BaseException:
-            print(f'File {url} not found !')
-
-
-correct_type = {
-    PropertyType.color: PropertyType.color,
-    PropertyType.number: PropertyType.number,
-    PropertyType.tag: PropertyType.tag,
-    PropertyType.path: PropertyType.string,
-    PropertyType.folder: PropertyType.string,
-    PropertyType.multi_tags: PropertyType.multi_tags,
-    PropertyType.url: PropertyType.url,
-    PropertyType.sha1: PropertyType.string,
-    PropertyType.ahash: PropertyType.string,
-    PropertyType.id: PropertyType.number,
-    PropertyType.height: PropertyType.number,
-    PropertyType.width: PropertyType.number,
-    PropertyType.date: PropertyType.date,
-    PropertyType.checkbox: PropertyType.checkbox,
-    PropertyType.string: PropertyType.string
-}
-
-
-def get_name(p: Property):
-    t = correct_type[p.type]
-    return f'{p.name}[{t.value}]'
-
-
-class Exporter:
-    def __init__(self, project: Project):
+class Exporter2:
+    def __init__(self, project: 'Project'):
         self.project = project
 
-    async def export_data(self, path, name: str = None, instance_ids: list[int] = None, properties=None,
-                          copy_images: bool = False, key: str = 'id') -> str:
+    def export_data(self, path: str, name: str | None = None,
+                    instance_ids: list[int] | None = None,
+                    properties: list[int] | None = None,
+                    copy_images: bool = False,
+                    key: str = 'id') -> str:
         if not name:
             name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        base_export_folder = os.path.join(path, 'exports')
-        # Create the export folder if it doesn't exist
-        os.makedirs(base_export_folder, exist_ok=True)
 
-        export_folder = os.path.join(base_export_folder, name)
-        if os.path.exists(export_folder):
-            shutil.rmtree(export_folder)
-        os.makedirs(export_folder)
+        export_dir = os.path.join(path, 'exports', name)
+        if os.path.exists(export_dir):
+            shutil.rmtree(export_dir)
+        os.makedirs(export_dir, exist_ok=True)
 
-        instances = await self.project.db.get_instances_with_properties(instance_ids)
-        # Create a CSV file with the data
         if properties:
-            data_file_path = os.path.join(export_folder, 'data.csv')
-            df = await self._build_export_data(instances, properties, key)
-            df.write_csv(data_file_path, separator=";")
+            df = self._build_csv(instance_ids, properties, key)
+            df.write_csv(os.path.join(export_dir, 'data.csv'), separator=';')
 
         if copy_images:
-            # Create a folder for images and copy them
-            image_folder_path = os.path.join(export_folder, 'images')
-            _copy_images(instances, image_folder_path)
+            img_dir = os.path.join(export_dir, 'images')
+            os.makedirs(img_dir, exist_ok=True)
+            self._copy_images(instance_ids, img_dir)
 
-        return export_folder
+        return export_dir
 
-    async def _build_export_data(self, images: list[Instance], properties_list: list[int], key: str):
-        """
-        Allow to export selected images and properties into a csv file
-        """
-        properties = await self.project.db.get_properties(computed=True)
-        tags = await self.project.db.get_tags()
-        tag_index = {t.id: t for t in tags}
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
 
-        folders = await self.project.db.get_folders()
-        folder_index: dict[int, Folder] = {f.id: f for f in folders}
-        local_paths = get_local_paths(folder_index, folders)
+    def _build_csv(self, instance_ids: list[int] | None,
+                   property_ids: list[int], key: str) -> pl.DataFrame:
+        all_insts = self.project.get_instances()
+        if instance_ids is not None:
+            id_set    = set(instance_ids)
+            all_insts = [i for i in all_insts if i.id in id_set]
 
-        # filter properties id that we want to keep
-        id_to_prop = {p.id: p for p in properties}
-        columns = [get_name(id_to_prop[p]) for p in properties_list]
-        key_name = 'id' if key == 'id' else 'path'
-        columns = [key_name, *columns]
-        rows = []
-        for image in images:
-            row = []
+        prop_map   = {p.id: p for p in self.project.get_properties()}
+        file_map   = {f.id: f for f in self.project.get_files()}
+        folder_map = {f.id: f for f in self.project.get_folders()}
+        tag_map    = {t.id: t for t in self.project.get_tags()}
+
+        # Build value look-up tables
+        prop_id_set = set(property_ids)
+        iv_index: dict[tuple[int, int], Any] = {}    # (prop_id, inst_id) → value
+        sv_index: dict[tuple[int, str], Any] = {}    # (prop_id, sha1)    → value
+        for iv in self.project.get_instance_values():
+            if iv.property_id in prop_id_set:
+                iv_index[(iv.property_id, iv.instance_id)] = iv.value
+        for sv in self.project.get_sha1_values():
+            if sv.property_id in prop_id_set:
+                sv_index[(sv.property_id, sv.sha1)] = sv.value
+
+        # Column headers
+        prop_cols = [
+            f"{prop_map[p].name}[{prop_map[p].dtype}]"
+            for p in property_ids if p in prop_map
+        ]
+        columns = [key, *prop_cols]
+
+        rows: list[list[str | None]] = []
+        for inst in all_insts:
+            f   = file_map.get(inst.file_id)
+            row: list[str | None] = []
+
+            # Key column
             if key == 'id':
-                row.append(image.id)
+                row.append(str(inst.id))
             elif key == 'local_path':
-                row.append(f"{local_paths[image.folder_id]}/{image.name}")
-            elif key == 'global_path':
-                row.append(f"{folder_index[image.folder_id].path}/{image.name}")
-            for prop_id in properties_list:
-                prop = id_to_prop[prop_id]
-                if prop.id in image.properties:
-                    value = image.properties[prop.id].value
-                    # if it's a tag let's fetch tag value from tag id
-                    if prop.type == PropertyType.tag or prop.type == PropertyType.multi_tags:
-                        # print('is tag !!')
-                        if type(value) != list:
-                            row.append(None)
-                            continue
-                        row.append(",".join([tag_index[t].value for t in value]))
-                    elif prop.type == PropertyType.folder:
-                        row.append(folder_index[value].name)
-                    else:
-                        row.append(str(value))
+                if f:
+                    folder = folder_map.get(f.folder_id)
+                    base   = os.path.basename(f.name or '')
+                    row.append(f"{folder.name if folder else ''}/{base}")
                 else:
+                    row.append('')
+            else:   # global_path / path
+                row.append(f.name or '' if f else '')
+
+            # Property columns
+            for prop_id in property_ids:
+                prop = prop_map.get(prop_id)
+                if not prop:
                     row.append(None)
+                    continue
+
+                val: Any
+                if prop.mode == 'sha1' and inst.sha1:
+                    val = sv_index.get((prop_id, inst.sha1))
+                else:
+                    val = iv_index.get((prop_id, inst.id))
+
+                if val is None:
+                    row.append(None)
+                elif prop.dtype in {'tag', 'multi_tags'} and isinstance(val, list):
+                    row.append(','.join(tag_map[t].value for t in val if t in tag_map))
+                else:
+                    row.append(str(val))
+
             rows.append(row)
-        df = pl.from_records(rows, schema=[(c, str) for c in columns])
-        return df
+
+        if not rows:
+            rows = [[''] * len(columns)]
+
+        data = {col: [r[i] for r in rows] for i, col in enumerate(columns)}
+        return pl.DataFrame(data)
+
+    def _copy_images(self, instance_ids: list[int] | None, dest: str):
+        all_insts = self.project.get_instances()
+        if instance_ids is not None:
+            id_set    = set(instance_ids)
+            all_insts = [i for i in all_insts if i.id in id_set]
+        file_map = {f.id: f for f in self.project.get_files()}
+        for inst in all_insts:
+            f = file_map.get(inst.file_id)
+            if f and f.name and os.path.exists(f.name):
+                try:
+                    shutil.copy(f.name, dest)
+                except Exception:
+                    pass

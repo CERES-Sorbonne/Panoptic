@@ -1,8 +1,8 @@
 import threading
 import time
 
-from panoptic2.core.task.task import Task
-from panoptic2.core.task.task_manager import TaskManager, PRIORITY_HIGH, PRIORITY_NORMAL
+from panoptic.core.task.task import Task
+from panoptic.core.task.task_manager import TaskManager, PRIORITY_HIGH, PRIORITY_NORMAL
 
 
 class RecordingTask(Task):

@@ -1,132 +1,282 @@
-import asyncio
-import os
+import hashlib
+import io
 import logging
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
+
+from panoptic.core.databases.entity_schema import OP_CREATE
+from panoptic.core.databases.media.models import Image
+from panoptic.core.databases.data.models import File, FileSource, Folder, Instance, UpsertCommit
 from panoptic.core.task.task import Task
-from panoptic.core.task.import_instance_task import ImportInstanceTask
 
 logger = logging.getLogger('ImportFolderTask')
 
-# Use a tuple for super-fast endswith checking
 IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
+MAX_WORKERS = min(os.cpu_count() or 4, 10)
+WRITE_BATCH = 60
 
+# (type_id, format, max_width, max_height)
+ImageTypeSpec = tuple[int, str, int | None, int | None]
+
+
+# ---------------------------------------------------------------------------
+# Worker helpers (module-level — must be picklable for ProcessPoolExecutor)
+# ---------------------------------------------------------------------------
+
+def _process_one(
+    path: str,
+    folder_id: int | None,
+    image_types: list[ImageTypeSpec],
+) -> dict | None:
+    """Runs in a worker process: read + sha1 + PIL resize for every auto_gen type."""
+    from PIL import Image as PilImage
+
+    try:
+        with open(path, 'rb') as f:
+            raw = f.read()
+    except Exception:
+        return None
+
+    sha1       = hashlib.sha1(raw).hexdigest()
+    created_at = datetime.fromtimestamp(os.stat(path).st_mtime)
+    width = height = None
+    images = []
+
+    fmt = None
+    try:
+        with PilImage.open(io.BytesIO(raw)) as img:
+            width, height = img.size
+            fmt = (img.format or '').lower() or None
+            if image_types:
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                img.load()
+                for type_id, image_fmt, max_w, max_h in image_types:
+                    data = _render(img, image_fmt, max_w, max_h)
+                    images.append((type_id, data))
+    except Exception as e:
+        logger.error('PIL failed on %s: %s', path, e)
+
+    return {
+        'path': path, 'folder_id': folder_id, 'sha1': sha1,
+        'images': images, 'width': width, 'height': height, 'format': fmt,
+        'created_at': created_at,
+    }
+
+
+def _render(img, fmt: str, max_w: int | None, max_h: int | None) -> bytes:
+    """Resize to fit within (max_w, max_h) — both optional — then encode."""
+    copy = img.copy()
+    if max_w or max_h:
+        copy.thumbnail((max_w or 10 ** 6, max_h or 10 ** 6))
+    buf = io.BytesIO()
+    # PIL uses 'jpeg' not 'jpg'
+    copy.save(buf, format='jpeg' if fmt.lower() in ('jpg', 'jpeg') else fmt)
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Task
+# ---------------------------------------------------------------------------
 
 class ImportFolderTask(Task):
-    """
-    Scans folders using a background thread (zero IPC overhead) 
-    and yields control during large DB/Memory operations to keep the UI smooth.
-    """
-
-    def __init__(self, project, folders: list[str]):
+    def __init__(self, project, folder_path: str):
         super().__init__()
         self.name = 'Import Folder'
-        self._project = project
-        self._folders = [os.path.normpath(f) for f in folders]
-        self.state.total = len(self._folders)
+        self._project     = project
+        self._folder_path = os.path.normpath(folder_path)
 
-    async def start(self):
-        self.state.running = True
+        # Snapshot auto_gen types at creation time so workers get a consistent view
+        self._image_types: list[ImageTypeSpec] = [
+            (t.id, t.format, t.width, t.height)
+            for t in project.get_image_types()
+            if t.auto_gen
+        ]
+
+    def start(self):
+        import time
+        t0 = time.monotonic()
+
+        folder_nodes, image_paths = self._scan(self._folder_path)
+
+        folder_paths = [n['path'] for n in folder_nodes]
+        existing_folders = {
+            f.path: f.id
+            for f in self._project.get_folders(path=folder_paths)
+            if f.path
+        }
+
+        path_to_folder_id = self._import_folder_tree(folder_nodes, existing_folders)
+
+        all_folder_ids = list(set(path_to_folder_id.values()))
+        existing_files = {
+            (f.folder_id, f.name)
+            for f in self._project.get_files(folder_id=all_folder_ids)
+            if f.name and f.folder_id is not None
+        }
+
+        image_paths = [
+            p for p in image_paths
+            if (path_to_folder_id.get(os.path.dirname(p)), os.path.basename(p)) not in existing_files
+        ]
+
+        self.state.total = len(image_paths)
         self._notify()
 
-        all_images_to_process = []
+        items = [
+            (path, path_to_folder_id.get(os.path.dirname(path)))
+            for path in image_paths
+        ]
 
-        for folder in self._folders:
-            if self._cancel_event.is_set():
-                break
+        image_types = self._image_types  # local ref avoids repeated self lookup in loop
+        batch: list[dict] = []
 
-            # 1. Run filesystem walk in a Thread. 
-            # Threads share memory, so returning a 100k item dict is instant.
-            scan_result = await asyncio.to_thread(self._scan_folder_thread, folder)
+        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            futures = {
+                pool.submit(_process_one, path, folder_id, image_types): None
+                for path, folder_id in items
+            }
 
-            # 2. Sync folders to DB (Chunks to prevent loop starvation)
-            path_to_id = await self._sync_folders_to_db(scan_result['folder_nodes'])
-
-            # 3. Prepare images for the ImportInstanceTask
-            images = scan_result['images']
-            image_to_folder = scan_result['image_to_folder_path']
-
-            # Process the 100k list in chunks so the Event Loop can breathe
-            chunk_size = 5000
-            for i in range(0, len(images), chunk_size):
+            for future in as_completed(futures):
                 if self._cancel_event.is_set():
                     break
 
-                chunk = images[i:i + chunk_size]
-                for img_path in chunk:
-                    folder_path = image_to_folder[img_path]
-                    all_images_to_process.append((img_path, path_to_id[folder_path]))
+                result = None
+                try:
+                    result = future.result()
+                except Exception as e:
+                    logger.error('Worker failed: %s', e)
 
-                # Magic trick: Yields control back to asyncio to process UI/Network events
-                await asyncio.sleep(0)
+                if result:
+                    batch.append(result)
+                    if len(batch) >= WRITE_BATCH:
+                        self._write_batch(batch)
+                        batch.clear()
 
-            self.state.done += 1
-            self._project.on.sync.emitFolders(await self._project.db.get_folders())
-            self._notify()
+                self.state.done += 1
+                self._notify()
 
-        # 4. Chain the ImportInstanceTask
-        if all_images_to_process and not self._cancel_event.is_set():
-            logger.info(f"Passing {len(all_images_to_process)} images to ImportInstanceTask")
-            next_task = ImportInstanceTask(self._project, all_images_to_process)
-            self._project.task_manager.add_task(next_task)
+        if batch:
+            self._write_batch(batch)
 
-        self.state.running = False
-        self.state.finished = True
-        self._finished_event.set()
-        self._notify()
+        elapsed = time.monotonic() - t0
+        rate = self.state.done / elapsed if elapsed > 0 else 0
+        print(f'Import done:{self.state.done} instances in {elapsed}s ({rate} img/s)')
 
-    def _scan_folder_thread(self, folder: str) -> dict:
-        """Runs in a background thread. Fast, blocking I/O."""
-        images = []
-        folder_path_set = set()
-        image_to_folder_path = {}
+    def on_last(self) -> None:
+        from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
+        self._project.add_task(GenerateAtlasTask(self._project))
 
-        for dirpath, _, filenames in os.walk(folder):
-            # Track directories
-            if dirpath not in folder_path_set:
-                current = dirpath
-                while len(current) >= len(folder):
-                    folder_path_set.add(current)
-                    parent = os.path.dirname(current)
-                    if parent == current:
-                        break
-                    current = parent
+    # ------------------------------------------------------------------
+    # Filesystem scan
+    # ------------------------------------------------------------------
+
+    def _scan(self, root: str) -> tuple[list[dict], list[str]]:
+        folder_path_set: set[str] = set()
+        image_paths: list[str] = []
+
+        for dirpath, _, filenames in os.walk(root):
+            current = dirpath
+            while len(current) >= len(root):
+                folder_path_set.add(current)
+                parent = os.path.dirname(current)
+                if parent == current:
+                    break
+                current = parent
 
             for name in filenames:
-                # String manipulation is much faster than Path() for 100k inner-loops
                 if name.lower().endswith(IMAGE_EXTENSIONS):
-                    full_path = os.path.join(dirpath, name)
-                    images.append(full_path)
-                    image_to_folder_path[full_path] = dirpath
+                    image_paths.append(os.path.join(dirpath, name))
 
-        # Sort so parent paths appear before child paths
         folder_nodes = []
         for path in sorted(folder_path_set):
             parent_path = os.path.dirname(path)
             folder_nodes.append({
-                'path': path,
-                'name': os.path.basename(path),
-                'parent_path': parent_path if parent_path != path and parent_path in folder_path_set else None
+                'path':        path,
+                'name':        os.path.basename(path),
+                'parent_path': parent_path if parent_path != path and parent_path in folder_path_set else None,
             })
 
-        return {
-            'images': images,
-            'folder_nodes': folder_nodes,
-            'image_to_folder_path': image_to_folder_path
-        }
+        return folder_nodes, image_paths
 
-    async def _sync_folders_to_db(self, folder_nodes: list[dict]) -> dict[str, int]:
-        """Inserts folders into the database while keeping the UI responsive."""
-        db = self._project.db
-        path_to_id = {}
+    # ------------------------------------------------------------------
+    # DB writes (main thread only)
+    # ------------------------------------------------------------------
 
-        chunk_size = 500
-        for i in range(0, len(folder_nodes), chunk_size):
-            chunk = folder_nodes[i:i + chunk_size]
-            for node in chunk:
-                parent_id = path_to_id.get(node['parent_path']) if node['parent_path'] else None
-                folder = await db.create_folder(node['path'], node['name'], parent_id)
-                path_to_id[node['path']] = folder.id
+    def _import_folder_tree(
+        self,
+        folder_nodes: list[dict],
+        existing_folders: dict[str, int],
+    ) -> dict[str, int]:
+        # Seed the mapping with already-known folders
+        path_to_id: dict[str, int] = dict(existing_folders)
 
-            # Yield control to event loop after every chunk of DB writes
-            await asyncio.sleep(0)
+        new_nodes = [n for n in folder_nodes if n['path'] not in path_to_id]
+        if not new_nodes:
+            return path_to_id
 
+        project  = self._project
+        fs_id    = project.allocate_file_sources(1)
+        id_range = project.allocate_folders(len(new_nodes))
+        if isinstance(id_range, int):
+            id_range = range(id_range, id_range + 1)
+
+        commit = UpsertCommit()
+        commit.file_sources[fs_id] = FileSource(
+            id=fs_id, dtype='local',
+            name=os.path.basename(self._folder_path),
+            root_url=self._folder_path,
+            commit_id=0, operation=OP_CREATE,
+        )
+
+        for node, fid in zip(new_nodes, id_range):
+            parent_id = path_to_id.get(node['parent_path']) if node['parent_path'] else None
+            commit.folders[fid] = Folder(
+                id=fid, source_id=fs_id,
+                path=node['path'], name=node['name'], parent=parent_id,
+                commit_id=0, operation=OP_CREATE,
+            )
+            path_to_id[node['path']] = fid
+
+        project.apply_upsert_commit('import', commit)
         return path_to_id
+
+    def _write_batch(self, results: list[dict]):
+        if not results:
+            return
+
+        project  = self._project
+        n        = len(results)
+        file_ids = project.allocate_files(n)
+        inst_ids = project.allocate_instances(n)
+        if isinstance(file_ids, int):
+            file_ids = range(file_ids, file_ids + 1)
+        if isinstance(inst_ids, int):
+            inst_ids = range(inst_ids, inst_ids + 1)
+
+        commit = UpsertCommit()
+        media:  list[Image] = []
+
+        for info, fid, iid in zip(results, file_ids, inst_ids):
+            commit.files[fid] = File(
+                id=fid,
+                name=os.path.basename(info['path']),
+                folder_id=info['folder_id'],
+                sha1=info['sha1'],
+                width=info.get('width'),
+                height=info.get('height'),
+                format=info.get('format'),
+                created_at=info.get('created_at'),
+                commit_id=0, operation=OP_CREATE,
+            )
+            commit.instances[iid] = Instance(
+                id=iid, file_id=fid, sha1=info['sha1'],
+                commit_id=0, operation=OP_CREATE,
+            )
+            for type_id, data in info.get('images', []):
+                media.append(Image(type_id=type_id, sha1=info['sha1'], data=data))
+
+        project.apply_upsert_commit('import', commit)
+        if media:
+            project.upsert_images(media)

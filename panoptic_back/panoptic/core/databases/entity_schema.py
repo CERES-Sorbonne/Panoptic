@@ -89,7 +89,6 @@ class Index:
 OP_CREATE = 1
 OP_UPDATE = 0
 OP_DELETE = -1
-OP_DIFF   = 2  # PropertyValueSchema only: apply tag diff instead of replace
 
 # ---------------------------------------------------------------------------
 # Limits
@@ -332,6 +331,10 @@ class EntitySchema(_typing.Generic[T]):
                 f"CREATE INDEX IF NOT EXISTS idx_{self.table}_sequence"
                 f" ON {self.table} (sequence);"
             )
+            extra_indexes.append(
+                f"CREATE INDEX IF NOT EXISTS idx_{self.table}_operation"
+                f" ON {self.table} (operation);"
+            )
         for c in self.columns:
             if c.indexed:
                 unique = "UNIQUE " if c.unique_index else ""
@@ -554,7 +557,18 @@ class EntitySchema(_typing.Generic[T]):
     # Read
     # ------------------------------------------------------------------
 
-    def get(self, tx: Cursor, **filters) -> list[T]:
+    def select(self, tx: Cursor, columns: list[str], **filters) -> list[tuple]:
+        """Return raw tuples for the given columns with optional chunked filters."""
+        col_clause = ', '.join(columns)
+        pf = _parse_filters(filters)
+        return self._execute_chunked(tx, f'SELECT {col_clause}', pf)
+
+    def get(self, tx: Cursor, state: int = 1, **filters) -> list[T]:
+        if self.trackable and 'operation' not in filters:
+            if state == 1:
+                filters['operation'] = [OP_CREATE, OP_UPDATE]
+            elif state == -1:
+                filters['operation'] = OP_DELETE
         pf   = _parse_filters(filters)
         rows = self._execute_chunked(tx, "SELECT *", pf)
         return [self._decode_row(r) for r in rows]
@@ -619,8 +633,8 @@ class EntitySchema(_typing.Generic[T]):
         db_objs = self.get_by_pk_index(tx, pk_list)
         return db_objs
 
-    def get_index(self, tx: Cursor, **filters) -> dict[Any, T]:
-        objs = self.get(tx, **filters)
+    def get_index(self, tx: Cursor, state: int = 1, **filters) -> dict[Any, T]:
+        objs = self.get(tx, state=state, **filters)
         if len(self._pk_names) == 1:
             pk = self._pk_names[0]
             return {getattr(obj, pk): obj for obj in objs}
@@ -926,101 +940,13 @@ class EntitySchema(_typing.Generic[T]):
 # PropertyValueSchema
 # ---------------------------------------------------------------------------
 
-def _apply_diff(current: list[int] | None, diff: list[int]) -> list[int]:
-    working: set[int] = set(current) if current else set()
-    for tag in diff:
-        if tag < 0:
-            working.discard(-tag)
-        else:
-            working.add(tag)
-    return sorted(working)
-
-
 @dataclass
 class PropertyValueSchema(EntitySchema[T]):
     """EntitySchema specialised for property-value tables."""
 
-    is_multi_tags: bool = False
-
     @staticmethod
-    def merge_logs(objs: list[msgspec.Struct], is_multi_tags: bool = False) -> msgspec.Struct | None:
+    def merge_logs(objs: list[msgspec.Struct]) -> msgspec.Struct | None:
         filtered = [o for o in objs if o is not None]
         if not filtered:
             return None
-
-        if not is_multi_tags:
-            return msgspec.structs.replace(filtered[-1])
-
-        accumulated: list[int] | None = None
-
-        for obj in filtered:
-            val = getattr(obj, "value", None)
-            op  = getattr(obj, "operation", None)
-
-            if val is None:
-                accumulated = None
-            elif op == OP_DIFF:
-                accumulated = _apply_diff(accumulated, val)
-            else:
-                accumulated = list(val)
-
-        final_val = accumulated if accumulated else None
-        return msgspec.structs.replace(filtered[-1], value=final_val)
-
-    def re_compute(
-            self,
-            tx: Cursor,
-            pk_list: Any,
-            sequence: int,
-            disabled_commits: set[int],
-            multi_tags_property_ids: set[int] | None = None,
-    ) -> list[T]:
-        """Replay log entries for the given PKs and upsert the merged state."""
-        if not self.trackable:
-            raise ValueError(f"Table {self.table!r} is not trackable")
-
-        pks = list(pk_list) if not isinstance(pk_list, list) else pk_list
-        if not pks:
-            return []
-
-        log_rows = self._get_log_by_pks(tx, pks)
-
-        # Group only logs with valid commit_ids
-        grouped: dict[Any, list[T]] = {}
-        for obj in log_rows:
-            if obj.commit_id in disabled_commits:
-                continue
-
-            if len(self._pk_names) == 1:
-                key = getattr(obj, self._pk_names[0])
-            else:
-                key = tuple(getattr(obj, name) for name in self._pk_names)
-
-            grouped.setdefault(key, []).append(obj)
-
-        merged: list[T] = []
-
-        for key, entries in grouped.items():
-            # Assumption: property_id is the first PK field
-            prop_id = key[0] if isinstance(key, tuple) else key
-
-            is_multi_tag = (
-                prop_id in multi_tags_property_ids
-                if multi_tags_property_ids is not None
-                else getattr(self, 'is_multi_tags', False)
-            )
-
-            if is_multi_tag:
-                # Multi-tags: Merge all valid logs to calculate the final list state
-                result = PropertyValueSchema.merge_logs(entries, is_multi_tags=True)
-                if result is not None:
-                    merged.append(result)
-            else:
-                # Standard property: The final state is simply the log with the highest valid commit_id
-                latest_log = max(entries, key=lambda e: e.commit_id)
-                merged.append(latest_log)
-
-        if merged:
-            self.upsert(tx, merged, sequence=sequence)
-
-        return merged
+        return msgspec.structs.replace(filtered[-1])

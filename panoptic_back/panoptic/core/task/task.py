@@ -1,49 +1,46 @@
-# task.py
-import asyncio
 import logging
+import threading
 from abc import ABC, abstractmethod
 from typing import Callable
 
-from panoptic.models import TaskState
-
-logger = logging.getLogger('Task')
+from panoptic.models.models import TaskState
 
 
 class Task(ABC):
     def __init__(self):
-        self.key: str = type(self).__name__
-        self.name: str = self.key
-        self.id: str | None = None
+        self.key:  str      = type(self).__name__
+        self.name: str      = self.key
+        self.id:   str | None = None
         self.state = TaskState(id='unregistered', name=self.name, key=self.key)
 
+        self._cancel_event   = threading.Event()
+        self._finished_event = threading.Event()
         self._progress_callbacks: list[Callable[[TaskState], None]] = []
-        self._cancel_event = asyncio.Event()
-        self._finished_event = asyncio.Event()
-
-    def get_id(self) -> str:
-        if self.id is None:
-            raise RuntimeError(f"Task '{self.key}' is unregistered.")
-        return self.id
 
     def on_progress(self, callback: Callable[[TaskState], None]):
         self._progress_callbacks.append(callback)
         return self
+
+    def stop(self):
+        self._cancel_event.set()
+
+    def wait(self):
+        self._finished_event.wait()
 
     def _notify(self):
         for cb in self._progress_callbacks:
             try:
                 cb(self.state)
             except Exception as e:
-                logger.error(f"Progress callback failed: {e}")
+                logging.error(f"Progress callback failed: {e}")
 
-    async def wait(self):
-        await self._finished_event.wait()
-
-    def stop(self):
-        """Signals the task to cancel gracefully."""
-        self._cancel_event.set()
+    def on_last(self) -> None:
+        """Called by TaskManager after the last queued/running task of this key finishes.
+        Override to trigger post-batch work (e.g. rebuilding a Faiss index after all
+        vector computation tasks complete).
+        """
+        pass
 
     @abstractmethod
-    async def start(self):
-        """The concrete task implementation goes here."""
+    def start(self):
         pass

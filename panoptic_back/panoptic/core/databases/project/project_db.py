@@ -13,8 +13,8 @@ from panoptic.core.databases.project.create import (
 )
 from panoptic.core.databases.project.models import TabData, PluginData, UserDefaults, ProjectConfig
 from panoptic.core.databases.sqlite_db import SQLiteWriter
-from panoptic.models import Tag, Property, Instance
-from panoptic.models.data import File, Folder, FileSource
+from panoptic.models.models import Tag, Property, Instance
+from panoptic.core.databases.data.models import File, Folder, FileSource
 from panoptic.core.databases.media.models import ImageType, VectorType, Map
 
 T = TypeVar("T")
@@ -107,6 +107,9 @@ class ProjectDB(SQLiteWriter):
     def allocate_tags(self, val: Union[List[Tag], int] = 1):
         return self._handle_allocation('tags', val)
 
+    def allocate_property_groups(self, val: Union[List, int] = 1):
+        return self._handle_allocation('property_groups', val)
+
     def allocate_maps(self, val: Union[List[Map], int] = 1):
         return self._handle_allocation('maps', val)
 
@@ -129,6 +132,10 @@ class ProjectDB(SQLiteWriter):
     def get_user_tabs(self, user_id: str) -> List[TabData]:
         return TAB_DATA_SCHEMA.get(self.conn, user_id=user_id)
 
+    def delete_tab_data(self, tab_id: str):
+        with self.transaction() as tx:
+            TAB_DATA_SCHEMA.delete(tx, id=tab_id)
+
     def set_plugin_data(self, data: PluginData):
         with self.transaction() as tx:
             PLUGIN_DATA_SCHEMA.upsert(tx, data)
@@ -141,6 +148,14 @@ class ProjectDB(SQLiteWriter):
         with self.transaction() as tx:
             USER_DEFAULTS_SCHEMA.upsert(tx, defaults)
 
+    def set_user_defaults_bulk(self, items: list[UserDefaults]):
+        with self.transaction() as tx:
+            for item in items:
+                USER_DEFAULTS_SCHEMA.upsert(tx, item)
+
     def get_user_defaults(self, user_id: str, key: str) -> Optional[UserDefaults]:
         rows = USER_DEFAULTS_SCHEMA.get(self.conn, user_id=user_id, key=key)
         return rows[0] if rows else None
+
+    def get_all_user_defaults(self, user_id: str) -> list[UserDefaults]:
+        return USER_DEFAULTS_SCHEMA.get(self.conn, user_id=user_id)

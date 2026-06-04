@@ -1,244 +1,331 @@
+"""Panoptic-level routes — project/plugin registry and filesystem helpers."""
+from __future__ import annotations
+
 import glob
 import os
 import pathlib
 import subprocess
 import sys
-
-import psutil
-from fastapi import APIRouter, Request
-from pydantic import BaseModel
 from sys import platform
 
-from starlette.responses import FileResponse
+import anyio
+import msgspec
+import psutil
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from pydantic import BaseModel
+from starlette.requests import Request
+from starlette.responses import FileResponse, Response
 
-from panoptic.core.panoptic_server import PanopticServer
-from panoptic.models import AddPluginPayload, IgnoredPluginPayload, UpdatePluginPayload, LoadProjectPayload, \
-    DeleteProjectPayload, IntPayload, ProjectUpdatePayload, ProjectDeleteReq
-from panoptic.models import ProjectIdPayload
+from panoptic.routes.deps import get_panoptic, get_server, set_dependencies   # re-export
 
-selection_router = APIRouter()
+panoptic_router = APIRouter()
 
-server: PanopticServer | None = None
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-
-def set_server(serv: PanopticServer):
-    global server
-    server = serv
-
-
-def get_panoptic():
-    global server
-    return server.panoptic
+def _json(obj) -> Response:
+    return Response(msgspec.json.encode(obj), media_type='application/json')
 
 
-def get_server():
-    global server
-    return server
+# ---------------------------------------------------------------------------
+# Panoptic state — split into focused endpoints
+# ---------------------------------------------------------------------------
+
+@panoptic_router.get('/projects')
+def get_projects_route():
+    return _json(get_panoptic().get_projects_state())
 
 
-class ProjectRequest(BaseModel):
-    path: str
+@panoptic_router.get('/plugins')
+def get_plugins_state_route():
+    return _json(get_panoptic().get_plugins())
+
+
+@panoptic_router.get('/users')
+def get_users_route():
+    return _json([msgspec.structs.asdict(u) for u in get_panoptic().get_users()])
+
+
+class UserCreateRequest(BaseModel):
     name: str
 
-@selection_router.get('/panoptic_state')
-async def get_panoptic_state():
-    return await server.panoptic.get_state()
+class UserConnectRequest(BaseModel):
+    user_id: str
 
 
-@selection_router.post('/ignored_plugin')
-async def update_ignored_plugins(data: IgnoredPluginPayload):
-    return await server.set_ignored_plugin(data)
+@panoptic_router.post('/users')
+async def create_user_route(req: UserCreateRequest):
+    try:
+        user = get_panoptic().create_user(req.name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    await get_server()._emit_update_users()
+    return _json(msgspec.structs.asdict(user))
 
 
-@selection_router.post("/load")
-async def load_project_route(req: ProjectIdPayload, request: Request):
+@panoptic_router.delete('/users/{user_id}')
+async def delete_user_route(user_id: str):
+    from panoptic.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
+    if user_id == DEFAULT_USER_ID:
+        raise HTTPException(400, "Cannot delete the default user")
+    get_panoptic().delete_user(user_id)
+    await get_server()._emit_update_users()
+    return {}
+
+
+@panoptic_router.post('/connect_user')
+async def connect_user_route(req: UserConnectRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
-    res = await server.load_project(req.project_id, connection_id)
-    return res
+    server = get_server()
+    user = next((u for u in get_panoptic().get_users() if u.id == req.user_id), None)
+    if not user:
+        raise HTTPException(404, "User not found")
+    state = server._connection_states.get(connection_id)
+    if state:
+        state.user = user
+    last_project = server._user_last_project.get(user.id)
+    known_ids = {p.id for p in get_panoptic().db.get_projects()}
+    if last_project and last_project in known_ids and (state is None or state.connected_project != last_project):
+        await server._load_project(last_project, connection_id)
+    else:
+        await server._emit_connection_state(connection_id)
+    return {}
 
-@selection_router.post('/update_project')
-async def update_project_route(req: ProjectUpdatePayload, request: Request):
-    await server.update_project(req)
-    return await server.panoptic.get_state()
 
-
-@selection_router.post("/close")
-async def close_project(req: ProjectIdPayload, request: Request):
+@panoptic_router.post('/disconnect_user')
+async def disconnect_user_route(request: Request):
     connection_id = request.query_params.get('connection_id')
-    await server.close_project(req.project_id, connection_id)
-
-    return await get_panoptic_state()
-
-
-@selection_router.post("/delete_project")
-async def delete_project_route(req: ProjectDeleteReq):
-    await server.remove_project(req.project_id, req.delete_files)
-    print(req)
-    return await get_panoptic_state()
+    server = get_server()
+    from panoptic.core.databases.panoptic.panoptic_db import DEFAULT_USER_ID
+    default_user = next((u for u in get_panoptic().get_users() if u.id == DEFAULT_USER_ID), None)
+    state = server._connection_states.get(connection_id)
+    if state and default_user:
+        state.user = default_user
+    await server._emit_connection_state(connection_id)
+    return {}
 
 
-@selection_router.post("/create_project")
-async def create_project_route(req: ProjectRequest, request: Request):
+# ---------------------------------------------------------------------------
+# Project management
+# ---------------------------------------------------------------------------
+
+class ProjectCreateRequest(BaseModel):
+    name: str
+    path: str
+
+class ProjectImportRequest(BaseModel):
+    path: str
+
+class ProjectUpdateRequest(BaseModel):
+    id: str
+    name: str | None = None
+    excluded_plugins: list[str] | None = None
+
+class ProjectDeleteRequest(BaseModel):
+    id: str
+    delete_files: bool = False
+
+class ProjectLoadRequest(BaseModel):
+    id: str
+
+class ProjectCloseRequest(BaseModel):
+    id: str
+
+
+@panoptic_router.post('/create_project')
+async def create_project_route(req: ProjectCreateRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
-    await server.create_project(req.name, req.path, connection_id)
-    return await get_panoptic_state()
+    try:
+        key = await anyio.to_thread.run_sync(
+            lambda: get_panoptic().create_project(req.name, req.path)
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    await get_server()._load_project(key.id, connection_id)
+    return _json(get_panoptic().get_projects_state())
 
 
-@selection_router.post("/import_project")
-async def import_project_route(req: LoadProjectPayload, request: Request):
+@panoptic_router.post('/import_project')
+async def import_project_route(req: ProjectImportRequest, request: Request):
     connection_id = request.query_params.get('connection_id')
-    await server.import_project(req.path, connection_id)
-    return await get_panoptic_state()
+    try:
+        key = await anyio.to_thread.run_sync(
+            lambda: get_panoptic().import_project(req.path)
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    await get_server()._load_project(key.id, connection_id)
+    return _json(get_panoptic().get_projects_state())
 
 
-@selection_router.get("/filesystem/ls/{path:path}")
-def api(path: str = ""):
-    if platform == "linux" or platform == "linux2" or platform == "darwin":
-        if not path.startswith('/'):
-            path = '/' + path
-    return list_contents(path)
+@panoptic_router.post('/load')
+async def load_project_route(req: ProjectLoadRequest, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    try:
+        await get_server()._load_project(req.id, connection_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return _json(get_panoptic().get_projects_state())
 
 
-@selection_router.get('/filesystem/info')
-def filesystem_info_route():
-    return list_index()
+@panoptic_router.post('/close')
+async def close_project_route(req: ProjectCloseRequest, request: Request):
+    connection_id = request.query_params.get('connection_id')
+    await get_server()._close_project(req.id, connection_id)
+    return _json(get_panoptic().get_projects_state())
 
 
-@selection_router.get("/filesystem/count/{path:path}")
-def fs_count_route(path: str = ""):
-    return {"count": count_contents(path), "path": path}
+@panoptic_router.post('/update_project')
+def update_project_route(req: ProjectUpdateRequest, background_tasks: BackgroundTasks):
+    try:
+        get_panoptic().update_project(req.id, name=req.name, excluded_plugins=req.excluded_plugins)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    background_tasks.add_task(get_server()._emit_update_projects)
+    return _json(get_panoptic().get_projects_state())
 
 
-@selection_router.get('/plugins')
-async def get_plugins_route():
-    return server.panoptic.get_plugin_paths()
+@panoptic_router.post('/delete_project')
+def delete_project_route(req: ProjectDeleteRequest, background_tasks: BackgroundTasks):
+    get_panoptic().delete_project(req.id, delete_files=req.delete_files)
+    background_tasks.add_task(get_server()._emit_update_projects)
+    return _json(get_panoptic().get_projects_state())
 
 
-@selection_router.post('/plugins')
-async def add_plugins_route(payload: AddPluginPayload):
-    return await server.panoptic.add_plugin(payload.name, payload.source, payload.type)
+# ---------------------------------------------------------------------------
+# Plugin management
+# ---------------------------------------------------------------------------
+
+class AddPluginRequest(BaseModel):
+    name: str
+    source: str
+    source_type: str  # 'pip' | 'git' | 'path'
+
+class DeletePluginRequest(BaseModel):
+    plugin_id: str
 
 
-@selection_router.post('/plugin/update')
-async def update_plugin_route(payload: UpdatePluginPayload):
-    return server.panoptic.update_plugin(payload.name)
+@panoptic_router.post('/plugins')
+def add_plugin_route(req: AddPluginRequest):
+    try:
+        key = get_panoptic().add_plugin(req.name, req.source, req.source_type)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return _json(key)
 
 
-@selection_router.delete('/plugins')
-async def del_plugins_route(name: str):
-    return await server.panoptic.del_plugin_path(name)
+@panoptic_router.post('/plugin/update')
+def update_plugin_route(req: DeletePluginRequest):
+    try:
+        get_panoptic().reinstall_plugin(req.plugin_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return _json(get_panoptic().get_plugins())
 
-@selection_router.get('/images/{file_path:path}')
-async def get_image(file_path: str):
-    if platform == "linux" or platform == "linux2" or platform == "darwin":
-        if not file_path.startswith('/'):
-            file_path = '/' + file_path
+
+@panoptic_router.delete('/plugins')
+def del_plugin_route(plugin_id: str):
+    get_panoptic().delete_plugin(plugin_id)
+    return _json(get_panoptic().get_plugins())
+
+
+# ---------------------------------------------------------------------------
+# Image file serving  (raw file path, no project context)
+# ---------------------------------------------------------------------------
+
+@panoptic_router.get('/images/{file_path:path}')
+def get_image_file(file_path: str):
+    if platform in ('linux', 'linux2', 'darwin') and not file_path.startswith('/'):
+        file_path = '/' + file_path
     return FileResponse(path=file_path)
 
 
-@selection_router.get('/packages')
-async def get_packages_route():
+# ---------------------------------------------------------------------------
+# Filesystem browser
+# ---------------------------------------------------------------------------
+
+def _images_in_folder(folder_path: str) -> list[str]:
+    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')
+    files = []
+    for t in types:
+        files.extend(glob.glob(os.path.join(folder_path, t)))
+    return files
+
+
+def _list_contents(full_path: str = '/') -> dict:
+    paths = [
+        os.path.join(full_path, p) if full_path != '/' else full_path + p
+        for p in os.listdir(full_path)
+    ]
+    directories = [
+        {
+            'path': p,
+            'name': pathlib.Path(p).name,
+            'images': len(_images_in_folder(p)),
+            'isProject': os.path.exists(os.path.join(p, 'project.db')),
+        }
+        for p in paths if os.path.isdir(p)
+    ]
+    return {'images': _images_in_folder(full_path)[:40], 'directories': directories}
+
+
+@panoptic_router.get('/filesystem/ls/{path:path}')
+def filesystem_ls(path: str = ''):
+    if platform in ('linux', 'linux2', 'darwin') and not path.startswith('/'):
+        path = '/' + path
+    return _list_contents(path)
+
+
+@panoptic_router.get('/filesystem/info')
+def filesystem_info():
+    partitions = [
+        p for p in psutil.disk_partitions()
+        if not p.mountpoint.startswith('/System')
+    ]
+    mounted = [
+        {'path': p.mountpoint, 'name': p.mountpoint, 'images': len(_images_in_folder(p.mountpoint))}
+        for p in partitions
+    ]
+    home = str(pathlib.Path.home())
+    fast = [{'path': home, 'name': 'Home', 'images': len(_images_in_folder(home))}]
+    home_dirs = _list_contents(home)['directories']
+    fast.extend(d for d in home_dirs if d['name'] in ('Documents', 'Downloads', 'Desktop', 'Images', 'Pictures'))
+    return {'partitions': mounted, 'fast': fast}
+
+
+@panoptic_router.get('/filesystem/count/{path:path}')
+def filesystem_count(path: str = ''):
+    if platform in ('linux', 'linux2', 'darwin') and not path.startswith('/'):
+        path = '/' + path
+    folder = os.path.normpath(path)
+    count = sum(
+        1 for _, _, files in os.walk(folder)
+        for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+    )
+    return {'count': count, 'path': path}
+
+
+# ---------------------------------------------------------------------------
+# Packages info
+# ---------------------------------------------------------------------------
+
+@panoptic_router.get('/packages')
+def get_packages():
+    base_packages   = ['numpy', 'polars', 'pydantic']
+    plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn', 'transformers', 'panopticml']
     res = {
         'python': sys.version.split(' ')[0],
         'panopticPackages': {},
         'pluginPackages': {},
-        'panoptic': server.panoptic.version,
-        'platform': sys.platform
+        'platform': sys.platform,
     }
-    base_packages = ['numpy', 'polars', 'pydantic']
-    plugin_packages = ['torch', 'faiss-cpu', 'scikit-learn', 'transformers', 'panopticml']
-    base_package_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *base_packages])
-    plugin_packages_versions = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *plugin_packages])
-    base_package_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in
-                             base_package_versions.split(b'Version:')[1:]]
-    plugin_packages_versions = [v.split(os.linesep.encode())[0].strip().decode() for v in
-                                plugin_packages_versions.split(b'Version:')[1:]]
-
-    for index, base_package in enumerate(base_packages):
-        res['panopticPackages'][base_package] = base_package_versions[index]
-    if len(plugin_packages) > 0:
-        for index, plugin_package in enumerate(plugin_packages):
-            res['pluginPackages'][plugin_package] = plugin_packages_versions[index]
+    for pkg_list, key in [(base_packages, 'panopticPackages'), (plugin_packages, 'pluginPackages')]:
+        try:
+            raw = subprocess.check_output([sys.executable, '-m', 'pip', 'show', *pkg_list])
+            versions = [v.split(os.linesep.encode())[0].strip().decode() for v in raw.split(b'Version:')[1:]]
+            for pkg, ver in zip(pkg_list, versions):
+                res[key][pkg] = ver
+        except Exception:
+            pass
     return res
-
-
-def images_in_folder(folder_path):
-    types = ('*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp')  # the tuple of file types
-    image_files = []
-    for type_ in types:
-        image_files.extend(glob.glob(os.path.join(folder_path, type_)))
-
-    return image_files
-
-
-def list_contents(full_path: str = '/'):
-    paths = [full_path + '/' + p if full_path != '/' else full_path + p for p in os.listdir(full_path)]
-    directories = [p for p in paths if os.path.isdir(p)]
-    directories = [{
-        'path': p,
-        'name': pathlib.Path(p).name,
-        'images': len(images_in_folder(p)),
-        'isProject': os.path.exists(os.path.join(p, 'panoptic.db'))
-    } for p in directories]
-    images = images_in_folder(full_path)
-
-    return {'images': images[0:40], 'directories': directories}
-
-
-def count_contents(full_path: str):
-    if platform == "linux" or platform == "linux2" or platform == "darwin":
-        if not full_path.startswith('/'):
-            full_path = '/' + full_path
-    folder = os.path.normpath(full_path)
-    all_files = [os.path.join(path, name) for path, subdirs, files in os.walk(folder) for name in files]
-    all_images = [i for i in all_files if
-                  i.lower().endswith('.png') or i.lower().endswith('.jpg') or i.lower().endswith('.jpeg')]
-    return len(all_images)
-
-
-def list_disk():
-    files = []
-    partitions = psutil.disk_partitions()
-    partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
-    for partition in partitions:
-        files.append({
-            'path': partition.mountpoint,
-            'name': pathlib.Path(partition.mountpoint).name,
-            'images': len(images_in_folder(partition.mountpoint))
-        })
-    return files
-
-
-def list_index():
-    mounted = []
-
-    partitions = psutil.disk_partitions()
-    partitions = [p for p in partitions if not p.mountpoint.startswith("/System")]
-    for partition in partitions:
-        mounted.append({
-            'path': partition.mountpoint,
-            'name': partition.mountpoint,
-            'images': len(images_in_folder(partition.mountpoint))
-        })
-
-    if os.getenv('IS_DOCKER', False):
-        mounted.append({
-            'path': '/data',
-            'name': '/data',
-            'images': 0
-        })
-        mounted.append({
-            'path': '/',
-            'name': '/',
-            'images': 0
-        })
-    files = [{
-        'path': pathlib.Path.home(),
-        'name': 'Home',
-        'images': len(images_in_folder(pathlib.Path.home()))
-    }]
-
-    home_files = list_contents(str(pathlib.Path.home()))['directories']
-    home_files = [f for f in home_files if f['name'] in ['Documents', 'Downloads', 'Desktop', 'Images', 'Pictures']]
-    files.extend(home_files)
-    return {'partitions': mounted, 'fast': files}

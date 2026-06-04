@@ -1,94 +1,101 @@
+"""APlugin — abstract base class for all Panoptic plugins."""
 from __future__ import annotations
 
-import json
-import os
 from abc import ABC
 from pathlib import Path
-from typing import List, Any
-from typing import TYPE_CHECKING
+from typing import Any, Callable
 
 from pydantic import BaseModel
 
-from panoptic.core.plugin.plugin_project_interface import PluginProjectInterface
-from panoptic.models import PluginBaseParamsDescription, FunctionDescription, PluginDescription, PropertyType, \
-    PropertyMode, VectorType
-from panoptic.utils import get_model_params_description, AsyncCallable
-
-if TYPE_CHECKING:
-    from panoptic.core.project.project import Project
-
-
-def assign_attributes(target: BaseModel, source):
-    if not target:
-        return
-    target = target.copy(update=source)
-    return target
+from panoptic.core.plugin.plugin_interface import PluginProjectInterface
+from panoptic.models.action_models import (
+    FunctionDescription, PluginBaseParamsDescription, PluginDescription,
+)
 
 
 class APlugin(ABC):
-    def __init__(self, name: str, project: Project, plugin_path: str):
-        self.params: Any | None = None
-        self.name: str = name
-        self._project = project
-        self.project = PluginProjectInterface(project, self)
-        self.registered_functions: List[FunctionDescription] = []
-        self.path = plugin_path
-        self.base_key = f'{self.name}.base'
-        slug = "_".join(self.name.split(' ')).lower()
-        self.data_path = Path(self.project.base_path) / 'plugin_data' / slug
+    def __init__(self, name: str, project: PluginProjectInterface, plugin_path: str):
+        self.name        = name
+        self.project     = project          # the interface — only project access for plugins
+        self.plugin_path = plugin_path
+        self.params: Any = None
+        self.vector_types: list = []        # populated in start() from media.db
+
+        slug = '_'.join(name.split()).lower()
+        self.data_path = project.base_path / 'plugin_data' / slug
         self.data_path.mkdir(parents=True, exist_ok=True)
 
-        self.vector_types: list[VectorType] = []
+        self.registered_functions: list[FunctionDescription] = []
 
-    async def start(self):
-        db_defaults = await self._project.db.get_plugin_data(self.base_key)
-        self.params = assign_attributes(self.params, db_defaults)
-        await self.load_vector_types()
-        await self._start()
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
 
-    async def _start(self):
-        pass
+    def start(self) -> None:
+        self._load_params()
+        self.vector_types = self.project.get_vector_types(source=self.name)
+        self._start()
 
-    async def update_params(self, params: Any):
-        self.params = assign_attributes(self.params, params)
-        await self._project.db.set_plugin_data(self.base_key, self.params.dict())
+    def _start(self) -> None:
+        """Override in subclass for plugin-specific initialisation."""
+
+    # ------------------------------------------------------------------
+    # Params
+    # ------------------------------------------------------------------
+
+    def _load_params(self) -> None:
+        if self.params is None:
+            return
+        stored = self.project.load_params()
+        if stored:
+            try:
+                self.params = self.params.__class__(**{**self.params.dict(), **stored})
+            except Exception:
+                pass
+
+    def update_params(self, params: Any) -> Any:
+        if self.params is not None and isinstance(self.params, BaseModel):
+            self.params = self.params.model_copy(
+                update=params if isinstance(params, dict) else params.dict()
+            )
+        self.project.save_params(self.params.dict() if self.params else {})
         return self.params
 
-    def add_action(self, function: AsyncCallable, description: FunctionDescription):
-        self._project.action.add(function, description)
+    # ------------------------------------------------------------------
+    # Action registration
+    # ------------------------------------------------------------------
+
+    def add_action_easy(self, fn: Callable, hooks: list[str] = None) -> FunctionDescription:
+        desc = self.project.register_action(fn, hooks)
+        self.registered_functions.append(desc)
+        return desc
+
+    def add_action(self, fn: Callable, description: FunctionDescription) -> FunctionDescription:
+        self.project.register_action_with_desc(fn, description)
         self.registered_functions.append(description)
         return description
 
-    def add_action_easy(self, function: AsyncCallable, hooks: list[str] = None):
-        source = self
-        description = self._project.action.easy_add(source, function, hooks)
-        self.registered_functions.append(description)
-        return description
+    # ------------------------------------------------------------------
+    # Description  (for /plugins_info route)
+    # ------------------------------------------------------------------
 
-    def _get_param_description(self):
+    def get_description(self) -> PluginDescription:
+        return PluginDescription(
+            name=self.name,
+            description=self.__doc__,
+            path=self.plugin_path,
+            base_params=self._get_base_params_description(),
+            registered_functions=self.registered_functions,
+        )
+
+    def _get_base_params_description(self) -> PluginBaseParamsDescription:
         if not self.params:
             return PluginBaseParamsDescription()
-        description = self.params.__doc__
-        if description and '@' in description:
-            description = description[0: description.index('@')]
-
-        params = get_model_params_description(self.params)
+        doc = self.params.__doc__ or ''
+        description = doc[:doc.index('@')].strip() if '@' in doc else doc.strip() or None
+        from panoptic.core.plugin.action_registry import _build_param_descriptions
+        params = _build_param_descriptions(self.params.__class__)
         for p in params:
             p.id = p.name
-            p.default_value = self.params.__dict__[p.id]
+            p.default_value = getattr(self.params, p.name, None)
         return PluginBaseParamsDescription(description=description, params=params)
-
-    def get_description(self):
-        name = self.name
-        description = self.__doc__
-        path = self.path
-
-        base_params = self._get_param_description()
-
-        res = PluginDescription(name=name, description=description, path=path, base_params=base_params,
-                                registered_functions=self.registered_functions)
-        return res
-
-    async def load_vector_types(self):
-        self.vector_types = await self.project.get_vector_types(self.name)
-

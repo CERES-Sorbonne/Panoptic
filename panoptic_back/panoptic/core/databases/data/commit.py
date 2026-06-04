@@ -1,8 +1,8 @@
-from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE, OP_DIFF
+from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE
 from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic.models.data import (
+from panoptic.core.databases.data.models import (
     UpsertCommit, FileSource, Folder, File,
-    Instance, Property, Tag, InstanceValue, Sha1Value
+    Instance, Property, PropertyGroup, Tag, InstanceValue, Sha1Value
 )
 
 
@@ -62,6 +62,21 @@ class CommitBuilder:
         )
         self.data.instances[inst_id] = instance
         return instance
+
+    def create_property_group(self, name: str) -> PropertyGroup:
+        pg_id = self.project.allocate_property_groups()
+        group = PropertyGroup(
+            id=pg_id,
+            name=name,
+            commit_id=0,
+            operation=OP_CREATE
+        )
+        self.data.property_groups[pg_id] = group
+        return group
+
+    def update_property_group(self, group: PropertyGroup):
+        group.operation = OP_UPDATE
+        self.data.property_groups[group.id] = group
 
     def create_property(self, dtype: str, mode: str, name: str, access='write', tag_list_id=None) -> Property:
         prop_id = self.project.allocate_properties()
@@ -133,15 +148,13 @@ class CommitBuilder:
     def update_instance_value(self, value: InstanceValue):
         if value.property_id not in self.data.instance_values:
             self.data.instance_values[value.property_id] = []
-        if value.operation != OP_DIFF:
-            value.operation = OP_UPDATE
+        value.operation = OP_UPDATE
         self.data.instance_values[value.property_id].append(value)
 
     def update_sha1_value(self, value: Sha1Value):
         if value.property_id not in self.data.sha1_values:
             self.data.sha1_values[value.property_id] = []
-        if value.operation != OP_DIFF:
-            value.operation = OP_UPDATE
+        value.operation = OP_UPDATE
         self.data.sha1_values[value.property_id].append(value)
 
     # def add_sha1_value_write(self, property_id: int, stamp_mode: str = None, sha1s: list[str] = None, values: Any = None):
