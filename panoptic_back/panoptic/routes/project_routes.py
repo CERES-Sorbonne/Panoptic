@@ -1285,9 +1285,18 @@ def delete_empty_clones_route(project: Project = Depends(_dep)):
 # CSV import
 # ---------------------------------------------------------------------------
 
+class _ImportParseRequest(BaseModel):
+    fusion: str = 'first'
+    relative: bool = False
+    properties: dict[str, Any] = {}
+    exclude: list[int] = []
+
+
 class _ImportConfirmRequest(BaseModel):
     exclude: list[int] = []
     properties: dict[str, Any] = {}   # col_index_str → {id, name, dtype, mode}
+    fusion: str = 'first'
+    relative: bool = False
 
 
 @project_router.post('/import/upload')   # TODO: needs testing
@@ -1300,13 +1309,9 @@ async def import_upload(file: UploadFile, project: Project = Depends(_dep)):
 
 
 @project_router.post('/import/parse')   # TODO: needs testing
-def import_parse(
-    relative: bool = False,
-    fusion: str = 'new',
-    project: Project = Depends(_dep),
-):
+def import_parse(req: _ImportParseRequest, project: Project = Depends(_dep)):
     """Map CSV rows to existing instance IDs."""
-    return project.importer.verify_mapping(relative=relative, fusion=fusion)
+    return project.importer.verify_mapping(relative=req.relative, fusion=req.fusion)
 
 
 @project_router.post('/import/confirm')   # TODO: needs testing

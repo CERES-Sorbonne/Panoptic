@@ -10,7 +10,7 @@ import ContentFilter from './ContentFilter.vue';
 import GridScroller from '../scrollers/grid/GridScroller.vue';
 import RecommendedMenu from '../images/RecommendedMenu.vue';
 import TreeScroller from '../scrollers/tree/TreeScroller.vue';
-import { Group } from '@/core/GroupManager';
+import { Group, GroupManager } from '@/core/GroupManager';
 import GraphView from '../graphview/GraphView.vue';
 import { useDataStore } from '@/data/dataStore';
 import { TabManager } from '@/core/TabManager';

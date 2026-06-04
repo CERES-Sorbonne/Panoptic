@@ -21,8 +21,8 @@ from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTIES, SY
 from panoptic.core.plugin.action_registry import ActionRegistry
 from panoptic.core.task.task import Task
 from panoptic.core.task.task_manager import TaskManager
-from panoptic.core.importer.importer import Importer2
-from panoptic.core.exporter import Exporter2
+from panoptic.core.importer.importer import Importer
+from panoptic.core.exporter import Exporter
 
 
 class Project:
@@ -36,8 +36,8 @@ class Project:
         self.task_manager = TaskManager(on_update=on_update)
         self.action       = ActionRegistry()
         self.plugins: list = []   # list[APlugin] — typed loosely to avoid circular import
-        self.importer     = Importer2(self)
-        self.exporter     = Exporter2(self)
+        self.importer     = Importer(self)
+        self.exporter     = Exporter(self)
 
         self._plugin_keys = plugin_keys or []
 

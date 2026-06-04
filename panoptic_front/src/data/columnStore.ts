@@ -251,10 +251,6 @@ export const useColumnStore = defineStore('columnStore', () => {
         }
     }
 
-    function markReady() {
-        isReady.value = true
-    }
-
     function addInstances(newIds: number[], newSha1s: string[], newFileIds: number[]) {
         if (_instanceIdPropId === null || _sha1PropId === null || _fileIdPropId === null) return
 
@@ -526,7 +522,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         systemProps,
 
         init, getRawBuffer, readSlot, writeSlot, isFetched, ensureColumn,
-        markReady, addInstances, markSlotDeleted, registerProperty,
+        addInstances, markSlotDeleted, registerProperty,
         requireFullColumn, requireTagInverted, getFullyLoadedPropIds,
         isSelected, select, deselect, clearSelection,
         getInstancesBySha1, getInstancesByFileId, updateFromLoadResult,

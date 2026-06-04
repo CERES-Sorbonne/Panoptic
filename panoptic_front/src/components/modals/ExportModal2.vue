@@ -31,7 +31,7 @@ const properties = computed(() => {
     const computed = tmp.filter(p => p.id < 0)
     const personal = tmp.filter(p => p.id > 0)
 
-    return [computed.pop(), ...personal, ...computed]
+    return [computed.pop(), ...personal, ...computed].filter(Boolean)
 })
 
 const selectedCount = computed(() => {

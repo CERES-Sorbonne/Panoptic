@@ -5,6 +5,7 @@ Stateful: call parse_headers → verify_mapping → import_data_and_commit in or
 from __future__ import annotations
 
 import io
+import os
 from dataclasses import dataclass
 from random import randint
 from typing import Any, TYPE_CHECKING
@@ -39,6 +40,9 @@ class ImportProp:
 _VALID_TYPES = {'text', 'number', 'tag', 'multi_tags', 'url', 'date', 'path', 'color', 'checkbox'}
 _VALID_KEYS  = {'id', 'path'}
 _TAG_TYPES   = {'tag', 'multi_tags'}
+
+# Number of CSV columns to read per disk pass. Higher = fewer reads but more RAM.
+_COL_BATCH = 50
 
 _PARSERS: dict[str, Any] = {
     'text':       lambda v: str(v) if v else None,
@@ -92,71 +96,49 @@ def _parse_header(index: int, name: str, errors: dict[int, str]):
 
 
 # ---------------------------------------------------------------------------
-# Tiny path trie for fuzzy / relative path matching
+# Path index: flat dict instead of a character trie
+#
+# The character trie stored one Python dict node per character across all
+# paths — ~30 M nodes for 512 K paths, costing 10–20 GB of RAM.
+# This flat dict stores one entry per path-component suffix, which is
+# O(depth × n_paths) — typically 1.5 M entries for the same dataset (~400 MB).
+# Component-level suffix matching is also more correct: a query "sub/file.jpg"
+# matches "root/sub/file.jpg" but NOT "nosub/file.jpg" (no false char-level hits).
 # ---------------------------------------------------------------------------
 
-class _TrieNode:
-    __slots__ = ('children', 'ids')
-    def __init__(self):
-        self.children: dict[str, _TrieNode] = {}
-        self.ids: list[int] = []
+def _norm_path(p: str) -> str:
+    return p.replace('\\', '/').strip('/')
 
 
-class _PathTrie:
-    def __init__(self):
-        self._root = _TrieNode()
+class _PathIndex:
+    def __init__(self, relative: bool):
+        self._relative = relative
+        # full normalised path → [inst_ids]
+        self._exact: dict[str, list[int]] = {}
+        # each component suffix → [inst_ids]  (only built when relative=True)
+        self._suffix: dict[str, list[int]] | None = {} if relative else None
 
-    def insert(self, path: str, id_: int):
-        node = self._root
-        for ch in path:
-            node = node.children.setdefault(ch, _TrieNode())
-        node.ids.append(id_)
+    def insert(self, path: str, inst_id: int):
+        key = _norm_path(path)
+        self._exact.setdefault(key, []).append(inst_id)
+        if self._relative:
+            parts = key.split('/')
+            # start from 1 so the full path is only stored in _exact
+            for i in range(1, len(parts)):
+                self._suffix.setdefault('/'.join(parts[i:]), []).append(inst_id)
 
-    def exact(self, path: str) -> list[int]:
-        node = self._root
-        for ch in path:
-            if ch not in node.children:
-                return []
-            node = node.children[ch]
-        return node.ids
-
-    def prefix(self, path: str) -> list[int]:
-        """Return all ids whose stored key starts with *path* (suffix search)."""
-        node = self._root
-        for ch in path:
-            if ch not in node.children:
-                return []
-            node = node.children[ch]
-        result: list[int] = []
-        stack = [node]
-        while stack:
-            n = stack.pop()
-            result.extend(n.ids)
-            stack.extend(n.children.values())
-        return result
-
-    @staticmethod
-    def _norm(path: str) -> str:
-        p = path.replace('\\', '/')
-        if not p.startswith('/'):
-            p = '/' + p
-        return p[::-1]   # store reversed for suffix-as-prefix search
-
-    def insert_path(self, path: str, id_: int):
-        self.insert(self._norm(path), id_)
-
-    def search_absolute(self, path: str) -> list[int]:
-        return self.exact(self._norm(path))
-
-    def search_relative(self, path: str) -> list[int]:
-        return self.prefix(self._norm(path))
+    def search(self, path: str) -> list[int]:
+        key = _norm_path(path)
+        if self._relative:
+            return self._suffix.get(key) or self._exact.get(key) or []
+        return self._exact.get(key) or []
 
 
 # ---------------------------------------------------------------------------
-# Importer2
+# Importer
 # ---------------------------------------------------------------------------
 
-class Importer2:
+class Importer:
     """Stateful CSV importer for Project.
 
     Usage::
@@ -219,7 +201,7 @@ class Importer2:
         return {
             'key': self.file_key or '',
             'col_to_property': {
-                str(i): {'id': p.id, 'name': p.name, 'dtype': p.dtype, 'mode': p.mode}
+                str(i): {'id': p.id, 'name': p.name, 'type': p.dtype, 'mode': p.mode}
                 for i, p in col_to_prop.items()
             },
             'errors': errors,
@@ -233,27 +215,45 @@ class Importer2:
         if not self.file_key or not self.columns:
             raise ValueError("Call parse_headers first")
 
+        print(f"[import] verify_mapping  file={self.file_path}  key={self.file_key}  fusion={fusion}  relative={relative}")
+
         df = _read_csv(self.file_path, columns=[self.file_key])
         if df is None:
             raise IOError("Cannot read key column from CSV")
 
-        key_data  = df[self.file_key].to_list()
-        instances = self.project.get_instances()
-        files     = {f.id: f for f in self.project.get_files()}
-        folders   = {f.id: f for f in self.project.get_folders()}
-        inst_map  = {i.id: i for i in instances}
+        key_data = df[self.file_key].to_list()
+        print(f"[import] CSV rows: {len(key_data):,}")
 
-        # Determine which instance ids have at least one value (for fusion='new')
-        non_empty_ids: set[int] = set()
-        used_ids:      set[int] = set()
-        if fusion == 'new':
-            non_empty_ids = {v.instance_id for v in self.project.get_instance_values()}
+        from panoptic.core.databases.data.create import (
+            INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, INSTANCE_VALUES_SCHEMA,
+        )
 
-        # Build initial row→ids mapping
+        print("[import] loading instances / files / folders from DB …")
+        with self.project._data_reader() as reader:
+            inst_rows   = INSTANCES_SCHEMA.select(reader.conn, ['id', 'sha1', 'file_id'])
+            file_rows   = FILES_SCHEMA.select(reader.conn, ['id', 'name', 'folder_id'])
+            folder_rows = FOLDERS_SCHEMA.select(reader.conn, ['id', 'path', 'name'])
+            print(f"[import]   instances={len(inst_rows):,}  files={len(file_rows):,}  folders={len(folder_rows):,}")
+
+            non_empty_ids: set[int] = set()
+            if fusion == 'new':
+                rows = reader.conn.execute(
+                    f"SELECT DISTINCT instance_id FROM {INSTANCE_VALUES_SCHEMA.table}"
+                ).fetchall()
+                non_empty_ids = {r[0] for r in rows}
+                print(f"[import]   instances with existing values: {len(non_empty_ids):,}")
+
+        instances  = {r[0]: (r[1], r[2]) for r in inst_rows}
+        files      = {r[0]: (r[1], r[2]) for r in file_rows}
+        folders    = {r[0]: (r[1], r[2]) for r in folder_rows}
+
+        used_ids: set[int] = set()
+
         initial: list[list[int]] = []
 
         if self.file_key == 'id':
-            all_ids = {i.id for i in instances}
+            print("[import] building id lookup …")
+            all_ids = set(instances)
             for val in key_data:
                 try:
                     n = int(val)
@@ -262,19 +262,30 @@ class Importer2:
                     initial.append([])
 
         else:  # 'path'
-            trie = _PathTrie()
-            for inst in instances:
-                f = files.get(inst.file_id)
-                if f and f.name:
-                    folder = folders.get(f.folder_id)
-                    full_path = os.path.join(folder.path, f.name) if folder and folder.path else f.name
-                    trie.insert_path(full_path, inst.id)
+            print("[import] building path index …")
+            idx = _PathIndex(relative)
+            for inst_id, (sha1, file_id) in instances.items():
+                if file_id is None:
+                    continue
+                fname, folder_id = files.get(file_id, (None, None))
+                if not fname:
+                    continue
+                if folder_id is not None:
+                    fpath, _ = folders.get(folder_id, (None, None))
+                    full_path = os.path.join(fpath, fname) if fpath else fname
+                else:
+                    full_path = fname
+                idx.insert(full_path, inst_id)
+            print(f"[import] path index built  exact={len(idx._exact):,}  suffix={len(idx._suffix) if idx._suffix is not None else 'n/a':,}")
 
-            search = trie.search_relative if relative else trie.search_absolute
+            print("[import] matching CSV rows to instances …")
             for val in key_data:
-                initial.append(search(val) if val else [])
+                initial.append(idx.search(val) if val else [])
 
-        # Apply fusion mode
+        matched = sum(1 for m in initial if m)
+        print(f"[import] row matching done  matched={matched:,}  unmatched={len(initial)-matched:,}")
+
+        print(f"[import] applying fusion mode '{fusion}' …")
         row_to_ids:    list[list[int]] = []
         new_inst_info: list[tuple[int, int, str]] = []
 
@@ -293,12 +304,12 @@ class Importer2:
                         used_ids.add(free_id)
                         row_to_ids.append([free_id])
                     elif self.file_key == 'path':
-                        orig   = inst_map[matches[0]]
+                        orig_sha1, orig_file_id = instances[matches[0]]
                         new_id = self.project.allocate_instances(1)
                         if isinstance(new_id, range):
                             new_id = new_id.start
                         row_to_ids.append([new_id])
-                        new_inst_info.append((orig.file_id or 0, new_id, orig.sha1 or ''))
+                        new_inst_info.append((orig_file_id or 0, new_id, orig_sha1 or ''))
                     else:
                         row_to_ids.append([])
                 else:
@@ -306,10 +317,11 @@ class Importer2:
             else:
                 row_to_ids.append([matches[0]] if matches else [])
 
-        self._row_to_ids  = row_to_ids
+        self._row_to_ids    = row_to_ids
         self._new_inst_info = new_inst_info
 
-        missing = [i for i, ids in enumerate(row_to_ids) if not ids]
+        missing = [[i, key_data[i]] for i, ids in enumerate(row_to_ids) if not ids]
+        print(f"[import] verify_mapping done  mapped={len(row_to_ids)-len(missing):,}  missing={len(missing):,}  new_instances={len(new_inst_info):,}")
         return {'missing_rows': missing, 'new_instances_count': len(new_inst_info)}
 
     # ------------------------------------------------------------------
@@ -321,10 +333,11 @@ class Importer2:
         if not self.columns or not self.col_to_prop:
             raise ValueError("Call parse_headers and verify_mapping first")
 
+        print("[import] import_data_and_commit start")
+
         BATCH = 25_000
         exclude_set = set(exclude or [])
 
-        # Build working column→prop map with optional user overrides
         working: dict[int, ImportProp] = {}
         for i, prop in self.col_to_prop.items():
             if i in exclude_set:
@@ -342,10 +355,13 @@ class Importer2:
                                          dtype=prop.dtype, mode=prop.mode)
 
         if not working:
+            print("[import] no columns to import — aborting")
             return
 
-        # Commit new instances (IDs already pre-allocated in verify_mapping)
+        print(f"[import] columns to import: {[f'{p.name}[{p.dtype}]/{p.mode}' for p in working.values()]}")
+
         if self._new_inst_info:
+            print(f"[import] committing {len(self._new_inst_info):,} new instances …")
             inst_commit = UpsertCommit()
             for file_id, inst_id, sha1 in self._new_inst_info:
                 inst_commit.instances[inst_id] = Instance(
@@ -353,17 +369,16 @@ class Importer2:
                     commit_id=0, operation=OP_CREATE,
                 )
             self.project.apply_upsert_commit('import', inst_commit)
+            print("[import] new instances committed")
 
-        # Commit new properties (allocate real IDs)
-        prop_id_map: dict[int, int] = {}
         new_props = [p for p in working.values() if p.id < 0]
         if new_props:
+            print(f"[import] creating {len(new_props)} new propert{'y' if len(new_props)==1 else 'ies'} …")
             ids = self.project.allocate_properties(len(new_props))
             if isinstance(ids, int):
                 ids = range(ids, ids + 1)
             prop_commit = UpsertCommit()
             for p, real_id in zip(new_props, ids):
-                prop_id_map[p.id] = real_id
                 p.id = real_id
                 prop_commit.properties[real_id] = Property(
                     id=real_id, dtype=p.dtype, mode=p.mode,
@@ -371,99 +386,120 @@ class Importer2:
                     commit_id=0, operation=OP_CREATE,
                 )
             self.project.apply_upsert_commit('import', prop_commit)
+            print(f"[import] properties committed: {[p.name for p in new_props]}")
 
-        # Pre-load tag cache for existing tag properties
-        tag_cache: dict[int, dict[str, int]] = {}   # list_id → {value: tag_id}
-        for p in working.values():
-            if p.dtype in _TAG_TYPES and p.id > 0:
-                tag_cache[p.id] = {
-                    t.value: t.id
-                    for t in self.project.get_tags()
-                    if t.list_id == p.id
-                }
+        from panoptic.core.databases.data.create import INSTANCES_SCHEMA
 
-        # Build sha1 map once if any sha1-mode columns
-        sha1_map: dict[int, str] = {}
-        if any(p.mode == 'sha1' for p in working.values()):
-            sha1_map = {i.id: i.sha1 for i in self.project.get_instances() if i.sha1}
+        print("[import] loading tag cache and sha1 map …")
+        with self.project._data_reader() as reader:
+            tag_cache: dict[int, dict[str, int]] = {}
+            for t in reader.get_tags():
+                if t.list_id is not None:
+                    tag_cache.setdefault(t.list_id, {})[t.value] = t.id
 
-        pending = UpsertCommit()
-        pending_n = 0
+            sha1_map: dict[int, str] = {}
+            if any(p.mode == 'sha1' for p in working.values()):
+                for inst_id, sha1 in INSTANCES_SCHEMA.select(reader.conn, ['id', 'sha1']):
+                    if sha1:
+                        sha1_map[inst_id] = sha1
+        print(f"[import] sha1_map={len(sha1_map):,}  tag_cache lists={len(tag_cache):,}")
+
+        pending         = UpsertCommit()
+        pending_n       = 0
+        total_committed = 0
+        seen_sha1_pairs: set[tuple[int, str]] = set()
 
         def flush():
-            nonlocal pending, pending_n
+            nonlocal pending, pending_n, seen_sha1_pairs, total_committed
             if pending_n == 0:
                 return
             self.project.apply_upsert_commit('import', pending)
-            pending = UpsertCommit()
-            pending_n = 0
+            total_committed += pending_n
+            print(f"[import]   flushed {pending_n:,} values  (total so far: {total_committed:,})")
+            pending         = UpsertCommit()
+            pending_n       = 0
+            seen_sha1_pairs = set()
 
-        for col_i, prop in working.items():
-            col_name = self.columns[col_i]
-            is_tag   = prop.dtype in _TAG_TYPES
-            parse_fn = _PARSERS.get(prop.dtype, _PARSERS['text'])
+        prop_items = list(working.items())
+        n_col_chunks = (len(prop_items) + _COL_BATCH - 1) // _COL_BATCH
 
-            df_col = _read_csv(self.file_path, columns=[col_name])
-            if df_col is None:
+        for chunk_idx, chunk_start in enumerate(range(0, len(prop_items), _COL_BATCH)):
+            chunk     = prop_items[chunk_start: chunk_start + _COL_BATCH]
+            col_names = [self.columns[col_i] for col_i, _ in chunk]
+            print(f"[import] reading CSV chunk {chunk_idx+1}/{n_col_chunks}: {col_names} …")
+
+            df_chunk = _read_csv(self.file_path, columns=col_names)
+            if df_chunk is None:
+                print(f"[import]   could not read chunk — skipping")
                 continue
 
-            csv_values = df_col[col_name].to_list()
+            for col_i, prop in chunk:
+                col_name = self.columns[col_i]
+                is_tag   = prop.dtype in _TAG_TYPES
+                parse_fn = _PARSERS.get(prop.dtype, _PARSERS['text'])
 
-            for row_i, raw in enumerate(csv_values):
-                ids = self._row_to_ids[row_i] if row_i < len(self._row_to_ids) else []
-                if not ids:
-                    continue
+                csv_values = df_chunk[col_name].to_list()
+                print(f"[import]   processing '{prop.name}[{prop.dtype}]' ({len(csv_values):,} rows) …")
 
-                parsed = parse_fn(raw)
-                if parsed is None:
-                    continue
+                for row_i, raw in enumerate(csv_values):
+                    ids = self._row_to_ids[row_i] if row_i < len(self._row_to_ids) else []
+                    if not ids:
+                        continue
 
-                if is_tag:
-                    names = parsed if isinstance(parsed, list) else [parsed]
-                    list_id = prop.id
-                    if list_id not in tag_cache:
-                        tag_cache[list_id] = {}
-                    tag_ids = []
-                    for name in names:
-                        if name in tag_cache[list_id]:
-                            tag_ids.append(tag_cache[list_id][name])
+                    parsed = parse_fn(raw)
+                    if parsed is None:
+                        continue
+
+                    if is_tag:
+                        names   = parsed if isinstance(parsed, list) else [parsed]
+                        list_id = prop.id
+                        cache   = tag_cache.setdefault(list_id, {})
+                        tag_ids = []
+                        for name in names:
+                            if name in cache:
+                                tag_ids.append(cache[name])
+                            else:
+                                new_tid = self.project.allocate_tags(1)
+                                if isinstance(new_tid, range):
+                                    new_tid = new_tid.start
+                                pending.tags[new_tid] = Tag(
+                                    id=new_tid, list_id=list_id, parents=[],
+                                    value=name, color=randint(0, 11),
+                                    commit_id=0, operation=OP_CREATE,
+                                )
+                                cache[name] = new_tid
+                                tag_ids.append(new_tid)
+                        final_val = tag_ids
+                    else:
+                        final_val = parsed
+
+                    for inst_id in ids:
+                        if prop.mode == 'sha1':
+                            sha1 = sha1_map.get(inst_id)
+                            if sha1:
+                                pair = (prop.id, sha1)
+                                if pair in seen_sha1_pairs:
+                                    continue
+                                seen_sha1_pairs.add(pair)
+                                pending.sha1_values.setdefault(prop.id, []).append(
+                                    Sha1Value(property_id=prop.id, sha1=sha1,
+                                              value=final_val, commit_id=0, operation=OP_UPDATE)
+                                )
+                                pending_n += 1
                         else:
-                            new_tid = self.project.allocate_tags(1)
-                            if isinstance(new_tid, range):
-                                new_tid = new_tid.start
-                            pending.tags[new_tid] = Tag(
-                                id=new_tid, list_id=list_id, parents=[],
-                                value=name, color=randint(0, 11),
-                                commit_id=0, operation=OP_CREATE,
-                            )
-                            tag_cache[list_id][name] = new_tid
-                            tag_ids.append(new_tid)
-                    final_val = tag_ids
-                else:
-                    final_val = parsed
-
-                for inst_id in ids:
-                    if prop.mode == 'sha1':
-                        sha1 = sha1_map.get(inst_id)
-                        if sha1:
-                            pending.sha1_values.setdefault(prop.id, []).append(
-                                Sha1Value(property_id=prop.id, sha1=sha1,
-                                          value=final_val, commit_id=0, operation=OP_UPDATE)
+                            pending.instance_values.setdefault(prop.id, []).append(
+                                InstanceValue(property_id=prop.id, instance_id=inst_id,
+                                              value=final_val, commit_id=0, operation=OP_UPDATE)
                             )
                             pending_n += 1
-                    else:
-                        pending.instance_values.setdefault(prop.id, []).append(
-                            InstanceValue(property_id=prop.id, instance_id=inst_id,
-                                          value=final_val, commit_id=0, operation=OP_UPDATE)
-                        )
-                        pending_n += 1
 
-                if pending_n >= BATCH:
-                    flush()
+                    if pending_n >= BATCH:
+                        flush()
 
-            del df_col
+            del df_chunk
 
         flush()
+        print(f"[import] done — total values committed: {total_committed:,}")
         self._clear()
 
     # ------------------------------------------------------------------

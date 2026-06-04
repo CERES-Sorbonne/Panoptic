@@ -8,11 +8,24 @@ from typing import Any, TYPE_CHECKING
 
 import polars as pl
 
+from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
+
 if TYPE_CHECKING:
     from panoptic.core.project.project import Project
+    from panoptic.core.databases.data.data_reader import DataReader
+
+_TAG_DTYPES = {'tag', 'multi_tags'}
+
+# Above this many properties, build the DataFrame in horizontal slices to cap
+# peak memory usage (each slice is written as a CSV chunk).
+_PROP_CHUNK = 200
+
+# Above this many instances, iterate rows in batches rather than loading all
+# property columns into one wide frame at once.
+_ROW_CHUNK = 500_000
 
 
-class Exporter2:
+class Exporter:
     def __init__(self, project: 'Project'):
         self.project = project
 
@@ -29,14 +42,15 @@ class Exporter2:
             shutil.rmtree(export_dir)
         os.makedirs(export_dir, exist_ok=True)
 
-        if properties:
-            df = self._build_csv(instance_ids, properties, key)
-            df.write_csv(os.path.join(export_dir, 'data.csv'), separator=';')
+        with self.project._data_reader() as reader:
+            if properties:
+                csv_path = os.path.join(export_dir, 'data.csv')
+                self._write_csv(reader, csv_path, instance_ids, properties, key)
 
-        if copy_images:
-            img_dir = os.path.join(export_dir, 'images')
-            os.makedirs(img_dir, exist_ok=True)
-            self._copy_images(instance_ids, img_dir)
+            if copy_images:
+                img_dir = os.path.join(export_dir, 'images')
+                os.makedirs(img_dir, exist_ok=True)
+                self._copy_images(reader, instance_ids, img_dir)
 
         return export_dir
 
@@ -44,90 +58,198 @@ class Exporter2:
     # Internals
     # ------------------------------------------------------------------
 
-    def _build_csv(self, instance_ids: list[int] | None,
-                   property_ids: list[int], key: str) -> pl.DataFrame:
-        all_insts = self.project.get_instances()
+    def _write_csv(self, reader: 'DataReader', csv_path: str,
+                   instance_ids: list[int] | None,
+                   property_ids: list[int],
+                   key: str) -> None:
+        # --- metadata (small, always fits in memory) ---
+        prop_map = {p.id: p for p in reader.get_properties()}
+        tag_map  = {t.id: t.value for t in reader.get_tags()}
+
+        # --- base instance list ---
+        from panoptic.core.databases.entity_schema import OP_DELETE
+        from panoptic.core.databases.data.create import (
+            INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA,
+        )
+
         if instance_ids is not None:
-            id_set    = set(instance_ids)
-            all_insts = [i for i in all_insts if i.id in id_set]
+            rows = INSTANCES_SCHEMA.get(reader.conn, id=instance_ids)
+        else:
+            rows = reader.get_instances()
 
-        prop_map   = {p.id: p for p in self.project.get_properties()}
-        file_map   = {f.id: f for f in self.project.get_files()}
-        folder_map = {f.id: f for f in self.project.get_folders()}
-        tag_map    = {t.id: t for t in self.project.get_tags()}
+        all_ids     = [i.id      for i in rows if i.operation != OP_DELETE]
+        all_sha1s   = [i.sha1    for i in rows if i.operation != OP_DELETE]
+        all_file_ids = [i.file_id for i in rows if i.operation != OP_DELETE]
 
-        # Build value look-up tables
-        prop_id_set = set(property_ids)
-        iv_index: dict[tuple[int, int], Any] = {}    # (prop_id, inst_id) → value
-        sv_index: dict[tuple[int, str], Any] = {}    # (prop_id, sha1)    → value
-        for iv in self.project.get_instance_values():
-            if iv.property_id in prop_id_set:
-                iv_index[(iv.property_id, iv.instance_id)] = iv.value
-        for sv in self.project.get_sha1_values():
-            if sv.property_id in prop_id_set:
-                sv_index[(sv.property_id, sv.sha1)] = sv.value
+        if not all_ids:
+            return
 
-        # Column headers
-        prop_cols = [
+        # --- key column ---
+        key_col = self._build_key_column(reader, key, all_ids, all_file_ids,
+                                         FILES_SCHEMA, FOLDERS_SCHEMA)
+
+        # --- column headers ---
+        valid_prop_ids = [p for p in property_ids if p in prop_map]
+        col_names = [
             f"{prop_map[p].name}[{prop_map[p].dtype}]"
-            for p in property_ids if p in prop_map
+            for p in valid_prop_ids
         ]
-        columns = [key, *prop_cols]
 
-        rows: list[list[str | None]] = []
-        for inst in all_insts:
-            f   = file_map.get(inst.file_id)
-            row: list[str | None] = []
+        base = pl.DataFrame({key: key_col})
 
-            # Key column
-            if key == 'id':
-                row.append(str(inst.id))
-            elif key == 'local_path':
-                if f:
-                    folder = folder_map.get(f.folder_id)
-                    base   = os.path.basename(f.name or '')
-                    row.append(f"{folder.name if folder else ''}/{base}")
+        # Choose strategy based on dataset size
+        if len(all_ids) <= _ROW_CHUNK:
+            df = self._build_wide_frame(
+                reader, base, key, all_ids, all_sha1s, all_file_ids,
+                valid_prop_ids, col_names, prop_map, tag_map,
+            )
+            df.write_csv(csv_path, separator=';')
+        else:
+            self._write_chunked(
+                reader, csv_path, key, all_ids, all_sha1s, all_file_ids,
+                valid_prop_ids, col_names, prop_map, tag_map,
+            )
+
+    # ------------------------------------------------------------------
+
+    def _build_key_column(self, reader, key: str,
+                          all_ids, all_file_ids,
+                          FILES_SCHEMA, FOLDERS_SCHEMA) -> list[str]:
+        if key == 'id':
+            return [str(i) for i in all_ids]
+
+        file_rows   = FILES_SCHEMA.get(reader.conn)
+        folder_rows = FOLDERS_SCHEMA.get(reader.conn)
+        file_map    = {f.id: f for f in file_rows}
+        folder_map  = {f.id: f for f in folder_rows}
+
+        result = []
+        for file_id in all_file_ids:
+            f = file_map.get(file_id)
+            if not f:
+                result.append('')
+                continue
+            if key == 'local_path':
+                folder = folder_map.get(f.folder_id)
+                base   = os.path.basename(f.name or '')
+                result.append(f"{folder.name if folder else ''}/{base}")
+            else:  # global_path / path
+                result.append(f.name or '')
+        return result
+
+    # ------------------------------------------------------------------
+
+    def _build_wide_frame(self, reader, base: pl.DataFrame, key: str,
+                          all_ids, all_sha1s, all_file_ids,
+                          valid_prop_ids, col_names,
+                          prop_map, tag_map) -> pl.DataFrame:
+        """Assemble the full DataFrame in one pass (fits in memory)."""
+        id_series = pl.Series('__id__', all_ids)
+
+        for prop_id, col_name in zip(valid_prop_ids, col_names):
+            prop = prop_map[prop_id]
+            inst_ids, values = reader.get_full_column(
+                prop_id, prop.mode, prop.system_key
+            )
+            if not inst_ids:
+                base = base.with_columns(pl.lit(None).cast(pl.String).alias(col_name))
+                continue
+
+            is_tag = prop.dtype in _TAG_DTYPES
+
+            sparse = pl.DataFrame({
+                '__id__': pl.Series(inst_ids, dtype=pl.Int64),
+                col_name: pl.Series(values),
+            })
+            joined = id_series.to_frame().join(sparse, on='__id__', how='left')
+
+            if is_tag:
+                col_series = joined[col_name].map_elements(
+                    lambda ids: ','.join(tag_map[i] for i in (ids or []) if i in tag_map),
+                    return_dtype=pl.String,
+                )
+            else:
+                col_series = joined[col_name].cast(pl.String)
+
+            base = base.with_columns(col_series)
+
+        return base
+
+    # ------------------------------------------------------------------
+
+    def _write_chunked(self, reader, csv_path: str, key: str,
+                       all_ids, all_sha1s, all_file_ids,
+                       valid_prop_ids, col_names,
+                       prop_map, tag_map) -> None:
+        """Row-chunked path for very large instance counts.
+
+        Loads values for one chunk of instances at a time to keep memory
+        proportional to chunk_size × n_properties rather than n_instances ×
+        n_properties.
+        """
+        header_written = False
+
+        for chunk_start in range(0, len(all_ids), _ROW_CHUNK):
+            chunk_ids      = all_ids     [chunk_start: chunk_start + _ROW_CHUNK]
+            chunk_file_ids = all_file_ids[chunk_start: chunk_start + _ROW_CHUNK]
+
+            from panoptic.core.databases.data.create import FILES_SCHEMA, FOLDERS_SCHEMA
+            key_col = self._build_key_column(
+                reader, key, chunk_ids, chunk_file_ids, FILES_SCHEMA, FOLDERS_SCHEMA
+            )
+            chunk_df = pl.DataFrame({key: key_col})
+            id_series = pl.Series('__id__', chunk_ids)
+
+            for prop_id, col_name in zip(valid_prop_ids, col_names):
+                prop = prop_map[prop_id]
+                val_map: dict[int, Any] = reader.get_values_for_instances(
+                    chunk_ids, prop_id, prop.mode, prop.system_key
+                )
+                values = [val_map.get(i) for i in chunk_ids]
+
+                is_tag = prop.dtype in _TAG_DTYPES
+                if is_tag:
+                    str_values = [
+                        ','.join(tag_map[t] for t in (v or []) if t in tag_map)
+                        if v is not None else None
+                        for v in values
+                    ]
+                    chunk_df = chunk_df.with_columns(
+                        pl.Series(col_name, str_values, dtype=pl.String)
+                    )
                 else:
-                    row.append('')
-            else:   # global_path / path
-                row.append(f.name or '' if f else '')
+                    chunk_df = chunk_df.with_columns(
+                        pl.Series(col_name, [str(v) if v is not None else None for v in values],
+                                  dtype=pl.String)
+                    )
 
-            # Property columns
-            for prop_id in property_ids:
-                prop = prop_map.get(prop_id)
-                if not prop:
-                    row.append(None)
-                    continue
+            if not header_written:
+                chunk_df.write_csv(csv_path, separator=';')
+                header_written = True
+            else:
+                with open(csv_path, 'a', encoding='utf-8') as f:
+                    f.write(chunk_df.write_csv(separator=';', include_header=False))
 
-                val: Any
-                if prop.mode == 'sha1' and inst.sha1:
-                    val = sv_index.get((prop_id, inst.sha1))
-                else:
-                    val = iv_index.get((prop_id, inst.id))
+    # ------------------------------------------------------------------
 
-                if val is None:
-                    row.append(None)
-                elif prop.dtype in {'tag', 'multi_tags'} and isinstance(val, list):
-                    row.append(','.join(tag_map[t].value for t in val if t in tag_map))
-                else:
-                    row.append(str(val))
+    def _copy_images(self, reader: 'DataReader',
+                     instance_ids: list[int] | None, dest: str) -> None:
+        from panoptic.core.databases.data.create import INSTANCES_SCHEMA, FILES_SCHEMA
+        from panoptic.core.databases.entity_schema import OP_DELETE
 
-            rows.append(row)
-
-        if not rows:
-            rows = [[''] * len(columns)]
-
-        data = {col: [r[i] for r in rows] for i, col in enumerate(columns)}
-        return pl.DataFrame(data)
-
-    def _copy_images(self, instance_ids: list[int] | None, dest: str):
-        all_insts = self.project.get_instances()
         if instance_ids is not None:
-            id_set    = set(instance_ids)
-            all_insts = [i for i in all_insts if i.id in id_set]
-        file_map = {f.id: f for f in self.project.get_files()}
-        for inst in all_insts:
-            f = file_map.get(inst.file_id)
+            insts = INSTANCES_SCHEMA.get(reader.conn, id=instance_ids)
+        else:
+            insts = reader.get_instances()
+
+        file_ids = [i.file_id for i in insts
+                    if i.operation != OP_DELETE and i.file_id is not None]
+        if not file_ids:
+            return
+
+        file_map = {f.id: f for f in FILES_SCHEMA.get(reader.conn, id=file_ids)}
+        for file_id in file_ids:
+            f = file_map.get(file_id)
             if f and f.name and os.path.exists(f.name):
                 try:
                     shutil.copy(f.name, dest)

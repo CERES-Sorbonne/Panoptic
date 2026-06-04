@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, onUnmounted, triggerRef } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -164,24 +164,34 @@ function GroupToLines(it: GroupIterator) {
     return lines
 }
 
+let _computingLines = false
 function computeLines() {
-    console.time('compute Lines')
-    if (!props.groupManager.result.root) return
-    let it = props.groupManager.getGroupIterator()
-    if(!it?.group.slots.length) {
-        imageLines.value = []
-        return
+    if (_computingLines) return
+    _computingLines = true
+    try {
+        console.time('compute Lines')
+        if (!props.groupManager.result.root) return
+        let it = props.groupManager.getGroupIterator()
+        if (!it?.group) {
+            imageLines.value = []
+            return
+        }
+        const lines = []
+        const visited = new Set<number>()
+        while (it) {
+            const group = it.group
+            if (visited.has(group.id)) break
+            visited.add(group.id)
+            groupIdx[group.id] = lines.length
+            const gl = GroupToLines(it)
+            for (let i = 0; i < gl.length; i++) lines.push(gl[i])
+            it = it.nextGroup()
+        }
+        imageLines.value = lines //.map(l => shallowReactive(l))
+        console.timeEnd('compute Lines')
+    } finally {
+        _computingLines = false
     }
-    const lines = []
-    while (it) {
-        const group = it.group
-        groupIdx[group.id] = lines.length
-        lines.push(...GroupToLines(it))
-        it = it.nextGroup()
-    }
-    
-    imageLines.value = lines.map(l => shallowReactive(l))
-    console.timeEnd('compute Lines')
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
@@ -278,12 +288,15 @@ function updateHoverBorder(value) {
 }
 
 function getParents(group: Group) {
-    if (group && group.id != undefined) {
-        if (group.parent != undefined) {
-            return [...getParents(group.parent), group.parent.id]
-        }
+    const ids: number[] = []
+    const seen = new Set<number>()
+    let current = group?.parent
+    while (current != undefined && !seen.has(current.id)) {
+        seen.add(current.id)
+        ids.unshift(current.id)
+        current = current.parent
     }
-    return []
+    return ids
 }
 
 function getImageLineParents(item) {
@@ -308,8 +321,10 @@ function toggleGroupSelect(groupId: number) {
     if (iterator) props.groupManager.toggleGroupIterator(iterator, keyState.shift)
 }
 
+let _triggerHandle: ReturnType<typeof setTimeout> | undefined
 function triggerUpdate() {
-    computeLines()
+    clearTimeout(_triggerHandle)
+    _triggerHandle = setTimeout(computeLines, 50)
 }
 
 
@@ -358,12 +373,14 @@ watch(visiblePropertiesNb, () => {
         if (l.type === 'images') l.size = imageLineSize.value
         else if (l.type === 'piles') l.size = pileLineSize.value
     }
+
+    imageLines.value = [...lines ]
 })
 
-let resizeWidthHandler = undefined
+let resizeWidthHandler: ReturnType<typeof setTimeout> | undefined
 watch(() => props.width, () => {
     clearTimeout(resizeWidthHandler)
-    setTimeout(computeLines, 500)
+    resizeWidthHandler = setTimeout(computeLines, 200)
 })
 
 onMounted(() => props.groupManager.onResultChange.addListener(triggerUpdate))

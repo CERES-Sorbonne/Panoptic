@@ -266,7 +266,6 @@ export const useDataStore = defineStore('dataStore', () => {
         lastSequence.value = initData.sequence ?? 0
 
         _initColumnStore()
-        columnStore.markReady()
 
         const tabStore = useTabStore()
         await tabStore.init()
@@ -565,7 +564,9 @@ export const useDataStore = defineStore('dataStore', () => {
         tree.forEach(n => { groupToProperties[n.groupId] = [] })
         props.forEach(p => {
             if (p.systemKey) p.propertyGroupId = PropertyGroupId.METADATA
-            if (p.propertyGroupId == undefined) p.propertyGroupId = PropertyGroupId.DEFAULT
+            if (p.propertyGroupId == undefined || !groupToProperties[p.propertyGroupId]) {
+                p.propertyGroupId = PropertyGroupId.DEFAULT
+            }
             if (groupToProperties[p.propertyGroupId]) groupToProperties[p.propertyGroupId].push(p.id)
         })
         tree.forEach(n => {

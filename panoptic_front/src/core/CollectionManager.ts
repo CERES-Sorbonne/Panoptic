@@ -105,6 +105,7 @@ export class CollectionManager {
 
     async update() {
         const col = useColumnStore()
+        console.log('update collection', col.instanceCount)
         if (!col.isReady) return
 
         const count       = col.slotCount()
