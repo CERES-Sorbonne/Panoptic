@@ -344,12 +344,10 @@ export interface ImageLine extends ScrollerLine {
 
 export interface RowLine extends ScrollerLine {
     data: Instance,
-    iterator: ImageIterator
 }
 
 export interface PileRowLine extends ScrollerLine {
     data: Group
-    iterator: ImageIterator
 }
 
 export interface ScrollerPileLine extends ScrollerLine {

@@ -194,7 +194,12 @@ export const useColumnStore = defineStore('columnStore', () => {
         const col = columnData[propId]
         if (!col) return undefined
         switch (col.kind) {
-            case 'numeric': return isNaN(col.data[slot]) ? null : col.data[slot]
+            case 'numeric': {
+                const v = col.data[slot]
+                if (isNaN(v)) return null
+                if (_propTypes[propId] === PropertyType.date) return new Date(v)
+                return v
+            }
             case 'bool': return col.data[slot] === 255 ? null : col.data[slot] === 1
             case 'string': return col.data[slot]
             case 'tag': return col.sparse[slot]
@@ -226,7 +231,11 @@ export const useColumnStore = defineStore('columnStore', () => {
         const col = ensureColumn(propId)
         switch (col.kind) {
             case 'numeric':
-                col.data[slot] = value == null ? NaN : Number(value)
+                if (_propTypes[propId] === PropertyType.date && typeof value === 'string') {
+                    col.data[slot] = value == null ? NaN : new Date(value).getTime()
+                } else {
+                    col.data[slot] = value == null ? NaN : Number(value)
+                }
                 break
             case 'bool':
                 col.data[slot] = value == null ? 255 : (value ? 1 : 0)
@@ -323,6 +332,7 @@ export const useColumnStore = defineStore('columnStore', () => {
                 const col = columnData[propId]
                 if (col?.kind === 'tag') col.csr = buildCSR(col.sparse, slotCount)
                 fullColumnStatus[propId] = 'loaded'
+            console.log(columnData[propId])
             } catch (e) {
                 fullColumnStatus[propId] = 'empty'
                 delete _fullColumnPromise[propId]

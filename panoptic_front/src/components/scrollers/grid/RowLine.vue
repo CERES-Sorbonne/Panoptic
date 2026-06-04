@@ -2,7 +2,7 @@
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { Group } from '@/core/GroupManager';
+import { Group, GroupManager } from '@/core/GroupManager';
 import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
@@ -19,6 +19,7 @@ const columnStore = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager,
+    manager: GroupManager,
     item: any,
     properties: Property[],
     showImage: boolean,
@@ -166,8 +167,15 @@ function emitResizeOnce() {
 }
 
 function showModal() {
-    // console.log(props.item.iterator)
-    panoptic.showModal(ModalId.IMAGE, props.item.iterator)
+    let iterator
+    if (props.item.type === 'pile') {
+        const sha1Group = (props.item as PileRowLine).data as Group
+        iterator = props.manager.getImageIterator(sha1Group.parent.id, sha1Group.parentIdx)
+    } else {
+        const rowItem = props.item as RowLine
+        iterator = props.manager.getImageIterator(rowItem.groupId, rowItem.index)
+    }
+    panoptic.showModal(ModalId.IMAGE, iterator)
 }
 
 

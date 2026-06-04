@@ -3,7 +3,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
-import { Group, GroupManager, GroupType, ImageIterator } from '@/core/GroupManager';
+import { Group, GroupManager, GroupType } from '@/core/GroupManager';
 import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId, PropertyMode } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
@@ -34,6 +34,7 @@ defineExpose({
 })
 
 const hearderHeight = ref(60)
+// Only the visible window slice + at most two spacers — never the full dataset.
 const rowLines = ref([])
 const lineSizes: { [id: string]: number } = {}
 const scroller = ref(null)
@@ -43,14 +44,6 @@ const visibleProperties = computed(() => props.selectedProperties.filter(p => {
 }))
 
 const tabState = computed(() => props.tab.state)
-
-const windowStart = ref(0)
-const windowEnd = ref(0)
-
-function onScrollerUpdate(startIndex: number, endIndex: number) {
-    windowStart.value = startIndex
-    windowEnd.value = endIndex
-}
 
 const totalPropWidth = computed(() => {
     const options =tabState.value.propertyOptions
@@ -75,28 +68,11 @@ const scrollerStyle = computed(() => ({
 
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
+// windowIds is derived from the current window slice — no separate index tracking needed.
 const windowIds = computed(() => {
     const ids: number[] = []
-    const lines = rowLines.value
-    if (!lines.length) return ids
-
-    let start = Math.max(0, Math.min(windowStart.value, lines.length - 1))
-    let end   = Math.max(0, Math.min(windowEnd.value,   lines.length - 1))
-
-    let preCount = 0
-    while (start > 0 && preCount < 5) {
-        start--
-        if (lines[start].type === 'image' || lines[start].type === 'pile') preCount++
-    }
-    let postCount = 0
-    while (end < lines.length - 1 && postCount < 5) {
-        end++
-        if (lines[end].type === 'image' || lines[end].type === 'pile') postCount++
-    }
-
     const colIds = columnStore.instanceIds()
-    for (let i = start; i <= end; i++) {
-        const line = lines[i]
+    for (const line of rowLines.value) {
         if (line.type === 'image') {
             ids.push((line as RowLine).data.id)
         } else if (line.type === 'pile') {
@@ -108,91 +84,147 @@ const windowIds = computed(() => {
 
 const windowPropIds = computed(() => visibleProperties.value.map(p => p.id))
 
-let dataLines = []
+// ── non-reactive master list + cumulative-size index ──────────────────────────
+let dataLines: ScrollerLine[] = []
+let cumSizes: number[] = []   // cumSizes[i] = total height of dataLines[0..i-1]
+
+function buildCumSizes() {
+    const n = dataLines.length
+    cumSizes = new Array(n + 1)
+    cumSizes[0] = 0
+    for (let i = 0; i < n; i++) cumSizes[i + 1] = cumSizes[i] + dataLines[i].size
+}
+
+// Binary search: index of the item whose row contains pixel offset `px`.
+function itemAtPixel(px: number): number {
+    if (px <= 0 || !dataLines.length) return 0
+    let lo = 0, hi = dataLines.length - 1
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1
+        if (cumSizes[mid + 1] <= px) lo = mid + 1
+        else hi = mid
+    }
+    return lo
+}
+
+// Extra pixels rendered above and below the viewport.
+const BUFFER_PX = 800
+
+let _winStart = -1
+let _winEnd   = -1
+let currentScrollTop = 0
+
+function rebuildWindow() {
+    if (!dataLines.length) { rowLines.value = []; return }
+
+    const start = Math.max(0, itemAtPixel(currentScrollTop - BUFFER_PX))
+    const end   = Math.min(dataLines.length - 1, itemAtPixel(currentScrollTop + scrollerHeight.value + BUFFER_PX))
+
+    if (start === _winStart && end === _winEnd) return
+    _winStart = start
+    _winEnd   = end
+
+    const topH    = cumSizes[start]
+    const totalH  = cumSizes[dataLines.length]
+    const bottomH = totalH - cumSizes[end + 1]
+
+    const items: ScrollerLine[] = []
+    if (topH    > 0) items.push({ id: '__top__',    type: 'fillter', size: topH })
+    for (let i = start; i <= end; i++) items.push(dataLines[i])
+    if (bottomH > 0) items.push({ id: '__bottom__', type: 'fillter', size: bottomH })
+
+    rowLines.value = items
+}
+
+function onScroll(event: Event) {
+    currentScrollTop = (event.target as HTMLElement).scrollTop
+    rebuildWindow()
+}
+
+// ── line construction ─────────────────────────────────────────────────────────
+
 function computeLines() {
     if (!props.manager.result.root) return
     console.time('Table compute lines')
-    const lines = []
+    const lines: ScrollerLine[] = []
+    const ids = columnStore.instanceIds()
+    const defaultSize = props.showImages ? tabState.value.imageSize + 4 : 28
 
-    let lastGroupId = undefined
-    let current = props.manager.getImageIterator(undefined, undefined, { ignoreClosed: true })
-    // lines.push({ id: '__filler__', type: 'fillter', size: 0, index: lines.length })
-    while (current) {
-        const group = current.group
-        if (lastGroupId != group.id && group.id !== 0) {
-            lines.push(computeGroupLine(group))
-            lastGroupId = group.id
+    function visit(group: Group) {
+        const isLeaf      = group.children.length === 0
+        const isSha1Parent = group.subGroupType === GroupType.Sha1
+
+        if (!isLeaf && !isSha1Parent) {
+            if (!group.view.closed) {
+                for (const child of group.children) visit(child)
+            }
+            return
         }
+
+        if (group.id !== 0) {
+            lines.push({
+                id: group.id,
+                data: group,
+                type: 'group',
+                size: 35,
+                nbClusters: 10,
+                groupId: group.id,
+            } as GroupLine)
+        }
+
         if (!group.view.closed && group.slots.length) {
-            if (group.subGroupType != GroupType.Sha1) {
-                lines.push(computeImageLine(current, group.id, current.imageIdx))
+            if (!isSha1Parent) {
+                for (let i = 0; i < group.slots.length; i++) {
+                    const instanceId = ids[group.slots[i]]
+                    lines.push({
+                        id: group.id + '-img:' + instanceId,
+                        data: { id: instanceId, imageUrl: '' },
+                        type: 'image',
+                        size: lineSizes[instanceId] ?? defaultSize,
+                        index: i,
+                        groupId: group.id,
+                    } as RowLine)
+                }
             } else {
-                // lines.push(computePileLine(group.children[current.imageIdx]))
-                lines.push(computePileLine(current))
+                for (let i = 0; i < group.children.length; i++) {
+                    const sha1Group = group.children[i]
+                    const firstId = ids[sha1Group.slots[0]]
+                    lines.push({
+                        id: sha1Group.id + '-sha1:' + firstId,
+                        data: sha1Group,
+                        type: 'pile',
+                        size: lineSizes[firstId] ?? defaultSize,
+                    } as PileRowLine)
+                }
             }
         }
-        current = current.nextImages()
     }
+
+    visit(props.manager.result.root)
     lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length })
 
     dataLines = lines
-    rowLines.value = lines
-    scroller.value?.updateVisibleItems(true)
+    buildCumSizes()
+
+    // Preserve current scroll position across rebuilds.
+    currentScrollTop = scroller.value?.getScroll()?.start ?? 0
+    _winStart = -1
+    _winEnd   = -1
+    rebuildWindow()
     console.timeEnd('Table compute lines')
 }
 
-
-function computeGroupLine(group: Group) {
-    // console.log(group)
-    const res: GroupLine = {
-        id: group.id,
-        data: group,
-        type: 'group',
-        size: 35,
-        nbClusters: 10,
-        groupId: group.id
-    }
-    return res
-}
-
-function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
-    const instanceId = columnStore.instanceIds()[it.slot]
-    const defaultSize = props.showImages ? tabState.value.imageSize + 4 : 28
-    const res: RowLine = {
-        id: groupId + '-img:' + String(instanceId),
-        data: { id: instanceId, imageUrl: '' },
-        type: 'image',
-        size: lineSizes[instanceId] ?? defaultSize,
-        index: imageIndex,
-        groupId: groupId,
-        iterator: it
-    }
-    return res
-}
-
-function computePileLine(it: ImageIterator) {
-    const group = it.sha1Group
-    const firstId = columnStore.instanceIds()[group.slots[0]]
-    const defaultSize = props.showImages ? tabState.value.imageSize + 4 : 28
-    const res: PileRowLine = {
-        id: group.id + '-sha1:' + String(firstId),
-        data: group,
-        type: 'pile',
-        size: lineSizes[firstId] ?? defaultSize,
-        iterator: it
-    }
-    return res
-}
-
-function resizeHeight(item: ScrollerLine, h) {
+function resizeHeight(item: ScrollerLine, h: number) {
     if (item.size == h) return
-    item.size = h
+    item.size = h   // reactive via Proxy — RecycleScroller updates automatically
     if (item.type == 'image') {
-        lineSizes[(item as RowLine).data.id] = item.size
+        lineSizes[(item as RowLine).data.id] = h
     } else if (item.type == 'pile') {
         const firstId = columnStore.instanceIds()[(item as PileRowLine).data.slots[0]]
-        if (firstId !== undefined) lineSizes[firstId] = item.size
+        if (firstId !== undefined) lineSizes[firstId] = h
     }
+    // Cumulative sizes changed; update lookup for the next scroll event.
+    buildCumSizes()
 }
 
 
@@ -219,6 +251,10 @@ function selectGroup(groupId: number) {
 }
 
 function clear() {
+    dataLines = []
+    cumSizes  = []
+    _winStart = -1
+    _winEnd   = -1
     rowLines.value = []
 }
 
@@ -228,16 +264,19 @@ function changeHandler(){
 onMounted(() => {
     props.manager.onResultChange.addListener(changeHandler)
     props.manager.clearCustomGroups(true)
+    scroller.value?.$el?.addEventListener('scroll', onScroll, { passive: true })
 })
 
 onUnmounted(() => {
     props.manager.onResultChange.removeListener(changeHandler)
+    scroller.value?.$el?.removeEventListener('scroll', onScroll)
 })
 
 watch(() => tabState.value.imageSize, (now) => {
-    if (!scroller.value || !dataLines.length) return
-    const scrollPos = scroller.value.getScroll().start
+    if (!dataLines.length) return
+    const scrollPos = scroller.value?.getScroll()?.start ?? 0
 
+    // Find the item at the top of the viewport so we can restore position.
     let topIdx = 0
     let acc = 0
     for (let i = 0; i < dataLines.length; i++) {
@@ -245,14 +284,22 @@ watch(() => tabState.value.imageSize, (now) => {
         acc += dataLines[i].size
     }
 
-    const visibleIds = new Set(rowLines.value.slice(windowStart.value, windowEnd.value + 1).map((l: any) => l.id))
+    // Resize all non-visible items (visible ones will be resized via resizeHeight events).
+    const visibleIds = new Set(rowLines.value.map((l: any) => l.id))
     dataLines.forEach(l => {
         if (!visibleIds.has(l.id) && (l.type === 'image' || l.type === 'pile')) l.size = now + 4
     })
 
+    buildCumSizes()
+
     let newScrollPos = 0
     for (let i = 0; i < topIdx; i++) newScrollPos += dataLines[i].size
-    scroller.value.scrollToPosition(newScrollPos)
+    scroller.value?.scrollToPosition(newScrollPos)
+
+    currentScrollTop = newScrollPos
+    _winStart = -1
+    _winEnd   = -1
+    rebuildWindow()
 })
 
 </script>
@@ -264,11 +311,11 @@ watch(() => tabState.value.imageSize, (now) => {
 
         <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
         <RecycleScroller :items="rowLines" key-field="id" ref="scroller" :style="scrollerStyle"
-            :emitUpdate="true" :page-mode="false" :prerender="400" class="p-0 m-0" @update="onScrollerUpdate">
+            :emitUpdate="false" :page-mode="false" :prerender="0" class="p-0 m-0">
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active && !hideFromModal">
-                    <GridScrollerLine :item="item" :tab="props.tab" :properties="visibleProperties" :width="scrollerWidth"
+                    <GridScrollerLine :item="item" :tab="props.tab" :manager="props.manager" :properties="visibleProperties" :width="scrollerWidth"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"
