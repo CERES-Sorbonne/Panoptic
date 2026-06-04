@@ -157,11 +157,12 @@ function computeGroupLine(group: Group) {
 
 function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
     const instanceId = columnStore.instanceIds()[it.slot]
+    const defaultSize = props.showImages ? tabState.value.imageSize + 4 : 28
     const res: RowLine = {
         id: groupId + '-img:' + String(instanceId),
         data: { id: instanceId, imageUrl: '' },
         type: 'image',
-        size: lineSizes[instanceId] ?? (tabState.value.imageSize + 4),
+        size: lineSizes[instanceId] ?? defaultSize,
         index: imageIndex,
         groupId: groupId,
         iterator: it
@@ -172,11 +173,12 @@ function computeImageLine(it: ImageIterator, groupId: number, imageIndex) {
 function computePileLine(it: ImageIterator) {
     const group = it.sha1Group
     const firstId = columnStore.instanceIds()[group.slots[0]]
+    const defaultSize = props.showImages ? tabState.value.imageSize + 4 : 28
     const res: PileRowLine = {
         id: group.id + '-sha1:' + String(firstId),
         data: group,
         type: 'pile',
-        size: lineSizes[firstId] ?? (tabState.value.imageSize + 4),
+        size: lineSizes[firstId] ?? defaultSize,
         iterator: it
     }
     return res

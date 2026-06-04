@@ -3,8 +3,12 @@ import { TabManager } from "@/core/TabManager"
 import { useDataStore } from "@/data/dataStore"
 import { deletedID, PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
 import { useProjectStore } from "@/data/projectStore"
+import { useColumnStore } from "@/data/columnStore"
 import { Ref, computed, inject, ref, watch } from "vue"
 import chroma from 'chroma-js';
+
+let _tmpIdCounter = -10000
+function getTmpId() { return _tmpIdCounter-- }
 
 export function hasProperty(image: Instance, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -332,70 +336,76 @@ export function allChildrenSha1Groups(group: Group) {
     return group.children.every(recursive)
 }
 
-export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext) {
-    const data = useDataStore()
-    const sha1Index: { [key: string]: number[] } = {}
+function _idsToSlots(ids: number[]): number[] {
+    const col = useColumnStore()
+    const slots: number[] = []
+    for (const id of ids) {
+        const s = col.slotMap.get(id)
+        if (s !== undefined) slots.push(s)
+    }
+    return slots
+}
 
-    ctx.instanceIds.forEach(id => {
-        const sha1 = data.instances[id].sha1
+export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext) {
+    const col = useColumnStore()
+    const sha1Index: { [sha1: string]: number[] } = {}
+    for (const id of ctx.instanceIds) {
+        const slot = col.slotMap.get(id)
+        if (slot === undefined) continue
+        const sha1 = col.sha1s()[slot]
+        if (!sha1) continue
         if (!sha1Index[sha1]) sha1Index[sha1] = []
         sha1Index[sha1].push(id)
-    })
+    }
 
     return groups.map((group) => {
-        let instances: Instance[] = []
-        const scoreIndex: { [sha1: string]: number } = {}
+        const ids: number[] = []
         if (group.ids) {
-            instances = group.ids.map(i => data.instances[i])
+            ids.push(...group.ids)
         } else {
-            if (group.scores) {
-                group.sha1s.forEach((sha1, i) => {
-                    scoreIndex[sha1] = group.scores.values[i]
-                })
-            }
-            group.sha1s.forEach(sha1 => sha1Index[sha1]?.forEach(i => instances.push(data.instances[i])))
+            group.sha1s.forEach(sha1 => sha1Index[sha1]?.forEach(id => ids.push(id)))
         }
-        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
+        const res = buildGroup(getTmpId(), _idsToSlots(ids), GroupType.Cluster)
         res.meta.score = Math.round(group.score?.value ?? undefined)
         res.name = group.name
         res.isSha1Group = group.ids ? false : true
         res.score = group.score
-        res.scores = convertScoreListToGroupScoreList(group, data.sha1Index)
-
+        res.scores = convertScoreListToGroupScoreList(group, sha1Index)
         return res
     })
 }
 
 export function convertSearchGroupResult(groups: GroupResult[]) {
-    const data = useDataStore()
+    const col = useColumnStore()
 
     return groups.map((group) => {
-        let instances: Instance[] = []
-        const scoreIndex: { [sha1: string]: number } = {}
+        const sha1Index: Sha1ToInstances = {}
+        const ids: number[] = []
         if (group.ids) {
-            instances = group.ids.map(i => data.instances[i])
+            ids.push(...group.ids)
         } else {
-            if (group.scores) {
-                group.sha1s.forEach((sha1, i) => {
-                    scoreIndex[sha1] = group.scores.values[i]
-                })
+            for (const sha1 of (group.sha1s ?? [])) {
+                const instanceIds = col.getInstancesBySha1(sha1)
+                sha1Index[sha1] = instanceIds
+                ids.push(...instanceIds)
             }
-            group.sha1s.forEach(sha1 => data.sha1Index[sha1].forEach(i => instances.push(i)))
         }
-        const res = buildGroup(data.getTmpId(), instances, GroupType.Cluster)
+        const res = buildGroup(0, _idsToSlots(ids), GroupType.Cluster)
         res.meta.score = Math.round(group.score?.value)
         res.name = group.name
-        res.isSha1Group = group.ids ? false : true
+        res.isSha1Group = !group.ids
         res.score = group.score
-        res.scores = convertScoreListToGroupScoreList(group, data.sha1Index)
+        res.scores = convertScoreListToGroupScoreList(group, sha1Index)
         return res
     })
 }
 
 export function sortGroupByScore(group: Group) {
-    let dir = group.scores.maxIsBest ? -1 : 1
-    group.images.sort((i1, i2) => {
-        return (group.scores.valueIndex[i1.id] - group.scores.valueIndex[i2.id]) * dir
+    const col = useColumnStore()
+    const ids = col.instanceIds()
+    const dir = group.scores.maxIsBest ? -1 : 1
+    group.slots.sort((s1, s2) => {
+        return (group.scores.valueIndex[ids[s1]] - group.scores.valueIndex[ids[s2]]) * dir
     })
     return group
 }
@@ -406,9 +416,9 @@ export function convertScoreListToGroupScoreList(group: GroupResult, sha1Index: 
     const index: ScoreIndex = {}
     if (group.sha1s) {
         for (let i = 0; i < group.sha1s.length; i++) {
-            let sha1 = group.sha1s[i]
-            for (let instance of sha1Index[sha1]) {
-                index[instance.id] = group.scores.values[i]
+            const sha1 = group.sha1s[i]
+            for (const instanceId of (sha1Index[sha1] ?? [])) {
+                index[instanceId] = group.scores.values[i]
             }
         }
     }

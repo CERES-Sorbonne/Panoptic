@@ -1,4 +1,4 @@
-<script setup lang="ts">
+        <script setup lang="ts">
 import SelectionStamp from '@/components/selection/SelectionStamp.vue';
 import { GroupManager, SelectedImages } from '@/core/GroupManager';
 import Similarity from './Similarity.vue';
@@ -54,7 +54,7 @@ function setMode(value) {
             :visible-properties="props.visibleProperties" :preview="props.preview"/>
     </div>
     <div v-else class="p-2">
-        <Instances :image="image" :height="props.height - 40" :width="props.width - 10" :group-manager="groupManager" />
+        <Instances :image="image" :height="props.height - 40" :width="props.width - 10" />
     </div>
 </template>
 

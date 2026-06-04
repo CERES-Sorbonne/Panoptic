@@ -67,21 +67,22 @@ async function paint(index: number, propertyId: number) {
                         </span>
                     </td>
 
-                    <td v-if="!property.computed" class="text-center btn-icon border-left"
-                        style="padding: 4px 3px 0px 5px; width: 24px;" @mouseup="paint(index, property.id)"
-                        @mouseenter="emits('hover')" @mouseleave="emits('hoverEnd')">
-                        <wTT message="modals.image.fill_property_tooltip">
-                            <i class="bi bi-paint-bucket"></i>
-                        </wTT>
-                    </td>
-
-                    <td v-if="!property.computed && property.mode != PropertyMode.id"
-                        class="text-center btn-icon border-left" style="padding: 3px; width: 20px;"
-                        @click="toggleProperty(property)">
-                        <wTT message="modals.image.toggle_property_tooltip">
-                            <i class="bi bi-eye"
-                                :class="(props.visibleProperties[property.id] ? 'text-primary' : '')" />
-                        </wTT>
+                    <td v-if="!property.computed" class="border-left"
+                        style="padding: 2px 3px; width: 44px;">
+                        <div class="d-flex flex-row justify-content-center align-items-center gap-1">
+                            <span class="btn-icon" @mouseup="paint(index, property.id)"
+                                @mouseenter="emits('hover')" @mouseleave="emits('hoverEnd')">
+                                <wTT message="modals.image.fill_property_tooltip">
+                                    <i class="bi bi-paint-bucket"></i>
+                                </wTT>
+                            </span>
+                            <span v-if="property.mode == PropertyMode.sha1"
+                                class="btn-icon" @click="toggleProperty(property)">
+                                <wTT message="modals.image.toggle_property_tooltip">
+                                    <i class="bi bi-eye" :class="props.visibleProperties[property.id] ? 'text-primary' : ''" />
+                                </wTT>
+                            </span>
+                        </div>
                     </td>
                 </tr>
             </tbody>

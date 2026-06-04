@@ -432,7 +432,7 @@
     },
     "common": {
         "properties": {
-            "panoptic": "Propriétés Panoptic",
+            "metadata": "Métadonnées",
             "instance": "Propriétés de l'instance",
             "instances": "Propriété des instances",
             "image": "Propriétés d'image",

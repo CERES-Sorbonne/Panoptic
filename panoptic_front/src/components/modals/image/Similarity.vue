@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
 import { ActionResult, GroupScoreList, Instance, ScoreInterval } from '@/data/models';
-import { computed, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
+import { useColumnStore } from '@/data/columnStore';
+import { computed, nextTick, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
@@ -34,6 +35,16 @@ similarGroup.setSha1Mode(true)
 const useFilter = ref(false)
 const scrollerElem = ref(null)
 
+let _updatePending = false
+function scheduleUpdate() {
+    if (_updatePending) return
+    _updatePending = true
+    nextTick(async () => {
+        _updatePending = false
+        await updateSimilarGroup()
+    })
+}
+
 const searchResult = shallowRef<Group>(null)
 const scoreInterval: Reactive<ScoreInterval> = reactive({
     min: 0,
@@ -61,7 +72,7 @@ async function setSimilar() {
     searchResult.value = group
     setDefaultInterval()
     updateInterval(group.scores)
-    updateSimilarGroup()
+    scheduleUpdate()
 }
 
 async function importSimilar(res: ActionResult) {
@@ -74,21 +85,31 @@ async function importSimilar(res: ActionResult) {
     searchResult.value = group
     setDefaultInterval()
     updateInterval(group.scores)
-    updateSimilarGroup()
+    scheduleUpdate()
 }
 
-function updateSimilarGroup() {
+async function updateSimilarGroup() {
     if (!searchResult.value) return
-    console.log('update')
-    let group = { ...searchResult.value }
-    if (useFilter.value) {
-        let valid = {}
-        tabStore.getMainTab().collection.filterManager.result.images.forEach(i => valid[i.id] = true)
-        group.images = group.images.filter(i => valid[i.id])
-    }
-    group.images = group.images.filter(i => group.scores.valueIndex[i.id] >= scoreInterval.values[0] && group.scores.valueIndex[i.id] <= scoreInterval.values[1])
+    const col = useColumnStore()
+    const instanceIds = col.instanceIds()
 
-    similarGroup.setAsRoot(group)
+    let group = { ...searchResult.value }
+    let slots = [...group.slots]
+
+    if (useFilter.value) {
+        const validSlots = new Set(tabStore.getMainTab().collection.filterManager.result.slots)
+        slots = slots.filter(s => validSlots.has(s))
+    }
+
+    if (group.scores) {
+        slots = slots.filter(s => {
+            const score = group.scores.valueIndex[instanceIds[s]]
+            return score >= scoreInterval.values[0] && score <= scoreInterval.values[1]
+        })
+    }
+
+    group.slots = slots
+    await similarGroup.setAsRoot(group)
 
     if (scrollerElem.value) {
         scrollerElem.value.computeLines()
@@ -145,9 +166,9 @@ setDefaultInterval()
 
 onMounted(setSimilar)
 watch(() => props.image, setSimilar)
-watch(() => scoreInterval.values, updateSimilarGroup)
-watch(() => props.width, updateSimilarGroup)
-watch(useFilter, updateSimilarGroup)
+watch(() => scoreInterval.values, scheduleUpdate)
+watch(() => props.width, scheduleUpdate)
+watch(useFilter, scheduleUpdate)
 watch(scoreInterval, () => {
     project.updateScoreInterval(actions.defaultActions['similar'].id, scoreInterval)
 })

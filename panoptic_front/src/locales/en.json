@@ -418,7 +418,7 @@
     "tmp": "Tooltip to be written",
     "common": {
         "properties": {
-            "panoptic": "Panoptic properties",
+            "metadata": "Metadata",
             "instance": "Instance properties",
             "instances": "All instances properties",
             "image": "Image properties",

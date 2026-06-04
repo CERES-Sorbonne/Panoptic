@@ -16,19 +16,7 @@ from panoptic2.core.databases.data.models import (
     InstanceValue, Property, Sha1Value, Tag, UpsertCommit,
 )
 from panoptic2.core.databases.entity_schema import OP_CREATE
-
-_SYSTEM_PROPERTIES = [
-    # (system_key, dtype, mode)
-    ('id',         'id',     'file'),
-    ('sha1',       'sha1',   'file'),
-    ('file_id',    'number', 'id'),
-    ('folder',     'folder', 'file'),
-    ('name',       'text',   'file'),
-    ('format',     'text',   'file'),
-    ('width',      'number', 'file'),
-    ('height',     'number', 'file'),
-    ('created_at', 'date',   'file'),
-]
+from panoptic2.core.databases.data.system_properties import SYSTEM_PROPERTIES, SYSTEM_PROPERTY_MAP
 from panoptic2.core.plugin.action_registry import ActionRegistry
 from panoptic2.core.task.task import Task
 from panoptic2.core.task.task_manager import TaskManager
@@ -105,21 +93,34 @@ class Project2:
                     db.allocate('image_types', max_id + 1 - current)
 
     def _ensure_system_properties(self):
-        existing_keys = {p.system_key for p in self.get_properties() if p.system_key}
-        needed = [(key, dtype, mode) for key, dtype, mode in _SYSTEM_PROPERTIES if key not in existing_keys]
-        if not needed:
-            return
-        ids = self.allocate_properties(len(needed))
-        if isinstance(ids, int):
-            ids = range(ids, ids + 1)
-        commit = UpsertCommit()
-        for (key, dtype, mode), prop_id in zip(needed, ids):
-            commit.properties[prop_id] = Property(
-                id=prop_id, dtype=dtype, mode=mode, name=key,
-                access='read', tag_list_id=None, system_key=key,
-                commit_id=0, operation=OP_CREATE,
-            )
-        self.apply_upsert_commit('system', commit)
+        existing = {p.system_key: p for p in self.get_properties() if p.system_key}
+
+        # Insert missing system properties
+        needed = [sp for sp in SYSTEM_PROPERTIES if sp.key not in existing]
+        if needed:
+            ids = self.allocate_properties(len(needed))
+            if isinstance(ids, int):
+                ids = range(ids, ids + 1)
+            commit = UpsertCommit()
+            for sp, prop_id in zip(needed, ids):
+                commit.properties[prop_id] = Property(
+                    id=prop_id, dtype=sp.dtype, mode=sp.mode, name=sp.key,
+                    access='read', tag_list_id=None, system_key=sp.key,
+                    commit_id=0, operation=OP_CREATE,
+                )
+            self.apply_upsert_commit('system', commit)
+
+        # Fix stale modes on already-existing system properties
+        stale = [p for p in existing.values() if p.mode != SYSTEM_PROPERTY_MAP[p.system_key].mode]
+        if stale:
+            commit = UpsertCommit()
+            for p in stale:
+                commit.properties[p.id] = Property(
+                    id=p.id, dtype=p.dtype, mode=SYSTEM_PROPERTY_MAP[p.system_key].mode, name=p.name,
+                    access=p.access, tag_list_id=p.tag_list_id, system_key=p.system_key,
+                    commit_id=0, operation=OP_CREATE,
+                )
+            self.apply_upsert_commit('system', commit)
 
     def close(self):
         self.task_manager.close()

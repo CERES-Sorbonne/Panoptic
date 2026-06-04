@@ -501,15 +501,19 @@ def get_instances(project: Project2 = Depends(_dep)):
     return _json(project.get_instances())
 
 
-@project_router.get('/instances/values')
+class InstanceValuesRequest(BaseModel):
+    ids: list[int]
+    prop_ids: list[int]
+
+
+@project_router.post('/instances/values')
 def get_instance_values_batch(
-    ids: str,
-    prop_ids: str,
+    body: InstanceValuesRequest,
     project: Project2 = Depends(_dep),
 ):
     """Batch-fetch values for a subset of instances × properties (lazy ColumnStore load)."""
-    instance_ids = [int(x) for x in ids.split(',') if x.strip()]
-    pid_list     = [int(x) for x in prop_ids.split(',') if x.strip()]
+    instance_ids = body.ids
+    pid_list     = body.prop_ids
     if not instance_ids or not pid_list:
         return Response(b'{}', media_type='application/json')
 

@@ -2,8 +2,10 @@
 import { ScrollerPileLine, Property, Sha1Scores } from '@/data/models';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
+import { useColumnStore } from '@/data/columnStore';
 import { Ref, computed } from 'vue';
 
+const col = useColumnStore()
 
 const props = defineProps<{
     imageSize: number
@@ -23,18 +25,22 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
 
 const selected = computed(() => {
     const res = {}
-    props.item.data.forEach(it => res[it.image.id] = props.selectedImages.value[it.image.id])
+    const ids = col.instanceIds()
+    props.item.data.forEach(it => {
+        const id = ids[it.slot]
+        res[id] = props.selectedImages.value[id]
+    })
     return res
 })
 
 const previews = computed(() => {
     const res = {}
+    if (!props.preview) return res
+    const ids = col.instanceIds()
     props.item.data.forEach(it => {
-        if(props.preview) {
-            res[it.image.id] = props.preview[it.image.id]
-        }
+        const id = ids[it.slot]
+        res[id] = props.preview[id]
     })
-
     return res
 })
 
@@ -47,8 +53,8 @@ const previews = computed(() => {
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <ImageVue :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
-            :properties="props.properties" :selected="selected[imageIt.image.id]" :selectedPreview="previews[imageIt.image.id]"
-            @update:selected="v => emits('update:selected-image', { id: imageIt.image.id, value: v })"
+            :properties="props.properties" :selected="selected[col.instanceIds()[imageIt.slot]]" :selectedPreview="previews[col.instanceIds()[imageIt.slot]]"
+            @update:selected="v => emits('update:selected-image', { id: col.instanceIds()[imageIt.slot], value: v })"
             v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
 
     </div>

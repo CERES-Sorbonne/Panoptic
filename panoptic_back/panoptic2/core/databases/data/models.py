@@ -77,21 +77,21 @@ class Tag(msgspec.Struct, array_like=True):
 class InstanceValue(msgspec.Struct, array_like=True):
     property_id: Annotated[int, PrimaryKey]
     instance_id: Annotated[int, PrimaryKey]
-    value: Any
+    value: Optional[Any] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
 class Sha1Value(msgspec.Struct, array_like=True):
     property_id: Annotated[int, PrimaryKey]
     sha1: Annotated[str, PrimaryKey]
-    value: Any
+    value: Optional[Any] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
 class FileValue(msgspec.Struct, array_like=True):
     property_id: Annotated[int, PrimaryKey]
     file_id:     Annotated[int, PrimaryKey]
-    value: Any
+    value: Optional[Any] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 

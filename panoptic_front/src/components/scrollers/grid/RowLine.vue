@@ -41,7 +41,7 @@ const rawImage = computed(() => {
     if (props.item.type == 'pile') {
         const group = (props.item as PileRowLine).data as Group
         const instanceId = columnStore.instanceIds()[group.slots[0]]
-        return store.instances[instanceId] ?? { id: instanceId, imageUrl: '' }
+        return store.instances[instanceId] ?? { id: instanceId, imageUrl: '', properties: {} }
     }
     return (props.item as RowLine).data
 })

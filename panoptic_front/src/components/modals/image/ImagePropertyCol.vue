@@ -6,6 +6,7 @@ import { GroupManager, ImageIterator } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
 import { useModalStore } from '@/data/modalStore';
 import { deletedID, ModalId, PropertyMode, PropertyType } from '@/data/models';
+import { InstanceEntry } from '@/data/instanceStore';
 import { Ref, computed, inject, reactive, ref } from 'vue';
 
 const data = useDataStore()
@@ -13,6 +14,7 @@ const modals = useModalStore()
 
 const props = defineProps<{
     image: ImageIterator
+    instance: InstanceEntry
     width: number
     imageHeight: number
     visibleProperties: { [id: number]: boolean }
@@ -34,10 +36,9 @@ const showHistory: Ref<boolean> = inject('showHistory')
 const closed = reactive({})
 
 
-const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed && p.id != deletedID))
-const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed && p.id != deletedID))
-const fileProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.file && !p.computed && p.id != deletedID))
-const metaProperties = computed(() => data.propertyList.filter(p => p.id < 0 && p.id != deletedID))
+const imageProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.sha1 && !p.computed && !p.systemKey && p.id != deletedID))
+const instanceProperties = computed(() => data.propertyList.filter(p => p.mode == PropertyMode.id && !p.computed && !p.systemKey && p.id != deletedID))
+const metaProperties = computed(() => data.propertyList.filter(p => (p.id < 0 || p.systemKey) && p.id != deletedID))
 
 
 function toggleClosed(index: number) {
@@ -54,8 +55,8 @@ function toggleClosed(index: number) {
 <template>
     <div class="main2 bg-white h-100 d-flex flex-column " :style="{ width: props.width + 'px' }">
         <div class="image-container position-relative">
-            <Zoomable :image="props.image.image">
-                <CenteredImage :instance-id="props.image.image.id" :height="props.imageHeight" :width="props.width - 1" />
+            <Zoomable :image="props.instance">
+                <CenteredImage :instance-id="props.instance.id" :height="props.imageHeight" :width="props.width - 1" />
                 <div class="image-nav d-flex" v-if="!showHistory && props.image.nextImages">
                     <div class="arrow" @click="prevImage"><i class="bi bi-arrow-left"></i></div>
                     <div class="flex-grow-1"></div>
@@ -73,7 +74,7 @@ function toggleClosed(index: number) {
                 {{ $t('common.properties.image') }}
             </div>
             <template v-if="!closed[0]">
-                <PropertyInputTable :image="props.image.image" :properties="imageProperties"
+                <PropertyInputTable :image="props.instance" :properties="imageProperties"
                     :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
                     @hoverEnd="emits('hoverEnd')" />
                 <div @click="modals.openModal(ModalId.PROPERTY, { mode: PropertyMode.sha1 })"
@@ -90,7 +91,7 @@ function toggleClosed(index: number) {
                 {{ $t('common.properties.instance') }}
             </div>
             <template v-if="!closed[1]">
-                <PropertyInputTable :image="props.image.image" :properties="instanceProperties"
+                <PropertyInputTable :image="props.instance" :properties="instanceProperties"
                     :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
                     @hoverEnd="emits('hoverEnd')" />
                 <div @click="modals.openModal(ModalId.PROPERTY, { mode: PropertyMode.id })"
@@ -99,28 +100,14 @@ function toggleClosed(index: number) {
                     <span>{{ $t('main.nav.properties.add_property') }}</span>
                 </div>
             </template>
-            <template v-if="fileProperties.length">
-                <div class="option" @click="toggleClosed(3)">
-                    <span>
-                        <i v-if="closed[3]" class="bi bi-caret-right-fill" />
-                        <i v-else class="bi bi-caret-down-fill"></i>
-                    </span>
-                    {{ $t('common.properties.file') }}
-                </div>
-                <template v-if="!closed[3]">
-                    <PropertyInputTable :image="props.image.image" :properties="fileProperties"
-                        :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
-                        @hoverEnd="emits('hoverEnd')" />
-                </template>
-            </template>
             <div class="option" @click="toggleClosed(2)">
                 <span>
                     <i v-if="closed[2]" class="bi bi-caret-right-fill" />
                     <i v-else class="bi bi-caret-down-fill"></i>
                 </span>
-                {{ $t('common.properties.panoptic') }}
+                {{ $t('common.properties.metadata') }}
             </div>
-            <PropertyInputTable v-if="!closed[2]" :image="props.image.image" :properties="metaProperties"
+            <PropertyInputTable v-if="!closed[2]" :image="props.instance" :properties="metaProperties"
                 :visible-properties="visibleProperties" @paint="e => emits('paint', e)" @hover="emits('hover')"
                 @hoverEnd="emits('hoverEnd')" />
         </div>

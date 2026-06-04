@@ -513,6 +513,10 @@ export const useDataStore = defineStore('dataStore', () => {
         return propId
     }
 
+    function getProperty(key: string) {
+        return properties.value[getSysId(key)]
+    }
+
     return {
         init, clear, isLoaded, lastSequence, applyDelta, applyCommit,
         applyMultipleCommits, sendCommit,
@@ -534,7 +538,7 @@ export const useDataStore = defineStore('dataStore', () => {
         deleteEmptyClones, undo, redo,
         triggerPropertyTreeChange, computePropertyTree,
         importFolders,
-        propertyList,
+        propertyList, getProperty,
 
         getSysField, getSysId
     }

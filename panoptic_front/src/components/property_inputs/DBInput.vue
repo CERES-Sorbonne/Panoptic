@@ -16,7 +16,7 @@ defineExpose({
     waitForDbAction
 })
 
-const propValue = computed(() => props.instance.properties[props.propertyId])
+const propValue = computed(() => props.instance.properties?.[props.propertyId])
 const localValue = ref(undefined)
 const valid = ref(true)
 

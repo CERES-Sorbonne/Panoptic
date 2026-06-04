@@ -29,7 +29,37 @@ export const useInstanceStore = defineStore('instanceStore', () => {
     const registrations = markRaw(new Map<string, Registration>())
     const registeredInstanceCount = ref(0)
 
+    // Per-pair load tracking. A (instanceId, propId) pair is "available" when it is
+    // already loaded (fetched) or currently being requested (inFlight) — in both cases
+    // fetchAll skips it. fetched also fixes the null-value gap: a pair the server
+    // returns no value for is still marked fetched, so we don't re-request it forever.
+    const fetched  = markRaw(new Map<number, Set<number>>())
+    const inFlight  = markRaw(new Map<number, Set<number>>())
+    // The dataStore.lastSequence value the `fetched` cache is consistent with. When the
+    // global sequence advances past this, cached values may be stale (deltas only ship
+    // active props), so we drop the whole fetched set and re-request for safety.
+    let cachedSequence = 0
+
     let batchTimer: ReturnType<typeof setTimeout> | null = null
+
+    // --- load-state helpers ---
+
+    function isAvailable(id: number, pid: number): boolean {
+        return !!fetched.get(id)?.has(pid) || !!inFlight.get(id)?.has(pid)
+    }
+
+    function addPair(map: Map<number, Set<number>>, id: number, pid: number) {
+        let set = map.get(id)
+        if (!set) { set = new Set<number>(); map.set(id, set) }
+        set.add(pid)
+    }
+
+    function delPair(map: Map<number, Set<number>>, id: number, pid: number) {
+        const set = map.get(id)
+        if (!set) return
+        set.delete(pid)
+        if (set.size === 0) map.delete(id)
+    }
 
     // --- registration ---
 
@@ -90,23 +120,61 @@ export const useInstanceStore = defineStore('instanceStore', () => {
     async function fetchAll() {
         batchTimer = null
 
-        const ids = new Set<number>()
-        const propIds = new Set<number>()
+        // Sequence-based invalidation: if the global watermark advanced past the one our
+        // cache is valid for, cached pairs may be stale (deltas only ship active props),
+        // so drop the whole fetched set and re-request. instanceData is kept to avoid
+        // flicker — values get overwritten when the re-fetch lands.
+        const reqSeq = (dataStore.lastSequence as unknown as number) ?? 0
+        if (reqSeq > cachedSequence) fetched.clear()
+
+        // Group registrations by their prop-set signature so registrations needing the
+        // same props collapse into a single rectangular request, while distinct prop sets
+        // stay separate (no Cartesian overfetch across components).
+        const groups = new Map<string, { propIds: number[]; ids: Set<number> }>()
         for (const reg of registrations.values()) {
-            for (const id of reg.instanceIds) ids.add(id)
-            for (const pid of reg.propIds) propIds.add(pid)
+            if (reg.instanceIds.length === 0 || reg.propIds.length === 0) continue
+            const propIds = [...new Set(reg.propIds)].sort((a, b) => a - b)
+            const sig = propIds.join(',')
+            let group = groups.get(sig)
+            if (!group) { group = { propIds, ids: new Set<number>() }; groups.set(sig, group) }
+            for (const id of reg.instanceIds) group.ids.add(id)
         }
 
-        if (ids.size === 0 || propIds.size === 0) return
+        const tasks: Promise<void>[] = []
+        for (const group of groups.values()) {
+            // Keep only instances still missing at least one prop in this set.
+            const requestIds = [...group.ids].filter(id =>
+                group.propIds.some(pid => !isAvailable(id, pid)))
+            if (requestIds.length === 0) continue
 
-        try {
-            const { data } = await projectApi.get('/instances/values', {
-                params: { ids: [...ids].join(','), prop_ids: [...propIds].join(',') },
-            })
-            applyFetchedValues(data)
-        } catch (e) {
-            console.error('fetchAll failed', e)
+            // Mark in-flight before awaiting so concurrent fetchAll calls skip these pairs.
+            for (const id of requestIds)
+                for (const pid of group.propIds) addPair(inFlight, id, pid)
+
+            tasks.push((async () => {
+                try {
+                    const { data } = await projectApi.post('/instances/values', {
+                        ids: requestIds,
+                        prop_ids: group.propIds,
+                    })
+                    applyFetchedValues(data)
+                    // Mark every requested pair fetched — including ones absent from the
+                    // response (= confirmed empty), so we never re-request them on a whim.
+                    for (const id of requestIds)
+                        for (const pid of group.propIds) addPair(fetched, id, pid)
+                } catch (e) {
+                    console.error('fetchAll group failed', e)
+                } finally {
+                    for (const id of requestIds)
+                        for (const pid of group.propIds) delPair(inFlight, id, pid)
+                }
+            })())
         }
+
+        if (tasks.length === 0) return
+        await Promise.all(tasks)
+        // Advance the watermark only after a successful pass over all groups.
+        if (reqSeq > cachedSequence) cachedSequence = reqSeq
     }
 
     function applyFetchedValues(raw: Record<number, Record<number, any>>) {
@@ -207,6 +275,9 @@ export const useInstanceStore = defineStore('instanceStore', () => {
     function clear() {
         for (const k of Object.keys(instanceData)) delete instanceData[Number(k)]
         registrations.clear()
+        fetched.clear()
+        inFlight.clear()
+        cachedSequence = 0
         if (batchTimer !== null) { clearTimeout(batchTimer); batchTimer = null }
         registeredInstanceCount.value = 0
     }

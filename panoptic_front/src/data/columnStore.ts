@@ -3,7 +3,6 @@ import { markRaw, reactive, ref } from 'vue'
 import { LoadResult, PropertyType } from './models'
 import { apiStreamInstanceBase, projectApi } from './apiProjectRoutes'
 import { EventEmitter } from '@/utils/utils'
-import { useTabStore } from './tabStore'
 
 export type TagSparse = (number[] | null)[]
 export type TagCSR = { offsets: Int32Array; values: Int32Array }
@@ -174,9 +173,6 @@ export const useColumnStore = defineStore('columnStore', () => {
 
         instanceCount.value = slotCount
         isReady.value = true
-        // console.log(slotCount)
-
-        useTabStore().getMainTab().collection.update()
     }
 
     function getRawBuffer(propId: number | null): any {

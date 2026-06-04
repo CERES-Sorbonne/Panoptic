@@ -1,6 +1,7 @@
 import json
 from typing import Any, List
 
+from panoptic2.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
 from panoptic2.core.databases.data.create import (
     COMMITS_SCHEMA, FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA,
     INSTANCES_SCHEMA, PROPERTIES_SCHEMA, TAGS_SCHEMA,
@@ -17,21 +18,6 @@ from panoptic2.models.models import PropertyType
 from panoptic2.core.databases.entity_schema import OP_CREATE, OP_DELETE, OP_DELETE
 
 _TAG_DTYPES = {PropertyType.tag.value, PropertyType.multi_tags.value}
-
-# Maps a system_key to (source_table, column_name).
-# 'instance' columns live directly on the instances table.
-# 'file'     columns live on the files table, reached via instance.file_id.
-SYSTEM_KEY_SOURCE: dict[str, tuple[str, str]] = {
-    'id':         ('instance', 'id'),
-    'sha1':       ('instance', 'sha1'),
-    'file_id':    ('instance', 'file_id'),
-    'folder':     ('file',     'folder_id'),
-    'name':       ('file',     'name'),
-    'format':     ('file',     'format'),
-    'width':      ('file',     'width'),
-    'height':     ('file',     'height'),
-    'created_at': ('file',     'created_at'),
-}
 
 
 class DataReader(SQLiteReader):
@@ -297,30 +283,30 @@ class DataReader(SQLiteReader):
         return ids, values
 
     def _system_values_for_instances(self, instance_ids: list[int], system_key: str) -> dict[int, Any]:
-        source, col = SYSTEM_KEY_SOURCE[system_key]
-        if source == 'instance':
-            rows = INSTANCES_SCHEMA.select(self.conn, ['id', col], id=instance_ids)
+        defn = SYSTEM_PROPERTY_MAP[system_key]
+        if defn.source == 'instance':
+            rows = INSTANCES_SCHEMA.select(self.conn, ['id', defn.col], id=instance_ids)
             return {r[0]: r[1] for r in rows}
         # file-sourced: resolve file_id first, then look up the column on files
         inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'], id=instance_ids)
         file_ids = [r[1] for r in inst_rows if r[1] is not None]
         if not file_ids:
             return {}
-        file_rows = FILES_SCHEMA.select(self.conn, ['id', col], id=file_ids)
+        file_rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
         file_to_val = {r[0]: r[1] for r in file_rows}
         return {r[0]: file_to_val[r[1]] for r in inst_rows if r[1] in file_to_val}
 
     def _system_full_column(self, system_key: str) -> tuple[list[int], list[Any]]:
-        source, col = SYSTEM_KEY_SOURCE[system_key]
-        if source == 'instance':
-            rows = INSTANCES_SCHEMA.select(self.conn, ['id', col])
+        defn = SYSTEM_PROPERTY_MAP[system_key]
+        if defn.source == 'instance':
+            rows = INSTANCES_SCHEMA.select(self.conn, ['id', defn.col])
             return [r[0] for r in rows], [r[1] for r in rows]
         # file-sourced
         inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'file_id'])
         file_ids = [r[1] for r in inst_rows if r[1] is not None]
         if not file_ids:
             return [r[0] for r in inst_rows], [None] * len(inst_rows)
-        file_rows = FILES_SCHEMA.select(self.conn, ['id', col], id=file_ids)
+        file_rows = FILES_SCHEMA.select(self.conn, ['id', defn.col], id=file_ids)
         file_to_val = {r[0]: r[1] for r in file_rows}
         ids = [r[0] for r in inst_rows]
         values = [file_to_val.get(r[1]) for r in inst_rows]

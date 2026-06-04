@@ -591,13 +591,13 @@ export class GroupManager {
         if (emit) this.onResultChange.emit(this.result)
     }
 
-    emptyRoot(emit?: boolean) {
+    async emptyRoot(emit?: boolean) {
         this.clear()
-        this.group(new Int32Array(0), emit)
+        await this.group(new Int32Array(0), emit)
     }
 
-    setAsRoot(group: Group, emit?: boolean) {
-        this.emptyRoot()
+    async setAsRoot(group: Group, emit?: boolean) {
+        await this.emptyRoot()
         const copy = { ...group }
         copy.slots = [...group.slots]
         delete copy.id
