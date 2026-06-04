@@ -7,6 +7,7 @@ import { HDLayer } from './HDLayer'
 import { AtlasLayerManager } from './AtlasLayerManager'
 import { LassoLayer } from './LassoLayer'
 import { deepCopy, EventEmitter } from '@/utils/utils'
+import { useColumnStore } from '@/data/columnStore'
 
 export class MapRenderer {
     private container: HTMLElement
@@ -57,8 +58,6 @@ export class MapRenderer {
 
         this.resizeObserver = new ResizeObserver(() => this.onResize())
         this.resizeObserver.observe(this.container)
-
-        this.animate()
     }
 
     private initCamera() {
@@ -123,17 +122,15 @@ export class MapRenderer {
 
     private updateHoverState() {
         const foundPoint = this.controls.getHoveredPoint(this.zoomParams)
-        const foundId = foundPoint ? foundPoint.id! : null
 
-        if (foundId) {
+        if (foundPoint) {
+            const instanceId = useColumnStore().getInstancesBySha1(foundPoint.sha1)[0]
             this.hdLayer.hover(foundPoint)
-            this.onHover.emit(useDataStore().sha1Index[foundPoint.sha1][0].id)
+            this.onHover.emit(instanceId)
         } else {
             this.hdLayer.unhover()
             this.onHover.emit()
         }
-
-        
     }
 
     public setMouseMode(mode: string) {

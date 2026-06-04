@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useDataStore } from '@/data/dataStore';
+import { useColumnStore } from '@/data/columnStore';
 import { defineProps, defineEmits, computed } from 'vue'
 import CenteredImage from '../images/CenteredImage.vue';
 
 const data = useDataStore()
+const columnStore = useColumnStore()
 
 const props = defineProps<{
     sha1s: string[]
@@ -17,7 +19,10 @@ function changeTool(tool: string) {
 
 const images = computed(() => {
     let slice = props.sha1s.slice(0, 100)
-    return slice.map(sha1 => data.sha1Index[sha1][0])
+    return slice.map(sha1 => {
+        const ids = columnStore.getInstancesBySha1(sha1)
+        return ids.length ? { id: ids[0] } : null
+    }).filter(Boolean)
 })
 
 function test() {

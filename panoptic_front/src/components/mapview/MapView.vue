@@ -3,6 +3,7 @@ import { ref, shallowRef, onMounted, watch, computed, onUnmounted, nextTick } fr
 import { Colors, greyColor, Instance, MapGroup, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { useMediaStore } from '@/data/mediaStore'
+import { useColumnStore } from '@/data/columnStore'
 import { TabManager } from '@/core/TabManager'
 import { generateColors, isTag, sleep } from '@/utils/utils'
 import { Group } from '@/core/GroupManager'
@@ -20,6 +21,7 @@ const SELECTED_TINT = '#5DACFF'
 
 const data = useDataStore()
 const media = useMediaStore()
+const columnStore = useColumnStore()
 const props = defineProps<{
     tab: TabManager
 }>()
@@ -41,6 +43,11 @@ let sha1ToPoint: { [sha1: string]: PointData } = {}
 let groupToPoints: { [groupId: number]: string[] } = {}
 const selectedGroups = ref<{ [groupId: number]: boolean }>({})
 const points = shallowRef<PointData[]>([])
+
+// Tracks the latest showMap call to cancel stale concurrent invocations
+let showMapToken = 0
+// Stores args needed to call createMap once the renderer is ready
+let pendingCreateMap: { atlas: any; points: PointData[]; showAsPoint: boolean } | null = null
 
 // Instances corresponding to map points — used for clustering so only visible images are clustered
 const mapInstances = computed<Instance[]>(() =>
@@ -197,51 +204,79 @@ function generateGroups() {
 
 async function showMap(mapId: number) {
     if (!media.maps[mapId]) return
-    if (!media.maps[mapId].data) await media.loadMapData(mapId)
 
-    sha1ToPoint = {}
+    // Bug 5: cancel any stale concurrent call
+    const token = ++showMapToken
+
+    if (!media.maps[mapId].data) await media.loadMapData(mapId)
+    if (token !== showMapToken) return
+
+    const newSha1ToPoint: { [sha1: string]: PointData } = {}
     const res: PointData[] = []
     const values = media.maps[mapId].data
 
-    const validSha1s = new Set()
-    props.tab.collection.filterManager.result.images.forEach(i => validSha1s.add(i.sha1))
+    // Bug 2: fall back to all sha1s when filter result isn't ready yet
+    const filterImages = props.tab.collection.filterManager.result?.images
+    const validSha1s = new Set<string>()
+    if (filterImages) {
+        filterImages.forEach(i => validSha1s.add(i.sha1))
+    } else {
+        for (let i = 0; i < values.length; i += 3) validSha1s.add(values[i])
+    }
+
+    // Build sha1 → {id, ratio} from columnStore in one pass (replaces removed data.sha1Index)
+    const sha1Array = columnStore.sha1s()
+    const idArray = columnStore.instanceIds()
+    const sha1ToId: { [sha1: string]: number } = {}
+    for (let s = 0; s < columnStore.slotCount(); s++) {
+        const sh = sha1Array[s]
+        if (sh && !(sh in sha1ToId)) sha1ToId[sh] = idArray[s]
+    }
 
     for (let i = 0; i < values.length; i += 3) {
         const sha1 = values[i]
-        if(!validSha1s.has(sha1)) continue
-        
+        if (!validSha1s.has(sha1)) continue
+
+        const instanceId = sha1ToId[sha1]
+        if (instanceId === undefined) continue
+
         const x = values[i + 1]
         const y = values[i + 2]
-        const img = data.sha1Index[sha1]?.[0]
-        if (!img) continue
+        const entry = data.instances[instanceId]
+        const ratio = (entry?.width && entry?.height) ? entry.width / entry.height : 1
 
         const p: PointData = {
-            id: img.id,
+            id: instanceId,
             x: x,
             y: y,
             z: 1.0,
             color: defaultColor,
             sha1: sha1,
-            ratio: img.containerRatio,
+            ratio,
             order: 1,
             border: 0.0,
             tintAlpha: 0.0,
             borderColor: defaultColor
         }
         res.push(p)
-        sha1ToPoint[sha1] = p
+        newSha1ToPoint[sha1] = p
     }
 
+    sha1ToPoint = newSha1ToPoint
     points.value = res
     generateGroups()
 
+    const atlas = media.atlas
+    if (!atlas) {
+        hasAtlas.value = false
+        return
+    }
+
+    // Bug 4: if renderer isn't ready yet, store args so the renderer watcher can call createMap
     if (renderer.value) {
-        const atlas = media.atlas
-        if(!atlas) {
-            hasAtlas.value = false
-            return
-        }
         renderer.value.createMap(atlas, points.value, props.tab.state.mapOptions.showPoints)
+    } else {
+        pendingCreateMap = { atlas, points: points.value, showAsPoint: props.tab.state.mapOptions.showPoints }
     }
 }
 
@@ -259,9 +294,8 @@ function onGroupHover(ev: { groupId: number, value: boolean }) {
 const handleLasso = (selectedPoints: PointData[]) => {
     let ids: number[] = []
     for (let point of selectedPoints) {
-        if (data.sha1Index[point.sha1]) {
-            ids.push(...data.sha1Index[point.sha1].map(i => i.id))
-        }
+        const instanceIds = columnStore.getInstancesBySha1(point.sha1)
+        if (instanceIds.length) ids.push(...instanceIds)
     }
     if (mouseMode.value == 'lasso-plus') props.tab.collection.groupManager.selectImages(ids)
     if (mouseMode.value == 'lasso-minus') props.tab.collection.groupManager.unselectImages(ids)
@@ -289,8 +323,8 @@ watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
 watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.tab.state.mapOptions.groupOption, () => generateGroups())
-watch(() => props.tab.state.mapOptions.showPoints, (val) => renderer.value.setShowAsPoint(val))
-watch(() => props.tab.state.mapOptions.imageSize, (val) => renderer.value.setImageSize(val))
+watch(() => props.tab.state.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
+watch(() => props.tab.state.mapOptions.imageSize, (val) => renderer.value?.setImageSize(val))
 watch(hoverInstanceId, () => {
     if(hoverInstanceId.value) {
         lastValiderHoverId.value = hoverInstanceId.value
@@ -300,8 +334,14 @@ watch(hoverInstanceId, () => {
 watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
-        if (points.value.length > 0 && r.atlasLayers) updateColors()
         r.setImageSize(props.tab.state.mapOptions.imageSize)
+        // Bug 4: flush a createMap call that arrived before the renderer was ready
+        if (pendingCreateMap) {
+            r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, pendingCreateMap.showAsPoint)
+            pendingCreateMap = null
+        } else if (points.value.length > 0 && r.atlasLayers) {
+            updateColors()
+        }
     }
 })
 
@@ -337,7 +377,7 @@ onUnmounted(() => {
                 :color-option="props.tab.state.mapOptions.groupOption"
                 @update:color-option="opt => {props.tab.state.mapOptions.groupOption = opt; props.tab.saveState();}"
                 :has-maps="media.hasMaps"
-                :images="tab.collection.groupManager.result.root.images"
+                :images="tab.collection.groupManager.result.root?.images || []"
                 :map-images="mapInstances"
                 @clusters="cc => { clusters = cc; generateGroups()}"
                 @delete:map="deleteMap"
@@ -357,7 +397,7 @@ onUnmounted(() => {
                 v-model:color-option="props.tab.state.mapOptions.groupOption" 
                 :hover-image-id="lastValiderHoverId"
                 :groups="groups" 
-                :images="tab.collection.groupManager.result.root.images"
+                :images="tab.collection.groupManager.result.root?.images || []"
                 @clusters="cc => { clusters = cc; generateGroups() }" 
                 @hover-group="onGroupHover"
                 @click-group="g => renderer?.lookAtRect(g.box)"
