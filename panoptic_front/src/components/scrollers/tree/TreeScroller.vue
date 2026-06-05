@@ -372,7 +372,7 @@ watch(() => props.imageSize, () => {
     nextTick(computeLines)
 })
 
-const margin_scroll_offset = 4
+const margin_scroll_offset = 0
 watch(visiblePropertiesNb, () => {
     const lines = imageLines.value
     if (!lines.length) return
@@ -388,15 +388,27 @@ watch(visiblePropertiesNb, () => {
         cumSize += lines[i].size
     }
 
+    // How far the viewport top was scrolled INTO the top item. Must be preserved,
+    // otherwise the item's top edge gets snapped to the viewport top and the view
+    // jumps by that offset (showing the previous row when sizes shrink).
+    const delta = scrollPos - cumSize
+
+    const newSizeOf = (l) => l.type === 'images' ? imageLineSize.value
+        : l.type === 'piles' ? pileLineSize.value
+        : l.size
+
     // Pre-compute exact pixel offset of that item in the NEW layout so we can
     // restore it in the same nextTick flush — before the browser paints.
     let newScrollPos = 0
     for (let i = 0; i < topItemIdx; i++) {
-        const l = lines[i]
-        if (l.type === 'images') newScrollPos += imageLineSize.value
-        else if (l.type === 'piles') newScrollPos += pileLineSize.value
-        else newScrollPos += l.size
+        newScrollPos += newSizeOf(lines[i])
     }
+
+    // Re-apply the intra-item offset, scaled by this item's own size change so the
+    // same content stays under the viewport top.
+    const oldTopSize = lines[topItemIdx].size
+    const newTopSize = newSizeOf(lines[topItemIdx])
+    newScrollPos += oldTopSize > 0 ? delta * (newTopSize / oldTopSize) : delta
 
     // Set scroll first so that when z's watcher fires pe(false) it reads the
     // correct scrollTop and positions items at the right offset immediately.
