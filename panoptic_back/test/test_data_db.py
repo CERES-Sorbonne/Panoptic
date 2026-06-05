@@ -1,458 +1,210 @@
-import json
+"""Data-layer tests for the structural / logged split.
+
+Structural entities (file_sources / folders / files / instances) are *sequenced* but not
+*logged*: created via the structural API, hard-deleted, never undone. Editable entities
+(properties / property_groups / tags / values) go through the unified ``apply_commit`` and
+remain revertable via ``set_commit_active``.
+"""
 from pathlib import Path
 
-from panoptic.core.databases.data.commit import CommitBuilder
 from panoptic.core.databases.data.data_reader import DataReader
 from panoptic.core.databases.data.data_writer import DataWriter
-from panoptic.core.databases.entity_schema import OP_DELETE, OP_DIFF, OP_CREATE, OP_UPDATE
-from panoptic.core.databases.project.project_db import ProjectDB
-from panoptic.models import PropertyType
-from panoptic.models.data import DeleteCommit, InstanceValue, Sha1Value
-
-from panoptic.core.databases.data.commit import CommitBuilder as CommitBuilder
-from panoptic.core.databases.data.data_reader import DataReader as DataReader
-from panoptic.core.databases.data.data_writer import DataWriter as DataWriter
-from panoptic.core.databases.project.project_db import ProjectDB as ProjectDB
-from panoptic.models.models import PropertyType as PropertyType
-from panoptic.core.databases.data.models import InstanceValue as InstanceValue, Sha1Value as Sha1Value
-
-
-def _setup():
-    project_path = Path("~/tmp/project.db").expanduser()
-    data_path = Path("~/tmp/data.db").expanduser()
-    project_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if project_path.exists(): project_path.unlink()
-    if data_path.exists(): data_path.unlink()
-
-    project = ProjectDB(str(project_path))
-    project.start()
-    writer = DataWriter(str(data_path))
-    writer.start()
-    reader = DataReader(str(data_path))
-    reader.start()
-    return project, writer, reader
-
-
-def test_cycle_file_sources():
-    project, writer, reader = _setup()
-
-    # INSERT
-    commit1 = CommitBuilder(project)
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp/data')
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    rows = reader.get_file_sources(id=source.id)
-    assert len(rows) == 1
-    assert rows[0].root_url == '/tmp/data'
-
-    # UPDATE
-    commit2 = CommitBuilder(project)
-    source.root_url = '/tmp/updated'
-    commit2.update_file_source(source)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    rows = reader.get_file_sources(id=source.id)
-    assert len(rows) == 1
-    assert rows[0].root_url == '/tmp/updated'
-
-    # DELETE (Logical)
-    writer.apply_delete_commit('delete', DeleteCommit(file_sources={source.id}))
-    rows = reader.get_file_sources(id=source.id)
-    assert len(rows) == 1
-    assert rows[0].operation == OP_DELETE
-
-    writer.set_commit_active(3, False)
-    rows = reader.get_file_sources(id=source.id)
-    assert len(rows) == 1
-    assert rows[0].operation == OP_CREATE
-
-    writer.set_commit_active(2, False)
-    rows = reader.get_file_sources(id=source.id)
-    assert len(rows) == 1
-    assert rows[0].root_url == '/tmp/data'
-    assert rows[0].operation == OP_CREATE
-
-
-def test_cycle_folders():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp/photos', name='photos', parent=None)
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # UPDATE (Commit 2)
-    commit2 = CommitBuilder(project)
-    folder.name = 'renamed'
-    commit2.update_folder(folder)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    # DELETE (Commit 3)
-    writer.apply_delete_commit('delete', DeleteCommit(folders={folder.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(3, False)
-    rows = reader.get_folders(id=folder.id)
-    assert len(rows) == 1
-    assert rows[0].name == 'renamed'
-    assert rows[0].operation == OP_CREATE
-
-    # REVERT UPDATE
-    writer.set_commit_active(2, False)
-    rows = reader.get_folders(id=folder.id)
-    assert len(rows) == 1
-    assert rows[0].name == 'photos'
-    assert rows[0].operation == OP_CREATE
-
-
-def test_cycle_files():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp/photos', name='photos', parent=None)
-    file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # UPDATE (Commit 2)
-    commit2 = CommitBuilder(project)
-    file.name = 'img_renamed.jpg'
-    commit2.update_file(file)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    # DELETE (Commit 3)
-    writer.apply_delete_commit('delete', DeleteCommit(files={file.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(3, False)
-    rows = reader.get_files(id=file.id)
-    assert rows[0].operation == OP_CREATE
-    assert rows[0].name == 'img_renamed.jpg'
-
-    # REVERT UPDATE
-    writer.set_commit_active(2, False)
-    rows = reader.get_files(id=file.id)
-    assert rows[0].name == 'img.jpg'
-
-
-def test_cycle_instances():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
-    file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
-    instance = commit1.create_instance(file_id=file.id, sha1='abc123')
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # UPDATE (Commit 2)
-    commit2 = CommitBuilder(project)
-    instance.sha1 = 'def456'
-    commit2.update_instance(instance)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    # DELETE (Commit 3)
-    writer.apply_delete_commit('delete', DeleteCommit(instances={instance.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(3, False)
-    rows = reader.get_instances(id=instance.id)
-    assert rows[0].operation == OP_CREATE
-    assert rows[0].sha1 == 'def456'
-
-    # REVERT UPDATE
-    writer.set_commit_active(2, False)
-    rows = reader.get_instances(id=instance.id)
-    assert rows[0].sha1 == 'abc123'
-
-
-def test_cycle_properties():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype='tags', mode='sha1', name='color')
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # UPDATE (Commit 2)
-    commit2 = CommitBuilder(project)
-    prop.name = 'color_renamed'
-    commit2.update_property(prop)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    # DELETE (Commit 3)
-    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(3, False)
-    rows = reader.get_properties(id=prop.id)
-    assert rows[0].operation == OP_CREATE
-    assert rows[0].name == 'color_renamed'
-
-    # REVERT UPDATE
-    writer.set_commit_active(2, False)
-    rows = reader.get_properties(id=prop.id)
-    assert rows[0].name == 'color'
-
-
-def test_cycle_tags():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype='tags', mode='sha1', name='genre')
-    tag = commit1.create_tag(list_id=prop.id, value='Rock', color=0xFF0000, parents=[1, 2])
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # UPDATE (Commit 2)
-    commit2 = CommitBuilder(project)
-    tag.value = 'Jazz'
-    commit2.update_tag(tag)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    # DELETE (Commit 3)
-    writer.apply_delete_commit('delete', DeleteCommit(tags={tag.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(3, False)
-    rows = reader.get_tags(id=tag.id)
-    assert rows[0].operation == OP_CREATE
-    assert rows[0].value == 'Jazz'
-
-    # REVERT UPDATE
-    writer.set_commit_active(2, False)
-    rows = reader.get_tags(id=tag.id)
-    assert rows[0].value == 'Rock'
-
-
-def test_cycle_instance_values():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype='number', mode='id', name='score')
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
-    file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
-    instance = commit1.create_instance(file_id=file.id, sha1='abc123')
-    write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=42.0)
-    commit1.update_instance_value(write)
-    writer.apply_upsert_commit('test_cycle', commit1.data)
-
-    # UPDATE (Commit 2)
-    commit2 = CommitBuilder(project)
-    write.value = 99.0
-    commit2.update_instance_value(write)
-    writer.apply_upsert_commit('update', commit2.data)
-
-    # DELETE Property (Commit 3)
-    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(3, False)
-    assert reader.get_properties(id=prop.id)[0].operation == OP_CREATE
-    assert float(reader.get_instance_values(property_id=prop.id)[0].value) == 99.0
-
-    # REVERT UPDATE
-    writer.set_commit_active(2, False)
-    assert float(reader.get_instance_values(property_id=prop.id)[0].value) == 42.0
-
-
-def test_instances_values_tags():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='score')
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
-    file = commit1.create_file(name='img.jpg', folder_id=folder.id, sha1='abc123')
-    instance = commit1.create_instance(file_id=file.id, sha1='abc123')
-    write = InstanceValue(property_id=prop.id, instance_id=instance.id, value=[1, 2, 3])
-    commit1.update_instance_value(write)
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # DIFF (Commit 2): [2, 3, 4]
-    commit2 = CommitBuilder(project)
-    write.value = [-1, 4]
-    write.operation = OP_DIFF
-    commit2.update_instance_value(write)
-    writer.apply_upsert_commit('diff', commit2.data)
-
-    # UPDATE (Commit 3): [1, 4]
-    commit3 = CommitBuilder(project)
-    write.value = [1, 4]
-    write.operation = OP_UPDATE
-    commit3.update_instance_value(write)
-    writer.apply_upsert_commit('update', commit3.data)
-
-    # DELETE PROPERTY (Commit 4)
-    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
-
-    # REVERT DELETE
-    writer.set_commit_active(4, False)
-    assert reader.get_properties(id=prop.id)[0].operation == OP_CREATE
-
-    # REVERT FULL UPDATE -> Should go back to the Diff state [2, 3, 4]
-    writer.set_commit_active(1, False)
-    writer.set_commit_active(3, False)
-    rows = reader.get_instance_values(property_id=prop.id)
-    assert rows[0].value == [4]
-
-
-def test_sha1_values_tags():
-    project, writer, reader = _setup()
-
-    # INSERT (Commit 1)
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='tags')
-
-    # Initial state: [1, 2, 3]
-    write = Sha1Value(property_id=prop.id, sha1='hash_abc', value=[1, 2, 3])
-    commit1.update_sha1_value(write)
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    # DIFF (Commit 2)
-    # Applying [-1, 4] -> Should result in [2, 3, 4]
-    commit2 = CommitBuilder(project)
-    write.value = [-1, 4]
-    write.operation = OP_DIFF
-    commit2.update_sha1_value(write)
-    writer.apply_upsert_commit('diff', commit2.data)
-
-    # FULL UPDATE (Commit 3)
-    # Overwriting with [1, 4]
-    commit3 = CommitBuilder(project)
-    write.value = [1, 4]
-    write.operation = OP_UPDATE
-    commit3.update_sha1_value(write)
-    writer.apply_upsert_commit('full_update', commit3.data)
-
-    # DELETE PROPERTY (Commit 4)
-    writer.apply_delete_commit('delete', DeleteCommit(properties={prop.id}))
-
-    # --- REVERT TESTING ---
-
-    # 1. Revert Delete (Disable Commit 4)
-    writer.set_commit_active(4, False)
-    # Property should no longer be marked OP_DELETE
-    assert reader.get_properties(id=prop.id)[0].operation == OP_CREATE
-    # Values should still be at the last known state [1, 4]
-    rows = reader.get_sha1_values(property_id=prop.id)
-    assert rows[0].value == [1, 4]
-
-    writer.set_commit_active(1, False)
-    writer.set_commit_active(3, False)
-    rows = reader.get_sha1_values(property_id=prop.id)
-    assert rows[0].value == [4]
+from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE, OP_DELETE
+from panoptic.core.databases.data.models import (
+    FileSource, Folder, File, Instance,
+    DataCommit, Property, Tag, InstanceValue, Sha1Value,
+)
+from panoptic.models.models import PropertyType
+
+
+def _setup(name: str):
+    data_path = Path(f"~/tmp/{name}.db").expanduser()
+    data_path.parent.mkdir(parents=True, exist_ok=True)
+    for suffix in ('', '-wal', '-shm'):
+        p = Path(str(data_path) + suffix)
+        if p.exists():
+            p.unlink()
+    writer = DataWriter(str(data_path)); writer.start()
+    reader = DataReader(str(data_path)); reader.start()
+    return writer, reader
+
+
+def _prop(pid, dtype='text', mode='id', name='p'):
+    return Property(id=pid, dtype=dtype, mode=mode, name=name, access='write',
+                    tag_list_id=pid, operation=OP_CREATE)
 
 
 # ---------------------------------------------------------------------------
-# panoptic2 — InstanceTagValue / Sha1TagValue + get_tag_counts
+# Structural entities: created + hard-deleted, NOT logged
 # ---------------------------------------------------------------------------
 
-def _setup2():
-    project_path = Path("~/tmp/project2.db").expanduser()
-    data_path = Path("~/tmp/data2.db").expanduser()
-    project_path.parent.mkdir(parents=True, exist_ok=True)
-    if project_path.exists(): project_path.unlink()
-    if data_path.exists(): data_path.unlink()
+def test_structural_tables_are_not_logged():
+    from panoptic.core.databases.data.create import (
+        INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, FILE_SOURCES_SCHEMA,
+        PROPERTIES_SCHEMA, TAGS_SCHEMA,
+    )
+    for s in (INSTANCES_SCHEMA, FILES_SCHEMA, FOLDERS_SCHEMA, FILE_SOURCES_SCHEMA):
+        assert s.sequenced and not s.trackable
+    for s in (PROPERTIES_SCHEMA, TAGS_SCHEMA):
+        assert s.sequenced and s.trackable
 
-    project = ProjectDB(str(project_path))
-    project.start()
-    writer = DataWriter(str(data_path))
-    writer.start()
-    reader = DataReader(str(data_path))
-    reader.start()
-    return project, writer, reader
 
+def test_structural_add_update_delete():
+    writer, reader = _setup('data_struct')
+
+    writer.add_structural(
+        file_sources=[FileSource(id=1, dtype='filesystem', name='local', root_url='/tmp')],
+        folders=[Folder(id=1, source_id=1, path='/tmp', name='tmp', parent=None)],
+        files=[File(id=1, name='img.jpg', folder_id=1, sha1='abc')],
+        instances=[Instance(id=1, file_id=1, sha1='abc')],
+    )
+    assert reader.get_instances(id=1)[0].sha1 == 'abc'
+    assert reader.get_files(id=1)[0].name == 'img.jpg'
+
+    # "Update" is a plain re-add (no operation column on structural rows).
+    writer.add_structural(files=[File(id=1, name='renamed.jpg', folder_id=1, sha1='abc')])
+    assert reader.get_files(id=1)[0].name == 'renamed.jpg'
+
+    # Hard delete: the row is gone (no soft-delete tombstone).
+    writer.delete_instances([1])
+    assert reader.get_instances(id=1) == []
+
+
+def test_delete_instance_cascades_values_and_gcs_sha1():
+    writer, reader = _setup('data_gc')
+
+    # Two instances share sha1 'A'; one has its own 'B'.
+    writer.add_structural(
+        files=[File(id=1, name='a', folder_id=1, sha1='A'),
+               File(id=2, name='b', folder_id=1, sha1='B')],
+        instances=[Instance(id=1, file_id=1, sha1='A'),
+                   Instance(id=2, file_id=2, sha1='B'),
+                   Instance(id=3, file_id=1, sha1='A')],
+    )
+    writer.apply_commit('t', DataCommit(
+        properties=[_prop(10)],
+        instance_values=[InstanceValue(property_id=10, instance_id=1, value='v1', operation=OP_UPDATE),
+                         InstanceValue(property_id=10, instance_id=3, value='v3', operation=OP_UPDATE)],
+        sha1_values=[Sha1Value(property_id=10, sha1='A', value='shaA', operation=OP_UPDATE)],
+    ))
+
+    # Delete instance 1: its instance_value goes; sha1 'A' kept (instance 3 still shares it).
+    res = writer.delete_instances([1])
+    assert res['orphan_sha1s'] == []
+    iv = {v.instance_id for v in reader.get_instance_values(property_id=10)}
+    assert iv == {3}
+    assert reader.get_sha1_values(property_id=10)  # 'A' still present
+
+    # Delete instance 3 (last holder of 'A'): sha1 'A' + file 1 are GC'd.
+    res = writer.delete_instances([3])
+    assert res['orphan_sha1s'] == ['A']
+    assert res['orphan_file_ids'] == [1]
+    assert reader.get_sha1_values(property_id=10) == []
+    assert {f.id for f in reader.get_files()} == {2}
+
+
+def test_delete_folder_cascades_subtree():
+    writer, reader = _setup('data_folder')
+    writer.add_structural(
+        folders=[Folder(id=1, source_id=1, path='/root', name='root', parent=None),
+                 Folder(id=2, source_id=1, path='/root/sub', name='sub', parent=1)],
+        files=[File(id=1, name='a', folder_id=1, sha1='A'),
+               File(id=2, name='b', folder_id=2, sha1='B')],
+        instances=[Instance(id=1, file_id=1, sha1='A'),
+                   Instance(id=2, file_id=2, sha1='B')],
+    )
+    writer.delete_folders([1])  # recurses into sub-folder 2
+    assert reader.get_folders() == []
+    assert reader.get_files() == []
+    assert reader.get_instances() == []
+
+
+# ---------------------------------------------------------------------------
+# Logged entities: unified create / update / delete + undo / redo
+# ---------------------------------------------------------------------------
+
+def test_property_cycle_with_undo():
+    writer, reader = _setup('data_prop')
+
+    c1 = writer.apply_commit('t', DataCommit(properties=[_prop(10, name='color')]))
+    c2 = writer.apply_commit('t', DataCommit(
+        properties=[Property(id=10, dtype='text', mode='id', name='color_renamed',
+                             access='write', tag_list_id=10, operation=OP_UPDATE)]))
+    assert reader.get_properties(id=10)[0].name == 'color_renamed'
+
+    # Undo the rename.
+    writer.set_commit_active(c2.id, False)
+    assert reader.get_properties(id=10)[0].name == 'color'
+    # Redo.
+    writer.set_commit_active(c2.id, True)
+    assert reader.get_properties(id=10)[0].name == 'color_renamed'
+
+    # Delete the property (operation=OP_DELETE in the unified commit) then undo the delete.
+    c3 = writer.apply_commit('t', DataCommit(properties=[Property(id=10, operation=OP_DELETE)]))
+    assert reader.get_properties(id=10) == []
+    writer.set_commit_active(c3.id, False)
+    assert reader.get_properties(id=10)[0].name == 'color_renamed'
+
+
+def test_value_cycle_with_undo_and_property_delete_cascade():
+    writer, reader = _setup('data_values')
+    writer.add_structural(instances=[Instance(id=1, file_id=1, sha1='A')])
+
+    writer.apply_commit('t', DataCommit(
+        properties=[_prop(10, dtype='number')],
+        instance_values=[InstanceValue(property_id=10, instance_id=1, value=42.0, operation=OP_UPDATE)],
+    ))
+    c2 = writer.apply_commit('t', DataCommit(
+        instance_values=[InstanceValue(property_id=10, instance_id=1, value=99.0, operation=OP_UPDATE)]))
+    assert float(reader.get_instance_values(property_id=10)[0].value) == 99.0
+
+    writer.set_commit_active(c2.id, False)
+    assert float(reader.get_instance_values(property_id=10)[0].value) == 42.0
+    writer.set_commit_active(c2.id, True)
+
+    # Deleting the property cascades to its values (logged cascade).
+    writer.apply_commit('t', DataCommit(properties=[Property(id=10, operation=OP_DELETE)]))
+    assert reader.get_instance_values(property_id=10) == []
+
+
+# ---------------------------------------------------------------------------
+# Tag junction counts
+# ---------------------------------------------------------------------------
 
 def test_instance_tag_counts():
-    project, writer, reader = _setup2()
-
-    # Setup: one multi_tags property (mode=id), two instances, three tags
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='labels')
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
-    file1 = commit1.create_file(name='a.jpg', folder_id=folder.id, sha1='sha_a')
-    file2 = commit1.create_file(name='b.jpg', folder_id=folder.id, sha1='sha_b')
-    inst1 = commit1.create_instance(file_id=file1.id, sha1='sha_a')
-    inst2 = commit1.create_instance(file_id=file2.id, sha1='sha_b')
-    # inst1 -> tags [1, 2],  inst2 -> tags [2, 3]
-    commit1.update_instance_value(InstanceValue(property_id=prop.id, instance_id=inst1.id, value=[1, 2]))
-    commit1.update_instance_value(InstanceValue(property_id=prop.id, instance_id=inst2.id, value=[2, 3]))
-    writer.apply_upsert_commit('insert', commit1.data)
-
+    writer, reader = _setup('data_itags')
+    writer.add_structural(instances=[Instance(id=1, file_id=1, sha1='a'),
+                                     Instance(id=2, file_id=2, sha1='b')])
+    writer.apply_commit('t', DataCommit(
+        properties=[_prop(10, dtype=PropertyType.multi_tags.value)],
+        instance_values=[
+            InstanceValue(property_id=10, instance_id=1, value=[1, 2], operation=OP_UPDATE),
+            InstanceValue(property_id=10, instance_id=2, value=[2, 3], operation=OP_UPDATE),
+        ],
+    ))
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}
-    assert counts[1]['instance_count'] == 1  # only inst1
-    assert counts[2]['instance_count'] == 2  # both instances
-    assert counts[3]['instance_count'] == 1  # only inst2
-    assert all(r['sha1_count'] == 0 for r in counts.values())
-
-    # Update inst1 to only [2] — tag 1 should drop to 0 and disappear
-    commit2 = CommitBuilder(project)
-    commit2.update_instance_value(InstanceValue(property_id=prop.id, instance_id=inst1.id, value=[2]))
-    writer.apply_upsert_commit('update', commit2.data)
-
-    counts = {r['tag_id']: r for r in reader.get_tag_counts()}
-    assert 1 not in counts                   # no instances have tag 1 anymore
+    assert counts[1]['instance_count'] == 1
     assert counts[2]['instance_count'] == 2
     assert counts[3]['instance_count'] == 1
 
-    # Filtered by property_id — same results since there's only one property
-    counts_filtered = {r['tag_id']: r for r in reader.get_tag_counts(property_id=prop.id)}
-    assert counts_filtered == counts
+    # Drop tag 1 from inst1.
+    writer.apply_commit('t', DataCommit(
+        instance_values=[InstanceValue(property_id=10, instance_id=1, value=[2], operation=OP_UPDATE)]))
+    counts = {r['tag_id']: r for r in reader.get_tag_counts()}
+    assert 1 not in counts
+    assert counts[2]['instance_count'] == 2
 
 
 def test_sha1_tag_counts():
-    project, writer, reader = _setup2()
-
-    # Setup: one multi_tags property (mode=sha1), two sha1s, three tags
-    commit1 = CommitBuilder(project)
-    prop = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='genres')
-    # sha1_x -> tags [10, 20],  sha1_y -> tags [20, 30]
-    commit1.update_sha1_value(Sha1Value(property_id=prop.id, sha1='sha1_x', value=[10, 20]))
-    commit1.update_sha1_value(Sha1Value(property_id=prop.id, sha1='sha1_y', value=[20, 30]))
-    writer.apply_upsert_commit('insert', commit1.data)
-
+    writer, reader = _setup('data_stags')
+    writer.apply_commit('t', DataCommit(
+        properties=[_prop(10, dtype=PropertyType.multi_tags.value, mode='sha1')],
+        sha1_values=[
+            Sha1Value(property_id=10, sha1='x', value=[10, 20], operation=OP_UPDATE),
+            Sha1Value(property_id=10, sha1='y', value=[20, 30], operation=OP_UPDATE),
+        ],
+    ))
     counts = {r['tag_id']: r for r in reader.get_tag_counts()}
     assert counts[10]['sha1_count'] == 1
     assert counts[20]['sha1_count'] == 2
     assert counts[30]['sha1_count'] == 1
-    assert all(r['instance_count'] == 0 for r in counts.values())
-
-    # Overwrite sha1_x with [20] only — tag 10 should disappear
-    commit2 = CommitBuilder(project)
-    commit2.update_sha1_value(Sha1Value(property_id=prop.id, sha1='sha1_x', value=[20]))
-    writer.apply_upsert_commit('update', commit2.data)
-
-    counts = {r['tag_id']: r for r in reader.get_tag_counts()}
-    assert 10 not in counts
-    assert counts[20]['sha1_count'] == 2
-    assert counts[30]['sha1_count'] == 1
-
-
-def test_tag_counts_mixed():
-    """Both instance and sha1 tag values for the same tag_id sum correctly."""
-    project, writer, reader = _setup2()
-
-    commit1 = CommitBuilder(project)
-    prop_id = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='id', name='p_id')
-    prop_sha1 = commit1.create_property(dtype=PropertyType.multi_tags.value, mode='sha1', name='p_sha1')
-    source = commit1.create_file_source('filesystem', 'local', root_url='/tmp')
-    folder = commit1.create_folder(source_id=source.id, path='/tmp', name='tmp', parent=None)
-    file = commit1.create_file(name='c.jpg', folder_id=folder.id, sha1='sha_c')
-    inst = commit1.create_instance(file_id=file.id, sha1='sha_c')
-    # Same tag_id=5 appears in both an instance value and a sha1 value
-    commit1.update_instance_value(InstanceValue(property_id=prop_id.id, instance_id=inst.id, value=[5]))
-    commit1.update_sha1_value(Sha1Value(property_id=prop_sha1.id, sha1='sha_c', value=[5]))
-    writer.apply_upsert_commit('insert', commit1.data)
-
-    counts = {r['tag_id']: r for r in reader.get_tag_counts()}
-    assert counts[5]['instance_count'] == 1
-    assert counts[5]['sha1_count'] == 1

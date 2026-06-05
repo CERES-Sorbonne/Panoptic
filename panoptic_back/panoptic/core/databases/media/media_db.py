@@ -45,6 +45,18 @@ class MediaDB(SQLiteWriter):
         with self.transaction() as tx:
             IMAGE_SHEMA.delete(tx, type_id=type_id, sha1=sha1)
 
+    def delete_media_for_sha1s(self, sha1s: list[str]) -> None:
+        """Drop every stored image and vector for the given (now orphaned) sha1s.
+
+        Best-effort cleanup invoked after structural deletes in the data DB; a leftover
+        blob is only wasted disk, not a correctness issue.
+        """
+        if not sha1s:
+            return
+        with self.transaction() as tx:
+            IMAGE_SHEMA.delete(tx, sha1=list(sha1s))
+            VECTOR_SHEMA.delete(tx, sha1=list(sha1s))
+
     # ------------------------------------------------------------------
     # VectorType
     # ------------------------------------------------------------------

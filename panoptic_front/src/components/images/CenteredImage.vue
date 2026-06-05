@@ -1,3 +1,10 @@
+<script lang="ts">
+// Module-level cache of URLs that have already loaded at least once (and are therefore in
+// the browser's HTTP cache). Lets a freshly-mounted/recycled cell show the image instantly
+// instead of blanking while it reloads — the main source of flicker during live updates.
+const loadedUrlCache = new Set<string>()
+</script>
+
 <script setup lang="ts">
 import { SERVER_PREFIX } from '@/data/apiPanopticRoutes'
 import { usePanopticStore } from '@/data/panopticStore'
@@ -33,11 +40,26 @@ function buildUrl(s: string): string {
 
 watch(sha1, (s) => {
     if (loadTimer) clearTimeout(loadTimer)
+    if (!s) {
+        // No image for this instance → clear.
+        activeUrl.value = ''
+        loadedUrl.value = null
+        return
+    }
+    const url = buildUrl(s)
+    if (url === loadedUrl.value) return            // same image already shown → no-op, no flicker
+    if (loadedUrlCache.has(url)) {
+        // Loaded before (in browser cache) → show instantly, no white frame. This is what
+        // keeps an UNCHANGED image from flickering when the cell remounts/recycles.
+        activeUrl.value = url
+        loadedUrl.value = url
+        return
+    }
+    // Genuinely new image → go white instantly, then load it in.
     activeUrl.value = ''
     loadedUrl.value = null
-    if (!s) return
     loadTimer = setTimeout(() => {
-        activeUrl.value = buildUrl(s)
+        activeUrl.value = url
         loadTimer = null
     }, 20)
 }, { immediate: true })
@@ -58,7 +80,9 @@ const imageSize = computed(() => {
 const loadedImageUrl = computed(() => loadedUrl.value)
 
 function onLoad() {
+    if (!activeUrl.value) return
     loadedUrl.value = activeUrl.value
+    loadedUrlCache.add(activeUrl.value)
 }
 </script>
 

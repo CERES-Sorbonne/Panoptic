@@ -14,13 +14,15 @@ class Commit(msgspec.Struct, array_like=True):
     timestamp: datetime
     active: int
 
+# --- STRUCTURAL ENTITIES ---
+# Sequenced (delta-synced) but NOT logged: created by import, hard-deleted, never undone.
+# They carry no commit_id/operation columns.
+
 class FileSource(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
     dtype: str
     name: Optional[str]
     root_url: Optional[str]
-    commit_id: Optional[int] = None
-    operation: Optional[int] = None
 
 class Folder(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
@@ -28,35 +30,30 @@ class Folder(msgspec.Struct, array_like=True):
     path: Optional[str]
     name: Optional[str]
     parent: Optional[int]
-    commit_id: Optional[int] = None
-    operation: Optional[int] = None
 
 class File(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
     name: Optional[str]
     folder_id: Optional[int]
-    sha1: Optional[str]
+    sha1: Annotated[Optional[str], Index]
     width: Optional[int] = None
     height: Optional[int] = None
     format: Optional[str] = None
     created_at: Optional[datetime] = None
-    commit_id: Optional[int] = None
-    operation: Optional[int] = None
 
 class Instance(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
     file_id: Optional[int]
-    sha1: Optional[str]
-    commit_id: Optional[int] = None
-    operation: Optional[int] = None
+    sha1: Annotated[Optional[str], Index]
 
 class Property(msgspec.Struct, array_like=True):
+    # data fields default to None so a delete stub is just Property(id=i, operation=OP_DELETE)
     id: Annotated[int, PrimaryKey]
-    dtype: Optional[str]
-    mode: Optional[str]
-    name: Optional[str]
-    access: Optional[str]
-    tag_list_id: Optional[int]
+    dtype: Optional[str] = None
+    mode: Optional[str] = None
+    name: Optional[str] = None
+    access: Optional[str] = None
+    tag_list_id: Optional[int] = None
     system_key: Optional[str] = None
     property_group_id: Optional[int] = None
     commit_id: Optional[int] = None
@@ -64,7 +61,7 @@ class Property(msgspec.Struct, array_like=True):
 
 class PropertyGroup(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
-    name: Optional[str]
+    name: Optional[str] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
@@ -74,10 +71,10 @@ class TagList(msgspec.Struct, array_like=True):
 
 class Tag(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]
-    list_id: Optional[int]
-    parents: Optional[list[int]]
-    value: Optional[str]
-    color: Optional[int]
+    list_id: Optional[int] = None
+    parents: Optional[list[int]] = None
+    value: Optional[str] = None
+    color: Optional[int] = None
     commit_id: Optional[int] = None
     operation: Optional[int] = None
 
@@ -141,3 +138,19 @@ class UpsertCommit(msgspec.Struct):
     instance_values: dict[int, list[InstanceValue]] = msgspec.field(default_factory=dict)
     sha1_values: dict[int, list[Sha1Value]] = msgspec.field(default_factory=dict)
     file_values: dict[int, list[FileValue]] = msgspec.field(default_factory=dict)
+
+
+class DataCommit(msgspec.Struct):
+    """Unified commit for the *logged* (revertable) entities only.
+
+    Each entity carries its own ``operation`` (OP_CREATE / OP_UPDATE / OP_DELETE), so a
+    single commit can create, update and delete in one shot. Structural entities
+    (file_sources/folders/files/instances) are NOT part of this commit — they go through
+    the structural write API (add_* / delete_*) and are never undone.
+    """
+    properties: list[Property] = msgspec.field(default_factory=list)
+    property_groups: list[PropertyGroup] = msgspec.field(default_factory=list)
+    tags: list[Tag] = msgspec.field(default_factory=list)
+    instance_values: list[InstanceValue] = msgspec.field(default_factory=list)
+    sha1_values: list[Sha1Value] = msgspec.field(default_factory=list)
+    file_values: list[FileValue] = msgspec.field(default_factory=list)

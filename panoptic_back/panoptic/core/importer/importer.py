@@ -366,7 +366,6 @@ class Importer:
             for file_id, inst_id, sha1 in self._new_inst_info:
                 inst_commit.instances[inst_id] = Instance(
                     id=inst_id, file_id=file_id, sha1=sha1,
-                    commit_id=0, operation=OP_CREATE,
                 )
             self.project.apply_upsert_commit('import', inst_commit)
             print("[import] new instances committed")

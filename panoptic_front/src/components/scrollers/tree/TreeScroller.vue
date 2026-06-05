@@ -164,6 +164,38 @@ function GroupToLines(it: GroupIterator) {
     return lines
 }
 
+// Two lines are interchangeable when rendering them produces the same DOM. When that
+// holds we keep the PREVIOUS line object so its `:item` reference stays stable and the
+// child component (and its images) is not re-rendered — this is what stops the flash.
+function sameLine(a: ScrollerLine, b: ScrollerLine): boolean {
+    if (!a || a.type !== b.type || a.size !== b.size || (a as any).depth !== (b as any).depth) return false
+    if (b.type === 'group') {
+        return (a as GroupLine).data === (b as GroupLine).data
+    }
+    if (b.type === 'images' || b.type === 'piles') {
+        const ad = (a as ImageLine).data, bd = (b as ImageLine).data
+        if (ad.length !== bd.length) return false
+        for (let i = 0; i < ad.length; i++) {
+            if (ad[i].slot !== bd[i].slot) return false
+        }
+        return true
+    }
+    return false
+}
+
+// Reuse unchanged line objects (matched by id) so RecycleScroller and the line components
+// keep their existing instances/DOM; only new or changed lines get fresh objects.
+function reconcileLines(prev: ScrollerLine[], next: ScrollerLine[]): ScrollerLine[] {
+    if (!prev.length) return next
+    const byId = new Map<any, ScrollerLine>()
+    for (const l of prev) byId.set(l.id, l)
+    for (let i = 0; i < next.length; i++) {
+        const old = byId.get(next[i].id)
+        if (old && sameLine(old, next[i])) next[i] = old
+    }
+    return next
+}
+
 let _computingLines = false
 function computeLines() {
     if (_computingLines) return
@@ -187,7 +219,7 @@ function computeLines() {
             for (let i = 0; i < gl.length; i++) lines.push(gl[i])
             it = it.nextGroup()
         }
-        imageLines.value = lines //.map(l => shallowReactive(l))
+        imageLines.value = reconcileLines(imageLines.value, lines)
         console.timeEnd('compute Lines')
     } finally {
         _computingLines = false
@@ -195,6 +227,9 @@ function computeLines() {
 }
 
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
+    // Empty group: no images, so emit no image line (avoids a blank/spinner row).
+    if (!parentGroup.slots || parentGroup.slots.length === 0) return
+
     let lineWidth = totalWidth
     let newLine = []
     let actualWidth = 0
@@ -237,6 +272,9 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
 }
 
 function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], imageHeight, totalWidth, parentGroup) {
+    // Empty sha1 group: no piles, so emit no image line.
+    if (!parentGroup.children || parentGroup.children.length === 0) return
+
     let lineWidth = totalWidth
     let newLine: ImageIterator[] = []
     let actualWidth = 0

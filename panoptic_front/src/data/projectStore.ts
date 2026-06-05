@@ -160,9 +160,19 @@ export const useProjectStore = defineStore('projectStore', () => {
         await saveUiState()
     }
 
+    let _wasImporting = false
     function importTasks(tasks: TaskState[]) {
         if (!state.value) return
         state.value.tasks = tasks
+
+        // Folders are structural (not delta-synced). Refresh the folder tree + counts on
+        // both edges of an import: at the start to surface the newly created folders, and
+        // at the end to update their (now complete) instance counts.
+        const importing = tasks.some(t => t.id.includes('Import') && t.running)
+        if (importing !== _wasImporting) {
+            _wasImporting = importing
+            dataStore.reloadFolders()
+        }
     }
 
     function importSettings(settings: ProjectSettings) {

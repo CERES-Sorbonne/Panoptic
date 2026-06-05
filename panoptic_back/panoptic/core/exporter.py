@@ -77,9 +77,9 @@ class Exporter:
         else:
             rows = reader.get_instances()
 
-        all_ids     = [i.id      for i in rows if i.operation != OP_DELETE]
-        all_sha1s   = [i.sha1    for i in rows if i.operation != OP_DELETE]
-        all_file_ids = [i.file_id for i in rows if i.operation != OP_DELETE]
+        all_ids     = [i.id      for i in rows]
+        all_sha1s   = [i.sha1    for i in rows]
+        all_file_ids = [i.file_id for i in rows]
 
         if not all_ids:
             return
@@ -242,8 +242,7 @@ class Exporter:
         else:
             insts = reader.get_instances()
 
-        file_ids = [i.file_id for i in insts
-                    if i.operation != OP_DELETE and i.file_id is not None]
+        file_ids = [i.file_id for i in insts if i.file_id is not None]
         if not file_ids:
             return
 

@@ -102,6 +102,51 @@ class DataReader(SQLiteReader):
     def count_file_values(self) -> int:
         return self.conn.execute(f"SELECT COUNT(*) FROM {FILE_VALUES_SCHEMA.table}").fetchone()[0]
 
+    def count_column_values(self, prop_id: int) -> tuple[int, str]:
+        """Return (total_count, mode) for a column's value table.
+
+        Modes: 'id' = instance_values, 'sha1' = sha1_values,
+               'file' = file_values.  Tag properties return ('tag', ...).
+        """
+        from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
+
+        if prop_id in SYSTEM_PROPERTY_MAP:
+            n = self.conn.execute(f"SELECT COUNT(*) FROM {INSTANCES_SCHEMA.table}").fetchone()[0]
+            return n, 'id'
+
+        if self._is_tag_property(prop_id):
+            count = self.conn.execute(
+                f"SELECT COUNT(*) FROM {INSTANCE_TAG_VALUES_SCHEMA.table} WHERE property_id = ? AND operation = ?",
+                (prop_id, OP_CREATE),
+            ).fetchone()[0]
+            return count, 'tag'
+
+        n_id = self.conn.execute(
+            f"SELECT COUNT(*) FROM {INSTANCE_VALUES_SCHEMA.table} WHERE property_id = ?",
+            (prop_id,),
+        ).fetchone()[0]
+
+        if n_id > 0:
+            return n_id, 'id'
+
+        n_sha1 = self.conn.execute(
+            f"SELECT COUNT(*) FROM {SHA1_VALUES_SCHEMA.table} WHERE property_id = ?",
+            (prop_id,),
+        ).fetchone()[0]
+
+        if n_sha1 > 0:
+            return n_sha1, 'sha1'
+
+        n_file = self.conn.execute(
+            f"SELECT COUNT(*) FROM {FILE_VALUES_SCHEMA.table} WHERE property_id = ?",
+            (prop_id,),
+        ).fetchone()[0]
+
+        if n_file > 0:
+            return n_file, 'file'
+
+        return 0, 'id'
+
     def iter_instance_values(self, batch_size: int):
         cursor = self.conn.execute(f"SELECT * FROM {INSTANCE_VALUES_SCHEMA.table}")
         while rows := cursor.fetchmany(batch_size):
@@ -117,6 +162,76 @@ class DataReader(SQLiteReader):
         while rows := cursor.fetchmany(batch_size):
             yield [FILE_VALUES_SCHEMA._decode_row(r) for r in rows]
 
+    def iter_column_values(self, prop_id: int, mode: str, batch_size: int):
+        """Yield batches of column data for a single property.
+
+        Each batch is a dict with keys:
+            - 'ids': list[int] (instance IDs for all modes)
+            - 'values': list[str] (JSON-encoded values)
+
+        For tag properties, each value is a sparse array of tag IDs.
+        """
+        import json as _json
+
+        if mode == 'tag':
+            # Group by instance_id, yielding batches of tags
+            grouped: dict[int, list[int]] = {}
+            cursor = self.conn.execute(
+                f"SELECT instance_id, tag_id FROM {INSTANCE_TAG_VALUES_SCHEMA.table} WHERE property_id = ? AND operation = ?",
+                (prop_id, OP_CREATE),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                for instance_id, tag_id in rows:
+                    grouped.setdefault(instance_id, []).append(tag_id)
+            if grouped:
+                yield {
+                    'ids': list(grouped.keys()),
+                    'values': [_json.dumps(v) for v in grouped.values()],
+                }
+            return
+
+        if mode == 'id':
+            cursor = self.conn.execute(
+                f"SELECT instance_id, value FROM {INSTANCE_VALUES_SCHEMA.table} WHERE property_id = ?",
+                (prop_id,),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                yield {
+                    'ids': [r[0] for r in rows],
+                    'values': [_json.dumps(r[1]) for r in rows],
+                }
+            return
+
+        if mode == 'sha1':
+            # Join with instances table to get instance IDs
+            cursor = self.conn.execute(
+                f"SELECT i.id, sv.value FROM {SHA1_VALUES_SCHEMA.table} sv "
+                f"JOIN {INSTANCES_SCHEMA.table} i ON i.sha1 = sv.sha1 "
+                f"WHERE sv.property_id = ?",
+                (prop_id,),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                yield {
+                    'ids': [r[0] for r in rows],
+                    'values': [_json.dumps(r[1]) for r in rows],
+                }
+            return
+
+        if mode == 'file':
+            # Join with instances table to get instance IDs
+            cursor = self.conn.execute(
+                f"SELECT i.id, fv.value FROM {FILE_VALUES_SCHEMA.table} fv "
+                f"JOIN {INSTANCES_SCHEMA.table} i ON i.file_id = fv.file_id "
+                f"WHERE fv.property_id = ?",
+                (prop_id,),
+            )
+            while rows := cursor.fetchmany(batch_size):
+                yield {
+                    'ids': [r[0] for r in rows],
+                    'values': [_json.dumps(r[1]) for r in rows],
+                }
+            return
+
     def iter_instance_base(self, batch_size: int):
         """Yield batches of (ids, sha1s, file_ids) for all non-deleted instances.
 
@@ -125,8 +240,6 @@ class DataReader(SQLiteReader):
         """
         cursor = self.conn.execute(
             f"SELECT id, sha1, file_id FROM {INSTANCES_SCHEMA.table}"
-            f" WHERE operation != ?",
-            (OP_DELETE,),
         )
         while rows := cursor.fetchmany(batch_size):
             yield (

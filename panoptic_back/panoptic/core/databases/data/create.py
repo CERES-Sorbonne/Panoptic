@@ -4,10 +4,11 @@ from panoptic.core.databases.data.models import Commit, FileSource, Folder, File
     Sha1Value, FileValue, InstanceTagValue, Sha1TagValue
 
 COMMITS_SCHEMA = EntitySchema(Commit, table="commits")
-FILE_SOURCES_SCHEMA = EntitySchema(FileSource, table="file_sources")
-FOLDERS_SCHEMA = EntitySchema(Folder, table="folders")
-FILES_SCHEMA = EntitySchema(File, table="files")
-INSTANCES_SCHEMA = EntitySchema(Instance, table="instances")
+# Structural entities: sequenced (delta-synced) but not logged (no undo).
+FILE_SOURCES_SCHEMA = EntitySchema(FileSource, table="file_sources", sequenced=True)
+FOLDERS_SCHEMA = EntitySchema(Folder, table="folders", sequenced=True)
+FILES_SCHEMA = EntitySchema(File, table="files", sequenced=True)
+INSTANCES_SCHEMA = EntitySchema(Instance, table="instances", sequenced=True)
 PROPERTIES_SCHEMA = EntitySchema(Property, table="properties")
 PROPERTY_GROUPS_SCHEMA = EntitySchema(PropertyGroup, table="property_groups")
 TAG_LISTS_SCHEMA = EntitySchema(TagList, table="tag_lists")
@@ -158,8 +159,53 @@ def _migrate_v4_to_v5(writer):
         writer.conn.execute("ALTER TABLE properties_log ADD COLUMN property_group_id INTEGER")
 
 
+_STRUCTURAL_SCHEMAS = (FILE_SOURCES_SCHEMA, FOLDERS_SCHEMA, FILES_SCHEMA, INSTANCES_SCHEMA)
+
+
+def _make_structural_unlogged(writer):
+    """Idempotent: make the structural tables sequenced-but-not-logged.
+
+    They must not carry commit_id/operation columns and must have no _log table (imports
+    are never undone). Done by a deterministic table REBUILD — copy the surviving columns
+    into a freshly-created table — rather than ALTER ... DROP COLUMN, which can fail
+    silently on some DBs and leave the table half-migrated (breaking row decoding).
+    """
+    for schema in _STRUCTURAL_SCHEMAS:
+        t = schema.table
+        if writer._table_exists(t):
+            cols = [r[1] for r in writer.conn.execute(f"PRAGMA table_info({t})")]
+            if 'commit_id' in cols or 'operation' in cols:
+                target = [c.name for c in schema.columns]
+                if 'sequence' in cols:
+                    target.append('sequence')
+                copy = [c for c in target if c in cols]
+                csv = ', '.join(copy)
+                writer.conn.execute(f"DROP TABLE IF EXISTS {t}_old")
+                writer.conn.execute(f"ALTER TABLE {t} RENAME TO {t}_old")
+                writer.conn.executescript(schema.create_table_sql())
+                writer.conn.execute(f"INSERT INTO {t} ({csv}) SELECT {csv} FROM {t}_old")
+                writer.conn.execute(f"DROP TABLE {t}_old")
+            else:
+                # Already clean — just make sure the new indexes (e.g. sha1) exist.
+                writer.conn.executescript(schema.create_table_sql())
+        writer.conn.execute(f"DROP TABLE IF EXISTS {t}_log")
+
+
+def _migrate_v5_to_v6(writer):
+    """Structural entities become sequenced-but-not-logged (see _make_structural_unlogged)."""
+    _make_structural_unlogged(writer)
+
+
+def _migrate_v6_to_v7(writer):
+    """Repair pass: the first v5->v6 migration used ALTER ... DROP COLUMN wrapped in a
+    swallowed try/except, which could bump the version to 6 while leaving structural tables
+    still carrying commit_id/operation (breaking decoding). Re-run idempotently."""
+    _make_structural_unlogged(writer)
+
+
 datastore_desc = DbDescription(
-    version=5,
+    version=7,
     tables=tables_config,
-    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4, 4: _migrate_v4_to_v5},
+    migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4,
+                4: _migrate_v4_to_v5, 5: _migrate_v5_to_v6, 6: _migrate_v6_to_v7},
 )

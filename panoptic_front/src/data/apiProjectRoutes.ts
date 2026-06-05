@@ -154,7 +154,7 @@ export const apiAddFolder = async (folder: string) => {
 
 export const apiGetFolders = async () => {
     let res = await projectApi.get('/folders')
-    return res.data
+    return keysToCamel(res.data)
 }
 
 export const apiGetTagCounts = async (propertyId?: number) => {
@@ -387,7 +387,7 @@ export async function apiCommitUpsert(commit: DbCommit): Promise<DbCommit> {
     return keysToCamel(res.data) as DbCommit
 }
 
-export async function apiCommitDelete(commit: DbCommit): Promise<void> {
+export async function apiCommitDelete(commit: DbCommit): Promise<any> {
     const fixed: any = {}
     if (commit.emptyInstances?.length) fixed.empty_instances = commit.emptyInstances
     if (commit.emptyProperties?.length) fixed.empty_properties = commit.emptyProperties
@@ -396,7 +396,8 @@ export async function apiCommitDelete(commit: DbCommit): Promise<void> {
     if (commit.emptyInstanceValues?.length) fixed.empty_instance_values = commit.emptyInstanceValues.map(v => keysToSnake(v))
     if (commit.emptyImageValues?.length) fixed.empty_image_values = commit.emptyImageValues.map(v => keysToSnake(v))
     if (commit.emptyFileValues?.length) fixed.empty_file_values = commit.emptyFileValues.map(v => keysToSnake(v))
-    await projectApi.post('/commit/delete', fixed)
+    const res = await projectApi.post('/commit/delete', fixed)
+    return keysToCamel(res.data)
 }
 
 export async function apiGetHistory() {
@@ -493,6 +494,14 @@ export async function apiStreamInstanceBase(callback: (batch: InstanceBaseBatch)
     const projectId = usePanopticStore().connectionState?.connectedProject
     await _streamNdjson<InstanceBaseBatch>(
         `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/instances/base`,
+        callback,
+    )
+}
+
+export async function apiStreamColumn(propId: number, callback: (data: LoadResult) => void | Promise<void>) {
+    const projectId = usePanopticStore().connectionState?.connectedProject
+    await _streamNdjson<LoadResult>(
+        `${(import.meta as any).env.VITE_API_ROUTE}/projects/${projectId}/instances/column/${propId}`,
         callback,
     )
 }

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { markRaw, reactive, ref } from 'vue'
 import { LoadResult, PropertyType } from './models'
-import { apiStreamInstanceBase, projectApi } from './apiProjectRoutes'
+import { apiStreamColumn, apiStreamInstanceBase, projectApi } from './apiProjectRoutes'
 import { EventEmitter } from '@/utils/utils'
 
 export type TagSparse = (number[] | null)[]
@@ -99,6 +99,7 @@ export const useColumnStore = defineStore('columnStore', () => {
 
     const fullColumnStatus = reactive<Record<number, 'empty' | 'loading' | 'loaded'>>({})
     const _fullColumnPromise: Record<number, Promise<void>> = {}
+    const columnProgress = reactive<Record<number, { counter: number; max: number }>>({})
 
     const tagInverted: Record<number, Int32Array> = markRaw({})
     const _tagInvertedPromise: Record<number, Promise<void>> = {}
@@ -263,6 +264,16 @@ export const useColumnStore = defineStore('columnStore', () => {
     function addInstances(newIds: number[], newSha1s: string[], newFileIds: number[]) {
         if (_instanceIdPropId === null || _sha1PropId === null || _fileIdPropId === null) return
 
+        // Skip instances already registered (deltas can re-deliver the same rows).
+        if (newIds.some(id => slotMap.has(id))) {
+            const fIds: number[] = [], fSha: string[] = [], fFile: number[] = []
+            for (let i = 0; i < newIds.length; i++) {
+                if (!slotMap.has(newIds[i])) { fIds.push(newIds[i]); fSha.push(newSha1s[i]); fFile.push(newFileIds[i]) }
+            }
+            newIds = fIds; newSha1s = fSha; newFileIds = fFile
+        }
+        if (newIds.length === 0) return
+
         const oldSize = slotCount
         const newSize = oldSize + newIds.length
 
@@ -303,6 +314,7 @@ export const useColumnStore = defineStore('columnStore', () => {
             fileIds[s] = newFileIds[i]
         }
         slotCount = newSize
+        instanceCount.value = newSize
     }
 
     function markSlotDeleted(instanceId: number) {
@@ -320,21 +332,48 @@ export const useColumnStore = defineStore('columnStore', () => {
         }
 
         fullColumnStatus[propId] = 'loading'
+        columnProgress[propId] = { counter: 0, max: 0 }
+        
         _fullColumnPromise[propId] = (async () => {
             try {
-                const { data } = await projectApi.get(`/instances/column/${propId}`)
-                const ids: number[] = data.ids
-                const values: any[] = data.values
-                for (let i = 0; i < ids.length; i++) {
-                    const slot = slotMap.get(ids[i])
-                    if (slot !== undefined) writeSlot(propId, slot, values[i])
-                }
-                const col = columnData[propId]
-                if (col?.kind === 'tag') col.csr = buildCSR(col.sparse, slotCount)
+                let csrBuilt = false
+                
+                await apiStreamColumn(propId, async (data: LoadResult) => {
+                    // Update progress from state info in each batch
+                    if (data.state?.maxInstanceValue) {
+                        columnProgress[propId].max = data.state.maxInstanceValue
+                    }
+                    if (data.state?.counterInstanceValue !== undefined) {
+                        columnProgress[propId].counter = data.state.counterInstanceValue
+                    }
+
+                    // Process instance values from the batch
+                    if (data.instanceValues) {
+                        for (const chunk of data.instanceValues) {
+                            if (chunk.propertyId !== propId) continue
+                            
+                            const ids = chunk.ids || []
+                            for (let i = 0; i < ids.length; i++) {
+                                const slot = slotMap.get(ids[i])
+                                if (slot !== undefined) writeSlot(propId, slot, chunk.values[i])
+                            }
+                        }
+                    }
+
+                    // Build CSR index for tag columns after last batch
+                    if (!csrBuilt && data.instanceValues?.length) {
+                        const col = columnData[propId]
+                        if (col?.kind === 'tag') {
+                            col.csr = buildCSR(col.sparse, slotCount)
+                            csrBuilt = true
+                        }
+                    }
+                })
+
                 fullColumnStatus[propId] = 'loaded'
-            console.log(columnData[propId])
             } catch (e) {
                 fullColumnStatus[propId] = 'empty'
+                delete columnProgress[propId]
                 delete _fullColumnPromise[propId]
                 throw e
             }
@@ -509,6 +548,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         for (const k of Object.keys(columnFetched)) delete columnFetched[Number(k)]
         for (const k of Object.keys(_propTypes)) delete _propTypes[Number(k)]
         for (const k of Object.keys(fullColumnStatus)) delete fullColumnStatus[Number(k)]
+        for (const k of Object.keys(columnProgress)) delete columnProgress[Number(k)]
         for (const k of Object.keys(_fullColumnPromise)) delete _fullColumnPromise[Number(k)]
         for (const k of Object.keys(tagInverted)) delete tagInverted[Number(k)]
         for (const k of Object.keys(_tagInvertedPromise)) delete _tagInvertedPromise[Number(k)]
@@ -528,6 +568,7 @@ export const useColumnStore = defineStore('columnStore', () => {
 
         columnData, columnFetched, tagInverted,
         fullColumnStatus,
+        columnProgress,
         onSelectionChange,
         systemProps,
 

@@ -227,7 +227,6 @@ class ImportFolderTask(Task):
             id=fs_id, dtype='local',
             name=os.path.basename(self._folder_path),
             root_url=self._folder_path,
-            commit_id=0, operation=OP_CREATE,
         )
 
         for node, fid in zip(new_nodes, id_range):
@@ -235,7 +234,6 @@ class ImportFolderTask(Task):
             commit.folders[fid] = Folder(
                 id=fid, source_id=fs_id,
                 path=node['path'], name=node['name'], parent=parent_id,
-                commit_id=0, operation=OP_CREATE,
             )
             path_to_id[node['path']] = fid
 
@@ -268,11 +266,9 @@ class ImportFolderTask(Task):
                 height=info.get('height'),
                 format=info.get('format'),
                 created_at=info.get('created_at'),
-                commit_id=0, operation=OP_CREATE,
             )
             commit.instances[iid] = Instance(
                 id=iid, file_id=fid, sha1=info['sha1'],
-                commit_id=0, operation=OP_CREATE,
             )
             for type_id, data in info.get('images', []):
                 media.append(Image(type_id=type_id, sha1=info['sha1'], data=data))

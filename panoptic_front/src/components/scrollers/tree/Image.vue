@@ -10,9 +10,11 @@ import CenteredImage from '@/components/images/CenteredImage.vue'
 import TreePropertyInput from './TreePropertyInput.vue'
 import { useColumnStore } from '@/data/columnStore'
 import { useInstanceStore } from '@/data/instanceStore.js'
+import { useDataStore } from '@/data/dataStore'
 
 const panoptic = usePanopticStore()
 const store    = useColumnStore()
+const data     = useDataStore()
 
 const props = defineProps({
     image: { type: ImageIterator, required: true },
@@ -89,7 +91,9 @@ const score = computed(() => {
             </div>
         </Zoomable>
 
-        <div v-else-if="!hideImg" 
+        <!-- Spinner only while the instance base is still streaming; once loaded an
+             unresolved slot means an empty group, so render nothing instead. -->
+        <div v-else-if="!hideImg && !data.isLoaded"
             class="d-flex align-items-center justify-content-center bg-light text-muted border border-secondary-subtle"
             :style="`width: ${props.size + 2}px; height: ${props.size}px;`"
         >

@@ -10,7 +10,7 @@ import {
 import { buildPropertyGroupOrder, objValues } from './builder'
 import {
     apiAddFolder, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
-    apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
+    apiGetFolders, apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
     apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
     apiUndo,
 } from './apiProjectRoutes'
@@ -169,10 +169,14 @@ export const useDataStore = defineStore('dataStore', () => {
 
         // --- Execute Imports ---
         if (commit.instances?.length) {
+            const newIds: number[] = [], newSha1s: string[] = [], newFileIds: number[] = []
             for (const inst of commit.instances as any[]) {
                 instanceStore.instanceData[inst.id] = inst
                 dirtyInstances.add(inst.id)
+                newIds.push(inst.id); newSha1s.push(inst.sha1); newFileIds.push(inst.fileId)
             }
+            // Register new instances as column-store slots so the grid/grouping sees them.
+            columnStore.addInstances(newIds, newSha1s, newFileIds)
         }
         if (commit.propertyGroups?.length) importPropertyGroups(commit.propertyGroups)
         if (commit.properties?.length)     importProperties(commit.properties)
@@ -249,6 +253,16 @@ export const useDataStore = defineStore('dataStore', () => {
         try {
             const counts = await apiGetFolderCounts()
             applyFolderCounts(counts)
+        } catch {}
+    }
+
+    // Re-fetch the full folder tree (to surface newly imported folders) and refresh counts.
+    // Folders are structural and not delta-synced, so this is triggered around imports.
+    async function reloadFolders() {
+        try {
+            const folderList = await apiGetFolders()
+            importFolders(folderList)
+            await fetchFolderCounts()
         } catch {}
     }
 
@@ -348,7 +362,11 @@ export const useDataStore = defineStore('dataStore', () => {
         )
         let res: DbCommit = {}
         if (hasUpsert) res = await apiCommitUpsert(commit)
-        if (hasDelete) await apiCommitDelete(commit)
+        if (hasDelete) {
+            const delRes = await apiCommitDelete(commit)
+            // Instance (structural) deletes are not delta-synced → full reload.
+            if (delRes?.reload) location.reload()
+        }
         return res
     }
 
@@ -501,7 +519,10 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function deleteFolder(folderId: number) {
-        await apiDeleteFolder(folderId)
+        const res = await apiDeleteFolder(folderId)
+        // Structural deletes are not delta-synced (they would corrupt the incremental
+        // state); the server asks for a full reload instead.
+        if (res?.reload) location.reload()
     }
 
     async function undo() {
@@ -523,8 +544,10 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function deleteEmptyClones() {
-        const commit = await apiPostDeleteEmptyClones()
-        applyCommit(commit)
+        const res = await apiPostDeleteEmptyClones()
+        // Dedup hard-deletes instances (structural) → full reload rather than delta.
+        if (res?.reload) location.reload()
+        else applyCommit(res)
     }
 
     async function getPropertyOrderFromStorage() {
@@ -618,7 +641,7 @@ export const useDataStore = defineStore('dataStore', () => {
     return {
         init, clear, isLoaded, lastSequence, applyDelta, applyCommit,
         applyMultipleCommits, sendCommit,
-        fetchTagCounts, fetchFolderCounts,
+        fetchTagCounts, fetchFolderCounts, reloadFolders,
 
         folders, instances: instanceStore.instanceData, properties, tags, history,
         propertyGroups, propertyGroupsList, propertyTree, propertyOrder,

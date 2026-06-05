@@ -18,7 +18,7 @@ from panoptic.core.databases.media.models import Map, Vector, VectorType
 from panoptic.core.databases.project.models import UserDefaults
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.core.databases.data.models import (
-    Commit, DeleteCommit, File, FileSource, Folder, Instance, InstanceValue,
+    Commit, DataCommit, DeleteCommit, File, FileSource, Folder, Instance, InstanceValue,
     Property, Sha1Value, Tag, UpsertCommit, FileValue,
 )
 from panoptic.core.plugin.action_registry import ActionRegistry, build_function_description
@@ -111,6 +111,11 @@ class PluginProjectInterface:
     # ------------------------------------------------------------------
     # Write — data.db  (source is always the plugin name)
     # ------------------------------------------------------------------
+
+    def apply_commit(self, commit: DataCommit, group_id: int = None) -> Commit:
+        """Unified create/update/delete for the logged (revertable) entities."""
+        with self._data_writer() as w:
+            return w.apply_commit(self._name, commit, group_id=group_id)
 
     def apply_upsert_commit(self, commit: UpsertCommit, group_id: int = None) -> Commit:
         with self._data_writer() as w:

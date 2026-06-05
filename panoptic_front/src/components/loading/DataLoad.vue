@@ -16,6 +16,19 @@ const loadingColumns = computed(() =>
             return { id, name: data.properties[id]?.name ?? `#${id}` }
         })
 )
+
+const columnProgressMap = computed(() => {
+    const map: Record<number, number> = {}
+    for (const [idStr, progress] of Object.entries(colStore.columnProgress)) {
+        const id = Number(idStr)
+        if (progress.max > 0) {
+            map[id] = Math.round(progress.counter / progress.max * 100)
+        } else {
+            map[id] = 0
+        }
+    }
+    return map
+})
 const showPanel = computed(() => !data.isLoaded || loadingColumns.value.length > 0)
 
 const state = computed(() => data.loadState)
@@ -65,6 +78,7 @@ const pct = computed(() => {
                 >
                     <div class="label">{{ col.name }}</div>
                     <LoadWheel :loading="true" />
+                    <Percentage :current="columnProgressMap[col.id] ?? 0" :max="100" />
                 </div>
             </template>
 

@@ -13,7 +13,7 @@ from panoptic.core.databases.panoptic.models import PluginKey
 from panoptic.core.databases.project.models import ProjectConfig, TabData, UserDefaults
 from panoptic.core.databases.project.project_db import ProjectDB
 from panoptic.core.databases.data.models import (
-    Commit, DeleteCommit, File, FileSource, FileValue, Folder, Instance,
+    Commit, DataCommit, DeleteCommit, File, FileSource, FileValue, Folder, Instance,
     InstanceTagValue, InstanceValue, Property, Sha1TagValue, Sha1Value, Tag, UpsertCommit,
 )
 from panoptic.core.databases.entity_schema import OP_CREATE
@@ -288,6 +288,13 @@ class Project:
     # Writes  (DataWriter open/close per call)
     # ------------------------------------------------------------------
 
+    def apply_commit(self, source: str, commit: DataCommit, group_id: int = None) -> Commit:
+        """Unified create/update/delete for the logged (revertable) entities."""
+        with self._data_writer() as w:
+            result = w.apply_commit(source, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
+
     def apply_upsert_commit(self, source: str, commit: UpsertCommit, group_id: int = None) -> Commit:
         with self._data_writer() as w:
             result = w.apply_upsert_commit(source, commit, group_id=group_id)
@@ -295,8 +302,33 @@ class Project:
         return result
 
     def apply_delete_commit(self, source: str, commit: DeleteCommit, group_id: int = None) -> Commit:
+        # Compat shim. Structural deletes here do not garbage-collect orphaned media (a
+        # leftover blob is only wasted disk); callers that need media GC should use the
+        # dedicated delete_instances/delete_folders/delete_file_sources API.
         with self._data_writer() as w:
             result = w.apply_delete_commit(source, commit, group_id=group_id)
+        self._fire_on_commit()
+        return result
+
+    # ------------------------------------------------------------------
+    # Structural deletes (hard delete + media GC + frontend reload signal)
+    # ------------------------------------------------------------------
+
+    def delete_instances(self, instance_ids: list[int]) -> dict:
+        return self._structural_delete(lambda w: w.delete_instances(instance_ids))
+
+    def delete_folders(self, folder_ids: list[int]) -> dict:
+        return self._structural_delete(lambda w: w.delete_folders(folder_ids))
+
+    def delete_file_sources(self, source_ids: list[int]) -> dict:
+        return self._structural_delete(lambda w: w.delete_file_sources(source_ids))
+
+    def _structural_delete(self, fn) -> dict:
+        with self._data_writer() as w:
+            result = fn(w)
+        orphan_sha1s = result.get('orphan_sha1s') if result else None
+        if orphan_sha1s and self._media:
+            self._media.delete_media_for_sha1s(orphan_sha1s)
         self._fire_on_commit()
         return result
 

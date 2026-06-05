@@ -275,8 +275,15 @@ class EntitySchema(_typing.Generic[T]):
     struct_cls: type[T]
     table:      str
     chunk_size: int = _SQLITE_MAX_VARS
+    # When True, the table gets a `sequence` column + get_since() support even if it is
+    # not `logged`. `logged` tables are always sequenced. Structural tables (instances,
+    # files, folders, sources) are sequenced-but-not-logged: delta-synced, never undone.
+    sequenced:  bool = False
 
     columns:   list[Col] = field(init=False, repr=False)
+    # `trackable` == logged: has commit_id/operation columns + a <table>_log table and
+    # participates in undo/redo. Kept under this name so media/project create.py — which
+    # build log tables from `s.trackable` — need no change.
     trackable: bool      = field(init=False, repr=False)
     _pk_names: list[str] = field(init=False, repr=False)
     _json_idx: list[int] = field(init=False, repr=False)
@@ -287,10 +294,14 @@ class EntitySchema(_typing.Generic[T]):
 
     def __post_init__(self) -> None:
         self.columns, self.trackable = _introspect(self.struct_cls)
+        # logged implies sequenced
+        self.sequenced = self.trackable or self.sequenced
         self._pk_names    = [c.name for c in self.columns if c.primary_key]
         self._json_idx    = [i for i, c in enumerate(self.columns) if c.sql_type == "JSON"]
         self._array_idx = [i for i, c in enumerate(self.columns) if c.sql_type == "ARRAY"]
-        self._decode_strip = 1 if self.trackable else 0
+        # Only the `sequence` column is appended to the main row beyond the struct fields;
+        # commit_id/operation (logged) are real struct fields, so strip is driven by sequenced.
+        self._decode_strip = 1 if self.sequenced else 0
 
         if not self._pk_names:
             raise ValueError(
@@ -320,17 +331,19 @@ class EntitySchema(_typing.Generic[T]):
         if self.trackable:
             definitions.append("    commit_id INTEGER")
             definitions.append("    operation INTEGER")
+        if self.sequenced:
             definitions.append("    sequence  INTEGER")
 
         if composite_pk:
             definitions.append(f"    PRIMARY KEY ({', '.join(self._pk_names)})")
 
         extra_indexes: list[str] = []
-        if self.trackable:
+        if self.sequenced:
             extra_indexes.append(
                 f"CREATE INDEX IF NOT EXISTS idx_{self.table}_sequence"
                 f" ON {self.table} (sequence);"
             )
+        if self.trackable:
             extra_indexes.append(
                 f"CREATE INDEX IF NOT EXISTS idx_{self.table}_operation"
                 f" ON {self.table} (operation);"
@@ -390,9 +403,11 @@ class EntitySchema(_typing.Generic[T]):
                 row[i] = row[i].tobytes()
         return row
 
-    def _to_row_trackable(self, obj: T, sequence: int) -> list:
+    def _to_row_sequenced(self, obj: T, sequence: int) -> list:
+        # Include commit_id/operation only for logged structs (they are real fields).
+        n   = len(self.columns) + (2 if self.trackable else 0)
         t   = msgspec.structs.astuple(obj)
-        row = list(t[: len(self.columns) + 2])
+        row = list(t[:n])
         for i in self._json_idx:
             if row[i] is not None:
                 row[i] = json.dumps(row[i])
@@ -415,7 +430,9 @@ class EntitySchema(_typing.Generic[T]):
     def _build_upsert_sql(self, n: int) -> str:
         col_names = [c.name for c in self.columns]
         if self.trackable:
-            col_names += ["commit_id", "operation", "sequence"]
+            col_names += ["commit_id", "operation"]
+        if self.sequenced:
+            col_names += ["sequence"]
         ph = "(" + ", ".join(["?"] * len(col_names)) + ")"
         return (
             f"INSERT OR REPLACE INTO {self.table} ({', '.join(col_names)})"
@@ -654,8 +671,8 @@ class EntitySchema(_typing.Generic[T]):
         }
 
     def get_since(self, tx: Cursor, sequence: int) -> list[T]:
-        if not self.trackable:
-            raise ValueError(f"Table {self.table!r} is not trackable")
+        if not self.sequenced:
+            raise ValueError(f"Table {self.table!r} is not sequenced")
         rows = tx.execute(
             f"SELECT * FROM {self.table} WHERE sequence > ?", (sequence,)
         ).fetchall()
@@ -770,14 +787,15 @@ class EntitySchema(_typing.Generic[T]):
         if not data:
             return
 
-        if self.trackable:
-            vars_per_row = len(self.columns) + 3
+        if self.sequenced:
+            extra = (2 if self.trackable else 0) + 1  # commit_id/operation + sequence
+            vars_per_row = len(self.columns) + extra
             chunk_rows   = max(1, self.chunk_size // vars_per_row)
             for i in range(0, len(data), chunk_rows):
                 chunk  = data[i : i + chunk_rows]
                 params = []
                 for obj in chunk:
-                    params.extend(self._to_row_trackable(obj, sequence))
+                    params.extend(self._to_row_sequenced(obj, sequence))
                 tx.execute(self._build_upsert_sql(len(chunk)), params)
         else:
             vars_per_row = len(self.columns)

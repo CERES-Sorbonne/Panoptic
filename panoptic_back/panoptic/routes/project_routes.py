@@ -14,7 +14,7 @@ from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 
 from panoptic.core.databases.data.models import (
-    Commit, DeleteCommit, FileValue, Folder, Instance, Property, PropertyGroup, Sha1Value,
+    Commit, DataCommit, DeleteCommit, FileValue, Folder, Instance, Property, PropertyGroup, Sha1Value,
     Tag, InstanceValue, UpsertCommit, File, FileSource,
 )
 from panoptic.models.models import ProjectSettings
@@ -24,7 +24,11 @@ from panoptic.models.stream_models import (
     FileValuesColumn, FullInstance, ImageValuesColumn, InstanceValuesColumn,
     LoadState, StreamChunk, StreamResult, TagCount,
 )
-from panoptic.core.databases.entity_schema import OP_DELETE
+from panoptic.core.databases.entity_schema import OP_CREATE, OP_DELETE
+from panoptic.core.databases.data.create import (
+    FILES_SCHEMA, INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA,
+    INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
+)
 from panoptic.routes.deps import get_project
 
 project_router = APIRouter(prefix='/projects/{project_id}')
@@ -282,7 +286,6 @@ def get_delta(
     """
     import json as _json
     import os as _os
-    from panoptic.core.databases.entity_schema import OP_DELETE
 
     def _parse(s: str | None) -> list[int] | None:
         return [int(x) for x in s.split(',') if x] if s else None
@@ -298,9 +301,11 @@ def get_delta(
     sequence  = raw['sequence']
     file_map  = {f.id: f for f in raw['files']}
 
-    # Split entities into upserts vs deletes
-    upsert_instances  = [x for x in raw['instances']         if x.operation != OP_DELETE]
-    delete_instances  = [x.id for x in raw['instances']      if x.operation == OP_DELETE]
+    # Split entities into upserts vs deletes. Instances are structural (not logged): they
+    # carry no `operation` and are never delta-deleted — a structural delete triggers a
+    # full frontend reload instead — so every streamed instance is an upsert.
+    upsert_instances  = list(raw['instances'])
+    delete_instances  = []
     upsert_properties = [x for x in raw['properties']        if x.operation != OP_DELETE]
     delete_properties = [x.id for x in raw['properties']     if x.operation == OP_DELETE]
     upsert_tags       = [x for x in raw['tags']               if x.operation != OP_DELETE]
@@ -503,24 +508,11 @@ def reimport_folder(req: _IdRequest, project: Project = Depends(_dep)):
 
 @project_router.delete('/folder')
 def delete_folder(folder_id: int, project: Project = Depends(_dep)):
-    all_folders = project.get_folders()
-    all_files   = project.get_files()
-    all_insts   = project.get_instances()
-
-    folder_ids: set[int] = set()
-    queue = [folder_id]
-    while queue:
-        fid = queue.pop()
-        folder_ids.add(fid)
-        for f in all_folders:
-            if f.parent == fid and f.id not in folder_ids:
-                queue.append(f.id)
-
-    file_ids = {f.id for f in all_files if f.folder_id in folder_ids}
-    inst_ids = {i.id for i in all_insts if i.file_id in file_ids}
-
-    project.apply_delete_commit('ui', DeleteCommit(folders=folder_ids, files=file_ids, instances=inst_ids))
-    return {'ok': True}
+    # Hard delete: the data layer resolves the descendant folders/files/instances, cascades
+    # per-instance values + logs, and GCs orphaned sha1/file rows and media. Structural
+    # deletes are not undoable, so the frontend should full-reload.
+    project.delete_folders([folder_id])
+    return {'ok': True, 'reload': True}
 
 
 @project_router.get('/instances')
@@ -566,19 +558,186 @@ def get_property_column(
     prop_id: int,
     project: Project = Depends(_dep),
 ):
-    """Fetch all values for a single property column (lazy ColumnStore full-column load)."""
+    """Stream all values for a single property column as batched NDJSON.
+
+    Each line: {"ids": [...], "values": [...], "state": {counter_instance_value, max_instance_value}}
+    """
+    import json as _json
+
     props = {p.id: p for p in project.get_properties()}
     prop  = props.get(prop_id)
     if prop is None:
         raise HTTPException(404, f'Property {prop_id} not found')
 
-    with project._data_reader() as reader:
-        ids, values = reader.get_full_column(prop_id, prop.mode or 'id', prop.system_key)
+    from panoptic.core.databases.data.system_properties import SYSTEM_PROPERTY_MAP
 
-    return Response(
-        content=orjson.dumps({'ids': ids, 'values': values}),
-        media_type='application/json',
-    )
+    def _generate():
+        with project._data_reader() as reader:
+            mode = prop.mode or 'id'
+
+            # System properties — stream from instances table directly
+            if prop.system_key and prop.system_key in SYSTEM_PROPERTY_MAP:
+                system_def = SYSTEM_PROPERTY_MAP[prop.system_key]
+                if system_def.source == 'instance':
+                    n = reader.conn.execute(
+                        f"SELECT COUNT(*) FROM {INSTANCES_SCHEMA.table}"
+                    ).fetchone()[0]
+
+                    cursor = reader.conn.execute(
+                        f"SELECT id, {system_def.col} FROM {INSTANCES_SCHEMA.table}"
+                    )
+
+                    counter = 0
+                    while rows := cursor.fetchmany(_STREAM_BATCH):
+                        ids = [r[0] for r in rows]
+                        values = [_json.dumps(r[1]) for r in rows]
+                        counter += len(rows)
+                        yield msgspec.json.encode(StreamResult(
+                            instance_values=[InstanceValuesColumn(prop_id, ids, values)],
+                            state=LoadState(
+                                counter_instance_value=counter,
+                                max_instance_value=n,
+                            ),
+                        )) + b'\n'
+
+                else:
+                    # file-sourced system property (name, format, width, height, etc.)
+                    inst_cursor = reader.conn.execute(
+                        f"SELECT id, file_id FROM {INSTANCES_SCHEMA.table}"
+                    )
+                    inst_rows = []
+                    while rows := inst_cursor.fetchmany(_STREAM_BATCH):
+                        for r in rows:
+                            if r[1] is not None:
+                                inst_rows.append((r[0], r[1]))
+
+                    file_ids = [r[1] for r in inst_rows]
+                    file_to_val: dict[int, Any] = {}
+                    if file_ids:
+                        file_rows = FILES_SCHEMA.select(
+                            reader.conn, ['id', system_def.col], id=file_ids
+                        )
+                        file_to_val = {r[0]: r[1] for r in file_rows}
+
+                    n = len(inst_rows)
+                    counter = 0
+                    batch: dict[int, Any] = {}
+                    for inst_id, file_id in inst_rows:
+                        batch[inst_id] = file_to_val.get(file_id)
+                        counter += 1
+                        if len(batch) >= _STREAM_BATCH:
+                            ids = list(batch.keys())
+                            values = [_json.dumps(batch[i]) for i in ids]
+                            yield msgspec.json.encode(StreamResult(
+                                instance_values=[InstanceValuesColumn(prop_id, ids, values)],
+                                state=LoadState(
+                                    counter_instance_value=counter,
+                                    max_instance_value=n,
+                                ),
+                            )) + b'\n'
+                            batch = {}
+
+                    if batch:
+                        ids = list(batch.keys())
+                        values = [_json.dumps(batch[i]) for i in ids]
+                        yield msgspec.json.encode(StreamResult(
+                            instance_values=[InstanceValuesColumn(prop_id, ids, values)],
+                            state=LoadState(
+                                counter_instance_value=n,
+                                max_instance_value=n,
+                            ),
+                        )) + b'\n'
+
+                return
+
+            # Tag properties — use iter_column_values with 'tag' mode
+            if reader._is_tag_property(prop_id):
+                n, _ = reader.count_column_values(prop_id)
+
+                grouped: dict[int, list[int]] = {}
+                cursor = reader.conn.execute(
+                    f"SELECT instance_id, tag_id FROM {INSTANCE_TAG_VALUES_SCHEMA.table} "
+                    f"WHERE property_id = ? AND operation = ?",
+                    (prop_id, 1),  # OP_CREATE = 1
+                )
+
+                counter = 0
+                for row in cursor:
+                    grouped.setdefault(row[0], []).append(row[1])
+                    if len(grouped) >= _STREAM_BATCH:
+                        ids = list(grouped.keys())
+                        values = [_json.dumps(v) for v in grouped.values()]
+                        counter += len(ids)
+                        yield msgspec.json.encode(StreamResult(
+                            instance_values=[InstanceValuesColumn(prop_id, ids, values)],
+                            state=LoadState(
+                                counter_instance_value=counter,
+                                max_instance_value=n,
+                            ),
+                        )) + b'\n'
+                        grouped = {}
+
+                if grouped:
+                    ids = list(grouped.keys())
+                    values = [_json.dumps(v) for v in grouped.values()]
+                    counter += len(ids)
+                    yield msgspec.json.encode(StreamResult(
+                        instance_values=[InstanceValuesColumn(prop_id, ids, values)],
+                        state=LoadState(
+                            counter_instance_value=counter,
+                            max_instance_value=n,
+                        ),
+                    )) + b'\n'
+
+                return
+
+            # Regular properties — detect mode and stream
+            n, mode = reader.count_column_values(prop_id)
+
+            if mode == 'id':
+                cursor = reader.conn.execute(
+                    f"SELECT instance_id, value FROM {INSTANCE_VALUES_SCHEMA.table} WHERE property_id = ?",
+                    (prop_id,),
+                )
+            elif mode == 'sha1':
+                cursor = reader.conn.execute(
+                    f"SELECT i.id, sv.value FROM {SHA1_VALUES_SCHEMA.table} sv "
+                    f"JOIN {INSTANCES_SCHEMA.table} i ON i.sha1 = sv.sha1 "
+                    f"WHERE sv.property_id = ?",
+                    (prop_id,),
+                )
+            elif mode == 'file':
+                cursor = reader.conn.execute(
+                    f"SELECT i.id, fv.value FROM {FILE_VALUES_SCHEMA.table} fv "
+                    f"JOIN {INSTANCES_SCHEMA.table} i ON i.file_id = fv.file_id "
+                    f"WHERE fv.property_id = ?",
+                    (prop_id,),
+                )
+            else:
+                # No data for this property
+                yield msgspec.json.encode(StreamResult(
+                    instance_values=[InstanceValuesColumn(prop_id, [], [])],
+                    state=LoadState(
+                        counter_instance_value=0,
+                        max_instance_value=0,
+                    ),
+                )) + b'\n'
+                return
+
+            counter = 0
+            while rows := cursor.fetchmany(_STREAM_BATCH):
+                ids = [r[0] for r in rows]
+                values = [_json.dumps(r[1]) for r in rows]
+                counter += len(rows)
+                yield msgspec.json.encode(StreamResult(
+                    instance_values=[InstanceValuesColumn(prop_id, ids, values)],
+                    state=LoadState(
+                        counter_instance_value=counter,
+                        max_instance_value=n,
+                    ),
+                )) + b'\n'
+
+    return StreamingResponse(_generate(), media_type='application/x-ndjson')
 
 
 @project_router.get('/instances/base')
@@ -775,15 +934,24 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep)):
 
 @project_router.post('/commit/delete')
 def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep)):
-    delete = DeleteCommit(
-        instances=set(req.empty_instances),
-        properties=set(req.empty_properties),
-        tags=set(req.empty_tags),
-        property_groups=set(req.empty_property_groups),
+    from panoptic.core.databases.entity_schema import OP_DELETE
+
+    reload = False
+    # Structural (instances): hard delete + GC, not undoable → frontend full-reload.
+    if req.empty_instances:
+        project.delete_instances(list(req.empty_instances))
+        reload = True
+
+    # Logged (properties / tags / property_groups): unified revertable commit.
+    commit = DataCommit(
+        properties=[Property(id=i, operation=OP_DELETE) for i in req.empty_properties],
+        tags=[Tag(id=i, operation=OP_DELETE) for i in req.empty_tags],
+        property_groups=[PropertyGroup(id=i, operation=OP_DELETE) for i in req.empty_property_groups],
     )
-    if delete.instances or delete.properties or delete.tags or delete.property_groups:
-        project.apply_delete_commit('ui', delete)
-    return {'ok': True}
+    if commit.properties or commit.tags or commit.property_groups:
+        project.apply_commit('ui', commit)
+
+    return {'ok': True, 'reload': reload}
 
 
 @project_router.post('/undo')
@@ -1285,9 +1453,9 @@ def delete_empty_clones_route(project: Project = Depends(_dep)):
             to_delete.update(sorted(ids)[1:])
 
     if to_delete:
-        project.apply_delete_commit('ui', DeleteCommit(instances=to_delete))
+        project.delete_instances(list(to_delete))
 
-    return {'deleted': len(to_delete)}
+    return {'deleted': len(to_delete), 'reload': bool(to_delete)}
 
 
 # ---------------------------------------------------------------------------

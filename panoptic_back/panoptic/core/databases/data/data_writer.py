@@ -10,9 +10,11 @@ from panoptic.core.databases.entity_schema import EntitySchema, PropertyValueSch
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models.models import PropertyType
 from panoptic.core.databases.data.models import (
-    Commit, DeleteCommit, UpsertCommit, InstanceValue, Sha1Value, FileValue,
-    InstanceTagValue, Sha1TagValue, PropertyGroup
+    Commit, DeleteCommit, UpsertCommit, DataCommit, Property, Tag, PropertyGroup,
+    InstanceValue, Sha1Value, FileValue, InstanceTagValue, Sha1TagValue,
 )
+
+_SQLITE_MAX_VARS = 900
 
 OP_STAMP_SET = "stamp_set"
 OP_STAMP_DIFF = "stamp_diff"
@@ -26,7 +28,12 @@ class DataWriter(SQLiteWriter):
     def __init__(self, path: str):
         super().__init__(path=path, description=datastore_desc)
 
-    def apply_upsert_commit(self, source: str, data: UpsertCommit, group_id: int = None) -> Commit:
+    # ==================================================================
+    # Logged commit  (properties / property_groups / tags / values)
+    # ==================================================================
+
+    def apply_commit(self, source: str, data: DataCommit, group_id: int = None) -> Commit:
+        """Unified create/update/delete for the logged (revertable) entities."""
         with self.transaction() as tx:
             seq_number = self._exec_get_sequence(tx)
             current_max = tx.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()[0]
@@ -35,62 +42,224 @@ class DataWriter(SQLiteWriter):
             if group_id is None:
                 group_id = commit_id
 
-            # Process all entity types
-            self._upsert_commit_file_sources(tx, data, commit_id, seq_number)
-            self._upsert_commit_folders(tx, data, commit_id, seq_number)
-            self._upsert_commit_files(tx, data, commit_id, seq_number)
-            self._upsert_commit_instances(tx, data, commit_id, seq_number)
-            self._upsert_commit_property_groups(tx, data, commit_id, seq_number)
-            self._upsert_commit_properties(tx, data, commit_id, seq_number)
-            self._upsert_commit_tags(tx, data, commit_id, seq_number)
-            self._upsert_commit_instance_values(tx, data, commit_id, seq_number)
-            self._upsert_commit_sha1_values(tx, data, commit_id, seq_number)
-            self._upsert_commit_file_values(tx, data, commit_id, seq_number)
-            self._upsert_commit_instance_tag_values(tx, data, commit_id, seq_number)
-            self._upsert_commit_sha1_tag_values(tx, data, commit_id, seq_number)
+            # Partition into upserts (build an UpsertCommit) and deletes (id lists).
+            up = UpsertCommit()
+            del_props:  list[int] = []
+            del_groups: list[int] = []
+            del_tags:   list[int] = []
+
+            for p in data.properties:
+                (del_props.append(p.id) if p.operation == OP_DELETE else up.properties.__setitem__(p.id, p))
+            for g in data.property_groups:
+                (del_groups.append(g.id) if g.operation == OP_DELETE else up.property_groups.__setitem__(g.id, g))
+            for t in data.tags:
+                (del_tags.append(t.id) if t.operation == OP_DELETE else up.tags.__setitem__(t.id, t))
+            for iv in data.instance_values:
+                up.instance_values.setdefault(iv.property_id, []).append(iv)
+            for sv in data.sha1_values:
+                up.sha1_values.setdefault(sv.property_id, []).append(sv)
+            for fv in data.file_values:
+                up.file_values.setdefault(fv.property_id, []).append(fv)
+
+            # Deletes first: cascade while parents are still active, then soft-delete them.
+            self._delete_logged(tx, commit_id, seq_number, del_props, del_groups, del_tags)
+
+            # Upserts (logged entities + value / tag-junction tables).
+            self._upsert_commit_property_groups(tx, up, commit_id, seq_number)
+            self._upsert_commit_properties(tx, up, commit_id, seq_number)
+            self._upsert_commit_tags(tx, up, commit_id, seq_number)
+            self._upsert_commit_instance_values(tx, up, commit_id, seq_number)
+            self._upsert_commit_sha1_values(tx, up, commit_id, seq_number)
+            self._upsert_commit_file_values(tx, up, commit_id, seq_number)
+            self._upsert_commit_instance_tag_values(tx, up, commit_id, seq_number)
+            self._upsert_commit_sha1_tag_values(tx, up, commit_id, seq_number)
 
             commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now, active=True)
             COMMITS_SCHEMA.upsert(tx, commit, sequence=seq_number)
             return commit
 
-    def apply_delete_commit(self, source: str, data: DeleteCommit, group_id: int = None) -> Commit:
+    def _delete_logged(self, tx: Cursor, commit_id: int, sequence: int,
+                       prop_ids: list[int], group_ids: list[int], tag_ids: list[int]):
+        if prop_ids:
+            self._cascade_delete_properties(tx, DeleteCommit(properties=set(prop_ids)), commit_id, sequence)
+            self._delete_function(tx, PROPERTIES_SCHEMA, commit_id, sequence, id=prop_ids)
+        if tag_ids:
+            self._cascade_delete_tags(tx, DeleteCommit(tags=set(tag_ids)), commit_id, sequence)
+            self._delete_function(tx, TAGS_SCHEMA, commit_id, sequence, id=tag_ids)
+        if group_ids:
+            self._delete_function(tx, PROPERTY_GROUPS_SCHEMA, commit_id, sequence, id=group_ids)
+
+    # ------------------------------------------------------------------
+    # Backwards-compat shims (UpsertCommit / DeleteCommit)
+    # ------------------------------------------------------------------
+
+    def apply_upsert_commit(self, source: str, data: UpsertCommit, group_id: int = None) -> Commit | None:
+        """Compat shim: route structural entities to the structural API, logged → apply_commit."""
+        if data.file_sources or data.folders or data.files or data.instances:
+            self.add_structural(
+                file_sources=list(data.file_sources.values()),
+                folders=list(data.folders.values()),
+                files=list(data.files.values()),
+                instances=list(data.instances.values()),
+            )
+        commit = DataCommit(
+            properties=list(data.properties.values()),
+            property_groups=list(data.property_groups.values()),
+            tags=list(data.tags.values()),
+            instance_values=[v for vals in data.instance_values.values() for v in vals],
+            sha1_values=[v for vals in data.sha1_values.values() for v in vals],
+            file_values=[v for vals in data.file_values.values() for v in vals],
+        )
+        if (commit.properties or commit.property_groups or commit.tags
+                or commit.instance_values or commit.sha1_values or commit.file_values):
+            return self.apply_commit(source, commit, group_id=group_id)
+        return None
+
+    def apply_delete_commit(self, source: str, data: DeleteCommit, group_id: int = None) -> Commit | None:
+        """Compat shim: structural deletes are hard-deleted + GC'd; logged deletes go through
+        the unified commit."""
+        if data.instances:
+            self.delete_instances(list(data.instances))
+        if data.files:
+            self.delete_files(list(data.files))
+        if data.folders:
+            self.delete_folders(list(data.folders))
+        if data.file_sources:
+            self.delete_file_sources(list(data.file_sources))
+
+        commit = DataCommit(
+            properties=[Property(id=i, operation=OP_DELETE) for i in data.properties],
+            property_groups=[PropertyGroup(id=i, operation=OP_DELETE) for i in data.property_groups],
+            tags=[Tag(id=i, operation=OP_DELETE) for i in data.tags],
+        )
+        if commit.properties or commit.property_groups or commit.tags:
+            return self.apply_commit(source, commit, group_id=group_id)
+        return None
+
+    # ==================================================================
+    # Structural write API  (file_sources / folders / files / instances)
+    #   sequenced (delta-synced) but NOT logged: never undone, hard-deleted.
+    # ==================================================================
+
+    def add_structural(self, file_sources=None, folders=None, files=None, instances=None):
+        """Bulk insert/update structural entities. Bumps the sequence (for delta-sync) but
+        writes no commit row and no log — these are never reverted."""
         with self.transaction() as tx:
-            sequence = self._exec_get_sequence(tx)
-            current_max = tx.execute(f"SELECT COALESCE(MAX(id), 0) FROM {COMMITS_SCHEMA.table}").fetchone()[0]
-            commit_id = current_max + 1
-            now = datetime.datetime.now()
-            if group_id is None:
-                group_id = commit_id
+            seq = self._exec_get_sequence(tx)
+            if file_sources:
+                FILE_SOURCES_SCHEMA.upsert(tx, file_sources, sequence=seq)
+            if folders:
+                FOLDERS_SCHEMA.upsert(tx, folders, sequence=seq)
+            if files:
+                FILES_SCHEMA.upsert(tx, files, sequence=seq)
+            if instances:
+                INSTANCES_SCHEMA.upsert(tx, instances, sequence=seq)
 
-            # Cascade first while entities are still active in the current-state table
-            self._cascade_delete_properties(tx, data, commit_id, sequence)
-            self._cascade_delete_tags(tx, data, commit_id, sequence)
+    def delete_instances(self, instance_ids: list[int]) -> dict:
+        with self.transaction() as tx:
+            return self._delete_instances(tx, instance_ids)
 
-            # Handle revert operations for each table using the same pattern as upserts
-            if data.file_sources:
-                self._delete_function(tx, FILE_SOURCES_SCHEMA, commit_id=commit_id, sequence=sequence,
-                                      id=list(data.file_sources))
-            if data.folders:
-                self._delete_function(tx, FOLDERS_SCHEMA, commit_id=commit_id, sequence=sequence, id=list(data.folders))
+    def delete_files(self, file_ids: list[int]) -> dict:
+        with self.transaction() as tx:
+            return self._delete_files(tx, file_ids)
 
-            if data.files:
-                self._delete_function(tx, FILES_SCHEMA, commit_id=commit_id, sequence=sequence, id=list(data.files))
+    def delete_folders(self, folder_ids: list[int]) -> dict:
+        with self.transaction() as tx:
+            return self._delete_folders(tx, folder_ids)
 
-            if data.instances:
-                self._delete_function(tx, INSTANCES_SCHEMA, commit_id=commit_id, sequence=sequence,
-                                      id=list(data.instances))
-            if data.properties:
-                self._delete_function(tx, PROPERTIES_SCHEMA, commit_id=commit_id, sequence=sequence,
-                                      id=list(data.properties))
-            if data.tags:
-                self._delete_function(tx, TAGS_SCHEMA, commit_id=commit_id, sequence=sequence, id=list(data.tags))
-            if data.property_groups:
-                self._delete_function(tx, PROPERTY_GROUPS_SCHEMA, commit_id=commit_id, sequence=sequence,
-                                      id=list(data.property_groups))
+    def delete_file_sources(self, source_ids: list[int]) -> dict:
+        with self.transaction() as tx:
+            folder_ids = [r[0] for r in FOLDERS_SCHEMA.select(tx, ['id'], source_id=source_ids)]
+            result = self._delete_folders(tx, folder_ids)
+            if source_ids:
+                FILE_SOURCES_SCHEMA.delete_by_pk(tx, source_ids)
+            return result
 
-            commit = Commit(id=commit_id, group_id=group_id, source=source, timestamp=now, active=True)
-            COMMITS_SCHEMA.upsert(tx, commit, sequence=sequence)
-            return commit
+    # --- internal (tx-scoped) structural deletes ---
+
+    def _delete_instances(self, tx: Cursor, instance_ids: list[int]) -> dict:
+        if not instance_ids:
+            return {'orphan_sha1s': [], 'orphan_file_ids': []}
+        # Capture candidate shared keys BEFORE the instances disappear.
+        rows = INSTANCES_SCHEMA.select(tx, ['sha1', 'file_id'], id=instance_ids)
+        cand_sha1s = {r[0] for r in rows if r[0]}
+        cand_files = {r[1] for r in rows if r[1] is not None}
+        # Per-instance value rows (current + log).  (Phase 4 turns this into FK cascade.)
+        self._delete_instance_values(tx, instance_ids)
+        # Hard-delete the instances themselves.
+        INSTANCES_SCHEMA.delete_by_pk(tx, instance_ids)
+        # GC the shared (sha1-/file-keyed) rows that just lost their last instance.
+        return self._gc_orphans(tx, cand_sha1s, cand_files)
+
+    def _delete_files(self, tx: Cursor, file_ids: list[int]) -> dict:
+        if not file_ids:
+            return {'orphan_sha1s': [], 'orphan_file_ids': []}
+        inst_ids = [r[0] for r in INSTANCES_SCHEMA.select(tx, ['id'], file_id=file_ids)]
+        result = self._delete_instances(tx, inst_ids)
+        self._delete_file_values(tx, file_ids)
+        FILES_SCHEMA.delete_by_pk(tx, file_ids)
+        return result
+
+    def _delete_folders(self, tx: Cursor, folder_ids: list[int]) -> dict:
+        if not folder_ids:
+            return {'orphan_sha1s': [], 'orphan_file_ids': []}
+        all_folders = self._descendant_folders(tx, folder_ids)
+        file_ids = [r[0] for r in FILES_SCHEMA.select(tx, ['id'], folder_id=all_folders)]
+        result = self._delete_files(tx, file_ids)
+        FOLDERS_SCHEMA.delete_by_pk(tx, all_folders)
+        return result
+
+    def _descendant_folders(self, tx: Cursor, folder_ids: list[int]) -> list[int]:
+        seen = set(folder_ids)
+        frontier = list(folder_ids)
+        while frontier:
+            children = [r[0] for r in FOLDERS_SCHEMA.select(tx, ['id'], parent=frontier)]
+            frontier = [c for c in children if c not in seen]
+            seen.update(frontier)
+        return list(seen)
+
+    # --- Python-driven orphan GC ---
+
+    def _gc_orphans(self, tx: Cursor, cand_sha1s, cand_file_ids) -> dict:
+        orphan_sha1s = [s for s in cand_sha1s if not self._sha1_has_instance(tx, s)]
+        orphan_files = [f for f in cand_file_ids if not self._file_has_instance(tx, f)]
+        if orphan_sha1s:
+            for table in (SHA1_VALUES_SCHEMA.table, SHA1_TAG_VALUES_SCHEMA.table):
+                self._delete_where_in(tx, table, 'sha1', orphan_sha1s)
+                self._delete_where_in(tx, f'{table}_log', 'sha1', orphan_sha1s)
+        if orphan_files:
+            self._delete_file_values(tx, orphan_files)
+            FILES_SCHEMA.delete_by_pk(tx, orphan_files)
+        return {'orphan_sha1s': orphan_sha1s, 'orphan_file_ids': orphan_files}
+
+    def _delete_instance_values(self, tx: Cursor, instance_ids: list[int]):
+        for table in (INSTANCE_VALUES_SCHEMA.table, INSTANCE_TAG_VALUES_SCHEMA.table):
+            self._delete_where_in(tx, table, 'instance_id', instance_ids)
+            self._delete_where_in(tx, f'{table}_log', 'instance_id', instance_ids)
+
+    def _delete_file_values(self, tx: Cursor, file_ids: list[int]):
+        self._delete_where_in(tx, FILE_VALUES_SCHEMA.table, 'file_id', file_ids)
+        self._delete_where_in(tx, f'{FILE_VALUES_SCHEMA.table}_log', 'file_id', file_ids)
+
+    @staticmethod
+    def _sha1_has_instance(tx: Cursor, sha1: str) -> bool:
+        return tx.execute(
+            f"SELECT 1 FROM {INSTANCES_SCHEMA.table} WHERE sha1 = ? LIMIT 1", (sha1,)
+        ).fetchone() is not None
+
+    @staticmethod
+    def _file_has_instance(tx: Cursor, file_id: int) -> bool:
+        return tx.execute(
+            f"SELECT 1 FROM {INSTANCES_SCHEMA.table} WHERE file_id = ? LIMIT 1", (file_id,)
+        ).fetchone() is not None
+
+    @staticmethod
+    def _delete_where_in(tx: Cursor, table: str, col: str, values: list):
+        values = list(values)
+        for i in range(0, len(values), _SQLITE_MAX_VARS):
+            chunk = values[i:i + _SQLITE_MAX_VARS]
+            ph = ", ".join(["?"] * len(chunk))
+            tx.execute(f"DELETE FROM {table} WHERE {col} IN ({ph})", chunk)
 
     def set_commit_active(self, commit_id: int, active: bool):
         with self.transaction() as tx:
@@ -112,10 +281,8 @@ class DataWriter(SQLiteWriter):
                 pks = shema.extract_pks(logs)
                 shema.re_compute(tx, pk_list=pks, sequence=sequence, disabled_commits=disabled)
 
-            re_compute(FILE_SOURCES_SCHEMA)
-            re_compute(FILES_SCHEMA)
-            re_compute(FOLDERS_SCHEMA)
-            re_compute(INSTANCES_SCHEMA)
+            # Structural schemas (file_sources/files/folders/instances) are not logged and
+            # never participate in undo/redo — only the editable/logged entities are replayed.
             re_compute(PROPERTY_GROUPS_SCHEMA)
             re_compute(PROPERTIES_SCHEMA)
             re_compute(TAGS_SCHEMA)
@@ -159,79 +326,7 @@ class DataWriter(SQLiteWriter):
 
 
 
-    # --- Upsert Handlers ---
-
-    def _upsert_commit_file_sources(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
-        if not data.file_sources: return
-        sources = list(data.file_sources.values())
-        set_commit(sources, commit_id)
-
-        # Get existing state indexed by ID
-        existing = FILE_SOURCES_SCHEMA.get_index(tx, id=list(data.file_sources.keys()))
-
-        for s in sources:
-            s.operation = OP_CREATE if s.id not in existing else OP_UPDATE
-
-        updated = [
-            FILE_SOURCES_SCHEMA.merge_logs([existing.get(s.id), s])
-            for s in sources
-        ]
-        FILE_SOURCES_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
-        FILE_SOURCES_SCHEMA.append_log(tx, objs=sources, commit_id=commit_id)
-
-    def _upsert_commit_folders(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
-        if not data.folders: return
-        folders = list(data.folders.values())
-        set_commit(folders, commit_id)
-
-        existing = FOLDERS_SCHEMA.get_index(tx, id=list(data.folders.keys()))
-
-        for f in folders:
-            f.operation = OP_CREATE if f.id not in existing else OP_UPDATE
-
-        updated = [
-            FOLDERS_SCHEMA.merge_logs([existing.get(f.id), f])
-            for f in folders
-        ]
-
-        FOLDERS_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
-        FOLDERS_SCHEMA.append_log(tx, objs=folders, commit_id=commit_id)
-
-    def _upsert_commit_files(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
-        if not data.files: return
-        files = list(data.files.values())
-        set_commit(files, commit_id)
-
-        existing = FILES_SCHEMA.get_index(tx, id=list(data.files.keys()))
-
-        for f in files:
-            f.operation = OP_CREATE if f.id not in existing else OP_UPDATE
-
-        updated = [
-            FILES_SCHEMA.merge_logs([existing.get(f.id), f])
-            for f in files
-        ]
-
-        FILES_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
-        FILES_SCHEMA.append_log(tx, objs=files, commit_id=commit_id)
-
-    def _upsert_commit_instances(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
-        if not data.instances: return
-        instances = list(data.instances.values())
-        set_commit(instances, commit_id)
-
-        existing = INSTANCES_SCHEMA.get_index(tx, id=list(data.instances.keys()))
-
-        for i in instances:
-            i.operation = OP_CREATE if i.id not in existing else OP_UPDATE
-
-        updated = [
-            INSTANCES_SCHEMA.merge_logs([existing.get(i.id), i])
-            for i in instances
-        ]
-
-        INSTANCES_SCHEMA.upsert(tx, objs=updated, sequence=seq_number)
-        INSTANCES_SCHEMA.append_log(tx, objs=instances, commit_id=commit_id)
+    # --- Upsert Handlers (logged entities only) ---
 
     def _upsert_commit_property_groups(self, tx: Cursor, data: UpsertCommit, commit_id: int, seq_number: int):
         if not data.property_groups: return
