@@ -1,0 +1,61 @@
+id;Prop1[text];Prop2[number];Prop3[tag];Prop4[multi_tags]
+1;mu;1395.38;tag_17;tag_1,tag_0,tag_2,tag_6
+2;iota;7013.25;tag_14;tag_5
+3;epsilon delta mu;3799.27;tag_11;tag_14
+4;beta epsilon kappa xi;1922.89;tag_7;tag_7
+5;;4534.1;;tag_6,tag_8,tag_2
+6;iota delta;2699.48;;tag_10,tag_1
+7;nu;661.89;;tag_6,tag_15,tag_12
+8;;1428.72;tag_17;tag_18,tag_12,tag_11,tag_7
+9;;4935.16;tag_3;tag_13,tag_2
+10;theta omicron nu alpha;6817.1;tag_8;tag_3,tag_9,tag_13
+11;omicron;;tag_16;tag_9
+12;;1989.11;tag_5;tag_19
+13;beta;9853.21;;tag_18,tag_2
+14;nu omicron theta beta;9468.49;tag_16;
+15;xi mu;7129.49;tag_11;tag_3,tag_7,tag_18,tag_2
+16;iota alpha;588.74;tag_1;
+17;epsilon theta;7233.53;;tag_15,tag_13
+18;kappa;4111.02;;tag_1
+19;nu beta gamma;1401.82;tag_14;tag_14
+20;;;tag_17;
+21;;;;tag_15,tag_6,tag_12,tag_1
+22;omicron;7840.71;tag_13;tag_4,tag_6,tag_9,tag_18
+23;;5421.95;tag_1;tag_16,tag_19,tag_5,tag_1
+24;;1858.25;tag_7;tag_18,tag_1
+25;kappa iota epsilon delta;3141.84;tag_4;tag_14,tag_10,tag_2
+26;beta;2652.0;;
+27;;1577.47;;tag_17
+28;omicron;1154.29;tag_17;tag_19,tag_6,tag_10
+29;theta delta xi;6342.84;;tag_4,tag_8,tag_5
+30;iota beta omicron lambda;360.28;tag_17;tag_1,tag_9
+31;xi;2495.3;tag_17;
+32;xi delta;7998.87;tag_13;tag_13,tag_7,tag_8
+33;zeta;4706.9;tag_14;tag_7,tag_0
+34;epsilon nu omicron epsilon;3996.78;;tag_3
+35;;5805.9;;tag_11,tag_10,tag_13,tag_16
+36;delta lambda;9255.75;tag_6;tag_10
+37;lambda;3092.85;tag_12;tag_6,tag_13
+38;lambda xi kappa epsilon;4.06;tag_13;tag_14,tag_19,tag_18
+39;mu omicron mu kappa;6638.54;tag_2;
+40;delta gamma alpha;4751.36;;tag_18,tag_6,tag_12,tag_15
+41;kappa alpha;7700.46;tag_13;tag_1,tag_17,tag_7,tag_3
+42;lambda omicron iota omicron;;tag_16;tag_5,tag_15,tag_14,tag_8
+43;mu theta kappa;774.83;tag_8;tag_4
+44;lambda lambda alpha eta;4157.74;tag_13;tag_18
+45;omicron;3899.87;;
+46;theta epsilon;3888.57;tag_12;tag_4,tag_17,tag_0,tag_12
+47;beta;8668.51;tag_8;tag_14,tag_10
+48;epsilon omicron eta nu;7490.24;tag_11;tag_1
+49;gamma alpha;1262.21;tag_18;
+50;mu gamma kappa;1145.33;;
+51;xi;9080.26;tag_6;tag_3,tag_9
+52;;1210.55;;tag_17,tag_13,tag_11
+53;alpha eta theta;3621.88;;tag_13,tag_5
+54;kappa xi mu;8257.35;tag_10;
+55;;8816.31;tag_14;tag_10,tag_0,tag_15,tag_19
+56;zeta delta;5961.55;;tag_2,tag_7
+57;iota delta theta lambda;172.43;tag_12;tag_18,tag_11,tag_15
+58;eta mu epsilon;2709.16;tag_3;tag_3,tag_17,tag_5
+59;epsilon iota mu iota;;;tag_5,tag_9,tag_0
+60;epsilon omicron;6974.17;tag_15;tag_18

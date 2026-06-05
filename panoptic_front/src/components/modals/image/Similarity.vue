@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { Group, GroupManager, SelectedImages } from '@/core/GroupManager';
-import { ActionResult, GroupScoreList, Instance, ScoreInterval } from '@/data/models';
+import { GroupManager, GroupType, SelectedImages, buildGroup } from '@/core/GroupManager';
+import { ActionResult, Instance, ScoreInterval } from '@/data/models';
 import { useColumnStore } from '@/data/columnStore';
-import { computed, nextTick, onMounted, Reactive, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, markRaw, nextTick, onMounted, Reactive, reactive, ref, watch } from 'vue';
 import { watchDebounced } from '@vueuse/core';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
 import { useActionStore } from '@/data/actionStore';
 import { useDataStore } from '@/data/dataStore';
-import ActionSelect from '@/components/actions/ActionSelect.vue';
-import { convertSearchGroupResult, deepCopy, sortGroupByScore } from '@/utils/utils';
 import Slider from '@vueform/slider'
 import { useProjectStore } from '@/data/projectStore';
 import { useTabStore } from '@/data/tabStore';
@@ -20,6 +18,8 @@ const actions = useActionStore()
 const data = useDataStore()
 const project = useProjectStore()
 const tabStore = useTabStore()
+
+type ScoreMeta = { min: number, max: number, maxIsBest: boolean, description: string }
 
 const props = defineProps<{
     image: Instance
@@ -45,7 +45,14 @@ function scheduleUpdate() {
     })
 }
 
-const searchResult = shallowRef<Group>(null)
+// Raw search state kept in column-store *slot* space so filtering/sorting
+// never has to go slot -> instanceId -> score. `searchSlots` is sorted by
+// score; `slotScore` maps a slot directly to its raw score.
+let searchSlots: number[] = []
+const slotScore = markRaw(new Map<number, number>())
+let scoreMeta: ScoreMeta | null = null
+const hasResult = ref(false)
+
 const scoreInterval: Reactive<ScoreInterval> = reactive({
     min: 0,
     max: 100,
@@ -56,60 +63,103 @@ const scoreInterval: Reactive<ScoreInterval> = reactive({
 
 const properties = computed(() => Object.keys(props.visibleProperties).map(k => data.properties[k]))
 
+// Build the slot list + per-slot scores from a raw search result. The sha1
+// path does a single pass over the column-store arrays (O(slotCount)) instead
+// of one full scan per sha1 (getInstancesBySha1), so it scales to far larger
+// result sets.
+function processResult(res: ActionResult) {
+    if (!res || !res.groups || !res.groups.length) return
+    const col = useColumnStore()
+    const group = res.groups[0]
+    const hasScores = !!group.scores
+
+    slotScore.clear()
+    const slots: number[] = []
+
+    if (group.ids) {
+        const ids = group.ids
+        for (let i = 0; i < ids.length; i++) {
+            const s = col.slotMap.get(ids[i])
+            if (s === undefined) continue
+            slots.push(s)
+            if (hasScores) slotScore.set(s, group.scores.values[i])
+        }
+    } else {
+        const resultSha1s = group.sha1s ?? []
+        const sha1ToScore = new Map<string, number>()
+        for (let i = 0; i < resultSha1s.length; i++) {
+            sha1ToScore.set(resultSha1s[i], hasScores ? group.scores.values[i] : 0)
+        }
+        const allSha1 = col.sha1s()
+        const deleted = col.deletedMask()
+        const n = col.slotCount()
+        for (let s = 0; s < n; s++) {
+            if (deleted[s]) continue
+            const sha1 = allSha1[s]
+            if (sha1 === null) continue
+            const score = sha1ToScore.get(sha1)
+            if (score === undefined) continue
+            slots.push(s)
+            if (hasScores) slotScore.set(s, score)
+        }
+    }
+
+    if (hasScores) {
+        const dir = group.scores.maxIsBest ? -1 : 1
+        slots.sort((a, b) => (slotScore.get(a) - slotScore.get(b)) * dir)
+        scoreMeta = {
+            min: group.scores.min,
+            max: group.scores.max,
+            maxIsBest: group.scores.maxIsBest,
+            description: group.scores.description
+        }
+    } else {
+        scoreMeta = null
+    }
+
+    searchSlots = slots
+    hasResult.value = true
+
+    setDefaultInterval()
+    if (scoreMeta) updateInterval(scoreMeta)
+    scheduleUpdate()
+}
+
 async function setSimilar() {
     if (!actions.hasSimilaryFunction) return
     const func = actions.defaultActions['similar']
     const ctx = actions.getContext(func)
-    console.log(ctx.uiInputs)
     ctx.instanceIds = [props.image.id]
     const res = await actions.getSimilarImages(ctx)
-    if (!res || !res.groups) return
-    let groups = convertSearchGroupResult(res.groups)
-    let group = groups[0]
-    if (group.scores) {
-        sortGroupByScore(group)
-    }
-    searchResult.value = group
-    setDefaultInterval()
-    updateInterval(group.scores)
-    scheduleUpdate()
+    processResult(res)
 }
 
 async function importSimilar(res: ActionResult) {
-    if (!res || !res.groups) return
-    let groups = convertSearchGroupResult(res.groups)
-    let group = groups[0]
-    if (group.scores) {
-        sortGroupByScore(group)
-    }
-    searchResult.value = group
-    setDefaultInterval()
-    updateInterval(group.scores)
-    scheduleUpdate()
+    processResult(res)
 }
 
 async function updateSimilarGroup() {
-    if (!searchResult.value) return
-    const col = useColumnStore()
-    const instanceIds = col.instanceIds()
+    if (!hasResult.value) return
 
-    let group = { ...searchResult.value }
-    let slots = [...group.slots]
+    let slots = searchSlots
 
     if (useFilter.value) {
         const validSlots = new Set(tabStore.getMainTab().collection.filterManager.result.slots)
         slots = slots.filter(s => validSlots.has(s))
     }
 
-    if (group.scores) {
+    if (scoreMeta) {
+        const lo = scoreInterval.values[0]
+        const hi = scoreInterval.values[1]
         slots = slots.filter(s => {
-            const score = group.scores.valueIndex[instanceIds[s]]
-            return score >= scoreInterval.values[0] && score <= scoreInterval.values[1]
+            const score = slotScore.get(s)
+            return score >= lo && score <= hi
         })
     }
 
-    group.slots = slots
-    await similarGroup.setAsRoot(group)
+    // `slots` may still be a reference to `searchSlots` when no filter ran;
+    // setAsRoot copies it, so that's safe.
+    await similarGroup.setAsRoot(buildGroup(0, slots, GroupType.Cluster))
 
     if (scrollerElem.value) {
         scrollerElem.value.computeLines()
@@ -121,7 +171,7 @@ function toggleFilter() {
     useFilter.value = !useFilter.value
 }
 
-function updateInterval(score: GroupScoreList) {
+function updateInterval(score: ScoreMeta) {
     let minEq = score.min === scoreInterval.min
     let maxEq = score.max === scoreInterval.max
     let bestEq = score.maxIsBest === scoreInterval.maxIsBest
