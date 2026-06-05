@@ -498,10 +498,11 @@ export class FilterManager {
         return this.result
     }
 
-    async update(slots: Int32Array, emit?: boolean) {
-        await this.filter(slots)
-        if (emit) this.onResultChange.emit(this.result)
-        return this.result
+    // Re-runs the filter on the last full slot set (recorded by filter()) and
+    // emits so the collection re-sorts/re-groups. Call sites pass emit=true.
+    async update(emit?: boolean) {
+        if (!this.lastSlots) return this.result
+        return this.filter(this.lastSlots, emit)
     }
 
     // Incremental update: re-filters only the dirty subset, splices into result.
