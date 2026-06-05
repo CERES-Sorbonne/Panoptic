@@ -347,15 +347,18 @@ export const useColumnStore = defineStore('columnStore', () => {
                         columnProgress[propId].counter = data.state.counterInstanceValue
                     }
 
-                    // Process instance values from the batch
+                    // Process instance values from the batch. Each value arrives JSON-encoded
+                    // (the backend re-encodes every cell), so parse it before writing — matches
+                    // updateFromLoadResult. Without this, dates/strings/tags become NaN/garbage.
                     if (data.instanceValues) {
+                        const parseValue = (v: any) => typeof v === 'string' ? JSON.parse(v) : v
                         for (const chunk of data.instanceValues) {
                             if (chunk.propertyId !== propId) continue
-                            
+
                             const ids = chunk.ids || []
                             for (let i = 0; i < ids.length; i++) {
                                 const slot = slotMap.get(ids[i])
-                                if (slot !== undefined) writeSlot(propId, slot, chunk.values[i])
+                                if (slot !== undefined) writeSlot(propId, slot, parseValue(chunk.values[i]))
                             }
                         }
                     }
@@ -371,6 +374,7 @@ export const useColumnStore = defineStore('columnStore', () => {
                 })
 
                 fullColumnStatus[propId] = 'loaded'
+                console.log(columnData[propId])
             } catch (e) {
                 fullColumnStatus[propId] = 'empty'
                 delete columnProgress[propId]

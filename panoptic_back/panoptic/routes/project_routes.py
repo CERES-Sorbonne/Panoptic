@@ -44,6 +44,12 @@ def _json(obj) -> Response:
     return Response(msgspec.json.encode(obj), media_type='application/json')
 
 
+def _dumps(v) -> str:
+    """JSON-encode a single column value to a string. Uses orjson so datetimes (e.g. the
+    created_at system column) serialize to ISO strings instead of raising."""
+    return orjson.dumps(v, option=orjson.OPT_SERIALIZE_NUMPY).decode()
+
+
 def _dep(project_id: str) -> Project:
     return get_project(project_id)
 
@@ -191,7 +197,7 @@ def stream_db_state(project: Project = Depends(_dep)):
                 for iv in batch:
                     col = iv_cols.setdefault(iv.property_id, InstanceValuesColumn(iv.property_id, [], []))
                     col.ids.append(iv.instance_id)
-                    col.values.append(_json.dumps(iv.value))
+                    col.values.append(_dumps(iv.value))
                 iv_counter += len(batch)
                 yield msgspec.json.encode(StreamResult(
                     instance_values=list(iv_cols.values()),
@@ -211,7 +217,7 @@ def stream_db_state(project: Project = Depends(_dep)):
                 for sv in batch:
                     col = sv_cols.setdefault(sv.property_id, ImageValuesColumn(sv.property_id, [], []))
                     col.sha1s.append(sv.sha1)
-                    col.values.append(_json.dumps(sv.value))
+                    col.values.append(_dumps(sv.value))
                 sv_counter += len(batch)
                 yield msgspec.json.encode(StreamResult(
                     image_values=list(sv_cols.values()),
@@ -233,7 +239,7 @@ def stream_db_state(project: Project = Depends(_dep)):
                 for fv in batch:
                     col = fv_cols.setdefault(fv.property_id, FileValuesColumn(fv.property_id, [], []))
                     col.file_ids.append(fv.file_id)
-                    col.values.append(_json.dumps(fv.value))
+                    col.values.append(_dumps(fv.value))
                 fv_counter += len(batch)
                 yield msgspec.json.encode(StreamResult(
                     file_values=list(fv_cols.values()),
@@ -351,19 +357,19 @@ def get_delta(
     for iv in upsert_iv:
         col = iv_cols.setdefault(iv.property_id, InstanceValuesColumn(iv.property_id, [], []))
         col.ids.append(iv.instance_id)
-        col.values.append(_json.dumps(iv.value))
+        col.values.append(_dumps(iv.value))
 
     sv_cols: dict[int, ImageValuesColumn] = {}
     for sv in upsert_sv:
         col = sv_cols.setdefault(sv.property_id, ImageValuesColumn(sv.property_id, [], []))
         col.sha1s.append(sv.sha1)
-        col.values.append(_json.dumps(sv.value))
+        col.values.append(_dumps(sv.value))
 
     fv_cols: dict[int, FileValuesColumn] = {}
     for fv in upsert_fv:
         col = fv_cols.setdefault(fv.property_id, FileValuesColumn(fv.property_id, [], []))
         col.file_ids.append(fv.file_id)
-        col.values.append(_json.dumps(fv.value))
+        col.values.append(_dumps(fv.value))
 
     all_finished = LoadState(
         finished_property=True, finished_instance=True, finished_tags=True,
@@ -590,7 +596,7 @@ def get_property_column(
                     counter = 0
                     while rows := cursor.fetchmany(_STREAM_BATCH):
                         ids = [r[0] for r in rows]
-                        values = [_json.dumps(r[1]) for r in rows]
+                        values = [_dumps(r[1]) for r in rows]
                         counter += len(rows)
                         yield msgspec.json.encode(StreamResult(
                             instance_values=[InstanceValuesColumn(prop_id, ids, values)],
@@ -627,7 +633,7 @@ def get_property_column(
                         counter += 1
                         if len(batch) >= _STREAM_BATCH:
                             ids = list(batch.keys())
-                            values = [_json.dumps(batch[i]) for i in ids]
+                            values = [_dumps(batch[i]) for i in ids]
                             yield msgspec.json.encode(StreamResult(
                                 instance_values=[InstanceValuesColumn(prop_id, ids, values)],
                                 state=LoadState(
@@ -639,7 +645,7 @@ def get_property_column(
 
                     if batch:
                         ids = list(batch.keys())
-                        values = [_json.dumps(batch[i]) for i in ids]
+                        values = [_dumps(batch[i]) for i in ids]
                         yield msgspec.json.encode(StreamResult(
                             instance_values=[InstanceValuesColumn(prop_id, ids, values)],
                             state=LoadState(
@@ -666,7 +672,7 @@ def get_property_column(
                     grouped.setdefault(row[0], []).append(row[1])
                     if len(grouped) >= _STREAM_BATCH:
                         ids = list(grouped.keys())
-                        values = [_json.dumps(v) for v in grouped.values()]
+                        values = [_dumps(v) for v in grouped.values()]
                         counter += len(ids)
                         yield msgspec.json.encode(StreamResult(
                             instance_values=[InstanceValuesColumn(prop_id, ids, values)],
@@ -679,7 +685,7 @@ def get_property_column(
 
                 if grouped:
                     ids = list(grouped.keys())
-                    values = [_json.dumps(v) for v in grouped.values()]
+                    values = [_dumps(v) for v in grouped.values()]
                     counter += len(ids)
                     yield msgspec.json.encode(StreamResult(
                         instance_values=[InstanceValuesColumn(prop_id, ids, values)],
@@ -727,7 +733,7 @@ def get_property_column(
             counter = 0
             while rows := cursor.fetchmany(_STREAM_BATCH):
                 ids = [r[0] for r in rows]
-                values = [_json.dumps(r[1]) for r in rows]
+                values = [_dumps(r[1]) for r in rows]
                 counter += len(rows)
                 yield msgspec.json.encode(StreamResult(
                     instance_values=[InstanceValuesColumn(prop_id, ids, values)],

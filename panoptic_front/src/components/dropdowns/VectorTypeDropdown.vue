@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, onMounted, watch } from 'vue'
-import SelectDropdown, { SelectOption } from '../dropdowns/SelectDropdown.vue';
+import { ref, onMounted, watch } from 'vue'
+import SelectDropdown from '../dropdowns/SelectDropdown.vue';
 import { useMediaStore } from '@/data/mediaStore';
-import { VectorType } from '@/data/models';
+import { SelectOption, VectorType } from '@/data/models';
 
 const media = useMediaStore()
 const props = defineProps<{

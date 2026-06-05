@@ -44,7 +44,7 @@ const visiblePropertiesNb = computed(() => props.properties.length)
 const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1))
 const visiblePropertiesClusterNb = computed(() => visiblePropertiesCluster.value.length)
 
-const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize))
+const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize * 1.5))
 
 const imageLineSize = computed(() => {
     let nb = visiblePropertiesNb.value
