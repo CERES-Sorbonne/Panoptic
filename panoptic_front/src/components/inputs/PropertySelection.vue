@@ -35,7 +35,13 @@ const filteredProperties = computed(() => {
         properties = properties.filter(p => props.acceptableTypes?.includes(p.type))
     }
 
-    return properties.filter(p => p.name.toLocaleLowerCase().includes(propertyFilter.value.toLocaleLowerCase()))
+    const filtered = properties.filter(p => p.name.toLocaleLowerCase().includes(propertyFilter.value.toLocaleLowerCase()))
+
+    // Sort by propertyOrder
+    const order = data.propertyOrder.properties || {}
+    filtered.sort((a, b) => (order[a.id] ?? Infinity) - (order[b.id] ?? Infinity))
+
+    return filtered
 })
 
 </script>

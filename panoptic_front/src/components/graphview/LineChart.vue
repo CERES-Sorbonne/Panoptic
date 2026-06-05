@@ -2,7 +2,9 @@
 
 import { ref } from 'vue'
 import { PropertyType } from '@/data/models';
+import { useInstanceStore } from '@/data/instanceStore'
 
+const instanceStore = useInstanceStore()
 const props = defineProps({
     chartData: {
         series: Array,
@@ -66,9 +68,12 @@ const chartOptions = ref({
             // console.log(currentDataPoint)
 
             let imagesHTML = '<div style="display: grid; grid-template-columns: repeat(5, 1fr); grid-gap: 5px;">';
-            currentDataPoint.images.forEach((image, index) => {
+            currentDataPoint.instanceIds.forEach((instanceId, index) => {
                 if (index < 10) { // Ne traiter que les 9 premières images
-                    imagesHTML += `<div style="width: 75px; height: 75px;"><img src="${image}" style="width: 100%; height: 100%;" /></div>`;
+                    const inst = instanceStore.instanceData[instanceId]
+                    if (inst) {
+                        imagesHTML += `<div style="width: 75px; height: 75px;"><img src="${inst.imageUrl}?size=256" style="width: 100%; height: 100%;" /></div>`;
+                    }
                 }
             });
             imagesHTML += '</div>';
@@ -129,16 +134,18 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
         const imgSize = 40;
         // le nombre d'images du datapoint est fait relativement au plus grand datapoint
         const nbImages = Math.floor((point.y / maxY) * maxImages)
-        const images = point.images.slice(0, nbImages); // Limitez à 20 images
+        const instanceIds = point.instanceIds.slice(0, nbImages); // Limitez à 20 images
         const query = `circle[index="${seriesIndex}"][j="${pointIndex}"]`
         const circle = document.querySelector(query)
         const xStart = parseFloat(circle.getAttribute('cx'));
         // const yPos = parseFloat(circle.getAttribute('cy'));
         // const yOffset = ( images.length * 25 ) / 2
         // const chartHeight = chartContext.w.globals.svgHeight;
-        images.forEach((url, i) => {
+        instanceIds.forEach((instanceId, i) => {
+            const inst = instanceStore.instanceData[instanceId]
+            if (!inst) return
             const img = document.createElement('img');
-            img.src = url;
+            img.src = inst.imageUrl + '?size=256';
             img.width = imgSize;
             img.height = imgSize;
             img.style.position = 'absolute';
@@ -148,7 +155,7 @@ const onLegendClick = (chartContext, seriesIndex, config) => {
             // img.style.top = `${yPos - yOffset + (i * 32)}px`;
             img.style.bottom = `${yPos}px`;
             img.classList.add('apexcharts-custom-image');
-            img.addEventListener('mouseover', (e) => showZoomedImage(xPos, yPos, url));
+            img.addEventListener('mouseover', (e) => showZoomedImage(xPos, yPos, inst.imageUrl + '?size=256'));
             img.addEventListener('mouseout', hideZoomedImage);
             chartContext.el.appendChild(img);
         });

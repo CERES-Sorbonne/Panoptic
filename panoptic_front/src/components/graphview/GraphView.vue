@@ -4,8 +4,9 @@ import { Group, GroupIterator } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
 import { useColumnStore } from '@/data/columnStore';
 import { PropertyType } from '@/data/models';
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import LineChart from './LineChart.vue'
+import InstanceData from '@/components/data/InstanceData.vue'
 
 const dataStore = useDataStore()
 const columnStore = useColumnStore()
@@ -17,6 +18,25 @@ const emits = defineEmits([])
 const error = ref("")
 
 const chartData = ref<{ series: any[]; xValues: number[]; dataType: PropertyType } | null>(null)
+
+const chartInstanceIds = computed(() => {
+    if (!chartData.value || !chartData.value.series) return []
+    const ids = new Set<number>()
+    for (const series of chartData.value.series) {
+        for (const point of series.data) {
+            if (point.instanceIds) {
+                for (const id of point.instanceIds) ids.add(id)
+            }
+        }
+    }
+    console.log(Object.keys(ids).length)
+    return Array.from(ids)
+})
+
+const chartPropIds = computed(() => {
+    const sha1Id = columnStore.systemProps.SHA1
+    return sha1Id ? [sha1Id] : []
+})
 
 function getAllPropValues() {
     const allPropValues = new Set();
@@ -74,9 +94,8 @@ function computeSeries() {
     }
 
     const sha1PropId = columnStore.systemProps.SHA1
-    const getImgUrls = (slots: number[]) => {
-        if (!sha1PropId) return []
-        return slots.slice(0, 20).map(s => dataStore.baseImgUrl + columnStore.readSlot(sha1PropId, s) + '?size=256')
+    const getInstanceIds = (slots: number[]) => {
+        return slots.slice(0, 20).map(s => columnStore.instanceIds()[s])
     }
 
     let it: GroupIterator = props.collection.groupManager.getGroupIterator()
@@ -92,8 +111,8 @@ function computeSeries() {
         const xValue = firstPropType === PropertyType.date ? new Date(propValue.value).getTime() : propValue.value
         xValues.push(xValue)
         if (firstProp.name in res) {
-            const imgUrls = getImgUrls(group.slots)
-            res[firstProp.name].data.push({ x: xValue, y: group.slots.length, images: imgUrls })
+            const ids = getInstanceIds(group.slots)
+            res[firstProp.name].data.push({ x: xValue, y: group.slots.length, instanceIds: ids })
         }
         else {
             const childValues = group.children.map(el => el.meta.propertyValues[0].value)
@@ -108,8 +127,8 @@ function computeSeries() {
                     }
                     res[childValue] = { data: [], name: value }
                 }
-                const childImgUrls = getImgUrls(child.slots)
-                res[child.meta.propertyValues[0].value].data.push({ x: xValue, y: child.slots.length, images: childImgUrls })
+                const childIds = getInstanceIds(child.slots)
+                res[child.meta.propertyValues[0].value].data.push({ x: xValue, y: child.slots.length, instanceIds: childIds })
             }
             // console.log(xValue, missingValues)
             for (let missing of missingValues) {
@@ -137,13 +156,19 @@ function computeSeries() {
 }
 
 props.collection.groupManager.onResultChange.addListener(() => chartData.value = computeSeries())
+
+onMounted(() => {
+    chartData.value = computeSeries()
+})
 </script>
 
 <template>
-    <div class="" :style="{ height: props.height + 'px' }">
-        <line-chart :chartData="chartData" :height="(props.height - 50) + 'px'" v-if="error === '' && chartData" />
-        <span v-else>{{ error }}</span>
-    </div>
+    <InstanceData :instance-ids="chartInstanceIds" :prop-ids="chartPropIds">
+        <div class="" :style="{ height: props.height + 'px' }">
+            <line-chart :chartData="chartData" :height="(props.height - 50) + 'px'" v-if="error === '' && chartData" />
+            <span v-else>{{ error }}</span>
+        </div>
+    </InstanceData>
 </template>
 
 <style scoped></style>
