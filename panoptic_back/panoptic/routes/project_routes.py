@@ -756,12 +756,16 @@ def stream_instances_base(project: Project = Depends(_dep)):
     """
     def _generate():
         with project._data_reader() as reader:
+            total = reader.conn.execute(
+                f"SELECT COUNT(*) FROM {INSTANCES_SCHEMA.table}"
+            ).fetchone()[0]
+            first = True
             for ids, sha1s, file_ids in reader.iter_instance_base(_STREAM_BATCH):
-                yield msgspec.json.encode({
-                    'ids':      ids,
-                    'sha1s':    sha1s,
-                    'file_ids': file_ids,
-                }) + b'\n'
+                batch: dict = {'ids': ids, 'sha1s': sha1s, 'file_ids': file_ids}
+                if first:
+                    batch['total'] = total
+                    first = False
+                yield msgspec.json.encode(batch) + b'\n'
 
     return StreamingResponse(_generate(), media_type='application/x-ndjson')
 

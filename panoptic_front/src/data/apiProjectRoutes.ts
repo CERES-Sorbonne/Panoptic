@@ -488,6 +488,7 @@ export type InstanceBaseBatch = {
     ids: number[]
     sha1s: (string | null)[]
     fileIds: (number | null)[]
+    total?: number
 }
 
 export async function apiStreamInstanceBase(callback: (batch: InstanceBaseBatch) => void | Promise<void>) {

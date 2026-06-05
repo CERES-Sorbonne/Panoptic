@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { markRaw, reactive, ref } from 'vue'
+import { markRaw, nextTick, reactive, ref } from 'vue'
 import { LoadResult, PropertyType } from './models'
 import { apiStreamColumn, apiStreamInstanceBase, projectApi } from './apiProjectRoutes'
 import { EventEmitter } from '@/utils/utils'
@@ -100,6 +100,7 @@ export const useColumnStore = defineStore('columnStore', () => {
     const fullColumnStatus = reactive<Record<number, 'empty' | 'loading' | 'loaded'>>({})
     const _fullColumnPromise: Record<number, Promise<void>> = {}
     const columnProgress = reactive<Record<number, { counter: number; max: number }>>({})
+    const baseProgress = reactive<{ loading: boolean; counter: number; max: number }>({ loading: false, counter: 0, max: 0 })
 
     const tagInverted: Record<number, Int32Array> = markRaw({})
     const _tagInvertedPromise: Record<number, Promise<void>> = {}
@@ -126,8 +127,13 @@ export const useColumnStore = defineStore('columnStore', () => {
         fullColumnStatus[instanceIdPropId] = 'loading'
         fullColumnStatus[sha1PropId] = 'loading'
         fullColumnStatus[fileIdPropId] = 'loading'
+        baseProgress.loading = true
+        baseProgress.counter = 0
+        baseProgress.max = 0
 
         await apiStreamInstanceBase((batch) => {
+            if (batch.total !== undefined) baseProgress.max = batch.total
+            baseProgress.counter += batch.ids.length
             const oldSize = slotCount
             const newSize = oldSize + batch.ids.length
 
@@ -171,6 +177,13 @@ export const useColumnStore = defineStore('columnStore', () => {
         fullColumnStatus[instanceIdPropId] = 'loaded'
         fullColumnStatus[sha1PropId] = 'loaded'
         fullColumnStatus[fileIdPropId] = 'loaded'
+
+        // Clamp to max so the bar visually reaches 100%, wait for the
+        // transition to complete (0.2s), then hide.
+        if (baseProgress.max > 0) baseProgress.counter = baseProgress.max
+        await nextTick()
+        await new Promise(r => setTimeout(r, 250))
+        baseProgress.loading = false
 
         instanceCount.value = slotCount
         isReady.value = true
@@ -573,6 +586,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         columnData, columnFetched, tagInverted,
         fullColumnStatus,
         columnProgress,
+        baseProgress,
         onSelectionChange,
         systemProps,
 

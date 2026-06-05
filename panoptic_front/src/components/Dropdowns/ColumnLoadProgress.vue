@@ -6,31 +6,80 @@ import { useDataStore } from '@/data/dataStore'
 const columnStore = useColumnStore()
 const dataStore   = useDataStore()
 
-const loadingColumns = computed(() =>
+const systemIds = computed(() => {
+    const s = columnStore.systemProps
+    return new Set([s.INSTANCE_ID, s.SHA1, s.FILE_ID])
+})
+
+// Base (id/sha1/file) loading from init()
+const basePct = computed(() => {
+    const p = columnStore.baseProgress
+    if (!p.loading || !p.max) return null
+    return Math.min(100, Math.round((p.counter / p.max) * 100))
+})
+
+// Other columns loading via requireFullColumn()
+const otherLoadingColumns = computed(() =>
     Object.entries(columnStore.fullColumnStatus)
-        .filter(([, s]) => s === 'loading')
+        .filter(([idStr, s]) => s === 'loading' && !systemIds.value.has(Number(idStr)))
         .map(([idStr]) => {
             const id = Number(idStr)
             return { id, name: dataStore.properties[id]?.name ?? `#${id}` }
         })
 )
 
-const current = computed(() => loadingColumns.value[0] ?? null)
-const remaining = computed(() => loadingColumns.value.length)
+const otherCurrent = computed(() => otherLoadingColumns.value[0] ?? null)
+const otherRemaining = computed(() => otherLoadingColumns.value.length)
+
+const otherProgress = computed(() =>
+    otherCurrent.value ? columnStore.columnProgress[otherCurrent.value.id] : null
+)
+const otherPct = computed(() => {
+    const p = otherProgress.value
+    if (!p || !p.max) return null
+    return Math.min(100, Math.round((p.counter / p.max) * 100))
+})
+
+const showAny = computed(() => columnStore.baseProgress.loading || !!otherCurrent.value)
 </script>
 
 <template>
-    <div v-if="current" class="col-progress-btn" :title="`Loading: ${current.name}`">
-        <i class="bi bi-database-fill-gear me-1" />
-        <span class="col-progress-name">{{ current.name }}</span>
-        <span v-if="remaining > 1" class="col-progress-queue">+{{ remaining - 1 }}</span>
-        <div class="col-progress-track">
-            <div class="col-progress-fill" />
+    <div v-if="showAny" class="col-progress-wrapper">
+        <!-- Initial base load: id / sha1 / file as one combined bar -->
+        <div v-if="columnStore.baseProgress.loading" class="col-progress-btn" title="Loading: id, sha1, file">
+            <i class="bi bi-database-fill-gear me-1" />
+            <span class="col-progress-name">id, sha1, file</span>
+            <div class="col-progress-track">
+                <div
+                    class="col-progress-fill"
+                    :style="{ width: (basePct ?? 0) + '%' }"
+                />
+            </div>
+            <span v-if="basePct !== null" class="col-progress-pct">{{ basePct }}%</span>
+        </div>
+
+        <!-- Other columns loading one at a time -->
+        <div v-if="otherCurrent" class="col-progress-btn" :title="`Loading: ${otherCurrent.name}`">
+            <i class="bi bi-database-fill-gear me-1" />
+            <span class="col-progress-name">{{ otherCurrent.name }}</span>
+            <span v-if="otherRemaining > 1" class="col-progress-queue">+{{ otherRemaining - 1 }}</span>
+            <div class="col-progress-track">
+                <div
+                    class="col-progress-fill"
+                    :style="{ width: (otherPct ?? 0) + '%' }"
+                />
+            </div>
+            <span v-if="otherPct !== null" class="col-progress-pct">{{ otherPct }}%</span>
         </div>
     </div>
 </template>
 
 <style scoped>
+.col-progress-wrapper {
+    display: flex;
+    gap: 6px;
+}
+
 .col-progress-btn {
     display: flex;
     align-items: center;
@@ -57,6 +106,7 @@ const remaining = computed(() => loadingColumns.value.length)
 }
 
 .col-progress-track {
+    position: relative;
     width: 60px;
     height: 5px;
     background: #e9ecef;
@@ -65,15 +115,19 @@ const remaining = computed(() => loadingColumns.value.length)
 }
 
 .col-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
     height: 100%;
-    width: 40%;
+    width: 0;
     background: #f0a500;
-    border-radius: 3px;
-    animation: indeterminate 1.2s ease-in-out infinite;
+    transition: width 0.2s linear;
 }
 
-@keyframes indeterminate {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(350%); }
+.col-progress-pct {
+    font-size: 10px;
+    color: #888;
+    min-width: 28px;
+    text-align: right;
 }
 </style>
