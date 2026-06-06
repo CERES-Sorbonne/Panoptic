@@ -3,23 +3,13 @@
 // split's #secondary. Shows either the property list or the export actions
 // depending on which bottom panel is active.
 import IslandPanel from '@/layouts/IslandPanel.vue'
+import TabContainer from '@/components/TabContainer.vue'
+import PropertyGroupPanel from './PropertyGroupPanel.vue'
 import { useUiStore } from '@/data/uiStore'
+import { useTabStore } from '@/data/tabStore'
 
 const uiStore = useUiStore()
-
-const properties = [
-    { id: 1, name: 'name', value: 'data_reader.py' },
-    { id: 2, name: 'size', value: '4.2 KB' },
-    { id: 3, name: 'type', value: 'Python file' },
-    { id: 4, name: 'encoding', value: 'UTF-8' },
-    { id: 5, name: 'line endings', value: 'LF' },
-]
-
-const exportFormats = [
-    { id: 'csv', label: 'Export as CSV' },
-    { id: 'json', label: 'Export as JSON' },
-    { id: 'images', label: 'Export images' },
-]
+const tabStore = useTabStore()
 </script>
 
 <template>
@@ -35,16 +25,25 @@ const exportFormats = [
         </template>
         <div class="tw-body">
             <template v-if="uiStore.panelStates.activeBottomPanel === 'export'">
-                <button v-for="fmt in exportFormats" :key="fmt.id" class="export-row">
+                <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
                     <span class="export-icon">⤓</span>
-                    <span>{{ fmt.label }}</span>
+                    <span>Export as CSV</span>
+                </button>
+                <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
+                    <span class="export-icon">⤓</span>
+                    <span>Export as JSON</span>
+                </button>
+                <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
+                    <span class="export-icon">⤓</span>
+                    <span>Export images</span>
                 </button>
             </template>
             <template v-else>
-                <div v-for="prop in properties" :key="prop.id" class="prop-row">
-                    <span class="prop-name">{{ prop.name }}</span>
-                    <span class="prop-value">{{ prop.value }}</span>
-                </div>
+                <TabContainer :id="tabStore.mainTab">
+                    <template #default="{ tab }">
+                        <PropertyGroupPanel :tab="tab" />
+                    </template>
+                </TabContainer>
             </template>
         </div>
     </IslandPanel>
@@ -95,32 +94,6 @@ const exportFormats = [
     min-height: 0;
     overflow: auto;
     padding: var(--spacing-xs) 0;
-}
-
-/* Properties list */
-.prop-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    height: 24px;
-    padding: 0 var(--spacing-sm);
-    white-space: nowrap;
-}
-
-.prop-row:hover {
-    background-color: var(--hover-bg);
-}
-
-.prop-name {
-    width: 90px;
-    flex-shrink: 0;
-    color: var(--text-secondary);
-}
-
-.prop-value {
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* Export list */

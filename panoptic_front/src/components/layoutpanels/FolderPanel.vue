@@ -1,16 +1,18 @@
 <script setup lang="ts">
 // Folders tool-window root node — inserted into the sidebar split's #primary.
 import IslandPanel from '@/layouts/IslandPanel.vue'
+import FolderList from '@/components/FolderTree/FolderList.vue'
+import { computed } from 'vue'
 import { useUiStore } from '@/data/uiStore'
+import { useDataStore } from '@/data/dataStore'
+import { useTabStore } from '@/data/tabStore'
 
 const uiStore = useUiStore()
+const data = useDataStore()
+const tabStore = useTabStore()
 
-const folderTree = [
-    { id: 1, name: 'panoptic_back', type: 'module', depth: 0 },
-    { id: 2, name: 'PanopticML', type: 'module', depth: 0 },
-    { id: 3, name: 'External Libraries', type: 'libs', depth: 0 },
-    { id: 4, name: 'Scratches and Consoles', type: 'libs', depth: 0 },
-]
+const rootFolders = computed(() => data.folderRoots)
+const tab = computed(() => tabStore.getMainTab())
 </script>
 
 <template>
@@ -25,16 +27,7 @@ const folderTree = [
             </div>
         </template>
         <div class="tw-body">
-            <div
-                v-for="node in folderTree"
-                :key="node.id"
-                class="tree-node"
-                :style="{ paddingLeft: 8 + node.depth * 14 + 'px' }"
-            >
-                <span class="tree-caret">›</span>
-                <span class="tree-icon" :class="node.type">{{ node.type === 'module' ? '▣' : '▤' }}</span>
-                <span class="tree-label">{{ node.name }}</span>
-            </div>
+            <FolderList v-if="rootFolders.length > 0" :folders="rootFolders" :filter-manager="tab.value?.collection.filterManager" :tab="tab.value" />
         </div>
     </IslandPanel>
 </template>
@@ -46,7 +39,7 @@ const folderTree = [
     align-items: center;
     justify-content: space-between;
     height: 30px;
-    padding: 0 var(--spacing-sm);
+    padding: 0 var(--spacing-md) 0 var(--spacing-sm);
 }
 
 .tw-title {
@@ -84,37 +77,5 @@ const folderTree = [
     min-height: 0;
     overflow: auto;
     padding: var(--spacing-xs) 0;
-}
-
-/* Project tree */
-.tree-node {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 24px;
-    padding: 0 var(--spacing-sm);
-    cursor: default;
-    white-space: nowrap;
-}
-
-.tree-node:hover {
-    background-color: var(--hover-bg);
-}
-
-.tree-caret {
-    color: var(--text-tertiary);
-    width: 10px;
-}
-
-.tree-icon.module {
-    color: var(--primary);
-}
-
-.tree-icon.libs {
-    color: var(--accent-orange);
-}
-
-.tree-label {
-    color: var(--text-primary);
 }
 </style>

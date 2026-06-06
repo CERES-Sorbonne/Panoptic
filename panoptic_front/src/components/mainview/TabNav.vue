@@ -8,9 +8,12 @@ import { usePanopticStore } from '@/data/panopticStore';
 import { useTabStore } from '@/data/tabStore';
 import TabButton from './TabButton.vue';
 import { useSocketStore } from '@/data/socketStore';
+import { computed } from 'vue';
 
 const panoptic = usePanopticStore()
 const tabStore = useTabStore()
+
+const mainTab = computed(() => tabStore.getMainTab())
 
 
 const props = defineProps<{

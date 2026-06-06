@@ -28,7 +28,7 @@ export interface ResizeStates {
     leftSidebarWidth: number
     foldersHeight: number
     propertiesHeight: number
-    mainSplitWidth: number
+    mainSplitRatio: number
 }
 
 export interface ScrollStates {
@@ -56,7 +56,7 @@ export const useUiStore = defineStore('uiStore', () => {
         leftSidebarWidth: 280,
         foldersHeight: 250,
         propertiesHeight: 250,
-        mainSplitWidth: 600
+            mainSplitRatio: 0.5
     })
 
     const scrollStates = reactive<ScrollStates>({
@@ -142,7 +142,7 @@ export const useUiStore = defineStore('uiStore', () => {
             leftSidebarWidth: 280,
             foldersHeight: 250,
             propertiesHeight: 250,
-            mainSplitWidth: 600
+        mainSplitRatio: 0.5
         })
         Object.assign(scrollStates, {
             leftPanelScrollX: 0,

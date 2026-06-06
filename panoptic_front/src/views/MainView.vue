@@ -13,11 +13,12 @@ import ViewPanel from '@/components/layoutpanels/ViewPanel.vue'
 import { useProjectStore } from '@/data/projectStore'
 import { usePanopticStore } from '@/data/panopticStore'
 import { useUiStore } from '@/data/uiStore'
+import { useTabStore } from '@/data/tabStore'
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
 const uiStore = useUiStore()
-
+const tabStore = useTabStore()
 const leftCollapsed = computed(() => !uiStore.panelStates.leftPanelOpen && uiStore.panelStates.activeBottomPanel === null)
 
 onMounted(async () => {
@@ -36,7 +37,7 @@ onMounted(async () => {
 
 <template>
     <!-- Always show outer shell, but hide islands until uiStore loads -->
-    <AppShellLayout :gap="6" :activity-width="40" :toolbar-height="40" :status-height="24">
+    <AppShellLayout :gap="6" :activity-width="40" :toolbar-height="40" :status-height="0">
         <!-- Top toolbar (on canvas) -->
         <template #toolbar>
             <TopBarPanel />
@@ -47,21 +48,8 @@ onMounted(async () => {
             <LeftBarPanel />
         </template>
 
-        <!-- Status bar (flush on canvas) -->
-        <template #statusbar>
-            <div class="status">
-                <span class="status-item">panoptic_back</span>
-                <span class="status-spacer"></span>
-                <span class="status-item">52:23</span>
-                <span class="status-item">LF</span>
-                <span class="status-item">UTF-8</span>
-                <span class="status-item">4 spaces</span>
-                <span class="status-item">Python 3.13</span>
-            </div>
-        </template>
-
         <!-- Islands work area - only show when uiStore has loaded -->
-        <template v-if="uiStore.loaded">
+        <template v-if="uiStore.loaded && tabStore.loaded">
         <SidebarLayout
             :sidebar-width="uiStore.resizeStates.leftSidebarWidth"
             @update:sidebar-width="(w) => { console.log('[MainView] Sidebar resized to:', w); uiStore.resizeStates.leftSidebarWidth = w }"
@@ -104,8 +92,8 @@ onMounted(async () => {
                     <SplitLayout
                         class="view-split"
                         direction="row"
-                        :secondary-size="uiStore.resizeStates.mainSplitWidth"
-                        @update:secondary-size="(w) => { console.log('[MainView] Split resized to:', w); uiStore.resizeStates.mainSplitWidth = w }"
+                        :secondary-ratio="uiStore.resizeStates.mainSplitRatio"
+                        @update:secondary-ratio="(r) => { console.log('[MainView] Split resized to:', r); uiStore.resizeStates.mainSplitRatio = r }"
                         :gap="10"
                         resizable
                         :min-primary="200"
@@ -142,22 +130,4 @@ onMounted(async () => {
     width: 100%;
 }
 
-/* ===== Status bar content ===== */
-.status {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    flex: 1;
-    padding: 0 var(--spacing-md);
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-}
-
-.status-spacer {
-    flex: 1;
-}
-
-.status-item {
-    white-space: nowrap;
-}
 </style>

@@ -1,40 +1,50 @@
 <script setup lang="ts">
 // Tab bar + filter zone root node — the shared island stacked above the view
 // island(s) in the center column. Owns the open tabs and the split toggle.
-import { ref } from 'vue'
 import IslandPanel from '@/layouts/IslandPanel.vue'
-import ContentFilterSim from '@/components/mainview/ContentFilterSim.vue'
+import TabButton from '@/components/mainview/TabButton.vue'
+import TextSearchInput from '@/components/inputs/TextSearchInput.vue'
+import FilterForm from '@/components/forms/FilterForm.vue'
+import GroupForm from '@/components/forms/GroupForm.vue'
+import SortForm from '@/components/forms/SortForm.vue'
+import { useTabStore } from '@/data/tabStore'
 import { useUiStore } from '@/data/uiStore'
 
+const tabStore = useTabStore()
 const uiStore = useUiStore()
 
-const activeTab = ref(1)
-
-const editorTabs = [
-    { id: 1, name: 'media_db.py', modified: false },
-    { id: 2, name: 'data_reader.py', modified: true },
-    { id: 3, name: 'project_routes.py', modified: false },
-]
-
-function selectTab(id: number) {
-    activeTab.value = id
+async function addTab() {
+    await tabStore.addTab('New Tab')
 }
+
+function toggleFilter() {
+    // filter open/close can be wired to a parent or store state if needed
+}
+
+function updateSha1Mode(value: boolean) {
+    const tab = tabStore.getMainTab()
+    if (tab) {
+        tab.collection.groupManager.setSha1Mode(value, true)
+    }
+}
+
+
+
 </script>
 
 <template>
-    <IslandPanel>
+    <IslandPanel v-if="tabStore.loaded">
         <template #header>
-            <div class="tab-bar">
-                <button
-                    v-for="tab in editorTabs"
-                    :key="tab.id"
-                    class="tab"
-                    :class="{ active: tab.id === activeTab }"
-                    @click="selectTab(tab.id)"
-                >
-                    <span class="tab-icon">🐍</span>
-                    <span class="tab-name">{{ tab.name }}</span>
-                    <span class="tab-close">{{ tab.modified ? '●' : '×' }}</span>
+            <div v-if="tabStore.loaded" class="tab-bar">
+                <div class="filter-toggle" @click="toggleFilter">
+                    <i v-if="uiStore.panelStates.activeBottomPanel === 'properties'" class="bb bi bi-chevron-down" />
+                    <i v-else class="bb bi bi-chevron-right" />
+                </div>
+                <template v-for="tabId in tabStore.loadedTabs" :key="tabId">
+                    <TabButton :tab="tabStore.getTab(tabId)" />
+                </template>
+                <button class="tab-icon hover-light ps-1 pe-1" @click="addTab" id="add-tab-button">
+                    <span class="bi bi-plus"></span>
                 </button>
                 <div class="tab-spacer"></div>
                 <button
@@ -45,7 +55,42 @@ function selectTab(id: number) {
                 >⫿</button>
             </div>
         </template>
-        <ContentFilterSim />
+
+        <div class="content-filter">
+            <!-- Row 1: text search, instance/image mode -->
+            <div class="filter-row">
+                <TextSearchInput :tab="tabStore.getMainTab()" />
+
+                <div class="tool-group">
+                    <button
+                        class="tool-sm"
+                        :class="{ selected: !tabStore.getMainTab().collection.groupManager.state.sha1Mode }"
+                        title="Instance mode"
+                        @click="updateSha1Mode(false)"
+                    >
+                        <i class="bi bi-image"></i>
+                    </button>
+                    <button
+                        class="tool-sm"
+                        :class="{ selected: tabStore.getMainTab().collection.groupManager.state.sha1Mode }"
+                        title="Image mode"
+                        @click="updateSha1Mode(true)"
+                    >
+                        <i class="bi bi-images"></i>
+                    </button>
+                </div>
+
+                <div class="flex-grow-1"></div>
+            </div>
+
+            <!-- Row 2: filter, group, sort -->
+            <div class="filter-row sub-row content-container">
+                <FilterForm :tab="tabStore.getMainTab()" />
+                <GroupForm :manager="tabStore.getMainTab().collection.groupManager" class="me-1" />
+                <SortForm :manager="tabStore.getMainTab().collection.sortManager" class="me-1" />
+                <div class="flex-grow-1" />
+            </div>
+        </div>
     </IslandPanel>
 </template>
 
@@ -57,6 +102,20 @@ function selectTab(id: number) {
     padding: 4px 4px 0;
     gap: 2px;
     border-bottom: 1px solid var(--border-light);
+}
+
+.filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 26px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.filter-toggle:hover {
+    color: var(--text-primary);
 }
 
 .tab-spacer {
@@ -117,5 +176,61 @@ function selectTab(id: number) {
 .tab-close {
     color: var(--text-tertiary);
     font-size: 11px;
+}
+
+.content-filter {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.sub-row {
+    padding-top: 0;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.tool-sm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.tool-sm:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.tool-sm.selected {
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.content-container {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.hover-light:hover {
+    background-color: var(--hover-bg);
 }
 </style>

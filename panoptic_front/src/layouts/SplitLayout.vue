@@ -8,6 +8,7 @@ import { ref, computed, onBeforeUnmount, watch } from 'vue'
 interface Props {
     direction?: 'row' | 'column'
     secondarySize?: number
+    secondaryRatio?: number
     gap?: number
     resizable?: boolean
     minPrimary?: number
@@ -19,6 +20,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     direction: 'column',
     secondarySize: 200,
+    secondaryRatio: undefined,
     gap: 6,
     resizable: false,
     minPrimary: 80,
@@ -29,27 +31,43 @@ const props = withDefaults(defineProps<Props>(), {
 
 const root = ref<HTMLElement>()
 const size = ref(props.secondarySize)
+const ratio = ref(props.secondaryRatio ?? 0.5)
 const isResizing = ref(false)
 let startPos = 0
 let startSize = 0
+let startRatio = 0
 
 const emit = defineEmits<{
     'update:secondarySize': [size: number]
+    'update:secondaryRatio': [ratio: number]
 }>()
 
-// Watch for prop changes and update internal size
+// Watch for prop changes and update internal size/ratio
 watch(() => props.secondarySize, (newSize) => {
     if (!isResizing.value) {
         size.value = newSize
     }
 })
 
+watch(() => props.secondaryRatio, (newRatio) => {
+    if (!isResizing.value && newRatio !== undefined) {
+        ratio.value = newRatio
+    }
+})
+
 const isColumn = computed(() => props.direction === 'column')
+const useRatio = computed(() => !isColumn.value && (props.secondaryRatio !== undefined || props.secondaryRatio === 0))
 const showHandle = computed(() => !props.hidePrimary && !props.hideSecondary)
 
-const secondaryStyle = computed(() =>
-    isColumn.value ? { height: size.value + 'px' } : { width: size.value + 'px' }
-)
+const secondaryStyle = computed(() => {
+    if (isColumn.value) {
+        return { height: size.value + 'px' }
+    }
+    if (useRatio.value) {
+        return {} // width set via inline style on the element itself
+    }
+    return { width: size.value + 'px' }
+})
 
 const handleStyle = computed(() =>
     isColumn.value ? { height: props.gap + 'px' } : { width: props.gap + 'px' }
@@ -58,25 +76,43 @@ const handleStyle = computed(() =>
 function startResize(e: PointerEvent) {
     isResizing.value = true
     startPos = isColumn.value ? e.clientY : e.clientX
-    startSize = size.value
+    if (useRatio.value) {
+        startRatio = ratio.value
+    } else {
+        startSize = size.value
+    }
     window.addEventListener('pointermove', onResize)
     window.addEventListener('pointerup', stopResize)
 }
 
 function onResize(e: PointerEvent) {
     const pos = isColumn.value ? e.clientY : e.clientX
-    // Dragging the handle toward the primary side grows the secondary pane.
-    const next = startSize + (startPos - pos)
-    const total = (isColumn.value ? root.value?.clientHeight : root.value?.clientWidth) ?? 0
-    const max = Math.max(props.minSecondary, total - props.gap - props.minPrimary)
-    size.value = Math.min(max, Math.max(props.minSecondary, next))
+    if (useRatio.value) {
+        const containerWidth = root.value?.clientWidth ?? 0
+        if (containerWidth === 0) return
+        const delta = (startPos - pos) / containerWidth
+        const next = startRatio + delta
+        // Clamp: primary >= minPrimary, secondary >= minSecondary
+        const minRatio = (props.minSecondary ?? 80) / containerWidth
+        const maxRatio = 1 - (props.minPrimary ?? 80) / containerWidth
+        ratio.value = Math.min(maxRatio, Math.max(minRatio, next))
+    } else {
+        const next = startSize + (startPos - pos)
+        const total = (isColumn.value ? root.value?.clientHeight : root.value?.clientWidth) ?? 0
+        const max = Math.max(props.minSecondary, total - props.gap - props.minPrimary)
+        size.value = Math.min(max, Math.max(props.minSecondary, next))
+    }
 }
 
 function stopResize() {
     isResizing.value = false
     window.removeEventListener('pointermove', onResize)
     window.removeEventListener('pointerup', stopResize)
-    emit('update:secondarySize', size.value)
+    if (useRatio.value) {
+        emit('update:secondaryRatio', ratio.value)
+    } else {
+        emit('update:secondarySize', size.value)
+    }
 }
 
 onBeforeUnmount(stopResize)
@@ -104,7 +140,7 @@ onBeforeUnmount(stopResize)
             v-if="!hideSecondary"
             class="split-secondary"
             :class="{ grow: hidePrimary }"
-            :style="hidePrimary ? undefined : secondaryStyle"
+            :style="hidePrimary ? undefined : { ...secondaryStyle, ...(useRatio ? { width: ratio * 100 + '%' } : {}) }"
         >
             <slot name="secondary"></slot>
         </div>
