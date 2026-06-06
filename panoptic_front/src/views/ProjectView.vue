@@ -47,7 +47,9 @@ onMounted(async () => {
         return
     }
 
-    project.init()
+    console.log('[ProjectView] Awaiting project.init()')
+    await project.init()
+    console.log('[ProjectView] project.init() completed')
 
     nextTick(() => {
         window.addEventListener('resize', onResize);

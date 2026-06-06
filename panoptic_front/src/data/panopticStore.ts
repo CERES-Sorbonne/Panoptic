@@ -24,6 +24,7 @@ import router from "@/router"
 import { useProjectStore } from "./projectStore"
 import { ConnectionState, ModalId, Notif, PluginAddPayload, PluginType, ProjectRef, User } from "./models"
 import { useModalStore } from "./modalStore"
+import { useSocketStore } from "./socketStore"
 
 
 const LAST_USER_KEY = 'panoptic_last_user_id'
@@ -67,7 +68,11 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     const isUserValid = computed(() => isConnected.value)
     const isProjectLoaded = computed(() => isConnected.value && !!connectionState.value.connectedProject)
 
-    function init() {}
+    function init() {
+        console.log('[panopticStore] Initializing socket connection')
+        const socket = useSocketStore()
+        socket.init()
+    }
 
     // ---------------------------------------------------------------
     // Data fetches — called on socket trigger or after mutations
@@ -132,11 +137,14 @@ export const usePanopticStore = defineStore('panopticStore', () => {
     // ---------------------------------------------------------------
 
     function updateConnectionState(state: ConnectionState | undefined) {
+        console.log('[panopticStore] updateConnectionState called with:', state)
         connectionState.value = state
         const pendingReconnect = !hasAttemptedUserReconnect.value && !!localStorage.getItem(LAST_USER_KEY)
         if (state?.connectedProject) {
+            console.log('[panopticStore] Project loaded, routing to /view')
             router.push('/view')
         } else if (state && !pendingReconnect) {
+            console.log('[panopticStore] No project, routing to /')
             router.push('/')
         }
     }

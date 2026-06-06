@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import '@vuepic/vue-datepicker/dist/main.css';
-import './assets/main.css';
+import './assets/theme.css';
 import "@vueform/slider/themes/default.css"
 import { usePanopticStore } from './data/panopticStore';
 import PropertyModal from './components/modals/PropertyModal.vue';
@@ -16,8 +16,6 @@ import ImportModal from './components/modals/ImportModal.vue';
 import TagModal from './components/modals/TagModal.vue';
 import FirstModal from './components/modals/FirstModal.vue';
 import NotifModal from './components/modals/NotifModal.vue';
-import PanopticView2 from './views/PanopticView.vue';
-
 const panoptic = usePanopticStore()
 
 panoptic.init()
@@ -32,7 +30,7 @@ function setMousePos(e) {
 
 <template>
     <body @mousemove="setMousePos">
-        <PanopticView2 />
+        <RouterView />
     </body>
 </template>
 

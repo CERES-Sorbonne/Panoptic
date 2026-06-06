@@ -15,6 +15,9 @@ import { usePanopticStore } from "./panopticStore";
 import { useTabStore } from "./tabStore";
 import { useI18n } from 'vue-i18n';
 import { useActionStore } from "./actionStore";
+import { useUiStore } from "./uiStore";
+
+console.log('[projectStore] Module loaded')
 
 export const test = shallowRef({ count: 0 })
 
@@ -42,13 +45,23 @@ export const useProjectStore = defineStore('projectStore', () => {
     // =======================
 
     async function init() {
-        if (loaded.value) return
-        console.log('init')
+        if (loaded.value) {
+            console.log('[projectStore] Already loaded, skipping init')
+            return
+        }
+        console.log('[projectStore] init starting')
 
         const panoptic = usePanopticStore()
-        if (!panoptic.isProjectLoaded) return
+        if (!panoptic.isProjectLoaded) {
+            console.log('[projectStore] Project not loaded, skipping init')
+            return
+        }
         const projectId = panoptic.connectionState?.connectedProject
-        if (!projectId) return
+        if (!projectId) {
+            console.log('[projectStore] No projectId, skipping init')
+            return
+        }
+        console.log('[projectStore] projectId:', projectId)
         state.value = await apiGetProjectState()
         await loadUiState()
 
@@ -57,7 +70,18 @@ export const useProjectStore = defineStore('projectStore', () => {
         }
 
         loaded.value = true
-        await Promise.all([dataStore.init(), mediaStore.init()])
+        const uiStore = useUiStore()
+        console.log('[projectStore] About to init stores including uiStore')
+        try {
+            await Promise.all([
+                dataStore.init(),
+                mediaStore.init(),
+                uiStore.init()
+            ])
+            console.log('[projectStore] All stores initialized successfully')
+        } catch (e) {
+            console.error('[projectStore] Error during store init:', e)
+        }
         await actionStore.init()
 
         // usePanopticStore().showModal(ModalId.TAG, {})

@@ -58,6 +58,7 @@ export const useSocketStore = defineStore('socketStore', () => {
     function init() {
         const connectionId = getConnectionId()
         const url = (import.meta as any).env.VITE_API_ROUTE
+        console.log('[socketStore] Initializing socket with url:', url)
         socket = io(url, {
             path: '/socket.io/',
             reconnection: true,
@@ -71,11 +72,17 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('connect', () => {
+            console.log('[socketStore] Socket connected')
             usePanopticStore().setConnect()
         })
 
         socket.on("connect_error", (err) => {
+            console.error('[socketStore] Socket connection error:', err)
             usePanopticStore().setFailedConnect()
+        });
+
+        socket.on('disconnect', () => {
+            console.log('[socketStore] Socket disconnected')
         });
 
         socket.on('update_projects', () => {
@@ -91,6 +98,7 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('connection_state', async (data) => {
+            console.log('[socketStore] Received connection_state:', data)
             const state = keysToCamel(data) as ConnectionState
             const panoptic = usePanopticStore()
             panoptic.updateConnectionState(state)
