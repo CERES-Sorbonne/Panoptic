@@ -57,7 +57,7 @@ function updateSha1Mode(value: boolean) {
         </template>
 
         <div class="content-filter">
-            <!-- Row 1: text search, instance/image mode -->
+            <!-- Single row: text search, instance/image mode, filter, group, sort -->
             <div class="filter-row">
                 <TextSearchInput :tab="tabStore.getMainTab()" />
 
@@ -80,15 +80,10 @@ function updateSha1Mode(value: boolean) {
                     </button>
                 </div>
 
-                <div class="flex-grow-1"></div>
-            </div>
-
-            <!-- Row 2: filter, group, sort -->
-            <div class="filter-row sub-row content-container">
                 <FilterForm :tab="tabStore.getMainTab()" />
                 <GroupForm :manager="tabStore.getMainTab().collection.groupManager" class="me-1" />
                 <SortForm :manager="tabStore.getMainTab().collection.sortManager" class="me-1" />
-                <div class="flex-grow-1" />
+                <div class="flex-grow-1"></div>
             </div>
         </div>
     </IslandPanel>

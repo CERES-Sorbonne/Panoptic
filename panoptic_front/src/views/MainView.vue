@@ -64,8 +64,8 @@ onMounted(async () => {
             <template #sidebar>
                 <SplitLayout
                     direction="column"
-                    :secondary-size="uiStore.resizeStates.foldersHeight"
-                    @update:secondary-size="(h) => { console.log('[MainView] Folders resized to:', h); uiStore.resizeStates.foldersHeight = h }"
+                    :secondary-ratio="uiStore.resizeStates.foldersHeight"
+                    @update:secondary-ratio="(r) => { console.log('[MainView] Folders resized to:', r); uiStore.resizeStates.foldersHeight = r }"
                     :gap="6"
                     resizable
                     :min-primary="100"

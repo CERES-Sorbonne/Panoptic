@@ -54,7 +54,7 @@ export const useUiStore = defineStore('uiStore', () => {
         splitRowSecondaryHeight: 200,
         splitColumnSecondaryWidth: 300,
         leftSidebarWidth: 280,
-        foldersHeight: 250,
+            foldersHeight: 0.4,
         propertiesHeight: 250,
             mainSplitRatio: 0.5
     })
@@ -140,7 +140,7 @@ export const useUiStore = defineStore('uiStore', () => {
             splitRowSecondaryHeight: 200,
             splitColumnSecondaryWidth: 300,
             leftSidebarWidth: 280,
-            foldersHeight: 250,
+        foldersHeight: 0.4,
             propertiesHeight: 250,
         mainSplitRatio: 0.5
         })

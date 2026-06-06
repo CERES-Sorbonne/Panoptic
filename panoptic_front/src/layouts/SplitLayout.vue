@@ -56,15 +56,18 @@ watch(() => props.secondaryRatio, (newRatio) => {
 })
 
 const isColumn = computed(() => props.direction === 'column')
-const useRatio = computed(() => !isColumn.value && (props.secondaryRatio !== undefined || props.secondaryRatio === 0))
+const useRatio = computed(() => (props.secondaryRatio !== undefined || props.secondaryRatio === 0))
 const showHandle = computed(() => !props.hidePrimary && !props.hideSecondary)
 
 const secondaryStyle = computed(() => {
-    if (isColumn.value) {
-        return { height: size.value + 'px' }
+    if (isColumn.value && useRatio.value) {
+        return {} // height set via inline style on the element itself
     }
     if (useRatio.value) {
         return {} // width set via inline style on the element itself
+    }
+    if (isColumn.value) {
+        return { height: size.value + 'px' }
     }
     return { width: size.value + 'px' }
 })
@@ -88,13 +91,13 @@ function startResize(e: PointerEvent) {
 function onResize(e: PointerEvent) {
     const pos = isColumn.value ? e.clientY : e.clientX
     if (useRatio.value) {
-        const containerWidth = root.value?.clientWidth ?? 0
-        if (containerWidth === 0) return
-        const delta = (startPos - pos) / containerWidth
+        const containerHeight = root.value?.clientHeight ?? 0
+        if (containerHeight === 0) return
+        const delta = (startPos - pos) / containerHeight
         const next = startRatio + delta
         // Clamp: primary >= minPrimary, secondary >= minSecondary
-        const minRatio = (props.minSecondary ?? 80) / containerWidth
-        const maxRatio = 1 - (props.minPrimary ?? 80) / containerWidth
+        const minRatio = (props.minSecondary ?? 80) / containerHeight
+        const maxRatio = 1 - (props.minPrimary ?? 80) / containerHeight
         ratio.value = Math.min(maxRatio, Math.max(minRatio, next))
     } else {
         const next = startSize + (startPos - pos)
@@ -140,7 +143,7 @@ onBeforeUnmount(stopResize)
             v-if="!hideSecondary"
             class="split-secondary"
             :class="{ grow: hidePrimary }"
-            :style="hidePrimary ? undefined : { ...secondaryStyle, ...(useRatio ? { width: ratio * 100 + '%' } : {}) }"
+            :style="hidePrimary ? undefined : { ...secondaryStyle, ...(useRatio ? (isColumn ? { height: ratio * 100 + '%' } : { width: ratio * 100 + '%' }) : {}) }"
         >
             <slot name="secondary"></slot>
         </div>
@@ -180,6 +183,14 @@ onBeforeUnmount(stopResize)
     display: flex;
     flex-shrink: 0;
     overflow: hidden;
+}
+
+.split-secondary.split-row-ratio {
+    flex-shrink: 0;
+}
+
+.split-secondary.split-column-ratio {
+    flex-basis: auto;
 }
 
 .split-secondary.grow {
