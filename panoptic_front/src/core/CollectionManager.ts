@@ -40,12 +40,13 @@ export class CollectionManager {
         this.filterManager = new FilterManager(ctx, filterState)
         this.sortManager = new SortManager(sortState)
         this.groupManager = new GroupManager(groupState, selectedImages)
-        this.state = reactive({ autoReload: true })
-        this.runState = reactive({ isDirty: false, active: true })
-
         if (state) {
-            Object.assign(this.state, state)
+            this.state = state as CollectionState
+        } else {
+            this.state = reactive({ autoReload: true })
         }
+
+        this.runState = reactive({ isDirty: false, active: true })
 
         this.filterManager.onResultChange.addListener(this.onFilter.bind(this))
         this.sortManager.onResultChange.addListener(this.onSort.bind(this))

@@ -326,8 +326,11 @@ export class SortManager {
     constructor(state?: SortState) {
         this.onResultChange = new EventEmitter()
         this.onStateChange = new EventEmitter()
-        this.state = createSortState()
-        if (state) Object.assign(this.state, state)
+        if (state) {
+            this.state = state
+        } else {
+            this.state = createSortState()
+        }
         this.result = { slots: new Int32Array(0) }
     }
 

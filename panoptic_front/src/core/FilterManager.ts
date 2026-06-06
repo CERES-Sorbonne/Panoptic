@@ -439,7 +439,7 @@ export class FilterManager {
         this.onStateChange = new EventEmitter()
 
         if (state) {
-            this.state = reactive(state)
+            this.state = state
             this.recursiveRegister(this.state.filter)
         } else {
             this.initFilterState()

@@ -12,7 +12,6 @@ const data = useDataStore()
 const tabStore = useTabStore()
 
 const rootFolders = computed(() => data.folderRoots)
-const tab = computed(() => tabStore.getMainTab())
 </script>
 
 <template>
@@ -27,7 +26,7 @@ const tab = computed(() => tabStore.getMainTab())
             </div>
         </template>
         <div class="tw-body">
-            <FolderList v-if="rootFolders.length > 0" :folders="rootFolders" :filter-manager="tab.value?.collection.filterManager" :tab="tab.value" />
+            <FolderList v-if="rootFolders.length > 0" :folders="rootFolders" :filter-manager="tabStore.getMainTab()?.collection.filterManager" :tab="tabStore.getMainTab()" />
         </div>
     </IslandPanel>
 </template>

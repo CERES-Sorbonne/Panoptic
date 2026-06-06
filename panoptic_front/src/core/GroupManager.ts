@@ -291,8 +291,11 @@ export class GroupManager {
     private iterators: GroupIterator[]
 
     constructor(state?: GroupState, selectedImages?: Ref<SelectedImages>) {
-        this.state = reactive(createGroupState())
-        if (state) Object.assign(this.state, state)
+        if (state) {
+            this.state = state
+        } else {
+            this.state = reactive(createGroupState())
+        }
         this.result = {
             root: undefined,
             index: {},

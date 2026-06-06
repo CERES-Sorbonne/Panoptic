@@ -13,12 +13,11 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import { useTabStore } from '@/data/tabStore'
 
 const tabStore = useTabStore()
-const currentTab = computed(() => tabStore.getMainTab())
 
 const containerRef = ref<HTMLElement>()
 const dimensions = ref({ width: 0, height: 0 })
-
-const visibleProperties = computed(() => currentTab.value?.getVisibleProperties() ?? [])
+const currentTab = tabStore.getMainTab()
+const visibleProperties = computed(() => tabStore.getMainTab()?.getVisibleProperties() ?? [])
 
 function onResize(entries: ResizeObserverEntry[]) {
     for (const entry of entries) {
@@ -46,7 +45,7 @@ onUnmounted(() => {
 
 <template>
     <IslandPanel grow>
-        <template #header v-if="currentTab">
+        <template #header>
             <div class="view-header-bar">
                 <!-- View type selection dropdown -->
                 <ViewSelectionDropdown />
@@ -107,7 +106,7 @@ onUnmounted(() => {
 .view-header-bar {
     display: flex;
     align-items: center;
-    padding-left: var(--spacing-sm);
+    padding-left: var(--spacing-xs);
     background-color: var(--bg-secondary);
 }
 
@@ -116,6 +115,7 @@ onUnmounted(() => {
     min-width: 0;
     min-height: 0;
     overflow: hidden;
+    padding-left: calc(var(--spacing-xs) + 0.23em);
 }
 
 .grid-container {

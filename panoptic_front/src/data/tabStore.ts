@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { TabData, TabState } from "./models";
 import { TabManager } from "@/core/TabManager";
 import { buildTabState, objValues } from "./builder";
@@ -21,6 +21,9 @@ export const useTabStore = defineStore('tabStore', () => {
     const mainTab = ref<string>(null)
 
     const loadedTabs = ref<string[]>([])
+    const tabs = reactive<Record<string, TabState>>({})
+
+    const activeTab = computed(() => mainTab.value ? tabs[mainTab.value] : null)
 
     async function init() {
         await loadTabsFromStorage()
@@ -32,6 +35,7 @@ export const useTabStore = defineStore('tabStore', () => {
         mainTab.value = null
         managers = {}
         loadedTabs.value = []
+        Object.keys(tabs).forEach(k => delete tabs[k])
     }
 
     function importTab(tab: TabState) {
@@ -41,6 +45,7 @@ export const useTabStore = defineStore('tabStore', () => {
             return
         }
         loadedTabs.value.push(id)
+        tabs[id] = tab
         const manager = new TabManager(tab)
         managers[id] = manager
         manager.deactivate()
@@ -59,13 +64,13 @@ export const useTabStore = defineStore('tabStore', () => {
     }
 
     async function loadTabsFromStorage() {
-        const [tabs, savedOrder] = await Promise.all([
+        const [apiTabs, savedOrder] = await Promise.all([
             apiGetAllTabs(),
             apiGetUIData(TAB_ORDER_KEY) as Promise<string[] | null>,
         ])
 
         const validTabs = new Map<string, TabState>()
-        for (const tabData of tabs) {
+        for (const tabData of apiTabs) {
             const state = tabData.state
             if (!state || state.version != TAB_MODEL_VERSION) continue
             validTabs.set(state.id, state)
@@ -95,9 +100,9 @@ export const useTabStore = defineStore('tabStore', () => {
             await addTab()
         }
 
-        const activeTab = useProjectStore().uiState?.activeTab
-        if (activeTab && loadedTabs.value.includes(activeTab)) {
-            await selectMainTab(activeTab)
+        const savedActiveTab = useProjectStore().uiState?.activeTab
+        if (savedActiveTab && loadedTabs.value.includes(savedActiveTab)) {
+            await selectMainTab(savedActiveTab)
         } else {
             await selectMainTab(loadedTabs.value[0])
         }
@@ -155,7 +160,7 @@ export const useTabStore = defineStore('tabStore', () => {
     }
 
     return {
-        loaded, init, clear, getTab, mainTab, deleteTab, addTab, loadedTabs, selectMainTab, getMainTab, updateTabStateInStorage
+        loaded, init, clear, getTab, mainTab, deleteTab, addTab, loadedTabs, selectMainTab, getMainTab, updateTabStateInStorage, tabs, activeTab
     }
 
 })

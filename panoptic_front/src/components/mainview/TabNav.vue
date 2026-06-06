@@ -13,8 +13,6 @@ import { computed } from 'vue';
 const panoptic = usePanopticStore()
 const tabStore = useTabStore()
 
-const mainTab = computed(() => tabStore.getMainTab())
-
 
 const props = defineProps<{
     reRender: Function

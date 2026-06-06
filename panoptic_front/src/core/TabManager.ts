@@ -1,7 +1,6 @@
 import { PropertyMode, ScoreInterval, TabState } from "@/data/models"
 import { CollectionManager } from "./CollectionManager"
 import { useProjectStore } from "@/data/projectStore"
-import { reactive, toRefs } from "vue"
 import { EventEmitter } from "@/utils/utils"
 import { useDataStore } from "@/data/dataStore"
 import { createMapOptions, defaultPropertyOption } from "@/data/builder"
@@ -18,7 +17,7 @@ export class TabManager {
         if(state.isSelection) {
             state.collectionState.filterBySelection = true
         }
-        this.state = reactive(state)
+        this.state = state
         this.collection = new CollectionManager(state.collectionState, state.filterState, state.sortState, state.groupState)
         this.onLoad = new EventEmitter()
         this.verifyState()
@@ -108,10 +107,6 @@ export class TabManager {
     }
 
     private saveManagerStates() {
-        Object.assign(this.state.collectionState, this.collection.state)
-        Object.assign(this.state.filterState, this.collection.filterManager.state)
-        Object.assign(this.state.sortState, this.collection.sortManager.state)
-        Object.assign(this.state.groupState, this.collection.groupManager.state)
         this.saveState()
     }
 

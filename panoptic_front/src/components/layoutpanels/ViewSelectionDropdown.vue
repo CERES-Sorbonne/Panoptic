@@ -5,7 +5,6 @@ import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
 
 const tabStore = useTabStore()
-const currentTab = computed(() => tabStore.getMainTab())
 
 interface ViewOption {
     id: string
@@ -21,7 +20,7 @@ const viewOptions: ViewOption[] = [
 ]
 
 const currentView = computed(() => {
-    return currentTab.value?.state.display ?? 'grid'
+    return tabStore.activeTab?.display ?? 'grid'
 })
 
 const activeOption = computed(() => {

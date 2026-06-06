@@ -62,9 +62,9 @@
   --island-surface: #ffffff;     /* the card/tool-window surface */
   --island-border: #dcdee2;      /* subtle island outline */
   --island-radius: 10px;         /* island corner rounding */
-  --island-gap: 12px;            /* gap between islands and window edge */
+  --island-gap: 4px;            /* gap between islands and window edge */
   --island-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
-  --toolbar-height: 40px;
+  --toolbar-height: 30px;
   --statusbar-height: 24px;
 
   /* Disabled State */

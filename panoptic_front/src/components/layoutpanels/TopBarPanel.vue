@@ -158,13 +158,13 @@ function onChangeLang(event: Event) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: none;
     border: none;
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    font-size: var(--font-size-sm);
+    font-size: 14px;
     transition: background-color var(--transition-fast);
 }
 
