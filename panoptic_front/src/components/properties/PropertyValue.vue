@@ -78,7 +78,8 @@ function mapTag(id: number | string): Tag[] {
     if (id == undefined) {
         return [{ value: '_indéfini', color: -1 } as Tag]
     }
-    return [data.properties[props.value.propertyId].tags[id as number]]
+    const tag = data.properties[props.value.propertyId]?.tags?.[id as number]
+    return tag ? [tag] : [{ value: `#${id}`, color: -1 } as Tag]
 }
 </script>
 

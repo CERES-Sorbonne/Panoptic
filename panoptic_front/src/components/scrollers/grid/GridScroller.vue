@@ -204,18 +204,6 @@ function computeLines() {
     }
 
     visit(props.manager.result.root)
-    // [grp-debug] remove once grouping render is confirmed
-    {
-        const root = props.manager.result.root
-        console.log('[grp] groupBy=', JSON.stringify(props.manager.state.groupBy),
-            'root.children=', root.children.length,
-            'subGroupType=', root.subGroupType,
-            'rootSlots=', root.slots.length,
-            'lines=', lines.length,
-            'groupLines=', lines.filter((l: any) => l.type === 'group').length,
-            'imageLines=', lines.filter((l: any) => l.type === 'image').length,
-            'firstChildSlots=', root.children[0]?.slots.length)
-    }
     lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length })
 
     dataLines = lines

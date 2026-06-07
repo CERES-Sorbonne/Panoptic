@@ -204,7 +204,10 @@ function sortGroupByProperty(group: Group, direction: number, properties: Proper
             const prop = properties[propValue.propertyId]
             const type = isTag(prop.type) ? PropertyType.tag : prop.type
             let value = propValue.value
-            if (isTag(type) && value != undefined) value = prop.tags[value].value
+            if (isTag(type) && value != undefined) {
+                const tagObj = prop.tags?.[value]
+                value = tagObj ? tagObj.value : value
+            }
             value = sortParser[type](value, folders)
             values.push(value)
         }
@@ -491,7 +494,8 @@ export class GroupManager {
                 const withParents = new Set<any>()
                 for (const v of values) {
                     if (!v) continue
-                    for (const p of tagWithParents[v]) withParents.add(p)
+                    const parents = tagWithParents[v] ?? [v]
+                    for (const p of parents) withParents.add(p)
                 }
                 values = Array.from(withParents)
             }
@@ -917,11 +921,13 @@ export class GroupManager {
 
         // Build tagWithParents once per property (hoisted outside slot loop)
         const tagWithParents: { [id: number]: Set<number> } = {}
+        let hasTagMeta = false
         if (isTagType && property.tags) {
             for (const tag of objValues(property.tags)) {
                 tagWithParents[tag.id] = new Set(tag.allParents)
                 tagWithParents[tag.id].add(tag.id)
             }
+            hasTagMeta = Object.keys(tagWithParents).length > 0
         }
 
         group.subGroupType = GroupType.Property
@@ -952,7 +958,7 @@ export class GroupManager {
                 // parents shared across the slot's tags.
                 for (const v of tagIds) {
                     if (!v) continue
-                    const parents = tagWithParents[v]
+                    const parents = hasTagMeta ? tagWithParents[v] : [v]
                     if (!parents) continue
                     for (const p of parents) {
                         let arr = buckets.get(p); if (!arr) { arr = []; buckets.set(p, arr) }

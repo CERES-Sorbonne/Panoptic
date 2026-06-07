@@ -2,15 +2,17 @@
 import { PropertyGroupId, PropertyGroupNode } from '@/data/models'
 import { TabManager } from '@/core/TabManager'
 import PropertyRow from './PropertyRow.vue'
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
 import { useDataStore } from '@/data/dataStore'
+import { useUiStore } from '@/data/uiStore'
 
 const data = useDataStore()
+const uiStore = useUiStore()
 const props = defineProps<{
     tab: TabManager
 }>()
 
-const groupOpen = reactive<Record<number, boolean>>({})
+const groupOpen = uiStore.panelStates.groupExpansions
 
 const visibleGroups = computed(() => {
     return data.propertyTree

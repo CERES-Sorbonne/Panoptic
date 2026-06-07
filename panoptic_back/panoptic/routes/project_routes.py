@@ -26,7 +26,7 @@ from panoptic.models.stream_models import (
 )
 from panoptic.core.databases.entity_schema import OP_CREATE, OP_DELETE
 from panoptic.core.databases.data.create import (
-    FILES_SCHEMA, INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA,
+    FILES_SCHEMA, INSTANCES_SCHEMA, INSTANCE_TAG_VALUES_SCHEMA, SHA1_TAG_VALUES_SCHEMA,
     INSTANCE_VALUES_SCHEMA, SHA1_VALUES_SCHEMA, FILE_VALUES_SCHEMA,
 )
 from panoptic.routes.deps import get_project
@@ -658,14 +658,38 @@ def get_property_column(
 
             # Tag properties — use iter_column_values with 'tag' mode
             if reader._is_tag_property(prop_id):
-                n, _ = reader.count_column_values(prop_id)
+                # Tags are stored per-instance (instance_tag_values) for id-mode
+                # properties, or per-sha1 (sha1_tag_values) for sha1-mode ones.
+                # This branch used to read instance_tag_values only, so sha1-mode
+                # tag/multi_tags columns streamed empty and could not be grouped or
+                # sorted. Detect which table actually holds the rows — mirroring the
+                # display path's mode routing — and stream from it.
+                n = reader.conn.execute(
+                    f"SELECT COUNT(*) FROM {INSTANCE_TAG_VALUES_SCHEMA.table} "
+                    f"WHERE property_id = ? AND operation = ?",
+                    (prop_id, OP_CREATE),
+                ).fetchone()[0]
 
                 grouped: dict[int, list[int]] = {}
-                cursor = reader.conn.execute(
-                    f"SELECT instance_id, tag_id FROM {INSTANCE_TAG_VALUES_SCHEMA.table} "
-                    f"WHERE property_id = ? AND operation = ?",
-                    (prop_id, 1),  # OP_CREATE = 1
-                )
+                if n > 0:
+                    cursor = reader.conn.execute(
+                        f"SELECT instance_id, tag_id FROM {INSTANCE_TAG_VALUES_SCHEMA.table} "
+                        f"WHERE property_id = ? AND operation = ?",
+                        (prop_id, OP_CREATE),
+                    )
+                else:
+                    cursor = reader.conn.execute(
+                        f"SELECT i.id, stv.tag_id FROM {SHA1_TAG_VALUES_SCHEMA.table} stv "
+                        f"JOIN {INSTANCES_SCHEMA.table} i ON i.sha1 = stv.sha1 "
+                        f"WHERE stv.property_id = ? AND stv.operation = ?",
+                        (prop_id, OP_CREATE),
+                    )
+                    n = reader.conn.execute(
+                        f"SELECT COUNT(DISTINCT i.id) FROM {SHA1_TAG_VALUES_SCHEMA.table} stv "
+                        f"JOIN {INSTANCES_SCHEMA.table} i ON i.sha1 = stv.sha1 "
+                        f"WHERE stv.property_id = ? AND stv.operation = ?",
+                        (prop_id, OP_CREATE),
+                    ).fetchone()[0]
 
                 counter = 0
                 for row in cursor:

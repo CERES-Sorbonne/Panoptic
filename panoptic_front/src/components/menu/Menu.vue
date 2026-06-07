@@ -91,8 +91,7 @@ function toggleMenu() {
                                 </div>
                                 <div style="max-height: 300px; overflow: auto;">
                                     <FolderList2 :folders="data.folderRoots"
-                                        :filter-manager="tab.collection.filterManager"
-                                        :visible-folders="tab.state.visibleFolders" :tab="tab" />
+                                        :filter-manager="tab.collection.filterManager" :tab="tab" />
                                 </div>
 
                             </div>

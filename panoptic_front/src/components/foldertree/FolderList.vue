@@ -2,12 +2,14 @@
 import { FilterManager } from '@/core/FilterManager'
 import { Folder } from '@/data/models'
 import { getFolderChildren, getFolderAndParents } from '@/utils/utils'
-import { computed, reactive } from 'vue'
+import { computed } from 'vue'
 import { useDataStore } from '@/data/dataStore'
 import { TabManager } from '@/core/TabManager'
+import { useUiStore } from '@/data/uiStore'
 import FolderOptionDropdown from '../dropdowns/FolderOptionDropdown.vue'
 
 const data = useDataStore()
+const uiStore = useUiStore()
 const props = defineProps<{
     folders: Folder[]
     filterManager?: FilterManager
@@ -16,7 +18,7 @@ const props = defineProps<{
 }>()
 
 const folderDepth = props.depth ?? 0
-const visibleFolders = reactive<{ [folderId: number]: boolean }>({})
+const visibleFolders = uiStore.panelStates.folderExpansions
 
 const isSelected = computed(() => {
     if (!props.filterManager) return {} as Record<number, boolean>
@@ -53,38 +55,17 @@ function toggleSelect(folderId: number) {
     const folder = data.folders[folderId]
     if (!folder) return
 
-    const hasSelectedChild = folder.children?.some(c => selected.has(c.id)) ?? false
-    const isParentSelected = folder.parent != undefined && selected.has(folder.parent)
-
-    if (selected.has(folderId) && !isParentSelected && !hasSelectedChild) {
+    if (selected.has(folderId)) {
         selected.delete(folderId)
         getFolderChildren(folderId).forEach(c => selected.delete(c.id))
     } else {
-        unselectParent(folderId, selected)
+        getFolderAndParents(folder).forEach(c => selected.delete(c.id))
         selected.add(folderId)
         getFolderChildren(folderId).forEach(c => selected.add(c.id))
-        getFolderAndParents(folder).forEach(c => selected.delete(c.id))
     }
 
     props.filterManager.setFolders(Array.from(selected))
-    props.tab.setSelectedFolder(selected)
-}
-
-function unselectParent(folderId: number, selected: Set<number>) {
-    const folder = data.folders[folderId]
-    if (!folder) return
-    const parents = getFolderAndParents(folder)
-    let highestParent: Folder | undefined
-    for (const p of parents) {
-        if (selected.has(p)) {
-            highestParent = data.folders[p]
-        } else {
-            break
-        }
-    }
-    if (highestParent) {
-        getFolderChildren(highestParent.id).forEach(c => selected.delete(c.id))
-    }
+    props.tab.setSelectedFolder(new Set(selected))
 }
 
 function getChildren(folderId: number): Folder[] {

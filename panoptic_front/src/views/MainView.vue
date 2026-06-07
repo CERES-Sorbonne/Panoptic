@@ -42,7 +42,7 @@ onMounted(async () => {
         <!-- Top toolbar (on canvas) -->
         <template #toolbar>
             <TopBarPanel />
-        </template>^
+        </template>
 
         <!-- Left activity bar (on canvas) -->
         <template #activity>

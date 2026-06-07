@@ -28,7 +28,7 @@ export function createCollectionState(): CollectionState {
 // expensive pending one (Pillar B).
 export type ReloadKind = 'filter' | 'sort' | 'group' | 'sortGroups'
 const RELOAD_PRIORITY: Record<ReloadKind, number> = { filter: 4, sort: 3, group: 2, sortGroups: 1 }
-const RELOAD_DEBOUNCE_MS = 200
+const RELOAD_DEBOUNCE_MS = 50
 
 function maxReloadKind(a: ReloadKind | null, b: ReloadKind): ReloadKind {
     if (!a) return b
@@ -83,6 +83,14 @@ export class CollectionManager {
         watch(() => this.sortManager.state,          () => this.requestReload('sort'),       { deep: true })
         watch(() => this.groupManager.state.groupBy, () => this.requestReload('group'),      { deep: true })
         watch(() => this.groupManager.state.options, () => this.requestReload('sortGroups'), { deep: true })
+        // stepSize/stepUnit changes require a full group rebuild (buckets change), not just a re-sort
+        watch(
+            () => this.groupManager.state.groupBy.map(id => {
+                const o = this.groupManager.state.options[id]
+                return `${o?.stepSize}-${o?.stepUnit}`
+            }).join(','),
+            () => this.requestReload('group')
+        )
 
         // Trigger full update whenever the column store finishes (re)loading.
         // immediate:true handles the case where a tab is created after init completes.
