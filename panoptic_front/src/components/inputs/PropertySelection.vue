@@ -138,6 +138,7 @@ const filteredGroupIds = computed(() => {
     align-items: center;
     height: 28px;
     padding: 0 var(--spacing-sm);
+    border-radius: 0 !important;
 }
 
 .property-item:hover {
