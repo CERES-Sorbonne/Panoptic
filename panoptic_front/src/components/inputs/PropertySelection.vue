@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import PropertyIcon from '../properties/PropertyIcon.vue'
-import { useDataStore } from '@/data/dataStore'
-import { deletedID, PropertyType, Property } from '@/data/models'
+import { deletedID, PropertyType, PropertyGroupId } from '@/data/models'
 import TextInput from './TextInput.vue'
+import { useDataStore } from '@/data/dataStore'
+import { useUiStore } from '@/data/uiStore'
 
 const data = useDataStore()
+const uiStore = useUiStore()
 
 interface Props {
     ignoreIds?: number[]
-    // The component accepts an array of acceptable types for filtering
     acceptableTypes?: PropertyType[] | null
-    // modelValue is included as PropertySelection is often used within a dropdown 
-    // that uses v-model internally, though it's not strictly used for input here.
-    modelValue?: Property | null
+    modelValue?: any
 }
 
 const props = defineProps<Props>()
@@ -23,43 +22,125 @@ const emits = defineEmits<{
 
 const propertyFilter = ref('')
 
-const filteredProperties = computed(() => {
-    let properties = data.propertyList.filter(p => p.id !== deletedID)
+const groupOpen = uiStore.panelStates.propertySelectionExpansions
 
-    if (props.ignoreIds) {
-        properties = properties.filter(p => !props.ignoreIds?.includes(p.id))
+const propertyGroups = computed(() => data.propertyTree)
+
+function getGroupName(groupId: number): string {
+    if (groupId === PropertyGroupId.DEFAULT) return 'Default'
+    if (groupId === PropertyGroupId.METADATA) return 'Metadata'
+    const groupData = data.propertyGroups[groupId]
+    if (groupData) return groupData.name
+    return 'Unknown'
+}
+
+function isGroupOpen(groupId: number): boolean {
+    if (groupOpen[groupId] === undefined) return true
+    return groupOpen[groupId]
+}
+
+function toggleGroup(groupId: number) {
+    groupOpen[groupId] = !groupOpen[groupId]
+}
+
+const filteredGroupIds = computed(() => {
+    const filter = propertyFilter.value.toLocaleLowerCase()
+    if (!filter) return new Set(propertyGroups.value.map(g => g.groupId))
+
+    const result = new Set<number>()
+    for (const group of propertyGroups.value) {
+        for (const propId of group.propertyIds) {
+            const prop = data.properties[propId]
+            if (prop && prop.id !== deletedID) {
+                if (props.ignoreIds?.includes(prop.id)) continue
+                if (props.acceptableTypes && props.acceptableTypes.length > 0) {
+                    if (!props.acceptableTypes.includes(prop.type)) continue
+                }
+                if (prop.name.toLocaleLowerCase().includes(filter)) {
+                    result.add(group.groupId)
+                    break
+                }
+            }
+        }
     }
-
-    // Apply acceptableTypes filter
-    if (props.acceptableTypes && props.acceptableTypes.length > 0) {
-        properties = properties.filter(p => props.acceptableTypes?.includes(p.type))
-    }
-
-    const filtered = properties.filter(p => p.name.toLocaleLowerCase().includes(propertyFilter.value.toLocaleLowerCase()))
-
-    // Sort by propertyOrder
-    const order = data.propertyOrder.properties || {}
-    filtered.sort((a, b) => (order[a.id] ?? Infinity) - (order[b.id] ?? Infinity))
-
-    return filtered
+    return result
 })
 
 </script>
 
 <template>
-    <div class="p-1 flex flex-column h-100">
-        <div class="mb-1">
-            <!-- <input class="w-100 bg-light" type="text" ref="searchElem" v-model="propertyFilter" /> -->
+    <div class="flex flex-column h-100">
+        <div class="p-1 mb-1">
             <TextInput v-model="propertyFilter" :focus="true" />
         </div>
         <div class="flex-grow-1 overflow-auto" style="max-height: 350px; overflow-y: scroll;">
-            <div v-for="prop in filteredProperties" class="p-1 base-hover text-black" style="cursor:pointer"
-                @click="emits('select', prop.id)">
-                <PropertyIcon :type="prop.type" class="me-2" />
-                <a>{{ prop.name }}</a>
-            </div>
+            <template v-for="group in propertyGroups" :key="group.groupId">
+                <template v-if="filteredGroupIds.has(group.groupId)">
+                    <div class="group-header" @click="toggleGroup(group.groupId)">
+                        <span class="expand-icon">{{ isGroupOpen(group.groupId) ? '▾' : '▸' }}</span>
+                        <span class="group-name">{{ getGroupName(group.groupId) }}</span>
+                    </div>
+                    <template v-if="isGroupOpen(group.groupId)">
+                        <div 
+                            v-for="propId in group.propertyIds" 
+                            :key="propId"
+                            class="property-item base-hover text-black"
+                            style="cursor:pointer"
+                            @click="emits('select', propId)"
+                        >
+                            <PropertyIcon v-if="data.properties[propId] && data.properties[propId].id !== deletedID" :type="data.properties[propId].type" class="me-2" />
+                            <span>{{ data.properties[propId]?.name }}</span>
+                        </div>
+                    </template>
+                </template>
+            </template>
         </div>
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 var(--spacing-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    background-color: rgba(195, 207, 217, 0.158);
+}
+
+.group-header:hover {
+    background-color: rgba(195, 207, 217, 0.397);
+}
+
+.expand-icon {
+    width: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.group-name {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: capitalize;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.property-item {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 var(--spacing-sm);
+}
+
+.property-item:hover {
+    background-color: var(--hover-bg);
+}
+</style>

@@ -21,6 +21,7 @@ export interface PanelStates {
     activeBottomPanel: BottomPanel
     groupExpansions: Record<number, boolean>
     folderExpansions: Record<number, boolean>
+    propertySelectionExpansions: Record<number, boolean>
 }
 
 export interface ResizeStates {
@@ -48,7 +49,8 @@ export const useUiStore = defineStore('uiStore', () => {
         viewsLinked: false,
         activeBottomPanel: 'properties',
         groupExpansions: {},
-        folderExpansions: {}
+        folderExpansions: {},
+        propertySelectionExpansions: {}
     })
 
     const resizeStates = reactive<ResizeStates>({
@@ -135,7 +137,8 @@ export const useUiStore = defineStore('uiStore', () => {
             viewsLinked: false,
             activeBottomPanel: 'properties',
             groupExpansions: {},
-            folderExpansions: {}
+            folderExpansions: {},
+            propertySelectionExpansions: {}
         })
         Object.assign(resizeStates, {
             splitRowSecondaryHeight: 200,
