@@ -69,14 +69,11 @@ function emitQuery() {
     setQuery(newQuery)
 }
 
-async function setQuery(query) {
+function setQuery(query) {
     if(areQueryEquals(query, props.tab.collection.filterManager.state.query)) return
-    searchStore.setLoading(true)
+    // Mutating the query triggers the CollectionManager's filter watch, which
+    // debounces + recomputes (Pillar B). Persistence is handled by autosave.
     props.tab.collection.filterManager.setQuery(query)
-    await props.tab.collection.filterManager.update(true)
-    props.tab.saveState()
-    searchStore.setLoading(false)
-
 }
 
 function areQueryEquals(query1: TextQuery, query2: TextQuery) {

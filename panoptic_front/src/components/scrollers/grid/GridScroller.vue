@@ -24,7 +24,10 @@ const props = defineProps({
     width: Number,
     selectedProperties: Array<Property>,
     showImages: Boolean,
-    hideIfModal: Boolean
+    hideIfModal: Boolean,
+    // Per-view image size (Pillar F). Passed in by the pane; tab-level imageSize
+    // no longer exists.
+    imageSize: { type: Number, default: 100 },
 })
 
 defineExpose({
@@ -49,7 +52,7 @@ const totalPropWidth = computed(() => {
     const options =tabState.value.propertyOptions
     let propSum = visibleProperties.value.map(p => options[p.id]?.size ?? 0).reduce((a, b) => a + b, 0)
     if (props.showImages) {
-        propSum += tabState.value.imageSize
+        propSum += props.imageSize
     }
     return propSum
 })
@@ -148,7 +151,7 @@ function computeLines() {
     console.time('Table compute lines')
     const lines: ScrollerLine[] = []
     const ids = columnStore.instanceIds()
-    const defaultSize = props.showImages ? tabState.value.imageSize + 4 : 28
+    const defaultSize = props.showImages ? props.imageSize + 4 : 28
 
     function visit(group: Group) {
         const isLeaf      = group.children.length === 0
@@ -201,6 +204,18 @@ function computeLines() {
     }
 
     visit(props.manager.result.root)
+    // [grp-debug] remove once grouping render is confirmed
+    {
+        const root = props.manager.result.root
+        console.log('[grp] groupBy=', JSON.stringify(props.manager.state.groupBy),
+            'root.children=', root.children.length,
+            'subGroupType=', root.subGroupType,
+            'rootSlots=', root.slots.length,
+            'lines=', lines.length,
+            'groupLines=', lines.filter((l: any) => l.type === 'group').length,
+            'imageLines=', lines.filter((l: any) => l.type === 'image').length,
+            'firstChildSlots=', root.children[0]?.slots.length)
+    }
     lines.push({ id: '__filler__', type: 'fillter', size: 300, index: lines.length })
 
     dataLines = lines
@@ -272,7 +287,7 @@ onUnmounted(() => {
     scroller.value?.$el?.removeEventListener('scroll', onScroll)
 })
 
-watch(() => tabState.value.imageSize, (now) => {
+watch(() => props.imageSize, (now) => {
     if (!dataLines.length) return
     const scrollPos = scroller.value?.getScroll()?.start ?? 0
 
@@ -306,7 +321,7 @@ watch(() => tabState.value.imageSize, (now) => {
 
 <template>
     <div class="grid-container overflow-hidden" :style="{ width: scrollerStyle.width }">
-        <TableHeader :tab="props.tab" :manager="props.manager" :properties="visibleProperties" :missing-width="missingWidth"
+        <TableHeader :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :properties="visibleProperties" :missing-width="missingWidth"
             :show-image="props.showImages" :current-group="currentGroup" class="p-0 m-0" />
 
         <InstanceData :instance-ids="windowIds" :prop-ids="windowPropIds">
@@ -315,7 +330,7 @@ watch(() => tabState.value.imageSize, (now) => {
 
             <template v-slot="{ item, index, active }">
                 <template v-if="active && !hideFromModal">
-                    <GridScrollerLine :item="item" :tab="props.tab" :manager="props.manager" :properties="visibleProperties" :width="scrollerWidth"
+                    <GridScrollerLine :item="item" :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :properties="visibleProperties" :width="scrollerWidth"
                         :show-images="props.showImages" :selected-images="props.manager.selectedImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"

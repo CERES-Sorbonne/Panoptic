@@ -2,12 +2,17 @@
 import { computed } from 'vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
-import { useTabStore } from '@/data/tabStore'
+import { useCurrentTab } from '@/data/useCurrentTab'
+import { ViewType } from '@/data/models'
 
-const tabStore = useTabStore()
+const props = defineProps<{
+    viewIndex: number
+}>()
+
+const tab = useCurrentTab()
 
 interface ViewOption {
-    id: string
+    id: ViewType
     icon: string
     tooltip: string
 }
@@ -20,17 +25,15 @@ const viewOptions: ViewOption[] = [
 ]
 
 const currentView = computed(() => {
-    return tabStore.activeTab?.display ?? 'grid'
+    return tab.value?.state.views[props.viewIndex]?.type ?? 'grid'
 })
 
 const activeOption = computed(() => {
     return viewOptions.find(opt => opt.id === currentView.value) ?? viewOptions[0]
 })
 
-function selectView(viewId: string) {
-    if (currentTab.value) {
-        currentTab.value.setViewMode(viewId)
-    }
+function selectView(viewId: ViewType) {
+    tab.value?.setViewType(props.viewIndex, viewId)
 }
 
 </script>

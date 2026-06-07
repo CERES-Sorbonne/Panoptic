@@ -17,7 +17,6 @@ export interface PanelStates {
     leftPanelOpen: boolean
     rightPanelOpen: boolean
     showSplitView: boolean
-    viewSplitEnabled: boolean
     viewsLinked: boolean
     activeBottomPanel: BottomPanel
 }
@@ -28,7 +27,6 @@ export interface ResizeStates {
     leftSidebarWidth: number
     foldersHeight: number
     propertiesHeight: number
-    mainSplitRatio: number
 }
 
 export interface ScrollStates {
@@ -45,7 +43,6 @@ export const useUiStore = defineStore('uiStore', () => {
         leftPanelOpen: true,
         rightPanelOpen: true,
         showSplitView: true,
-        viewSplitEnabled: false,
         viewsLinked: false,
         activeBottomPanel: 'properties'
     })
@@ -54,9 +51,8 @@ export const useUiStore = defineStore('uiStore', () => {
         splitRowSecondaryHeight: 200,
         splitColumnSecondaryWidth: 300,
         leftSidebarWidth: 280,
-            foldersHeight: 0.4,
+        foldersHeight: 0.4,
         propertiesHeight: 250,
-            mainSplitRatio: 0.5
     })
 
     const scrollStates = reactive<ScrollStates>({
@@ -132,7 +128,6 @@ export const useUiStore = defineStore('uiStore', () => {
             leftPanelOpen: true,
             rightPanelOpen: true,
             showSplitView: true,
-            viewSplitEnabled: false,
             viewsLinked: false,
             activeBottomPanel: 'properties'
         })
@@ -140,9 +135,8 @@ export const useUiStore = defineStore('uiStore', () => {
             splitRowSecondaryHeight: 200,
             splitColumnSecondaryWidth: 300,
             leftSidebarWidth: 280,
-        foldersHeight: 0.4,
+            foldersHeight: 0.4,
             propertiesHeight: 250,
-        mainSplitRatio: 0.5
         })
         Object.assign(scrollStates, {
             leftPanelScrollX: 0,

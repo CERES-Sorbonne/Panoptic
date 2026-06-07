@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, watch, computed, onUnmounted, nextTick } from 'vue'
-import { Colors, greyColor, Instance, MapGroup, PointData } from '@/data/models'
+import { Colors, greyColor, Instance, MapGroup, MapOptions, PointData } from '@/data/models'
 import { useDataStore } from '@/data/dataStore'
 import { useMediaStore } from '@/data/mediaStore'
 import { useColumnStore } from '@/data/columnStore'
@@ -24,6 +24,9 @@ const media = useMediaStore()
 const columnStore = useColumnStore()
 const props = defineProps<{
     tab: TabManager
+    // Per-view map display options (Pillar F). The collection pipeline is shared
+    // via `tab`; these options belong to the specific view rendering the map.
+    mapOptions: MapOptions
 }>()
 
 const canvasContainer = ref<HTMLElement | null>(null)
@@ -137,7 +140,7 @@ function updateColors() {
 
 function generateGroups() {
     let groupList: Group[] = []
-    const groupOption = props.tab.state.mapOptions.groupOption
+    const groupOption = props.mapOptions.groupOption
 
     if (groupOption === 'property') {
         groupList = props.tab.collection.groupManager.result.root.children
@@ -274,9 +277,9 @@ async function showMap(mapId: number) {
 
     // Bug 4: if renderer isn't ready yet, store args so the renderer watcher can call createMap
     if (renderer.value) {
-        renderer.value.createMap(atlas, points.value, props.tab.state.mapOptions.showPoints)
+        renderer.value.createMap(atlas, points.value, props.mapOptions.showPoints)
     } else {
-        pendingCreateMap = { atlas, points: points.value, showAsPoint: props.tab.state.mapOptions.showPoints }
+        pendingCreateMap = { atlas, points: points.value, showAsPoint: props.mapOptions.showPoints }
     }
 }
 
@@ -306,11 +309,11 @@ async function deleteMap(mapId: number) {
 }
 
 function onGroupManager() {
-    showMap(props.tab.state.mapOptions.selectedMap)
+    showMap(props.mapOptions.selectedMap)
 }
 
 function removeClusters() {
-    const groupOption = props.tab.state.mapOptions.groupOption
+    const groupOption = props.mapOptions.groupOption
 
     if(groupOption == 'cluster') {
         clusters = []
@@ -321,10 +324,10 @@ function removeClusters() {
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
 watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
-watch(() => props.tab.state.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
-watch(() => props.tab.state.mapOptions.groupOption, () => generateGroups())
-watch(() => props.tab.state.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
-watch(() => props.tab.state.mapOptions.imageSize, (val) => renderer.value?.setImageSize(val))
+watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
+watch(() => props.mapOptions.groupOption, () => generateGroups())
+watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
+watch(() => props.mapOptions.imageSize, (val) => renderer.value?.setImageSize(val))
 watch(hoverInstanceId, () => {
     if(hoverInstanceId.value) {
         lastValiderHoverId.value = hoverInstanceId.value
@@ -334,7 +337,7 @@ watch(hoverInstanceId, () => {
 watch(renderer, (r) => {
     if (r) {
         r.onPointSelection = handleLasso
-        r.setImageSize(props.tab.state.mapOptions.imageSize)
+        r.setImageSize(props.mapOptions.imageSize)
         // Bug 4: flush a createMap call that arrived before the renderer was ready
         if (pendingCreateMap) {
             r.createMap(pendingCreateMap.atlas, pendingCreateMap.points, pendingCreateMap.showAsPoint)
@@ -347,16 +350,14 @@ watch(renderer, (r) => {
 
 watch(mapWidth, () => console.log("map width", mapWidth.value))
 
-watch(() => props.tab.state.mapOptions, () => props.tab.saveState(), {deep: true})
-
 watch(() => media.atlas, async () => {
-    showMap(props.tab.state.mapOptions.selectedMap)
+    showMap(props.mapOptions.selectedMap)
 })
 
 onMounted(async () => {
     props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
     await media.loadMaps()
-    showMap(props.tab.state.mapOptions.selectedMap)
+    showMap(props.mapOptions.selectedMap)
     if (renderer.value) renderer.value.setMouseMode(mouseMode.value)
 })
 
@@ -370,12 +371,12 @@ onUnmounted(() => {
         <div class="toolbar-container">
             <Toolbar
                 v-model:mouse-mode="mouseMode"
-                v-model:image-size="props.tab.state.mapOptions.imageSize"
-                v-model:show-point="props.tab.state.mapOptions.showPoints"
-                :selected-map="props.tab.state.mapOptions.selectedMap"
-                @update:selected-map="id => props.tab.state.mapOptions.selectedMap = id"
-                :color-option="props.tab.state.mapOptions.groupOption"
-                @update:color-option="opt => {props.tab.state.mapOptions.groupOption = opt; props.tab.saveState();}"
+                v-model:image-size="props.mapOptions.imageSize"
+                v-model:show-point="props.mapOptions.showPoints"
+                :selected-map="props.mapOptions.selectedMap"
+                @update:selected-map="id => props.mapOptions.selectedMap = id"
+                :color-option="props.mapOptions.groupOption"
+                @update:color-option="opt => { props.mapOptions.groupOption = opt }"
                 :has-maps="media.hasMaps"
                 :images="tab.collection.groupManager.result.root?.images || []"
                 :map-images="mapInstances"
@@ -393,8 +394,8 @@ onUnmounted(() => {
             </Resizable>
 
             <MapMenu 
-                v-model:selected-map="props.tab.state.mapOptions.selectedMap"
-                v-model:color-option="props.tab.state.mapOptions.groupOption" 
+                v-model:selected-map="props.mapOptions.selectedMap"
+                v-model:color-option="props.mapOptions.groupOption" 
                 :hover-image-id="lastValiderHoverId"
                 :groups="groups" 
                 :images="tab.collection.groupManager.result.root?.images || []"

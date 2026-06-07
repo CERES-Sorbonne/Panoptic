@@ -350,7 +350,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         _fullColumnPromise[propId] = (async () => {
             try {
                 let csrBuilt = false
-                
+
                 await apiStreamColumn(propId, async (data: LoadResult) => {
                     // Update progress from state info in each batch
                     if (data.state?.maxInstanceValue) {
@@ -387,7 +387,6 @@ export const useColumnStore = defineStore('columnStore', () => {
                 })
 
                 fullColumnStatus[propId] = 'loaded'
-                console.log(columnData[propId])
             } catch (e) {
                 fullColumnStatus[propId] = 'empty'
                 delete columnProgress[propId]

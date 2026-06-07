@@ -7,6 +7,10 @@ This note proposes a rework of how a tab's state lives, mutates, reacts, and per
 It covers the `tabStore`, `TabManager`, and the three managers (`FilterManager`,
 `SortManager`, `GroupManager`) + `CollectionManager`.
 
+> **STATUS: IMPLEMENTED (all pillars A–F) on branch `rework-front`.** `vite build` passes.
+> Runtime not yet exercised — needs the `/verify` flow (esp. Pillar F: split view, per-view
+> type/imageSize/map options, reload persistence, and the version-bump reset). See §8.
+
 ---
 
 ## 0. Decisions locked
@@ -531,3 +535,23 @@ Each step is independently shippable and testable.
 - **`autoReload` interaction:** `setDirty` only recomputes when `state.autoReload` is true.
   B2 watchers should respect the same flag (don't recompute when the user has disabled
   auto-reload), else B2 changes behaviour for that mode.
+
+---
+
+## 8. Implementation status
+
+Implemented on `rework-front`; `vite build` passes (658 modules, no errors).
+
+**Landed:**
+- **A** — `tabStore.importTab` now `reactive(raw)` and hands the same proxy to `tabs[id]` and the `TabManager` (`manager.state === tabs[id]`). Fixes the load-kills-reactivity bug.
+- **B** — `CollectionManager` is the single orchestrator: deep watches on `filterState` / `sortState` / `groupState.groupBy` / `groupState.options` → one `requestReload(kind)` (coalesced via `maxReloadKind`, active+autoReload-gated, 200ms debounce, latest-wins `runToken`). Removed the `filterManager.onStateChange→setDirty` wiring and the ~16 scattered `update(true)`/`sortGroups(true)` calls in forms/dropdowns/folders. `sha1Mode` stays an inline restructure (not watched).
+- **C** — Deleted `TabManager.saveState` + the per-emit save chain; autosave is one debounced deep watch on the active tab in `tabStore`, re-armed on `mainTab` change, flushed on switch/delete/clear.
+- **D** — `useCurrentTab()` composable + `TabProvider.vue` (`:key` remount). `ViewPanel`/`ViewSelectionDropdown`/`TabPanel` use the reactive active manager; `getMainTab()` kept (loose type) for imperative callers, null-guarded in `dataStore`.
+- **E** — `managers` moved off module scope into the store; `deleteTab` deletes `tabs[id]`; version mismatch warns + resets (no silent drop). `TAB_MODEL_VERSION` bumped 7→8.
+- **F** — `ViewState {type,imageSize,mapOptions}`; `TabState` gains `views:[ViewState,ViewState]` + `splitView` + `splitRatio`; removed tab-level `display`/`imageSize`/`mapOptions`. Threaded per-view `imageSize` through `GridScroller→TableHeader/GridScrollerLine→RowLine`; `MapView` takes a `mapOptions` prop. Split state moved out of `uiStore` (`viewSplitEnabled`/`mainSplitRatio` removed) onto the tab. Dead `components/mainview/MainView.vue` + `ContentFilter.vue` repointed at `views[0]` to compile.
+
+**Not verified at runtime (do before merge):**
+- Build only checks compile/bundle (`strictNullChecks:false`, no `vue-tsc` gate). Template type-narrowing and behaviour are unverified.
+- Pillar F is the highest regression risk: open each view type per pane, toggle split, set per-pane map options + image size, reload (confirm per-view persistence + that v7 tabs reset cleanly with a warning).
+- Confirm the 200ms recompute debounce feels right for folder clicks / sort (was immediate before).
+- `verifyState` reassigns `propertyOptions` each activate → triggers one (harmless, debounced) autosave per tab switch.

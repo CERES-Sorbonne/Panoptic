@@ -45,8 +45,6 @@ function resetQuery() {
     const query = deepCopy(props.manager.state.query)
     query.text = ""
     props.manager.setQuery(query)
-    props.manager.update(true)
-    props.tab.saveState()
 
     if (props.manager.state.filter.filters.length == 0) {
         dropdownElem.value.hide()

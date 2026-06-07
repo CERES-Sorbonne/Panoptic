@@ -218,11 +218,23 @@ export interface ScoreInterval {
     description: string
 }
 
+export type ViewType = 'tree' | 'grid' | 'graph' | 'map'
+
+/**
+ * Per-view display state (Pillar F). A tab holds a fixed pair of views; the
+ * collection pipeline (filter/sort/group) is shared at the tab level, while
+ * each view owns only its display options.
+ */
+export interface ViewState {
+    type: ViewType
+    imageSize: number
+    mapOptions: MapOptions
+}
+
 export interface TabState {
     version: number
     id: string
     name: string
-    display: string
     selected?: boolean
 
     collectionState: CollectionState
@@ -230,12 +242,16 @@ export interface TabState {
     sortState: SortState,
     groupState: GroupState,
 
-    imageSize: number
+    // Per-view display state. Fixed pair; view2 is rendered only when splitView.
+    views: [ViewState, ViewState]
+    splitView: boolean
+    splitRatio: number
+
+    // Shared tab-level state
     visibleProperties: { [key: number]: boolean }
     visibleFolders: { [key: number]: boolean }
     selectedFolders: { [key: number]: boolean }
     propertyOptions: { [key: number]: PropertyOption }
-    mapOptions: MapOptions
 
     isSelection?: boolean
 }

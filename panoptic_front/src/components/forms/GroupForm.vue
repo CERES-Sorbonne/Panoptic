@@ -18,27 +18,22 @@ const props = defineProps({
 
 function add(id: number) {
     props.manager.setGroupOption(id)
-    props.manager.update(true)
 }
 
 function del(id: number) {
     props.manager.delGroupOption(id)
-    props.manager.update(true)
 }
 
 function setDirection(propertyId: number, value: SortDirection) {
     props.manager.setGroupOption(propertyId, {direction: value})
-    props.manager.sortGroups(true)
 }
 
 function setSortType(propertyId: number, value: GroupSortType) {
     props.manager.setGroupOption(propertyId, {type: value})
-    props.manager.sortGroups(true)
 }
 
 function updateGroupOption(propertyId: number, option: GroupOption) {
     props.manager.setGroupOption(propertyId, option)
-    props.manager.update(true)
 }
 
 const selectedProperties = computed(() => props.manager.state.groupBy.map(id => data.properties[id]))

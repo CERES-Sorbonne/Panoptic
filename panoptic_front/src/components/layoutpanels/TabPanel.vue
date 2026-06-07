@@ -9,9 +9,11 @@ import GroupForm from '@/components/forms/GroupForm.vue'
 import SortForm from '@/components/forms/SortForm.vue'
 import { useTabStore } from '@/data/tabStore'
 import { useUiStore } from '@/data/uiStore'
+import { useCurrentTab } from '@/data/useCurrentTab'
 
 const tabStore = useTabStore()
 const uiStore = useUiStore()
+const tab = useCurrentTab()
 
 async function addTab() {
     await tabStore.addTab('New Tab')
@@ -21,10 +23,13 @@ function toggleFilter() {
     // filter open/close can be wired to a parent or store state if needed
 }
 
+function toggleSplit() {
+    if (tab.value) tab.value.state.splitView = !tab.value.state.splitView
+}
+
 function updateSha1Mode(value: boolean) {
-    const tab = tabStore.getMainTab()
-    if (tab) {
-        tab.collection.groupManager.setSha1Mode(value, true)
+    if (tab.value) {
+        tab.value.collection.groupManager.setSha1Mode(value, true)
     }
 }
 
@@ -49,22 +54,22 @@ function updateSha1Mode(value: boolean) {
                 <div class="tab-spacer"></div>
                 <button
                     class="tab-action"
-                    :class="{ active: uiStore.panelStates.viewSplitEnabled }"
-                    :title="uiStore.panelStates.viewSplitEnabled ? 'Unsplit' : 'Split right'"
-                    @click="uiStore.panelStates.viewSplitEnabled = !uiStore.panelStates.viewSplitEnabled"
+                    :class="{ active: tab?.state.splitView }"
+                    :title="tab?.state.splitView ? 'Unsplit' : 'Split right'"
+                    @click="toggleSplit"
                 >⫿</button>
             </div>
         </template>
 
-        <div class="content-filter">
+        <div class="content-filter" v-if="tab">
             <!-- Single row: text search, instance/image mode, filter, group, sort -->
             <div class="filter-row">
-                <TextSearchInput :tab="tabStore.getMainTab()" />
+                <TextSearchInput :tab="tab" />
 
                 <div class="tool-group">
                     <button
                         class="tool-sm"
-                        :class="{ selected: !tabStore.getMainTab().collection.groupManager.state.sha1Mode }"
+                        :class="{ selected: !tab.collection.groupManager.state.sha1Mode }"
                         title="Instance mode"
                         @click="updateSha1Mode(false)"
                     >
@@ -72,7 +77,7 @@ function updateSha1Mode(value: boolean) {
                     </button>
                     <button
                         class="tool-sm"
-                        :class="{ selected: tabStore.getMainTab().collection.groupManager.state.sha1Mode }"
+                        :class="{ selected: tab.collection.groupManager.state.sha1Mode }"
                         title="Image mode"
                         @click="updateSha1Mode(true)"
                     >
@@ -80,9 +85,9 @@ function updateSha1Mode(value: boolean) {
                     </button>
                 </div>
 
-                <FilterForm :tab="tabStore.getMainTab()" />
-                <GroupForm :manager="tabStore.getMainTab().collection.groupManager" class="me-1" />
-                <SortForm :manager="tabStore.getMainTab().collection.sortManager" class="me-1" />
+                <FilterForm :tab="tab" />
+                <GroupForm :manager="tab.collection.groupManager" class="me-1" />
+                <SortForm :manager="tab.collection.sortManager" class="me-1" />
                 <div class="flex-grow-1"></div>
             </div>
         </div>

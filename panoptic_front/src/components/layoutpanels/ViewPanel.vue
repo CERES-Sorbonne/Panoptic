@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // A single view island root node — wraps the image visualisation in a growing
-// island card. Used once per pane in the center view split.
+// island card. Used once per pane in the center view split. Each pane renders
+// one of the tab's views (Pillar F): its own type + imageSize + mapOptions.
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import RangeInput from '@/components/inputs/RangeInput.vue'
@@ -10,14 +11,18 @@ import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { useTabStore } from '@/data/tabStore'
+import { useCurrentTab } from '@/data/useCurrentTab'
 
-const tabStore = useTabStore()
+const props = defineProps<{
+    viewIndex: number
+}>()
+
+const tab = useCurrentTab()
+const view = computed(() => tab.value?.state.views[props.viewIndex] ?? null)
 
 const containerRef = ref<HTMLElement>()
 const dimensions = ref({ width: 0, height: 0 })
-const currentTab = tabStore.getMainTab()
-const visibleProperties = computed(() => tabStore.getMainTab()?.getVisibleProperties() ?? [])
+const visibleProperties = computed(() => tab.value?.getVisibleProperties() ?? [])
 
 function onResize(entries: ResizeObserverEntry[]) {
     for (const entry of entries) {
@@ -46,16 +51,16 @@ onUnmounted(() => {
 <template>
     <IslandPanel grow>
         <template #header>
-            <div class="view-header-bar">
+            <div class="view-header-bar" v-if="view">
                 <!-- View type selection dropdown -->
-                <ViewSelectionDropdown />
+                <ViewSelectionDropdown :view-index="props.viewIndex" />
 
                 <!-- Image size range -->
                 <div class="ms-3 d-flex align-items-center">
                     <wTT message="main.menu.image_size_tooltip" :click="false">
                         <div class="bi bi-aspect-ratio me-1"></div>
                     </wTT>
-                    <RangeInput :min="30" :max="500" v-model="currentTab.state.imageSize" />
+                    <RangeInput :min="30" :max="500" v-model="view.imageSize" />
                 </div>
 
                 <div class="flex-grow-1"></div>
@@ -64,39 +69,41 @@ onUnmounted(() => {
 
         <div ref="containerRef" class="view-container">
             <TreeScroller
-                v-if="currentTab && currentTab.state.display == 'tree' && dimensions.width > 0"
+                v-if="tab && view && view.type == 'tree' && dimensions.width > 0"
                 input-key="view-panel-tree"
-                :group-manager="currentTab.collection.groupManager"
-                :image-size="currentTab.state.imageSize"
+                :group-manager="tab.collection.groupManager"
+                :image-size="view.imageSize"
                 :height="dimensions.height"
                 :width="dimensions.width - 20"
                 :properties="visibleProperties"
                 :hide-if-modal="true"
-                :selected-images="currentTab.collection.groupManager.selectedImages"
+                :selected-images="tab.collection.groupManager.selectedImages"
             />
 
-            <div v-if="currentTab && currentTab.state.display == 'grid' && dimensions.width > 0" class="grid-container">
+            <div v-if="tab && view && view.type == 'grid' && dimensions.width > 0" class="grid-container">
                 <GridScroller
-                    :tab="currentTab"
-                    :manager="currentTab.collection.groupManager"
+                    :tab="tab"
+                    :image-size="view.imageSize"
+                    :manager="tab.collection.groupManager"
                     :height="dimensions.height - 15"
                     :width="dimensions.width - 32"
                     :selected-properties="visibleProperties"
                     class="p-0 m-0"
                     :show-images="true"
-                    :selected-images="currentTab.collection.groupManager.selectedImages"
+                    :selected-images="tab.collection.groupManager.selectedImages"
                 />
             </div>
 
             <GraphView
-                v-if="currentTab && currentTab.state.display == 'graph' && dimensions.height > 0"
-                :collection="currentTab.collection"
+                v-if="tab && view && view.type == 'graph' && dimensions.height > 0"
+                :collection="tab.collection"
                 :height="dimensions.height - 15"
             />
 
             <MapView
-                v-if="currentTab && currentTab.state.display == 'map' && tabStore.loaded"
-                :tab="currentTab"
+                v-if="tab && view && view.type == 'map'"
+                :tab="tab"
+                :map-options="view.mapOptions"
             />
         </div>
     </IslandPanel>

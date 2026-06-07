@@ -11,6 +11,7 @@ import { useColumnStore } from '@/data/columnStore';
 
 const props = defineProps<{
     tab: TabManager,
+    imageSize: number,
     manager: GroupManager,
     item: ScrollerLine,
     width: number,
@@ -59,12 +60,12 @@ watch(() => props.item.id, reload)
         </div>
         <div v-if="item.type == 'image'">
             <!-- <div class="border-top position-absolute border-warning" style="width: 100%;"></div> -->
-            <RowLineVue :tab="props.tab" :manager="props.manager" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as RowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)"
                 @toggle:image="e => emits('toggle:image', e)" :selected="selected" />
         </div>
         <div v-if="item.type == 'pile'">
-            <RowLineVue :tab="props.tab" :manager="props.manager" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
+            <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)" :selected="selected"
                 @toggle:image="e => emits('toggle:image', { groupId: item.data.parent.id, imageIndex: item.data.parentIdx })" />
         </div>

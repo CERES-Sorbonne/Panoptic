@@ -420,15 +420,16 @@ export const useDataStore = defineStore('dataStore', () => {
         if (name !== undefined) prop.name = name
         if (group !== undefined) prop.propertyGroupId = group
         await sendCommit({ properties: [prop] })
-        await useTabStore().getMainTab().update()
+        await useTabStore().getMainTab()?.update()
     }
 
     async function deleteProperty(propertyId: number) {
         await sendCommit({ emptyProperties: [propertyId] })
-        const tabStore = useTabStore()
-        const tab = tabStore.getMainTab()
-        tab.verifyState()
-        await tab.update()
+        const tab = useTabStore().getMainTab()
+        if (tab) {
+            tab.verifyState()
+            await tab.update()
+        }
     }
 
     async function setPropertyValue(propertyId: number, imgs: Instance[] | Instance, value: any) {

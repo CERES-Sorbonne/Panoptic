@@ -10,6 +10,7 @@ import FolderPanel from '@/components/layoutpanels/FolderPanel.vue'
 import PropertyPanel from '@/components/layoutpanels/PropertyPanel.vue'
 import TabPanel from '@/components/layoutpanels/TabPanel.vue'
 import ViewPanel from '@/components/layoutpanels/ViewPanel.vue'
+import TabProvider from '@/components/layoutpanels/TabProvider.vue'
 import { useProjectStore } from '@/data/projectStore'
 import { usePanopticStore } from '@/data/panopticStore'
 import { useUiStore } from '@/data/uiStore'
@@ -41,7 +42,7 @@ onMounted(async () => {
         <!-- Top toolbar (on canvas) -->
         <template #toolbar>
             <TopBarPanel />
-        </template>
+        </template>^
 
         <!-- Left activity bar (on canvas) -->
         <template #activity>
@@ -88,25 +89,29 @@ onMounted(async () => {
                     <!-- Tab bar + filter zone island (shared, never split) -->
                     <TabPanel />
 
-                    <!-- 1 or 2 view islands, each its own card with a gap between -->
-                    <SplitLayout
-                        class="view-split"
-                        direction="row"
-                        :secondary-ratio="uiStore.resizeStates.mainSplitRatio"
-                        @update:secondary-ratio="(r) => { console.log('[MainView] Split resized to:', r); uiStore.resizeStates.mainSplitRatio = r }"
-                        :gap="10"
-                        resizable
-                        :min-primary="200"
-                        :min-secondary="200"
-                        :hide-secondary="!uiStore.panelStates.viewSplitEnabled"
-                    >
-                        <template #primary>
-                            <ViewPanel />
-                        </template>
-                        <template #secondary>
-                            <ViewPanel />
-                        </template>
-                    </SplitLayout>
+                    <!-- 1 or 2 view islands, each its own card with a gap between.
+                         Split state (shown/ratio) lives on the tab (Pillar F/Q13);
+                         TabProvider remounts the panes on tab switch (Pillar D). -->
+                    <TabProvider v-slot="{ tab }">
+                        <SplitLayout
+                            class="view-split"
+                            direction="row"
+                            :secondary-ratio="tab.state.splitRatio"
+                            @update:secondary-ratio="(r) => { tab.state.splitRatio = r }"
+                            :gap="10"
+                            resizable
+                            :min-primary="200"
+                            :min-secondary="200"
+                            :hide-secondary="!tab.state.splitView"
+                        >
+                            <template #primary>
+                                <ViewPanel :view-index="0" />
+                            </template>
+                            <template #secondary>
+                                <ViewPanel :view-index="1" />
+                            </template>
+                        </SplitLayout>
+                    </TabProvider>
                 </div>
             </template>
         </SidebarLayout>

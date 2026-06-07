@@ -23,6 +23,18 @@ export function createCollectionState(): CollectionState {
     return { autoReload: true }
 }
 
+// Recompute entrypoints, most → least expensive. A state change maps to one of
+// these; the CollectionManager coalesces concurrent requests to the most
+// expensive pending one (Pillar B).
+export type ReloadKind = 'filter' | 'sort' | 'group' | 'sortGroups'
+const RELOAD_PRIORITY: Record<ReloadKind, number> = { filter: 4, sort: 3, group: 2, sortGroups: 1 }
+const RELOAD_DEBOUNCE_MS = 200
+
+function maxReloadKind(a: ReloadKind | null, b: ReloadKind): ReloadKind {
+    if (!a) return b
+    return RELOAD_PRIORITY[a] >= RELOAD_PRIORITY[b] ? a : b
+}
+
 export class CollectionManager {
     state: CollectionState
     filterManager: FilterManager
@@ -32,6 +44,11 @@ export class CollectionManager {
     runState: Reactive<RunCollectionState>
 
     onStateChange: EventEmitter
+
+    // Pillar B orchestration state
+    private runToken = 0
+    private pendingKind: ReloadKind | null = null
+    private reloadTimer: ReturnType<typeof setTimeout> | null = null
 
     constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
         const data = useDataStore()
@@ -52,9 +69,20 @@ export class CollectionManager {
         this.sortManager.onResultChange.addListener(this.onSort.bind(this))
         this.groupManager.onResultChange.addListener(this.onGroup.bind(this))
 
-        this.filterManager.onStateChange.addListener(this.setDirty.bind(this))
-
         data.onChange.addListener(this.updateInstances.bind(this))
+
+        // Pillar B: the CollectionManager is the single orchestrator. It watches
+        // each persisted state slice and maps it to the right recompute
+        // entrypoint, coalesced + active/autoReload-gated + debounced. This
+        // generalises the old `filterManager.onStateChange -> setDirty` wiring
+        // (one slice) to all three managers. State mutations still go through the
+        // managers' setters (which keep id/index bookkeeping); only the recompute
+        // trigger moves here. `sha1Mode` is intentionally not watched — it does an
+        // incremental restructure inside `setSha1Mode`.
+        watch(() => this.filterManager.state,        () => this.requestReload('filter'),     { deep: true })
+        watch(() => this.sortManager.state,          () => this.requestReload('sort'),       { deep: true })
+        watch(() => this.groupManager.state.groupBy, () => this.requestReload('group'),      { deep: true })
+        watch(() => this.groupManager.state.options, () => this.requestReload('sortGroups'), { deep: true })
 
         // Trigger full update whenever the column store finishes (re)loading.
         // immediate:true handles the case where a tab is created after init completes.
@@ -106,8 +134,12 @@ export class CollectionManager {
 
     async update() {
         const col = useColumnStore()
-        console.log('update collection', col.instanceCount)
         if (!col.isReady) return
+
+        // Latest-wins guard: if a newer recompute starts while this one is
+        // awaiting (slow column load / plugin query), the stale run bails before
+        // writing results.
+        const token = ++this.runToken
 
         const count       = col.slotCount()
         const deleted     = col.deletedMask()
@@ -140,9 +172,51 @@ export class CollectionManager {
         }
 
         const filterRes = await this.filterManager.filter(slots)
+        if (token !== this.runToken) return
         const sortRes   = await this.sortManager.sort(filterRes.slots)
+        if (token !== this.runToken) return
         this.groupManager.group(sortRes.slots, true)
         this.runState.isDirty = false
+    }
+
+    // Pillar B: single entry for state-driven recompute. Coalesces concurrent
+    // requests, gates on active + autoReload, and debounces hot paths (typing,
+    // slider drags). Background tabs only mark dirty and recompute on activate
+    // (via TabManager.update on selectMainTab).
+    requestReload(kind: ReloadKind) {
+        this.runState.isDirty = true
+        if (!this.runState.active || !this.state.autoReload) return
+        this.pendingKind = maxReloadKind(this.pendingKind, kind)
+        if (this.reloadTimer) clearTimeout(this.reloadTimer)
+        this.reloadTimer = setTimeout(() => {
+            const kind = this.pendingKind
+            this.pendingKind = null
+            this.reloadTimer = null
+            if (kind) this.runReload(kind)
+        }, RELOAD_DEBOUNCE_MS)
+    }
+
+    private async runReload(kind: ReloadKind) {
+        if (kind === 'filter') {
+            await this.update()
+            return
+        }
+        const token = ++this.runToken
+        if (kind === 'sort') {
+            const sortRes = await this.sortManager.sort(this.filterManager.result.slots)
+            if (token !== this.runToken) return
+            this.groupManager.group(sortRes.slots, true)
+            this.runState.isDirty = false
+            return
+        }
+        if (kind === 'group') {
+            this.groupManager.group(this.sortManager.result.slots, true)
+            this.runState.isDirty = false
+            return
+        }
+        if (kind === 'sortGroups') {
+            this.groupManager.sortGroups(true)
+        }
     }
 
     private async onFilter(result: FilterResult) {

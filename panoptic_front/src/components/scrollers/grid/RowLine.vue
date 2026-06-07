@@ -19,6 +19,7 @@ const columnStore = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager,
+    imageSize: number,
     manager: GroupManager,
     item: any,
     properties: Property[],
@@ -62,7 +63,7 @@ const pile = computed(() => {
 
 const imageHeight = computed(() => {
     if (props.showImage) {
-        return Math.max(imageSize.value.h + 4, 30)
+        return Math.max(imageDims.value.h + 4, 30)
     }
     return 0
 })
@@ -94,7 +95,7 @@ const propMinRowHeight = computed(() => {
         }
         if (props.showImage) {
             // max = Math.max(max, tab.value.data.imageSize)
-            max = Math.max(max, imageSize.value.h+4)
+            max = Math.max(max, imageDims.value.h+4)
         }
         max = Math.max(max, props.showImage ? 26 : 24)
         res[prop.id] = max
@@ -111,12 +112,12 @@ const propWidth = computed(() => {
 })
 
 
-const imageSize = computed(() => {
+const imageDims = computed(() => {
     const imgRatio = 1
     if (1 > imgRatio) {
-        return { w: tab.value.imageSize * imgRatio, h: tab.value.imageSize }
+        return { w: props.imageSize * imgRatio, h: props.imageSize }
     }
-    return { w: tab.value.imageSize, h: tab.value.imageSize / imgRatio }
+    return { w: props.imageSize, h: props.imageSize / imgRatio }
 })
 
 const inputWidth = computed(() => {
@@ -195,11 +196,11 @@ watch(() => props.properties, () => {
     <div class="d-flex" :style="{ height: props.item.size + 'px' }">
         <div class="left-border" :style="{ height: props.item.size + 'px' }"></div>
         <div v-if="showImage" :class="classes" :style="{
-            width: (tab.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
+            width: (props.imageSize) + 'px', position: 'relative', height: rowHeight + 'px', cursor: 'pointer',
         }" class="p-0 m-0" @mouseenter="hover = true" @mouseleave="hover = false" @click="showModal">
             <Zoomable :image="image">
-                <CenteredImage :instance-id="image.id" :width="tab.imageSize - 1" :height="rowHeight - 2" />
-                <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: tab.imageSize + 'px' }"
+                <CenteredImage :instance-id="image.id" :width="props.imageSize - 1" :height="rowHeight - 2" />
+                <div v-if="hover || props.selected" class="h-100 box-shadow" :style="{ width: props.imageSize + 'px' }"
                     style="position: absolute; top:0; left:0; right: 0px; bottom: 0px;"></div>
                 <SelectCircle v-if="hover || props.selected" :model-value="props.selected"
                     @update:model-value="v => emits('toggle:image', { groupId: item.groupId, imageIndex: item.index })"

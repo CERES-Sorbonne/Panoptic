@@ -29,17 +29,14 @@ const selectedIds = computed(() => sortList.value.map(p => p.propertyId))
 
 function addSort(propertyId: number) {
     props.manager.setSort(propertyId)
-    props.manager.update(true)
 }
 
 function delSort(propertyId: number) {
     props.manager.delSort(propertyId)
-    props.manager.update(true)
 }
 
 function setOrder(propertyId: number, direction: SortDirection) {
     props.manager.setSort(propertyId, {direction})
-    props.manager.update(true)
 }
 
 

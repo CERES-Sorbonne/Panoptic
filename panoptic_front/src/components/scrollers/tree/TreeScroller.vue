@@ -170,7 +170,9 @@ function GroupToLines(it: GroupIterator) {
 function sameLine(a: ScrollerLine, b: ScrollerLine): boolean {
     if (!a || a.type !== b.type || a.size !== b.size || (a as any).depth !== (b as any).depth) return false
     if (b.type === 'group') {
-        return (a as GroupLine).data === (b as GroupLine).data
+        // Never reuse group lines — GroupManager rebuilds the tree with new Group objects,
+        // so reusing old line objects keeps stale .data references and Vue won't update.
+        return false
     }
     if (b.type === 'images' || b.type === 'piles') {
         const ad = (a as ImageLine).data, bd = (b as ImageLine).data
@@ -219,6 +221,16 @@ function computeLines() {
             for (let i = 0; i < gl.length; i++) lines.push(gl[i])
             it = it.nextGroup()
         }
+        // [grp-debug] remove once grouping render is confirmed
+        const root = props.groupManager.result.root
+        console.log('[grp] groupBy=', JSON.stringify(props.groupManager.state.groupBy),
+            'root.children=', root?.children.length,
+            'subGroupType=', root?.subGroupType,
+            'rootSlots=', root?.slots.length,
+            'lines=', lines.length,
+            'groupLines=', lines.filter((l: any) => l.type === 'group').length,
+            'imageLines=', lines.filter((l: any) => l.type === 'images').length,
+            'firstChildSlots=', root?.children[0]?.slots.length)
         imageLines.value = reconcileLines(imageLines.value, lines)
         console.timeEnd('compute Lines')
     } finally {

@@ -78,8 +78,6 @@ function toggleFolderSelect(folderId: number) {
 
     props.filterManager.setFolders(Array.from(selected))
     props.tab.setSelectedFolder(selected)
-
-    props.filterManager.update(true)
 }
 
 function unselectParent(folderId: number, selected: Set<number>) {

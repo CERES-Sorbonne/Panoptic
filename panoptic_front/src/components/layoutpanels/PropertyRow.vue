@@ -16,7 +16,7 @@ function toggleVisibility() {
 </script>
 
 <template>
-    <div class="property-row" @click="toggleVisibility">
+    <div class="property-row" :class="{ visible: tab.state.visibleProperties[property.id] === true }" @click="toggleVisibility">
         <PropertyIcon :type="property.type" class="prop-icon" />
         <span class="prop-name">{{ property.name }}</span>
     </div>
@@ -35,6 +35,11 @@ function toggleVisibility() {
 
 .property-row:hover {
     background-color: var(--hover-bg);
+}
+
+.property-row.visible,
+.property-row.visible:hover {
+    background-color: var(--primary-light);
 }
 
 .prop-icon {

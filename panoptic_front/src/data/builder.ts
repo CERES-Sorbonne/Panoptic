@@ -1,31 +1,36 @@
 import { reactive } from "vue";
-import { MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, TabState } from "./models";
+import { MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, TabState, ViewState, ViewType } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
 import { createCollectionState } from "@/core/CollectionManager";
 import { TAB_MODEL_VERSION } from "./tabStore";
 
+export function createViewState(type: ViewType): ViewState {
+    return reactive({
+        type,
+        imageSize: 100,
+        mapOptions: createMapOptions(),
+    })
+}
+
 export function buildTabState(): TabState {
     return reactive({
         version: TAB_MODEL_VERSION,
         id: '',
         name: 'New Tab',
-        display: 'tree',
         filterState: createFilterState(),
         sortState: createSortState(),
         groupState: createGroupState(),
         collectionState: createCollectionState(),
-        mapOptions: createMapOptions(),
-        imageSize: 100,
+        views: [createViewState('tree'), createViewState('grid')],
+        splitView: false,
+        splitRatio: 0.5,
         visibleProperties: {},
         visibleFolders: {},
         selectedFolders: {},
         propertyOptions: {},
-        similarityDist: 0.7,
-        sha1Mode: true,
-        autoReload: true
-    })
+    }) as TabState
 }
 
 export function createMapOptions(): MapOptions {

@@ -13,6 +13,7 @@ const project = useProjectStore()
 
 const props = defineProps<{
     tab: TabManager
+    imageSize: number,
     properties: Property[],
     missingWidth: number,
     showImage: boolean,
@@ -68,7 +69,7 @@ onUnmounted(() => props.manager.onResultChange.removeListener(onUpdate))
 
         <div style="height: 30px;">
             <div class="left-border"></div>
-            <div v-if="showImage" class="header-cell right-border" :style="{ width: (tab.imageSize) + 'px' }">
+            <div v-if="showImage" class="header-cell right-border" :style="{ width: (props.imageSize) + 'px' }">
                 <i class="bi bi-image ms-1 me-1"></i>
             </div>
             <Resizable

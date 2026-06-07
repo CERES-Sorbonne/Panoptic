@@ -45,13 +45,10 @@ function getLocalQuery() {
 function setQuery(query) {
     localQuery.value = query
     props.tab.collection.filterManager.setQuery(localQuery.value)
-    props.tab.collection.filterManager.update(true)
-    props.tab.saveState()
 }
 
 function deleteQuery() {
     props.tab.collection.filterManager.setQuery({ type: 'text', text: '' })
-    props.tab.collection.filterManager.update(true)
 }
 
 onMounted(getLocalQuery)
@@ -67,22 +64,22 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
         <div class="me-3 d-flex align-items-center">
             <wTT message="main.menu.grid_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'tree' }" @click="props.tab.setViewMode('tree')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'tree' }" @click="props.tab.setViewType(0, 'tree')">
                     <i class="bi bi-grid-3x3-gap-fill"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.table_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'grid' }" @click="props.tab.setViewMode('grid')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'grid' }" @click="props.tab.setViewType(0, 'grid')">
                     <i class="bi bi-table"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.graph_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'graph' }" @click="props.tab.setViewMode('graph')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'graph' }" @click="props.tab.setViewType(0, 'graph')">
                     <i class="bi bi-bar-chart"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.map_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.state.display == 'map' }" @click="props.tab.setViewMode('map')">
+                <div class="tool-sm" :class="{ selected: props.tab.state.views[0].type == 'map' }" @click="props.tab.setViewType(0, 'map')">
                     <i class="bi bi-map"></i>
                 </div>
             </wTT>
@@ -92,7 +89,7 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
             <div class="bi bi-aspect-ratio me-1"></div>
         </wTT>
         <div>
-            <RangeInput :min="30" :max="500" v-model="props.tab.state.imageSize" />
+            <RangeInput :min="30" :max="500" v-model="props.tab.state.views[0].imageSize" />
         </div>
 
         <div class="ms-3 d-flex align-items-center">

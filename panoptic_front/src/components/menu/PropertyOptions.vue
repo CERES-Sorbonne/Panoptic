@@ -81,7 +81,6 @@ function setSort() {
     } else {
         props.tab.collection.sortManager.delSort(props.property.id)
     }
-    props.tab.collection.sortManager.update(true)
 }
 
 function setGroup() {
@@ -90,7 +89,6 @@ function setGroup() {
     } else {
         props.tab.collection.groupManager.delGroupOption(props.property.id)
     }
-    props.tab.collection.groupManager.update(true)
 }
 
 function deleteProperty() {

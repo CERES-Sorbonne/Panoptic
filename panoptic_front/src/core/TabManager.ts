@@ -1,10 +1,8 @@
-import { PropertyMode, ScoreInterval, TabState } from "@/data/models"
+import { PropertyMode, ViewType, TabState } from "@/data/models"
 import { CollectionManager } from "./CollectionManager"
-import { useProjectStore } from "@/data/projectStore"
 import { EventEmitter } from "@/utils/utils"
 import { useDataStore } from "@/data/dataStore"
-import { createMapOptions, defaultPropertyOption } from "@/data/builder"
-import { useTabStore } from "@/data/tabStore"
+import { createMapOptions, createViewState, defaultPropertyOption } from "@/data/builder"
 
 export class TabManager {
     state: TabState
@@ -21,11 +19,9 @@ export class TabManager {
         this.collection = new CollectionManager(state.collectionState, state.filterState, state.sortState, state.groupState)
         this.onLoad = new EventEmitter()
         this.verifyState()
-
-        this.collection.filterManager.onStateChange.addListener(this.saveManagerStates.bind(this))
-        this.collection.groupManager.onStateChange.addListener(this.saveManagerStates.bind(this))
-        this.collection.sortManager.onStateChange.addListener(this.saveManagerStates.bind(this))
-        this.collection.onStateChange.addListener(this.saveManagerStates.bind(this))
+        // No save wiring here: persistence is a single debounced deep watch on
+        // the active tab in tabStore (Pillar C). Mutating `this.state` (which is
+        // the same proxy as tabs[id]) is enough to trigger autosave.
     }
 
     async update() {
@@ -52,31 +48,32 @@ export class TabManager {
         for (let propId in data.properties) {
             this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
         }
-        if(!this.state.mapOptions) {
-            this.state.mapOptions = createMapOptions()
+        // Per-view display state (Pillar F): ensure both views exist and each
+        // carries its map options.
+        if (!Array.isArray(this.state.views) || this.state.views.length < 2) {
+            this.state.views = [createViewState('tree'), createViewState('grid')]
+        }
+        for (const view of this.state.views) {
+            if (!view.mapOptions) view.mapOptions = createMapOptions()
         }
         this.updatePropertyOptions()
     }
 
     setVisibleProperty(propId: number, value: boolean) {
         this.state.visibleProperties[propId] = value
-        this.saveState()
     }
 
     setVisibleProperties(propIds: number[], value: boolean) {
         propIds.forEach(p => {
             this.state.visibleProperties[p] = value
         })
-        this.saveState()
     }
 
     setSelectedFolder(selectedFolders) {
         this.state.selectedFolders = selectedFolders
-        this.saveState()
     }
 
     isVisibleProperty(propId: number) {
-        //console.log(this.tabs[this.selectedTab])
         return this.state.visibleProperties[propId]
     }
 
@@ -96,18 +93,13 @@ export class TabManager {
         return this.getVisibleProperties().filter(p => p.mode == PropertyMode.sha1)
     }
 
-    setViewMode(mode: string) {
-        this.state.display = mode
-        this.saveState()
+    setViewType(viewIndex: number, type: ViewType) {
+        const view = this.state.views[viewIndex]
+        if (view) view.type = type
     }
 
     renameTab(name: string) {
         this.state.name = name
-        this.saveState()
-    }
-
-    private saveManagerStates() {
-        this.saveState()
     }
 
     private updatePropertyOptions() {
@@ -118,11 +110,6 @@ export class TabManager {
         for (let propId in data.properties) {
             this.state.propertyOptions[propId] = Object.assign(defaultPropertyOption(), this.state.propertyOptions[propId])
         }
-    }
-
-    async saveState() {
-        const tabStore = useTabStore()
-        tabStore.updateTabStateInStorage(this.state.id)
     }
 
 }

@@ -292,7 +292,7 @@ export class GroupManager {
 
     constructor(state?: GroupState, selectedImages?: Ref<SelectedImages>) {
         if (state) {
-            this.state = state
+            this.state = reactive(state)
         } else {
             this.state = reactive(createGroupState())
         }
@@ -611,7 +611,9 @@ export class GroupManager {
     }
 
     verifyState(properties: PropertyIndex) {
-        this.state.groupBy = this.state.groupBy.filter(id => properties[id] && properties[id].id != deletedID)
+        const filtered = this.state.groupBy.filter(id => properties[id] && properties[id].id != deletedID)
+        this.state.groupBy.length = 0
+        filtered.forEach(id => this.state.groupBy.push(id))
         Object.keys(this.state.options)
             .filter(id => !properties[Number(id)] || properties[Number(id)].id == deletedID)
             .forEach(id => delete this.state.options[Number(id)])
