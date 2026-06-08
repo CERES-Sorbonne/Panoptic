@@ -26,6 +26,19 @@ function isIiif(node: SourceNode) {
     return data.fileSources[node.id]?.dtype === 'iiif'
 }
 
+function isSourceExpanded(sourceId: number): boolean {
+    return !!uiStore.panelStates.sourceExpansions[sourceId]
+}
+
+function toggleSourceExpansion(sourceId: number) {
+    const state = uiStore.panelStates.sourceExpansions
+    if (state[sourceId]) {
+        delete state[sourceId]
+    } else {
+        state[sourceId] = true
+    }
+}
+
 function promptFolder() {
     panoptic.showModal(ModalId.FILESOURCE)
 }
@@ -45,14 +58,19 @@ function promptFolder() {
         <div class="tw-body">
             <!-- One group per file source, root folders nested inside -->
             <div v-for="group in sourceGroups" :key="'src-' + group.id" class="source-group">
-                <div class="source-header">
+                <div class="source-header" @click.stop="toggleSourceExpansion(group.id)" style="cursor: pointer;">
+                    <span class="source-chevron">
+                        <i :class="isSourceExpanded(group.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;" />
+                    </span>
                     <img v-if="isIiif(group)" src="/icons/iiif.svg" class="source-logo" alt="IIIF" />
                     <i v-else class="bi bi-hdd source-icon" />
                     <span class="source-name">{{ group.name }}</span>
                 </div>
-                <FolderList v-if="group.children.length > 0" :folders="group.children"
-                    :filter-manager="tabStore.getMainTab()?.collection.filterManager" :tab="tabStore.getMainTab()" />
-                <div v-else class="source-empty">No folders</div>
+                <template v-if="isSourceExpanded(group.id)">
+                    <FolderList v-if="group.children.length > 0" :folders="group.children"
+                        :filter-manager="tabStore.getMainTab()?.collection.filterManager" :tab="tabStore.getMainTab()" />
+                    <div v-else class="source-empty">No folders</div>
+                </template>
             </div>
 
             <!-- Folders not attached to any file source -->
@@ -120,6 +138,16 @@ function promptFolder() {
     gap: 6px;
     height: 22px;
     padding: 0 2px;
+}
+
+.source-chevron {
+    width: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
 }
 
 .source-icon {

@@ -97,7 +97,8 @@ function handleExpand(folder: Folder, e: MouseEvent) {
 </script>
 
 <template>
-    <div v-for="folder in folders" :key="folder.id">
+    <div>
+        <div v-for="folder in folders" :key="folder.id">
         <div
             class="tree-node"
             :class="folderClass[folder.id]"
@@ -106,7 +107,7 @@ function handleExpand(folder: Folder, e: MouseEvent) {
         >
             <span
                 class="tree-caret"
-                @click.stop="handleExpand(folder, $event)"
+                @click.capture="handleExpand(folder, $event)"
             >
                 <i v-if="hasChildren(folder.id)" :class="isExpanded(folder.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;"></i>
                 <span v-else class="tree-caret-spacer">&nbsp;</span>
@@ -125,6 +126,7 @@ function handleExpand(folder: Folder, e: MouseEvent) {
                 :depth="folderDepth + 1"
             />
         </template>
+    </div>
     </div>
 </template>
 

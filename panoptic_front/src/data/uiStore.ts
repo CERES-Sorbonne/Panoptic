@@ -21,6 +21,7 @@ export interface PanelStates {
     activeBottomPanel: BottomPanel
     groupExpansions: Record<number, boolean>
     folderExpansions: Record<number, boolean>
+    sourceExpansions: Record<number, boolean>
     propertySelectionExpansions: Record<number, boolean>
 }
 
@@ -50,6 +51,7 @@ export const useUiStore = defineStore('uiStore', () => {
         activeBottomPanel: 'properties',
         groupExpansions: {},
         folderExpansions: {},
+        sourceExpansions: {},
         propertySelectionExpansions: {}
     })
 
@@ -138,6 +140,7 @@ export const useUiStore = defineStore('uiStore', () => {
             activeBottomPanel: 'properties',
             groupExpansions: {},
             folderExpansions: {},
+            sourceExpansions: {},
             propertySelectionExpansions: {}
         })
         Object.assign(resizeStates, {
