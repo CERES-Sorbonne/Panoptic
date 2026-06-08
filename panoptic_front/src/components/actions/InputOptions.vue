@@ -58,7 +58,7 @@ onMounted(loadInput)
             <template #button>
                 <div>
                     <wTT message="Options">
-                        <span class="bbb"><i class="bi bi-gear" /></span>
+                        <span class="bb"><i class="bi bi-gear" /></span>
                     </wTT>
                 </div>
             </template>

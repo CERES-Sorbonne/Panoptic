@@ -7,6 +7,7 @@ import TextSearchInput from '@/components/inputs/TextSearchInput.vue'
 import FilterForm from '@/components/forms/FilterForm.vue'
 import GroupForm from '@/components/forms/GroupForm.vue'
 import SortForm from '@/components/forms/SortForm.vue'
+import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
 import { useUiStore } from '@/data/uiStore'
 import { useCurrentTab } from '@/data/useCurrentTab'
@@ -66,24 +67,35 @@ function updateSha1Mode(value: boolean) {
             <div class="filter-row">
                 <TextSearchInput :tab="tab" />
 
-                <div class="tool-group">
-                    <button
-                        class="tool-sm"
-                        :class="{ selected: !tab.collection.groupManager.state.sha1Mode }"
-                        title="Instance mode"
-                        @click="updateSha1Mode(false)"
-                    >
-                        <i class="bi bi-image"></i>
-                    </button>
-                    <button
-                        class="tool-sm"
-                        :class="{ selected: tab.collection.groupManager.state.sha1Mode }"
-                        title="Image mode"
-                        @click="updateSha1Mode(true)"
-                    >
-                        <i class="bi bi-images"></i>
-                    </button>
-                </div>
+                <Dropdown placement="bottom-start">
+                    <template #button>
+                        <button
+                            class="tool-sm mode-trigger"
+                            :title="tab.collection.groupManager.state.sha1Mode ? 'Image mode' : 'Instance mode'"
+                        >
+                            <i :class="tab.collection.groupManager.state.sha1Mode ? 'bi bi-images' : 'bi bi-image'"></i>
+                            <!-- <i class="bi bi-chevron-down mode-chevron"></i> -->
+                        </button>
+                    </template>
+                    <template #popup="{ hide }">
+                        <div class="mode-menu">
+                            <div
+                                class="mode-option"
+                                :class="{ selected: !tab.collection.groupManager.state.sha1Mode }"
+                                @click="updateSha1Mode(false); hide()"
+                            >
+                                <i class="bi bi-image"></i><span>Instance</span>
+                            </div>
+                            <div
+                                class="mode-option"
+                                :class="{ selected: tab.collection.groupManager.state.sha1Mode }"
+                                @click="updateSha1Mode(true); hide()"
+                            >
+                                <i class="bi bi-images"></i><span>Image</span>
+                            </div>
+                        </div>
+                    </template>
+                </Dropdown>
 
                 <FilterForm :tab="tab" />
                 <GroupForm :manager="tab.collection.groupManager" class="me-1" />
@@ -222,6 +234,41 @@ function updateSha1Mode(value: boolean) {
 
 .tool-sm.selected {
     background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.mode-trigger {
+    width: auto;
+    gap: 3px;
+    padding: 0 5px;
+}
+
+.mode-chevron {
+    font-size: 9px;
+    color: var(--text-tertiary);
+}
+
+.mode-menu {
+    padding: 3px;
+}
+
+.mode-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.mode-option:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.mode-option.selected {
     color: var(--primary);
 }
 

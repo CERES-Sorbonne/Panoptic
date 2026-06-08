@@ -385,8 +385,11 @@ async function filterByPluginMask(
     for (let i = 0; i < slots.length; i++) {
         if (mask[i]) activeInstanceIds.push(ids[slots[i]])
     }
-    ctx.instanceIds = activeInstanceIds
-    const result = await apiCallActions({ function: fnc, context: ctx } as ExecuteActionPayload)
+    // Build the payload from a clone: `ctx` is `state.query.ctx`, which is
+    // reactive. Mutating it here would retrigger CollectionManager's deep watch
+    // on filterManager.state and loop the recompute endlessly.
+    const payloadCtx = { ...ctx, instanceIds: activeInstanceIds }
+    const result = await apiCallActions({ function: fnc, context: payloadCtx } as ExecuteActionPayload)
     if (!result?.groups?.length) return
     const filteredSet = new Set(result.groups[0].sha1s)
     for (let i = 0; i < slots.length; i++) {

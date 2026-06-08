@@ -77,9 +77,10 @@ function setQuery(query) {
 }
 
 function areQueryEquals(query1: TextQuery, query2: TextQuery) {
+    if(!query1 || !query2) return false
     if(query1.type != query2.type) return false
     if(query1.text != query2.text) return false
-    if(JSON.stringify(query1.ctx.uiInputs) !== JSON.stringify(query2.ctx.uiInputs)) return false
+    if(JSON.stringify(query1.ctx?.uiInputs) !== JSON.stringify(query2.ctx?.uiInputs)) return false
     return true
 }
 
@@ -97,12 +98,13 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 </script>
 
 <template>
-    <div class="cont3">
+    <div class="cont3" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
         <div class="select-wrapper">
-            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" class="bg-white"
-                :size="size * 0.6" :teleport="false" />
+            <SelectDropdown :options="modeOptions" v-model="mode" placeholder="Search Mode" :no-border="true"
+                :icon-only="true" :size="size * 0.6" :teleport="false" />
         </div>
-        <div class="input-field d-flex items-align-center" :class="{ focus: isFocus }" :style="{ height: size + 'px' }">
+        <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
+        <div class="input-field d-flex items-align-center">
             <input class="text-input2" :style="{ height: size + 'px' }" type="text" v-model="searchText"
                 :placeholder="$t('main.menu.search')" ref="inputElem" @focusin="isFocus = true"
                 @focusout="isFocus = false" @blur="confirmSearch"
@@ -116,7 +118,8 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
             </div>
 
         </div>
-        <div v-if="isPluginMode">
+        <div v-if="isPluginMode" class="options-wrapper">
+            <!-- <div class="divider" :style="{ height: size * 0.6 + 'px' }" /> -->
             <InputOptions :function-id="mode" :size="props.size * 0.6" :style="{ fontSize: size * 0.56 + 'px' }"
                 :hide-text="true" @changed="emitQuery" />
         </div>
@@ -126,10 +129,39 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 <style scoped>
 .cont3 {
     display: flex;
-    gap: 4px;
     align-items: center;
+    border: 1px solid var(--border-color, #ccc);
+    background-color: var(--grey, #f8f8f8);
     border-radius: 3px;
-    /* overflow: hidden; */
+    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 0 0px;
+    overflow: hidden;
+}
+
+.cont3:hover {
+    border-color: #999;
+}
+
+.cont3.focus {
+    border-color: var(--blue);
+}
+
+.select-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0 0px;
+}
+
+.divider {
+    width: 1px;
+    background-color: var(--border-color, #ccc);
+    flex-shrink: 0;
+    margin: 0 2px;
+}
+
+.options-wrapper {
+    display: flex;
+    align-items: center;
 }
 
 .toolbar {
@@ -140,10 +172,6 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
 }
 
 .input-field {
-    border: 1px solid var(--border-color, #ccc);
-    background-color: var(--grey, #f8f8f8);
-    border-radius: 3px;
-    transition: border-color 0.2s, box-shadow 0.2s;
     padding: 0;
     position: relative;
     flex-grow: 1;
@@ -154,13 +182,5 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     background-color: transparent;
     outline: none;
     width: 100%;
-}
-
-.input-field:hover {
-    border-color: #999;
-}
-
-.input-field.focus {
-    border-color: var(--blue);
 }
 </style>

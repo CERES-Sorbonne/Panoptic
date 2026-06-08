@@ -13,6 +13,7 @@ const props = defineProps<{
     width?: number
     noBorder?: boolean
     teleport?: boolean
+    iconOnly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -47,8 +48,14 @@ const capitalizeFirst = (text: any) => {
             <div :style="{ fontSize: fontSize + 'px' }" style="white-space: nowrap;" class="w-100"
                 :class="{ 'sbb': !props.noBorder, 'sb': props.noBorder }">
 
+                <!-- Icon-only mode: just the selected option's icon (or chevron fallback) -->
+                <div v-if="props.iconOnly" class="display display-flex display-container">
+                    <span v-if="selectedOption?.icon" :class="'bi bi-' + selectedOption.icon"></span>
+                    <i v-else class="bi bi-chevron-down" />
+                </div>
+
                 <!-- Case 1: Nothing selected OR no options available -->
-                <div v-if="!selectedOption" class="display placeholder-display display-flex">
+                <div v-else-if="!selectedOption" class="display placeholder-display display-flex">
                     <span class="display-text">{{ capitalizeFirst(placeholder ?? 'Select Option') }}</span>
                     <!-- Only show chevron if there are options to open -->
                     <i v-if="options.length > 0" class="bi bi-chevron-down" />
