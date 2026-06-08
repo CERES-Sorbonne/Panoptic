@@ -229,6 +229,7 @@ export interface ViewState {
     type: ViewType
     imageSize: number
     mapOptions: MapOptions
+    showProperties: boolean
     // Which collection (filter/sort/group pipeline) this view renders. Two views
     // may share one collectionId (computed once) or reference different ones.
     collectionId: string

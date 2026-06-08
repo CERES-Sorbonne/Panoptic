@@ -21,6 +21,7 @@ export function createViewState(type: ViewType, collectionId: string): ViewState
         type,
         imageSize: 100,
         mapOptions: createMapOptions(),
+        showProperties: true,
         collectionId,
     })
 }

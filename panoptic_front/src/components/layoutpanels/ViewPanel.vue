@@ -22,6 +22,11 @@ const view = computed(() => tab.value?.state.views[props.viewIndex] ?? null)
 // The collection this pane renders (M4): may differ from the other pane's.
 const collection = computed(() => tab.value?.collectionForView(props.viewIndex) ?? null)
 
+function toggleProperties() {
+    if (!view.value) return
+    view.value.showProperties = !view.value.showProperties
+}
+
 const containerRef = ref<HTMLElement>()
 const dimensions = ref({ width: 0, height: 0 })
 const visibleProperties = computed(() => tab.value?.getVisibleProperties() ?? [])
@@ -65,6 +70,11 @@ onUnmounted(() => {
                     <RangeInput :min="30" :max="500" v-model="view.imageSize" />
                 </div>
 
+                <!-- Toggle properties visibility -->
+                <button class="tab-tool" :title="view.showProperties ? 'Hide properties' : 'Show properties'" @click="toggleProperties">
+                    <i :class="view.showProperties ? 'bi bi-eye' : 'bi bi-eye-slash'"></i>
+                </button>
+
                 <div class="flex-grow-1"></div>
             </div>
         </template>
@@ -77,7 +87,7 @@ onUnmounted(() => {
                 :image-size="view.imageSize"
                 :height="dimensions.height"
                 :width="dimensions.width - 20"
-                :properties="visibleProperties"
+                :properties="view.showProperties ? visibleProperties : []"
                 :hide-if-modal="true"
             />
 
@@ -88,7 +98,7 @@ onUnmounted(() => {
                     :manager="collection.groupManager"
                     :height="dimensions.height - 15"
                     :width="dimensions.width - 32"
-                    :selected-properties="visibleProperties"
+                    :selected-properties="view.showProperties ? visibleProperties : []"
                     class="p-0 m-0"
                     :show-images="true"
                 />
@@ -116,6 +126,28 @@ onUnmounted(() => {
     align-items: center;
     padding-left: var(--spacing-xs);
     background-color: var(--bg-secondary);
+}
+
+/* Compact, borderless icon button for the properties toggle eye. */
+.tab-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none !important;
+    background: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.tab-tool:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 
 .view-container {
