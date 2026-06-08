@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ModalId, Property, PropertyID, PropertyMode, PropertyType } from '@/data/models';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import wTT from '../tooltips/withToolTip.vue';
 import TagMenu from '../tags/TagMenu.vue';
@@ -26,11 +26,10 @@ const props = defineProps<{
     open?: boolean
 }>()
 
-const optionsOpen = ref(false)
 const valuesOpen = ref(false)
+const editName = ref(false)
 const localName = ref('')
-
-const fullHover = ref(false)
+const nameInput = ref<HTMLInputElement>()
 
 const propertyVisible = computed(() => props.tab.state.visibleProperties[props.property.id] == true)
 
@@ -45,6 +44,7 @@ const filterManager = () => props.tab.collection.filterManager
 const sha1Mode = computed(() => props.tab.getSha1Mode())
 
 function toggleVisible() {
+    if (editName.value) return
     if (propertyVisible.value) {
         props.tab.setVisibleProperty(props.property.id, false)
     } else {
@@ -52,27 +52,21 @@ function toggleVisible() {
     }
 }
 
-function toggleOptionsMenu() {
-    if (!props.open) return
-    if (optionsOpen.value) {
-        optionsOpen.value = false
-    } else {
-        optionsOpen.value = true
-        localName.value = props.property.name
-    }
-    valuesOpen.value = false
+function startRename() {
+    localName.value = props.property.name
+    editName.value = true
+    nextTick(() => nameInput.value?.focus())
+}
+
+function cancelRename() {
+    editName.value = false
 }
 
 function toggleValuesMenu() {
     if (props.property.type != PropertyType.tag && props.property.type != PropertyType.multi_tags) {
         return
     }
-    if (valuesOpen.value) {
-        valuesOpen.value = false
-    } else {
-        valuesOpen.value = true
-    }
-    optionsOpen.value = false
+    valuesOpen.value = !valuesOpen.value
 }
 
 function setSort() {
@@ -97,11 +91,12 @@ function deleteProperty() {
 }
 
 async function renameProperty() {
-    if (localName.value == '') {
+    if (localName.value == '' || localName.value == props.property.name) {
+        editName.value = false
         return
     }
     await data.updateProperty(props.property.id, localName.value)
-    toggleOptionsMenu()
+    editName.value = false
 }
 
 function setFilter() {
@@ -121,126 +116,169 @@ function setPropertyGroup(id: number) {
 }
 
 watch(() => props.property, () => {
-    optionsOpen.value = false
+    editName.value = false
+    valuesOpen.value = false
 })
 
 </script>
 
 <template>
-    <div :class="fullHover ? 'hover-light' : ''">
-        <div class="d-flex flex-row">
+    <div>
+        <div class="prop-row" :class="{ selected: propertyVisible }" @click="toggleVisible">
+            <PropertyIcon :type="props.property.type" class="prop-icon" />
+
             <template v-if="props.open">
-                <div v-if="!optionsOpen" class="option-holder hover-light btn-icon" style="width: 150px;"
-                    @click="toggleOptionsMenu">
-                    <PropertyIcon :type="props.property.type" class="me-2 btn-icon" @mouseenter="fullHover = true"
-                        @mouseleave="fullHover = false" />
-                    <span>{{ props.property.name }}</span>
-                </div>
-            </template>
-            
-            <template v-else>
-                <PropertyIcon :type="props.property.type" class="me-2" style="position: relative; top: 2px;" />
-            </template>
-            <div v-if="optionsOpen && props.open" class="d-flex" style="width: 150px;">
-                <div><i class="btn-icon me-1 bi bi-x-lg" style="padding: 2px;" @click="toggleOptionsMenu"
-                        @mouseenter="fullHover = true" @mouseleave="fullHover = false" />
-                </div>
-                <div class="flex-grow-1">
-                    <input v-if="props.property.id >= 0" style="position: relative; top: 1px;" type="text"
-                        class="text-input" v-model="localName" @change="renameProperty" />
-                    <span v-else style="padding-top: 1px;">
-                        <PropertyIcon :type="props.property.type" class="me-2 btn-icon" />
-                        <span>{{ props.property.name }}</span>
-                    </span>
-                </div>
-            </div>
-            <template v-if="props.open">
-                <div v-if="isTag(props.property.type)" style="width: 20px; margin-top: 2px; cursor: pointer;"
-                    class="text-center" @click="panoptic.showModal(ModalId.TAG, { propId: props.property.id })">
-                    <wTT :click="false" message="main.nav.properties.open_tags">
-                        <i class="bi bi-arrows-fullscreen"></i>
-                    </wTT>
-                </div>
-            </template>
-            <template v-if="props.open">
-                <div class="text-center" style="width: 24px; margin-top: 2px;">
-                    <div v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
-                        @click="toggleValuesMenu" style="cursor: pointer;">
-                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip"><i
-                                class="bi bi-chevron-down"></i></wTT>
-                        <wTT v-else message="main.nav.properties.expand_property_tooltip"><i
-                                class="bi bi-chevron-right ms-1"></i>
-                        </wTT>
-                    </div>
-                </div>
-                <div style="width: 20px; margin-top: 2px; flex-shrink: 0;" class="text-center">
-                    <wTT v-if="props.property.mode == PropertyMode.id" :click="false"
-                        message="main.nav.properties.linked_property_tooltip">
+                <input v-if="editName" ref="nameInput" type="text" class="prop-input" v-model="localName"
+                    @click.stop @keyup.enter="renameProperty" @keyup.esc="cancelRename" @blur="renameProperty" />
+                <span v-else class="prop-name">{{ props.property.name }}</span>
+
+                <span v-if="props.property.mode == PropertyMode.id" class="prop-indicator">
+                    <wTT :click="false" message="main.nav.properties.linked_property_tooltip">
                         <i class="bi bi-link-45deg"></i>
                     </wTT>
+                </span>
+
+                <div class="prop-actions" @click.stop>
+                    <span v-if="props.property.type == PropertyType.tag || props.property.type == PropertyType.multi_tags"
+                        class="prop-act" :class="{ active: valuesOpen }" @click="toggleValuesMenu">
+                        <wTT v-if="valuesOpen" message="main.nav.properties.collapse_property_tooltip">
+                            <i class="bi bi-chevron-down"></i>
+                        </wTT>
+                        <wTT v-else message="main.nav.properties.expand_property_tooltip">
+                            <i class="bi bi-chevron-right"></i>
+                        </wTT>
+                    </span>
+                    <span v-if="isTag(props.property.type)" class="prop-act"
+                        @click="panoptic.showModal(ModalId.TAG, { propId: props.property.id })">
+                        <wTT :click="false" message="main.nav.properties.open_tags">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </wTT>
+                    </span>
+                    <span v-if="property.id != PropertyID.folders" class="prop-act" :class="{ active: isInFilter }"
+                        @click="setFilter">
+                        <wTT :click="false" message="main.menu.filters"><i class="bi bi-funnel-fill"></i></wTT>
+                    </span>
+                    <span class="prop-act" :class="{ active: isInSort }" @click="setSort">
+                        <wTT :click="false" message="main.menu.sort.title"><i class="bi bi-sort-down"></i></wTT>
+                    </span>
+                    <span class="prop-act" :class="{ active: isInGroups }" @click="setGroup">
+                        <wTT :click="false" message="main.menu.groupby"><i class="bi bi-collection"></i></wTT>
+                    </span>
+                    <Dropdown @click.prevent.stop="">
+                        <template #button><span class="prop-act"><i class="bi bi-three-dots"></i></span></template>
+                        <template #popup="{ hide }">
+                            <div class="p-1">
+                                <div v-if="props.property.id >= 0" class="bb" @click="startRename(); hide();">
+                                    {{ $t('main.menu.editName') }}
+                                </div>
+                                <div v-if="props.property.id >= 0" class="bb" @click="deleteProperty(); hide();">
+                                    {{ $t("main.nav.properties.delete_property") }}
+                                </div>
+                            </div>
+                        </template>
+                    </Dropdown>
                 </div>
             </template>
-            <div style="width: 20px; margin-top: 2px; flex-shrink: 0;" @click="toggleVisible" class="btn-icon text-center">
-                <wTT v-if="sha1Mode && props.property.mode == PropertyMode.id"
-                    message="main.nav.properties.hidden_property_tooltip">
-                    <span class="bi bi-eye-slash" @click.stop=""></span>
-                </wTT>
-                <wTT pos="right" message="main.nav.properties.hide_property_tooltip" v-else>
-                    <span :class="'bi bi-eye text-' + (propertyVisible ? 'primary' : 'secondary')"></span>
-                </wTT>
-            </div>
         </div>
-        <div v-if="props.open">
-            <div v-if="optionsOpen" class="ms-3 pt-1">
-                <div v-if="property.id != PropertyID.folders" class="options hover-light"
-                    :class="isInFilter ? ' text-primary' : ''" @click="setFilter">
-                    <div>
-                        <i class="bi bi-funnel-fill me-2"></i>{{ $t("main.menu.filters") }}
-                    </div>
-                </div>
-                <div class="options hover-light" :class="isInSort ? ' text-primary' : ''" @click="setSort"><i
-                        class="bi bi-filter me-2"></i>{{ $t("main.menu.sort.title") }}</div>
-                <div class="options hover-light" :class="isInGroups ? ' text-primary' : ''" @click="setGroup"><i
-                        class="bi bi-collection me-2"></i>{{ $t("main.menu.groupby") }}</div>
-                <div v-if="props.property.id >= 0" class="options hover-light" @click="deleteProperty"><i
-                        class="bi bi-trash me-2"></i>{{ $t("main.nav.properties.delete_property") }}</div>
-                <!-- <Dropdown v-if="props.property.id >= 0 && data.propertyGroupsList.length" :teleport="true">
-                    <template #button>
-                        <div class="options hover-light">
-                            <i class="bi bi-folder me-1"></i>
-                            {{ $t("main.nav.properties.set_group") }}
-                        </div>
-                    </template>
-                    <template #popup>
-                        <div class="p-1" style="min-width: 100px;">
-                            <div v-if="props.property.propertyGroupId && data.propertyGroups[props.property.propertyGroupId]" class="bb" @click="setPropertyGroup(null)">None</div>
-                            <div v-if="props.property.propertyGroupId && data.propertyGroups[props.property.propertyGroupId]" class="custom-hr mt-1 mb-1" />
-                            <div v-for="group of data.propertyGroupsList" class="bb" @click="setPropertyGroup(group.id)">
-                                {{ group.name }}
-                            </div>
-                        </div>
-                    </template>
-                </Dropdown> -->
-
-            </div>
-            <div v-else-if="valuesOpen">
-                <!-- <TagProperty :data="props.property" /> -->
-                <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true"
-                    :can-link="true" />
-            </div>
+        <div v-if="props.open && valuesOpen">
+            <TagMenu :property="props.property" :can-create="true" :can-customize="true" :can-delete="true"
+                :can-link="true" />
         </div>
     </div>
 </template>
 
 <style scoped>
-.option-holder {
-    border-radius: 3px;
-    padding: 2px;
-
+.prop-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    padding: 0 var(--spacing-sm);
+    white-space: nowrap;
+    cursor: pointer;
 }
 
-.options {
-    padding: 3px;
+.prop-row:hover {
+    background-color: var(--hover-bg);
+}
+
+.prop-row.selected {
+    background-color: rgba(38, 117, 191, 0.32);
+}
+
+.prop-icon {
+    width: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.prop-name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prop-input {
+    flex: 1;
+    min-width: 0;
+    height: 18px;
+    padding: 0 4px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    font-size: var(--font-size-xs);
+    color: var(--text-primary);
+}
+
+.prop-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.prop-actions {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.prop-act {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
     cursor: pointer;
+    opacity: 0;
+}
+
+/* Reveal action icons on row hover; keep active (filter/sort/group) ones pinned. */
+.prop-row:hover .prop-act,
+.prop-act.active {
+    opacity: 1;
+}
+
+.prop-act.active {
+    color: var(--primary);
+}
+
+.prop-act:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 </style>

@@ -64,7 +64,7 @@ function closeProject() {
 
         <!-- Center: data / column load status + task progress -->
         <div class="d-flex" style="gap: 6px;">
-            <!-- <ColumnStatusDropdown :tab="tab.getMainTab()" /> -->
+            <ColumnStatusDropdown :tab="tab.getMainTab()" />
             <ColumnLoadProgress />
             <TaskProgressBar />
         </div>

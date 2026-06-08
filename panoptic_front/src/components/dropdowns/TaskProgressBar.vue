@@ -31,7 +31,7 @@ function taskPct(t: TaskState) {
     <Dropdown v-if="showAny" placement="bottom" :offset="6">
         <template #button>
             <div class="task-progress-btn" :title="activePrimary?.name">
-                <i class="bi bi-cpu me-1" />
+                <i class="bi bi-cpu me-1" style="color: black;" />
                 <span v-if="activePrimary" class="task-progress-name">{{ activePrimary.name }}</span>
                 <span v-else class="task-progress-name">Tasks</span>
                 <span v-if="remainingCount > 0" class="task-progress-queue">+{{ remainingCount }}</span>
@@ -188,7 +188,7 @@ function taskPct(t: TaskState) {
 }
 
 .task-done-icon {
-    color: #40c057;
+    color: black;
     font-size: 11px;
     flex-shrink: 0;
 }
