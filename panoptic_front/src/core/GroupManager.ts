@@ -12,7 +12,7 @@
  */
 
 import { deletedID, DateUnit, DateUnitFactor, FolderIndex, GroupScoreList, PropertyID, PropertyIndex, PropertyValue, Score, ScoreList, TagIndex } from "@/data/models";
-import { Ref, reactive, shallowRef, triggerRef } from "vue";
+import { Ref, ref, reactive } from "vue";
 import { SortDirection, SortOption, sortParser } from "./SortManager";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
@@ -288,12 +288,18 @@ export class GroupManager {
     customGroups: { [parentgroupId: number]: Group[] }
     onResultChange: EventEmitter
     onStateChange: EventEmitter
+    // Result-change signal (note §3, step 1). Bumped whenever the group tree
+    // changes; UI watches this and re-reads the (non-reactive) result tree.
+    // Replaces external onResultChange listeners. Kept separate from any
+    // status/dirty signal (Q-I) so watchers here only fire on real result changes.
+    version: Ref<number>
 
-    selectedImages: Ref<SelectedImages>
+    // Selection is GLOBAL and lives in columnStore.selectionMask (note §5,
+    // step 2). The GroupManager no longer owns a selectedImages map.
     private selection: { lastImage: ImageIterator, lastGroup: GroupIterator }
     private iterators: GroupIterator[]
 
-    constructor(state?: GroupState, selectedImages?: Ref<SelectedImages>) {
+    constructor(state?: GroupState) {
         if (state) {
             this.state = reactive(state)
         } else {
@@ -312,9 +318,17 @@ export class GroupManager {
         this.customGroups = {}
         this.onResultChange = new EventEmitter()
         this.onStateChange = new EventEmitter()
-        this.selectedImages = selectedImages ?? shallowRef<SelectedImages>({})
+        this.version = ref(0)
         this.selection = { lastImage: undefined, lastGroup: undefined }
         this.iterators = []
+    }
+
+    // Bump the reactive version tick AND emit the legacy event. The version ref
+    // is the new result-change contract (UI watches it); onResultChange is kept
+    // during the transition for any not-yet-migrated internal listener.
+    private emitResult() {
+        this.version.value++
+        this.onResultChange.emit(this.result)
     }
 
     // ── Column requirements ────────────────────────────────────────────────
@@ -395,7 +409,7 @@ export class GroupManager {
         setOrder(this.result.root)
         this.buildOrdinalRanges()
         console.timeEnd('Group')
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
         return this.result
     }
 
@@ -548,7 +562,7 @@ export class GroupManager {
             if (group.children.length == 0) continue
             sortGroup(group, this.state.options[group.children[0].meta.propertyValues[0].propertyId])
         }
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     private saveImagesToGroup(group: Group) {
@@ -595,7 +609,7 @@ export class GroupManager {
         this.customGroups = {}
         this._posArr = new Int32Array(0)
         this._posMaxSlot = 0
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     async emptyRoot(emit?: boolean) {
@@ -611,7 +625,7 @@ export class GroupManager {
         Object.assign(this.result.root, copy)
         if (this.state.sha1Mode) this.groupBySha1(this.result.root)
         this.buildOrdinalRanges()
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     verifyState(properties: PropertyIndex) {
@@ -770,7 +784,7 @@ export class GroupManager {
                 }
             }
         }
-        if (structureChanged) this.onResultChange.emit(this.result)
+        if (structureChanged) this.emitResult()
         return this.result
     }
 
@@ -806,7 +820,7 @@ export class GroupManager {
         }
         setOrder(this.result.root)
         this.buildOrdinalRanges()
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     delCustomGroups(targetGroupId: number, emit?: boolean) {
@@ -814,14 +828,14 @@ export class GroupManager {
         this.removeChildren(this.result.index[targetGroupId])
         if (this.state.sha1Mode) this.groupBySha1(this.result.index[targetGroupId])
         this.buildOrdinalRanges()
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     clearCustomGroups(emit?: boolean) {
         for (const groupId of Object.keys(this.customGroups).map(Number)) {
             this.delCustomGroups(groupId)
         }
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     setSha1Mode(value: boolean, emit?: boolean) {
@@ -832,22 +846,22 @@ export class GroupManager {
         else this.removeSha1Groups()
         this.buildOrdinalRanges()
         this.onStateChange.emit()
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     toggleGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = !this.result.index[groupId].view.closed
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     openGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = false
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     closeGroup(groupId, emit?: boolean) {
         this.result.index[groupId].view.closed = true
-        if (emit) this.onResultChange.emit(this.result)
+        if (emit) this.emitResult()
     }
 
     getGroupIterator(groupId?: number, options?: GroupIteratorOptions) {
@@ -1016,28 +1030,25 @@ export class GroupManager {
     // ── Selection ──────────────────────────────────────────────────────────
 
     clearSelection() {
-        if (this.result.root) this.unselectGroup(this.result.root)
-        this.selectedImages.value = {}
+        useColumnStore().clearSelection()
         this.clearLastSelected()
     }
 
     selectImageIterator(iterator: ImageIterator, shift = false) {
         if (shift) this._shiftSelect(iterator)
-        const ids = useColumnStore().instanceIds()
-        this.selectImages(iterator.slots.map(s => ids[s]))
+        useColumnStore().select(iterator.slots)
         this.clearLastSelected()
         this.selection.lastImage = iterator.clone()
     }
 
     unselectImageIterator(iterator: ImageIterator) {
-        const ids = useColumnStore().instanceIds()
-        this.unselectImages(iterator.slots.map(s => ids[s]))
+        useColumnStore().deselect(iterator.slots)
         this.clearLastSelected()
     }
 
     toggleImageIterator(iterator: ImageIterator, shift = false) {
-        const ids = useColumnStore().instanceIds()
-        const selected = iterator.slots.every(s => this.selectedImages.value[ids[s]])
+        const col = useColumnStore()
+        const selected = iterator.slots.every(s => col.isSelected(s))
         if (selected) this.unselectImageIterator(iterator)
         else this.selectImageIterator(iterator, shift)
     }
@@ -1049,7 +1060,6 @@ export class GroupManager {
 
     private _shiftSelect(iterator: ImageIterator) {
         if (this.selection.lastImage == undefined) return false
-        const ids = useColumnStore().instanceIds()
         const start = this.selection.lastImage.isImageBefore(iterator) ? this.selection.lastImage : iterator
         const end   = start == iterator ? this.selection.lastImage : iterator
 
@@ -1058,19 +1068,18 @@ export class GroupManager {
         while (it) {
             if (end.isImageBefore(it)) break
             if (it.sha1Group) {
-                for (const s of it.sha1Group.slots) selected.push(ids[s])
+                for (const s of it.sha1Group.slots) selected.push(s)
             } else {
-                selected.push(ids[it.slot])
+                selected.push(it.slot)
             }
             it = it.nextImages()
         }
-        if (selected.length) { this.selectImages(selected); return true }
+        if (selected.length) { useColumnStore().select(selected); return true }
         return false
     }
 
     private _shiftGroup(iterator: GroupIterator) {
         if (this.selection.lastGroup == undefined) return false
-        const ids = useColumnStore().instanceIds()
         const start = this.selection.lastGroup.isGroupBefore(iterator) ? this.selection.lastGroup : iterator
         const end   = start == iterator ? this.selection.lastGroup : iterator
 
@@ -1078,10 +1087,10 @@ export class GroupManager {
         let it = start.clone()
         while (it) {
             if (end.isGroupBefore(it)) break
-            for (const s of it.group.slots) selected.push(ids[s])
+            for (const s of it.group.slots) selected.push(s)
             it = it.nextGroup()
         }
-        if (selected.length) { this.selectImages(selected); return true }
+        if (selected.length) { useColumnStore().select(selected); return true }
         return false
     }
 
@@ -1090,17 +1099,15 @@ export class GroupManager {
         this.selection.lastImage = undefined
     }
 
-    unselectImage(imageId: number) { this.unselectImages([imageId]) }
-    selectImage(imageId: number)   { this.selectImages([imageId]) }
+    unselectImage(imageId: number) { useColumnStore().deselectIds([imageId]) }
+    selectImage(imageId: number)   { useColumnStore().selectIds([imageId]) }
 
     selectImages(imageIds: number[]) {
-        imageIds.forEach(id => this.selectedImages.value[id] = true)
-        triggerRef(this.selectedImages)
+        useColumnStore().selectIds(imageIds)
     }
 
     unselectImages(imageIds: number[]) {
-        imageIds.forEach(id => delete this.selectedImages.value[id])
-        triggerRef(this.selectedImages)
+        useColumnStore().deselectIds(imageIds)
     }
 
     propagateUnselect(group: Group) {
@@ -1110,9 +1117,9 @@ export class GroupManager {
     }
 
     propagateSelect(group: Group) {
-        const ids = useColumnStore().instanceIds()
+        const col = useColumnStore()
         if (group.children.length == 0 || group.subGroupType == GroupType.Sha1) {
-            group.view.selected = group.slots.every(s => this.selectedImages.value[ids[s]])
+            group.view.selected = group.slots.every(s => col.isSelected(s))
         } else {
             group.view.selected = group.children.every(g => g.view.selected)
         }
@@ -1121,13 +1128,11 @@ export class GroupManager {
     }
 
     selectGroup(group: Group) {
-        const ids = useColumnStore().instanceIds()
-        this.selectImages(group.slots.map(s => ids[s]))
+        useColumnStore().select(group.slots)
     }
 
     unselectGroup(group: Group) {
-        const ids = useColumnStore().instanceIds()
-        this.unselectImages(group.slots.map(s => ids[s]))
+        useColumnStore().deselect(group.slots)
     }
 
     selectGroupIterator(iterator: GroupIterator, shift = false) {
@@ -1143,8 +1148,8 @@ export class GroupManager {
     }
 
     toggleGroupIterator(iterator: GroupIterator, shift = false) {
-        const ids = useColumnStore().instanceIds()
-        const selected = !iterator.group.slots.some(s => !this.selectedImages.value[ids[s]])
+        const col = useColumnStore()
+        const selected = !iterator.group.slots.some(s => !col.isSelected(s))
         if (selected) this.unselectGroupIterator(iterator)
         else this.selectGroupIterator(iterator, shift)
     }

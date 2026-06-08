@@ -6,11 +6,13 @@ import { sleep } from '@/utils/utils';
 import PropertyIcon from '../properties/PropertyIcon.vue';
 import { useDataStore } from '@/data/dataStore';
 import { useTabStore } from '@/data/tabStore';
+import { useColumnStore } from '@/data/columnStore';
 import Modal2 from './Modal2.vue';
 import { apiExportProperties } from '@/data/apiProjectRoutes';
 
 const data = useDataStore()
 const tabStore = useTabStore()
+const col = useColumnStore()
 
 const state = reactive({
     name: undefined,
@@ -35,8 +37,8 @@ const properties = computed(() => {
 })
 
 const selectedCount = computed(() => {
-    const tabManager = tabStore.getMainTab()
-    return Object.keys(tabManager.collection.groupManager.selectedImages.value).length
+    col.selectionVersion.value  // reactive dep on global selection (step 2)
+    return col.selectedCount()
 })
 
 
@@ -91,7 +93,7 @@ async function buildRequest() {
         req.name = state.name
     }
     if (state.selection == 'selected') {
-        req.images = Object.keys(tabStore.getMainTab().collection.groupManager.selectedImages.value).map(Number)
+        req.images = col.getSelectedIds()
     }
     if (state.selection == 'filtered') {
         req.images = tabStore.getMainTab().collection.filterManager.result.images.map(i => i.id)

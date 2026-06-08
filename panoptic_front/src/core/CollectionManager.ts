@@ -6,13 +6,13 @@
  */
 
 import { CollectionState } from "@/data/models";
-import { FilterContext, FilterManager, FilterResult, FilterState } from "./FilterManager";
-import { SortManager, SortResult, SortState } from "./SortManager";
-import { GroupManager, GroupState, SelectedImages } from "./GroupManager";
+import { FilterContext, FilterManager, FilterState } from "./FilterManager";
+import { SortManager, SortState } from "./SortManager";
+import { GroupManager, GroupState } from "./GroupManager";
 import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { useColumnStore } from "@/data/columnStore";
-import { Reactive, Ref, reactive, watch } from "vue";
+import { Reactive, reactive, watch } from "vue";
 
 export interface RunCollectionState {
     isDirty: boolean
@@ -50,13 +50,13 @@ export class CollectionManager {
     private pendingKind: ReloadKind | null = null
     private reloadTimer: ReturnType<typeof setTimeout> | null = null
 
-    constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState, selectedImages?: Ref<SelectedImages>) {
+    constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState) {
         const data = useDataStore()
         const col = useColumnStore()
         const ctx: FilterContext = { properties: data.properties, tags: data.tags, folders: data.folders }
         this.filterManager = new FilterManager(ctx, filterState)
         this.sortManager = new SortManager(sortState)
-        this.groupManager = new GroupManager(groupState, selectedImages)
+        this.groupManager = new GroupManager(groupState)
         if (state) {
             this.state = state as CollectionState
         } else {
@@ -65,10 +65,10 @@ export class CollectionManager {
 
         this.runState = reactive({ isDirty: false, active: true })
 
-        this.filterManager.onResultChange.addListener(this.onFilter.bind(this))
-        this.sortManager.onResultChange.addListener(this.onSort.bind(this))
-        this.groupManager.onResultChange.addListener(this.onGroup.bind(this))
-
+        // Pipeline ordering is inline in update()/runReload() (filter→sort→group);
+        // the old onResultChange cascade (onFilter/onSort/onGroup) is removed
+        // (note §6, P-A, step 3). filter()/sort() were only ever called with
+        // emit=false, so those listeners never fired.
         data.onChange.addListener(this.updateInstances.bind(this))
 
         // Pillar B: the CollectionManager is the single orchestrator. It watches
@@ -118,9 +118,9 @@ export class CollectionManager {
         if (!this.runState.active) return
 
         if (this.state.filterBySelection) {
-            const selected = this.groupManager.selectedImages
+            const col = useColumnStore()
             for (const id of Array.from(instanceIds)) {
-                if (!selected[id]) instanceIds.delete(id)
+                if (!col.isSelectedId(id)) instanceIds.delete(id)
             }
         }
 
@@ -171,10 +171,9 @@ export class CollectionManager {
         }
 
         if (this.state.filterBySelection) {
-            const selected = this.groupManager.selectedImages.value
             const sel: number[] = []
             for (let i = 0; i < slots.length; i++) {
-                if (selected[instanceIds[slots[i]]]) sel.push(slots[i])
+                if (col.isSelected(slots[i])) sel.push(slots[i])
             }
             slots = new Int32Array(sel)
         }
@@ -225,19 +224,6 @@ export class CollectionManager {
         if (kind === 'sortGroups') {
             this.groupManager.sortGroups(true)
         }
-    }
-
-    private async onFilter(result: FilterResult) {
-        const sortRes = await this.sortManager.sort(result.slots)
-        this.groupManager.group(sortRes.slots, true)
-    }
-
-    private onSort(result: SortResult) {
-        this.groupManager.group(result.slots, true)
-    }
-
-    private onGroup() {
-
     }
 
     updateInstances(instanceIds: Set<number>) {

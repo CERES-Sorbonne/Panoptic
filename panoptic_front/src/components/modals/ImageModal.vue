@@ -57,8 +57,9 @@ function onResize() {
 
 function onHover() {
     preview.value = {}
-    if (Object.keys(groupManager.selectedImages.value).length) {
-        Object.keys(groupManager.selectedImages.value).forEach(i => preview.value[i] = true)
+    const selectedIds = col.getSelectedIds()
+    if (selectedIds.length) {
+        selectedIds.forEach(i => preview.value[i] = true)
     } else if (groupManager.result.root) {
         const ids = col.instanceIds()
         groupManager.result.root.slots.forEach(s => preview.value[ids[s]] = true)
@@ -77,8 +78,9 @@ function paint(propRef: { propertyId: number, instanceId: number }) {
 
     const ids = col.instanceIds()
     let instances = groupManager.result.root?.slots.map(s => instanceStore.instanceData[ids[s]]).filter(Boolean) ?? []
-    if (Object.keys(groupManager.selectedImages.value).length) {
-        instances = Object.keys(groupManager.selectedImages.value).map(id => instanceStore.instanceData[id]).filter(Boolean)
+    const selectedIds = col.getSelectedIds()
+    if (selectedIds.length) {
+        instances = selectedIds.map(id => instanceStore.instanceData[id]).filter(Boolean)
     }
     if (property.type == PropertyType.multi_tags) {
         data.setTagPropertyValue(property.id, instances, value)

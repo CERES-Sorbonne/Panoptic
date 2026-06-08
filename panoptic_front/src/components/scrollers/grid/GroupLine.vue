@@ -12,7 +12,6 @@ import { useColumnStore } from '@/data/columnStore';
 const props = defineProps<{
   item: GroupLine
   width: number
-  selectedImages: Ref<SelectedImages>
 }>()
 
 const emits = defineEmits(['close:group', 'open:group', 'toggle:group'])
@@ -31,8 +30,8 @@ function toggleClosed() {
 }
 
 const selected = computed(() => {
-    const ids = columnStore.instanceIds()
-    return !props.item.data.slots.some(s => !props.selectedImages.value[ids[s]])
+    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
+    return !props.item.data.slots.some(s => !columnStore.isSelected(s))
 })
 
 const propertyValues = computed(() => {

@@ -187,16 +187,6 @@ function toggleFilter() {
     useFilter.value = !useFilter.value
 }
 
-function init() {
-    const manager = props.tab.collection.groupManager
-    manager.onResultChange.addListener(updateActive)
-}
-
-function close() {
-    const manager = props.tab.collection.groupManager
-    manager.onResultChange.removeListener(updateActive)
-}
-
 function updateActive() {
     const group = props.tab.collection.groupManager.result.index[props.group.id]
     if(!group) {
@@ -214,8 +204,8 @@ function updateActive() {
     computeLines()
 }
 
-onMounted(init)
-onUnmounted(close)
+// React to result changes via the version tick (note §3, step 1).
+watch(() => props.tab.collection.groupManager.version.value, updateActive)
 
 onMounted(getReco)
 watch(() => props.group, () => {

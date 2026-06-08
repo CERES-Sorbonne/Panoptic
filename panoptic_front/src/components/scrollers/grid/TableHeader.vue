@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Resizable from '@/components/Resizable.vue';
 import PropertyIcon from '@/components/properties/PropertyIcon.vue';
 import PropertyValue from '@/components/properties/PropertyValue.vue';
@@ -46,8 +46,8 @@ function onUpdate() {
     instanceNb.value = props.manager.result.root?.slots.length ?? 0
 }
 
-onMounted(() => props.manager.onResultChange.addListener(onUpdate))
-onUnmounted(() => props.manager.onResultChange.removeListener(onUpdate))
+// Re-read instance count on result change via the version tick (note §3, step 1).
+watch(() => props.manager.version.value, onUpdate, { immediate: true })
 
 </script>
 

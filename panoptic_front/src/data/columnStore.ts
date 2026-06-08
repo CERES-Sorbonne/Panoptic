@@ -106,6 +106,11 @@ export const useColumnStore = defineStore('columnStore', () => {
     const _tagInvertedPromise: Record<number, Promise<void>> = {}
 
     const onSelectionChange = new EventEmitter()
+    // Reactive tick for the (non-reactive) selectionMask. Bumped on every
+    // selection mutation so Vue templates can depend on `selectionVersion.value`
+    // and re-render, while the 1M-slot mask itself stays out of reactivity
+    // (note §5, step 2). Kept separate from any result/version signal (Q-I).
+    const selectionVersion = ref(0)
     const isReady = ref(false)
     const instanceCount = ref(0)
 
@@ -531,21 +536,57 @@ export const useColumnStore = defineStore('columnStore', () => {
         await Promise.all(tasks)
     }
 
+    function bumpSelection(): void {
+        selectionVersion.value++
+        onSelectionChange.emit()
+    }
+
     function isSelected(slot: number): boolean { return selectionMask[slot] === 1 }
+
+    // Instance-id convenience wrappers (the mask itself is slot-indexed).
+    function isSelectedId(instanceId: number): boolean {
+        const slot = slotMap.get(instanceId)
+        return slot !== undefined && selectionMask[slot] === 1
+    }
 
     function select(slots: number[]): void {
         for (const s of slots) selectionMask[s] = 1
-        onSelectionChange.emit()
+        bumpSelection()
     }
 
     function deselect(slots: number[]): void {
         for (const s of slots) selectionMask[s] = 0
-        onSelectionChange.emit()
+        bumpSelection()
+    }
+
+    function selectIds(instanceIds: number[]): void {
+        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) selectionMask[s] = 1 }
+        bumpSelection()
+    }
+
+    function deselectIds(instanceIds: number[]): void {
+        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) selectionMask[s] = 0 }
+        bumpSelection()
     }
 
     function clearSelection(): void {
         selectionMask.fill(0)
-        onSelectionChange.emit()
+        bumpSelection()
+    }
+
+    // Scan the mask for all currently-selected instance ids (excludes deleted).
+    function getSelectedIds(): number[] {
+        const ids: number[] = []
+        for (let s = 0; s < slotCount; s++) {
+            if (selectionMask[s] === 1 && !deletedMask[s]) ids.push(instanceIds[s])
+        }
+        return ids
+    }
+
+    function selectedCount(): number {
+        let n = 0
+        for (let s = 0; s < slotCount; s++) if (selectionMask[s] === 1 && !deletedMask[s]) n++
+        return n
     }
 
     function clear() {
@@ -587,12 +628,14 @@ export const useColumnStore = defineStore('columnStore', () => {
         columnProgress,
         baseProgress,
         onSelectionChange,
+        selectionVersion,
         systemProps,
 
         init, getRawBuffer, readSlot, writeSlot, isFetched, ensureColumn,
         addInstances, markSlotDeleted, registerProperty,
         requireFullColumn, requireTagInverted, getFullyLoadedPropIds,
-        isSelected, select, deselect, clearSelection,
+        isSelected, isSelectedId, select, deselect, selectIds, deselectIds,
+        clearSelection, getSelectedIds, selectedCount,
         getInstancesBySha1, getInstancesByFileId, updateFromLoadResult,
         clear,
     }

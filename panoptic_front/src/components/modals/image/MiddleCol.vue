@@ -5,7 +5,8 @@ import Similarity from './Similarity.vue';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import Instances from './Instances.vue';
 import { Instance } from '@/data/models';
-import { Ref } from 'vue';
+import { Ref, computed } from 'vue';
+import { useColumnStore } from '@/data/columnStore';
 
 const props = defineProps<{
     image: Instance
@@ -18,6 +19,13 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits(['update:mode'])
+
+const col = useColumnStore()
+// Global selection ids (note §5, step 2), reactive via selectionVersion.
+const selectedIds = computed(() => {
+    col.selectionVersion.value
+    return col.getSelectedIds()
+})
 
 function setMode(value) {
     emits('update:mode', value)
@@ -42,8 +50,8 @@ function setMode(value) {
             </div>
             <div class="flex-grow-1"></div>
             <div class="selection-stamp" style="line-height: 18px; margin: 3px 5px 0 0"
-                v-if="Object.keys(groupManager.selectedImages.value).length > 0">
-                <SelectionStamp :selected-images-ids="Object.keys(groupManager.selectedImages.value).map(Number)"
+                v-if="selectedIds.length > 0">
+                <SelectionStamp :selected-images-ids="selectedIds"
                     @remove:selected="groupManager.clearSelection()" @stamped="groupManager.clearSelection()"/>
             </div>
 

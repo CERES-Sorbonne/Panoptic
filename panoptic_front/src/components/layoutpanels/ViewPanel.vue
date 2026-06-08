@@ -77,7 +77,6 @@ onUnmounted(() => {
                 :width="dimensions.width - 20"
                 :properties="visibleProperties"
                 :hide-if-modal="true"
-                :selected-images="tab.collection.groupManager.selectedImages"
             />
 
             <div v-if="tab && view && view.type == 'grid' && dimensions.width > 0" class="grid-container">
@@ -90,7 +89,6 @@ onUnmounted(() => {
                     :selected-properties="visibleProperties"
                     class="p-0 m-0"
                     :show-images="true"
-                    :selected-images="tab.collection.groupManager.selectedImages"
                 />
             </div>
 

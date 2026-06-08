@@ -52,8 +52,8 @@ const closed = computed(() => props.item.data.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
 const selected = computed(() => {
-    const ids = columnStore.instanceIds()
-    return !slots.value.some(slot => !props.manager.selectedImages.value[ids[slot]])
+    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
+    return !slots.value.some(slot => !columnStore.isSelected(slot))
 })
 
 const groupName = computed(() => {
@@ -67,7 +67,7 @@ const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v
 function instancesForExecute() {
     const ids = columnStore.instanceIds()
     const sha1s = columnStore.sha1s()
-    const selected = slots.value.filter(slot => props.manager.selectedImages.value[ids[slot]])
+    const selected = slots.value.filter(slot => columnStore.isSelected(slot))
     if (selected.length) {
         return selected.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot] }))
     }

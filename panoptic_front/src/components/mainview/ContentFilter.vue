@@ -18,8 +18,10 @@ import ColumnLoadProgress from '../Dropdowns/ColumnLoadProgress.vue';
 import { useInputStore } from '@/data/inputStore';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
+import { useColumnStore } from '@/data/columnStore';
 
 const inputs = useInputStore()
+const col = useColumnStore()
 
 const props = defineProps<{
     tab: TabManager,
@@ -30,7 +32,8 @@ const emits = defineEmits(['compute-ml', 'search-images', 'remove:selected'])
 
 const localQuery = ref<TextQuery>({ type: 'text', text: '' })
 
-const selectedImageIds = computed(() => Object.keys(props.tab.collection.groupManager.selectedImages.value).map(Number))
+// Global selection ids (note §5, step 2), reactive via selectionVersion.
+const selectedImageIds = computed(() => { col.selectionVersion.value; return col.getSelectedIds() })
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 

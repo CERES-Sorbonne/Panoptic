@@ -264,14 +264,15 @@ function clear() {
 function changeHandler(){
     computeLines()
 }
+// Re-render on result change via the version tick (note §3, step 1).
+watch(() => props.manager.version.value, changeHandler)
+
 onMounted(() => {
-    props.manager.onResultChange.addListener(changeHandler)
     props.manager.clearCustomGroups(true)
     scroller.value?.$el?.addEventListener('scroll', onScroll, { passive: true })
 })
 
 onUnmounted(() => {
-    props.manager.onResultChange.removeListener(changeHandler)
     scroller.value?.$el?.removeEventListener('scroll', onScroll)
 })
 
@@ -319,7 +320,7 @@ watch(() => props.imageSize, (now) => {
             <template v-slot="{ item, index, active }">
                 <template v-if="active && !hideFromModal">
                     <GridScrollerLine :item="item" :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :properties="visibleProperties" :width="scrollerWidth"
-                        :show-images="props.showImages" :selected-images="props.manager.selectedImages"
+                        :show-images="props.showImages"
                         :missing-width="missingWidth" @open:group="openGroup" @close:group="closeGroup"
                         @toggle:image="({ groupId, imageIndex }) => selectImage(groupId, imageIndex)" @toggle:group="selectGroup"
                         @resizeHeight="h => resizeHeight(item, h)" />

@@ -13,7 +13,6 @@ const props = defineProps<{
     hoverBorder: number,
     index: GroupIndex,
     properties: Property[],
-    selectedImages: Ref<SelectedImages>,
     preview?: Ref<SelectedImages>,
 }>()
 
@@ -27,11 +26,12 @@ function getImageId(imageIt: any): number {
 }
 
 const selected = computed(() => {
+    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
     const res = {}
     props.item.data.forEach(it => {
         const id = getImageId(it)
         if (id !== undefined) {
-            res[id] = props.selectedImages.value[id]
+            res[id] = columnStore.isSelectedId(id)
         }
     })
     return res

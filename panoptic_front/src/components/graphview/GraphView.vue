@@ -4,7 +4,7 @@ import { Group, GroupIterator } from '@/core/GroupManager';
 import { useDataStore } from '@/data/dataStore';
 import { useColumnStore } from '@/data/columnStore';
 import { PropertyType } from '@/data/models';
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import LineChart from './LineChart.vue'
 import InstanceData from '@/components/data/InstanceData.vue'
 
@@ -155,7 +155,8 @@ function computeSeries() {
     }
 }
 
-props.collection.groupManager.onResultChange.addListener(() => chartData.value = computeSeries())
+// React to result changes via the version tick (note §3, step 1).
+watch(() => props.collection.groupManager.version.value, () => chartData.value = computeSeries())
 
 onMounted(() => {
     chartData.value = computeSeries()

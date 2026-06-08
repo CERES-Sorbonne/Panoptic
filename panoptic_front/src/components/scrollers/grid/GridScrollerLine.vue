@@ -18,7 +18,6 @@ const props = defineProps<{
     missingWidth: number,
     properties: Property[],
     showImages: boolean,
-    selectedImages: Ref<SelectedImages>
 }>()
 
 const emits = defineEmits({
@@ -33,11 +32,11 @@ const columnStore = useColumnStore()
 const loaded = ref(true)
 
 const selected = computed(() => {
+    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
     if (props.item.type == 'image') {
-        return props.selectedImages.value[(props.item as RowLine).data.id]
+        return columnStore.isSelectedId((props.item as RowLine).data.id)
     } else if (props.item.type == 'pile') {
-        const firstId = columnStore.instanceIds()[(props.item as PileRowLine).data.slots[0]]
-        return props.selectedImages.value[firstId]
+        return columnStore.isSelected((props.item as PileRowLine).data.slots[0])
     }
 })
 
@@ -55,7 +54,7 @@ watch(() => props.item.id, reload)
     <template v-if="loaded" class="container">
         <div v-if="item.type == 'group'">
             <GroupLineVue :prop-values="item.data.propertyValues" :item="(item as GroupLine)" :width="props.width"
-                :selectedImages="props.selectedImages" @close:group="e => emits('close:group', e)"
+                @close:group="e => emits('close:group', e)"
                 @open:group="e => emits('open:group', e)" @toggle:group="e => emits('toggle:group', e)" />
         </div>
         <div v-if="item.type == 'image'">

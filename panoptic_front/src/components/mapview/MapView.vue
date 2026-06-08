@@ -121,9 +121,8 @@ function updateColors() {
         }
     }
 
-    // Color selected images
-    const selected = props.tab.collection.groupManager.selectedImages.value
-    Object.keys(selected).map(Number).forEach(id => {
+    // Color selected images (global selection, note §5 step 2)
+    columnStore.getSelectedIds().forEach(id => {
         const p = sha1ToPoint[data.instances[id].sha1]
         if (p) {
             p.tint = SELECTED_TINT
@@ -323,7 +322,7 @@ function removeClusters() {
 
 // Watchers
 watch(mouseMode, (newMode) => { renderer.value?.setMouseMode(newMode) })
-watch(props.tab.collection.groupManager.selectedImages, () => updateColors())
+watch(() => columnStore.selectionVersion.value, () => updateColors())
 watch(() => props.mapOptions.selectedMap, (mapId) => { if (mapId != null) showMap(mapId) })
 watch(() => props.mapOptions.groupOption, () => generateGroups())
 watch(() => props.mapOptions.showPoints, (val) => renderer.value?.setShowAsPoint(val))
@@ -354,15 +353,13 @@ watch(() => media.atlas, async () => {
     showMap(props.mapOptions.selectedMap)
 })
 
+// React to result changes via the version tick (note §3, step 1).
+watch(() => props.tab.collection.groupManager.version.value, onGroupManager)
+
 onMounted(async () => {
-    props.tab.collection.groupManager.onResultChange.addListener(onGroupManager)
     await media.loadMaps()
     showMap(props.mapOptions.selectedMap)
     if (renderer.value) renderer.value.setMouseMode(mouseMode.value)
-})
-
-onUnmounted(() => {
-    props.tab.collection.groupManager.onResultChange.removeListener(onGroupManager)
 })
 </script>
 

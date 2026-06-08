@@ -15,7 +15,6 @@ const props = defineProps<{
     hoverBorder: number
     index: any
     properties: Property[]
-    selectedImages: Ref<SelectedImages>
     sha1Scores: Sha1Scores
     preview?: SelectedImages
 }>()
@@ -24,11 +23,12 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
 
 
 const selected = computed(() => {
+    col.selectionVersion.value  // reactive dep on global selection (step 2)
     const res = {}
     const ids = col.instanceIds()
     props.item.data.forEach(it => {
         const id = ids[it.slot]
-        res[id] = props.selectedImages.value[id]
+        res[id] = col.isSelected(it.slot)
     })
     return res
 })

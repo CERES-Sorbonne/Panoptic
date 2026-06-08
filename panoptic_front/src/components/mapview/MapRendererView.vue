@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { PointData } from '@/data/models';
-import { useTabStore } from '@/data/tabStore';
+import { useColumnStore } from '@/data/columnStore';
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer';
 import { ref, watch } from 'vue';
 
-const tabs = useTabStore()
-
-const groupManager = tabs.getMainTab().collection.groupManager
+const col = useColumnStore()
 
 const props = defineProps<{
     points: PointData[]
@@ -27,7 +25,7 @@ watch(() => props.mouseMode, () => {
     }
 })
 
-watch(groupManager.selectedImages, () => {
+watch(() => col.selectionVersion.value, () => {
     console.log('change tints')
     renderer.map.value.updateTints()
 })

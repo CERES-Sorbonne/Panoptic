@@ -435,8 +435,9 @@ watch(() => props.width, () => {
     resizeWidthHandler = setTimeout(computeLines, 200)
 })
 
-onMounted(() => props.groupManager.onResultChange.addListener(triggerUpdate))
-onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate))
+// Re-render on result change via the version tick (note §3, step 1) instead of
+// the onResultChange listener. Vue stops this watch automatically on unmount.
+watch(() => props.groupManager.version.value, triggerUpdate)
 
 </script>
 
@@ -459,7 +460,6 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
                     <ImageLineVue :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
-                        :selected-images="props.groupManager.selectedImages"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                 </div>
@@ -467,7 +467,7 @@ onUnmounted(() => props.groupManager.onResultChange.removeListener(triggerUpdate
                     <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
-                        :selected-images="props.groupManager.selectedImages" :sha1-scores="props.sha1Scores"
+                        :sha1-scores="props.sha1Scores"
                         :preview="props.preview" @update:selected-image="e => updateImageSelection(e, item)"
                         @scroll="scrollTo" @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1"
                         />
