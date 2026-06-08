@@ -5,7 +5,7 @@ const props = defineProps<{
     modelValue: string,
     focus?: boolean
 }>()
-const emits = defineEmits(['update:modelValue'])
+const emits = defineEmits(['update:modelValue', 'enter'])
 
 const localValue = ref(props.modelValue)
 const inputElem = ref(null)
@@ -33,7 +33,7 @@ watch(localValue, (val) => emits('update:modelValue', val))
 <template>
     <div class="cont3">
         <div class="input-field d-flex items-align-center" :class="{ focus: isFocus }">
-            <input class="text-input2" type="text" v-model="localValue" @focusin="isFocus = true" ref="inputElem"
+            <input class="text-input2" type="text" v-model="localValue" @focusin="isFocus = true" @keydown.enter="$emit('enter')" ref="inputElem"
                 @focusout="isFocus = false" />
             <div style="width: 22px;"><i v-if="props.modelValue.length" class="bi bi-x sb" @click="reset" /></div>
         </div>

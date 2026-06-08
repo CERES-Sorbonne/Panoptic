@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, nextTick, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
 import { useTabStore } from '@/data/tabStore';
+import TextInput from '../inputs/TextInput.vue'
 
 const tabStore = useTabStore()
 
 const newTabName = ref('')
-const inputElem = ref(null)
 const isHover = ref(false)
 const isEdit = ref(false)
 
@@ -21,15 +21,28 @@ function select() {
     tabStore.selectMainTab(props.tab.state.id)
 }
 
+function doubleClick() {
+    if (tabStore.mainTab === props.tab.state.id) {
+        setEditTab()
+    }
+}
+
 function setEditTab() {
     isEdit.value = true
     newTabName.value = props.tab.state.name
-    nextTick(() => inputElem.value.focus())
 }
 
 function endEdit() {
-    props.tab.renameTab(newTabName.value)
+    if (newTabName.value.trim()) {
+        props.tab.renameTab(newTabName.value)
+    } else {
+        newTabName.value = props.tab.state.name
+    }
     isEdit.value = false
+}
+
+function focusOut() {
+    endEdit()
 }
 
 async function deleteTab() {
@@ -51,7 +64,7 @@ onMounted(() => {
             <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab"
                     class="bi bi-pencil me-1 tab-icon hover-light"
                     :class="(isHover && tabStore.mainTab == tabId) ? '' : 'hidden'" style="font-size: 10px;"></i></wTT>
-            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @click="select">
+            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @click="select" @dblclick="doubleClick">
                 <span>{{ props.tab.state.name }}</span>
             </div>
             <wTT message="main.menu.delete_tab_tooltip">
@@ -60,9 +73,8 @@ onMounted(() => {
             </wTT>
         </template>
         <template v-else>
-            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')">
-                <form @submit.stop.prevent="endEdit"><input @focusout="endEdit" @keydown.escape="endEdit" type="text"
-                        class="text-input" v-model="newTabName" ref="inputElem" /></form>
+            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @focusout="focusOut">
+                <TextInput v-model="newTabName" :focus="true" @enter="endEdit" @keydown.escape="focusOut" />
             </div>
 
         </template>
@@ -72,14 +84,6 @@ onMounted(() => {
 <style scoped>
 .tab-button.active {
     background-color: var(--primary-light);
-}
-
-.tab-button .text-input {
-    border: none;
-    padding: 0;
-    height: auto;
-    background: transparent;
-    color: #000;
 }
 </style>
 
