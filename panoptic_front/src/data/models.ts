@@ -182,6 +182,37 @@ export function buildTag(id: number, propertyId: number, value: string, parents?
 }
 
 //=============================
+//=========FileSource==========
+//=============================
+
+export interface FileSource {
+    id: number
+    dtype: string
+    name: string | null
+    rootUrl: string | null
+}
+
+export interface FileSourceIndex {
+    [id: number]: FileSource
+}
+
+export interface SourceNode {
+    id: number
+    name: string
+    type: 'file_source'
+    children: Folder[]
+}
+
+export interface FolderNode {
+    id: number
+    name: string
+    type: 'folder'
+    children: Folder[]
+}
+
+export type RootNode = SourceNode | FolderNode
+
+//=============================
 //===========Folders===========
 //=============================
 

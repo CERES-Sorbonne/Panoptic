@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, triggerRef } from 'vue'
 import {
-    CommitHistory, DbCommit, FilePropertyValue, FileValuesArray, Folder, FolderIndex,
+    CommitHistory, DbCommit, FilePropertyValue, FileSourceIndex, FileValuesArray, Folder, FolderNode, FolderIndex,
     ImagePropertyValue, ImageValuesArray, Instance, InstancePropertyValue, InstanceValuesArray,
     LoadResult, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex,
     PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType,
-    Tag, TagIndex, UIDataKeys,
+    RootNode, SourceNode, Tag, TagIndex, UIDataKeys,
 } from './models'
 import { buildPropertyGroupOrder, objValues } from './builder'
 import {
@@ -41,6 +41,7 @@ export const useDataStore = defineStore('dataStore', () => {
     const properties     = shallowRef<PropertyIndex>({})
     const tags           = shallowRef<TagIndex>({})
     const folders        = shallowRef<FolderIndex>({})
+    const fileSources   = shallowRef<FileSourceIndex>({})
     const propertyGroups = shallowRef<PropertyGroupIndex>({})
     const propertyOrder  = shallowRef<PropertyGroupOrder>(buildPropertyGroupOrder())
     const propertyTree   = ref<PropertyGroupNode[]>([])
@@ -61,6 +62,37 @@ export const useDataStore = defineStore('dataStore', () => {
     const folderRoots        = computed(() => Object.values(folders.value).filter(f => f.parent == null) as Folder[])
     const tagList            = computed(() => objValues(tags.value).filter(t => t.id !== deletedID))
     const propertyGroupsList = computed(() => objValues(propertyGroups.value))
+
+    const rootNodes = computed<RootNode[]>(() => {
+        const result: RootNode[] = []
+
+        // Add file sources with their top-level folders
+        for (const source of Object.values(fileSources.value)) {
+            const childFolders = Object.values(folders.value).filter(
+                f => f.source_id === source.id && f.parent == null
+            ) as Folder[]
+            result.push({
+                id: source.id,
+                name: source.name || `Source ${source.id}`,
+                type: 'file_source',
+                children: childFolders,
+            })
+        }
+
+        // Add top-level folders not belonging to any file source
+        for (const folder of Object.values(folders.value)) {
+            if (folder.parent == null && !(folder.source_id != null && fileSources.value[folder.source_id!])) {
+                result.push({
+                    id: folder.id,
+                    name: folder.name || `Folder ${folder.id}`,
+                    type: 'folder',
+                    children: (folder.children || []) as Folder[],
+                })
+            }
+        }
+
+        return result
+    })
 
     function _systemKeyIndex(): Record<string, number> {
         const idx: Record<string, number> = {}
@@ -273,6 +305,11 @@ export const useDataStore = defineStore('dataStore', () => {
         baseUrl.value    = `${SERVER_PREFIX}/projects/${projectId}/`
 
         const initData = await apiGetInitState()
+        if (initData.fileSources?.length) {
+            for (const fs of initData.fileSources) {
+                fileSources.value[fs.id] = fs
+            }
+        }
         if (initData.folders?.length)        importFolders(initData.folders)
         if (initData.properties?.length)     importProperties(initData.properties)
         if (initData.propertyGroups?.length) importPropertyGroups(initData.propertyGroups)
@@ -301,6 +338,7 @@ export const useDataStore = defineStore('dataStore', () => {
         properties.value     = {}
         tags.value           = {}
         folders.value        = {}
+        fileSources.value    = {}
         propertyGroups.value = {}
         propertyOrder.value  = buildPropertyGroupOrder()
         history.value        = { undo: [], redo: [] }
@@ -644,7 +682,7 @@ export const useDataStore = defineStore('dataStore', () => {
         applyMultipleCommits, sendCommit,
         fetchTagCounts, fetchFolderCounts, reloadFolders,
 
-        folders, instances: instanceStore.instanceData, properties, tags, history,
+        folders, fileSources, rootNodes, instances: instanceStore.instanceData, properties, tags, history,
         propertyGroups, propertyGroupsList, propertyTree, propertyOrder,
 
         folderRoots, tagList,

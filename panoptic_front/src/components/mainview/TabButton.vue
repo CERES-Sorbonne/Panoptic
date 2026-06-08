@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import wTT from '../tooltips/withToolTip.vue'
 import { TabManager } from '@/core/TabManager';
 import { useTabStore } from '@/data/tabStore';
@@ -10,12 +10,20 @@ const tabStore = useTabStore()
 const newTabName = ref('')
 const isHover = ref(false)
 const isEdit = ref(false)
+const rootElem = ref<HTMLElement>(null)
 
 const props = defineProps<{
     tab: TabManager
 }>()
 
 const tabId = computed(() => props.tab.state.id)
+
+// Bring the tab into view whenever it becomes the active tab — covers selection
+// from the picker dropdown, a click, or restore on load.
+watch(() => tabStore.mainTab === tabId.value, (isActive) => {
+    if (!isActive) return
+    nextTick(() => rootElem.value?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' }))
+}, { immediate: true })
 
 function select() {
     tabStore.selectMainTab(props.tab.state.id)
@@ -59,18 +67,17 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="d-flex d-row me-2" @mouseenter="isHover = true" @mouseleave="isHover = false">
+    <div ref="rootElem" class="tab-item d-flex d-row" @mouseenter="isHover = true" @mouseleave="isHover = false">
         <template v-if="!isEdit">
-            <wTT message="main.menu.rename_tab_tooltip"><i @click="setEditTab"
-                    class="bi bi-pencil me-1 tab-icon hover-light"
-                    :class="(isHover && tabStore.mainTab == tabId) ? '' : 'hidden'" style="font-size: 10px;"></i></wTT>
-            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @click="select" @dblclick="doubleClick">
+            <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @click="select"
+                @dblclick="doubleClick">
                 <span>{{ props.tab.state.name }}</span>
             </div>
-            <wTT message="main.menu.delete_tab_tooltip">
-                <i @click="deleteTab" class="btn-icon bi bi-x tab-icon hover-light" style="font-size: 15px;"
-                    :class="isHover ? '' : 'hidden'"></i>
-            </wTT>
+            <span class="tab-close" :class="{ hidden: !isHover }">
+                <wTT message="main.menu.delete_tab_tooltip">
+                    <i @click="deleteTab" class="bi bi-x"></i>
+                </wTT>
+            </span>
         </template>
         <template v-else>
             <div class="tab-button" :class="(tabId == tabStore.mainTab ? ' active' : '')" @focusout="focusOut">

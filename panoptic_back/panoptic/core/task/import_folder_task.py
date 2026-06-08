@@ -7,7 +7,7 @@ from datetime import datetime
 
 from panoptic.core.databases.entity_schema import OP_CREATE
 from panoptic.core.databases.media.models import Image
-from panoptic.core.databases.data.models import File, FileSource, Folder, Instance, UpsertCommit
+from panoptic.core.databases.data.models import File, Folder, Instance, UpsertCommit
 from panoptic.core.task.task import Task
 
 logger = logging.getLogger('ImportFolderTask')
@@ -217,17 +217,12 @@ class ImportFolderTask(Task):
             return path_to_id
 
         project  = self._project
-        fs_id    = project.allocate_file_sources(1)
+        fs_id    = project.local_fs_id
         id_range = project.allocate_folders(len(new_nodes))
         if isinstance(id_range, int):
             id_range = range(id_range, id_range + 1)
 
         commit = UpsertCommit()
-        commit.file_sources[fs_id] = FileSource(
-            id=fs_id, dtype='local',
-            name=os.path.basename(self._folder_path),
-            root_url=self._folder_path,
-        )
 
         for node, fid in zip(new_nodes, id_range):
             parent_id = path_to_id.get(node['parent_path']) if node['parent_path'] else None
