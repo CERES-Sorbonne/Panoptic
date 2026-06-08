@@ -84,6 +84,7 @@ function onChangeLang(event: Event) {
 
 <style scoped>
 .toolbar {
+    margin-top: 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
