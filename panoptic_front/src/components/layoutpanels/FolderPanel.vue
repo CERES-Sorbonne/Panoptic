@@ -75,6 +75,6 @@ const rootFolders = computed(() => data.folderRoots)
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: var(--spacing-xs) 0;
+    padding: var(--spacing-xs) var(--spacing-sm);
 }
 </style>

@@ -58,7 +58,8 @@ function isPanelActive(id: string) {
     display: flex;
     flex-direction: column;
     width: 100%;
-    padding: var(--spacing-xs) 0;
+    margin-left: var(--spacing-xs);
+    margin-top: 2px;
 }
 
 .activity-group {
@@ -66,6 +67,7 @@ function isPanelActive(id: string) {
     flex-direction: column;
     align-items: center;
     gap: 2px;
+    padding-top: var(--spacing-xs);
 }
 
 .activity-sep {
@@ -85,16 +87,22 @@ function isPanelActive(id: string) {
     border: none;
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: 16px;
+    font-size: 18px;
     transition: background-color var(--transition-fast);
 }
 
 .activity-btn:hover {
-    background-color: var(--hover-bg);
+    background-color: #e0e0e0;
+    color: var(--text-primary);
 }
 
 .activity-btn.active {
-    background-color: var(--primary-light);
-    color: var(--primary);
+    background-color: var(--primary);
+    color: #fff;
+}
+
+.activity-btn.active:hover {
+    background-color: var(--primary-dark);
+    color: #fff;
 }
 </style>

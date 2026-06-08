@@ -42,10 +42,9 @@ function closeProject() {
         <div class="bar-group">
             <Dropdown placement="bottom-start" :offset="0">
                 <template #button>
-                    <button class="project-trigger" :title="projectName">
+                    <div class="project-trigger" :title="projectName">
                         <span class="project-name">{{ projectName }}</span>
-                        <i class="bi bi-chevron-down project-chevron"></i>
-                    </button>
+                    </div>
                 </template>
                 <template #popup="{ hide }">
                     <div class="project-menu">
@@ -102,7 +101,7 @@ function closeProject() {
     justify-content: space-between;
     flex: 1;
     gap: var(--spacing-sm);
-    padding: 0 var(--spacing-sm);
+    padding: 0 var(--spacing-xs);
     overflow: hidden;
 }
 
@@ -123,32 +122,111 @@ function closeProject() {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 8px;
-    background: none;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    background-color: var(--primary);
+    border: none;
     cursor: pointer;
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    transition: background-color var(--transition-fast), color var(--transition-fast);
+    color: var(--text-inverse);
+    font-size: 0.8rem;
+    min-width: 90px;
+    justify-content: flex-start;
+    border-radius: var(--radius-sm);
 }
 
 .project-trigger:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-primary);
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: var(--primary-dark);
+}
+
+.project-trigger:hover {
+    background-color: #b8d4ed;
 }
 
 .project-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 120px;
-}
-
-.project-chevron {
-    font-size: 9px;
-    color: var(--text-tertiary);
-    flex-shrink: 0;
+    text-align: left;
+    width: 100%;
 }
 
 .project-menu {
