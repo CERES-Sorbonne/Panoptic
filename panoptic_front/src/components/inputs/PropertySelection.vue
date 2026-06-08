@@ -77,7 +77,7 @@ const filteredGroupIds = computed(() => {
             <template v-for="group in propertyGroups" :key="group.groupId">
                 <template v-if="filteredGroupIds.has(group.groupId)">
                     <div class="group-header" @click="toggleGroup(group.groupId)">
-                        <span class="expand-icon">{{ isGroupOpen(group.groupId) ? '▾' : '▸' }}</span>
+                        <i class="expand-icon" :class="isGroupOpen(group.groupId) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
                         <span class="group-name">{{ getGroupName(group.groupId) }}</span>
                     </div>
                     <template v-if="isGroupOpen(group.groupId)">
@@ -103,15 +103,14 @@ const filteredGroupIds = computed(() => {
     display: flex;
     align-items: center;
     gap: 4px;
-    height: 28px;
+    height: 30px;
     padding: 0 var(--spacing-sm);
     cursor: pointer;
     white-space: nowrap;
-    background-color: var(--border-alpha-15);
 }
 
 .group-header:hover {
-    background-color: var(--border-alpha-40);
+    background-color: var(--hover-bg);
 }
 
 .expand-icon {
@@ -119,7 +118,7 @@ const filteredGroupIds = computed(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-tertiary);
     flex-shrink: 0;
 }
@@ -136,9 +135,8 @@ const filteredGroupIds = computed(() => {
 .property-item {
     display: flex;
     align-items: center;
-    height: 28px;
+    height: 30px;
     padding: 0 var(--spacing-sm);
-    border-radius: 0 !important;
 }
 
 .property-item:hover {

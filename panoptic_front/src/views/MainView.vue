@@ -39,7 +39,7 @@ onMounted(async () => {
 
 <template>
     <!-- Always show outer shell, but hide islands until uiStore loads -->
-    <AppShellLayout :gap="6" :activity-width="32" :toolbar-height="30" :status-height="0">
+    <AppShellLayout :gap="6" :activity-width="32" :toolbar-height="32" :status-height="0">
         <!-- Top toolbar (on canvas) -->
         <template #toolbar>
             <TopBarPanel />

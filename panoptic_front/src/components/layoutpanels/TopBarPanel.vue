@@ -48,18 +48,17 @@ function closeProject() {
                 </template>
                 <template #popup="{ hide }">
                     <div class="project-menu">
-                        <button class="menu-item" @click="() => { closeProject(); hide(); }">
+                        <div class="menu-item" @click="() => { panoptic.showModal(ModalId.SETTINGS); hide(); }">
+                            <i class="bi bi-gear"></i>
+                            <span>Settings</span>
+                        </div>
+                        <div class="menu-item" @click="() => { closeProject(); hide(); }">
                             <i class="bi bi-box-arrow-left"></i>
                             <span>Close project</span>
-                        </button>
+                        </div>
                     </div>
                 </template>
             </Dropdown>
-            <wTT message="Settings">
-                <button class="icon-btn" @click="panoptic.showModal(ModalId.SETTINGS)">
-                    <i class="bi bi-gear"></i>
-                </button>
-            </wTT>
         </div>
 
         <!-- Center: data / column load status -->
@@ -95,7 +94,7 @@ function closeProject() {
 
 <style scoped>
 .toolbar {
-    margin-top: 4px;
+    margin-top: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -123,10 +122,10 @@ function closeProject() {
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
-    background-color: var(--primary);
+    /* background-color: var(--primary); */
     border: none;
     cursor: pointer;
-    color: var(--text-inverse);
+    /* color: var(--text-inverse); */
     font-size: 0.8rem;
     min-width: 90px;
     justify-content: flex-start;
@@ -246,6 +245,7 @@ function closeProject() {
     border: none;
     background: none;
     width: 100%;
+    justify-content: flex-start;
 }
 
 .menu-item:hover {

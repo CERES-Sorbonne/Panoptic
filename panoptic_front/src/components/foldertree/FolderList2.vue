@@ -105,9 +105,8 @@ function toggleFolderSelect(folderId: number) {
 
 <style scoped>
 .selected {
-    border: 1px solid blue;
-    padding: 2px 4px !important;
-
+    background-color: rgba(22, 120, 194, 0.15);
+    border-radius: var(--radius-sm);
 }
 
 .tree {

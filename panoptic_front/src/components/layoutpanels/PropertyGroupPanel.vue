@@ -50,7 +50,7 @@ function toggleExpand(groupId: number) {
 <template>
     <div v-for="group in visibleGroups" :key="group.groupId">
         <div class="group-header" @click="toggleExpand(group.groupId)">
-            <span class="expand-icon">{{ groupOpen[group.groupId] ? '▾' : '▸' }}</span>
+            <i class="expand-icon" :class="groupOpen[group.groupId] ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
             <span class="group-name">{{ getGroupName(group) }}</span>
             <span v-if="group.propertyIds.length > 0" class="visibility-toggle" @click.stop="toggleGroupVisibility(group)">
                 <i :class="[
@@ -91,7 +91,7 @@ function toggleExpand(groupId: number) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     color: var(--text-tertiary);
     flex-shrink: 0;
 }

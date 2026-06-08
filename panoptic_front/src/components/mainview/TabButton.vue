@@ -69,6 +69,20 @@ onMounted(() => {
     </div>
 </template>
 
+<style scoped>
+.tab-button.active {
+    background-color: var(--primary-light);
+}
+
+.tab-button .text-input {
+    border: none;
+    padding: 0;
+    height: auto;
+    background: transparent;
+    color: #000;
+}
+</style>
+
 <style>
 .no-border {
     border: none !important;

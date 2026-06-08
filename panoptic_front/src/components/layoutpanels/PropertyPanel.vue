@@ -18,23 +18,23 @@ const tabStore = useTabStore()
             <div class="tw-header">
                 <span class="tw-title">{{ uiStore.panelStates.activeBottomPanel === 'export' ? 'Export' : 'Properties' }}</span>
                 <div class="tw-actions">
-                    <button class="tw-action" title="Options">⋯</button>
-                    <button class="tw-action" title="Hide" @click="uiStore.panelStates.activeBottomPanel = null">－</button>
+                    <button class="tw-action" title="Options"><i class="bi bi-three-dots"></i></button>
+                    <button class="tw-action" title="Hide" @click="uiStore.panelStates.activeBottomPanel = null"><i class="bi bi-dash"></i></button>
                 </div>
             </div>
         </template>
         <div class="tw-body">
             <template v-if="uiStore.panelStates.activeBottomPanel === 'export'">
                 <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
-                    <span class="export-icon">⤓</span>
+                    <i class="export-icon bi bi-download"></i>
                     <span>Export as CSV</span>
                 </button>
                 <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
-                    <span class="export-icon">⤓</span>
+                    <i class="export-icon bi bi-download"></i>
                     <span>Export as JSON</span>
                 </button>
                 <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
-                    <span class="export-icon">⤓</span>
+                    <i class="export-icon bi bi-download"></i>
                     <span>Export images</span>
                 </button>
             </template>
@@ -117,6 +117,7 @@ const tabStore = useTabStore()
 }
 
 .export-icon {
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
 }
 </style>

@@ -144,7 +144,7 @@ function handleExpand(folder: Folder, e: MouseEvent) {
 }
 
 .tree-node.selected {
-    background-color: var(--primary-light);
+    background-color: rgba(22, 120, 194, 0.15);
 }
 
 .tree-caret {
