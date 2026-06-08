@@ -21,8 +21,13 @@
 
   /* Border Colors */
   --border-color: #c3cfd9;
+  --border-solid: rgb(195, 207, 217);
   --border-light: #e8e8e8;
   --border-dark: #b0b0b0;
+  --border-alpha-15: rgba(195, 207, 217, 0.15);
+  --border-alpha-40: rgba(195, 207, 217, 0.4);
+  --border-alpha-22: rgba(195, 207, 217, 0.22);
+  --border-alpha-12: rgba(195, 207, 217, 0.12);
   --validate-border: rgb(163, 208, 209);
   --refuse-border: rgb(213, 180, 191);
 
@@ -409,7 +414,7 @@ a:focus {
 }
 
 .custom-hr {
-  border-bottom: 1px solid rgb(195, 207, 217);
+  border-bottom: 1px solid var(--border-solid);
   margin: 0;
   padding: 0;
 }
@@ -482,7 +487,7 @@ a:focus {
 }
 
 .tree ul li {
-  border-left: 1px solid rgb(195, 207, 217);
+  border-left: 1px solid var(--border-solid);
 }
 
 .tree ul li:last-child {
@@ -497,7 +502,7 @@ a:focus {
   left: -1px;
   width: calc(var(--spacing) + 1px);
   height: calc(var(--spacing) + 3px);
-  border: solid rgb(195, 207, 217);
+  border: solid var(--border-solid);
   border-width: 0 0 1px 1px;
 }
 
@@ -507,7 +512,7 @@ a:focus {
   position: relative;
   cursor: pointer;
   z-index: 10 !important;
-  background-color: rgb(195, 207, 217);
+  background-color: var(--border-solid);
   margin: 3px 0px 0px 0px;
   border-radius: 2px;
   padding: 0.2em 0.7em;
@@ -623,13 +628,13 @@ a:focus {
 }
 
 .glass-box {
-  padding: 4px;
-  background-color: transparent;
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(195, 207, 217, 0.117);
-  box-shadow: 0 0 2px 2px rgb(195, 207, 217);
-  border-radius: 5px;
+    padding: 4px;
+    background-color: transparent;
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid var(--border-alpha-12);
+    box-shadow: 0 0 2px 2px var(--border-color);
+    border-radius: 5px;
 }
 
 .cluster-icon {

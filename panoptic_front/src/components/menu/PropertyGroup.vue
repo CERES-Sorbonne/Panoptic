@@ -166,12 +166,12 @@ watch(props, updateLocalName)
 <style scoped>
 .group-container {
     cursor: pointer;
-    background-color: rgba(195, 207, 217, 0.158);
+    background-color: var(--border-alpha-15);
     padding: 4px 0px 2px 4px;
 }
 
 .group-container:hover {
-    background-color: rgba(195, 207, 217, 0.397);
+    background-color: var(--border-alpha-40);
 }
 
 .prop-container {

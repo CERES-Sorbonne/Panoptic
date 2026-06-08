@@ -11,6 +11,7 @@ import { usePanopticStore } from '@/data/panopticStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import ColumnLoadProgress from '@/components/dropdowns/ColumnLoadProgress.vue'
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue'
+import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
 import TabPanel from './TabPanel.vue'
 
@@ -22,7 +23,6 @@ const tab = useTabStore()
 const langs = ['fr', 'en']
 
 const projectName = computed(() => project.state?.name ?? '')
-const projectBadge = computed(() => projectName.value.slice(0, 2).toUpperCase() || '··')
 const currentUser = computed(() => panoptic.connectionState?.user?.name ?? null)
 
 function onChangeLang(event: Event) {
@@ -30,20 +30,32 @@ function onChangeLang(event: Event) {
     locale.value = lang
     project.setLang(lang)
 }
+
+function closeProject() {
+    panoptic.closeProject(project.state.id)
+}
 </script>
 
 <template>
     <div class="toolbar">
-        <!-- Left: project title + actions -->
+        <!-- Left: project dropdown + settings -->
         <div class="bar-group">
-            <wTT message="main.menu.close_project">
-                <button class="icon-btn close-project" @click="panoptic.closeProject(project.state.id)">
-                    <i class="bi bi-arrow-up-left-square"></i>
-                </button>
-            </wTT>
-            <div class="project-badge-name">
-                <span class="text-capitalize">{{ projectName }}</span>
-            </div>
+            <Dropdown placement="bottom-start" :offset="0">
+                <template #button>
+                    <button class="project-trigger" :title="projectName">
+                        <span class="project-name">{{ projectName }}</span>
+                        <i class="bi bi-chevron-down project-chevron"></i>
+                    </button>
+                </template>
+                <template #popup="{ hide }">
+                    <div class="project-menu">
+                        <button class="menu-item" @click="() => { closeProject(); hide(); }">
+                            <i class="bi bi-box-arrow-left"></i>
+                            <span>Close project</span>
+                        </button>
+                    </div>
+                </template>
+            </Dropdown>
             <wTT message="Settings">
                 <button class="icon-btn" @click="panoptic.showModal(ModalId.SETTINGS)">
                     <i class="bi bi-gear"></i>
@@ -107,6 +119,62 @@ function onChangeLang(event: Event) {
     overflow: hidden;
 }
 
+.project-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.project-trigger:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.project-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
+}
+
+.project-chevron {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.project-menu {
+    padding: 3px;
+}
+
+.menu-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    border: none;
+    background: none;
+    width: 100%;
+}
+
+.menu-item:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
 .chip-badge {
     display: inline-flex;
     align-items: center;
@@ -119,43 +187,6 @@ function onChangeLang(event: Event) {
     color: var(--text-inverse);
     font-size: 10px;
     font-weight: var(--font-weight-bold);
-}
-
-.project-badge-name {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    min-width: 60px;
-    max-width: 180px;
-    padding: 0 var(--spacing-xs);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background-color: var(--primary);
-    color: var(--text-inverse);
-}
-
-.project-badge-name .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    border-radius: var(--radius-sm);
-    background-color: var(--primary);
-    color: var(--text-inverse);
-    font-size: 10px;
-    font-weight: var(--font-weight-bold);
-}
-
-.project-badge-name>span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: left;
-    font-weight: var(--font-weight-medium);
-    color: var(--text-inverse);
-    font-size: var(--font-size-sm);
 }
 
 .icon-btn {
@@ -174,10 +205,6 @@ function onChangeLang(event: Event) {
 
 .icon-btn:hover {
     background-color: var(--hover-bg);
-}
-
-.close-project:hover {
-    color: var(--error);
 }
 
 .user-name {

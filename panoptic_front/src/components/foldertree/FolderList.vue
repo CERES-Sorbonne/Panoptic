@@ -108,10 +108,9 @@ function handleExpand(folder: Folder, e: MouseEvent) {
                 class="tree-caret"
                 @click.stop="handleExpand(folder, $event)"
             >
-                <span v-if="hasChildren(folder.id)">{{ isExpanded(folder.id) ? '▾' : '▸' }}</span>
+                <i v-if="hasChildren(folder.id)" :class="isExpanded(folder.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" style="font-size: 10px;"></i>
                 <span v-else class="tree-caret-spacer">&nbsp;</span>
             </span>
-            <span class="tree-icon">▣</span>
             <span class="tree-label">{{ folder.name }}</span>
             <span v-if="getCount(folder.id) > 0" class="tree-count">{{ getCount(folder.id) }}</span>
             <span class="folder-option">
@@ -180,13 +179,11 @@ function handleExpand(folder: Folder, e: MouseEvent) {
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
     margin-left: auto;
-    padding-left: 8px;
 }
 
 .folder-option {
     opacity: 0;
-    margin-left: auto;
-    padding-left: 4px;
+    padding-left: 0px;
 }
 
 .tree-node:hover .folder-option {

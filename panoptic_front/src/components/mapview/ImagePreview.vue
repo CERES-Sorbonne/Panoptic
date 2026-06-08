@@ -64,11 +64,11 @@ function test() {
 <style scoped>
 .glass-box {
     padding: 4px;
-    background: rgba(195, 207, 217, 0.219);
+    background: var(--border-alpha-22);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(195, 207, 217, 0.117);
-    box-shadow: 0 0 2px 2px rgb(195, 207, 217);
+    border-right: 1px solid var(--border-alpha-12);
+    box-shadow: 0 0 2px 2px var(--border-color);
     border-radius: 5px;
     column-gap: 4px;
     display: flex;

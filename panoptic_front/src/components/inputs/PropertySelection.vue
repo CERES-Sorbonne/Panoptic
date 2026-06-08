@@ -107,11 +107,11 @@ const filteredGroupIds = computed(() => {
     padding: 0 var(--spacing-sm);
     cursor: pointer;
     white-space: nowrap;
-    background-color: rgba(195, 207, 217, 0.158);
+    background-color: var(--border-alpha-15);
 }
 
 .group-header:hover {
-    background-color: rgba(195, 207, 217, 0.397);
+    background-color: var(--border-alpha-40);
 }
 
 .expand-icon {

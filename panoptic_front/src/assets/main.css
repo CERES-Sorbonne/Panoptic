@@ -202,7 +202,7 @@ body {
 }
 
 .custom-hr {
-  border-bottom: 1px solid rgb(195, 207, 217);
+  border-bottom: 1px solid var(--border-solid);
   margin: 0;
   padding: 0;
 }
@@ -282,7 +282,7 @@ body {
 }
 
 .tree ul li {
-  border-left: 1px solid rgb(195, 207, 217);
+  border-left: 1px solid var(--border-solid);
 }
 
 .tree ul li:last-child {
@@ -297,7 +297,7 @@ body {
   left: -1px;
   width: calc(var(--spacing) + 1px);
   height: calc(var(--spacing) + 3px);
-  border: solid rgb(195, 207, 217);
+  border: solid var(--border-solid);
   border-width: 0 0 1px 1px;
 }
 
@@ -307,7 +307,7 @@ body {
   position: relative;
   cursor: pointer;
   z-index: 10 !important;
-  background-color: rgb(195, 207, 217);
+  background-color: var(--border-solid);
   margin: 3px 0px 0px 0px;
   border-radius: 2px;
   padding: 0.2em 0.7em;
@@ -335,7 +335,7 @@ body {
   position: relative;
   cursor: pointer;
   z-index: 10 !important;
-  /* background-color: rgb(195, 207, 217); */
+  /* background-color: var(--border-solid); */
   /* margin: 3px 0px 0px 0px; */
   border-radius: 2px;
   /* padding: 0.2em 0.3em; */
@@ -578,12 +578,12 @@ input[type=number] {
 
 .glass-box {
     padding: 4px;
-    /* background: rgba(195, 207, 217, 0.384); */
+    /* background: var(--border-alpha-22); */
     background-color: transparent;
     backdrop-filter: blur(1px);
     -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(195, 207, 217, 0.117);
-    box-shadow: 0 0 2px 2px rgb(195, 207, 217);
+  border-right: 1px solid var(--border-alpha-12);
+  box-shadow: 0 0 2px 2px var(--border-color);
     border-radius: 5px;
 }
 

@@ -132,7 +132,7 @@ function toggleFolderSelect(folderId: number) {
 }
 
 .tree ul li {
-    border-left: 1px solid rgb(195, 207, 217);
+    border-left: 1px solid var(--border-solid);
 }
 
 .tree ul li:last-child {
@@ -147,7 +147,7 @@ function toggleFolderSelect(folderId: number) {
     left: -1px;
     width: calc(var(--spacing) + 1px);
     height: calc(var(--spacing) + 3px);
-    border: solid rgb(195, 207, 217);
+    border: solid var(--border-solid);
     border-width: 0 0 1px 1px;
 }
 
@@ -157,7 +157,7 @@ function toggleFolderSelect(folderId: number) {
     position: relative;
     cursor: pointer;
     z-index: 10 !important;
-    background-color: rgb(195, 207, 217);
+    background-color: var(--border-solid);
     margin: 3px 0px 0px 0px;
     border-radius: 2px;
     padding: 3px 5px;

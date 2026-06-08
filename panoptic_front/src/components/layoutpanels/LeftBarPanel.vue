@@ -7,12 +7,12 @@ const uiStore = useUiStore()
 
 // Activity-bar panel toggles: Folders, separated from Properties + Export.
 const folderPanels = [
-    { id: 'folders', icon: '🗂', title: 'Folders' },
+    { id: 'folders', icon: 'bi-folder2-open', title: 'Folders' },
 ]
 
 const bottomPanels = [
-    { id: 'properties', icon: '▤', title: 'Properties' },
-    { id: 'export', icon: '⤓', title: 'Export' },
+    { id: 'properties', icon: 'bi-list-ul', title: 'Properties' },
+    { id: 'export', icon: 'bi-download', title: 'Export' },
 ]
 
 function togglePanel(id: string) {
@@ -39,7 +39,7 @@ function isPanelActive(id: string) {
                 :class="{ active: isPanelActive(t.id) }"
                 :title="t.title"
                 @click="togglePanel(t.id)"
-            >{{ t.icon }}</button>
+            ><i :class="'bi ' + t.icon"></i></button>
             <div class="activity-sep"></div>
             <button
                 v-for="t in bottomPanels"
@@ -48,7 +48,7 @@ function isPanelActive(id: string) {
                 :class="{ active: isPanelActive(t.id) }"
                 :title="t.title"
                 @click="togglePanel(t.id)"
-            >{{ t.icon }}</button>
+            ><i :class="'bi ' + t.icon"></i></button>
         </div>
     </div>
 </template>
@@ -85,7 +85,7 @@ function isPanelActive(id: string) {
     border: none;
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: var(--font-size-base);
+    font-size: 16px;
     transition: background-color var(--transition-fast);
 }
 

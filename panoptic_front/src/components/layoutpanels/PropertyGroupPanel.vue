@@ -79,11 +79,11 @@ function toggleExpand(groupId: number) {
     padding: 0 var(--spacing-sm);
     cursor: pointer;
     white-space: nowrap;
-    background-color: rgba(195, 207, 217, 0.158);
+    /* background-color: var(--border-solid); */
 }
 
 .group-header:hover {
-    background-color: rgba(195, 207, 217, 0.397);
+    background-color: var(--border-alpha-40);
 }
 
 .expand-icon {
@@ -97,9 +97,9 @@ function toggleExpand(groupId: number) {
 }
 
 .group-name {
-    color: var(--text-secondary);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
+    /* color: var(--text-secondary); */
+    font-size: var(--font-size-sm);
+    /* font-weight: var(--font-weight-semibold); */
     text-transform: capitalize;
     overflow: hidden;
     text-overflow: ellipsis;
