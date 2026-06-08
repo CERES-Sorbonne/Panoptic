@@ -60,24 +60,14 @@ async function importIiif() {
 
                     <template #default="{ page }">
                         <!-- Home: choose the source type -->
-                        <div v-if="page == ''" class="h-100 w-100">
-                            <div class="d-flex flex-wrap h-100 justify-content-center">
-
-                                <div class="bb align-self-center m-4" style="width: 120px;"
-                                    @click="selectedPage = PAGE.Local">
-                                    <div class="border rounded p-2 text-center">
-                                        <div><i class="bi bi-folder" style="font-size: 50px;" /></div>
-                                        <div>Local folder</div>
-                                    </div>
-                                </div>
-
-                                <div class="bb align-self-center m-4" style="width: 120px;"
-                                    @click="selectedPage = PAGE.Iiif">
-                                    <div class="border rounded p-2 text-center">
-                                        <div><i class="bi bi-globe2" style="font-size: 50px;" /></div>
-                                        <div>IIIF</div>
-                                    </div>
-                                </div>
+                        <div v-if="page == ''" class="source-home">
+                            <div class="source-card" @click="selectedPage = PAGE.Local">
+                                <i class="bi bi-folder source-icon" />
+                                <div class="source-label">Local folder</div>
+                            </div>
+                            <div class="source-card" @click="selectedPage = PAGE.Iiif">
+                                <i class="bi bi-globe2 source-icon" />
+                                <div class="source-label">IIIF</div>
                             </div>
                         </div>
 
@@ -111,4 +101,43 @@ async function importIiif() {
 </template>
 
 <style scoped>
+.source-home {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    height: 100%;
+}
+
+.source-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    width: 140px;
+    height: 140px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.source-card:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.source-icon {
+    font-size: 46px;
+}
+
+.source-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
 </style>

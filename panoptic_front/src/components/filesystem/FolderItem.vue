@@ -39,32 +39,38 @@ const className = computed(() => {
 
 <style scoped>
 .folder-name {
-    padding: 2px 5px;
+    padding: 2px 6px;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
     text-wrap: nowrap !important;
     white-space: nowrap !important;
 }
 
 .folder-name:hover {
-    background-color: rgb(3, 100, 225);
-    color: white;
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 
 
 .is-select {
-    background-color: rgb(3, 100, 225);
-    color: white;
+    background-color: var(--primary);
+    color: var(--text-inverse);
+}
+
+.is-select:hover {
+    background-color: var(--primary);
+    color: var(--text-inverse);
 }
 
 .parent-select {
-    background-color: rgb(201, 202, 203);
-    color: black;
+    background-color: rgba(38, 117, 191, 0.18);
+    color: var(--text-primary);
 }
 
 .parent-select-light {
-    background-color: rgb(221, 222, 223);
-    color: black;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 .panoptic-icon {

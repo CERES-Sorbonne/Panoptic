@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUpdated, computed, reactive } from 'vue';
+import { ref, onMounted, computed, reactive, nextTick } from 'vue';
 
 import { apiGetFilesystemCount, apiGetFilesystemInfo, apiGetFilesystemLs, SERVER_PREFIX } from '@/data/apiPanopticRoutes';
 import { DirInfo } from '@/data/models';
@@ -71,6 +71,13 @@ async function updateInfo() {
     partitionList.push(...partitions)
 }
 
+// Keep the newly opened (right-most) column in view.
+function scrollToEnd() {
+    nextTick(() => {
+        if (scrollerElem.value) scrollerElem.value.scrollLeft = scrollerElem.value.scrollWidth
+    })
+}
+
 async function setOpenFolder(folder: DirInfo) {
     let res = await apiGetFilesystemLs(folder.path)
     res.directories.sort((a, b) => a.name.localeCompare(b.name))
@@ -82,6 +89,7 @@ async function setOpenFolder(folder: DirInfo) {
     imageList.push(...res.images)
     selectedFullCount.value = null
     isCounting.value = false
+    scrollToEnd()
 }
 
 async function openSubFolder(folder: DirInfo, folderIndex: number) {
@@ -96,6 +104,7 @@ async function openSubFolder(folder: DirInfo, folderIndex: number) {
     imageList.push(...res.images)
     selectedFullCount.value = null
     isCounting.value = false
+    scrollToEnd()
 }
 
 async function open() {
@@ -119,176 +128,205 @@ async function count() {
 
 onMounted(async () => {
     await updateInfo()
-    console.log(fastList)
     setOpenFolder(fastList.filter(d => d.name == 'Home')[0])
-});
-
-onUpdated(() => {
-    scrollerElem.value.scrollLeft = scrollerElem.value.scrollWidth;
 });
 
 </script>
 
 <template>
-    <div class="d-flex m-0 p-0 bg-info" :style="{ width: '100%', height: '500px' }">
+    <div class="file-explorer">
+        <!-- Left: quick access + partitions -->
         <div class="dir-list">
-            <div>
-                <div class="fs-title mb-1">{{ $t('modals.fs.fast') }}</div>
-                <div v-for="dir in fastList">
-                    <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
-                </div>
+            <div class="fs-title">{{ $t('modals.fs.fast') }}</div>
+            <div v-for="dir in fastList" :key="dir.path">
+                <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
             </div>
 
-            <div>
-                <div class="fs-title mb-1">{{ $t('modals.fs.partitions') }}</div>
-                <div v-for="dir in partitionList">
-                    <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
-                </div>
+            <div class="fs-title fs-title-spaced">{{ $t('modals.fs.partitions') }}</div>
+            <div v-for="dir in partitionList" :key="dir.path">
+                <FolderItem :dir="dir" :is-parent="baseRoot == dir.path" @click="setOpenFolder(dir)" />
             </div>
         </div>
-        <div class="flex-grow-1 d-flex flex-column">
-            <div class="d-flex bg-warning flex-grow-1 overflow-hidden">
-                <div class="folder-cols flex-grow-1 bg-white d-flex" ref="scrollerElem">
-                    <div class="folder-list flex-shrink-0" v-for="folders, index in openFolders">
-                        <div v-for="folder in folders" style="margin-bottom: 2px;">
+
+        <!-- Right: folder columns + image preview + pinned action bar -->
+        <div class="explorer-main">
+            <div class="explorer-body">
+                <div class="folder-cols" ref="scrollerElem">
+                    <div class="folder-list" v-for="folders, index in openFolders" :key="index">
+                        <div v-for="folder in folders" :key="folder.path" class="folder-row">
                             <FolderItem :dir="folder" :is-parent="parents.includes(folder.path)" :light="true"
                                 :selected="folder == selectedFolder" @click="openSubFolder(folder, index)" />
                         </div>
-                        <!-- <div v-if="folders.length == 0" class="text-secondary m-2">Empty</div> -->
                     </div>
                 </div>
-                <div class="image-list flex-shrink-0 bg-white">
-                    <div v-for="img in imageList">
-                        <img :src="SERVER_PREFIX + '/images/' + img" class="mini" />
-                    </div>
+                <div v-if="imageList.length" class="image-list">
+                    <img v-for="img in imageList" :key="img" :src="SERVER_PREFIX + '/images/' + img" class="mini" />
                 </div>
             </div>
-            <div class="bg-success">
-                <div class="path d-flex">
-                    <div class="path-string flex-grow-1">{{ selectedFolder.path }}</div>
-                    <div class="count text-center" style="min-width: 70px;" @click="count">
-                        <span v-if="selectedFullCount != null" class="me-1">({{ selectedFullCount }} Images)</span>
-                        <span v-else-if="!isCounting">Count</span>
-                        <span v-if="isCounting">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </span>
-                    </div>
-                    <div id="confirm-modal" class="open flex-shrink-0" :class="{ valid: isValidPath }" @click="open">
-                        {{ $t('modals.fs.open') }}
-                    </div>
+
+            <div class="action-bar">
+                <div class="path-string">{{ selectedFolder.path }}</div>
+                <div class="count" @click="count">
+                    <span v-if="selectedFullCount != null">{{ selectedFullCount }} images</span>
+                    <span v-else-if="!isCounting">Count</span>
+                    <span v-else class="spinner-border spinner-border-sm" role="status" />
+                </div>
+                <div id="confirm-modal" class="open" :class="{ valid: isValidPath }" @click="open">
+                    {{ $t('modals.fs.open') }}
                 </div>
             </div>
         </div>
-
-
-        <div>
-
-        </div>
-
     </div>
 </template>
 
 <style scoped>
-.folder-cols {
-    overflow: auto;
-    width: 200px;
+/* Root: fills the modal body; flex row of [sidebar | main]. */
+.file-explorer {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background-color: var(--island-surface);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
 }
 
-.explorer-view {
-    overflow: auto;
-    height: 75vh;
-    width: calc(80vw - 400px);
-    min-width: calc(80vw - 400px);
-    border-right: 1px solid var(--border-color);
-}
-
-
-.path-label {
-    padding: 4px 6px;
-    background-color: rgb(230, 230, 230);
-    border-top: 1px solid var(--border-color);
-}
-
-.path-string {
-    padding: 4px 6px;
-    background-color: white;
-    border-top: 1px solid var(--border-color);
-}
-
-.open {
-    padding: 4px 6px;
-    /* background-color: rgb(225, 226, 227); */
-    background-color: rgb(142, 148, 156);
-
-    color: white;
-    cursor: pointer;
-    border-bottom-right-radius: 5px;
-}
-
-.count {
-    padding: 4px 6px;
-    /* background-color: rgb(225, 226, 227); */
-    background-color: rgb(142, 148, 156);
-
-    color: white;
-    cursor: pointer;
-    /* border-bottom-right-radius: 5px; */
-}
-
-.valid {
-    background-color: rgb(73, 134, 213);
-}
-
-.open .valid:hover {
-    background-color: rgb(3, 100, 225);
-}
-
-.folder-list {
-    overflow: auto;
-    padding: 5px;
-    border-right: 1px solid var(--border-color);
-}
-
+/* ── Left sidebar: quick access + partitions ─────────────────────────── */
 .dir-list {
-    padding: 10px;
+    flex-shrink: 0;
     width: 200px;
-    overflow: hidden;
-    text-wrap: nowrap;
-    white-space: nowrap;
-    background-color: rgb(225, 226, 227);
-    box-shadow: 0px 0px 3px 1px var(--border-color);
-    z-index: 2;
-}
-
-.image-list {
-    background-color: #c3cfd9;
-    width: 120px;
-    text-align: center;
+    padding: var(--spacing-sm);
     overflow-y: auto;
-    overflow-x: hidden;
-    /* border-left: 1px solid var(--border-color); */
-    box-shadow: 0px 0px 3px 1px var(--border-color);
+    white-space: nowrap;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
 }
 
 .fs-title {
-    color: grey;
-    font-size: 12px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
 }
 
-.header {
-    background-color: #c3cfd9 !important;
-    color: rgb(50, 50, 50);
+.fs-title-spaced {
+    margin-top: var(--spacing-md);
 }
 
-.images {
-    max-height: 75vh;
+/* ── Right main area: body (scrolls) + pinned action bar ─────────────── */
+.explorer-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.explorer-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+}
+
+.folder-cols {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background-color: var(--island-surface);
+}
+
+.folder-list {
+    flex-shrink: 0;
+    min-width: 160px;
     overflow-y: auto;
+    padding: var(--spacing-xs);
+    border-right: 1px solid var(--border-light);
+}
+
+.folder-row {
+    margin-bottom: 2px;
+}
+
+.image-list {
+    flex-shrink: 0;
+    width: 120px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-align: center;
+    background-color: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
 }
 
 .mini {
     max-width: 100px;
-    margin: 4px 0px;
+    margin: 4px 0;
+    border-radius: var(--radius-sm);
+}
+
+/* ── Action bar: always visible, even on short windows ───────────────── */
+.action-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: stretch;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+.path-string {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+}
+
+.count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 80px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-left: 1px solid var(--border-color);
+}
+
+.count:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.open {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 6px 18px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    background-color: var(--bg-tertiary);
+    border-left: 1px solid var(--border-color);
+    font-weight: var(--font-weight-medium);
+    transition: background-color var(--transition-fast);
+}
+
+.open.valid {
+    background-color: var(--primary);
+    color: var(--text-inverse);
+}
+
+.open.valid:hover {
+    background-color: var(--primary-dark);
 }
 </style>

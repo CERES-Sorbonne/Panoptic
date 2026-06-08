@@ -28,7 +28,6 @@ function promptFolder() {
                 <span class="tw-title">Folders</span>
                 <div class="tw-actions">
                     <button class="tw-action" title="Add folder" @click="promptFolder()">＋</button>
-                    <button class="tw-action" title="Options">⋯</button>
                     <button class="tw-action" title="Hide" @click="uiStore.panelStates.leftPanelOpen = false">－</button>
                 </div>
             </div>

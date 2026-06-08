@@ -29,7 +29,7 @@ function changePage(page: string) {
             <span v-else>{{ option }}</span>
             </div>
         </div>
-        <div class="flex-grow-1 h-100">
+        <div class="flex-grow-1 h-100" style="min-width: 0;">
             <div class="d-flex flex-column h-100">
                 <div v-if="props.page != ''" class="d-flex upper">
                     <div class="bb" @click="changePage('')"><i class="bi bi-arrow-left" /></div>
