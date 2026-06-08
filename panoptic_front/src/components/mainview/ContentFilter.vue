@@ -42,7 +42,7 @@ function updateSha1Mode(value: boolean) {
 }
 
 function getLocalQuery() {
-    localQuery.value = props.tab.state.filterState.query
+    localQuery.value = props.tab.collection.filterManager.state.query
 }
 
 function setQuery(query) {

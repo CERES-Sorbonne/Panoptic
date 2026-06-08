@@ -1,29 +1,39 @@
 import { reactive } from "vue";
-import { MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, TabState, ViewState, ViewType } from "./models";
+import { CollectionConfig, MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, TabState, ViewState, ViewType } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
 import { createCollectionState } from "@/core/CollectionManager";
 import { TAB_MODEL_VERSION } from "./tabStore";
 
-export function createViewState(type: ViewType): ViewState {
+export function createCollectionConfig(): CollectionConfig {
+    return reactive({
+        id: crypto.randomUUID(),
+        collectionState: createCollectionState(),
+        filterState: createFilterState(),
+        sortState: createSortState(),
+        groupState: createGroupState(),
+    })
+}
+
+export function createViewState(type: ViewType, collectionId: string): ViewState {
     return reactive({
         type,
         imageSize: 100,
         mapOptions: createMapOptions(),
+        collectionId,
     })
 }
 
 export function buildTabState(): TabState {
+    // One shared collection by default; both views reference it (computed once).
+    const collection = createCollectionConfig()
     return reactive({
         version: TAB_MODEL_VERSION,
         id: '',
         name: 'New Tab',
-        filterState: createFilterState(),
-        sortState: createSortState(),
-        groupState: createGroupState(),
-        collectionState: createCollectionState(),
-        views: [createViewState('tree'), createViewState('grid')],
+        collections: [collection],
+        views: [createViewState('tree', collection.id), createViewState('grid', collection.id)],
         splitView: false,
         splitRatio: 0.5,
         visibleProperties: {},

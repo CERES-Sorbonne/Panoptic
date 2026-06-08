@@ -12,7 +12,7 @@ import { GroupManager, GroupState } from "./GroupManager";
 import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { useColumnStore } from "@/data/columnStore";
-import { Reactive, reactive, watch } from "vue";
+import { Reactive, reactive, watch, WatchStopHandle } from "vue";
 
 export interface RunCollectionState {
     isDirty: boolean
@@ -50,6 +50,12 @@ export class CollectionManager {
     private pendingKind: ReloadKind | null = null
     private reloadTimer: ReturnType<typeof setTimeout> | null = null
 
+    // Lifecycle: stop handles for the config watches + the bound data listener,
+    // so a collection can be torn down when its last view stops referencing it
+    // (bind/unbind toggle in TabManager).
+    private stops: WatchStopHandle[] = []
+    private boundUpdateInstances = this.updateInstances.bind(this)
+
     constructor(state?: CollectionState, filterState?: FilterState, sortState?: SortState, groupState?: GroupState) {
         const data = useDataStore()
         const col = useColumnStore()
@@ -69,7 +75,7 @@ export class CollectionManager {
         // the old onResultChange cascade (onFilter/onSort/onGroup) is removed
         // (note §6, P-A, step 3). filter()/sort() were only ever called with
         // emit=false, so those listeners never fired.
-        data.onChange.addListener(this.updateInstances.bind(this))
+        data.onChange.addListener(this.boundUpdateInstances)
 
         // Pillar B: the CollectionManager is the single orchestrator. It watches
         // each persisted state slice and maps it to the right recompute
@@ -79,24 +85,24 @@ export class CollectionManager {
         // managers' setters (which keep id/index bookkeeping); only the recompute
         // trigger moves here. `sha1Mode` is intentionally not watched — it does an
         // incremental restructure inside `setSha1Mode`.
-        watch(() => this.filterManager.state,        () => this.requestReload('filter'),     { deep: true })
-        watch(() => this.sortManager.state,          () => this.requestReload('sort'),       { deep: true })
-        watch(() => this.groupManager.state.groupBy, () => this.requestReload('group'),      { deep: true })
-        watch(() => this.groupManager.state.options, () => this.requestReload('sortGroups'), { deep: true })
+        this.stops.push(watch(() => this.filterManager.state,        () => this.requestReload('filter'),     { deep: true }))
+        this.stops.push(watch(() => this.sortManager.state,          () => this.requestReload('sort'),       { deep: true }))
+        this.stops.push(watch(() => this.groupManager.state.groupBy, () => this.requestReload('group'),      { deep: true }))
+        this.stops.push(watch(() => this.groupManager.state.options, () => this.requestReload('sortGroups'), { deep: true }))
         // stepSize/stepUnit changes require a full group rebuild (buckets change), not just a re-sort
-        watch(
+        this.stops.push(watch(
             () => this.groupManager.state.groupBy.map(id => {
                 const o = this.groupManager.state.options[id]
                 return `${o?.stepSize}-${o?.stepUnit}`
             }).join(','),
             () => this.requestReload('group')
-        )
+        ))
 
         // Trigger full update whenever the column store finishes (re)loading.
         // immediate:true handles the case where a tab is created after init completes.
-        watch(() => col.isReady, (ready) => {
+        this.stops.push(watch(() => col.isReady, (ready) => {
             if (ready) this.update()
-        }, { immediate: true })
+        }, { immediate: true }))
 
         this.onStateChange = new EventEmitter()
     }
@@ -228,5 +234,15 @@ export class CollectionManager {
 
     updateInstances(instanceIds: Set<number>) {
         this.setDirty(instanceIds)
+    }
+
+    // Tear down all reactive subscriptions. Called when the last view that
+    // referenced this collection stops doing so (TabManager.pruneCollections).
+    dispose() {
+        this.stops.forEach(stop => stop())
+        this.stops = []
+        useDataStore().onChange.removeListener(this.boundUpdateInstances)
+        if (this.reloadTimer) { clearTimeout(this.reloadTimer); this.reloadTimer = null }
+        this.runState.active = false
     }
 }

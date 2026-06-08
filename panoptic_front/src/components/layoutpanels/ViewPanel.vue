@@ -10,6 +10,7 @@ import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
+import FilterPanel from '@/components/layoutpanels/FilterPanel.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { useCurrentTab } from '@/data/useCurrentTab'
 
@@ -19,6 +20,8 @@ const props = defineProps<{
 
 const tab = useCurrentTab()
 const view = computed(() => tab.value?.state.views[props.viewIndex] ?? null)
+// The collection this pane renders (M4): may differ from the other pane's.
+const collection = computed(() => tab.value?.collectionForView(props.viewIndex) ?? null)
 
 const containerRef = ref<HTMLElement>()
 const dimensions = ref({ width: 0, height: 0 })
@@ -67,11 +70,14 @@ onUnmounted(() => {
             </div>
         </template>
 
+        <!-- Per-view filter row (M4): controls this pane's collection. -->
+        <FilterPanel v-if="view" :view-index="props.viewIndex" />
+
         <div ref="containerRef" class="view-container">
             <TreeScroller
-                v-if="tab && view && view.type == 'tree' && dimensions.width > 0"
+                v-if="tab && view && collection && view.type == 'tree' && dimensions.width > 0"
                 input-key="view-panel-tree"
-                :group-manager="tab.collection.groupManager"
+                :group-manager="collection.groupManager"
                 :image-size="view.imageSize"
                 :height="dimensions.height"
                 :width="dimensions.width - 20"
@@ -79,11 +85,11 @@ onUnmounted(() => {
                 :hide-if-modal="true"
             />
 
-            <div v-if="tab && view && view.type == 'grid' && dimensions.width > 0" class="grid-container">
+            <div v-if="tab && view && collection && view.type == 'grid' && dimensions.width > 0" class="grid-container">
                 <GridScroller
                     :tab="tab"
                     :image-size="view.imageSize"
-                    :manager="tab.collection.groupManager"
+                    :manager="collection.groupManager"
                     :height="dimensions.height - 15"
                     :width="dimensions.width - 32"
                     :selected-properties="visibleProperties"
@@ -93,14 +99,15 @@ onUnmounted(() => {
             </div>
 
             <GraphView
-                v-if="tab && view && view.type == 'graph' && dimensions.height > 0"
-                :collection="tab.collection"
+                v-if="tab && view && collection && view.type == 'graph' && dimensions.height > 0"
+                :collection="collection"
                 :height="dimensions.height - 15"
             />
 
             <MapView
-                v-if="tab && view && view.type == 'map'"
+                v-if="tab && view && collection && view.type == 'map'"
                 :tab="tab"
+                :collection="collection"
                 :map-options="view.mapOptions"
             />
         </div>

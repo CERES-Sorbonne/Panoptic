@@ -86,7 +86,7 @@ onMounted(async () => {
             <!-- Center: a tab/filter island, then 1 or 2 separate view islands -->
             <template #main>
                 <div class="center-stack">
-                    <!-- Tab bar + filter zone island (shared, never split) -->
+                    <!-- Tab bar island (shared, never split) -->
                     <TabPanel />
 
                     <!-- 1 or 2 view islands, each its own card with a gap between.

@@ -8,12 +8,17 @@ import { SelectOption, TextQuery } from '@/data/models';
 import LoadWheel from '../loading/LoadWheel.vue';
 import { useSearchStore } from '@/data/stores/textSearchStore';
 import { TabManager } from '@/core/TabManager';
+import { CollectionManager } from '@/core/CollectionManager';
 
 const actions = useActionStore()
 const searchStore = useSearchStore()
 
-const props = defineProps<{ tab: TabManager, size?: number }>()
+const props = defineProps<{ tab: TabManager, size?: number, collection?: CollectionManager }>()
 const emits = defineEmits(['update:query'])
+
+// The collection this search controls — the per-view one when provided
+// (FilterPanel), else the tab's primary collection.
+const collection = computed(() => props.collection ?? props.tab.collection)
 
 const inputElem = ref(null)
 const isFocus = ref(false)
@@ -35,9 +40,9 @@ function updateModes() {
 }
 
 function loadFromProps() {
-    if (!props.tab.collection.filterManager.state.query) return
-    mode.value = props.tab.collection.filterManager.state.query.type || 'text'
-    searchText.value = props.tab.collection.filterManager.state.query.text || ''
+    if (!collection.value.filterManager.state.query) return
+    mode.value = collection.value.filterManager.state.query.type || 'text'
+    searchText.value = collection.value.filterManager.state.query.text || ''
 }
 
 function resetSearch() {
@@ -70,10 +75,10 @@ function emitQuery() {
 }
 
 function setQuery(query) {
-    if(areQueryEquals(query, props.tab.collection.filterManager.state.query)) return
+    if(areQueryEquals(query, collection.value.filterManager.state.query)) return
     // Mutating the query triggers the CollectionManager's filter watch, which
     // debounces + recomputes (Pillar B). Persistence is handled by autosave.
-    props.tab.collection.filterManager.setQuery(query)
+    collection.value.filterManager.setQuery(query)
 }
 
 function areQueryEquals(query1: TextQuery, query2: TextQuery) {
@@ -85,7 +90,7 @@ function areQueryEquals(query1: TextQuery, query2: TextQuery) {
 }
 
 updateModes()
-watch(() => props.tab.collection.filterManager.state.query, loadFromProps, { deep: true })
+watch(() => collection.value.filterManager.state.query, loadFromProps, { deep: true })
 watch(() => actions.textSearchFunctions, updateModes)
 watch(mode, emitQuery)
 onMounted(() => {

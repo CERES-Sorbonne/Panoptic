@@ -5,6 +5,7 @@ import { useDataStore } from '@/data/dataStore'
 import { useMediaStore } from '@/data/mediaStore'
 import { useColumnStore } from '@/data/columnStore'
 import { TabManager } from '@/core/TabManager'
+import { CollectionManager } from '@/core/CollectionManager'
 import { generateColors, isTag, sleep } from '@/utils/utils'
 import { Group } from '@/core/GroupManager'
 import { useMapRenderer } from '@/mixins/mapview/useMapRenderer'
@@ -24,8 +25,10 @@ const media = useMediaStore()
 const columnStore = useColumnStore()
 const props = defineProps<{
     tab: TabManager
-    // Per-view map display options (Pillar F). The collection pipeline is shared
-    // via `tab`; these options belong to the specific view rendering the map.
+    // The collection pipeline this map renders (M4 — resolved per-view by the
+    // parent ViewPanel). Map display options below belong to the specific view.
+    collection: CollectionManager
+    // Per-view map display options (Pillar F).
     mapOptions: MapOptions
 }>()
 
@@ -142,7 +145,7 @@ function generateGroups() {
     const groupOption = props.mapOptions.groupOption
 
     if (groupOption === 'property') {
-        groupList = props.tab.collection.groupManager.result.root.children
+        groupList = props.collection.groupManager.result.root.children
     } else {
         groupList = clusters
     }
@@ -218,7 +221,7 @@ async function showMap(mapId: number) {
     const values = media.maps[mapId].data
 
     // Bug 2: fall back to all sha1s when filter result isn't ready yet
-    const filterImages = props.tab.collection.filterManager.result?.images
+    const filterImages = props.collection.filterManager.result?.images
     const validSha1s = new Set<string>()
     if (filterImages) {
         filterImages.forEach(i => validSha1s.add(i.sha1))
@@ -299,8 +302,8 @@ const handleLasso = (selectedPoints: PointData[]) => {
         const instanceIds = columnStore.getInstancesBySha1(point.sha1)
         if (instanceIds.length) ids.push(...instanceIds)
     }
-    if (mouseMode.value == 'lasso-plus') props.tab.collection.groupManager.selectImages(ids)
-    if (mouseMode.value == 'lasso-minus') props.tab.collection.groupManager.unselectImages(ids)
+    if (mouseMode.value == 'lasso-plus') props.collection.groupManager.selectImages(ids)
+    if (mouseMode.value == 'lasso-minus') props.collection.groupManager.unselectImages(ids)
 }
 
 async function deleteMap(mapId: number) {
@@ -354,7 +357,7 @@ watch(() => media.atlas, async () => {
 })
 
 // React to result changes via the version tick (note §3, step 1).
-watch(() => props.tab.collection.groupManager.version.value, onGroupManager)
+watch(() => props.collection.groupManager.version.value, onGroupManager)
 
 onMounted(async () => {
     await media.loadMaps()
@@ -375,7 +378,7 @@ onMounted(async () => {
                 :color-option="props.mapOptions.groupOption"
                 @update:color-option="opt => { props.mapOptions.groupOption = opt }"
                 :has-maps="media.hasMaps"
-                :images="tab.collection.groupManager.result.root?.images || []"
+                :images="collection.groupManager.result.root?.images || []"
                 :map-images="mapInstances"
                 @clusters="cc => { clusters = cc; generateGroups()}"
                 @delete:map="deleteMap"
@@ -395,7 +398,7 @@ onMounted(async () => {
                 v-model:color-option="props.mapOptions.groupOption" 
                 :hover-image-id="lastValiderHoverId"
                 :groups="groups" 
-                :images="tab.collection.groupManager.result.root?.images || []"
+                :images="collection.groupManager.result.root?.images || []"
                 @clusters="cc => { clusters = cc; generateGroups() }" 
                 @hover-group="onGroupHover"
                 @click-group="g => renderer?.lookAtRect(g.box)"

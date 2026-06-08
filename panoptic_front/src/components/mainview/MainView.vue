@@ -127,7 +127,7 @@ onMounted(updateScrollerHeight)
             <GraphView :collection="props.tab.collection" :height="scrollerHeight - 15"  style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.views[0].type == 'map' && tabs.loaded">
-           <MapView :style="{height: scrollerHeight - 0 + 'px'}" :tab="props.tab" :map-options="props.tab.state.views[0].mapOptions" />
+           <MapView :style="{height: scrollerHeight - 0 + 'px'}" :tab="props.tab" :collection="props.tab.collection" :map-options="props.tab.state.views[0].mapOptions" />
         </template>
 
     </div>

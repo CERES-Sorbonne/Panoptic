@@ -229,6 +229,19 @@ export interface ViewState {
     type: ViewType
     imageSize: number
     mapOptions: MapOptions
+    // Which collection (filter/sort/group pipeline) this view renders. Two views
+    // may share one collectionId (computed once) or reference different ones.
+    collectionId: string
+}
+
+// The filter/sort/group pipeline config for one collection. A tab holds a list
+// of these; views reference them by id (M4 — multiple collections per tab).
+export interface CollectionConfig {
+    id: string
+    collectionState: CollectionState
+    filterState: FilterState
+    sortState: SortState
+    groupState: GroupState
 }
 
 export interface TabState {
@@ -237,10 +250,9 @@ export interface TabState {
     name: string
     selected?: boolean
 
-    collectionState: CollectionState
-    filterState: FilterState
-    sortState: SortState,
-    groupState: GroupState,
+    // Collection pipeline config promoted from tab-level to a per-tab list (M4).
+    // Views reference an entry by `collectionId`.
+    collections: CollectionConfig[]
 
     // Per-view display state. Fixed pair; view2 is rendered only when splitView.
     views: [ViewState, ViewState]
