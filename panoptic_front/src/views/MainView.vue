@@ -117,6 +117,7 @@ onMounted(async () => {
         </SidebarLayout>
         </template>
     </AppShellLayout>
+    <div id="popup" style="position: fixed; top:0;left: 0; z-index: 9990;"></div>
 </template>
 
 <style scoped>
