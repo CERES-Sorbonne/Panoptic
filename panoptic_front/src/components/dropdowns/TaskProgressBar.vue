@@ -76,7 +76,7 @@ function taskPct(t: TaskState) {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 3px 7px;
+    padding: 4px 8px;
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 5px;
     font-size: 12px;

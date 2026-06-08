@@ -14,7 +14,6 @@ import { TabManager } from '@/core/TabManager';
 import HistoryDropdown from '../dropdowns/HistoryDropdown.vue';
 import ToggleReload from '../toggles/ToggleReload.vue';
 import ColumnStatusDropdown from '../Dropdowns/ColumnStatusDropdown.vue';
-import ColumnLoadProgress from '../Dropdowns/ColumnLoadProgress.vue';
 import { useInputStore } from '@/data/inputStore';
 import TextSearchInput from '../inputs/TextSearchInput.vue';
 import { TextQuery } from '@/data/models';
@@ -130,7 +129,6 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <GroupForm :is-loading="props.computeStatus.groups" :manager="props.tab.collection.groupManager" />
         <SortForm :manager="props.tab.collection.sortManager" />
         <div class="flex-grow-1" />
-        <ColumnLoadProgress class="me-1" />
     </div>
 </template>
 

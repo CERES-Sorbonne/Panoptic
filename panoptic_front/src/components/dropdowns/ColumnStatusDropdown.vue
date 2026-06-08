@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useDataStore } from '@/data/dataStore'
 import { useColumnStore } from '@/data/columnStore'
 import { useInstanceStore } from '@/data/instanceStore'
@@ -21,8 +21,60 @@ const dataStore     = useDataStore()
 const columnStore   = useColumnStore()
 const instanceStore = useInstanceStore()
 const open = ref(false)
+const triggerEl = ref<HTMLElement>()
+// The panel is position:fixed (to escape the toolbar's overflow:hidden), so its
+// coordinates are derived from the trigger button each time it opens.
+const panelStyle = ref<Record<string, string>>({})
+
+function toggle() {
+    open.value = !open.value
+    if (open.value) nextTick(positionPanel)
+}
+
+function positionPanel() {
+    const r = triggerEl.value?.getBoundingClientRect()
+    if (!r) return
+    panelStyle.value = { top: `${r.bottom + 4}px`, left: `${r.left}px` }
+}
 
 const instanceCount = computed(() => columnStore.instanceCount)
+
+// ── Live load progress (merged from ColumnLoadProgress) ──────────────────
+const systemIds = computed(() => {
+    const s = columnStore.systemProps
+    return new Set([s.INSTANCE_ID, s.SHA1, s.FILE_ID])
+})
+
+// Base (id/sha1/file) loading from init()
+const basePct = computed(() => {
+    const p = columnStore.baseProgress
+    if (!p.loading || !p.max) return null
+    return Math.min(100, Math.round((p.counter / p.max) * 100))
+})
+
+// Other columns loading via requireFullColumn(), one at a time
+const otherLoadingColumns = computed(() =>
+    Object.entries(columnStore.fullColumnStatus)
+        .filter(([idStr, s]) => s === 'loading' && !systemIds.value.has(Number(idStr)))
+        .map(([idStr]) => {
+            const id = Number(idStr)
+            return { id, name: dataStore.properties[id]?.name ?? `#${id}` }
+        })
+)
+const otherCurrent = computed(() => otherLoadingColumns.value[0] ?? null)
+const otherRemaining = computed(() => otherLoadingColumns.value.length)
+const otherProgress = computed(() =>
+    otherCurrent.value ? columnStore.columnProgress[otherCurrent.value.id] : null
+)
+const otherPct = computed(() => {
+    const p = otherProgress.value
+    if (!p || !p.max) return null
+    return Math.min(100, Math.round((p.counter / p.max) * 100))
+})
+
+const isLoading = computed(() => columnStore.baseProgress.loading || !!otherCurrent.value)
+// Progress shown on the trigger bar: the base load takes priority, else the current column.
+const primaryPct = computed(() => columnStore.baseProgress.loading ? basePct.value : otherPct.value)
 
 // Columns currently required by the tab: visible properties + active filter/sort/group.
 const requestedIds = computed(() => {
@@ -72,7 +124,7 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 <template>
     <div class="col-status-root me-1" v-click-outside="() => open = false">
         <!-- Trigger button -->
-        <button class="col-status-btn" :class="{ active: open }" @click="open = !open" title="Column status">
+        <button ref="triggerEl" class="col-status-btn" :class="{ active: open, loading: isLoading }" @click="toggle" title="Column status">
             <i class="bi bi-database-fill-gear" />
             <span class="col-status-summary">
                 <span class="instance-count">{{ instanceCount.toLocaleString() }}</span>
@@ -83,10 +135,37 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
                 <span v-if="emptyCount" class="dot dot-empty ms-1" />
                 <span v-if="emptyCount">{{ emptyCount }}</span>
             </span>
+            <!-- Live load progress on the right -->
+            <span v-if="isLoading" class="trigger-progress">
+                <span class="separator">|</span>
+                <span class="trigger-progress-track">
+                    <span class="trigger-progress-fill" :style="{ width: (primaryPct ?? 0) + '%' }" />
+                </span>
+                <span v-if="primaryPct !== null" class="trigger-progress-pct">{{ primaryPct }}%</span>
+            </span>
         </button>
 
         <!-- Panel -->
-        <div v-if="open" class="col-status-panel shadow-sm">
+        <div v-if="open" class="col-status-panel shadow-sm" :style="panelStyle">
+            <!-- Loading now (merged from ColumnLoadProgress) -->
+            <div v-if="isLoading" class="loading-section">
+                <div v-if="columnStore.baseProgress.loading" class="load-row" title="Loading: id, sha1, file">
+                    <span class="load-name">id, sha1, file</span>
+                    <div class="load-track">
+                        <div class="load-fill" :style="{ width: (basePct ?? 0) + '%' }" />
+                    </div>
+                    <span v-if="basePct !== null" class="load-pct">{{ basePct }}%</span>
+                </div>
+                <div v-if="otherCurrent" class="load-row" :title="`Loading: ${otherCurrent.name}`">
+                    <span class="load-name">{{ otherCurrent.name }}</span>
+                    <span v-if="otherRemaining > 1" class="load-queue">+{{ otherRemaining - 1 }}</span>
+                    <div class="load-track">
+                        <div class="load-fill" :style="{ width: (otherPct ?? 0) + '%' }" />
+                    </div>
+                    <span v-if="otherPct !== null" class="load-pct">{{ otherPct }}%</span>
+                </div>
+            </div>
+
             <!-- Header stats -->
             <div class="col-status-header">
                 <div class="stat-row">
@@ -142,16 +221,17 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 
 /* ── Trigger ─────────────────────────────────────────────────────────── */
 .col-status-btn {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 3px 7px;
+    padding: 4px 8px;
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 5px;
     background: transparent;
     cursor: pointer;
     font-size: 12px;
-    color: var(--text-color, #444);
+    color: var(--text-primary, #1a1a1a);
     white-space: nowrap;
     transition: background 0.15s;
 }
@@ -160,17 +240,49 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
     background: rgba(137, 176, 205, 0.25);
 }
 
+/* Inline live-load indicator on the right of the trigger */
+.trigger-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+}
+.trigger-progress-track {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 5px;
+    background: var(--border-light, #e9ecef);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.trigger-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background: #f0a500;
+    transition: width 0.2s linear;
+}
+.trigger-progress-pct {
+    color: var(--text-secondary, #888);
+    min-width: 30px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .col-status-summary {
     display: flex;
     align-items: center;
     gap: 2px;
     font-size: 11px;
-    color: #666;
+    color: var(--text-secondary, #666);
 }
 .instance-count {
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    color: #444;
+    color: var(--text-primary, #444);
 }
 .separator {
     margin: 0 3px;
@@ -179,19 +291,78 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
 
 /* ── Panel ───────────────────────────────────────────────────────────── */
 .col-status-panel {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
+    position: fixed;
     z-index: 999;
     width: 250px;
     max-height: 400px;
     display: flex;
     flex-direction: column;
-    background: var(--bg-color, #fff);
+    background: var(--bg-primary, #fff);
+    color: var(--text-primary, #333);
     border: 1px solid var(--border-color, #dee2e6);
     border-radius: 6px;
     overflow: hidden;
     font-size: 12px;
+}
+
+/* The panel renders in a context whose inherited color may be light; anchor the
+   muted-label colour explicitly rather than relying on Bootstrap utilities. */
+.col-status-panel .text-secondary {
+    color: var(--text-secondary, #666) !important;
+}
+
+/* ── Loading now (merged from ColumnLoadProgress) ────────────────────── */
+.loading-section {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    background: var(--bg-secondary, #f5f5f5);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.load-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.load-name {
+    font-size: 11px;
+    color: var(--text-primary, #444);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+.load-queue {
+    font-size: 10px;
+    color: var(--text-tertiary, #aaa);
+    flex-shrink: 0;
+}
+.load-track {
+    position: relative;
+    width: 60px;
+    height: 5px;
+    background: var(--border-light, #e9ecef);
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.load-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background: #f0a500;
+    transition: width 0.2s linear;
+}
+.load-pct {
+    font-size: 10px;
+    color: var(--text-secondary, #888);
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────── */
@@ -261,7 +432,7 @@ const trackedInstances  = computed(() => instanceStore.registeredInstanceCount)
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--text-color, #333);
+    color: var(--text-primary, #333);
 }
 
 /* ── Badges ──────────────────────────────────────────────────────────── */

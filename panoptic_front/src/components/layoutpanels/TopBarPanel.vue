@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Top toolbar root node — inserted into AppShellLayout's #toolbar slot.
 //   Left:   project title + project actions (close / settings), like Menu.vue
-//   Center: data / column load status (real ColumnLoadProgress)
+//   Center: data / column load status (ColumnStatusDropdown, incl. live load progress)
 //   Right:  current user + notifications + language, like TabNav.vue
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -9,7 +9,6 @@ import { ModalId } from '@/data/models'
 import { useProjectStore } from '@/data/projectStore'
 import { usePanopticStore } from '@/data/panopticStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
-import ColumnLoadProgress from '@/components/dropdowns/ColumnLoadProgress.vue'
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue'
 import TaskProgressBar from '@/components/dropdowns/TaskProgressBar.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
@@ -63,14 +62,13 @@ function closeProject() {
         </div>
 
         <!-- Center: data / column load status + task progress -->
-        <div class="d-flex" style="gap: 6px;">
-            <ColumnStatusDropdown :tab="tab.getMainTab()" />
-            <ColumnLoadProgress />
+        <div class="center-tools">
+            <ColumnStatusDropdown v-if="tab.activeManager" :tab="tab.activeManager" />
             <TaskProgressBar />
         </div>
 
         <!-- Right: current user + notifications + language -->
-        <div class="bar-group">
+        <div class="bar-group" style="margin-left: auto;">
 
             <TabPanel />
             <span v-if="currentUser" class="user-name" :title="currentUser">
@@ -96,10 +94,11 @@ function closeProject() {
 
 <style scoped>
 .toolbar {
+    --bar-tool-height: 28px;
     margin-top: 6px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     flex: 1;
     gap: var(--spacing-sm);
     padding: 0 var(--spacing-xs);
@@ -123,9 +122,11 @@ function closeProject() {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
+    height: var(--bar-tool-height);
+    box-sizing: border-box;
+    padding: 0 8px;
     /* background-color: var(--primary); */
-    border: none;
+    border: 1px solid var(--border-color, #dee2e6);
     cursor: pointer;
     /* color: var(--text-inverse); */
     font-size: 0.8rem;
@@ -134,12 +135,18 @@ function closeProject() {
     border-radius: var(--radius-sm);
 }
 
-.project-trigger:hover {
-    background-color: var(--primary-dark);
+/* Keep the column-status and task-progress triggers the same height as the
+   project dropdown (their internal buttons live in child components). */
+.center-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-.project-trigger:hover {
-    background-color: var(--primary-dark);
+.center-tools :deep(.col-status-btn),
+.center-tools :deep(.task-progress-btn) {
+    height: var(--bar-tool-height);
+    box-sizing: border-box;
 }
 
 .project-trigger:hover {
