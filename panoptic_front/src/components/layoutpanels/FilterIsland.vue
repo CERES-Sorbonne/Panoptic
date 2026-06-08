@@ -6,12 +6,13 @@ import { useCurrentTab } from '@/data/useCurrentTab'
 
 const tab = useCurrentTab()
 const splitView = computed(() => tab.value?.state.splitView ?? false)
+const bound = computed(() => tab.value?.isBound() ?? true)
 const splitRatio = computed(() => tab.value?.state.splitRatio ?? 0.5)
 </script>
 
 <template>
     <template v-if="tab">
-        <div v-if="splitView" class="filter-split">
+        <div v-if="splitView && !bound" class="filter-split">
             <IslandPanel class="filter-primary">
                 <FilterPanel :view-index="0" />
             </IslandPanel>

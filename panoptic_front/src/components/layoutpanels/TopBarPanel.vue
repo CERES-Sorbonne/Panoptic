@@ -12,6 +12,7 @@ import wTT from '@/components/tooltips/withToolTip.vue'
 import ColumnLoadProgress from '@/components/dropdowns/ColumnLoadProgress.vue'
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue'
 import { useTabStore } from '@/data/tabStore'
+import TabPanel from './TabPanel.vue'
 
 const { locale } = useI18n()
 const project = useProjectStore()
@@ -51,13 +52,15 @@ function onChangeLang(event: Event) {
         </div>
 
         <!-- Center: data / column load status -->
-        <div  class="d-flex">
+        <div class="d-flex">
             <!-- <ColumnStatusDropdown :tab="tab.getMainTab()" /> -->
             <ColumnLoadProgress />
         </div>
 
         <!-- Right: current user + notifications + language -->
         <div class="bar-group">
+
+            <TabPanel />
             <span v-if="currentUser" class="user-name" :title="currentUser">
                 <i class="bi bi-person-circle"></i>
                 <span class="user-name-label">{{ currentUser }}</span>
@@ -144,7 +147,7 @@ function onChangeLang(event: Event) {
     font-weight: var(--font-weight-bold);
 }
 
-.project-badge-name > span:last-child {
+.project-badge-name>span:last-child {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

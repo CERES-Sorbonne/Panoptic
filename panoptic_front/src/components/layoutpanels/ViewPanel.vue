@@ -76,6 +76,11 @@ onUnmounted(() => {
                 </button>
 
                 <div class="flex-grow-1"></div>
+
+                <!-- Toggle split view -->
+                <button class="tab-tool" :class="{ active: tab?.state.splitView }" :title="tab?.state.splitView ? 'Unsplit' : 'Split right'" @click="tab && (tab.state.splitView = !tab.state.splitView)">
+                    <i class="bi bi-columns"></i>
+                </button>
             </div>
         </template>
 

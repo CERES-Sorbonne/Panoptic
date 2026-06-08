@@ -88,7 +88,7 @@ onMounted(async () => {
             <template #main>
                 <div class="center-stack">
                     <!-- Tab bar island (shared, never split) -->
-                    <TabPanel />
+                    
 
                     <!-- Filter island: one row normally, two side-by-side when split -->
                     <FilterIsland />
