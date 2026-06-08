@@ -26,22 +26,18 @@ function toggleBind() {
 <template>
     <div class="filter-row" v-if="tab && collection">
         <!-- Bind / unbind the two views' filters. Only meaningful when split. -->
-        <button
-            v-if="splitView"
-            class="bind-btn"
-            :class="{ bound }"
+        
+        <div v-if="splitView" class="bb" :class="{ bound }"
             :title="bound ? 'Views share one filter — click to give each its own' : 'Views filter independently — click to bind them'"
-            @click="toggleBind"
-        >
+            @click="toggleBind">
             <i :class="bound ? 'bi bi-link-45deg' : 'bi bi-unlock'"></i>
-        </button>
+        </div>
 
         <ImageInstanceDropdown :tab="tab" :collection="collection" />
         <TextSearchInput :tab="tab" :collection="collection" />
         <FilterForm :tab="tab" :collection="collection" />
-        <GroupForm :manager="collection.groupManager" class="me-1" />
-        <SortForm :manager="collection.sortManager" class="me-1" />
-        <div class="flex-grow-1"></div>
+        <GroupForm :manager="collection.groupManager" />
+        <SortForm :manager="collection.sortManager" />
     </div>
 </template>
 
@@ -49,9 +45,9 @@ function toggleBind() {
 .filter-row {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
     padding: 3px 6px;
-    border-bottom: 1px solid var(--border-light);
 }
 
 .bind-btn {

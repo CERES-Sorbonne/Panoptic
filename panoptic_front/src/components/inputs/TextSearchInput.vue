@@ -141,6 +141,9 @@ keyState.ctrlF.on(() => inputElem.value?.focus())
     transition: border-color 0.2s, box-shadow 0.2s;
     padding: 0 0px;
     overflow: hidden;
+    min-width: 100px;
+    max-width: 200px;
+    flex: 1 1 100px;
 }
 
 .cont3:hover {

@@ -20,12 +20,12 @@ function updateSha1Mode(value: boolean) {
 <template>
     <Dropdown placement="bottom-start">
         <template #button>
-            <button
-                class="tool-sm mode-trigger"
+            <div
+                class="bb"
                 :title="collection.groupManager.state.sha1Mode ? 'Image mode' : 'Instance mode'"
             >
                 <i :class="collection.groupManager.state.sha1Mode ? 'bi bi-images' : 'bi bi-image'"></i>
-            </button>
+        </div>
         </template>
         <template #popup="{ hide }">
             <div class="mode-menu">

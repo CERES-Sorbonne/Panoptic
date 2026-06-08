@@ -10,7 +10,6 @@ import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
-import FilterPanel from '@/components/layoutpanels/FilterPanel.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { useCurrentTab } from '@/data/useCurrentTab'
 
@@ -69,9 +68,6 @@ onUnmounted(() => {
                 <div class="flex-grow-1"></div>
             </div>
         </template>
-
-        <!-- Per-view filter row (M4): controls this pane's collection. -->
-        <FilterPanel v-if="view" :view-index="props.viewIndex" />
 
         <div ref="containerRef" class="view-container">
             <TreeScroller

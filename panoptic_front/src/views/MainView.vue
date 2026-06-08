@@ -9,6 +9,7 @@ import LeftBarPanel from '@/components/layoutpanels/LeftBarPanel.vue'
 import FolderPanel from '@/components/layoutpanels/FolderPanel.vue'
 import PropertyPanel from '@/components/layoutpanels/PropertyPanel.vue'
 import TabPanel from '@/components/layoutpanels/TabPanel.vue'
+import FilterIsland from '@/components/layoutpanels/FilterIsland.vue'
 import ViewPanel from '@/components/layoutpanels/ViewPanel.vue'
 import TabProvider from '@/components/layoutpanels/TabProvider.vue'
 import { useProjectStore } from '@/data/projectStore'
@@ -88,6 +89,9 @@ onMounted(async () => {
                 <div class="center-stack">
                     <!-- Tab bar island (shared, never split) -->
                     <TabPanel />
+
+                    <!-- Filter island: one row normally, two side-by-side when split -->
+                    <FilterIsland />
 
                     <!-- 1 or 2 view islands, each its own card with a gap between.
                          Split state (shown/ratio) lives on the tab (Pillar F/Q13);
