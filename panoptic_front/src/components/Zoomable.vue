@@ -20,7 +20,8 @@ watch(keyState, () => {
         zoomModal.show(props.image)
     }
 
-    const rect = elem.value.getBoundingClientRect()
+    const rect = elem.value?.getBoundingClientRect()
+    if (!rect) return
     const absoluteHover = keyState.mouseX >= rect.x && keyState.mouseX <= rect.right && keyState.mouseY >= rect.y && keyState.mouseY <= rect.bottom
     
     if (isActive && (!absoluteHover || !keyState.ctrl)) {

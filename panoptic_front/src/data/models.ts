@@ -221,6 +221,7 @@ export interface Folder {
     name: string
     path: string
     parent: number
+    sourceId?: number // file source this root folder belongs to (camelCased from source_id)
     children: Array<Folder>
     show?: boolean // frontend variable to know if exanded in view or not
     selected?: boolean // frontend variable for smart folder filter

@@ -69,7 +69,7 @@ export const useDataStore = defineStore('dataStore', () => {
         // Add file sources with their top-level folders
         for (const source of Object.values(fileSources.value)) {
             const childFolders = Object.values(folders.value).filter(
-                f => f.source_id === source.id && f.parent == null
+                f => f.sourceId === source.id && f.parent == null
             ) as Folder[]
             result.push({
                 id: source.id,
@@ -81,7 +81,7 @@ export const useDataStore = defineStore('dataStore', () => {
 
         // Add top-level folders not belonging to any file source
         for (const folder of Object.values(folders.value)) {
-            if (folder.parent == null && !(folder.source_id != null && fileSources.value[folder.source_id!])) {
+            if (folder.parent == null && !(folder.sourceId != null && fileSources.value[folder.sourceId!])) {
                 result.push({
                     id: folder.id,
                     name: folder.name || `Folder ${folder.id}`,
