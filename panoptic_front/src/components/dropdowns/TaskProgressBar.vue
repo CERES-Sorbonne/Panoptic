@@ -57,7 +57,7 @@ function taskPct(t: TaskState) {
                     </div>
                 </div>
 
-                <div v-if="finished.length > 0" class="task-section-label task-section-label--past">Past</div>
+                <div v-if="finished.length > 0" class="task-section-label" :class="{ 'task-section-label--past': running.length > 0 }">Past</div>
                 <div v-for="t in finished" :key="t.id" class="task-row task-row--done">
                     <div class="task-row-header">
                         <i class="bi bi-check-circle-fill task-done-icon" />
