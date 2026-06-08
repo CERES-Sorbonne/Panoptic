@@ -11,7 +11,7 @@ import { deepCopy } from '@/utils/utils'
 
 console.log('[uiStore] Module loaded')
 
-export type BottomPanel = 'properties' | 'export' | null
+export type BottomPanel = 'properties' | 'import' | 'export' | null
 
 export interface PanelStates {
     leftPanelOpen: boolean

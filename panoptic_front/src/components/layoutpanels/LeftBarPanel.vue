@@ -2,8 +2,11 @@
 // Left activity bar root node — inserted into AppShellLayout's #activity slot.
 // Toggles the folder panel and the bottom (properties / export) panels.
 import { useUiStore, type BottomPanel } from '@/data/uiStore'
+import { usePanopticStore } from '@/data/panopticStore'
+import { ModalId } from '@/data/models'
 
 const uiStore = useUiStore()
+const panoptic = usePanopticStore()
 
 // Activity-bar panel toggles: Folders, separated from Properties + Export.
 const folderPanels = [
@@ -12,12 +15,17 @@ const folderPanels = [
 
 const bottomPanels = [
     { id: 'properties', icon: 'bi-list-ul', title: 'Properties' },
+    { id: 'import', icon: 'bi-box-arrow-in-up', title: 'Import' },
     { id: 'export', icon: 'bi-download', title: 'Export' },
 ]
 
 function togglePanel(id: string) {
     if (id === 'folders') {
         uiStore.panelStates.leftPanelOpen = !uiStore.panelStates.leftPanelOpen
+        return
+    }
+    if (id === 'import') {
+        panoptic.showModal(ModalId.IMPORT)
         return
     }
     uiStore.panelStates.activeBottomPanel = uiStore.panelStates.activeBottomPanel === id ? null : (id as BottomPanel)

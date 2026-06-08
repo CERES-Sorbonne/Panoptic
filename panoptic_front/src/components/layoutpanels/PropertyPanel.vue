@@ -7,9 +7,17 @@ import TabContainer from '@/components/TabContainer.vue'
 import PropertyGroupPanel from './PropertyGroupPanel.vue'
 import { useUiStore } from '@/data/uiStore'
 import { useTabStore } from '@/data/tabStore'
+import { useDataStore } from '@/data/dataStore'
+import { usePanopticStore } from '@/data/panopticStore'
+import { ModalId } from '@/data/models'
+import { goNext } from '@/utils/utils'
 
 const uiStore = useUiStore()
 const tabStore = useTabStore()
+const data = useDataStore()
+const panoptic = usePanopticStore()
+
+const isPropertiesPanel = uiStore.panelStates.activeBottomPanel === 'properties'
 </script>
 
 <template>
@@ -18,6 +26,14 @@ const tabStore = useTabStore()
             <div class="tw-header">
                 <span class="tw-title">{{ uiStore.panelStates.activeBottomPanel === 'export' ? 'Export' : 'Properties' }}</span>
                 <div class="tw-actions">
+                    <button v-if="isPropertiesPanel" class="tw-action" title="Add property"
+                        @click="panoptic.showModal(ModalId.PROPERTY); goNext()">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                    <button v-if="isPropertiesPanel" class="tw-action" title="Add group"
+                        @click="data.addPropertyGroup('New Group')">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
                     <button class="tw-action" title="Options"><i class="bi bi-three-dots"></i></button>
                     <button class="tw-action" title="Hide" @click="uiStore.panelStates.activeBottomPanel = null"><i class="bi bi-dash"></i></button>
                 </div>

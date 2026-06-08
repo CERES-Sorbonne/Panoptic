@@ -16,6 +16,17 @@ import { useProjectStore } from '@/data/projectStore'
 import { usePanopticStore } from '@/data/panopticStore'
 import { useUiStore } from '@/data/uiStore'
 import { useTabStore } from '@/data/tabStore'
+import { ModalId } from '@/data/models'
+import PropertyModal from '@/components/modals/PropertyModal.vue'
+import FolderSelectionModal from '@/components/modals/FolderSelectionModal.vue'
+import ExportModal2 from '@/components/modals/ExportModal2.vue'
+import ImageModal from '@/components/modals/ImageModal.vue'
+import ImageZoomModal from '@/components/modals/ImageZoomModal.vue'
+import SettingsModal from '@/components/modals/SettingsModal.vue'
+import ImportModal from '@/components/modals/ImportModal.vue'
+import TagModal from '@/components/modals/TagModal.vue'
+import FirstModal from '@/components/modals/FirstModal.vue'
+import NotifModal from '@/components/modals/NotifModal.vue'
 
 const project = useProjectStore()
 const panoptic = usePanopticStore()
@@ -122,6 +133,16 @@ onMounted(async () => {
         </template>
     </AppShellLayout>
     <div id="popup" style="position: fixed; top:0;left: 0; z-index: 9990;"></div>
+    <PropertyModal :id="ModalId.PROPERTY" />
+    <FolderSelectionModal :id="ModalId.FOLDERSELECTION" />
+    <ExportModal2 />
+    <ImageModal />
+    <ImageZoomModal />
+    <SettingsModal />
+    <ImportModal />
+    <TagModal />
+    <FirstModal />
+    <NotifModal />
 </template>
 
 <style scoped>

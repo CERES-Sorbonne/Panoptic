@@ -119,36 +119,41 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
 <style scoped>
 .modal-container {
     margin: 0px;
-    background-color: white;
+    background-color: var(--island-surface);
     overflow: hidden;
-    border-radius: 3px !important;
-    border: 2px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--island-border) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .body {
-    background-color: white;
+    background-color: var(--island-surface);
     overflow: hidden;
-
 }
 
 .title {
-    /* border-bottom: 1px solid var(--border-color); */
-    background-color: rgb(238, 238, 255);
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--island-border);
     padding: 4px 4px;
 }
 
 .title1 {
-    border-bottom: 1px solid var(--border-color);
-    background-color: rgb(238, 238, 255);
-    /* padding: 4px 4px; */
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--island-border);
 }
 
 .close {
-    /* border-left: 1px solid var(--border-color); */
     padding: 0 6px;
     display: flex;
     justify-content: center;
     align-items: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
 }
 
 .modal-content {
@@ -165,6 +170,7 @@ watch(() => modal.openIndex[props.id], (newVal, oldVal) => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.77);
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
 }
 </style>

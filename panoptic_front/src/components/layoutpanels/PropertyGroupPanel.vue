@@ -5,9 +5,12 @@ import PropertyRow from './PropertyRow.vue'
 import { computed } from 'vue'
 import { useDataStore } from '@/data/dataStore'
 import { useUiStore } from '@/data/uiStore'
+import { usePanopticStore } from '@/data/panopticStore'
+import { goNext } from '@/utils/utils'
 
 const data = useDataStore()
 const uiStore = useUiStore()
+const panoptic = usePanopticStore()
 const props = defineProps<{
     tab: TabManager
 }>()
@@ -52,6 +55,10 @@ function toggleExpand(groupId: number) {
         <div class="group-header" @click="toggleExpand(group.groupId)">
             <i class="expand-icon" :class="groupOpen[group.groupId] ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"></i>
             <span class="group-name">{{ getGroupName(group) }}</span>
+            <span v-if="group.groupId !== PropertyGroupId.METADATA" class="add-prop-btn"
+                @click.stop="panoptic.showModal(ModalId.PROPERTY); goNext()">
+                <i class="bi bi-plus-lg"></i>
+            </span>
             <span v-if="group.propertyIds.length > 0" class="visibility-toggle" @click.stop="toggleGroupVisibility(group)">
                 <i :class="[
                     'bi bi-eye',
@@ -110,6 +117,23 @@ function toggleExpand(groupId: number) {
     padding-left: 8px;
     cursor: pointer;
     flex-shrink: 0;
+}
+
+.add-prop-btn {
+    margin-left: auto;
+    padding-left: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.group-header:hover .add-prop-btn {
+    opacity: 1;
+}
+
+.add-prop-btn:hover {
+    color: var(--primary);
 }
 
 .text-primary {

@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "instance_tag_value_refactor.md",
+                "file": "iiif_source_plan.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "instance_tag_value_refactor"
+              "title": "iiif_source_plan"
             }
           }
         ],
@@ -200,8 +200,8 @@
   },
   "active": "0e10bdd62ff1d036",
   "lastOpenFiles": [
-    "project2_architecture.md",
     "instance_tag_value_refactor.md",
+    "project2_architecture.md",
     "routes_reference.md",
     "plugin_architecture.md",
     "plugin_system_migration.md",
