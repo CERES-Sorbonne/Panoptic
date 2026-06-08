@@ -24,6 +24,7 @@ import ImageModal from '@/components/modals/ImageModal.vue'
 import ImageZoomModal from '@/components/modals/ImageZoomModal.vue'
 import SettingsModal from '@/components/modals/SettingsModal.vue'
 import ImportModal from '@/components/modals/ImportModal.vue'
+import FileSourceModal from '@/components/modals/FileSourceModal.vue'
 import TagModal from '@/components/modals/TagModal.vue'
 import FirstModal from '@/components/modals/FirstModal.vue'
 import NotifModal from '@/components/modals/NotifModal.vue'
@@ -140,6 +141,7 @@ onMounted(async () => {
     <ImageZoomModal />
     <SettingsModal />
     <ImportModal />
+    <FileSourceModal />
     <TagModal />
     <FirstModal />
     <NotifModal />

@@ -393,6 +393,11 @@ class Project:
         with self._data_reader() as r:
             return r.get_file_path_for_sha1(sha1)
 
+    def resolve_image_ref(self, sha1: str) -> dict | None:
+        """Resolve a sha1 to a fetchable image ref ({'kind': 'local'|'iiif', ...})."""
+        with self._data_reader() as r:
+            return r.resolve_image_ref(sha1)
+
     def get_images(self, **filters) -> List[Image]:
         return self._media.get_images(**filters)
 
@@ -508,6 +513,10 @@ class Project:
     def import_folder(self, path: str) -> Task:
         from panoptic.core.task.import_folder_task import ImportFolderTask
         return self.add_task(ImportFolderTask(self, path))
+
+    def import_iiif(self, manifest_url: str) -> Task:
+        from panoptic.core.task.iiif_import_task import IIIFImportTask
+        return self.add_task(IIIFImportTask(self, manifest_url))
 
     def add_task(self, task: Task, high_priority: bool = False) -> Task:
         return self.task_manager.add_task(task, high_priority=high_priority)

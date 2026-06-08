@@ -6,12 +6,19 @@ import { computed } from 'vue'
 import { useUiStore } from '@/data/uiStore'
 import { useDataStore } from '@/data/dataStore'
 import { useTabStore } from '@/data/tabStore'
+import { usePanopticStore } from '@/data/panopticStore'
+import { ModalId } from '@/data/models'
 
 const uiStore = useUiStore()
 const data = useDataStore()
 const tabStore = useTabStore()
+const panoptic = usePanopticStore()
 
 const rootFolders = computed(() => data.folderRoots)
+
+function promptFolder() {
+    panoptic.showModal(ModalId.FILESOURCE)
+}
 </script>
 
 <template>
@@ -20,6 +27,7 @@ const rootFolders = computed(() => data.folderRoots)
             <div class="tw-header">
                 <span class="tw-title">Folders</span>
                 <div class="tw-actions">
+                    <button class="tw-action" title="Add folder" @click="promptFolder()">＋</button>
                     <button class="tw-action" title="Options">⋯</button>
                     <button class="tw-action" title="Hide" @click="uiStore.panelStates.leftPanelOpen = false">－</button>
                 </div>

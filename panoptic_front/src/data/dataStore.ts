@@ -9,7 +9,7 @@ import {
 } from './models'
 import { buildPropertyGroupOrder, objValues } from './builder'
 import {
-    apiAddFolder, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
+    apiAddFolder, apiImportIiif, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
     apiGetFolders, apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
     apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
     apiUndo,
@@ -548,6 +548,10 @@ export const useDataStore = defineStore('dataStore', () => {
         await apiAddFolder(folder)
     }
 
+    async function importIiif(url: string) {
+        await apiImportIiif(url)
+    }
+
     async function reImportFolder(folderId: number) {
         const updated = await apiReImportFolder(folderId)
         const updatedNodes = buildFolderNodes(updated)
@@ -691,7 +695,7 @@ export const useDataStore = defineStore('dataStore', () => {
         get onSelectionChange() { return columnStore.onSelectionChange },
 
         onUndo, baseImgUrl, baseUrl,
-        addFolder, reImportFolder, deleteFolder,
+        addFolder, importIiif, reImportFolder, deleteFolder,
         addProperty, updateProperty, deleteProperty,
         setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, addTagParent, deleteTagParent, updateTag, deleteTag, mergeTags,

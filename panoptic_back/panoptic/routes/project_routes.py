@@ -500,6 +500,17 @@ def add_folder(req: _PathRequest, project: Project = Depends(_dep)):
     return _json(project.get_folders())
 
 
+class _UrlRequest(BaseModel):
+    url: str
+
+
+@project_router.post('/import/iiif')
+def import_iiif(req: _UrlRequest, project: Project = Depends(_dep)):
+    """Import a IIIF Collection/Manifest URL as a new (or refreshed) file source."""
+    project.import_iiif(req.url)
+    return _json(project.get_file_sources())
+
+
 @project_router.post('/reimport_folder')
 def reimport_folder(req: _IdRequest, project: Project = Depends(_dep)):
     folders = project.get_folders()
@@ -1023,12 +1034,12 @@ def get_history(project: Project = Depends(_dep)):
 # ---------------------------------------------------------------------------
 
 @project_router.get('/image/by_size/{sha1:path}')
-def get_image_by_size(sha1: str, size: int | None = None, project: Project = Depends(_dep)):
+async def get_image_by_size(sha1: str, size: int | None = None, project: Project = Depends(_dep)):
     """Serve a stored thumbnail. size=N picks the best fit; omit for the largest available."""
     data = project.get_best_image_bytes(sha1, size)
     if data:
         return Response(data, media_type='image/jpeg')
-    return get_image_raw(sha1, project)
+    return await get_image_raw(sha1, project)
 
 
 @project_router.get('/image/small/{sha1:path}')
@@ -1048,12 +1059,29 @@ def get_image_large(sha1: str, project: Project = Depends(_dep)):
 
 
 @project_router.get('/image/raw/{sha1:path}')
-def get_image_raw(sha1: str, project: Project = Depends(_dep)):
+async def get_image_raw(sha1: str, project: Project = Depends(_dep)):
     from pathlib import Path
     from starlette.responses import FileResponse as FR
-    path = project.get_file_path_for_sha1(sha1)
-    if path and Path(path).exists():
-        return FR(path)
+    import httpx
+
+    ref = project.resolve_image_ref(sha1)
+    if ref and ref['kind'] == 'local':
+        if Path(ref['path']).exists():
+            return FR(ref['path'])
+    elif ref and ref['kind'] == 'iiif':
+        try:
+            # A browser-like UA avoids 403s from hosts like Gallica/BnF.
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                       'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'}
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                r = await client.get(ref['url'], headers=headers)
+            if r.status_code == 200:
+                media_type = r.headers.get('content-type', 'image/jpeg')
+                return Response(r.content, media_type=media_type)
+        except Exception:
+            logger.exception('IIIF proxy failed for %s', ref['url'])
+
+    # Fall back to the largest cached thumbnail (also covers IIIF when the remote is down).
     data = project.get_best_image_bytes(sha1, None)
     if data:
         return Response(data, media_type='image/jpeg')

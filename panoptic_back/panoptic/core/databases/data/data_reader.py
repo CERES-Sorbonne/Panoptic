@@ -429,17 +429,43 @@ class DataReader(SQLiteReader):
         return ids, values
 
     def get_file_path_for_sha1(self, sha1: str) -> str | None:
-        """Return the full filesystem path for the first file matching sha1, or None."""
+        """Return the local filesystem path for the first local file matching sha1.
+
+        Returns None for IIIF (remote) sources — use resolve_image_ref for those.
+        """
+        ref = self.resolve_image_ref(sha1)
+        return ref['path'] if ref and ref['kind'] == 'local' else None
+
+    def resolve_image_ref(self, sha1: str) -> dict | None:
+        """Resolve a sha1 to a fetchable image reference, branching on the source type.
+
+        Identity is always source + folder + file; the source dtype decides how they
+        combine. Returns one of:
+          {'kind': 'local', 'path': '<fs path>'}
+          {'kind': 'iiif',  'url':  '<http url>'}
+        or None if the sha1 has no resolvable file.
+        """
         row = self.conn.execute(
-            "SELECT fo.path, f.name"
-            " FROM files f JOIN folders fo ON fo.id = f.folder_id"
-            " WHERE f.sha1 = ? AND f.name IS NOT NULL AND fo.path IS NOT NULL"
+            "SELECT fo.path, f.name, fs.dtype"
+            " FROM files f"
+            " JOIN folders fo ON fo.id = f.folder_id"
+            " JOIN file_sources fs ON fs.id = fo.source_id"
+            " WHERE f.sha1 = ? AND f.name IS NOT NULL"
             " LIMIT 1",
             (sha1,),
         ).fetchone()
         if not row:
             return None
-        return f"{row[0]}/{row[1]}"
+        path, name, dtype = row[0], row[1], row[2]
+
+        if dtype == 'iiif':
+            # file.name holds the full, directly-fetchable image URL (built at import
+            # time with the version-correct Image API params).
+            return {'kind': 'iiif', 'url': name}
+
+        if path is None:
+            return None
+        return {'kind': 'local', 'path': f"{path}/{name}"}
 
     def get_delta(
         self,

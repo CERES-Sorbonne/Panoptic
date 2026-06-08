@@ -11,6 +11,7 @@ import { usePanopticStore } from '@/data/panopticStore'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import ColumnLoadProgress from '@/components/dropdowns/ColumnLoadProgress.vue'
 import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue'
+import TaskProgressBar from '@/components/dropdowns/TaskProgressBar.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
 import TabPanel from './TabPanel.vue'
@@ -61,10 +62,11 @@ function closeProject() {
             </Dropdown>
         </div>
 
-        <!-- Center: data / column load status -->
-        <div class="d-flex">
+        <!-- Center: data / column load status + task progress -->
+        <div class="d-flex" style="gap: 6px;">
             <!-- <ColumnStatusDropdown :tab="tab.getMainTab()" /> -->
             <ColumnLoadProgress />
+            <TaskProgressBar />
         </div>
 
         <!-- Right: current user + notifications + language -->
@@ -130,82 +132,6 @@ function closeProject() {
     min-width: 90px;
     justify-content: flex-start;
     border-radius: var(--radius-sm);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
-}
-
-.project-trigger:hover {
-    background-color: var(--primary-dark);
 }
 
 .project-trigger:hover {

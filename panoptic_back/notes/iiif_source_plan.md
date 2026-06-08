@@ -97,11 +97,11 @@ Recursive function `_traverse(node, parent_folder_id)`:
 
   > Assumption: all canvases within one manifest share one image-service host. If a manifest mixes hosts, split into sub-folders per host (rare; handle later).
 
-**Step C — Download full image, compute SHA1, generate thumbnails**
+**Step C — Download a capped rendition, compute SHA1, generate thumbnails**
 For each canvas:
-- Resolve the image URL. Prefer the IIIF Image Service (`{service}/full/full/0/default.jpg`); **fall back to the canvas's plain image `body.id`** when the canvas is level-0 / has no service or `info.json`.
-- Download the **full-res bytes → compute SHA1 from real pixels** (so cross-source dedup with local imports works — Decision #1). Then run PIL exactly like `import_folder_task._process_one` to derive `width/height/format` and render the auto_gen thumbnail types into `media.db`. No `info.json` round-trip needed since we have the bytes.
-- This is the expensive path (one full download per canvas) — see concurrency note below.
+- Resolve the full-res image URL (prefer `body.id` when it's already a complete image request — v3 `.../full/max/...`, v2 `.../full/full/...`; else build from the Image Service; else the plain image `body.id` for level-0). This full URL is what gets **stored in `File.name`** for serving.
+- For the **import download**, rewrite the size segment to a bounded width (`IMPORT_WIDTH=1024` → `/full/1024,/`). **Compute SHA1 from these capped bytes** and render the auto_gen thumbnails from them. *(Revised — see Decision #1: full-res-per-canvas downloads get hammered by strict hosts like Gallica/BnF with HTTP 429, so import fetches a capped rendition; full-res is served on demand via the proxy.)* Static / non-IIIF image URLs that can't be resized are fetched as-is.
+- All HTTP goes through `_get_with_retry` (exponential backoff + jitter on 429/503, honoring `Retry-After`) behind a global `_RateLimiter` (one request per `REQUEST_INTERVAL` across all worker threads), with a browser-like `User-Agent` (Gallica 403s without one).
 
 **Step D — Batch write**
 Build an `UpsertCommit` containing all FileSource, Folder, File, Instance records.
@@ -188,7 +188,7 @@ Store these as `file`-mode properties (see `file_property_mode.md`) so they are 
 
 ## Decisions
 
-1. **SHA1 identity = full image** — download the full-res canvas image and hash the real pixel bytes (same as local import). This makes a IIIF canvas and a local file that are the same image share a sha1 → shared cached thumbnail and true cross-source dedup. Cost: one full download per canvas at import time (mitigated by concurrency). `File` is not sha1-unique, so records from different sources coexist.
+1. **SHA1 identity = capped rendition** *(revised after real-world testing)* — originally "hash the full-res pixels" for cross-source dedup, but strict hosts (Gallica/BnF) throttle full-res downloads so aggressively (HTTP 429, ~10s cooldown even single-threaded) that a single book took ~30 min and still dropped pages. So import downloads a **bounded-width rendition** (`IMPORT_WIDTH=1024`) and hashes that. Consequence: a IIIF canvas no longer shares a sha1 with a locally-imported full-res copy (cross-source dedup is lost), but import is fast and reliable. Full-res remains available on demand because `/image/raw` proxies the URL stored in `File.name`. Robustness layers: global rate limiter + retry/backoff + browser `User-Agent`. `File` is not sha1-unique, so records from different sources coexist.
 
 2. **v2 vs v3 parsing** — backend auto-detects from the `@context` field. **Note:** the difference is more than cosmetic — v2 uses `sequences→canvases→images` and string `label`s; v3 uses `items→AnnotationPage→Annotation` and language-map `label`s. `iiif-prezi3` is **v3-only**, so it cannot parse v2; either write one branching JSON parser for both, or use `iiif-prezi3` for v3 + manual for v2. Label rule: take `en`/first available language. Detection logic lives in `IIIFImportTask`.
 
@@ -196,7 +196,21 @@ Store these as `file`-mode properties (see `file_property_mode.md`) so they are 
 
 4. **Re-sync** — manual only. A re-import **skips existing** folders/files (matched by `folder.path` and `(folder_id, name)`) and only adds new canvases, mirroring `ImportFolderTask`. No duplicates.
 
-5. **Where the image URL lives** — on the **Folder**, not the File. `Folder.path` = the image-service base URL; `File.name` = the canvas identifier appended to it. A `dtype`-aware resolver (Phase 2) reconstructs the request URL the same way it does for local files (`path + '/' + name`). No schema change to `File`. Assumes one image host per manifest.
+5. **Where the image URL lives** *(refined during implementation)* — `Folder.path` = the manifest/collection **URL** (stable identity, used for skip-existing and as the symmetric "directory"). `File.name` = the **full, directly-fetchable image URL**, built at import time with the version-correct Image API size keyword (**v3 `max`, v2 `full`** — `full` is rejected by v3 servers with HTTP 400). The `dtype`-aware resolver (`data_reader.resolve_image_ref`) returns that URL verbatim for IIIF and joins `path + '/' + name` for local. Storing the manifest URL (not the image base) on the folder avoids identity collisions when many manifests share one image endpoint. No schema change to `File`. Level-0 / v2 canvases without an Image Service store their plain image URL directly.
+
+---
+
+## Implementation status (done)
+
+Implemented on this branch:
+- `panoptic/core/task/iiif_import_task.py` — `IIIFImportTask`: v2/v3 detection, recursive Collection/Manifest/Canvas traversal, concurrent capped-rendition download (`ThreadPoolExecutor` + global `_RateLimiter` + `_get_with_retry` backoff + browser `User-Agent`; sha1 from the capped bytes), thumbnail generation reusing `import_folder_task._render`, batched `UpsertCommit` writes, `on_last` → `GenerateAtlasTask`, idempotent re-import (reuses the `FileSource` with matching `root_url`, skips existing folders/files).
+- `data_reader.resolve_image_ref()` + `Project.resolve_image_ref()` — dtype-aware resolver; `get_file_path_for_sha1` now delegates to it (returns `None` for IIIF).
+- `project.import_iiif()` and `POST /projects/{id}/import/iiif` `{ "url": ... }`.
+- `/image/raw` (and `/image/by_size`) made `async`; IIIF sha1s are proxied via `httpx.AsyncClient`, with the cached thumbnail as fallback.
+
+Verified end-to-end against the IIIF cookbook: v3 single-image + book manifests, a nested v3 collection, and a v2 manifest — folders/files/instances created, thumbnails cached, resolver URLs correct, re-import adds nothing.
+
+Not done (still future, per Decisions): protected/auth sources, frontend "Connect IIIF source" dialog, Phase 3 metadata-as-properties.
 
 ---
 

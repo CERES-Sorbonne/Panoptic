@@ -339,7 +339,8 @@ export enum ModalId {
     IMPORT = "import",
     TAG = "tag",
     FIRSTMODAL = "firstmodal",
-    NOTIF = "notif"
+    NOTIF = "notif",
+    FILESOURCE = "filesource"
 }
 
 export interface StatusUpdate {

@@ -152,6 +152,10 @@ export const apiAddFolder = async (folder: string) => {
     return await projectApi.post('/folders', { path: folder })
 }
 
+export const apiImportIiif = async (url: string) => {
+    return await projectApi.post('/import/iiif', { url })
+}
+
 export const apiGetFolders = async () => {
     let res = await projectApi.get('/folders')
     return keysToCamel(res.data)
