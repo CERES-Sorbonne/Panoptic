@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
-import wTT from '../../tooltips/withToolTip.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { Group, GroupManager, GroupTree, GroupType, buildGroup } from '@/core/GroupManager'
 import { DbCommit, GroupLine, GroupResult, ImagePropertyValue, Instance, InstancePropertyValue, Property, PropertyMode, PropertyType, Sha1ToInstances, Tag, buildTag } from '@/data/models'
@@ -12,6 +11,7 @@ import { useDataStore } from '@/data/dataStore'
 import { useColumnStore } from '@/data/columnStore' // <-- Imported columnStore
 import { allChildrenSha1Groups } from '@/utils/utils'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
+import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import WithToolTip from '../../tooltips/withToolTip.vue'
 import { apiAllocateTags } from '@/data/apiProjectRoutes'
 
@@ -63,6 +63,10 @@ const groupName = computed(() => {
 })
 
 const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v.value != undefined))
+
+const canRecommend = computed(() => hasImages.value && !hasSubgroups.value && group.value.type != GroupType.Cluster && someValue.value)
+const isClusterGroup = computed(() => props.item.data.subGroupType == GroupType.Cluster)
+const hasMenuOptions = computed(() => canRecommend.value || isClusterGroup.value)
 
 function instancesForExecute() {
     const ids = columnStore.instanceIds()
@@ -194,7 +198,8 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 </script>
 
 <template>
-    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden">
+    <div class="d-flex flex-row group-line m-0 p-0 overflow-hidden"
+        @mouseenter="hoverGroup = true" @mouseleave="hoverGroup = false">
         <div v-for="parentId in props.parentIds" style="cursor: pointer;" class="ps-2"
             @click="$emit('scroll', parentId)" @mouseenter="$emit('hover', parentId)" @mouseleave="$emit('unhover')">
             <div class="group-line-border" :class="props.hoverBorder == parentId ? 'active' : ''"> </div>
@@ -231,52 +236,59 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
-            <div v-if="!hasSubgroups" class="ms-1 sbb">
-                <WithToolTip message="dropdown.stamp.paint_group">
-                    <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;" :show-number="true" />
-                </WithToolTip>
+            <!-- Fast-access actions: visible only while hovering the group line -->
+            <div v-show="hoverGroup" class="d-flex align-items-center">
+                <div v-if="!hasSubgroups" class="ms-1 sbb">
+                    <WithToolTip message="dropdown.stamp.paint_group">
+                        <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;"
+                            :show-number="true" />
+                    </WithToolTip>
+                </div>
+
+                <div class="ms-1" v-if="!hasSubgroups">
+                    <ActionButton action="group" :images="getImages" @groups="addClusters" />
+                </div>
+                <div class="ms-1">
+                    <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
+                        <div class="bi bi-terminal"
+                            style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
+                        </div>
+                    </ActionButton2>
+                </div>
             </div>
 
-            <div class="ms-1" v-if="!hasSubgroups">
-                <ActionButton action="group" :images="getImages" @groups="addClusters" />
-            </div>
-            <div class="ms-1">
-                <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
-                    <div class="bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
-                    </div>
-                </ActionButton2>
-            </div>
+            <!-- Remaining options grouped in a single dropdown -->
+            <div class="ms-1" v-if="hasMenuOptions">
+                <Dropdown :teleport="true">
+                    <template #button>
+                        <div class="sbb opt-btn"><i class="bi bi-three-dots" /></div>
+                    </template>
+                    <template #popup="{ hide }">
+                        <div class="opt-menu">
+                            <div v-if="hasImages && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
+                                class="opt-row opt-click" @click="recommandImages(); hide();">
+                                <span class="opt-icon"><i class="bi bi-magic" /></span>
+                                <span class="opt-label">{{ $t('main.recommand.title') }}</span>
+                            </div>
 
-            <div v-if="(hasImages) && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue" class="ms-2">
-                <wTT message="main.recommand.tooltip">
-                    <div class="button" @click="recommandImages">{{ $t('main.recommand.title') }}</div>
-                </wTT>
+                            <template v-if="group.subGroupType == GroupType.Cluster">
+                                <div class="opt-row opt-click" @click="saveHirachy(); hide();">
+                                    <span class="opt-icon"><i class="bi bi-diagram-3" /></span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
+                                </div>
+                                <div class="opt-row opt-click" @click="saveHirachy(true); hide();">
+                                    <span class="opt-icon"><i class="bi bi-floppy2-fill" /></span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
+                                </div>
+                                <div class="opt-row opt-click" @click="clear(); hide();">
+                                    <span class="opt-icon"><i class="bi bi-x-lg" /></span>
+                                    <span class="opt-label">{{ $t('btn.close-clusters') }}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </Dropdown>
             </div>
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
-                <div class="sbb cluster-close" @click="saveHirachy()">
-                    <span style="">
-                        <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
-                        <i v-if="!saving" class="bi bi-diagram-3"></i>
-                        <div v-else class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </span>
-                </div>
-            </wTT>
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1" message="btn.save-clusters">
-                <div class="sbb cluster-close" @click="saveHirachy(true)">
-                    <span style="">
-                        <i class="bi bi-floppy2-fill" style="margin-right: 3px;"></i>
-                        <div v-if="saving" class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </span>
-                </div>
-            </wTT>
-            <wTT v-if="group.subGroupType == GroupType.Cluster" class="ms-1 bbb" message="btn.close-clusters"
-                style="font-size: 14px;">
-                <div class="cluster-close" @click="clear"><i class="bi bi-x-lg" /></div>
-            </wTT>
         </template>
     </div>
 </template>
@@ -310,5 +322,42 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
     /* line-height: 16px; */
     /* color: grey; */
     /* border: 1px solid var(--border-color); */
+}
+
+.opt-btn {
+    font-size: 14px;
+    padding: 0px 5px;
+    line-height: 20px;
+}
+
+.opt-menu {
+    padding: 4px;
+    min-width: 170px;
+}
+
+.opt-row {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.opt-click {
+    cursor: pointer;
+}
+
+.opt-row:hover {
+    background-color: var(--grey);
+}
+
+.opt-icon {
+    width: 22px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.opt-label {
+    margin-left: 8px;
+    font-size: 14px;
 }
 </style>

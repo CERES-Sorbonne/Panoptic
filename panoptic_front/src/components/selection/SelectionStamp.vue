@@ -25,43 +25,79 @@ function openSelectionTab() {
 </script>
 
 <template>
-    <div class="d-flex b-border">
+    <div class="selection-island">
         <WithToolTip message="main.menu.remove_selection_tooltip">
-            <div class="sb no-radius m-0" style="padding: 0px 4px 0 0;" @click="emits('remove:selected')"><i
-                    class="bi bi-x" />{{ images.length }} <i class="bi bi-image" /> </div>
+            <div class="seg count-seg" @click="emits('remove:selected')">
+                <i class="bi bi-x clear-icon" />
+                <span class="count">{{ images.length }}</span>
+                <i class="bi bi-image" />
+            </div>
         </WithToolTip>
-        <div class="no-radius left-border">
+        <div class="seg">
             <WithToolTip message="dropdown.stamp.paint_selection">
-            <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
+                <StampDropdown :images="images" :no-border="true" :show-number="true" @stamped="emits('stamped')" />
             </WithToolTip>
         </div>
-        <div class="no-radius left-border">
+        <div class="seg">
             <ActionButton2 action="execute" :images="images" :no-border="true">
-                <div class="sb bi bi-terminal" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
+                <div class="bi bi-terminal terminal-icon"></div>
             </ActionButton2>
         </div>
-        <!-- <div class="no-radius left-border" @click="openSelectionTab">
-            <div class="sb bi bi-bookmark-plus" style="position: relative; font-size: 14px; padding: 0px 3px;"></div>
-        </div> -->
     </div>
 </template>
 
 <style scoped>
-.b-border {
-    border: 1px solid var(--blue);
+/* PyCharm "New UI" light-island toolbar: a soft, rounded pill with subtle
+   segment dividers and gentle hover highlights. */
+.selection-island {
+    display: flex;
+    align-items: center;
+    height: var(--bar-tool-height, 28px);
+    box-sizing: border-box;
+    background-color: var(--surface, #f7f8fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: var(--radius-md, 6px);
     overflow: hidden;
     white-space: nowrap;
-    border-radius: 3px;
+    column-gap: 0;
+}
+
+.seg {
+    display: flex;
     align-items: center;
-    column-gap: 0px;
-    /* padding: 1px 1px; */
+    height: 100%;
+    padding: 0 6px;
+    color: var(--text-secondary, #5a6470);
+    cursor: pointer;
+    border-left: 1px solid var(--border-color, #dee2e6);
+    transition: background-color var(--transition-fast, 0.12s ease);
 }
 
-.no-radius {
-    border-radius: 0;
+.seg:hover {
+    background-color: var(--hover-bg, rgba(137, 176, 205, 0.18));
+    color: var(--text-primary, #1f2328);
 }
 
-.left-border {
-    border-left: 1px solid var(--blue);
+.count-seg {
+    gap: 3px;
+    font-size: var(--font-size-sm, 0.8rem);
+    /* first segment — no leading divider */
+    border-left: none;
+}
+
+.count {
+    font-weight: var(--font-weight-bold, 600);
+    color: var(--text-primary, #1f2328);
+}
+
+.clear-icon {
+    font-size: 16px;
+    line-height: 1;
+    margin-right: -2px;
+}
+
+.terminal-icon {
+    font-size: 14px;
+    line-height: 1;
 }
 </style>

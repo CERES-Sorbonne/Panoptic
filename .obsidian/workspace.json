@@ -1,0 +1,192 @@
+{
+  "main": {
+    "id": "42ddc8a91e27037a",
+    "type": "split",
+    "children": [
+      {
+        "id": "4c4abaddf90e1035",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "291a2204d87ab0b9",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "DATAFLOW.svg"
+              },
+              "icon": "lucide-image",
+              "title": "DATAFLOW"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "4fff5cdabd6b99a9",
+    "type": "split",
+    "children": [
+      {
+        "id": "4a081378928c1143",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fcbb28d8afbb6035",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorateur de fichiers"
+            }
+          },
+          {
+            "id": "74f52428cbcf2208",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Rechercher"
+            }
+          },
+          {
+            "id": "c08175254339fe6e",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Signets"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "0b11c2a701069ff7",
+    "type": "split",
+    "children": [
+      {
+        "id": "34998f0cae47ccce",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f514484a8603b06e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "DATAFLOW.svg",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Rétrolien pour DATAFLOW"
+            }
+          },
+          {
+            "id": "e8004654a6228f8e",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "DATAFLOW.svg",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Liens sortants de DATAFLOW"
+            }
+          },
+          {
+            "id": "6c0015cf4fe401ec",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Mots-clés"
+            }
+          },
+          {
+            "id": "e98fddc8f0b9601c",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Toutes les propriétés"
+            }
+          },
+          {
+            "id": "ff63419c4a0f43b0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "DATAFLOW.svg",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Plan de DATAFLOW"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Ouvrir le sélecteur rapide": false,
+      "graph:Ouvrir la vue graphique": false,
+      "canvas:Créer une nouvelle toile": false,
+      "daily-notes:Ouvrir la note quotidienne": false,
+      "templates:Insérer le modèle": false,
+      "command-palette:Ouvrir la palette de commandes": false,
+      "bases:Créer une nouvelle base": false
+    }
+  },
+  "active": "291a2204d87ab0b9",
+  "lastOpenFiles": [
+    "DATAFLOW.png",
+    "DATAFLOW.svg",
+    "DATAFLOW.md",
+    "DATAFLOW.svg.png",
+    "scripts/gen_dataflow_svg.py"
+  ]
+}

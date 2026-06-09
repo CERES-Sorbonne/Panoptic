@@ -13,17 +13,28 @@ import ColumnStatusDropdown from '../dropdowns/ColumnStatusDropdown.vue'
 import TaskProgressBar from '@/components/dropdowns/TaskProgressBar.vue'
 import Dropdown from '@/components/dropdowns/Dropdown.vue'
 import { useTabStore } from '@/data/tabStore'
+import { useColumnStore } from '@/data/columnStore'
+import SelectionStamp from '../selection/SelectionStamp.vue'
 import TabPanel from './TabPanel.vue'
 
 const { locale } = useI18n()
 const project = useProjectStore()
 const panoptic = usePanopticStore()
 const tab = useTabStore()
+const col = useColumnStore()
 
 const langs = ['fr', 'en']
 
 const projectName = computed(() => project.state?.name ?? '')
 const currentUser = computed(() => panoptic.connectionState?.user?.name ?? null)
+
+// Global selection ids, reactive via selectionVersion.
+const selectedImageIds = computed(() => { col.selectionVersion.value; return col.getSelectedIds() })
+const hasSelectedImages = computed(() => selectedImageIds.value.length)
+
+function clearSelection() {
+    tab.activeManager?.collection.groupManager.clearSelection()
+}
 
 function onChangeLang(event: Event) {
     const lang = (event.target as HTMLSelectElement).value
@@ -70,6 +81,9 @@ function closeProject() {
         <!-- Right: current user + notifications + language -->
         <div class="bar-group" style="margin-left: auto;">
 
+            <SelectionStamp v-if="hasSelectedImages" style="font-size: 14px;"
+                :selected-images-ids="selectedImageIds" @remove:selected="clearSelection"
+                @stamped="clearSelection" />
             <TabPanel />
             <span v-if="currentUser" class="user-name" :title="currentUser">
                 <i class="bi bi-person-circle"></i>

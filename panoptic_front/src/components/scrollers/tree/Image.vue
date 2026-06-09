@@ -107,7 +107,8 @@ const score = computed(() => {
 
         <div class="prop-container" v-if="props.properties.length && !props.hideProperties && instanceId !== undefined">
             <div v-for="property, index in props.properties" :key="property.id">
-                <div class="custom-hr ms-2 me-2" v-if="index > 0"></div>
+                <!-- <div class="custom-hr ms-2 me-2" v-if="index > 0"></div> -->
+                <div style="height: 1px;" v-if="index > 0"></div>
                 <TreePropertyInput
                     :group-id="props.image.groupId"
                     :input-key="inputKey"
@@ -161,6 +162,7 @@ const score = computed(() => {
 
 .img-border {
     border: 1px solid var(--border-color);
+    border-radius: 3px;
 }
 
 .img-container {
