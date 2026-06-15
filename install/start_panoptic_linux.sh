@@ -29,7 +29,8 @@ uv pip install pip
 # Vérifier si panoptic est installé, sinon l'installer
 if ! uv pip show panoptic &> /dev/null; then
     echo "Installation de panoptic..."
-    uv pip install panoptic
+    # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
+    uv pip install "${PANOPTIC_PACKAGE:-panoptic}"
     
     read -p "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme: (O/N) " with_cuda
     with_cuda=$(echo "$with_cuda" | tr '[:upper:]' '[:lower:]')
@@ -70,4 +71,9 @@ else
     echo "La dernière version de panoptic est déjà installée."
 fi
 echo "Lancement de panoptic..."
-uv run .venv/bin/panoptic
+# En CI/test (PANOPTIC_INSTALL_TEST=1), on vérifie l'installation sans démarrer le serveur.
+if [ "$PANOPTIC_INSTALL_TEST" = "1" ]; then
+    uv run .venv/bin/panoptic --dry
+else
+    uv run .venv/bin/panoptic
+fi

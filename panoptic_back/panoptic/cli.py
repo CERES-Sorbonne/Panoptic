@@ -16,8 +16,9 @@ PLUGIN_TYPE_CHOICES = [pt.value for pt in PluginType]
 @click.group(invoke_without_command=True)
 @click.option('--test', is_flag=True, help='Start with temp directory')
 @click.option('--install', is_flag=True, help='Install vision plugin')
+@click.option('--dry', is_flag=True, help='Run setup then exit without starting the server (CI checks)')
 @click.pass_context
-def cli(ctx, test, install):
+def cli(ctx, test, install, dry):
     """Panoptic CLI
 
     Sans arguments, lance l'API Panoptic.
@@ -30,7 +31,9 @@ def cli(ctx, test, install):
             click.echo("Lancement de l'API en mode test")
         if install:
             click.echo("Installation du plugin vision par défaut...")
-        start_api(test=True if test else False, install=True if install else False)
+        if dry:
+            click.echo("Mode dry : configuration puis arrêt sans démarrer le serveur")
+        start_api(test=True if test else False, install=True if install else False, dry=True if dry else False)
 
 
 @cli.group()

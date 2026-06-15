@@ -1,0 +1,46 @@
+name: Test Installation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'install/**'
+      - '.github/workflows/test-install-scripts.yml'
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      # Force l'install depuis le checkout local pour tester le code de cette branche
+      # (et notamment le flag --dry), au lieu de la version publiée sur PyPI.
+      PANOPTIC_PACKAGE: ${{ github.workspace }}/panoptic_back
+      # Les scripts s'arrêtent après la config (panoptic --dry) au lieu de lancer le serveur.
+      PANOPTIC_INSTALL_TEST: '1'
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      # Réponses simulées aux prompts, dans l'ordre de chaque script :
+      #   Linux   : CUDA=n, téléchargement CLIP=o
+      #   macOS   : dossier d'install=défaut (vide), téléchargement CLIP=o
+      #   Windows : CUDA=n, téléchargement CLIP=o
+      - name: Run Linux install script
+        if: runner.os == 'Linux'
+        run: printf 'n\no\n' | bash install/start_panoptic_linux.sh
+
+      - name: Run macOS install script
+        if: runner.os == 'macOS'
+        run: printf '\no\n' | bash install/start_panoptic_mac.sh
+
+      - name: Run Windows install script
+        if: runner.os == 'Windows'
+        shell: bash
+        run: printf 'n\no\n' | python install/windows/panoptic_launcher_uv.py

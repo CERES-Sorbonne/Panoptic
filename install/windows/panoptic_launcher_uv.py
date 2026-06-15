@@ -40,7 +40,8 @@ run_command("uv pip install pip")
 
 # Vérifier si panoptic est installé, sinon l'installer
 if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
-    run_command("uv pip install panoptic")
+    # PANOPTIC_PACKAGE permet de surcharger la source (ex. checkout local en CI).
+    run_command(f'uv pip install "{os.environ.get("PANOPTIC_PACKAGE", "panoptic")}"')
     with_cuda = input(
         "Si vous possédez une carte graphique NVIDIA vous pouvez également installer une version optimisée mais plus lourde du programme : (o/n) : ").strip().lower()
     if with_cuda == 'o':
@@ -62,7 +63,11 @@ else:
     print("La dernière version de panoptic est déjà installée.")
 
 
-run_command("uv run panoptic")
+# En CI/test (PANOPTIC_INSTALL_TEST=1), on vérifie l'installation sans démarrer le serveur.
+if os.environ.get("PANOPTIC_INSTALL_TEST") == "1":
+    run_command("uv run panoptic --dry")
+else:
+    run_command("uv run panoptic")
 
 # Activer l'environnement virtuel et lancer panoptic
 # venv_activate = panoptic_dir / ".venv" / "Scripts" / "activate"

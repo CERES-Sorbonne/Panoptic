@@ -22,7 +22,7 @@ from panoptic.routes.project_routes import project_router
 from panoptic.utils import get_base_path
 
 
-def start_api(install=False):
+def start_api(install=False, dry=False):
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
@@ -86,6 +86,14 @@ def start_api(install=False):
 
     set_server(server)
 
+    # En mode dry, la configuration et l'installation des plugins ont été
+    # effectuées : on s'arrête avant de monter le front et de lancer le serveur
+    # (utile en CI, n'exige pas que le front soit déjà build).
+    if dry:
+        print("Mode dry : configuration terminée, arrêt sans lancer le serveur.")
+        panoptic.close()
+        return
+
     app.mount("/", StaticFiles(directory=os.path.join(BASE_PATH, "html"), html=True), name="static")
 
     dev_url = 'http://localhost:5173/'
@@ -100,13 +108,13 @@ def start_api(install=False):
 
     uvicorn.run(app, host=HOST, port=PORT)
 
-def start(test=False, install=False):
+def start(test=False, install=False, dry=False):
     if test:
         with tempfile.TemporaryDirectory() as tmpdir:
             os.environ['PANOPTIC_DATA_DIR'] = tmpdir
-            start_api(install)
+            start_api(install, dry=dry)
     else:
-        start_api()
+        start_api(dry=dry)
 
 if __name__ == '__main__':
     # start(sys.argv[1]=="test")
