@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 import click
 from typing import Optional
@@ -13,6 +14,18 @@ panoptic = Panoptic()
 PLUGIN_TYPE_CHOICES = [pt.value for pt in PluginType]
 
 
+def _force_utf8_output():
+    """Force l'UTF-8 sur stdout/stderr.
+    Sur une console Windows non-UTF-8 (cp1252), l'affichage de caractères comme
+    "✓" lève sinon une UnicodeEncodeError.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
+
+
 @click.group(invoke_without_command=True)
 @click.option('--test', is_flag=True, help='Start with temp directory')
 @click.option('--install', is_flag=True, help='Install vision plugin')
@@ -24,6 +37,7 @@ def cli(ctx, test, install, dry):
     Sans arguments, lance l'API Panoptic.
     Avec des commandes, utilise le CLI.
     """
+    _force_utf8_output()
     # Si aucune sous-commande n'est invoquée, lancer l'API
     if ctx.invoked_subcommand is None:
         click.echo("Lancement de Panoptic...")

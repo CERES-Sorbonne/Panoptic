@@ -5,6 +5,11 @@ from pathlib import Path
 
 PYTHON_VERSION = "3.13"
 
+# Forcer l'UTF-8 pour tous les sous-processus Python : sinon la console Windows
+# (cp1252) plante en encodant des caractères comme "✓" affichés par panoptic.
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
 def run_command(command, check=False, capture_output=False, shell=True):
     result = subprocess.run(command, shell=shell, text=True, capture_output=capture_output)
     if check and result.returncode != 0:
