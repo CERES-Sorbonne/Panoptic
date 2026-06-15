@@ -2,10 +2,6 @@ name: Test Installation
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'install/**'
-      - '.github/workflows/test-install-scripts.yml'
 
 jobs:
   test:
