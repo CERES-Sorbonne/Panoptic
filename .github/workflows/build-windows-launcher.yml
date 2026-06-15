@@ -1,0 +1,37 @@
+name: Build Windows launcher
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'install/windows/panoptic_launcher_uv.py'
+
+jobs:
+  build:
+    name: Build panoptic.exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: install/windows
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      # Environnement minimal : un venv isolé ne contenant que pyinstaller,
+      # afin de ne pas embarquer les dépendances de panoptic dans l'exécutable.
+      - name: Create minimal build environment
+        run: |
+          uv venv --python 3.12 .build-venv
+          uv pip install --python .build-venv pyinstaller
+
+      - name: Build executable
+        run: uv run --python .build-venv pyinstaller --onefile --console --icon=panoptic.ico --name panoptic panoptic_launcher_uv.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: panoptic-windows-launcher
+          path: install/windows/dist/panoptic.exe

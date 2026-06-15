@@ -131,5 +131,12 @@ else
 fi
 uv run panoptic plugins add vision
 
+read -p "Voulez-vous télécharger le modèle CLIP maintenant ? (o/n) " with_clip
+with_clip=$(echo "$with_clip" | tr '[:upper:]' '[:lower:]')
+if [ "$with_clip" = "o" ]; then
+    echo "Téléchargement du modèle CLIP (openai/clip-vit-base-patch32)..."
+    uvx --from huggingface_hub hf download openai/clip-vit-base-patch32
+fi
+
 # Lancer Panoptic
 uv run panoptic

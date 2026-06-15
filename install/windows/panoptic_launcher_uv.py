@@ -45,6 +45,10 @@ if run_command("uv pip show panoptic", capture_output=True).returncode != 0:
         run_command("uv pip install torch torchvision --torch-backend=auto")
     print("Installation du plugin de similarité panopticml")
     run_command("uv run panoptic plugins add vision")
+    with_clip = input("Voulez-vous télécharger le modèle CLIP maintenant ? (o/n) : ").strip().lower()
+    if with_clip == 'o':
+        print("Téléchargement du modèle CLIP (openai/clip-vit-base-patch32)...")
+        run_command("uvx --from huggingface_hub hf download openai/clip-vit-base-patch32")
 
 # Vérifier si panoptic est obsolète
 outdated = run_command("uv pip list --outdated", capture_output=True).stdout
