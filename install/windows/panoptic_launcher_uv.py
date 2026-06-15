@@ -3,6 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+PYTHON_VERSION = "3.13"
+
 def run_command(command, check=False, capture_output=False, shell=True):
     result = subprocess.run(command, shell=shell, text=True, capture_output=capture_output)
     if check and result.returncode != 0:
@@ -29,9 +31,9 @@ panoptic_dir = home_dir / "panoptic"
 panoptic_dir.mkdir(exist_ok=True)
 os.chdir(panoptic_dir)
 
-# Créer l'environnement virtuel avec Python 3.12 s'il n'existe pas
+# Créer l'environnement virtuel avec la version de Python configurée s'il n'existe pas
 if not (panoptic_dir / ".venv").exists():
-    run_command("uv venv --python 3.12")
+    run_command(f"uv venv --python {PYTHON_VERSION}")
 
 # Installer la dernière version de pip
 run_command("uv pip install pip")
