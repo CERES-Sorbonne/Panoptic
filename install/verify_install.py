@@ -1,14 +1,3 @@
-"""Vérification post-installation de Panoptic.
-
-Ce script s'exécute à la fin des scripts d'installation pour s'assurer que la
-stack de calcul (torch + panopticml) est non seulement installée mais réellement
-fonctionnelle : on importe torch, puis on charge un CLIPTransformer et on
-vectorise une image de test via sa méthode `.to_vector`.
-
-Le modèle utilisé est celui pré-téléchargé par les scripts d'installation
-(openai/clip-vit-base-patch32).
-"""
-
 import sys
 
 MODEL = "openai/clip-vit-base-patch32"
@@ -24,6 +13,7 @@ def main() -> int:
 
     # 2. panopticml est-il importable ?
     print("Vérification de panopticml...")
+    import panopticml
     from panopticml.compute.transformer import CLIPTransformer
 
     # 3. Vectorisation d'une image de test via CLIPTransformer.to_vector.
