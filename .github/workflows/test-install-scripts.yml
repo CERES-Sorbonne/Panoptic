@@ -43,11 +43,19 @@ jobs:
 
       # Vérifie que la stack de calcul est réellement fonctionnelle après l'install :
       # import de torch puis vectorisation d'une image via CLIPTransformer.to_vector.
-      # On réutilise le venv créé par les scripts d'installation dans ~/panoptic.
-      - name: Verify torch / panopticml install (Unix)
-        if: runner.os != 'Windows'
+      # On réutilise le venv créé par chaque script d'installation. Attention :
+      # son emplacement diffère selon l'OS (le script macOS ne change pas de
+      # répertoire, donc le venv reste à la racine du checkout).
+      - name: Verify torch / panopticml install (Linux)
+        if: runner.os == 'Linux'
         run: |
           cd "$HOME/panoptic"
+          uv run .venv/bin/python "$GITHUB_WORKSPACE/install/verify_install.py"
+
+      - name: Verify torch / panopticml install (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd "$GITHUB_WORKSPACE"
           uv run .venv/bin/python "$GITHUB_WORKSPACE/install/verify_install.py"
 
       - name: Verify torch / panopticml install (Windows)
