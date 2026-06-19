@@ -40,3 +40,19 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: printf 'n\no\n' | python install/windows/panoptic_launcher_uv.py
+
+      # Vérifie que la stack de calcul est réellement fonctionnelle après l'install :
+      # import de torch puis vectorisation d'une image via CLIPTransformer.to_vector.
+      # On réutilise le venv créé par les scripts d'installation dans ~/panoptic.
+      - name: Verify torch / panopticml install (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd "$HOME/panoptic"
+          uv run .venv/bin/python "$GITHUB_WORKSPACE/install/verify_install.py"
+
+      - name: Verify torch / panopticml install (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cd "$HOME/panoptic"
+          uv run .venv/Scripts/python "$GITHUB_WORKSPACE/install/verify_install.py"
