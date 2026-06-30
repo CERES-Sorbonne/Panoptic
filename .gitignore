@@ -1,6 +1,8 @@
 #Plugins
 PanopticML
 
+.claude/
+
 # Logs
 logs
 *.log
