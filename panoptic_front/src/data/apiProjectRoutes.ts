@@ -161,6 +161,11 @@ export const apiGetFolders = async () => {
     return keysToCamel(res.data)
 }
 
+export const apiGetFileSources = async () => {
+    let res = await projectApi.get('/file_sources')
+    return keysToCamel(res.data)
+}
+
 export const apiGetTagCounts = async (propertyId?: number) => {
     const params = propertyId !== undefined ? { property_id: propertyId } : {}
     const res = await projectApi.get('/tags/counts', { params })
@@ -179,6 +184,11 @@ export const apiImportFolder = async () => {
 
 export async function apiDeleteFolder(folderId: number) {
     let res = await projectApi.delete('/folder', { params: { folder_id: folderId } })
+    return keysToCamel(res.data)
+}
+
+export async function apiDeleteFileSource(sourceId: number) {
+    let res = await projectApi.delete('/file_source', { params: { source_id: sourceId } })
     return keysToCamel(res.data)
 }
 

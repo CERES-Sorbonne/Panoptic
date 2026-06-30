@@ -1,6 +1,7 @@
 import collections
 import logging
 import threading
+import time
 from collections import defaultdict
 from typing import Callable
 
@@ -80,6 +81,7 @@ class TaskManager:
 
     def _run_wrapper(self, task: Task):
         task.state.running = True
+        task.state.started_at = time.monotonic()
         self._emit()
         try:
             task.start()

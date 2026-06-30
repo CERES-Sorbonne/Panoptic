@@ -161,7 +161,7 @@ class DataWriter(SQLiteWriter):
             return sources[0].id
         commit = UpsertCommit()
         commit.file_sources[fs_id] = FileSource(
-            id=fs_id, dtype='local', name='local_filesystem', root_url=None,
+            id=fs_id, dtype='local', name='local_filesystem', root_url=None, metadata=None,
         )
         self.add_structural(file_sources=list(commit.file_sources.values()))
         return fs_id

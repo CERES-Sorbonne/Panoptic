@@ -446,7 +446,7 @@ class DataReader(SQLiteReader):
         or None if the sha1 has no resolvable file.
         """
         row = self.conn.execute(
-            "SELECT fo.path, f.name, fs.dtype"
+            "SELECT fo.path, f.name, fs.dtype, fs.id"
             " FROM files f"
             " JOIN folders fo ON fo.id = f.folder_id"
             " JOIN file_sources fs ON fs.id = fo.source_id"
@@ -456,12 +456,12 @@ class DataReader(SQLiteReader):
         ).fetchone()
         if not row:
             return None
-        path, name, dtype = row[0], row[1], row[2]
+        path, name, dtype, source_id = row[0], row[1], row[2], row[3]
 
         if dtype == 'iiif':
             # file.name holds the full, directly-fetchable image URL (built at import
             # time with the version-correct Image API params).
-            return {'kind': 'iiif', 'url': name}
+            return {'kind': 'iiif', 'url': name, 'source_id': source_id}
 
         if path is None:
             return None

@@ -39,6 +39,10 @@
                 "del": "Remove",
                 "del_alert": "Removing this folder will delete every images from this folder from panoptic"
             },
+            "fileSources": {
+                "del": "Remove",
+                "del_alert": "Removing this file source will delete every image from this source from panoptic"
+            },
             "tasks": {
                 "title": "Background task",
                 "done": "Done"

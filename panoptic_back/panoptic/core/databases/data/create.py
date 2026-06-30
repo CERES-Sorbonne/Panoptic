@@ -203,9 +203,22 @@ def _migrate_v6_to_v7(writer):
     _make_structural_unlogged(writer)
 
 
+def _migrate_v7_to_v8(writer):
+    """Add metadata column to file_sources for source-specific configuration.
+
+    Stores JSON configuration per source type (e.g., IIIF auth, rate limits).
+    """
+    if writer._table_exists('file_sources'):
+        # Check if metadata column already exists
+        cols = [r[1] for r in writer.conn.execute("PRAGMA table_info(file_sources)")]
+        if 'metadata' not in cols:
+            writer.conn.execute("ALTER TABLE file_sources ADD COLUMN metadata TEXT")
+
+
 datastore_desc = DbDescription(
-    version=7,
+    version=8,
     tables=tables_config,
     migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4,
-                4: _migrate_v4_to_v5, 5: _migrate_v5_to_v6, 6: _migrate_v6_to_v7},
+                4: _migrate_v4_to_v5, 5: _migrate_v5_to_v6, 6: _migrate_v6_to_v7,
+                7: _migrate_v7_to_v8},
 )

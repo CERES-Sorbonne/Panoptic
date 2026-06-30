@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, triggerRef } from 'vue'
 import {
-    CommitHistory, DbCommit, FilePropertyValue, FileSourceIndex, FileValuesArray, Folder, FolderNode, FolderIndex,
+    CommitHistory, DbCommit, FilePropertyValue, FileSource, FileSourceIndex, FileValuesArray, Folder, FolderNode, FolderIndex,
     ImagePropertyValue, ImageValuesArray, Instance, InstancePropertyValue, InstanceValuesArray,
     LoadResult, Property, PropertyGroup, PropertyGroupId, PropertyGroupIndex,
     PropertyGroupNode, PropertyGroupOrder, PropertyIndex, PropertyMode, PropertyType,
@@ -9,8 +9,8 @@ import {
 } from './models'
 import { buildPropertyGroupOrder, objValues } from './builder'
 import {
-    apiAddFolder, apiImportIiif, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder,
-    apiGetFolders, apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
+    apiAddFolder, apiImportIiif, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder, apiDeleteFileSource,
+    apiGetFolders, apiGetFileSources, apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
     apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
     apiUndo,
 } from './apiProjectRoutes'
@@ -108,6 +108,12 @@ export const useDataStore = defineStore('dataStore', () => {
             if (f.id in folders.value) f.count = folders.value[f.id].count
         }
         folders.value = updatedNodes
+    }
+
+    function importFileSources(sourceList: FileSource[]) {
+        const index: FileSourceIndex = {}
+        for (const fs of sourceList) index[fs.id] = fs
+        fileSources.value = index
     }
 
     function importProperties(toImport: any[]) {
@@ -289,12 +295,17 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     // Re-fetch the full folder tree (to surface newly imported folders) and refresh counts.
-    // Folders are structural and not delta-synced, so this is triggered around imports.
+    // Folders and file sources are structural and not delta-synced, so this is triggered
+    // around imports.
     async function reloadFolders() {
         try {
             const folderList = await apiGetFolders()
             importFolders(folderList)
             await fetchFolderCounts()
+        } catch {}
+        try {
+            const sourceList = await apiGetFileSources()
+            importFileSources(sourceList)
         } catch {}
     }
 
@@ -305,11 +316,7 @@ export const useDataStore = defineStore('dataStore', () => {
         baseUrl.value    = `${SERVER_PREFIX}/projects/${projectId}/`
 
         const initData = await apiGetInitState()
-        if (initData.fileSources?.length) {
-            for (const fs of initData.fileSources) {
-                fileSources.value[fs.id] = fs
-            }
-        }
+        if (initData.fileSources?.length) importFileSources(initData.fileSources)
         if (initData.folders?.length)        importFolders(initData.folders)
         if (initData.properties?.length)     importProperties(initData.properties)
         if (initData.propertyGroups?.length) importPropertyGroups(initData.propertyGroups)
@@ -568,6 +575,11 @@ export const useDataStore = defineStore('dataStore', () => {
         if (res?.reload) location.reload()
     }
 
+    async function deleteFileSource(sourceId: number) {
+        const res = await apiDeleteFileSource(sourceId)
+        if (res?.reload) location.reload()
+    }
+
     async function undo() {
         if (!history.value.undo.length) return
         const commit = await apiUndo()
@@ -695,14 +707,14 @@ export const useDataStore = defineStore('dataStore', () => {
         get onSelectionChange() { return columnStore.onSelectionChange },
 
         onUndo, baseImgUrl, baseUrl,
-        addFolder, importIiif, reImportFolder, deleteFolder,
+        addFolder, importIiif, reImportFolder, deleteFolder, deleteFileSource,
         addProperty, updateProperty, deleteProperty,
         setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, addTagParent, deleteTagParent, updateTag, deleteTag, mergeTags,
         addPropertyGroup, updatePropertyGroup, deletePropertyGroup,
         deleteEmptyClones, undo, redo,
         triggerPropertyTreeChange, computePropertyTree,
-        importFolders,
+        importFolders, importFileSources,
         propertyList, getProperty,
 
         getSysField, getSysId

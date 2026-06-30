@@ -39,6 +39,10 @@
                 "del": "Retirer",
                 "del_alert": "Retirer le dossier supprimera toutes les instances associées aux images contenues dans le dossier."
             },
+            "fileSources": {
+                "del": "Retirer",
+                "del_alert": "Retirer la source supprimera toutes les instances associées aux images contenues dans cette source."
+            },
             "tasks": {
                 "title": "Tâche de fond",
                 "done": "Fini"

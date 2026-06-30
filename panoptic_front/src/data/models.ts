@@ -361,6 +361,13 @@ export interface TaskState {
     remain: number
     running: boolean
     finished: boolean
+    step?: string | null
+    detail?: string | null
+    workers?: number | null
+    started_at?: number | null
+    elapsed?: number | null
+    rate?: number | null
+    eta_seconds?: number | null
 }
 
 export interface SyncResult {

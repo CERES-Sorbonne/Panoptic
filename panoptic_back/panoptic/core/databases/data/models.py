@@ -23,6 +23,7 @@ class FileSource(msgspec.Struct, array_like=True):
     dtype: str
     name: Optional[str]
     root_url: Optional[str]
+    metadata: Optional[dict] = None
 
 class Folder(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]

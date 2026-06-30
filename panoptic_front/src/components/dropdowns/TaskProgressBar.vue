@@ -25,12 +25,28 @@ function taskPct(t: TaskState) {
     if (!t.total) return 0
     return Math.min(100, Math.round((t.done / t.total) * 100))
 }
+
+function taskSubtitle(t: TaskState) {
+    const parts: string[] = []
+    if (t.step) parts.push(t.detail ? `${t.step}: ${t.detail}` : t.step)
+    if (t.workers) parts.push(`${t.workers} workers`)
+    if (t.rate) parts.push(`${t.rate.toFixed(1)}/s`)
+    if (t.eta_seconds) parts.push(`${formatEta(t.eta_seconds)} left`)
+    return parts.join(' · ')
+}
+
+function formatEta(seconds: number) {
+    if (seconds < 60) return `${Math.round(seconds)}s`
+    const minutes = Math.round(seconds / 60)
+    if (minutes < 60) return `${minutes}m`
+    return `${Math.round(minutes / 60)}h`
+}
 </script>
 
 <template>
     <Dropdown v-if="showAny" placement="bottom" :offset="6">
         <template #button>
-            <div class="task-progress-btn" :title="activePrimary?.name">
+            <div class="task-progress-btn" :title="activePrimary ? taskSubtitle(activePrimary) || activePrimary.name : ''">
                 <i class="bi bi-cpu me-1" style="color: black;" />
                 <span v-if="activePrimary" class="task-progress-name">{{ activePrimary.name }}</span>
                 <span v-else class="task-progress-name">Tasks</span>
@@ -50,6 +66,7 @@ function taskPct(t: TaskState) {
                         <span class="task-row-counts">{{ t.done }}/{{ t.total }}</span>
                         <span v-if="t.failed > 0" class="task-row-failed">{{ t.failed }} failed</span>
                     </div>
+                    <div v-if="taskSubtitle(t)" class="task-row-subtitle">{{ taskSubtitle(t) }}</div>
                     <div class="task-row-track">
                         <div class="task-row-fill" :style="{ width: taskPct(t) + '%' }" />
                         <div v-if="t.failed > 0" class="task-row-fill task-row-fill--danger"
@@ -178,6 +195,15 @@ function taskPct(t: TaskState) {
 .task-row-counts {
     font-size: 11px;
     color: #888;
+    white-space: nowrap;
+}
+
+.task-row-subtitle {
+    font-size: 10px;
+    color: #999;
+    margin: -2px 0 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

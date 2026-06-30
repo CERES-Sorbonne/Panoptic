@@ -504,12 +504,33 @@ class Project:
     # ------------------------------------------------------------------
 
     def import_folder(self, path: str) -> Task:
-        from panoptic.core.task.import_folder_task import ImportFolderTask
-        return self.add_task(ImportFolderTask(self, path))
+        from panoptic.core.file_source.local_reader import LocalFileSourceReader
+        from panoptic.core.task.import_source_task import ImportSourceTask
+        reader = LocalFileSourceReader(self, path)
+        return self.add_task(ImportSourceTask(self, reader, commit_source='import'))
 
     def import_iiif(self, manifest_url: str) -> Task:
-        from panoptic.core.task.iiif_import_task import IIIFImportTask
-        return self.add_task(IIIFImportTask(self, manifest_url))
+        return self.import_iiif_with_config(manifest_url)
+
+    def import_iiif_with_config(self, manifest_url: str, config=None) -> Task:
+        from panoptic.core.file_source.iiif_config import IIIFSourceConfig
+        from panoptic.core.file_source.iiif_reader import IIIFFileSourceReader
+        from panoptic.core.task.import_source_task import ImportSourceTask
+        if config is None:
+            config = IIIFSourceConfig()
+        elif not isinstance(config, IIIFSourceConfig):
+            config = IIIFSourceConfig.from_dict(config)
+        reader = IIIFFileSourceReader(self, manifest_url, config=config)
+        return self.add_task(ImportSourceTask(self, reader, commit_source='iiif_import'))
+
+    def get_file_source_reader(self, file_source_id: int):
+        """Reader bound to an existing FileSource row — for fetching bytes outside
+        an import (e.g. the /image/raw serve proxy)."""
+        from panoptic.core.file_source.registry import get_reader_for_source
+        source = next((s for s in self.get_file_sources() if s.id == file_source_id), None)
+        if source is None:
+            return None
+        return get_reader_for_source(self, source)
 
     def add_task(self, task: Task, high_priority: bool = False) -> Task:
         return self.task_manager.add_task(task, high_priority=high_priority)

@@ -32,6 +32,7 @@ class LoadPluginTask(Task):
         for key in self._plugin_keys:
             if self._cancel_event.is_set():
                 break
+            self.set_step('Loading plugin', detail=key.id)
             try:
                 module = _import_plugin(key)
                 interface = self._project.make_plugin_interface(key.id)

@@ -24,6 +24,16 @@ class Task(ABC):
     def stop(self):
         self._cancel_event.set()
 
+    def set_step(self, step: str, detail: str | None = None):
+        """Update the task's current phase, e.g. 'Scanning folder structure', 'Loading plugin'."""
+        self.state.step = step
+        self.state.detail = detail
+        self._notify()
+
+    def set_workers(self, workers: int):
+        self.state.workers = workers
+        self._notify()
+
     def wait(self):
         self._finished_event.wait()
 

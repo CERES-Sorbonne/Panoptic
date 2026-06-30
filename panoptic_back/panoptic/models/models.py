@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 
 class PropertyType(Enum):
@@ -77,12 +78,46 @@ class TaskState(BaseModel):
     running: bool = False
     finished: bool = False
 
+    # Current phase, e.g. "Scanning folder structure", "Loading plugin"
+    step: str | None = None
+    # Free-form detail about what's happening right now, e.g. a plugin id or filename
+    detail: str | None = None
+    # Active parallel workers, only meaningful for tasks that parallelize work
+    workers: int | None = None
+    # Monotonic timestamp set by TaskManager when the task starts running
+    started_at: float | None = None
+
+    @computed_field
     @property
     def remain(self) -> int:
         return self.total - self.done - self.failed
 
+    @computed_field
+    @property
+    def elapsed(self) -> float | None:
+        if self.started_at is None:
+            return None
+        return time.monotonic() - self.started_at
+
+    @computed_field
+    @property
+    def rate(self) -> float | None:
+        """Items done per second, or None if not enough information yet."""
+        elapsed = self.elapsed
+        if not elapsed or elapsed <= 0:
+            return None
+        return self.done / elapsed
+
+    @computed_field
+    @property
+    def eta_seconds(self) -> float | None:
+        rate = self.rate
+        if not rate:
+            return None
+        return self.remain / rate
+
     def to_dict(self) -> dict:
-        return self.model_dump()
+        return self.model_dump(mode='json')
 
 
 class ProjectSettings(BaseModel):

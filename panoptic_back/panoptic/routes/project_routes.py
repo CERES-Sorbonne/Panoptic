@@ -481,6 +481,11 @@ def get_folders(project: Project = Depends(_dep)):
     return _json([_db_to_dict(f) for f in project.get_folders()])
 
 
+@project_router.get('/file_sources')
+def get_file_sources(project: Project = Depends(_dep)):
+    return _json([_db_to_dict(fs) for fs in project.get_file_sources()])
+
+
 @project_router.get('/folders/counts')
 def get_folder_counts(project: Project = Depends(_dep)):
     return project.count_instances_per_folder()
@@ -504,11 +509,112 @@ class _UrlRequest(BaseModel):
     url: str
 
 
+class _IIIFImportRequest(BaseModel):
+    url: str
+    auth: Optional[dict] = None
+    headers: Optional[dict] = None
+
+
 @project_router.post('/import/iiif')
-def import_iiif(req: _UrlRequest, project: Project = Depends(_dep)):
-    """Import a IIIF Collection/Manifest URL as a new (or refreshed) file source."""
-    project.import_iiif(req.url)
+def import_iiif(req: _IIIFImportRequest, project: Project = Depends(_dep)):
+    """Import a IIIF Collection/Manifest URL as a new (or refreshed) file source.
+
+    Optionally include auth credentials and custom headers:
+    {
+        "url": "https://example.org/manifest.json",
+        "auth": {
+            "type": "bearer",
+            "token": "api-key"
+        },
+        "headers": {
+            "X-Custom": "value"
+        }
+    }
+    """
+    from panoptic.core.file_source.iiif_config import IIIFSourceConfig
+    config = IIIFSourceConfig.from_dict({
+        'auth': req.auth or {},
+        'headers': req.headers or {},
+    })
+    project.import_iiif_with_config(req.url, config)
     return _json(project.get_file_sources())
+
+
+@project_router.post('/iiif/test')
+def test_iiif_connection(req: _IIIFImportRequest, project: Project = Depends(_dep)):
+    """Test IIIF manifest/collection URL and return metadata.
+
+    Optionally include auth credentials:
+    {
+        "url": "https://example.org/manifest.json",
+        "auth": {
+            "type": "bearer",
+            "token": "api-key"
+        },
+        "headers": {
+            "X-Custom": "value"
+        }
+    }
+    """
+    import httpx
+    from panoptic.core.file_source.iiif_config import IIIFSourceConfig
+    from panoptic.core.file_source.iiif_reader import HTTP_HEADERS, IIIFFileSourceReader, _get_with_retry
+
+    url = req.url.strip()
+    if not url:
+        return _json({'success': False, 'error': 'URL is required'})
+
+    # Apply auth and custom headers from config (same headers/config shape as a real import)
+    config = IIIFSourceConfig.from_dict({
+        'auth': req.auth or {},
+        'headers': req.headers or {},
+    })
+    headers = config.apply_all_headers(dict(HTTP_HEADERS))
+
+    try:
+        # Fetch the manifest with retries
+        try:
+            resp = _get_with_retry(url, headers)
+        except httpx.HTTPStatusError as e:
+            return _json({
+                'success': False,
+                'error': f'HTTP {e.response.status_code}: {e.response.reason_phrase}',
+            })
+
+        # Verify response is JSON
+        try:
+            entry = resp.json()
+        except Exception as e:
+            return _json({
+                'success': False,
+                'error': f'Response is not valid JSON: {str(e)[:100]}',
+            })
+
+        # Same parsing IIIFFileSourceReader uses at import time, so this preview
+        # can't drift from what an actual import would see.
+        version = IIIFFileSourceReader._detect_version(entry)
+        node_type = IIIFFileSourceReader._node_type(entry)
+        item_count = (
+            len(IIIFFileSourceReader._collection_children(entry, version))
+            if node_type == 'Collection'
+            else len(IIIFFileSourceReader._manifest_canvases(entry, version))
+        )
+
+        return _json({
+            'success': True,
+            'title': IIIFFileSourceReader._node_id(entry),
+            'label': IIIFFileSourceReader._label(entry, version),
+            'version': version,
+            'type': node_type,
+            'itemCount': item_count,
+        })
+
+    except Exception as e:
+        logger.exception('IIIF test endpoint error: %s', e)
+        return _json({
+            'success': False,
+            'error': f'Error testing connection: {str(e)[:100]}',
+        })
 
 
 @project_router.post('/reimport_folder')
@@ -529,6 +635,12 @@ def delete_folder(folder_id: int, project: Project = Depends(_dep)):
     # per-instance values + logs, and GCs orphaned sha1/file rows and media. Structural
     # deletes are not undoable, so the frontend should full-reload.
     project.delete_folders([folder_id])
+    return {'ok': True, 'reload': True}
+
+
+@project_router.delete('/file_source')
+def delete_file_source(source_id: int, project: Project = Depends(_dep)):
+    project.delete_file_sources([source_id])
     return {'ok': True, 'reload': True}
 
 
@@ -1061,8 +1173,8 @@ def get_image_large(sha1: str, project: Project = Depends(_dep)):
 @project_router.get('/image/raw/{sha1:path}')
 async def get_image_raw(sha1: str, project: Project = Depends(_dep)):
     from pathlib import Path
+    from starlette.concurrency import run_in_threadpool
     from starlette.responses import FileResponse as FR
-    import httpx
 
     ref = project.resolve_image_ref(sha1)
     if ref and ref['kind'] == 'local':
@@ -1070,14 +1182,12 @@ async def get_image_raw(sha1: str, project: Project = Depends(_dep)):
             return FR(ref['path'])
     elif ref and ref['kind'] == 'iiif':
         try:
-            # A browser-like UA avoids 403s from hosts like Gallica/BnF.
-            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
-                       'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'}
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-                r = await client.get(ref['url'], headers=headers)
-            if r.status_code == 200:
-                media_type = r.headers.get('content-type', 'image/jpeg')
-                return Response(r.content, media_type=media_type)
+            # Same retry/rate-limit/auth-header treatment as import (the reader is
+            # shared), so authenticated or strict-host sources don't 403 here even
+            # though they imported fine.
+            reader = project.get_file_source_reader(ref['source_id'])
+            data = await run_in_threadpool(reader.fetch_bytes, ref['url'])
+            return Response(data, media_type='image/jpeg')
         except Exception:
             logger.exception('IIIF proxy failed for %s', ref['url'])
 
