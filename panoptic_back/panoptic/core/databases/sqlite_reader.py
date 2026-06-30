@@ -31,10 +31,8 @@ class SQLiteReader:
         if not self.db_path.exists():
             raise FileNotFoundError(f"Database not found at {self.db_path}")
 
-        # Opening in Read-Only mode with URI
         self.conn = sqlite3.connect(
-            f"file:{self.db_path}?mode=ro",
-            uri=True,
+            str(self.db_path),
             timeout=self.timeout,
             detect_types=sqlite3.PARSE_DECLTYPES,
             check_same_thread=False,
@@ -44,7 +42,7 @@ class SQLiteReader:
         # which is the fastest format for msgspec.convert.
         self.conn.row_factory = None
 
-        # Optimization pragmas
+        # query_only prevents accidental writes; checkpoint still works.
         self.conn.execute('PRAGMA query_only = ON;')
         self.conn.execute("PRAGMA cache_size = -100000")  # 100MB cache
         self.conn.execute("PRAGMA temp_store = MEMORY")
@@ -53,6 +51,8 @@ class SQLiteReader:
 
     def close(self):
         if self.conn:
+            self.conn.execute('PRAGMA query_only = OFF;')
+            self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             self.conn.close()
             self.is_loaded = False
 

@@ -10,7 +10,7 @@ from panoptic.core.databases.entity_schema import EntitySchema, PropertyValueSch
 from panoptic.core.databases.sqlite_db import SQLiteWriter
 from panoptic.models.models import PropertyType
 from panoptic.core.databases.data.models import (
-    Commit, DeleteCommit, UpsertCommit, DataCommit, Property, Tag, PropertyGroup,
+    Commit, DeleteCommit, UpsertCommit, DataCommit, FileSource, Property, Tag, PropertyGroup,
     InstanceValue, Sha1Value, FileValue, InstanceTagValue, Sha1TagValue,
 )
 
@@ -154,6 +154,17 @@ class DataWriter(SQLiteWriter):
                 FILES_SCHEMA.upsert(tx, files, sequence=seq)
             if instances:
                 INSTANCES_SCHEMA.upsert(tx, instances, sequence=seq)
+
+    def get_or_create_local_file_source(self, fs_id: int) -> int:
+        sources = FILE_SOURCES_SCHEMA.get(self.conn, dtype='local')
+        if sources:
+            return sources[0].id
+        commit = UpsertCommit()
+        commit.file_sources[fs_id] = FileSource(
+            id=fs_id, dtype='local', name='local_filesystem', root_url=None,
+        )
+        self.add_structural(file_sources=list(commit.file_sources.values()))
+        return fs_id
 
     def delete_instances(self, instance_ids: list[int]) -> dict:
         with self.transaction() as tx:

@@ -217,7 +217,7 @@ class ImportFolderTask(Task):
             return path_to_id
 
         project  = self._project
-        fs_id    = project.local_fs_id
+        fs_id    = project.ensure_local_file_source()
         id_range = project.allocate_folders(len(new_nodes))
         if isinstance(id_range, int):
             id_range = range(id_range, id_range + 1)

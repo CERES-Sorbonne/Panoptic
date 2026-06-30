@@ -181,12 +181,12 @@ export const useTabStore = defineStore('tabStore', () => {
         tab.id = id
         if (name) tab.name = name
         importTab(tab)
+        managers[id].isNew = true
+        await selectMainTab(id)
         await Promise.all([
             apiCreateTab(id, tab, selection),
             saveTabOrder(),
         ])
-        managers[id].isNew = true
-        await selectMainTab(id)
         return tab
     }
 

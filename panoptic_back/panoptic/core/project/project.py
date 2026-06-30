@@ -71,7 +71,6 @@ class Project:
         self._ensure_default_image_types()
         self._image_types = self._media.get_image_types()
         self._ensure_system_properties()
-        self._ensure_local_file_source()
         if self._plugin_keys:
             from panoptic.core.plugin.load_plugin_task import LoadPluginTask
             self.task_manager.add_task(LoadPluginTask(self, self._plugin_keys))
@@ -127,19 +126,13 @@ class Project:
                 )
             self.apply_upsert_commit('system', commit)
 
-    def _ensure_local_file_source(self):
-        sources = self.get_file_sources()
-        local = next((s for s in sources if s.dtype == 'local'), None)
-        if local:
-            self._local_fs_id = local.id
-            return
+    def ensure_local_file_source(self) -> int:
+        if self._local_fs_id is not None:
+            return self._local_fs_id
         fs_id = self.allocate_file_sources(1)
-        commit = UpsertCommit()
-        commit.file_sources[fs_id] = FileSource(
-            id=fs_id, dtype='local', name='local_filesystem', root_url=None,
-        )
-        self.apply_upsert_commit('system', commit)
-        self._local_fs_id = fs_id
+        with self._data_writer() as w:
+            self._local_fs_id = w.get_or_create_local_file_source(fs_id)
+        return self._local_fs_id
 
     @property
     def local_fs_id(self) -> int:

@@ -15,8 +15,19 @@ class SQLiteWriter:
         self.db_path = Path(path)
         self.desc = description
         self.timeout = timeout
+        self.conn = None
+        self.is_loaded = False
 
-        # isolation_level=None is required for manual BEGIN IMMEDIATE transactions
+    def start(self):
+        """
+        Initializes the database: opens connection, runs pragmas, versioning,
+        recursive migrations, and missing table creation.
+        """
+        if self.is_loaded:
+            return
+
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
         self.conn = sqlite3.connect(
             str(self.db_path),
             timeout=self.timeout,
@@ -24,23 +35,11 @@ class SQLiteWriter:
             detect_types=sqlite3.PARSE_DECLTYPES,
             check_same_thread=False,
         )
-        self.is_loaded = False
-
-        self.conn.execute("PRAGMA journal_mode = WAL")
-        self.conn.execute("PRAGMA synchronous = NORMAL")
-        self.conn.execute("PRAGMA temp_store = MEMORY")
-
-    def start(self):
-        """
-        Initializes the database: pragmas, versioning, recursive migrations,
-        and missing table creation.
-        """
-        # Ensure the directory exists
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 1. Configure Concurrency & Safety
         self.conn.execute('PRAGMA journal_mode=WAL;')
         self.conn.execute('PRAGMA synchronous=NORMAL;')
+        self.conn.execute('PRAGMA temp_store=MEMORY;')
         self.conn.execute('PRAGMA foreign_keys=1;')
 
         # 2. Setup Versioning & Handle Migrations
