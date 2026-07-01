@@ -364,11 +364,18 @@ export const useDataStore = defineStore('dataStore', () => {
         fileValues?: FilePropertyValue[],
     ) {
         const col = columnStore
+        // Also write straight into instanceStore's per-instance `properties` snapshot:
+        // DBInput.loadValue() reads that snapshot right after this resolves, and it's
+        // otherwise only refreshed by the next websocket delta — without this, the cell
+        // races the delta and can snap back to the pre-edit value.
         instanceValues?.forEach(v => {
             const slot = col.slotMap.get(v.instanceId)
             if (slot !== undefined) {
                 col.writeSlot(v.propertyId, slot, v.value)
                 dirtyInstances.add(v.instanceId)
+            }
+            if (instanceStore.instanceData[v.instanceId]) {
+                instanceStore.instanceData[v.instanceId].properties[v.propertyId] = v.value
             }
         })
         imageValues?.forEach(v => {
@@ -378,6 +385,9 @@ export const useDataStore = defineStore('dataStore', () => {
                     col.writeSlot(v.propertyId, slot, v.value)
                     dirtyInstances.add(id)
                 }
+                if (instanceStore.instanceData[id]) {
+                    instanceStore.instanceData[id].properties[v.propertyId] = v.value
+                }
             })
         })
         fileValues?.forEach(v => {
@@ -386,6 +396,9 @@ export const useDataStore = defineStore('dataStore', () => {
                 if (slot !== undefined) {
                     col.writeSlot(v.propertyId, slot, v.value)
                     dirtyInstances.add(id)
+                }
+                if (instanceStore.instanceData[id]) {
+                    instanceStore.instanceData[id].properties[v.propertyId] = v.value
                 }
             })
         })
@@ -406,7 +419,14 @@ export const useDataStore = defineStore('dataStore', () => {
             commit.emptyFileValues?.length
         )
         let res: DbCommit = {}
-        if (hasUpsert) res = await apiCommitUpsert(commit)
+        if (hasUpsert) {
+            res = await apiCommitUpsert(commit)
+            // The response carries server-assigned ids (e.g. a newly created tag's real
+            // id) and full entity data. Merge it in now instead of waiting on the next
+            // websocket delta, otherwise newly created tags/properties are invisible
+            // (data.tags[id] undefined) until that delta happens to arrive.
+            applyCommit(res)
+        }
         if (hasDelete) {
             const delRes = await apiCommitDelete(commit)
             // Instance (structural) deletes are not delta-synced → full reload.
@@ -416,6 +436,7 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function addTag(propertyId: number, tagValue: string, parentIds?: number[], color = -1): Promise<Tag> {
+        if (color === -1) color = Math.floor(Math.random() * 12)
         const tag: Tag = { id: -1, propertyId, value: tagValue, parents: parentIds ?? [], color }
         const res = await sendCommit({ tags: [tag] })
         return res.tags[0]
@@ -477,17 +498,40 @@ export const useDataStore = defineStore('dataStore', () => {
         }
     }
 
+    // Optimistically writes `value` to every affected instance in instanceStore (the only
+    // store UI inputs/display should read from), marking it 'pending'. Returns the previous
+    // values so the caller can roll back if the commit fails. columnStore is intentionally
+    // left untouched here — it only ever holds backend-confirmed values (used for
+    // filter/sort/group).
+    function _optimisticWrite(propertyId: number, ids: number[], value: any): Map<number, any> {
+        const previous = new Map(ids.map(id => [id, instanceStore.instanceData[id]?.properties[propertyId]]))
+        for (const id of ids) instanceStore.setLocalValue(id, propertyId, value, 'pending')
+        return previous
+    }
+
+    function _rollback(propertyId: number, previous: Map<number, any>) {
+        for (const [id, value] of previous) instanceStore.setLocalValue(id, propertyId, value, 'error')
+    }
+
     async function setPropertyValue(propertyId: number, imgs: Instance[] | Instance, value: any) {
         if (!Array.isArray(imgs)) imgs = [imgs]
         const mode = properties.value[propertyId].mode
         const instanceValues: InstancePropertyValue[] = []
         const imageValues:    ImagePropertyValue[]    = []
         const fileValues:     FilePropertyValue[]     = []
+        const affectedIds = new Set<number>()
+
         if (mode === PropertyMode.id) {
-            instanceValues.push(...imgs.map(i => ({ propertyId, instanceId: i.id, value })))
+            for (const i of imgs) {
+                instanceValues.push({ propertyId, instanceId: i.id, value })
+                affectedIds.add(i.id)
+            }
         }
         if (mode === PropertyMode.sha1) {
-            imageValues.push(...imgs.map(i => ({ propertyId, sha1: (i as any).sha1, value })))
+            for (const i of imgs) {
+                imageValues.push({ propertyId, sha1: (i as any).sha1, value })
+                for (const id of columnStore.getInstancesBySha1((i as any).sha1)) affectedIds.add(id)
+            }
         }
         if (mode === PropertyMode.file) {
             const seen = new Set<number>()
@@ -496,37 +540,93 @@ export const useDataStore = defineStore('dataStore', () => {
                 if (fileId != null && !seen.has(fileId)) {
                     seen.add(fileId)
                     fileValues.push({ propertyId, fileId, value })
+                    for (const id of columnStore.getInstancesByFileId(fileId)) affectedIds.add(id)
                 }
             }
         }
-        await sendCommit({ instanceValues, imageValues, fileValues })
-        applyValuesToColumnStore(instanceValues, imageValues, fileValues)
+
+        const ids = Array.from(affectedIds)
+        const previous = _optimisticWrite(propertyId, ids, value)
+        try {
+            await sendCommit({ instanceValues, imageValues, fileValues })
+            applyValuesToColumnStore(instanceValues, imageValues, fileValues)
+            instanceStore.markConfirmed(ids, [propertyId])
+        } catch (e) {
+            _rollback(propertyId, previous)
+            throw e
+        }
     }
 
     async function setPropertyValues(instanceValues: InstancePropertyValue[], imageValues: ImagePropertyValue[]) {
-        await sendCommit({ instanceValues, imageValues })
-        applyValuesToColumnStore(instanceValues, imageValues)
+        const previousByProp = new Map<number, Map<number, any>>()
+        const idsByProp = new Map<number, Set<number>>()
+
+        const writeOne = (propertyId: number, id: number, value: any) => {
+            if (!idsByProp.has(propertyId)) idsByProp.set(propertyId, new Set())
+            idsByProp.get(propertyId)!.add(id)
+            if (!previousByProp.has(propertyId)) previousByProp.set(propertyId, new Map())
+            const prevMap = previousByProp.get(propertyId)!
+            if (!prevMap.has(id)) prevMap.set(id, instanceStore.instanceData[id]?.properties[propertyId])
+            instanceStore.setLocalValue(id, propertyId, value, 'pending')
+        }
+
+        for (const v of instanceValues) writeOne(v.propertyId, v.instanceId, v.value)
+        for (const v of imageValues) {
+            for (const id of columnStore.getInstancesBySha1(v.sha1)) writeOne(v.propertyId, id, v.value)
+        }
+
+        try {
+            await sendCommit({ instanceValues, imageValues })
+            applyValuesToColumnStore(instanceValues, imageValues)
+            for (const [propertyId, ids] of idsByProp) instanceStore.markConfirmed(Array.from(ids), [propertyId])
+        } catch (e) {
+            for (const [propertyId, previous] of previousByProp) _rollback(propertyId, previous)
+            throw e
+        }
     }
 
     async function setTagPropertyValue(propertyId: number, imgs: Instance[] | Instance, value: any) {
         if (!Array.isArray(imgs)) imgs = [imgs]
         const mode = properties.value[propertyId].mode
+
+        await instanceStore.ensureValues(imgs.map(i => i.id), [propertyId])
+
         if (mode === PropertyMode.id) {
             const values: InstancePropertyValue[] = imgs.map(i => {
-                const slot = columnStore.slotMap.get(i.id)
-                const current: number[] = (slot !== undefined ? columnStore.readSlot(propertyId, slot) : null) ?? []
+                const current: number[] = instanceStore.instanceData[i.id]?.properties[propertyId] ?? []
                 return { propertyId, instanceId: i.id, value: Array.from(new Set([...current, ...value])) }
             })
-            await sendCommit({ instanceValues: values })
-            applyValuesToColumnStore(values)
+            const ids = values.map(v => v.instanceId)
+            const previous = new Map(ids.map(id => [id, instanceStore.instanceData[id]?.properties[propertyId]]))
+            for (const v of values) instanceStore.setLocalValue(v.instanceId, propertyId, v.value, 'pending')
+            try {
+                await sendCommit({ instanceValues: values })
+                applyValuesToColumnStore(values)
+                instanceStore.markConfirmed(ids, [propertyId])
+            } catch (e) {
+                _rollback(propertyId, previous)
+                throw e
+            }
         } else {
             const values: ImagePropertyValue[] = imgs.map(i => {
-                const slot = columnStore.slotMap.get(i.id)
-                const current: number[] = (slot !== undefined ? columnStore.readSlot(propertyId, slot) : null) ?? []
+                const current: number[] = instanceStore.instanceData[i.id]?.properties[propertyId] ?? []
                 return { propertyId, sha1: (i as any).sha1, value: Array.from(new Set([...current, ...value])) }
             })
-            await sendCommit({ imageValues: values })
-            applyValuesToColumnStore(undefined, values)
+            const affectedIds = new Set<number>()
+            for (const v of values) for (const id of columnStore.getInstancesBySha1(v.sha1)) affectedIds.add(id)
+            const ids = Array.from(affectedIds)
+            const previous = new Map(ids.map(id => [id, instanceStore.instanceData[id]?.properties[propertyId]]))
+            for (const v of values) {
+                for (const id of columnStore.getInstancesBySha1(v.sha1)) instanceStore.setLocalValue(id, propertyId, v.value, 'pending')
+            }
+            try {
+                await sendCommit({ imageValues: values })
+                applyValuesToColumnStore(undefined, values)
+                instanceStore.markConfirmed(ids, [propertyId])
+            } catch (e) {
+                _rollback(propertyId, previous)
+                throw e
+            }
         }
     }
 

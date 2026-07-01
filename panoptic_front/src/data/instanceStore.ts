@@ -7,11 +7,14 @@ import { useColumnStore } from './columnStore'
 import { usePanopticStore } from './panopticStore'
 import { useDataStore } from './dataStore' // <-- Imported to access property definitions
 
+export type PropertyValueStatus = 'pending' | 'confirmed' | 'error'
+
 export interface InstanceEntry {
     id: number
     sha1: string
     imageUrl: string
     properties: Record<number, any>
+    propertyStatus: Record<number, PropertyValueStatus>
     selected: boolean
 
     width?: number
@@ -82,6 +85,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
                 sha1,
                 imageUrl: `${SERVER_PREFIX}/projects/${projectId}/image/by_size/${sha1}`,
                 properties: {},
+                propertyStatus: {},
                 selected: slot !== undefined ? columnStore.isSelected(slot) : false,
             }
 
@@ -188,7 +192,8 @@ export const useInstanceStore = defineStore('instanceStore', () => {
                 for (const [pidStr, value] of Object.entries(values)) {
                     const pid = Number(pidStr)
                     entry.properties[pid] = value
-                    
+                    entry.propertyStatus[pid] = 'confirmed'
+
                     // Directly update root value if it's a system property
                     const prop = dataStore.properties?.[pid]
                     if (prop?.systemKey) {
@@ -214,6 +219,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
                 const id = Number(arr.ids[i])
                 if (instanceData[id]) {
                     instanceData[id].properties[arr.propertyId] = value
+                    instanceData[id].propertyStatus[arr.propertyId] = 'confirmed'
                     if (prop?.systemKey) {
                         instanceData[id][prop.systemKey] = value
                     }
@@ -231,6 +237,7 @@ export const useInstanceStore = defineStore('instanceStore', () => {
                 for (const id of columnStore.getInstancesBySha1(arr.sha1s[i])) {
                     if (instanceData[id]) {
                         instanceData[id].properties[arr.propertyId] = value
+                        instanceData[id].propertyStatus[arr.propertyId] = 'confirmed'
                         if (prop?.systemKey) {
                             instanceData[id][prop.systemKey] = value
                         }
@@ -249,12 +256,58 @@ export const useInstanceStore = defineStore('instanceStore', () => {
                 for (const id of columnStore.getInstancesByFileId(arr.fileIds[i])) {
                     if (instanceData[id]) {
                         instanceData[id].properties[arr.propertyId] = value
+                        instanceData[id].propertyStatus[arr.propertyId] = 'confirmed'
                         if (prop?.systemKey) {
                             instanceData[id][prop.systemKey] = value
                         }
                     }
                 }
             }
+        }
+    }
+
+    // --- optimistic UI writes ---
+
+    // Write a value locally (before/independent of backend confirmation) and tag its status.
+    // This is the only place UI code should write property values for display — columnStore
+    // stays backend-confirmed-only and is reserved for filter/sort/group.
+    function setLocalValue(id: number, propertyId: number, value: any, status: PropertyValueStatus) {
+        const entry = instanceData[id]
+        if (!entry) return
+        entry.properties[propertyId] = value
+        entry.propertyStatus[propertyId] = status
+    }
+
+    function setStatus(id: number, propertyIds: number[], status: PropertyValueStatus) {
+        const entry = instanceData[id]
+        if (!entry) return
+        for (const pid of propertyIds) entry.propertyStatus[pid] = status
+    }
+
+    function markConfirmed(ids: number[], propertyIds: number[]) {
+        for (const id of ids) setStatus(id, propertyIds, 'confirmed')
+    }
+
+    function markError(ids: number[], propertyIds: number[]) {
+        for (const id of ids) setStatus(id, propertyIds, 'error')
+    }
+
+    // Fetches values for (ids x propIds) pairs not already cached, for callers that need a
+    // current value (e.g. tag-merge) outside the normal register()/InstanceData visibility flow.
+    async function ensureValues(ids: number[], propIds: number[]): Promise<void> {
+        const missingIds = ids.filter(id => propIds.some(pid => !isAvailable(id, pid)))
+        if (missingIds.length === 0) return
+
+        for (const id of missingIds) for (const pid of propIds) addPair(inFlight, id, pid)
+        try {
+            const { data } = await projectApi.post('/instances/values', {
+                ids: missingIds,
+                prop_ids: propIds,
+            })
+            applyFetchedValues(data)
+            for (const id of missingIds) for (const pid of propIds) addPair(fetched, id, pid)
+        } finally {
+            for (const id of missingIds) for (const pid of propIds) delPair(inFlight, id, pid)
         }
     }
 
@@ -289,6 +342,10 @@ export const useInstanceStore = defineStore('instanceStore', () => {
         register,
         unregister,
         updateFromLoadResult,
+        setLocalValue,
+        markConfirmed,
+        markError,
+        ensureValues,
         clear,
     }
 })

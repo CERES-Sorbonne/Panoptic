@@ -28,6 +28,7 @@ const props = defineProps<{
     minHeight?: number
     width?: number
     forceMulti?: boolean
+    instanceId?: number
 }>()
 const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show', 'tab'])
 defineExpose({
@@ -41,6 +42,8 @@ const safeValue = computed(() => localValue.value ?? [])
 const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 
 const localValue = ref(undefined)
+// True while the dropdown popup is open, i.e. the user is mid-edit.
+const isOpen = ref(false)
 
 function getHeight() {
     if (heightElem.value == undefined) return 0
@@ -66,15 +69,27 @@ function focus() {
 }
 
 function updateLocal() {
+    // While the dropdown is open, `localValue` is the user's working selection and the
+    // single source of truth — never overwrite it from `props.modelValue`. In the tree,
+    // creating a tag runs `data.addTag` -> commit -> `triggerRefs()`, which re-renders the
+    // virtual scroller and hands us a fresh instance object. That makes `props.modelValue`
+    // change identity (same pre-edit value, new array) mid-edit, and a blind sync here would
+    // snap the selection back to its pre-edit state, dropping the tag just added. Closed, we
+    // sync normally so the cell reflects the confirmed value.
+    if (isOpen.value) return
     localValue.value = props.modelValue
 }
 
 function onHide() {
+    isOpen.value = false
     emits('hide')
     emits('update:modelValue', localValue.value)
 }
 
 function onShow() {
+    // Snapshot the current committed value as the editing baseline, then stop syncing.
+    localValue.value = props.modelValue
+    isOpen.value = true
     emits('show')
 }
 
@@ -107,7 +122,7 @@ onMounted(updateLocal)
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
-                    :force-multi="props.forceMulti" @tab="onTab(hide)"
+                    :force-multi="props.forceMulti" :instance-id="props.instanceId" @tab="onTab(hide)"
                     ref="inputElem" />
             </div>
         </template>

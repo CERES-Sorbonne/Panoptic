@@ -103,7 +103,7 @@ const selectOption = async function () {
     if (selectedIndex.value == undefined) return
 
     if (isCreateSelected.value) {
-        const newTag = await data.addTag(props.property.id, tagFilter.value, undefined, 1);
+        const newTag = await data.addTag(props.property.id, tagFilter.value, undefined, -1);
         emits('create', newTag)
     }
     else if (selectedIndex.value < filteredTagList.value.length) {

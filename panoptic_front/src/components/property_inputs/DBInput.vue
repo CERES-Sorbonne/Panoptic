@@ -17,6 +17,7 @@ defineExpose({
 })
 
 const propValue = computed(() => props.instance.properties?.[props.propertyId])
+const status = computed(() => props.instance.propertyStatus?.[props.propertyId] ?? 'confirmed')
 const localValue = ref(undefined)
 const valid = ref(true)
 
@@ -55,7 +56,7 @@ watch(() => props.instance.id, forceUpdate)
 
 <template>
     <template v-if="valid">
-        <slot :set="set" :value="localValue"></slot>
+        <slot :set="set" :value="localValue" :status="status"></slot>
     </template>
 </template>
 

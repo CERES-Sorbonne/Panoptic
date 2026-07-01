@@ -101,14 +101,17 @@ watch(() => inputs.requestInput, async (val) => {
 
     <!-- Editable input for regular properties -->
     <DBInput v-else-if="props.instance.id != deletedID" :instance="props.instance" :property-id="props.property.id">
-        <template #default="{ value, set }">
-            <div class="d-flex text-nowrap overflow-hidden" style="height: 26px; line-height: 26px;font-size: 14px;">
+        <template #default="{ value, set, status }">
+            <div class="d-flex text-nowrap overflow-hidden"
+                :class="{ 'value-unconfirmed': status !== 'confirmed' }"
+                :title="status === 'pending' ? 'Saving…' : (status === 'error' ? 'Failed to save' : undefined)"
+                style="height: 26px; line-height: 26px;font-size: 14px;">
                 <WithToolTip :message="props.property.name">
                     <PropertyIcon v-if="props.property.type != PropertyType.checkbox && property.id > 0"
                         :type="property.type" style="margin-right: 2px;" @click="log" />
                 </WithToolTip>
 
-                <CellTagInput v-if="isTag(property.type)" :model-value="value" @update:model-value="set" :no-wrap="true"
+                <CellTagInput v-if="isTag(property.type)" :model-value="value" :instance-id="props.instance.id" @update:model-value="set" :no-wrap="true"
                     :auto-focus="true" :can-create="true" :can-customize="true" :property="props.property"
                     :teleport="true" :width="width" ref="focusElem" @show="onFocus" @tab="inputs.requestInputNav()"
                     @hide="onHide" />
@@ -151,4 +154,10 @@ watch(() => inputs.requestInput, async (val) => {
     </DBInput>
 </template>
 
-<style scoped></style>
+<style scoped>
+.value-unconfirmed {
+    opacity: 0.45;
+    background-color: var(--light-grey);
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+</style>

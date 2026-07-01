@@ -53,7 +53,7 @@ async function waitForDbAction() {
         <DBInput :instance="props.instance" :property-id="props.property.id" ref="dbInput">
             <template #default="{ value, set }">
                 <div style="padding: 2px 0px">
-                    <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :can-create="true" :can-delete="true" :can-customize="true"
+                    <CellTagInput v-if="isTag(type)" :property="props.property" :model-value="value" :instance-id="props.instance.id" :can-create="true" :can-delete="true" :can-customize="true"
                         @update:model-value="set" @update:height="emitHeight" :min-height="props.minHeight"
                         :teleport="true" :width="props.width" :auto-focus="true" ref="inputElem" />
 

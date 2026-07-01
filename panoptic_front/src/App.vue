@@ -106,7 +106,7 @@ onUnmounted(() => {
 
     /* Niveaux de gris des couleurs neutres
 Ajuster pour un thème clair */
-    --text-num: 255;
+    --text-num: 0;
     --bg-num: 30;
 
     /* Couleurs de base */
