@@ -41,7 +41,12 @@
             },
             "fileSources": {
                 "del": "Remove",
-                "del_alert": "Removing this file source will delete every image from this source from panoptic"
+                "del_alert": "Removing this file source will delete every image from this source from panoptic",
+                "sync": {
+                    "counts": "{folders} folders · {files} images",
+                    "lastSynced": "Last synced {date}",
+                    "neverSynced": "Not synced yet"
+                }
             },
             "tasks": {
                 "title": "Background task",

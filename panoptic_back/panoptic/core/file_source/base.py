@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable, Optional
 
-from panoptic.core.databases.data.models import File, Folder, Instance, UpsertCommit
+from panoptic.core.databases.data.models import File, FileSource, Folder, Instance, UpsertCommit
 from panoptic.core.databases.media.models import Image
 
 
@@ -61,13 +62,49 @@ class FileSourceReader(ABC):
         raise NotImplementedError(f'{type(self).__name__} does not support fetch_bytes')
 
     def on_import_complete(self, fs_id: int, done: int, failed: int, total: int) -> None:
-        """Optional post-import hook (e.g. persisting import history)."""
+        """Post-import hook: snapshots generic sync status onto the FileSource row.
+
+        Subclasses that track dtype-specific history (e.g. IIIF) should call
+        ``super().on_import_complete(...)`` first, then layer their own metadata.
+        """
+        update_sync_status(self.project, fs_id, done, failed, total)
 
 
 # ---------------------------------------------------------------------------
 # Shared DB-write helpers — identical for every source type today, so a single
 # copy lives here instead of one per task.
 # ---------------------------------------------------------------------------
+
+def update_file_source(project, fs_id: int, commit_source: str, **overrides) -> None:
+    """Patch a FileSource row, preserving any field not passed in ``overrides``."""
+    source = next((s for s in project.get_file_sources() if s.id == fs_id), None)
+    if not source:
+        return
+
+    fields = {f: getattr(source, f) for f in ('dtype', 'name', 'root_url', 'metadata', 'sync_status')}
+    fields.update(overrides)
+
+    commit = UpsertCommit()
+    commit.file_sources[fs_id] = FileSource(id=source.id, **fields)
+    project.apply_upsert_commit(commit_source, commit)
+
+
+def update_sync_status(project, fs_id: int, done: int, failed: int, total: int) -> None:
+    """Compute and persist a generic last-sync snapshot for a FileSource."""
+    folders = project.get_folders(source_id=fs_id)
+    folder_ids = [f.id for f in folders]
+    file_count = len(project.get_files(folder_id=folder_ids)) if folder_ids else 0
+
+    sync_status = {
+        'last_synced_at': datetime.utcnow().isoformat() + 'Z',
+        'status': 'partial' if failed > 0 else 'success',
+        'folder_count': len(folders),
+        'file_count': file_count,
+        'imported_count': done - failed,
+        'failed_count': failed,
+    }
+    update_file_source(project, fs_id, 'sync_status', sync_status=sync_status)
+
 
 def import_folder_tree(
     project, fs_id: int, folder_nodes: list[FolderNode], commit_source: str,

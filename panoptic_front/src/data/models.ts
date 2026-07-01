@@ -185,11 +185,22 @@ export function buildTag(id: number, propertyId: number, value: string, parents?
 //=========FileSource==========
 //=============================
 
+export interface FileSourceSyncStatus {
+    lastSyncedAt: string
+    status: 'success' | 'partial'
+    folderCount: number
+    fileCount: number
+    importedCount: number
+    failedCount: number
+}
+
 export interface FileSource {
     id: number
     dtype: string
     name: string | null
     rootUrl: string | null
+    metadata: Record<string, any> | null
+    syncStatus: FileSourceSyncStatus | null
 }
 
 export interface FileSourceIndex {

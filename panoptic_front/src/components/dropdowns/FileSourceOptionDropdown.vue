@@ -28,6 +28,10 @@ function testConnection() {
     }, 800)
 }
 
+function formatSyncDate(iso: string) {
+    return new Date(iso).toLocaleString()
+}
+
 function deleteFileSource(hide: () => void) {
     const ok = confirm(i18n.global.t("main.nav.fileSources.del_alert"))
     if (ok) {
@@ -49,6 +53,15 @@ function deleteFileSource(hide: () => void) {
                         <span>{{ testLabel[testStatus] }}</span>
                     </div>
                 </template>
+                <div class="sync-row" v-if="source.syncStatus">
+                    <div>{{ $t('main.nav.fileSources.sync.counts', {
+                        folders: source.syncStatus.folderCount, files: source.syncStatus.fileCount
+                    }) }}</div>
+                    <div>{{ $t('main.nav.fileSources.sync.lastSynced', {
+                        date: formatSyncDate(source.syncStatus.lastSyncedAt)
+                    }) }}</div>
+                </div>
+                <div class="sync-row" v-else>{{ $t('main.nav.fileSources.sync.neverSynced') }}</div>
                 <div class="menu-item" @click="deleteFileSource(hide)">
                     <i class="bi bi-trash"></i>
                     <span>{{ $t('main.nav.fileSources.del') }}</span>
@@ -69,6 +82,12 @@ function deleteFileSource(hide: () => void) {
     font-size: var(--font-size-sm);
     max-width: 280px;
     overflow-wrap: break-word;
+}
+
+.sync-row {
+    padding: 4px 10px 4px 8px;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
 }
 
 .menu-item {

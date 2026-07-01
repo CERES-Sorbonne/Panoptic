@@ -24,6 +24,10 @@ class FileSource(msgspec.Struct, array_like=True):
     name: Optional[str]
     root_url: Optional[str]
     metadata: Optional[dict] = None
+    # Snapshot of the last completed sync, e.g. {last_synced_at, status,
+    # folder_count, file_count, imported_count, failed_count}. Set by
+    # FileSourceReader.on_import_complete(), read-only from the API's perspective.
+    sync_status: Optional[dict] = None
 
 class Folder(msgspec.Struct, array_like=True):
     id: Annotated[int, PrimaryKey]

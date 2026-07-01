@@ -209,7 +209,22 @@ export const useDataStore = defineStore('dataStore', () => {
         if (commit.instances?.length) {
             const newIds: number[] = [], newSha1s: string[] = [], newFileIds: number[] = []
             for (const inst of commit.instances as any[]) {
-                instanceStore.instanceData[inst.id] = inst
+                // Instances pushed via commit only carry id/sha1/fileId — merge onto the
+                // existing entry (if any) so properties/propertyStatus survive, and give a
+                // brand-new entry the full InstanceEntry shape so later property writes
+                // don't hit an undefined `properties`/`propertyStatus`.
+                const existing = instanceStore.instanceData[inst.id]
+                if (existing) {
+                    Object.assign(existing, inst)
+                } else {
+                    instanceStore.instanceData[inst.id] = {
+                        properties: {},
+                        propertyStatus: {},
+                        selected: false,
+                        imageUrl: `${baseImgUrl.value}by_size/${inst.sha1}`,
+                        ...inst,
+                    }
+                }
                 dirtyInstances.add(inst.id)
                 newIds.push(inst.id); newSha1s.push(inst.sha1); newFileIds.push(inst.fileId)
             }

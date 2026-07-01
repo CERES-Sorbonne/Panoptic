@@ -7,7 +7,7 @@ from typing import Callable
 import httpx
 
 from panoptic.core.databases.data.models import FileSource, UpsertCommit
-from panoptic.core.file_source.base import FileSourceReader, FolderNode, ItemRef
+from panoptic.core.file_source.base import FileSourceReader, FolderNode, ItemRef, update_file_source
 from panoptic.core.file_source.iiif_config import IIIFSourceConfig
 from panoptic.core.file_source.processing import ImageTypeSpec, process_bytes
 
@@ -23,13 +23,6 @@ MAX_BACKOFF = 30.0       # cap for a single backoff sleep (seconds)
 # Global throttle: strict hosts (Gallica/BnF) 429 on bursts of requests.
 # Every HTTP request across all reader instances is paced to at most one per interval.
 REQUEST_INTERVAL = 0.5
-
-# Import downloads a bounded-width rendition (not full-res) for sha1 + thumbnails:
-# strict hosts heavily throttle full-res requests, and the capped image is plenty for
-# hashing and the largest thumbnail type. Full-res stays available on demand via
-# fetch_bytes() (used by the /image/raw proxy). Trade-off: the sha1 is the capped
-# image's, so it won't match a locally-imported full-res copy of the same image.
-IMPORT_WIDTH = 1024
 
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.tif', '.tiff')
 
@@ -122,7 +115,7 @@ def _get_with_retry(url: str, headers: dict, timeout: float = HTTP_TIMEOUT) -> h
 
 
 def _process_iiif_item(fetch_url: str, headers: dict, image_types: list[ImageTypeSpec]) -> dict | None:
-    """Runs in a worker thread: download a capped-width rendition, sha1, thumbnails."""
+    """Runs in a worker thread: download the full-size image, sha1, thumbnails."""
     print(f'[IIIF]   ↓ downloading {fetch_url}')
     try:
         raw = _get_with_retry(fetch_url, headers).content
@@ -161,7 +154,7 @@ class IIIFFileSourceReader(FileSourceReader):
         self.is_cancelled: Callable[[], bool] = lambda: False
 
     def worker_args(self, item: ItemRef) -> tuple:
-        return (self._capped_url(item.fetch), self._headers(), self.image_types)
+        return (item.fetch, self._headers(), self.image_types)
 
     def fetch_bytes(self, ref: str) -> bytes:
         """Full-resolution fetch — used by the /image/raw proxy, with the same
@@ -236,17 +229,10 @@ class IIIFFileSourceReader(FileSourceReader):
         """Persist the current config (e.g. updated import history) to the FileSource row."""
         if self.file_source_id is None:
             return
-        source = next((s for s in self.project.get_file_sources() if s.id == self.file_source_id), None)
-        if not source:
-            return
-        commit = UpsertCommit()
-        commit.file_sources[source.id] = FileSource(
-            id=source.id, dtype=source.dtype, name=source.name, root_url=source.root_url,
-            metadata=self.config.to_dict(),
-        )
-        self.project.apply_upsert_commit('iiif_import', commit)
+        update_file_source(self.project, self.file_source_id, 'iiif_import', metadata=self.config.to_dict())
 
     def on_import_complete(self, fs_id: int, done: int, failed: int, total: int) -> None:
+        super().on_import_complete(fs_id, done, failed, total)
         status = 'partial' if failed > 0 else 'success'
         self.config.update_import_history(status=status, count=done - failed, total=total)
         self.save_config()
@@ -318,8 +304,8 @@ class IIIFFileSourceReader(FileSourceReader):
             print(f'[IIIF]   canvas {self._node_id(canvas)} — no image url, skipping')
             return
         # name (stored in file.name) is the full-res URL, returned verbatim by the serve
-        # resolver for /image/raw. The capped rendition is only used at import time for
-        # sha1 + thumbnail generation (avoids full-res throttling).
+        # resolver for /image/raw. The same full-res URL is used at import time for
+        # sha1 + thumbnail generation.
         items.append(ItemRef(folder_path=manifest_path, name=url, fetch=url))
 
     # ------------------------------------------------------------------
@@ -437,16 +423,3 @@ class IIIFFileSourceReader(FileSourceReader):
             size = 'max' if version >= 3 else 'full'
             return f"{service_id.rstrip('/')}/full/{size}/0/default.jpg"
         return body_id
-
-    @staticmethod
-    def _capped_url(url: str) -> str:
-        """Rewrite a IIIF Image API request's size segment to a bounded width.
-
-        Matches the size keyword we (and most servers) use in image URLs — v2 ``full``
-        and v3 ``max`` — and replaces it with ``{IMPORT_WIDTH},``. Leaves non-IIIF /
-        static image URLs unchanged (they can't be resized via URL).
-        """
-        for seg in ('/full/max/', '/full/full/'):
-            if seg in url:
-                return url.replace(seg, f'/full/{IMPORT_WIDTH},/', 1)
-        return url

@@ -41,7 +41,12 @@
             },
             "fileSources": {
                 "del": "Retirer",
-                "del_alert": "Retirer la source supprimera toutes les instances associées aux images contenues dans cette source."
+                "del_alert": "Retirer la source supprimera toutes les instances associées aux images contenues dans cette source.",
+                "sync": {
+                    "counts": "{folders} dossiers · {files} images",
+                    "lastSynced": "Dernière synchro {date}",
+                    "neverSynced": "Pas encore synchronisé"
+                }
             },
             "tasks": {
                 "title": "Tâche de fond",

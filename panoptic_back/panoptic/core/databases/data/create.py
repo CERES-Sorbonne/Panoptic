@@ -215,10 +215,22 @@ def _migrate_v7_to_v8(writer):
             writer.conn.execute("ALTER TABLE file_sources ADD COLUMN metadata TEXT")
 
 
+def _migrate_v8_to_v9(writer):
+    """Add sync_status column to file_sources (introduced in v9).
+
+    Stores a JSON snapshot of the last completed sync (timestamp, status,
+    folder/file counts) so the UI can show sync state without re-scanning.
+    """
+    if writer._table_exists('file_sources'):
+        cols = [r[1] for r in writer.conn.execute("PRAGMA table_info(file_sources)")]
+        if 'sync_status' not in cols:
+            writer.conn.execute("ALTER TABLE file_sources ADD COLUMN sync_status TEXT")
+
+
 datastore_desc = DbDescription(
-    version=8,
+    version=9,
     tables=tables_config,
     migrations={1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4,
                 4: _migrate_v4_to_v5, 5: _migrate_v5_to_v6, 6: _migrate_v6_to_v7,
-                7: _migrate_v7_to_v8},
+                7: _migrate_v7_to_v8, 8: _migrate_v8_to_v9},
 )
