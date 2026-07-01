@@ -986,7 +986,7 @@ def _to_ids(val: Any, n: int) -> range:
 
 
 @project_router.post('/commit/upsert')
-def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep)):
+def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep), user_id: str = None):
     from panoptic.core.databases.entity_schema import OP_CREATE, OP_UPDATE
 
     upsert = UpsertCommit()
@@ -1070,7 +1070,7 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep)):
 
     if (upsert.properties or upsert.tags or upsert.instance_values
             or upsert.sha1_values or upsert.file_values or upsert.property_groups):
-        project.apply_upsert_commit('ui', upsert)
+        project.apply_upsert_commit('ui', upsert, author=user_id)
 
     return {
         'properties': [
@@ -1090,7 +1090,7 @@ def upsert_commit_route(req: UpsertRequest, project: Project = Depends(_dep)):
 
 
 @project_router.post('/commit/delete')
-def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep)):
+def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep), user_id: str = None):
     from panoptic.core.databases.entity_schema import OP_DELETE
 
     reload = False
@@ -1106,7 +1106,7 @@ def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep)):
         property_groups=[PropertyGroup(id=i, operation=OP_DELETE) for i in req.empty_property_groups],
     )
     if commit.properties or commit.tags or commit.property_groups:
-        project.apply_commit('ui', commit)
+        project.apply_commit('ui', commit, author=user_id)
 
     return {'ok': True, 'reload': reload}
 
@@ -1139,6 +1139,43 @@ def get_history(project: Project = Depends(_dep)):
     undo = [c for c in commits if c.active]
     redo = [c for c in commits if not c.active]
     return {'undo': len(undo), 'redo': len(redo)}
+
+
+# ---------------------------------------------------------------------------
+# Commit timeline — full history, per-commit toggle, compaction (Data settings)
+# ---------------------------------------------------------------------------
+
+class _CommitActiveRequest(BaseModel):
+    id: int
+    active: bool
+
+
+@project_router.get('/commits')
+def get_commits_route(project: Project = Depends(_dep), limit: int = 500):
+    """Full commit timeline (newest first), each carrying id/source/timestamp/active/author.
+
+    Commit is an ``array_like`` msgspec struct, so it must be serialized as named fields here
+    (not via _json, which would emit a positional array the frontend can't read by key).
+    """
+    return _json([
+        {'id': c.id, 'group_id': c.group_id, 'source': c.source,
+         'timestamp': c.timestamp, 'active': c.active, 'author': c.author}
+        for c in project.get_commits(limit=limit)
+    ])
+
+
+@project_router.post('/set_commit_active')
+def set_commit_active_route(req: _CommitActiveRequest, project: Project = Depends(_dep)):
+    """Toggle a single commit on/off (non-sequential undo). Grid refreshes via db_update."""
+    project.set_commit_active(req.id, req.active)
+    return {'ok': True}
+
+
+@project_router.post('/compact')
+def compact_route(req: _IdRequest, project: Project = Depends(_dep)):
+    """Fold all commits up to and including req.id into the frozen baseline (irreversible)."""
+    project.compact(req.id)
+    return {'ok': True}
 
 
 # ---------------------------------------------------------------------------
@@ -1461,7 +1498,7 @@ class _TagMergeRequest(BaseModel):
 
 
 @project_router.post('/tags/merge')  # TODO: needs testing
-def merge_tags_route(req: _TagMergeRequest, project: Project = Depends(_dep)):
+def merge_tags_route(req: _TagMergeRequest, project: Project = Depends(_dep), user_id: str = None):
     from panoptic.core.databases.entity_schema import OP_UPDATE, OP_CREATE
 
     tag_ids = req.tag_ids
@@ -1546,9 +1583,9 @@ def merge_tags_route(req: _TagMergeRequest, project: Project = Depends(_dep)):
                 )
 
     if upsert.tags or upsert.instance_values or upsert.sha1_values:
-        project.apply_upsert_commit('ui', upsert)
+        project.apply_upsert_commit('ui', upsert, author=user_id)
 
-    project.apply_delete_commit('ui', DeleteCommit(tags=removed_ids))
+    project.apply_delete_commit('ui', DeleteCommit(tags=removed_ids), author=user_id)
 
     return {
         'empty_tags': list(removed_ids),

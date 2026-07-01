@@ -12,7 +12,37 @@ class Commit(msgspec.Struct, array_like=True):
     group_id: Optional[int]
     source: str
     timestamp: datetime
+    # `active` is the *enabled* bit of the versioning model: a commit contributes to the
+    # resolved state iff active == 1. Undo/redo simply flip it (see DataWriter.set_commit_active).
     active: int
+    # Who authored the commit. Enables per-user, non-sequential selective undo: a user undoes
+    # their own most-recent enabled commit regardless of its position in the global log.
+    author: Optional[str] = None
+
+
+class ChangeOp(msgspec.Struct, array_like=True):
+    """A single partial-diff entry in the generic version log (``entity_log`` table).
+
+    One row per (entity, commit). ``changes`` carries **only the fields a commit altered**,
+    so the log is compact and undo is field-granular:
+
+      * scalar field  ->  ``{field: new_value}``
+      * set field     ->  ``{field: {"add": [...], "remove": [...]}}``  (e.g. tag.parents)
+      * OP_CREATE     ->  full initial field set (the base image)
+      * OP_UPDATE     ->  only the changed fields
+      * OP_DELETE     ->  ``changes`` is None
+
+    ``entity_key`` is the JSON-encoded primary key tuple of the target row (see resolver.encode_key),
+    which lets one table hold ops for every entity kind (single- or composite-PK) uniformly.
+    Materialized state is the fold of the *enabled* ops for a key — a pure function of the
+    enabled set, hence order-independent and safe to toggle at any position.
+    """
+    entity_type: str
+    entity_key: str
+    commit: int
+    op: int
+    changes: Optional[dict] = None
+    sequence: Optional[int] = None
 
 # --- STRUCTURAL ENTITIES ---
 # Sequenced (delta-synced) but NOT logged: created by import, hard-deleted, never undone.

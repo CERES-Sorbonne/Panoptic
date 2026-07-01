@@ -38,11 +38,12 @@ class DataReader(SQLiteReader):
         return [COMMITS_SCHEMA._decode_row(r) for r in rows]
 
     def get_commits(self, offset: int = None, limit: int = None, group_id: int = None) -> List[Commit]:
-        sql = f"SELECT * FROM {COMMITS_SCHEMA.table}"
+        # id > 0 hides the synthetic genesis/compaction baseline commit from undo history.
+        sql = f"SELECT * FROM {COMMITS_SCHEMA.table} WHERE id > 0"
         params = []
 
         if group_id is not None:
-            sql += " WHERE group_id = ?"
+            sql += " AND group_id = ?"
             params.append(group_id)
 
         sql += " ORDER BY id DESC"
@@ -542,6 +543,16 @@ class DataReader(SQLiteReader):
                     value=full_tags if full_tags else None,
                 ))
             data['image_values'] = merged_sv
+
+        # Referential filtering: dependent value rows whose property is no longer alive (e.g. a
+        # property whose creation was undone) are dormant, not deleted. Don't ship them — the
+        # client drops the property (and its column) from the property tombstone. The value ops
+        # stay in the log and reappear on redo.
+        alive_props = {p.id for p in PROPERTIES_SCHEMA.get(self.conn)}
+        for key in ('instance_values', 'sha1_values', 'image_values', 'file_values'):
+            rows = data.get(key)
+            if rows:
+                data[key] = [v for v in rows if getattr(v, 'property_id', None) in alive_props]
 
         max_seq = since
         for table in ('instances', 'files', 'folders', 'properties', 'property_groups', 'tags',

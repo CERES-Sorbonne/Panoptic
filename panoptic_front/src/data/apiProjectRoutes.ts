@@ -6,6 +6,7 @@ import axios from 'axios'
 import { PluginKey, usePanopticStore } from './panopticStore'
 import {
     DbCommit,
+    DbCommitInfo,
     Tag,
     UploadConfirm,
     ExecuteActionPayload,
@@ -376,6 +377,21 @@ export async function apiUndo() {
 export async function apiRedo() {
     const res = await projectApi.post('/redo')
     return keysToCamel(res.data) as DbCommit
+}
+
+export async function apiGetCommits(limit: number = 500): Promise<DbCommitInfo[]> {
+    const res = await projectApi.get('/commits', { params: { limit } })
+    return keysToCamel(res.data) as DbCommitInfo[]
+}
+
+export async function apiSetCommitActive(id: number, active: boolean) {
+    const res = await projectApi.post('/set_commit_active', { id, active })
+    return res.data
+}
+
+export async function apiCompact(id: number) {
+    const res = await projectApi.post('/compact', { id })
+    return res.data
 }
 
 export async function apiAllocateTags(n: number): Promise<number[]> {

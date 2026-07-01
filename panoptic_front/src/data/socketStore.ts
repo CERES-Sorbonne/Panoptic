@@ -42,6 +42,7 @@ export const useSocketStore = defineStore('socketStore', () => {
         pendingUpdate = false
         try {
             const fullPropIds = useColumnStore().getFullyLoadedPropIds()
+            console.log('[delta] processDelta fetch', { since: dataStore.lastSequence, fullPropIds })
             const delta = await apiGetDelta(dataStore.lastSequence, { fullPropIds, pointPropIds: [], instanceIds: [] })
             await dataStore.applyDelta(delta)
         } finally {
@@ -117,6 +118,7 @@ export const useSocketStore = defineStore('socketStore', () => {
         })
 
         socket.on('db_update', () => {
+            console.log('[delta] socket db_update received')
             pendingUpdate = true
             processDelta()
         })

@@ -231,8 +231,8 @@ class IIIFFileSourceReader(FileSourceReader):
             return
         update_file_source(self.project, self.file_source_id, 'iiif_import', metadata=self.config.to_dict())
 
-    def on_import_complete(self, fs_id: int, done: int, failed: int, total: int) -> None:
-        super().on_import_complete(fs_id, done, failed, total)
+    def on_import_complete(self, fs_id: int, done: int, failed: int, total: int, removed: int = 0) -> None:
+        super().on_import_complete(fs_id, done, failed, total, removed)
         status = 'partial' if failed > 0 else 'success'
         self.config.update_import_history(status=status, count=done - failed, total=total)
         self.save_config()

@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "iiif_source_plan.md",
+                "file": "versioning_replay_analysis.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "iiif_source_plan"
+              "title": "versioning_replay_analysis"
             }
           }
         ],
@@ -200,19 +200,25 @@
   },
   "active": "0e10bdd62ff1d036",
   "lastOpenFiles": [
+    "versioning_architecture.md",
+    "versioning_generic_log_design.md",
+    "versioning_multiuser_undo.md",
+    "versioning_revert_complexity.md",
+    "versioning_replay_analysis.md",
+    "panoptic2_architecture.md",
+    "main2_plan.md",
     "instance_tag_value_refactor.md",
+    "sequence_sync.md",
     "project2_architecture.md",
+    "iiif_source_plan.md",
     "routes_reference.md",
     "plugin_architecture.md",
     "plugin_system_migration.md",
     "plugin_tutorial.md",
-    "sequence_sync.md",
     "file_property_mode.md",
-    "main2_plan.md",
     "to fix.md",
     "ui_broadcast_watcher.md",
     "task_manager_rewrite.md",
-    "panoptic2_architecture.md",
     "project_class.md"
   ]
 }

@@ -204,6 +204,34 @@ export const useDataStore = defineStore('dataStore', () => {
                 dirtyInstances.add(id)
             }
         }
+        // Removed property values (e.g. a commit that wrote a value was disabled): clear the
+        // affected (property, instance) cells so the grid drops the stale value instead of
+        // waiting for a full reload.
+        const clearValueCell = (propId: number, instanceId: number) => {
+            console.log('[delta] clearValueCell', { propId, instanceId, knownInstance: !!instanceStore.instanceData[instanceId] })
+            columnStore.clearCell(propId, instanceId)
+            const inst = instanceStore.instanceData[instanceId]
+            if (inst?.properties) delete inst.properties[propId]
+            if (inst?.propertyStatus) delete inst.propertyStatus[propId]
+            dirtyInstances.add(instanceId)
+        }
+        if (commit.emptyInstanceValues?.length) {
+            for (const v of commit.emptyInstanceValues) clearValueCell(v.propertyId, v.instanceId)
+        }
+        if (commit.emptyImageValues?.length) {
+            for (const v of commit.emptyImageValues) {
+                const ids = columnStore.getInstancesBySha1(v.sha1)
+                console.log('[delta] emptyImageValue -> instances', { propId: v.propertyId, sha1: v.sha1, ids })
+                for (const id of ids) clearValueCell(v.propertyId, id)
+            }
+        }
+        if (commit.emptyFileValues?.length) {
+            for (const v of commit.emptyFileValues) {
+                const ids = columnStore.getInstancesByFileId(v.fileId)
+                console.log('[delta] emptyFileValue -> instances', { propId: v.propertyId, fileId: v.fileId, ids })
+                for (const id of ids) clearValueCell(v.propertyId, id)
+            }
+        }
 
         // --- Execute Imports ---
         if (commit.instances?.length) {
@@ -254,7 +282,30 @@ export const useDataStore = defineStore('dataStore', () => {
     }
 
     async function applyDelta(delta: LoadResult) {
-        console.log(delta)
+        const c = delta.chunk
+        console.log('[delta] received', {
+            maxSequence: delta.state?.maxSequence,
+            lastSequence: lastSequence.value,
+            hasChunk: !!c,
+            chunk: c ? {
+                properties: c.properties?.length ?? 0,
+                tags: c.tags?.length ?? 0,
+                instances: c.instances?.length ?? 0,
+                emptyProperties: c.emptyProperties?.length ?? 0,
+                emptyTags: c.emptyTags?.length ?? 0,
+                emptyInstances: c.emptyInstances?.length ?? 0,
+                emptyInstanceValues: c.emptyInstanceValues?.length ?? 0,
+                emptyImageValues: c.emptyImageValues?.length ?? 0,
+                emptyFileValues: c.emptyFileValues?.length ?? 0,
+            } : null,
+            instanceValueChunks: delta.instanceValues?.map(v => ({ propertyId: v.propertyId, n: (v as any).ids?.length ?? 0 })),
+            imageValueChunks: delta.imageValues?.map(v => ({ propertyId: v.propertyId, n: v.sha1s?.length ?? 0 })),
+            fileValueChunks: delta.fileValues?.map(v => ({ propertyId: v.propertyId, n: v.fileIds?.length ?? 0 })),
+        })
+        if (c?.emptyInstanceValues?.length) console.log('[delta] emptyInstanceValues', JSON.parse(JSON.stringify(c.emptyInstanceValues)))
+        if (c?.emptyImageValues?.length) console.log('[delta] emptyImageValues', JSON.parse(JSON.stringify(c.emptyImageValues)))
+        if (c?.emptyFileValues?.length) console.log('[delta] emptyFileValues', JSON.parse(JSON.stringify(c.emptyFileValues)))
+
         const needsPropertyTree = delta.chunk ? hasPropertyChanges(delta.chunk) : false
         if (delta.chunk)           applyCommit(delta.chunk, true)
 

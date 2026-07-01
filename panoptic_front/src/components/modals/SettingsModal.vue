@@ -7,6 +7,7 @@ import Modal2 from './Modal2.vue';
 import VectorSettings from '../settings/VectorSettings.vue';
 import PluginSettingsWindow from '../settings/PluginSettingsWindow.vue';
 import ImageSettings from '../settings/ImageSettings.vue';
+import DataSettings from '../settings/DataSettings.vue';
 
 const project = useProjectStore()
 
@@ -16,6 +17,7 @@ enum PAGE {
     Images = 'images',
     Vectors = 'vectors',
     Plugins = 'plugins',
+    Data = 'data',
 }
 
 const options = ref(Object.values(PAGE))
@@ -88,11 +90,20 @@ watch(selectedPage, () => changed.value = false)
                                         <div>{{$t('modals.settings.plugins')}}</div>
                                     </div>
                                 </div>
+
+                                <div class="bb align-self-center m-4" style="width: 120px;"
+                                    @click="selectedPage = PAGE.Data">
+                                    <div class="border rounded p-2 text-center">
+                                        <div><i class="bi bi-clock-history" style="font-size: 50px;" /></div>
+                                        <div>{{$t('modals.settings.data')}}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <ImageSettings v-if="page == PAGE.Images" v-model:changed="changed" ref="pageElem"/>
                         <VectorSettings v-if="page == PAGE.Vectors" />
                         <PluginSettingsWindow v-if="page == PAGE.Plugins" v-model:changed="changed" ref="pageElem"/>
+                        <DataSettings v-if="page == PAGE.Data" />
                     </template>
                 </PageWindow>
             </div>

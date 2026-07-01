@@ -644,6 +644,17 @@ export interface CommitStat {
     values: number
 }
 
+// Lightweight commit metadata for the Data settings commit timeline (distinct from the
+// DbCommit delta blob). Mirrors the backend Commit struct.
+export interface DbCommitInfo {
+    id: number
+    groupId?: number
+    source: string
+    timestamp: string
+    active: number        // 1 = enabled, 0 = disabled (undone)
+    author?: string
+}
+
 export interface CommitHistory {
     undo: CommitStat[]
     redo: CommitStat[]

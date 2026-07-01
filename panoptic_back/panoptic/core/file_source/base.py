@@ -61,13 +61,13 @@ class FileSourceReader(ABC):
         """
         raise NotImplementedError(f'{type(self).__name__} does not support fetch_bytes')
 
-    def on_import_complete(self, fs_id: int, done: int, failed: int, total: int) -> None:
+    def on_import_complete(self, fs_id: int, done: int, failed: int, total: int, removed: int = 0) -> None:
         """Post-import hook: snapshots generic sync status onto the FileSource row.
 
         Subclasses that track dtype-specific history (e.g. IIIF) should call
         ``super().on_import_complete(...)`` first, then layer their own metadata.
         """
-        update_sync_status(self.project, fs_id, done, failed, total)
+        update_sync_status(self.project, fs_id, done, failed, total, removed)
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +89,7 @@ def update_file_source(project, fs_id: int, commit_source: str, **overrides) -> 
     project.apply_upsert_commit(commit_source, commit)
 
 
-def update_sync_status(project, fs_id: int, done: int, failed: int, total: int) -> None:
+def update_sync_status(project, fs_id: int, done: int, failed: int, total: int, removed: int = 0) -> None:
     """Compute and persist a generic last-sync snapshot for a FileSource."""
     folders = project.get_folders(source_id=fs_id)
     folder_ids = [f.id for f in folders]
@@ -102,6 +102,7 @@ def update_sync_status(project, fs_id: int, done: int, failed: int, total: int) 
         'file_count': file_count,
         'imported_count': done - failed,
         'failed_count': failed,
+        'removed_count': removed,
     }
     update_file_source(project, fs_id, 'sync_status', sync_status=sync_status)
 

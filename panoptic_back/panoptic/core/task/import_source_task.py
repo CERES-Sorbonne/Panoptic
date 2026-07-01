@@ -33,23 +33,61 @@ class ImportSourceTask(Task):
 
         self.set_step('Scanning folder structure')
         fs_id = reader.ensure_source()
+
+        # Resync support: if this root was already imported, capture its previous
+        # folder/file tree before rescanning, so we can reconcile deletions below.
+        # Scoped to reader.root's subtree (not the whole file source) because local
+        # imports share one singleton FileSource across independently-imported roots.
+        pre_existing_folders = self._project.get_folders(source_id=fs_id)
+        root_folder = next((f for f in pre_existing_folders if f.path == reader.root), None)
+        old_folder_ids: set[int] = set()
+        if root_folder is not None:
+            children_by_parent: dict[int, list[int]] = {}
+            for f in pre_existing_folders:
+                if f.parent is not None:
+                    children_by_parent.setdefault(f.parent, []).append(f.id)
+            frontier = [root_folder.id]
+            old_folder_ids.add(root_folder.id)
+            while frontier:
+                frontier = [c for p in frontier for c in children_by_parent.get(p, []) if c not in old_folder_ids]
+                old_folder_ids.update(frontier)
+
+        old_files_by_key = {
+            (f.folder_id, f.name): f.id
+            for f in self._project.get_files(folder_id=list(old_folder_ids))
+            if f.name and f.folder_id is not None
+        } if old_folder_ids else {}
+
         folder_nodes, items = reader.scan()
 
         path_to_folder_id = import_folder_tree(self._project, fs_id, folder_nodes, self._commit_source)
 
-        all_folder_ids = list({path_to_folder_id.get(i.folder_path) for i in items} - {None})
-        existing_files = {
-            (f.folder_id, f.name)
-            for f in self._project.get_files(folder_id=all_folder_ids)
-            if f.name and f.folder_id is not None
-        } if all_folder_ids else set()
-
         pending = []
         for item in items:
             folder_id = path_to_folder_id.get(item.folder_path)
-            if folder_id is None or (folder_id, item.name) in existing_files:
+            if folder_id is None or (folder_id, item.name) in old_files_by_key:
                 continue
             pending.append((folder_id, item))
+
+        removed_files = 0
+        if old_folder_ids:
+            self.set_step('Reconciling removed files')
+            current_folder_ids = {path_to_folder_id[n.path] for n in folder_nodes if n.path in path_to_folder_id}
+            missing_folder_ids = old_folder_ids - current_folder_ids
+            if missing_folder_ids:
+                removed_files += len([
+                    k for k in old_files_by_key if k[0] in missing_folder_ids
+                ])
+                self._project.delete_folders(list(missing_folder_ids))
+
+            seen_now = {(path_to_folder_id[item.folder_path], item.name) for item in items}
+            missing_file_ids = [
+                fid for key, fid in old_files_by_key.items()
+                if key not in seen_now and key[0] not in missing_folder_ids
+            ]
+            if missing_file_ids:
+                removed_files += len(missing_file_ids)
+                self._project.delete_files(missing_file_ids)
 
         self.state.total = len(pending)
         self.set_step('Importing files')
@@ -92,10 +130,10 @@ class ImportSourceTask(Task):
 
         elapsed = time.monotonic() - t0
         rate = self.state.done / elapsed if elapsed > 0 else 0
-        logger.info('Import done: %s items in %.1fs (%.1f/s, %s failed)',
-                     self.state.done, elapsed, rate, self.state.failed)
+        logger.info('Import done: %s items in %.1fs (%.1f/s, %s failed, %s removed)',
+                     self.state.done, elapsed, rate, self.state.failed, removed_files)
 
-        reader.on_import_complete(fs_id, self.state.done, self.state.failed, self.state.total)
+        reader.on_import_complete(fs_id, self.state.done, self.state.failed, self.state.total, removed_files)
 
     def on_last(self) -> None:
         from panoptic.core.task.generate_atlas_task import GenerateAtlasTask

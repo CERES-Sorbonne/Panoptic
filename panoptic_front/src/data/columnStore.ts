@@ -340,6 +340,22 @@ export const useColumnStore = defineStore('columnStore', () => {
         if (slot !== undefined) deletedMask[slot] = 1
     }
 
+    // Clear a single (property, instance) cell to empty. Used when a delta reports a value
+    // was removed (e.g. a commit that wrote the value was disabled). Only touches loaded
+    // columns — an unloaded column will fetch the correct (cleared) state on its next load.
+    function clearCell(propId: number, instanceId: number) {
+        const status = fullColumnStatus[propId]
+        const slot = slotMap.get(instanceId)
+        console.log('[delta] columnStore.clearCell', {
+            propId, instanceId, columnStatus: status, slot,
+            hasSlot: slot !== undefined, columnKind: columnData[propId]?.kind,
+        })
+        if (status !== 'loaded') { console.warn('[delta] clearCell skipped: column not loaded', { propId, status }); return }
+        if (slot === undefined) { console.warn('[delta] clearCell skipped: instance not in slotMap', { propId, instanceId }); return }
+        writeSlot(propId, slot, null)
+        console.log('[delta] clearCell wrote null', { propId, instanceId, slot })
+    }
+
     async function requireFullColumn(propId: number): Promise<void> {
         if (fullColumnStatus[propId] === 'loaded') return
         if (_fullColumnPromise[propId]) return _fullColumnPromise[propId]
@@ -465,6 +481,12 @@ export const useColumnStore = defineStore('columnStore', () => {
         result.instanceValues?.forEach(v => targetPropIds.add(v.propertyId))
         result.imageValues?.forEach(v => targetPropIds.add(v.propertyId))
         result.fileValues?.forEach(v => targetPropIds.add(v.propertyId))
+
+        console.log('[delta] updateFromLoadResult (upserts)', {
+            targetPropIds: [...targetPropIds],
+            statuses: [...targetPropIds].map(p => ({ propId: p, status: fullColumnStatus[p] })),
+            instanceValues: result.instanceValues?.map(v => ({ propertyId: v.propertyId, ids: (v as any).ids, values: v.values })),
+        })
 
         for (const propId of targetPropIds) {
             const status = fullColumnStatus[propId]
@@ -632,7 +654,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         systemProps,
 
         init, getRawBuffer, readSlot, writeSlot, isFetched, ensureColumn,
-        addInstances, markSlotDeleted, registerProperty,
+        addInstances, markSlotDeleted, clearCell, registerProperty,
         requireFullColumn, requireTagInverted, getFullyLoadedPropIds,
         isSelected, isSelectedId, select, deselect, selectIds, deselectIds,
         clearSelection, getSelectedIds, selectedCount,

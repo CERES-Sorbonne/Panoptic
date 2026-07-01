@@ -302,25 +302,31 @@ class Project:
     # Writes  (DataWriter open/close per call)
     # ------------------------------------------------------------------
 
-    def apply_commit(self, source: str, commit: DataCommit, group_id: int = None) -> Commit:
-        """Unified create/update/delete for the logged (revertable) entities."""
+    def apply_commit(self, source: str, commit: DataCommit, group_id: int = None,
+                     author: str = None) -> Commit:
+        """Unified create/update/delete for the logged (revertable) entities.
+
+        ``author`` (optional) tags the commit for per-user, non-sequential selective undo.
+        """
         with self._data_writer() as w:
-            result = w.apply_commit(source, commit, group_id=group_id)
+            result = w.apply_commit(source, commit, group_id=group_id, author=author)
         self._fire_on_commit()
         return result
 
-    def apply_upsert_commit(self, source: str, commit: UpsertCommit, group_id: int = None) -> Commit:
+    def apply_upsert_commit(self, source: str, commit: UpsertCommit, group_id: int = None,
+                            author: str = None) -> Commit:
         with self._data_writer() as w:
-            result = w.apply_upsert_commit(source, commit, group_id=group_id)
+            result = w.apply_upsert_commit(source, commit, group_id=group_id, author=author)
         self._fire_on_commit()
         return result
 
-    def apply_delete_commit(self, source: str, commit: DeleteCommit, group_id: int = None) -> Commit:
+    def apply_delete_commit(self, source: str, commit: DeleteCommit, group_id: int = None,
+                            author: str = None) -> Commit:
         # Compat shim. Structural deletes here do not garbage-collect orphaned media (a
         # leftover blob is only wasted disk); callers that need media GC should use the
         # dedicated delete_instances/delete_folders/delete_file_sources API.
         with self._data_writer() as w:
-            result = w.apply_delete_commit(source, commit, group_id=group_id)
+            result = w.apply_delete_commit(source, commit, group_id=group_id, author=author)
         self._fire_on_commit()
         return result
 
@@ -330,6 +336,9 @@ class Project:
 
     def delete_instances(self, instance_ids: list[int]) -> dict:
         return self._structural_delete(lambda w: w.delete_instances(instance_ids))
+
+    def delete_files(self, file_ids: list[int]) -> dict:
+        return self._structural_delete(lambda w: w.delete_files(file_ids))
 
     def delete_folders(self, folder_ids: list[int]) -> dict:
         return self._structural_delete(lambda w: w.delete_folders(folder_ids))
@@ -349,6 +358,15 @@ class Project:
     def set_commit_active(self, commit_id: int, active: bool):
         with self._data_writer() as w:
             w.set_commit_active(commit_id, active)
+        self._fire_on_commit()
+
+    def compact(self, horizon_commit_id: int):
+        """Fold all commits up to and including ``horizon_commit_id`` into the frozen baseline.
+
+        Irreversible: those commits become non-undoable. See DataWriter.compact.
+        """
+        with self._data_writer() as w:
+            w.compact(horizon_commit_id)
         self._fire_on_commit()
 
     def _fire_on_commit(self) -> None:
