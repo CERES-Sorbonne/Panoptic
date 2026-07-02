@@ -10,6 +10,7 @@ import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
+import RecoWorkspace from '@/components/layoutpanels/RecoWorkspace.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { useCurrentTab } from '@/data/useCurrentTab'
 
@@ -120,6 +121,16 @@ onUnmounted(() => {
                 :tab="tab"
                 :collection="collection"
                 :map-options="view.mapOptions"
+            />
+
+            <RecoWorkspace
+                v-if="tab && view && collection && view.type == 'reco' && dimensions.width > 0"
+                :tab="tab"
+                :collection="collection"
+                :reco-options="view.recoOptions"
+                :image-size="view.imageSize"
+                :width="dimensions.width - 32"
+                :height="dimensions.height - 15"
             />
         </div>
     </IslandPanel>

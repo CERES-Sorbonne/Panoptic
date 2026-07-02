@@ -28,8 +28,6 @@ const props = defineProps<{
     inputKey: string
 }>()
 
-const emits = defineEmits(['recommend'])
-
 provide('inputKey', props.inputKey)
 
 const groupIdx = {}
@@ -453,7 +451,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         :manager="props.groupManager" :hide-options="props.hideOptions"
                         :data="props.groupManager.result" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1" @group:close="closeGroup" @group:open="openGroup"
-                        @select="toggleGroupSelect" @recommend="(groupId) => emits('recommend', groupId)" />
+                        @select="toggleGroupSelect" />
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->

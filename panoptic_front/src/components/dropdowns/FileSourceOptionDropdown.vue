@@ -32,6 +32,11 @@ function formatSyncDate(iso: string) {
     return new Date(iso).toLocaleString()
 }
 
+function resyncFileSource(hide: () => void) {
+    data.resyncFileSource(props.source.id)
+    hide()
+}
+
 function deleteFileSource(hide: () => void) {
     const ok = confirm(i18n.global.t("main.nav.fileSources.del_alert"))
     if (ok) {
@@ -62,6 +67,10 @@ function deleteFileSource(hide: () => void) {
                     }) }}</div>
                 </div>
                 <div class="sync-row" v-else>{{ $t('main.nav.fileSources.sync.neverSynced') }}</div>
+                <div class="menu-item" @click="resyncFileSource(hide)">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>{{ $t('main.nav.fileSources.sync.resync') }}</span>
+                </div>
                 <div class="menu-item" @click="deleteFileSource(hide)">
                     <i class="bi bi-trash"></i>
                     <span>{{ $t('main.nav.fileSources.del') }}</span>

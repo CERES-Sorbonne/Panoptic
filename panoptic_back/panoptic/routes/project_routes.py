@@ -626,7 +626,13 @@ def reimport_folder(req: _IdRequest, project: Project = Depends(_dep)):
     if not folder.path:
         raise HTTPException(400, f'Folder {req.id} has no path')
     project.import_folder(folder.path)
-    return _json(folders)
+    return _json([_db_to_dict(f) for f in folders])
+
+
+@project_router.post('/file_source/resync')
+def resync_file_source(req: _IdRequest, project: Project = Depends(_dep)):
+    project.resync_file_source(req.id)
+    return {'ok': True}
 
 
 @project_router.delete('/folder')

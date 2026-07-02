@@ -22,7 +22,7 @@ import { useProjectStore } from "./projectStore";
 import { apiGetAllTabs, apiCreateTab, apiUpdateTabState, apiDeleteTab, apiGetUIData, apiSetUIData } from "./apiProjectRoutes";
 import { deepCopy } from "@/utils/utils";
 
-export const TAB_MODEL_VERSION = 9
+export const TAB_MODEL_VERSION = 10
 const TAB_ORDER_KEY = 'tab_order'
 const SAVE_DEBOUNCE_MS = 400
 

@@ -555,6 +555,22 @@ class Project:
             return None
         return get_reader_for_source(self, source)
 
+    def resync_file_source(self, source_id: int) -> list[Task]:
+        """Re-run import for every root of an existing FileSource. Safe to call
+        repeatedly — import_folder/import_iiif_with_config reuse the existing
+        FileSource row and ImportSourceTask reconciles added/removed files."""
+        source = next((s for s in self.get_file_sources() if s.id == source_id), None)
+        if source is None:
+            return []
+        if source.dtype == 'local':
+            roots = [f for f in self.get_folders(source_id=source_id) if f.parent is None]
+            return [self.import_folder(f.path) for f in roots if f.path]
+        if source.dtype == 'iiif':
+            from panoptic.core.file_source.iiif_config import IIIFSourceConfig
+            config = IIIFSourceConfig.from_dict(source.metadata or {})
+            return [self.import_iiif_with_config(source.root_url, config)]
+        return []
+
     def add_task(self, task: Task, high_priority: bool = False) -> Task:
         return self.task_manager.add_task(task, high_priority=high_priority)
 

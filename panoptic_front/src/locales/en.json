@@ -45,7 +45,8 @@
                 "sync": {
                     "counts": "{folders} folders · {files} images",
                     "lastSynced": "Last synced {date}",
-                    "neverSynced": "Not synced yet"
+                    "neverSynced": "Not synced yet",
+                    "resync": "Resync"
                 }
             },
             "tasks": {
@@ -89,6 +90,8 @@
             "grid_tooltip": "Switch to image grid view",
             "table_tooltip": "Switch to table view",
             "graph_tooltip": "Switch to chart view",
+            "map_tooltip": "Switch to map view",
+            "reco_tooltip": "Switch to recommendations view",
             "image_size_tooltip": "Image size",
             "all_images": "Instances",
             "sha1_images": "Images",
@@ -120,6 +123,13 @@
             "scroll": "Go to group",
             "filter": "Toggle global filter in recommandations",
             "reload": "Reload recommandations"
+        },
+        "reco": {
+            "empty": "Group your data to see recommendations",
+            "incoming": "Incoming recommendations",
+            "in_group": "Images in group",
+            "blacklist": "Blacklist",
+            "no_more": "No more recommendations"
         },
         "view": {
             "all_group": "All",

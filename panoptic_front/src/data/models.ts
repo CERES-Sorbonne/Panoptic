@@ -261,7 +261,7 @@ export interface ScoreInterval {
     description: string
 }
 
-export type ViewType = 'tree' | 'grid' | 'graph' | 'map'
+export type ViewType = 'tree' | 'grid' | 'graph' | 'map' | 'reco'
 
 /**
  * Per-view display state (Pillar F). A tab holds a fixed pair of views; the
@@ -272,6 +272,7 @@ export interface ViewState {
     type: ViewType
     imageSize: number
     mapOptions: MapOptions
+    recoOptions: RecoOptions
     showProperties: boolean
     // Which collection (filter/sort/group pipeline) this view renders. Two views
     // may share one collectionId (computed once) or reference different ones.
@@ -317,6 +318,12 @@ export interface MapOptions {
     selectedMap: number
     groupOption: string
     imageSize: number
+}
+
+// Per-view options for the group recommendation view. Stores which group the
+// recommendation grid is currently showing so the selection survives re-renders.
+export interface RecoOptions {
+    selectedGroupId: number | null
 }
 
 export interface TabData {

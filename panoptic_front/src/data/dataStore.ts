@@ -11,7 +11,7 @@ import { buildPropertyGroupOrder, objValues } from './builder'
 import {
     apiAddFolder, apiImportIiif, apiAllocatePropertyGroups, apiCommitDelete, apiCommitUpsert, apiDeleteFolder, apiDeleteFileSource,
     apiGetFolders, apiGetFileSources, apiGetFolderCounts, apiGetHistory, apiGetInitState, apiGetTagCounts, apiGetUIData, apiMergeTags,
-    apiPostDeleteEmptyClones, apiReImportFolder, apiRedo, apiSetUIData,
+    apiPostDeleteEmptyClones, apiReImportFolder, apiResyncFileSource, apiRedo, apiSetUIData,
     apiUndo,
 } from './apiProjectRoutes'
 import { buildFolderNodes, setTagsChildren } from './storeutils'
@@ -758,6 +758,10 @@ export const useDataStore = defineStore('dataStore', () => {
         if (res?.reload) location.reload()
     }
 
+    async function resyncFileSource(sourceId: number) {
+        await apiResyncFileSource(sourceId)
+    }
+
     async function undo() {
         if (!history.value.undo.length) return
         const commit = await apiUndo()
@@ -887,7 +891,7 @@ export const useDataStore = defineStore('dataStore', () => {
         get onSelectionChange() { return columnStore.onSelectionChange },
 
         onUndo, baseImgUrl, baseUrl,
-        addFolder, importIiif, reImportFolder, deleteFolder, deleteFileSource,
+        addFolder, importIiif, reImportFolder, deleteFolder, deleteFileSource, resyncFileSource,
         addProperty, updateProperty, deleteProperty,
         setPropertyValue, setTagPropertyValue, setPropertyValues,
         addTag, addTagParent, deleteTagParent, updateTag, deleteTag, mergeTags,

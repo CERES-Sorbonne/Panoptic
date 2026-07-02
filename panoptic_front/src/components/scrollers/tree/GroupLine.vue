@@ -27,7 +27,7 @@ const props = defineProps<{
     hideOptions: boolean
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'recommend', 'select'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'select'])
 
 const hoverGroup = ref(false)
 const group = computed(() => props.item.data)
@@ -62,11 +62,7 @@ const groupName = computed(() => {
     return 'tmp name'
 })
 
-const someValue = computed(() => props.item.data.meta.propertyValues.some(v => v.value != undefined))
-
-const canRecommend = computed(() => hasImages.value && !hasSubgroups.value && group.value.type != GroupType.Cluster && someValue.value)
 const isClusterGroup = computed(() => props.item.data.subGroupType == GroupType.Cluster)
-const hasMenuOptions = computed(() => canRecommend.value || isClusterGroup.value)
 
 function instancesForExecute() {
     const ids = columnStore.instanceIds()
@@ -84,10 +80,6 @@ async function addClusters(groups: Group[]) {
 
 function clear() {
     props.manager.delCustomGroups(props.item.data.id, true)
-}
-
-async function recommandImages() {
-    emits('recommend', props.item.data.id)
 }
 
 function toggleClosed() {
@@ -228,16 +220,66 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
         <div v-if="group.type == GroupType.Cluster" style="padding-top: 2.5px;" class="me-2">
             <ClusterBadge v-if="group.score" :value="Math.round(group.score.value)" />
         </div>
-        
+
         <div class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{ slots.length }} Images
         </div>
-        
+
         <div v-if="subgroups.length" class="align-self-center me-2 text-secondary" style="font-size: 11px;">{{
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
-            <!-- Fast-access actions: visible only while hovering the group line -->
-            <div v-show="hoverGroup" class="d-flex align-items-center">
+            <!-- Options dropdown: always visible -->
+            <div class="ms-1">
+                <Dropdown :teleport="true">
+                    <template #button>
+                        <div class="sbb opt-btn"><i class="bi bi-three-dots" /></div>
+                    </template>
+                    <template #popup="{ hide }">
+                        <div class="opt-menu">
+                            <StampDropdown v-if="!hasSubgroups" :images="getImages" :no-border="true">
+                                <template #button>
+                                    <div class="opt-row">
+                                        <span class="opt-icon"><i class="bi bi-paint-bucket" /></span>
+                                        <span class="opt-label">{{ $t('dropdown.stamp.paint_group') }}</span>
+                                    </div>
+                                </template>
+                            </StampDropdown>
+
+                            <ActionButton2 v-if="!hasSubgroups" action="group" :images="getImages" :no-border="true" @groups="addClusters">
+                                <div class="opt-row">
+                                    <span class="opt-icon"><i class="bi bi-diagram-2" /></span>
+                                    <span class="opt-label">{{ $t('action.group') }}</span>
+                                </div>
+                            </ActionButton2>
+
+                            <ActionButton2 action="execute" :images="instancesForExecute" :no-border="true" @groups="addClusters">
+                                <div class="opt-row">
+                                    <span class="opt-icon"><i class="bi bi-terminal" /></span>
+                                    <span class="opt-label">{{ $t('action.execute') }}</span>
+                                </div>
+                            </ActionButton2>
+
+                            <template v-if="group.subGroupType == GroupType.Cluster">
+                                <div class="opt-row" @click="saveHirachy(); hide();">
+                                    <span class="opt-icon"><i class="bi bi-diagram-3" /></span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
+                                </div>
+                                <div class="opt-row" @click="saveHirachy(true); hide();">
+                                    <span class="opt-icon"><i class="bi bi-floppy2-fill" /></span>
+                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </Dropdown>
+            </div>
+
+            <!-- Fast-access actions: visible only while hovering the group line.
+                 Uses v-show (not v-if) so an already-open nested dropdown (teleported
+                 elsewhere in the DOM) isn't torn down when the mouse leaves this row.
+                 A local "fast-row" class is used instead of bootstrap's d-flex, whose
+                 `display: flex !important` would otherwise beat v-show's inline style. -->
+            <div v-show="hoverGroup" class="fast-row">
                 <div v-if="!hasSubgroups" class="ms-1 sbb">
                     <WithToolTip message="dropdown.stamp.paint_group">
                         <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;"
@@ -257,43 +299,25 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                 </div>
             </div>
 
-            <!-- Remaining options grouped in a single dropdown -->
-            <div class="ms-1" v-if="hasMenuOptions">
-                <Dropdown :teleport="true">
-                    <template #button>
-                        <div class="sbb opt-btn"><i class="bi bi-three-dots" /></div>
-                    </template>
-                    <template #popup="{ hide }">
-                        <div class="opt-menu">
-                            <div v-if="hasImages && !hasSubgroups && !(group.type == GroupType.Cluster) && someValue"
-                                class="opt-row opt-click" @click="recommandImages(); hide();">
-                                <span class="opt-icon"><i class="bi bi-magic" /></span>
-                                <span class="opt-label">{{ $t('main.recommand.title') }}</span>
-                            </div>
-
-                            <template v-if="group.subGroupType == GroupType.Cluster">
-                                <div class="opt-row opt-click" @click="saveHirachy(); hide();">
-                                    <span class="opt-icon"><i class="bi bi-diagram-3" /></span>
-                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
-                                </div>
-                                <div class="opt-row opt-click" @click="saveHirachy(true); hide();">
-                                    <span class="opt-icon"><i class="bi bi-floppy2-fill" /></span>
-                                    <span class="opt-label">{{ $t('btn.save-clusters') }}</span>
-                                </div>
-                                <div class="opt-row opt-click" @click="clear(); hide();">
-                                    <span class="opt-icon"><i class="bi bi-x-lg" /></span>
-                                    <span class="opt-label">{{ $t('btn.close-clusters') }}</span>
-                                </div>
-                            </template>
+            <template v-if="group.subGroupType == GroupType.Cluster">
+                <div v-show="hoverGroup" class="ms-1">
+                    <WithToolTip message="btn.close-clusters">
+                        <div class="sbb opt-btn" @click="clear">
+                            <i class="bi bi-x-lg" />
                         </div>
-                    </template>
-                </Dropdown>
-            </div>
+                    </WithToolTip>
+                </div>
+            </template>
         </template>
     </div>
 </template>
 
 <style scoped>
+.fast-row {
+    display: flex;
+    align-items: center;
+}
+
 .close-children {
     font-size: 11px;
     cursor: pointer;
@@ -332,22 +356,42 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 
 .opt-menu {
     padding: 4px;
+    white-space: nowrap;
     min-width: 170px;
 }
 
 .opt-row {
     display: flex;
     align-items: center;
+    width: 100%;
+    box-sizing: border-box;
     padding: 3px 6px;
     border-radius: 4px;
-}
-
-.opt-click {
+    white-space: nowrap;
     cursor: pointer;
 }
 
 .opt-row:hover {
     background-color: var(--grey);
+}
+
+/* ActionButton2's trigger is nested inside its own flex wrappers (.main2, then
+   WithToolTip's ".text-nowrap.d-flex", then a plain div around the slot). Flex
+   items don't stretch to fill their container by default, so without this the
+   opt-row's own `width: 100%` has nothing full-width to resolve against and
+   the hover highlight only covers the icon+label content. Force each wrapper
+   in that chain to stretch so opt-row can actually fill the menu row. */
+.opt-menu :deep(.main2) {
+    width: 100%;
+}
+
+.opt-menu :deep(.main2 .text-nowrap.d-flex) {
+    flex: 1;
+}
+
+.opt-menu :deep(.main2 .text-nowrap.d-flex > div) {
+    flex: 1;
+    display: flex;
 }
 
 .opt-icon {
@@ -359,5 +403,6 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 .opt-label {
     margin-left: 8px;
     font-size: 14px;
+    white-space: nowrap;
 }
 </style>

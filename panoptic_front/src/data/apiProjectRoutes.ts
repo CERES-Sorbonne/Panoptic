@@ -250,7 +250,11 @@ export const apiExportProperties = async (name?: string, images?: number[], key?
 
 export async function apiReImportFolder(folderId: number) {
     let res = await projectApi.post('/reimport_folder', { id: folderId })
-    return res.data
+    return keysToCamel(res.data)
+}
+
+export async function apiResyncFileSource(sourceId: number) {
+    await projectApi.post('/file_source/resync', { id: sourceId })
 }
 
 export async function apiGetPlugins() {

@@ -91,10 +91,12 @@ async function apply() {
     <div class="m-0 p-0">
         <Dropdown ref="dropdownElem" :teleport="true">
             <template #button>
-                <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">
-                    <span v-if="props.showNumber"><i class="bi bi-paint-bucket" style="position: relative; left: 1px"></i></span>
-                    <span v-else>{{ $t('modals.tagging.button') }}</span>
-                </div>
+                <slot name="button">
+                    <div class="text-center" :class="{sbb: !props.noBorder, sb: props.noBorder}" style="width: 23px;">
+                        <span v-if="props.showNumber"><i class="bi bi-paint-bucket" style="position: relative; left: 1px"></i></span>
+                        <span v-else>{{ $t('modals.tagging.button') }}</span>
+                    </div>
+                </slot>
             </template>
             <template #popup>
                 <div @keydown.escape.prevent.stop="">
