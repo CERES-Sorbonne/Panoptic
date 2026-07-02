@@ -56,7 +56,8 @@ export function createMapOptions(): MapOptions {
 
 export function createRecoOptions(): RecoOptions {
     return {
-        selectedGroupId: null
+        selectedGroupId: null,
+        previousType: null
     }
 }
 

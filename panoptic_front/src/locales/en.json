@@ -129,7 +129,13 @@
             "incoming": "Incoming recommendations",
             "in_group": "Images in group",
             "blacklist": "Blacklist",
-            "no_more": "No more recommendations"
+            "no_more": "No more recommendations",
+            "selected": "{count} selected",
+            "clear": "Clear selection",
+            "accept_selected": "Add selected to group",
+            "refuse_selected": "Refuse selected",
+            "remove_from_group": "Remove from group",
+            "remove_from_blacklist": "Remove from blacklist"
         },
         "view": {
             "all_group": "All",

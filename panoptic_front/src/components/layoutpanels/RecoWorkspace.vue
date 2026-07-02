@@ -6,8 +6,9 @@
 // group, and the blacklist — each a virtualized TreeScroller backed by its own
 // standalone GroupManager. The hero divider resizes the hero against the whole
 // panels block; the panels resize among themselves and can be collapsed to their
-// header. (Selection is global for now; a per-panel namespace comes later.)
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+// header. Each panel has its own selection namespace so selecting in one panel
+// doesn't affect the others or the global selection.
+import { computed, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import ActionSelect from '@/components/actions/ActionSelect.vue'
@@ -39,6 +40,8 @@ const props = defineProps<{
     width: number
     height: number
 }>()
+
+const emit = defineEmits(['close'])
 
 // ---- Group selection ---------------------------------------------------------
 
@@ -87,6 +90,9 @@ function selectGroup(g: Group) {
 const searchResult = ref<Group>(null)
 const propertyValues = reactive([]) as PropertyValueModel[]
 const blacklist = reactive(new Set<number>())
+// Accepted images: filtered out of the proposed queue but NOT blacklisted
+// (session-only; group membership keeps them out after a reload).
+const accepted = reactive(new Set<number>())
 const useFilter = ref(true)
 
 const similarIds = ref<number[]>([])
@@ -101,7 +107,7 @@ const groupIds = computed<number[]>(() => {
 
 const queueIds = computed<number[]>(() => {
     const inGroup = new Set(groupIds.value)
-    return similarIds.value.filter(id => !inGroup.has(id) && !blacklist.has(id))
+    return similarIds.value.filter(id => !inGroup.has(id) && !blacklist.has(id) && !accepted.has(id))
 })
 
 const blacklistIds = computed<number[]>(() => Array.from(blacklist))
@@ -116,6 +122,17 @@ const hero = computed<Instance | null>(() => {
 const queueManager = new GroupManager()
 const groupManager = new GroupManager()
 const blacklistManager = new GroupManager()
+
+// Independent, per-panel selection (disposed on unmount).
+queueManager.setSelectionNamespace('reco-queue')
+groupManager.setSelectionNamespace('reco-group')
+blacklistManager.setSelectionNamespace('reco-blacklist')
+
+onUnmounted(() => {
+    col.disposeNamespace('reco-queue')
+    col.disposeNamespace('reco-group')
+    col.disposeNamespace('reco-blacklist')
+})
 
 const queueReady = ref(false)
 const groupReady = ref(false)
@@ -161,6 +178,7 @@ function persistBlacklist() {
 
 async function getReco() {
     similarIds.value = []
+    accepted.clear()
     if (!group.value) return
     if (!actions.hasSimilaryFunction) return
 
@@ -218,25 +236,85 @@ async function acceptRecommend(image: Instance) {
         }
     })
     await data.setPropertyValues(instanceValues, imageValues)
-    // The image now matches the group; also blacklist it so it isn't re-proposed.
-    refuseRecommend(image)
+    // The image now matches the group; keep it out of the queue without
+    // blacklisting it (it belongs to the group now).
+    matchingIds(image).forEach(id => accepted.add(id))
+}
+
+// Ids to hide for a recommendation. For a sha1 group every instance sharing the
+// image's sha1 is included (they are the same picture).
+function matchingIds(image: Instance): number[] {
+    if (searchResult.value?.isSha1Group) {
+        const ids = col.instanceIds()
+        return searchResult.value.slots
+            .map(s => data.instances[ids[s]])
+            .filter(img => img?.sha1 == image.sha1)
+            .map(img => img.id)
+    }
+    return [image.id]
 }
 
 function refuseRecommend(image: Instance) {
-    if (searchResult.value?.isSha1Group) {
-        const ids = col.instanceIds()
-        searchResult.value.slots
-            .map(s => data.instances[ids[s]])
-            .filter(img => img?.sha1 == image.sha1)
-            .forEach(img => blacklist.add(img.id))
-    } else {
-        blacklist.add(image.id)
-    }
+    matchingIds(image).forEach(id => blacklist.add(id))
     persistBlacklist()
 }
 
 function toggleFilter() {
     useFilter.value = !useFilter.value
+}
+
+// ---- Per-panel batch actions (operate on each panel's own selection) ---------
+
+// Remove images from the current group by unsetting the group's defining
+// property values (inverse of acceptRecommend). For multi_tags the group tag is
+// pulled out of the image's list; other types are cleared to null.
+async function removeFromGroup(images: Instance[]) {
+    if (!group.value || !images.length) return
+    const defining = group.value.meta.propertyValues ?? []
+    const imageValues: ImagePropertyValue[] = []
+    const instanceValues: InstancePropertyValue[] = []
+    images.forEach(image => {
+        defining.forEach(v => {
+            if (v.value == undefined) return
+            const prop = data.properties[v.propertyId]
+            let value: any = null
+            if (prop.type == PropertyType.multi_tags) {
+                const cur = image.properties[v.propertyId] ?? []
+                value = cur.filter((t: any) => t !== v.value)
+            }
+            if (prop.mode == PropertyMode.id) {
+                instanceValues.push({ instanceId: image.id, propertyId: prop.id, value })
+            } else {
+                imageValues.push({ propertyId: prop.id, sha1: image.sha1, value })
+            }
+        })
+    })
+    await data.setPropertyValues(instanceValues, imageValues)
+}
+
+function selectedInstances(ns: string): Instance[] {
+    return col.getSelectedIds(ns).map(id => data.instances[id]).filter(Boolean) as Instance[]
+}
+
+async function acceptSelected() {
+    for (const img of selectedInstances('reco-queue')) await acceptRecommend(img)
+    col.clearSelection('reco-queue')
+}
+
+function refuseSelected() {
+    selectedInstances('reco-queue').forEach(img => refuseRecommend(img))
+    col.clearSelection('reco-queue')
+}
+
+async function removeSelectedFromGroup() {
+    await removeFromGroup(selectedInstances('reco-group'))
+    col.clearSelection('reco-group')
+}
+
+function removeSelectedFromBlacklist() {
+    col.getSelectedIds('reco-blacklist').forEach(id => blacklist.delete(id))
+    persistBlacklist()
+    col.clearSelection('reco-blacklist')
 }
 
 onMounted(getReco)
@@ -386,7 +464,12 @@ onBeforeUnmount(() => heroObserver?.disconnect())
     <div class="reco-workspace" :style="{ height: props.height + 'px' }">
         <!-- Header: title, then group selection + similarity function -->
         <div class="reco-header">
-            <div class="reco-title">{{ $t('main.recommand.title') }}</div>
+            <div class="reco-title">
+                <wTT message="main.recommand.close">
+                    <button class="reco-close" @click="emit('close')"><i class="bi bi-arrow-left"></i></button>
+                </wTT>
+                <span>{{ $t('main.recommand.title') }}</span>
+            </div>
             <div class="reco-controls">
                 <Dropdown v-if="eligibleGroups.length" placement="bottom-start">
                     <template #button>
@@ -477,7 +560,36 @@ onBeforeUnmount(() => heroObserver?.disconnect())
                             :collapsed="collapsed[it.key]"
                             :empty-message="it.emptyKey ? $t(it.emptyKey) : undefined"
                             @toggle="toggleCollapse(it.key)"
-                        />
+                        >
+                            <template #actions>
+                                <template v-if="it.key === 'queue'">
+                                    <wTT message="main.reco.accept_selected">
+                                        <button class="panel-action accept" @click="acceptSelected">
+                                            <span class="bi bi-check-lg"></span>
+                                        </button>
+                                    </wTT>
+                                    <wTT message="main.reco.refuse_selected">
+                                        <button class="panel-action refuse" @click="refuseSelected">
+                                            <span class="bi bi-x-lg"></span>
+                                        </button>
+                                    </wTT>
+                                </template>
+                                <button
+                                    v-else-if="it.key === 'group'"
+                                    class="panel-action text"
+                                    @click="removeSelectedFromGroup"
+                                >
+                                    {{ $t('main.reco.remove_from_group') }}
+                                </button>
+                                <button
+                                    v-else-if="it.key === 'blacklist'"
+                                    class="panel-action text"
+                                    @click="removeSelectedFromBlacklist"
+                                >
+                                    {{ $t('main.reco.remove_from_blacklist') }}
+                                </button>
+                            </template>
+                        </RecoPanel>
                     </div>
                     <div
                         v-if="li < panelItems.length - 1"
@@ -507,10 +619,33 @@ onBeforeUnmount(() => heroObserver?.disconnect())
 }
 
 .reco-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
     font-size: var(--font-size-md, 15px);
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     margin-bottom: var(--spacing-xs);
+}
+
+.reco-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 15px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.reco-close:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 
 .reco-controls {
@@ -659,6 +794,55 @@ onBeforeUnmount(() => heroObserver?.disconnect())
 
 .refuse:hover {
     background-color: var(--refuse-border);
+}
+
+/* Compact per-panel selection action buttons (header). Reuse the accept/refuse
+   colouring but override the hero sizing. */
+.panel-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    padding: 0 var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.panel-action.accept,
+.panel-action.refuse {
+    width: 26px;
+    height: 20px;
+    font-size: 13px;
+}
+
+.panel-action.accept {
+    color: var(--text-success, #2e7d32);
+    border-color: var(--validate-border);
+}
+
+.panel-action.accept:hover {
+    background-color: var(--validate-border);
+}
+
+.panel-action.refuse {
+    color: var(--text-danger, #c62828);
+    border-color: var(--refuse-border);
+}
+
+.panel-action.refuse:hover {
+    background-color: var(--refuse-border);
+}
+
+.panel-action.text:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 
 /* Consistent thin gutter between every stack item (drag-resizable where the

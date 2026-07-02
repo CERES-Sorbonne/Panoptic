@@ -28,6 +28,21 @@ function toggleProperties() {
     view.value.showProperties = !view.value.showProperties
 }
 
+// Switch this pane to the reco view, targeting the clicked group. Remember the
+// current view type so the reco close button can restore it.
+function openReco(groupId: number) {
+    if (!tab.value || !view.value) return
+    view.value.recoOptions.selectedGroupId = groupId
+    view.value.recoOptions.previousType = view.value.type
+    tab.value.setViewType(props.viewIndex, 'reco')
+}
+
+// Close the reco view, restoring the view type it was opened from (or tree).
+function closeReco() {
+    if (!tab.value || !view.value) return
+    tab.value.setViewType(props.viewIndex, view.value.recoOptions.previousType ?? 'tree')
+}
+
 const containerRef = ref<HTMLElement>()
 const dimensions = ref({ width: 0, height: 0 })
 const visibleProperties = computed(() => tab.value?.getVisibleProperties() ?? [])
@@ -95,6 +110,7 @@ onUnmounted(() => {
                 :width="dimensions.width - 20"
                 :properties="view.showProperties ? visibleProperties : []"
                 :hide-if-modal="true"
+                @reco="openReco"
             />
 
             <div v-if="tab && view && collection && view.type == 'grid' && dimensions.width > 0" class="grid-container">
@@ -131,6 +147,7 @@ onUnmounted(() => {
                 :image-size="view.imageSize"
                 :width="dimensions.width - 32"
                 :height="dimensions.height - 15"
+                @close="closeReco"
             />
         </div>
     </IslandPanel>

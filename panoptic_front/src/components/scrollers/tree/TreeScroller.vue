@@ -28,7 +28,12 @@ const props = defineProps<{
     inputKey: string
 }>()
 
+const emit = defineEmits(['reco'])
+
 provide('inputKey', props.inputKey)
+// Selection namespace for descendant cells (defaults to 'global'). Sourced from
+// the GroupManager so there is a single source of truth per scroller.
+provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
 
 const groupIdx = {}
 const imageLines = shallowRef([]) as Ref<ScrollerLine[]>
@@ -451,7 +456,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         :manager="props.groupManager" :hide-options="props.hideOptions"
                         :data="props.groupManager.result" @scroll="scrollTo" @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1" @group:close="closeGroup" @group:open="openGroup"
-                        @select="toggleGroupSelect" />
+                        @select="toggleGroupSelect" @reco="emit('reco', $event)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
                     <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->

@@ -324,6 +324,8 @@ export interface MapOptions {
 // recommendation grid is currently showing so the selection survives re-renders.
 export interface RecoOptions {
     selectedGroupId: number | null
+    // View type to restore when the reco view is closed (set when opened from a group).
+    previousType: ViewType | null
 }
 
 export interface TabData {

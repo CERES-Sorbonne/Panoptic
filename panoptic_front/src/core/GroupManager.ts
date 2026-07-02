@@ -294,8 +294,10 @@ export class GroupManager {
     // status/dirty signal (Q-I) so watchers here only fire on real result changes.
     version: Ref<number>
 
-    // Selection is GLOBAL and lives in columnStore.selectionMask (note §5,
-    // step 2). The GroupManager no longer owns a selectedImages map.
+    // Selection lives in columnStore, keyed by namespace (note §5, step 2). By
+    // default a manager drives the shared 'global' selection; a custom namespace
+    // (set via setSelectionNamespace) gives it an independent selection mask.
+    selectionNamespace = 'global'
     private selection: { lastImage: ImageIterator, lastGroup: GroupIterator }
     private iterators: GroupIterator[]
 
@@ -1030,26 +1032,32 @@ export class GroupManager {
 
     // ── Selection ──────────────────────────────────────────────────────────
 
+    // Point this manager at a custom selection namespace (creating its mask).
+    setSelectionNamespace(ns: string) {
+        this.selectionNamespace = ns
+        useColumnStore().ensureNamespace(ns)
+    }
+
     clearSelection() {
-        useColumnStore().clearSelection()
+        useColumnStore().clearSelection(this.selectionNamespace)
         this.clearLastSelected()
     }
 
     selectImageIterator(iterator: ImageIterator, shift = false) {
         if (shift) this._shiftSelect(iterator)
-        useColumnStore().select(iterator.slots)
+        useColumnStore().select(iterator.slots, this.selectionNamespace)
         this.clearLastSelected()
         this.selection.lastImage = iterator.clone()
     }
 
     unselectImageIterator(iterator: ImageIterator) {
-        useColumnStore().deselect(iterator.slots)
+        useColumnStore().deselect(iterator.slots, this.selectionNamespace)
         this.clearLastSelected()
     }
 
     toggleImageIterator(iterator: ImageIterator, shift = false) {
         const col = useColumnStore()
-        const selected = iterator.slots.every(s => col.isSelected(s))
+        const selected = iterator.slots.every(s => col.isSelected(s, this.selectionNamespace))
         if (selected) this.unselectImageIterator(iterator)
         else this.selectImageIterator(iterator, shift)
     }
@@ -1075,7 +1083,7 @@ export class GroupManager {
             }
             it = it.nextImages()
         }
-        if (selected.length) { useColumnStore().select(selected); return true }
+        if (selected.length) { useColumnStore().select(selected, this.selectionNamespace); return true }
         return false
     }
 
@@ -1091,7 +1099,7 @@ export class GroupManager {
             for (const s of it.group.slots) selected.push(s)
             it = it.nextGroup()
         }
-        if (selected.length) { useColumnStore().select(selected); return true }
+        if (selected.length) { useColumnStore().select(selected, this.selectionNamespace); return true }
         return false
     }
 
@@ -1100,15 +1108,15 @@ export class GroupManager {
         this.selection.lastImage = undefined
     }
 
-    unselectImage(imageId: number) { useColumnStore().deselectIds([imageId]) }
-    selectImage(imageId: number)   { useColumnStore().selectIds([imageId]) }
+    unselectImage(imageId: number) { useColumnStore().deselectIds([imageId], this.selectionNamespace) }
+    selectImage(imageId: number)   { useColumnStore().selectIds([imageId], this.selectionNamespace) }
 
     selectImages(imageIds: number[]) {
-        useColumnStore().selectIds(imageIds)
+        useColumnStore().selectIds(imageIds, this.selectionNamespace)
     }
 
     unselectImages(imageIds: number[]) {
-        useColumnStore().deselectIds(imageIds)
+        useColumnStore().deselectIds(imageIds, this.selectionNamespace)
     }
 
     propagateUnselect(group: Group) {
@@ -1120,7 +1128,7 @@ export class GroupManager {
     propagateSelect(group: Group) {
         const col = useColumnStore()
         if (group.children.length == 0 || group.subGroupType == GroupType.Sha1) {
-            group.view.selected = group.slots.every(s => col.isSelected(s))
+            group.view.selected = group.slots.every(s => col.isSelected(s, this.selectionNamespace))
         } else {
             group.view.selected = group.children.every(g => g.view.selected)
         }
@@ -1129,11 +1137,11 @@ export class GroupManager {
     }
 
     selectGroup(group: Group) {
-        useColumnStore().select(group.slots)
+        useColumnStore().select(group.slots, this.selectionNamespace)
     }
 
     unselectGroup(group: Group) {
-        useColumnStore().deselect(group.slots)
+        useColumnStore().deselect(group.slots, this.selectionNamespace)
     }
 
     selectGroupIterator(iterator: GroupIterator, shift = false) {
@@ -1150,7 +1158,7 @@ export class GroupManager {
 
     toggleGroupIterator(iterator: GroupIterator, shift = false) {
         const col = useColumnStore()
-        const selected = !iterator.group.slots.some(s => !col.isSelected(s))
+        const selected = !iterator.group.slots.some(s => !col.isSelected(s, this.selectionNamespace))
         if (selected) this.unselectGroupIterator(iterator)
         else this.selectGroupIterator(iterator, shift)
     }

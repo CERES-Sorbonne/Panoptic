@@ -3,9 +3,10 @@ import { ScrollerPileLine, Property, Sha1Scores } from '@/data/models';
 import ImageVue from './Image.vue';
 import { SelectedImages } from '@/core/GroupManager';
 import { useColumnStore } from '@/data/columnStore';
-import { Ref, computed } from 'vue';
+import { ComputedRef, Ref, computed, inject } from 'vue';
 
 const col = useColumnStore()
+const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(() => 'global'))
 
 const props = defineProps<{
     imageSize: number
@@ -23,12 +24,13 @@ const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selec
 
 
 const selected = computed(() => {
-    col.selectionVersion.value  // reactive dep on global selection (step 2)
+    const ns = selectNamespace.value
+    col.selectionTick(ns)  // reactive dep on this namespace's selection (step 2)
     const res = {}
     const ids = col.instanceIds()
     props.item.data.forEach(it => {
         const id = ids[it.slot]
-        res[id] = col.isSelected(it.slot)
+        res[id] = col.isSelected(it.slot, ns)
     })
     return res
 })

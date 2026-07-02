@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ComputedRef, computed, inject, ref, watch } from 'vue'
 import StampDropdown from '@/components/inputs/StampDropdown.vue'
 import PropertyValue from '@/components/properties/PropertyValue.vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
@@ -17,6 +17,7 @@ import { apiAllocateTags } from '@/data/apiProjectRoutes'
 
 const data = useDataStore()
 const columnStore = useColumnStore() // <-- Initialized column store
+const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(() => 'global'))
 
 const props = defineProps<{
     item: GroupLine
@@ -27,7 +28,7 @@ const props = defineProps<{
     hideOptions: boolean
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'select'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'group:close', 'group:open', 'group:update', 'select', 'reco'])
 
 const hoverGroup = ref(false)
 const group = computed(() => props.item.data)
@@ -52,8 +53,9 @@ const closed = computed(() => props.item.data.view.closed)
 const hasOpenChildren = computed(() => props.item.data.children.some(c => !c.view.closed))
 
 const selected = computed(() => {
-    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
-    return !slots.value.some(slot => !columnStore.isSelected(slot))
+    const ns = selectNamespace.value
+    columnStore.selectionTick(ns)  // reactive dep on this namespace's selection (step 2)
+    return !slots.value.some(slot => !columnStore.isSelected(slot, ns))
 })
 
 const groupName = computed(() => {
@@ -67,7 +69,7 @@ const isClusterGroup = computed(() => props.item.data.subGroupType == GroupType.
 function instancesForExecute() {
     const ids = columnStore.instanceIds()
     const sha1s = columnStore.sha1s()
-    const selected = slots.value.filter(slot => columnStore.isSelected(slot))
+    const selected = slots.value.filter(slot => columnStore.isSelected(slot, selectNamespace.value))
     if (selected.length) {
         return selected.map(slot => ({ id: ids[slot], imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot] }))
     }
@@ -258,6 +260,11 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                                     <span class="opt-label">{{ $t('action.execute') }}</span>
                                 </div>
                             </ActionButton2>
+
+                            <div v-if="!hasSubgroups" class="opt-row" @click="emits('reco', group.id); hide();">
+                                <span class="opt-icon"><i class="bi bi-magic" /></span>
+                                <span class="opt-label">{{ $t('main.menu.reco_tooltip') }}</span>
+                            </div>
 
                             <template v-if="group.subGroupType == GroupType.Cluster">
                                 <div class="opt-row" @click="saveHirachy(); hide();">

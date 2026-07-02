@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { markRaw, nextTick, reactive, ref } from 'vue'
+import { computed, markRaw, nextTick, reactive, ref } from 'vue'
 import { LoadResult, PropertyType } from './models'
 import { apiStreamColumn, apiStreamInstanceBase, projectApi } from './apiProjectRoutes'
 import { EventEmitter } from '@/utils/utils'
@@ -87,7 +87,11 @@ export const useColumnStore = defineStore('columnStore', () => {
     const slotMap = markRaw(new Map<number, number>())
     let slotCount = 0
     let deletedMask = new Uint8Array(0)
-    let selectionMask = new Uint8Array(0)
+    // Selection is keyed by namespace. 'global' is always present and behaves
+    // exactly as the old single mask; custom namespaces (e.g. the reco panels)
+    // hold their own independent, slot-indexed selection.
+    const selectionMasks = markRaw(new Map<string, Uint8Array>())
+    selectionMasks.set('global', new Uint8Array(0))
 
     let instanceIds = new Int32Array(0)
     let sha1s: (string | null)[] = []
@@ -106,11 +110,15 @@ export const useColumnStore = defineStore('columnStore', () => {
     const _tagInvertedPromise: Record<number, Promise<void>> = {}
 
     const onSelectionChange = new EventEmitter()
-    // Reactive tick for the (non-reactive) selectionMask. Bumped on every
-    // selection mutation so Vue templates can depend on `selectionVersion.value`
-    // and re-render, while the 1M-slot mask itself stays out of reactivity
-    // (note §5, step 2). Kept separate from any result/version signal (Q-I).
-    const selectionVersion = ref(0)
+    // Reactive per-namespace tick for the (non-reactive) selection masks. Bumped
+    // on every selection mutation so Vue templates can depend on
+    // `selectionTick(ns)` and re-render, while the 1M-slot masks themselves stay
+    // out of reactivity (note §5, step 2). Kept separate from any result/version
+    // signal (Q-I).
+    const selectionVersions = reactive<Record<string, number>>({ global: 0 })
+    // Backward-compatible global tick: existing global consumers read
+    // `col.selectionVersion.value` (Pinia unwraps it; the `.value` is a no-op).
+    const selectionVersion = computed(() => selectionVersions.global)
     const isReady = ref(false)
     const instanceCount = ref(0)
 
@@ -146,9 +154,11 @@ export const useColumnStore = defineStore('columnStore', () => {
             newDeletedMask.set(deletedMask)
             deletedMask = newDeletedMask
 
-            const newSelectionMask = new Uint8Array(newSize)
-            newSelectionMask.set(selectionMask)
-            selectionMask = newSelectionMask
+            for (const [ns, mask] of selectionMasks) {
+                const grown = new Uint8Array(newSize)
+                grown.set(mask)
+                selectionMasks.set(ns, grown)
+            }
 
             const newInstanceIds = new Int32Array(newSize)
             newInstanceIds.set(instanceIds)
@@ -299,9 +309,11 @@ export const useColumnStore = defineStore('columnStore', () => {
         newDeletedMask.set(deletedMask)
         deletedMask = newDeletedMask
 
-        const newSelectionMask = new Uint8Array(newSize)
-        newSelectionMask.set(selectionMask)
-        selectionMask = newSelectionMask
+        for (const [ns, mask] of selectionMasks) {
+            const grown = new Uint8Array(newSize)
+            grown.set(mask)
+            selectionMasks.set(ns, grown)
+        }
 
         const newInstanceIdArray = new Int32Array(newSize).fill(NaN)
         newInstanceIdArray.set(instanceIds)
@@ -558,56 +570,92 @@ export const useColumnStore = defineStore('columnStore', () => {
         await Promise.all(tasks)
     }
 
-    function bumpSelection(): void {
-        selectionVersion.value++
-        onSelectionChange.emit()
+    // Lazily create a namespace's mask (sized to the current slot count).
+    function ensureNamespace(ns: string): void {
+        if (!selectionMasks.has(ns)) {
+            selectionMasks.set(ns, new Uint8Array(slotCount))
+            selectionVersions[ns] = 0
+        }
     }
 
-    function isSelected(slot: number): boolean { return selectionMask[slot] === 1 }
+    // Free a custom namespace. 'global' is permanent and never disposed.
+    function disposeNamespace(ns: string): void {
+        if (ns === 'global') return
+        selectionMasks.delete(ns)
+        delete selectionVersions[ns]
+    }
+
+    // Reactive dep for templates: reading it inside a computed tracks the ns tick.
+    function selectionTick(ns = 'global'): number {
+        return selectionVersions[ns] ?? 0
+    }
+
+    function bumpSelection(ns = 'global'): void {
+        selectionVersions[ns] = (selectionVersions[ns] ?? 0) + 1
+        onSelectionChange.emit(ns)
+    }
+
+    function isSelected(slot: number, ns = 'global'): boolean {
+        return selectionMasks.get(ns)?.[slot] === 1
+    }
 
     // Instance-id convenience wrappers (the mask itself is slot-indexed).
-    function isSelectedId(instanceId: number): boolean {
+    function isSelectedId(instanceId: number, ns = 'global'): boolean {
         const slot = slotMap.get(instanceId)
-        return slot !== undefined && selectionMask[slot] === 1
+        return slot !== undefined && selectionMasks.get(ns)?.[slot] === 1
     }
 
-    function select(slots: number[]): void {
-        for (const s of slots) selectionMask[s] = 1
-        bumpSelection()
+    function select(slots: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const s of slots) mask[s] = 1
+        bumpSelection(ns)
     }
 
-    function deselect(slots: number[]): void {
-        for (const s of slots) selectionMask[s] = 0
-        bumpSelection()
+    function deselect(slots: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const s of slots) mask[s] = 0
+        bumpSelection(ns)
     }
 
-    function selectIds(instanceIds: number[]): void {
-        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) selectionMask[s] = 1 }
-        bumpSelection()
+    function selectIds(instanceIds: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) mask[s] = 1 }
+        bumpSelection(ns)
     }
 
-    function deselectIds(instanceIds: number[]): void {
-        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) selectionMask[s] = 0 }
-        bumpSelection()
+    function deselectIds(instanceIds: number[], ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        for (const id of instanceIds) { const s = slotMap.get(id); if (s !== undefined) mask[s] = 0 }
+        bumpSelection(ns)
     }
 
-    function clearSelection(): void {
-        selectionMask.fill(0)
-        bumpSelection()
+    function clearSelection(ns = 'global'): void {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return
+        mask.fill(0)
+        bumpSelection(ns)
     }
 
     // Scan the mask for all currently-selected instance ids (excludes deleted).
-    function getSelectedIds(): number[] {
+    function getSelectedIds(ns = 'global'): number[] {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return []
         const ids: number[] = []
         for (let s = 0; s < slotCount; s++) {
-            if (selectionMask[s] === 1 && !deletedMask[s]) ids.push(instanceIds[s])
+            if (mask[s] === 1 && !deletedMask[s]) ids.push(instanceIds[s])
         }
         return ids
     }
 
-    function selectedCount(): number {
+    function selectedCount(ns = 'global'): number {
+        const mask = selectionMasks.get(ns)
+        if (!mask) return 0
         let n = 0
-        for (let s = 0; s < slotCount; s++) if (selectionMask[s] === 1 && !deletedMask[s]) n++
+        for (let s = 0; s < slotCount; s++) if (mask[s] === 1 && !deletedMask[s]) n++
         return n
     }
 
@@ -615,7 +663,10 @@ export const useColumnStore = defineStore('columnStore', () => {
         slotMap.clear()
         slotCount = 0
         deletedMask = new Uint8Array(0)
-        selectionMask = new Uint8Array(0)
+        selectionMasks.clear()
+        selectionMasks.set('global', new Uint8Array(0))
+        for (const k of Object.keys(selectionVersions)) delete selectionVersions[k]
+        selectionVersions.global = 0
         instanceIds = new Int32Array(0)
         sha1s = []
         fileIds = new Int32Array(0)
@@ -640,7 +691,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         slotMap,
         slotCount() { return slotCount },
         deletedMask() { return deletedMask },
-        selectionMask() { return selectionMask },
+        selectionMask() { return selectionMasks.get('global')! },
         instanceIds() { return instanceIds },
         sha1s() { return sha1s },
         fileIds() { return fileIds },
@@ -658,6 +709,7 @@ export const useColumnStore = defineStore('columnStore', () => {
         requireFullColumn, requireTagInverted, getFullyLoadedPropIds,
         isSelected, isSelectedId, select, deselect, selectIds, deselectIds,
         clearSelection, getSelectedIds, selectedCount,
+        ensureNamespace, disposeNamespace, selectionTick,
         getInstancesBySha1, getInstancesByFileId, updateFromLoadResult,
         clear,
     }

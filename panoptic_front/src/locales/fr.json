@@ -134,7 +134,13 @@
             "incoming": "Recommandations à venir",
             "in_group": "Images du groupe",
             "blacklist": "Liste noire",
-            "no_more": "Plus de recommandations"
+            "no_more": "Plus de recommandations",
+            "selected": "{count} sélectionné(s)",
+            "clear": "Effacer la sélection",
+            "accept_selected": "Ajouter la sélection au groupe",
+            "refuse_selected": "Refuser la sélection",
+            "remove_from_group": "Retirer du groupe",
+            "remove_from_blacklist": "Retirer de la liste noire"
         },
         "view": {
             "all_group": "Toutes",

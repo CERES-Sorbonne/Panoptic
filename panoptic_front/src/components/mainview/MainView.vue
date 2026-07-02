@@ -61,6 +61,12 @@ async function updateScrollerWidth() {
     scrollerWidth.value = filterElem.value?.clientWidth ?? scrollerWidth.value
 }
 
+// Switch the main view to the reco view, targeting the clicked group.
+function openReco(groupId: number) {
+    props.tab.state.views[0].recoOptions.selectedGroupId = groupId
+    props.tab.setViewType(0, 'reco')
+}
+
 onMounted(() => {
     updateScrollerWidth()
     window.addEventListener('resize', updateScrollerWidth)
@@ -92,7 +98,7 @@ onMounted(updateScrollerHeight)
         <template v-if="props.tab.state.views[0].type == 'tree'" >
             <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.views[0].imageSize"
                 :height="scrollerHeight" :properties="visibleProperties" :hide-if-modal="true"
-                ref="imageList"
+                ref="imageList" @reco="openReco"
                 :width="scrollerWidth -20" style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.views[0].type == 'grid'">

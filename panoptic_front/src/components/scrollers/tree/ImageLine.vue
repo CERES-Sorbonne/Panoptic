@@ -2,7 +2,7 @@
 import { ScrollerLine, Property, ImageLine } from '@/data/models';
 import Image from './Image.vue';
 import { GroupIndex, SelectedImages } from '@/core/GroupManager';
-import { Ref, computed, onMounted } from 'vue';
+import { ComputedRef, Ref, computed, inject, onMounted } from 'vue';
 import { useColumnStore } from '@/data/columnStore'; // <-- Import columnStore
 
 const props = defineProps<{
@@ -19,6 +19,7 @@ const props = defineProps<{
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update:selected-image'])
 
 const columnStore = useColumnStore() // <-- Initialize columnStore
+const selectNamespace = inject<ComputedRef<string>>('selectNamespace', computed(() => 'global'))
 
 // Helper function to resolve an iterator's slot to an instance ID
 function getImageId(imageIt: any): number {
@@ -26,12 +27,13 @@ function getImageId(imageIt: any): number {
 }
 
 const selected = computed(() => {
-    columnStore.selectionVersion.value  // reactive dep on global selection (step 2)
+    const ns = selectNamespace.value
+    columnStore.selectionTick(ns)  // reactive dep on this namespace's selection (step 2)
     const res = {}
     props.item.data.forEach(it => {
         const id = getImageId(it)
         if (id !== undefined) {
-            res[id] = columnStore.isSelectedId(id)
+            res[id] = columnStore.isSelectedId(id, ns)
         }
     })
     return res
