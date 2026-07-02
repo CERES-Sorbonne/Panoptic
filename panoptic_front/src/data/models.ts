@@ -450,6 +450,10 @@ export interface ScrollerPileLine extends ScrollerLine {
     data: ImageIterator[]
 }
 
+export interface ClusterLine extends ScrollerLine {
+    data: { group: Group, slot: number }[]
+}
+
 export interface Recommendation {
     images: string[]
     values: PropertyValue[]

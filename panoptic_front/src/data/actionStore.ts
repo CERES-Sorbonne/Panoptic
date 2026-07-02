@@ -1,11 +1,12 @@
 import { defineStore } from "pinia";
 import { useProjectStore } from "./projectStore";
-import { ActionContext, ActionFunctions, ExecuteActionPayload, FunctionDescription, VectorType } from "./models";
+import { ActionContext, ActionResult, ActionFunctions, ExecuteActionPayload, FunctionDescription, ParamDescription, VectorType } from "./models";
 import { computed, reactive, ref, watch } from "vue";
 import { objValues } from "./builder";
 import { useDataStore } from "./dataStore";
 import { useMediaStore } from "./mediaStore";
-import { sourceFromFunction } from "@/utils/utils";
+import { convertClusterGroupResult, fileToBase64, sourceFromFunction } from "@/utils/utils";
+import { ClusterParam, Group } from "@/core/GroupManager";
 import { apiGetActions, apiGetAllUIData, apiSetUIDataBulk } from "./apiProjectRoutes";
 
 export const useActionStore = defineStore('actionStore', () => {
@@ -182,6 +183,48 @@ export const useActionStore = defineStore('actionStore', () => {
         return ctx
     }
 
+    async function executeAction(funcId: string, hook: string, ctx: ActionContext, inputs: ParamDescription[]): Promise<{ result: ActionResult; groups?: Group[] }> {
+        const data = useDataStore()
+        const localInputs = JSON.parse(JSON.stringify(inputs))
+        const uiInputs: Record<string, any> = {}
+        const clusterInputs: ClusterParam[] = []
+
+        for (let input of localInputs) {
+            if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
+                input.defaultValue = data.propertyList[0].id
+            }
+            clusterInputs.push({
+                name: input.name,
+                label: input.label,
+                value: input.type == 'input_file' && input.defaultValue ? input.defaultValue.name : input.defaultValue
+            })
+            if (input.type == 'input_file' && input.defaultValue) {
+                input.defaultValue = await fileToBase64(input.defaultValue)
+            }
+            uiInputs[input.name] = input.defaultValue
+        }
+
+        ctx.uiInputs = uiInputs
+        const req: ExecuteActionPayload = { function: funcId, context: ctx }
+        const res = await project.call(req)
+
+        let groups: Group[] | undefined
+        if (res.groups) {
+            groups = convertClusterGroupResult(res.groups, ctx, { function: funcId, inputs: clusterInputs })
+        }
+
+        for (let i in localInputs) {
+            index.value[funcId].params[i].defaultValue = localInputs[i].defaultValue
+        }
+        await updateDefaultParams(funcId)
+
+        const update: Record<string, string> = {}
+        update[hook] = funcId
+        await updateDefaultActions(update)
+
+        return { result: res, groups }
+    }
+
     async function callComputeVector(vecType: VectorType) {
         let functions = objValues(index.value).filter(f => sourceFromFunction(f.id) == vecType.source && f.hooks.includes('vector'))
         if (functions.length) {
@@ -203,7 +246,7 @@ export const useActionStore = defineStore('actionStore', () => {
         updateDefaultParams, updateDefaultActions,
         hasSimilaryFunction, hasVectorFunction,
         getSimilarImages, getContext,
-        clear, init, reload, callComputeVector,
+        clear, init, reload, executeAction, callComputeVector,
         textSearchFunctions
     }
 })

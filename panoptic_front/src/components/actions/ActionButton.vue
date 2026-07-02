@@ -1,19 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
 import Dropdown from '../dropdowns/Dropdown.vue';
-import { ActionContext, ExecuteActionPayload, Instance, ParamDescription } from '@/data/models';
-import { useProjectStore } from '@/data/projectStore';
+import { ActionContext, Instance, ParamDescription } from '@/data/models';
 import ParamInput from '../inputs/ParamInput.vue';
 import { useActionStore } from '@/data/actionStore';
-import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
-import { usePanopticStore } from '@/data/panopticStore';
-import { convertClusterGroupResult, sourceFromFunction, objValues, fileToBase64 } from '@/utils/utils';
-import { ClusterParam } from '@/core/GroupManager';
+import { sourceFromFunction, objValues } from '@/utils/utils';
 import Autofocus from '../utils/Autofocus.vue';
 
-const project = useProjectStore()
-const data = useDataStore()
 const actions = useActionStore()
 
 const props = defineProps<{
@@ -63,48 +57,14 @@ async function call() {
 
     loading.value = true
     try {
-        const uiInputs = {}
-        const clusterInputs: ClusterParam[] = []
-        for (let input of localInputs.value) {
-            if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
-                input.defaultValue = data.propertyList[0].id
-            }
-            // Snapshot the params for the cluster group metadata before file inputs
-            // get replaced by their (unreadable) base64 encoding.
-            clusterInputs.push({
-                name: input.name,
-                label: input.label,
-                value: input.type == 'input_file' && input.defaultValue ? input.defaultValue.name : input.defaultValue
-            })
-            if (input.type == 'input_file' && input.defaultValue){
-                input.defaultValue = await fileToBase64(input.defaultValue)
-            }
-            uiInputs[input.name] = input.defaultValue
-        }
         const imageIds = (typeof props.images === 'function' ? props.images() : (props.images ?? [])).map(i => i.id)
-        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, uiInputs, groupName: props.groupName }
-        const req: ExecuteActionPayload = { function: localFunction.value, context: context }
-        const res = await project.call(req)
-        console.log(context.groupName)
-        if (res.groups) {
-            const groups = convertClusterGroupResult(res.groups, context, { function: localFunction.value, inputs: clusterInputs })
+        const context: ActionContext = { instanceIds: imageIds, propertyIds: props.propertyIds, groupName: props.groupName }
+        const { groups } = await actions.executeAction(localFunction.value, props.action, context, localInputs.value)
+        if (groups) {
             emits('groups', groups)
         }
     } catch (e) {
         console.error(e)
-    }
-    try {
-        const funcId = localFunction.value
-        for (let i in localInputs.value) {
-            actions.index[funcId].params[i].defaultValue = localInputs.value[i].defaultValue
-        }
-        await actions.updateDefaultParams(funcId)
-
-        const update = {}
-        update[props.action] = localFunction.value
-        await actions.updateDefaultActions(update)
-    } catch (e) {
-
     }
 
     loading.value = false
