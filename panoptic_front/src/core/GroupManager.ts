@@ -866,6 +866,54 @@ export class GroupManager {
         if (emit) this.emitResult()
     }
 
+    // Clone the subtree rooted at groupId into a brand-new, standalone GroupManager
+    // (own index/imageToGroups/order), re-rooted at depth 0 with no parent — so it
+    // renders in TreeScroller like any other full tree, independent of the source
+    // tree's collapse state and unaffected by later changes to the source.
+    rootedAt(groupId: number): GroupManager | undefined {
+        const source = this.result.index[groupId]
+        if (!source) return undefined
+
+        const manager = new GroupManager()
+
+        const cloneNode = (g: Group, parent: Group | undefined, depth: number, id: number | string): Group => {
+            const clone: Group = { ...g, id, parent, depth, view: { ...g.view }, children: [] }
+            clone.children = g.children.map((c, i) => {
+                const cc = cloneNode(c, clone, depth + 1, c.id)
+                cc.parentIdx = i
+                return cc
+            })
+            manager.result.index[clone.id] = clone
+            return clone
+        }
+        // TreeScroller/GroupIterator default to starting at group id 0 (the
+        // convention buildRoot() uses) — force the clone's root to id 0 so it
+        // is discoverable the same way a normal full tree's root is.
+        const root = cloneNode(source, undefined, 0, 0)
+        manager.result.root = root
+
+        // Rebuild imageToGroups for the cloned subtree by walking down to true
+        // leaves (a childless group, or the children of a Sha1 subgroup).
+        const ids = useColumnStore().instanceIds()
+        const registerLeaves = (g: Group) => {
+            if (g.children.length === 0) {
+                for (const s of g.slots) {
+                    const id = ids[s]
+                    let set = manager.result.imageToGroups.get(id)
+                    if (!set) { set = new Set<number>(); manager.result.imageToGroups.set(id, set) }
+                    set.add(g.id)
+                }
+            } else {
+                g.children.forEach(registerLeaves)
+            }
+        }
+        registerLeaves(root)
+
+        setOrder(root)
+        manager.buildOrdinalRanges()
+        return manager
+    }
+
     getGroupIterator(groupId?: number, options?: GroupIteratorOptions) {
         return new GroupIterator(this, groupId, options)
     }

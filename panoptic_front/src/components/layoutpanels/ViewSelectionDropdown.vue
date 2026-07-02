@@ -23,6 +23,7 @@ const viewOptions: ViewOption[] = [
     { id: 'graph', icon: 'bar-chart', tooltip: 'main.menu.graph_tooltip' },
     { id: 'map', icon: 'map', tooltip: 'main.menu.map_tooltip' },
     { id: 'reco', icon: 'magic', tooltip: 'main.menu.reco_tooltip' },
+    { id: 'cluster', icon: 'diagram-3', tooltip: 'main.menu.cluster_tooltip' },
 ]
 
 const currentView = computed(() => {

@@ -11,6 +11,7 @@ import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
 import RecoWorkspace from '@/components/layoutpanels/RecoWorkspace.vue'
+import ClusterView from '@/components/layoutpanels/ClusterView.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { useCurrentTab } from '@/data/useCurrentTab'
 
@@ -148,6 +149,17 @@ onUnmounted(() => {
                 :width="dimensions.width - 32"
                 :height="dimensions.height - 15"
                 @close="closeReco"
+            />
+
+            <ClusterView
+                v-if="tab && view && collection && view.type == 'cluster' && dimensions.width > 0"
+                :tab="tab"
+                :collection="collection"
+                :cluster-options="view.clusterOptions"
+                :image-size="view.imageSize"
+                :properties="view.showProperties ? visibleProperties : []"
+                :width="dimensions.width - 32"
+                :height="dimensions.height - 15"
             />
         </div>
     </IslandPanel>

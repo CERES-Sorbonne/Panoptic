@@ -92,6 +92,7 @@
             "graph_tooltip": "Passer en vue graphique",
             "map_tooltip": "Passer en vue carte",
             "reco_tooltip": "Passer en vue recommandations",
+            "cluster_tooltip": "Passer en vue clusters",
             "image_size_tooltip": "Taille des images",
             "all_images": "Images",
             "sha1_images": "Instances",
@@ -141,6 +142,10 @@
             "refuse_selected": "Refuser la sélection",
             "remove_from_group": "Retirer du groupe",
             "remove_from_blacklist": "Retirer de la liste noire"
+        },
+        "cluster": {
+            "title": "Clusters",
+            "empty": "Aucun cluster trouvé. Générez des clusters depuis la vue arborescente."
         },
         "view": {
             "all_group": "Toutes",

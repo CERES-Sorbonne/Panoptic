@@ -261,7 +261,7 @@ export interface ScoreInterval {
     description: string
 }
 
-export type ViewType = 'tree' | 'grid' | 'graph' | 'map' | 'reco'
+export type ViewType = 'tree' | 'grid' | 'graph' | 'map' | 'reco' | 'cluster'
 
 /**
  * Per-view display state (Pillar F). A tab holds a fixed pair of views; the
@@ -273,6 +273,7 @@ export interface ViewState {
     imageSize: number
     mapOptions: MapOptions
     recoOptions: RecoOptions
+    clusterOptions: ClusterOptions
     showProperties: boolean
     // Which collection (filter/sort/group pipeline) this view renders. Two views
     // may share one collectionId (computed once) or reference different ones.
@@ -326,6 +327,12 @@ export interface RecoOptions {
     selectedGroupId: number | null
     // View type to restore when the reco view is closed (set when opened from a group).
     previousType: ViewType | null
+}
+
+// Per-view options for the cluster view. Stores which cluster group is
+// currently shown so the selection survives re-renders.
+export interface ClusterOptions {
+    selectedGroupId: number | null
 }
 
 export interface TabData {

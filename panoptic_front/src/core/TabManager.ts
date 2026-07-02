@@ -2,7 +2,7 @@ import { CollectionConfig, PropertyMode, ViewType, TabState } from "@/data/model
 import { CollectionManager } from "./CollectionManager"
 import { deepCopy, EventEmitter } from "@/utils/utils"
 import { useDataStore } from "@/data/dataStore"
-import { createCollectionConfig, createMapOptions, createViewState, defaultPropertyOption } from "@/data/builder"
+import { createClusterOptions, createCollectionConfig, createMapOptions, createViewState, defaultPropertyOption } from "@/data/builder"
 
 export class TabManager {
     state: TabState
@@ -148,6 +148,7 @@ export class TabManager {
         }
         for (const view of this.state.views) {
             if (!view.mapOptions) view.mapOptions = createMapOptions()
+            if (!view.clusterOptions) view.clusterOptions = createClusterOptions()
             if (!view.collectionId || !this.state.collections.find(c => c.id === view.collectionId)) {
                 view.collectionId = firstId
             }

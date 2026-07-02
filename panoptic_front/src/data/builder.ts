@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { CollectionConfig, MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, RecoOptions, TabState, ViewState, ViewType } from "./models";
+import { ClusterOptions, CollectionConfig, MapOptions, PropertyGroupOrder, PropertyOption, PropertyType, RecoOptions, TabState, ViewState, ViewType } from "./models";
 import { createFilterState } from "@/core/FilterManager";
 import { createSortState } from "@/core/SortManager";
 import { createGroupState } from "@/core/GroupManager";
@@ -22,6 +22,7 @@ export function createViewState(type: ViewType, collectionId: string): ViewState
         imageSize: 100,
         mapOptions: createMapOptions(),
         recoOptions: createRecoOptions(),
+        clusterOptions: createClusterOptions(),
         showProperties: true,
         collectionId,
     })
@@ -58,6 +59,12 @@ export function createRecoOptions(): RecoOptions {
     return {
         selectedGroupId: null,
         previousType: null
+    }
+}
+
+export function createClusterOptions(): ClusterOptions {
+    return {
+        selectedGroupId: null
     }
 }
 

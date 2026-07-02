@@ -1,0 +1,207 @@
+<script setup lang="ts">
+// Cluster view. Header: title + a group-selection dropdown listing the
+// GroupType.Cluster groups already present in the tab's collection tree
+// (clusters are computed elsewhere — tree/map view — this only displays
+// them). Body: a single TreeScroller fed a standalone GroupManager that is
+// a clone of the selected cluster group re-rooted at depth 0, so it renders
+// exactly like a normal full tree.
+import { onUnmounted, shallowRef, computed, watch } from 'vue'
+import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
+import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
+import { Group, GroupManager, GroupType } from '@/core/GroupManager'
+import { CollectionManager } from '@/core/CollectionManager'
+import { TabManager } from '@/core/TabManager'
+import { ClusterOptions, Property } from '@/data/models'
+import { useColumnStore } from '@/data/columnStore'
+
+const col = useColumnStore()
+
+const props = defineProps<{
+    tab: TabManager
+    collection: CollectionManager
+    clusterOptions: ClusterOptions
+    imageSize: number
+    properties: Property[]
+    width: number
+    height: number
+}>()
+
+const HEADER_PX = 42
+
+// ---- Group selection ---------------------------------------------------------
+
+function isEligible(g: Group): boolean {
+    return g.type === GroupType.Cluster && g.slots.length > 0
+}
+
+// Eligible cluster groups in display order (DFS).
+const eligibleGroups = computed(() => {
+    props.collection.groupManager.version.value // reactive dep on the group tree
+    const root = props.collection.groupManager.result?.root
+    if (!root) return [] as Group[]
+    const res: Group[] = []
+    const stack: Group[] = [root]
+    while (stack.length) {
+        const g = stack.pop()!
+        if (isEligible(g)) res.push(g)
+        for (let i = g.children.length - 1; i >= 0; i--) stack.push(g.children[i])
+    }
+    return res
+})
+
+// Selected group, revalidated against the eligible list (falls back to first).
+const group = computed<Group | null>(() => {
+    const groups = eligibleGroups.value
+    if (!groups.length) return null
+    return groups.find(g => g.id === props.clusterOptions.selectedGroupId) ?? groups[0]
+})
+
+function groupLabel(g: Group) {
+    return g.name ?? ('Cluster ' + g.parentIdx)
+}
+
+function selectGroup(g: Group) {
+    props.clusterOptions.selectedGroupId = g.id
+}
+
+// ---- Standalone tree fed to TreeScroller --------------------------------------
+
+const NAMESPACE = 'cluster-view'
+const clusterTreeManager = shallowRef<GroupManager>()
+
+function rebuildTree() {
+    clusterTreeManager.value = group.value ? props.collection.groupManager.rootedAt(group.value.id) : undefined
+    if (clusterTreeManager.value) clusterTreeManager.value.setSelectionNamespace(NAMESPACE)
+}
+
+watch([group, () => props.collection.groupManager.version.value], rebuildTree, { immediate: true })
+
+onUnmounted(() => col.disposeNamespace(NAMESPACE))
+</script>
+
+<template>
+    <div class="cluster-workspace" :style="{ height: props.height + 'px' }">
+        <div class="cluster-header">
+            <div class="cluster-title">{{ $t('main.cluster.title') }}</div>
+            <div class="cluster-controls">
+                <Dropdown v-if="eligibleGroups.length" placement="bottom-start">
+                    <template #button>
+                        <div class="group-select-button">
+                            <template v-if="group">
+                                <ClusterBadge :value="group.slots.length" />
+                                <span class="ms-1">{{ groupLabel(group) }}</span>
+                            </template>
+                            <i class="bi bi-chevron-down ms-2"></i>
+                        </div>
+                    </template>
+                    <template #popup="{ hide }">
+                        <div class="group-select-popup">
+                            <div
+                                v-for="g in eligibleGroups"
+                                :key="g.id"
+                                class="group-select-item"
+                                :class="{ 'is-selected': group && g.id === group.id }"
+                                @click="selectGroup(g); hide()"
+                            >
+                                <ClusterBadge :value="g.slots.length" />
+                                <span class="ms-1">{{ groupLabel(g) }}</span>
+                            </div>
+                        </div>
+                    </template>
+                </Dropdown>
+            </div>
+        </div>
+
+        <div v-if="!group" class="cluster-empty text-secondary">{{ $t('main.cluster.empty') }}</div>
+
+        <TreeScroller
+            v-else-if="clusterTreeManager"
+            input-key="cluster-view-tree"
+            :group-manager="clusterTreeManager"
+            :image-size="props.imageSize"
+            :height="props.height - HEADER_PX"
+            :width="props.width"
+            :properties="props.properties"
+            :hide-if-modal="true"
+        />
+    </div>
+</template>
+
+<style scoped>
+.cluster-workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.cluster-header {
+    flex-shrink: 0;
+    padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cluster-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-md, 15px);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.cluster-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.group-select-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background-color var(--transition-fast);
+}
+
+.group-select-button:hover {
+    background-color: var(--hover-bg);
+}
+
+.group-select-popup {
+    display: flex;
+    flex-direction: column;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.group-select-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast);
+}
+
+.group-select-item:hover {
+    background-color: var(--hover-bg);
+}
+
+.group-select-item.is-selected {
+    color: var(--primary);
+    font-weight: var(--font-weight-medium);
+}
+
+.cluster-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+</style>

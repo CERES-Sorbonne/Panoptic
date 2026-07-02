@@ -230,8 +230,18 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             subgroups.length }} {{ $t('main.view.groupes_nb') }}</div>
 
         <template v-if="!closed && !props.hideOptions">
+            <template v-if="group.subGroupType == GroupType.Cluster">
+                <div class="ms-1">
+                    <WithToolTip message="btn.close-clusters">
+                        <div class="sbb opt-btn" @click="clear">
+                            <i class="bi bi-x-lg" />
+                        </div>
+                    </WithToolTip>
+                </div>
+            </template>
+
             <!-- Options dropdown: always visible -->
-            <div class="ms-1">
+            <div v-if="group.subGroupType != GroupType.Cluster" class="ms-1">
                 <Dropdown :teleport="true">
                     <template #button>
                         <div class="sbb opt-btn"><i class="bi bi-three-dots" /></div>
@@ -306,15 +316,6 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                 </div>
             </div>
 
-            <template v-if="group.subGroupType == GroupType.Cluster">
-                <div v-show="hoverGroup" class="ms-1">
-                    <WithToolTip message="btn.close-clusters">
-                        <div class="sbb opt-btn" @click="clear">
-                            <i class="bi bi-x-lg" />
-                        </div>
-                    </WithToolTip>
-                </div>
-            </template>
         </template>
     </div>
 </template>
