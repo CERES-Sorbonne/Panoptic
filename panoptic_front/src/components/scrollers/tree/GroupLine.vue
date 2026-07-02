@@ -233,7 +233,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             <template v-if="group.subGroupType == GroupType.Cluster">
                 <div class="ms-1">
                     <WithToolTip message="btn.close-clusters">
-                        <div class="sbb opt-btn" @click="clear">
+                        <div class="sb opt-btn" @click="clear">
                             <i class="bi bi-x-lg" />
                         </div>
                     </WithToolTip>

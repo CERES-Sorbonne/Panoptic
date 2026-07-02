@@ -65,9 +65,17 @@ export interface GroupView {
     closed: boolean
 }
 
+export interface ClusterParam {
+    name: string
+    label?: string
+    value: any
+}
+
 export interface GroupMetaData {
     propertyValues?: PropertyValue[]
     score?: number
+    clusterFunction?: string
+    clusterInputs?: ClusterParam[]
 }
 
 export interface GroupIndex { [key: string]: Group }
@@ -822,6 +830,7 @@ export class GroupManager {
         }
         setOrder(this.result.root)
         this.buildOrdinalRanges()
+        console.log(this.result.root)
         if (emit) this.emitResult()
     }
 

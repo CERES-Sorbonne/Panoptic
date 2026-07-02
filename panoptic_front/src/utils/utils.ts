@@ -1,4 +1,4 @@
-import { buildGroup, Group, GroupType } from "@/core/GroupManager"
+import { buildGroup, ClusterParam, Group, GroupType } from "@/core/GroupManager"
 import { TabManager } from "@/core/TabManager"
 import { useDataStore } from "@/data/dataStore"
 import { deletedID, PropertyType, Tag, Folder, Property, Instance, TagIndex, ActionContext, GroupResult, ScoreIndex, InstanceIndex, Sha1ToInstances, GroupScoreList, LoadState, DbCommit } from "@/data/models"
@@ -6,6 +6,7 @@ import { useProjectStore } from "@/data/projectStore"
 import { useColumnStore } from "@/data/columnStore"
 import { Ref, computed, inject, ref, watch } from "vue"
 import chroma from 'chroma-js';
+import { Exception } from "sass"
 
 let _tmpIdCounter = -10000
 function getTmpId() { return _tmpIdCounter-- }
@@ -347,7 +348,8 @@ function _idsToSlots(ids: number[]): number[] {
     return slots
 }
 
-export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext) {
+export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionContext, funcInfo?: { function: string, inputs: ClusterParam[] }) {
+    console.log(funcInfo)
     const col = useColumnStore()
     const sha1Index: { [sha1: string]: number[] } = {}
     for (const id of ctx.instanceIds) {
@@ -368,6 +370,10 @@ export function convertClusterGroupResult(groups: GroupResult[], ctx: ActionCont
         }
         const res = buildGroup(getTmpId(), _idsToSlots(ids), GroupType.Cluster)
         res.meta.score = Math.round(group.score?.value ?? undefined)
+        if (funcInfo) {
+            res.meta.clusterFunction = funcInfo.function
+            res.meta.clusterInputs = funcInfo.inputs
+        }
         res.name = group.name
         res.isSha1Group = group.ids ? false : true
         res.score = group.score

@@ -9,6 +9,7 @@ import { useDataStore } from '@/data/dataStore';
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { usePanopticStore } from '@/data/panopticStore';
 import { convertClusterGroupResult, sourceFromFunction, objValues, fileToBase64 } from '@/utils/utils';
+import { ClusterParam } from '@/core/GroupManager';
 import Autofocus from '../utils/Autofocus.vue';
 
 const project = useProjectStore()
@@ -65,10 +66,18 @@ async function call() {
     loading.value = true
     try {
         const uiInputs = {}
+        const clusterInputs: ClusterParam[] = []
         for (let input of localInputs.value) {
             if (input.type == 'property' && !input.defaultValue && data.propertyList.length) {
                 input.defaultValue = data.propertyList[0].id
             }
+            // Snapshot the params for the cluster group metadata before file inputs
+            // get replaced by their (unreadable) base64 encoding.
+            clusterInputs.push({
+                name: input.name,
+                label: input.label,
+                value: input.type == 'input_file' && input.defaultValue ? input.defaultValue.name : input.defaultValue
+            })
             if (input.type == 'input_file' && input.defaultValue) {
                 input.defaultValue = await fileToBase64(input.defaultValue)
             }
@@ -79,7 +88,7 @@ async function call() {
         const req: ExecuteActionPayload = { function: localFunction.value, context: context }
         const res = await project.call(req)
         if (res.groups) {
-            const groups = convertClusterGroupResult(res.groups, context)
+            const groups = convertClusterGroupResult(res.groups, context, { function: localFunction.value, inputs: clusterInputs })
             emits('groups', groups)
         }
         emits('call', res)
