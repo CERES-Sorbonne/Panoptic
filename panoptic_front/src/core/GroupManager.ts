@@ -955,17 +955,18 @@ export class GroupManager {
         for (const s of group.slots) {
             if (isDateType) {
                 const raw = rawBuf?.[s] as Date | number | null
-                if (!raw) continue
-                const bk = dateBucketKey(raw instanceof Date ? raw : new Date(raw as number), option.stepSize, option.stepUnit)
-                if (bk === undefined) continue
-                if (!bucketMeta.has(bk)) {
+                const bk = raw ? dateBucketKey(raw instanceof Date ? raw : new Date(raw as number), option.stepSize, option.stepUnit) : undefined
+                if (bk !== undefined && !bucketMeta.has(bk)) {
                     const range = dateBucketRange(bk, option.stepSize, option.stepUnit)
                     bucketMeta.set(bk, { displayVal: range.first, intervalEnd: range.last })
                 }
                 let arr = buckets.get(bk); if (!arr) { arr = []; buckets.set(bk, arr) }; arr.push(s)
             } else if (isTagType) {
                 const tagIds = rawBuf?.[s] as number[] | null
-                if (!Array.isArray(tagIds) || !tagIds.length) continue
+                if (!Array.isArray(tagIds) || !tagIds.length) {
+                    let arr = buckets.get(undefined); if (!arr) { arr = []; buckets.set(undefined, arr) }; arr.push(s)
+                    continue
+                }
                 // Dedup expanded parents within this slot without allocating a Set: while
                 // slot s is being processed, any bucket we push s into has s as its last
                 // element until we move on, so a last-element check collapses the duplicate
