@@ -244,7 +244,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
             <div v-if="group.subGroupType != GroupType.Cluster" class="ms-1">
                 <Dropdown :teleport="true">
                     <template #button>
-                        <div class="sbb opt-btn"><i class="bi bi-three-dots" /></div>
+                        <div class="sb opt-btn"><i class="bi bi-three-dots" /></div>
                     </template>
                     <template #popup="{ hide }">
                         <div class="opt-menu">
@@ -297,7 +297,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                  A local "fast-row" class is used instead of bootstrap's d-flex, whose
                  `display: flex !important` would otherwise beat v-show's inline style. -->
             <div v-show="hoverGroup" class="fast-row">
-                <div v-if="!hasSubgroups" class="ms-1 sbb">
+                <div v-if="!hasSubgroups" class="ms-1">
                     <WithToolTip message="dropdown.stamp.paint_group">
                         <StampDropdown :images="getImages" :no-border="true" style="font-size: 14px;"
                             :show-number="true" />
@@ -308,7 +308,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
                     <ActionButton action="group" :images="getImages" @groups="addClusters" />
                 </div>
                 <div class="ms-1">
-                    <ActionButton2 action="execute" :images="instancesForExecute" @groups="addClusters">
+                    <ActionButton2 :no-border="true" action="execute" :images="instancesForExecute" @groups="addClusters">
                         <div class="bi bi-terminal"
                             style="position: relative; font-size: 14px; padding: 0px 5px 0 4px;">
                         </div>
@@ -400,6 +400,15 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 .opt-menu :deep(.main2 .text-nowrap.d-flex > div) {
     flex: 1;
     display: flex;
+}
+
+/* Same issue for StampDropdown and the generic Dropdown wrapper divs
+   (both use "m-0 p-0" on their root/button elements): they're plain
+   blocks so they'd normally stretch on their own, but sit inside the
+   flex chains above, so they also need an explicit full-width rule. */
+.opt-menu :deep(.m-0.p-0) {
+    width: 100%;
+    display: block;
 }
 
 .opt-icon {

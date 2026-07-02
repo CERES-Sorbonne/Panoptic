@@ -125,7 +125,7 @@ watch(localFunction, loadInput)
 </script>
 
 <template>
-    <div class="b-box sbb" v-if="localFunction" @click="call">
+    <div class="b-box sb" v-if="localFunction" @click="call">
         <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
@@ -133,7 +133,7 @@ watch(localFunction, loadInput)
             <div v-if="props.action != 'group'" style="padding: 0px 2px;">{{ $t('action.' + props.action) }}</div>
             <div v-else><img class="cluster-icon-sm" src="/icons/network2_white.svg" /></div>
         </wTT>
-        <div class="options" @click.stop.prevent="">
+        <div v-if="false" class="options" @click.stop.prevent="">
             <Dropdown :teleport="true" @show="handleShow" ref="dropdownElem">
                 <template #button>
                     <wTT :message="'dropdown.action.' + props.action" style="font-size: 14px;">
