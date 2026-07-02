@@ -135,6 +135,11 @@ class ImportSourceTask(Task):
 
         reader.on_import_complete(fs_id, self.state.done, self.state.failed, self.state.total, removed_files)
 
+        # Notify plugins so they can run their own follow-up compute tasks (e.g.
+        # vector computation) scoped to this import's root folder subtree.
+        root_folder_id = path_to_folder_id.get(reader.root)
+        self._project._trigger_import_complete(root_folder_id)
+
     def on_last(self) -> None:
         from panoptic.core.task.generate_atlas_task import GenerateAtlasTask
         self._project.add_task(GenerateAtlasTask(self._project))

@@ -39,7 +39,7 @@ class PluginProjectInterface:
         project_db_path: Path,
         task_manager: TaskManager,
         action_registry: ActionRegistry,
-        register_instance_import: Callable,
+        register_import_complete: Callable,
         register_folder_delete: Callable,
     ):
         self._name         = plugin_name
@@ -49,7 +49,7 @@ class PluginProjectInterface:
         self._project_path = Path(project_db_path)
         self._tasks        = task_manager
         self._actions      = action_registry
-        self._reg_import   = register_instance_import
+        self._reg_import_complete = register_import_complete
         self._reg_delete   = register_folder_delete
 
     # ------------------------------------------------------------------
@@ -242,8 +242,8 @@ class PluginProjectInterface:
     # Events
     # ------------------------------------------------------------------
 
-    def on_instance_import(self, callback: Callable[[List[Instance]], None]) -> None:
-        self._reg_import(callback)
+    def on_import_complete(self, callback: Callable[[int | None], None]) -> None:
+        self._reg_import_complete(callback)
 
     def on_folder_delete(self, callback: Callable[[List[Folder]], None]) -> None:
         self._reg_delete(callback)

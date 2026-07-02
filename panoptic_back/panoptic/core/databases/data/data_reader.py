@@ -58,6 +58,31 @@ class DataReader(SQLiteReader):
     def get_commit_by_id(self, commit_id: int) -> Commit:
         return COMMITS_SCHEMA.get(self.conn, id=commit_id)[0]
 
+    def get_commit_stats(self, commit_ids: List[int]) -> dict:
+        """Per-commit edit counts for the undo/redo history panel.
+
+        Returns ``{commit_id: {'tags': n, 'values': m}}`` where ``tags`` counts tag
+        assignments on images (instance/sha1 tag values) and ``values`` counts property
+        value edits. Commits with no matching rows are returned with zero counts.
+        """
+        stats = {cid: {'tags': 0, 'values': 0} for cid in commit_ids}
+        if not commit_ids:
+            return stats
+        placeholders = ','.join('?' * len(commit_ids))
+        rows = self.conn.execute(
+            f"SELECT commit_id, entity_type, COUNT(*) FROM entity_log"
+            f" WHERE commit_id IN ({placeholders}) GROUP BY commit_id, entity_type",
+            commit_ids,
+        ).fetchall()
+        for commit_id, entity_type, count in rows:
+            if commit_id not in stats:
+                continue
+            if entity_type in ('instance_tag_value', 'sha1_tag_value'):
+                stats[commit_id]['tags'] += count
+            elif entity_type in ('instance_value', 'sha1_value', 'file_value'):
+                stats[commit_id]['values'] += count
+        return stats
+
     def get_file_sources(self, **filters) -> List[FileSource]:
         return FILE_SOURCES_SCHEMA.get(self.conn, **filters)
 
@@ -311,18 +336,28 @@ class DataReader(SQLiteReader):
 
         return {}
 
+    def _alive_tag_ids(self) -> set:
+        # Junction rows can reference a tag whose creation was undone (tombstoned): those refs
+        # are dangling and must be filtered out of served values, mirroring the alive_props
+        # referential filter in get_delta. The junction ops stay in the log and reappear on redo.
+        return {t.id for t in TAGS_SCHEMA.get(self.conn)}
+
     def _tag_values_for_instances(self, instance_ids: list[int], prop_id: int) -> dict[int, Any]:
         tag_rows = INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, instance_id=instance_ids, operation=OP_CREATE)
+        alive = self._alive_tag_ids()
         result: dict[int, list[int]] = {}
         for r in tag_rows:
-            result.setdefault(r.instance_id, []).append(r.tag_id)
+            if r.tag_id in alive:
+                result.setdefault(r.instance_id, []).append(r.tag_id)
         return result
 
     def _sha1_tag_values_for_instances(self, sha1_to_ids: dict[str, list[int]], prop_id: int) -> dict[int, Any]:
         tag_rows = SHA1_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, sha1=list(sha1_to_ids), operation=OP_CREATE)
+        alive = self._alive_tag_ids()
         sha1_to_tags: dict[str, list[int]] = {}
         for r in tag_rows:
-            sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
+            if r.tag_id in alive:
+                sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
         result: dict[int, Any] = {}
         for sha1, inst_ids in sha1_to_ids.items():
             tags = sha1_to_tags.get(sha1)
@@ -379,16 +414,20 @@ class DataReader(SQLiteReader):
 
     def _full_tag_column_by_instance(self, prop_id: int) -> tuple[list[int], list[Any]]:
         tag_rows = INSTANCE_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, operation=OP_CREATE)
+        alive = self._alive_tag_ids()
         grouped: dict[int, list[int]] = {}
         for r in tag_rows:
-            grouped.setdefault(r.instance_id, []).append(r.tag_id)
+            if r.tag_id in alive:
+                grouped.setdefault(r.instance_id, []).append(r.tag_id)
         return list(grouped.keys()), list(grouped.values())
 
     def _full_tag_column_by_sha1(self, prop_id: int) -> tuple[list[int], list[Any]]:
         tag_rows = SHA1_TAG_VALUES_SCHEMA.get(self.conn, property_id=prop_id, operation=OP_CREATE)
+        alive = self._alive_tag_ids()
         sha1_to_tags: dict[str, list[int]] = {}
         for r in tag_rows:
-            sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
+            if r.tag_id in alive:
+                sha1_to_tags.setdefault(r.sha1, []).append(r.tag_id)
         if not sha1_to_tags:
             return [], []
         inst_rows = INSTANCES_SCHEMA.select(self.conn, ['id', 'sha1'])
@@ -511,8 +550,24 @@ class DataReader(SQLiteReader):
                 FILE_VALUES_SCHEMA, since, all_prop_ids
             )
 
+            # Always fetch tombstones (OP_DELETE rows) for value tables — even when
+            # full_prop_ids/point_prop_ids filtering is active. The frontend must
+            # always receive tombstone notifications so it can clear stale values,
+            # regardless of which columns are currently loaded.
+            _del_iv = self._values_since_op(INSTANCE_VALUES_SCHEMA, since, OP_DELETE)
+            if _del_iv:
+                data['instance_values'] = list(data['instance_values']) + _del_iv
+            _del_sv = self._values_since_op(SHA1_VALUES_SCHEMA, since, OP_DELETE)
+            if _del_sv:
+                data['image_values'] = list(data['image_values']) + _del_sv
+            _del_fv = self._values_since_op(FILE_VALUES_SCHEMA, since, OP_DELETE)
+            if _del_fv:
+                data['file_values'] = list(data['file_values']) + _del_fv
+
         # Merge instance_tag_values back into instance_values shape: {instance_id: [tag_ids]}
         itv_since = INSTANCE_TAG_VALUES_SCHEMA.get_since(self.conn, since)
+        stv_since = SHA1_TAG_VALUES_SCHEMA.get_since(self.conn, since)
+        alive_tags = self._alive_tag_ids() if (itv_since or stv_since) else None
         if itv_since:
             grouped_itv: dict[tuple, list[int]] = {}
             for r in itv_since:
@@ -522,14 +577,14 @@ class DataReader(SQLiteReader):
             affected_pairs = list(grouped_itv.keys())
             for inst_id, prop_id in affected_pairs:
                 full_tags = [r.tag_id for r in INSTANCE_TAG_VALUES_SCHEMA.get(
-                    self.conn, instance_id=inst_id, property_id=prop_id)]
+                    self.conn, instance_id=inst_id, property_id=prop_id)
+                    if r.tag_id in alive_tags]
                 merged_iv.append(InstanceValue(
                     property_id=prop_id, instance_id=inst_id,
                     value=full_tags if full_tags else None,
                 ))
             data['instance_values'] = merged_iv
 
-        stv_since = SHA1_TAG_VALUES_SCHEMA.get_since(self.conn, since)
         if stv_since:
             grouped_stv: dict[tuple, list[int]] = {}
             for r in stv_since:
@@ -537,7 +592,8 @@ class DataReader(SQLiteReader):
             merged_sv = data.get('image_values', [])
             for sha1, prop_id in grouped_stv.keys():
                 full_tags = [r.tag_id for r in SHA1_TAG_VALUES_SCHEMA.get(
-                    self.conn, sha1=sha1, property_id=prop_id)]
+                    self.conn, sha1=sha1, property_id=prop_id)
+                    if r.tag_id in alive_tags]
                 merged_sv.append(Sha1Value(
                     property_id=prop_id, sha1=sha1,
                     value=full_tags if full_tags else None,
@@ -699,4 +755,10 @@ class DataReader(SQLiteReader):
         sql = (f"SELECT * FROM {schema.table} "
                f"WHERE sequence > ? AND property_id IN ({prop_ph})")
         rows = self.conn.execute(sql, [since, *prop_ids]).fetchall()
+        return [schema._decode_row(r) for r in rows]
+
+    def _values_since_op(self, schema, since: int, operation: int) -> list:
+        """Fetch rows from a value table with the given operation since `since` (unfiltered by property)."""
+        sql = f"SELECT * FROM {schema.table} WHERE sequence > ? AND operation = ?"
+        rows = self.conn.execute(sql, (since, operation)).fetchall()
         return [schema._decode_row(r) for r in rows]

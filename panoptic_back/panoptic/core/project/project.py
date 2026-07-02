@@ -50,7 +50,7 @@ class Project:
         self._image_types: list[ImageType] = []
 
         # Event callback lists
-        self._on_instance_import_callbacks: list[Callable] = []
+        self._on_import_complete_callbacks: list[Callable] = []
         self._on_folder_delete_callbacks:   list[Callable] = []
         self._on_commit: Optional[Callable[[], None]] = None
 
@@ -241,6 +241,10 @@ class Project:
     def get_commits(self, **filters) -> List[Commit]:
         with self._data_reader() as r:
             return r.get_commits(**filters)
+
+    def get_commit_stats(self, commit_ids: List[int]) -> dict:
+        with self._data_reader() as r:
+            return r.get_commit_stats(commit_ids)
 
     def get_file_sources(self, **filters) -> List[FileSource]:
         with self._data_reader() as r:
@@ -579,7 +583,7 @@ class Project:
             project_db_path=self.project_db_path,
             task_manager=self.task_manager,
             action_registry=self.action,
-            register_instance_import=self.on_instance_import,
+            register_import_complete=self.on_import_complete,
             register_folder_delete=self.on_folder_delete,
         )
 
@@ -593,19 +597,19 @@ class Project:
     # Events  (triggered by Project write methods)
     # ------------------------------------------------------------------
 
-    def on_instance_import(self, callback: Callable) -> None:
-        self._on_instance_import_callbacks.append(callback)
+    def on_import_complete(self, callback: Callable) -> None:
+        self._on_import_complete_callbacks.append(callback)
 
     def on_folder_delete(self, callback: Callable) -> None:
         self._on_folder_delete_callbacks.append(callback)
 
-    def _trigger_instance_import(self, instances: list) -> None:
-        for cb in self._on_instance_import_callbacks:
+    def _trigger_import_complete(self, root_folder_id: int | None = None) -> None:
+        for cb in self._on_import_complete_callbacks:
             try:
-                cb(instances)
+                cb(root_folder_id)
             except Exception:
                 import logging
-                logging.exception('on_instance_import callback failed')
+                logging.exception('on_import_complete callback failed')
 
     def _trigger_folder_delete(self, folders: list) -> None:
         for cb in self._on_folder_delete_callbacks:

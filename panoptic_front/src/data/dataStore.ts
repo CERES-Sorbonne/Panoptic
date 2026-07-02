@@ -317,6 +317,18 @@ export const useDataStore = defineStore('dataStore', () => {
         delta.imageValues?.forEach(chunk => chunk.sha1s?.forEach(sha1 => columnStore.getInstancesBySha1(sha1).forEach(id => dirtyInstances.add(id))))
         delta.fileValues?.forEach(chunk => chunk.fileIds?.forEach(fid => columnStore.getInstancesByFileId(fid).forEach(id => dirtyInstances.add(id))))
 
+        // When tags are modified (e.g. reparented), their allChildren sets may
+        // have changed, affecting any instance whose tag filter value includes
+        // the affected tags. Re-filter all non-deleted instances.
+        if (c?.tags?.length) {
+            const count = columnStore.slotCount()
+            const delMask = columnStore.deletedMask()
+            const ids = columnStore.instanceIds()
+            for (let s = 0; s < count; s++) {
+                if (!delMask[s]) dirtyInstances.add(ids[s])
+            }
+        }
+
         if (delta.state?.maxSequence > lastSequence.value) lastSequence.value = delta.state.maxSequence
         triggerRefs()
         if (needsPropertyTree) computePropertyTree()
@@ -750,6 +762,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (!history.value.undo.length) return
         const commit = await apiUndo()
         applyCommit(commit)
+        await getHistory()
         onUndo.value++
     }
 
@@ -757,6 +770,7 @@ export const useDataStore = defineStore('dataStore', () => {
         if (!history.value.redo.length) return
         const commit = await apiRedo()
         applyCommit(commit)
+        await getHistory()
         onUndo.value++
     }
 

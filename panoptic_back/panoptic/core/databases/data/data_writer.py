@@ -316,6 +316,17 @@ class DataWriter(SQLiteWriter):
                        (1 if active else 0, commit_id))
             for et, key in self._touched_by_commit(tx, commit_id):
                 self._materialize(tx, et, key, seq)
+                # A tag's existence lives in the `tag` entity, but its assignments live in
+                # separate junction rows under other (still-active) commits. Toggling the tag
+                # doesn't touch those rows, so bump their sequence to re-ship the affected value
+                # cells on the next delta — the reader then rebuilds each list filtered to alive
+                # tags (undo drops the tag, redo restores it). Reversible: no ops are deleted.
+                if et == 'tag':
+                    tag_id = decode_key(key)[0]
+                    tx.execute(f"UPDATE {INSTANCE_TAG_VALUES_SCHEMA.table} SET sequence = ? WHERE tag_id = ?",
+                               (seq, tag_id))
+                    tx.execute(f"UPDATE {SHA1_TAG_VALUES_SCHEMA.table} SET sequence = ? WHERE tag_id = ?",
+                               (seq, tag_id))
 
     # ==================================================================
     # Log compaction  (bound resolution cost; drop undo history behind H)

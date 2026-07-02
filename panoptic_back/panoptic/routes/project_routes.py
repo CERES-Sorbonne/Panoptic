@@ -1112,33 +1112,46 @@ def delete_commit_route(req: DeleteRequest, project: Project = Depends(_dep), us
 
 
 @project_router.post('/undo')
-def undo_route(project: Project = Depends(_dep)):
-    commits = project.get_commits()
+def undo_route(project: Project = Depends(_dep), user_id: str = None):
+    commits = [c for c in project.get_commits() if c.author == user_id]
     active = [c for c in commits if c.active]
     if not active:
         raise HTTPException(400, 'Nothing to undo')
-    last = max(active, key=lambda c: c.id)
+    last = max(active, key=lambda c: c.id)      # last active = most recent
     project.set_commit_active(last.id, False)
     return _json(last)
 
 
 @project_router.post('/redo')
-def redo_route(project: Project = Depends(_dep)):
-    commits = project.get_commits()
+def redo_route(project: Project = Depends(_dep), user_id: str = None):
+    commits = [c for c in project.get_commits() if c.author == user_id]
     inactive = [c for c in commits if not c.active]
     if not inactive:
         raise HTTPException(400, 'Nothing to redo')
-    last = max(inactive, key=lambda c: c.id)
-    project.set_commit_active(last.id, True)
-    return _json(last)
+    first = min(inactive, key=lambda c: c.id)   # first deactivated = reactivate in LIFO order
+    project.set_commit_active(first.id, True)
+    return _json(first)
 
 
 @project_router.get('/history')
-def get_history(project: Project = Depends(_dep)):
-    commits = project.get_commits()
-    undo = [c for c in commits if c.active]
-    redo = [c for c in commits if not c.active]
-    return {'undo': len(undo), 'redo': len(redo)}
+def get_history(project: Project = Depends(_dep), user_id: str = None):
+    """Per-user undo/redo stacks (ascending by commit id), each entry {timestamp, tags, values}.
+
+    The frontend history panel renders these lists and undo/redo gate on their length, so this
+    must return arrays (not counts) for Ctrl+Z / the HistoryDropdown to work.
+    """
+    commits = sorted((c for c in project.get_commits() if c.author == user_id),
+                     key=lambda c: c.id)
+    stats = project.get_commit_stats([c.id for c in commits])
+
+    def stat(c):
+        s = stats.get(c.id, {'tags': 0, 'values': 0})
+        return {'timestamp': c.timestamp, 'tags': s['tags'], 'values': s['values']}
+
+    return _json({
+        'undo': [stat(c) for c in commits if c.active],
+        'redo': [stat(c) for c in commits if not c.active],
+    })
 
 
 # ---------------------------------------------------------------------------

@@ -11,7 +11,7 @@ import TagBadge from '../tagtree/TagBadge.vue';
 import TagOptionsDropdown from '../dropdowns/TagOptionsDropdown.vue';
 import TagChildSelectDropdown from '../dropdowns/TagChildSelectDropdown.vue';
 import { deletedID, Property, Tag, PropertyType, TagIndex } from '@/data/models';
-import { useDataStore } from '@/data/dataStore';
+import { useDataStore, deletedName } from '@/data/dataStore';
 import { objValues, sum } from '@/utils/utils';
 
 const data = useDataStore()
@@ -44,9 +44,12 @@ const isCreatePossible = computed(() => tagFilter.value.length > 0 && !filteredT
 
 const isCreateSelected = computed(() => selectedIndex.value == filteredTagList.value.length && isCreatePossible.value)
 
+// A deleted tag is not removed from data.tags; the store marks it in place (id -> deletedID,
+// value -> deletedName). Exclude both markers so tombstoned / undone tags never appear.
+const isDeleted = (t: Tag) => t.id == deletedID || t.value == deletedName || t.deleted
 const tags = computed(() => {
     const res: TagIndex = {}
-    objValues(data.tags).filter(t => t.propertyId == props.property.id && t.id != deletedID).forEach(t => res[t.id] = t)
+    objValues(data.tags).filter(t => t.propertyId == props.property.id && !isDeleted(t)).forEach(t => res[t.id] = t)
     return res
 })
 const filteredTagList = computed(() => {
@@ -57,7 +60,6 @@ const filteredTagList = computed(() => {
     }
 
     filtered.sort((t1, t2) => t2.count - t1.count)
-    filtered = filtered.filter(t => !t.deleted)
     return filtered
 })
 
@@ -158,7 +160,7 @@ watch(filteredTagList, () => {
                             :can-customize="props.canCustomize" @delete="id => emits('delete', id)" @hide="focus" />
                     </div>
                     <div class="text-secondary" style="font-size: 10px; line-height: 20px; padding-right: 2px;">
-                        {{tag.count + sum(tag.allChildren.map(c => data.tags[c].count))}}
+                        {{tag.count + sum(tag.allChildren.map(c => data.tags[c] && data.tags[c].id != deletedID ? data.tags[c].count : 0))}}
                     </div>
 
                 </div>
