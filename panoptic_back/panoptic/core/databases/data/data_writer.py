@@ -476,10 +476,16 @@ class DataWriter(SQLiteWriter):
 
     def delete_file_sources(self, source_ids: list[int]) -> dict:
         with self.transaction() as tx:
+            if not source_ids:
+                return {'orphan_sha1s': [], 'orphan_file_ids': []}
+            # The default local file source is permanent: deleting it clears all its
+            # folders but keeps the source row (created at project start, never removed).
+            local_ids = {r[0] for r in FILE_SOURCES_SCHEMA.select(tx, ['id'], dtype='local')}
             folder_ids = [r[0] for r in FOLDERS_SCHEMA.select(tx, ['id'], source_id=source_ids)]
             result = self._delete_folders(tx, folder_ids)
-            if source_ids:
-                FILE_SOURCES_SCHEMA.delete_by_pk(tx, source_ids)
+            deletable = [s for s in source_ids if s not in local_ids]
+            if deletable:
+                FILE_SOURCES_SCHEMA.delete_by_pk(tx, deletable)
             return result
 
     # --- internal (tx-scoped) structural deletes ---

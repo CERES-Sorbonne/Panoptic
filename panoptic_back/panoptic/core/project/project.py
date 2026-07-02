@@ -71,6 +71,7 @@ class Project:
         self._ensure_default_image_types()
         self._image_types = self._media.get_image_types()
         self._ensure_system_properties()
+        self.ensure_local_file_source()  # permanent default source, created on first start
         if self._plugin_keys:
             from panoptic.core.plugin.load_plugin_task import LoadPluginTask
             self.task_manager.add_task(LoadPluginTask(self, self._plugin_keys))

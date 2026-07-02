@@ -17,7 +17,10 @@ const tabStore = useTabStore()
 const panoptic = usePanopticStore()
 
 // File-source groups (local filesystem, IIIF, …) with their root folders.
-const sourceGroups = computed(() => data.rootNodes.filter(n => n.type === 'file_source') as SourceNode[])
+// The default local filesystem source is permanent, so hide it while it has no
+// folders — an empty "local_filesystem" header would just be noise.
+const sourceGroups = computed(() => (data.rootNodes.filter(n => n.type === 'file_source') as SourceNode[])
+    .filter(n => !(data.fileSources[n.id]?.dtype === 'local' && n.children.length === 0)))
 // Root folders that don't belong to any file source.
 const looseFolders = computed(() =>
     data.rootNodes.filter(n => n.type === 'folder').map(n => data.folders[n.id]).filter(Boolean)
