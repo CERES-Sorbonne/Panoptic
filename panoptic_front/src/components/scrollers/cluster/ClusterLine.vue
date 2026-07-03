@@ -17,6 +17,8 @@ const props = defineProps<{
     hoverBorder: number
     manager: GroupManager
     properties: any[]
+    // Group ids currently open in the right-side inspector panel.
+    openedIds: number[]
 }>()
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster'])
@@ -56,10 +58,11 @@ function isSelected(group: Group) {
             v-for="(entry, i) in props.item.data"
             :key="entry.group.id"
             class="cluster-card me-2 mb-2"
+            :class="{ opened: props.openedIds.includes(entry.group.id) }"
             :style="{ width: cardInner(i) + 2 + 'px' }"
             @mouseenter="hoveredCard = entry.group.id"
             @mouseleave="hoveredCard = null"
-            @click="$emit('open-cluster', entry.group.id)"
+            @click="$emit('open-cluster', entry.group.id, $event.shiftKey)"
         >
             <div class="cluster-image" :style="{ width: cardInner(i) + 'px', height: props.imageSize + 'px' }">
                 <CenteredImage
@@ -116,6 +119,11 @@ function isSelected(group: Group) {
     border-radius: 3px;
     overflow: hidden;
     cursor: pointer;
+}
+
+/* Clusters open in the right inspector get a colored label bar. */
+.cluster-card.opened .cluster-info {
+    background: var(--primary-light);
 }
 
 .cluster-card-empty {

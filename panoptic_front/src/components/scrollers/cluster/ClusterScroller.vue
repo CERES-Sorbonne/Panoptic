@@ -19,7 +19,9 @@ const props = defineProps<{
     groupManager: GroupManager,
     properties: Property[],
     hideIfModal?: boolean,
-    inputKey: string
+    inputKey: string,
+    // Group ids currently open in the right-side inspector panel.
+    openedIds?: number[]
 }>()
 
 const emit = defineEmits(['reco', 'open-cluster'])
@@ -271,10 +273,11 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         :hover-border="hoverGroupBorder"
                         :manager="props.groupManager"
                         :properties="props.properties"
+                        :opened-ids="props.openedIds ?? []"
                         @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1"
                         @select-cluster="toggleClusterSelect"
-                        @open-cluster="(id) => emit('open-cluster', id)"
+                        @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />
                 </div>

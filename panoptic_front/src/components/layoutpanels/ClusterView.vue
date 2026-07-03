@@ -11,7 +11,7 @@ import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import ClusterScroller from '@/components/scrollers/cluster/ClusterScroller.vue'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import SplitLayout from '@/layouts/SplitLayout.vue'
-import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
+import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
 import { Group, GroupManager, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
@@ -116,26 +116,42 @@ function rebuildTree() {
 
 watch([group, () => props.collection.groupManager.version.value], rebuildTree, { immediate: true })
 
-// ---- Detail split-view -------------------------------------------------------
+// ---- Detail inspector (right side) -------------------------------------------
+// Up to two clusters can be inspected at once, stacked vertically. A plain click
+// shows a single cluster (replacing whatever is open); a shift-click spawns a
+// second one below. Once both slots are full, further shift-clicks replace them
+// alternately (top, then bottom, then top…).
 
-const detailGroupId = ref<number | null>(null)
-// Split position as a fraction of the total width (not an absolute px size), so
-// the primary/detail ratio is preserved when the panel is resized.
+const DETAIL_NAMESPACES = ['cluster-detail-0', 'cluster-detail-1']
+
+const detailGroupIds = ref<number[]>([])
+// Which slot the next shift-click replaces once both slots are occupied.
+const nextReplace = ref(0)
+
+// Split position of the outer (left/right) split, as a width fraction so the
+// ratio survives a resize.
 const detailRatio = ref(0.35)
+// Split position of the inner (top/bottom) stack, as a height fraction.
+const stackRatio = ref(0.5)
 const SPLIT_GAP = 10
 
-const detailGroupManager = computed(() => {
-    if (detailGroupId.value == null) return null
-    const m = props.collection.groupManager.rootedAt(detailGroupId.value)
-    if (m) m.setSelectionNamespace('cluster-detail')
-    return m
-})
+const isSplit = computed(() => detailGroupIds.value.length > 0)
 
-const detailGroupName = computed(() => {
-    const g = detailGroupManager.value?.result?.root
-    if (!g) return ''
-    return g.name ?? ('Cluster ' + g.parentIdx)
-})
+// One rooted GroupManager per open cluster, each with its own selection
+// namespace so the two inspectors select independently.
+const detailPanes = computed(() =>
+    detailGroupIds.value.map((gid, idx) => {
+        const m = props.collection.groupManager.rootedAt(gid)
+        if (m) m.setSelectionNamespace(DETAIL_NAMESPACES[idx])
+        const root = m?.result?.root
+        return {
+            id: gid,
+            manager: m,
+            name: root ? (root.name ?? ('Cluster ' + root.parentIdx)) : '',
+            inputKey: DETAIL_NAMESPACES[idx]
+        }
+    }).filter(p => p.manager)
+)
 
 // The primary pane's width is derived purely from the parent-supplied prop: the
 // full width, minus the detail pane (and split gap) when it's open. No observer —
@@ -150,22 +166,58 @@ const detailWidth = computed(() => Math.round(totalWidth.value * detailRatio.val
 
 const primaryWidth = computed(() => {
     const w = totalWidth.value
-    if (!detailGroupId.value) return w - SPLIT_GAP
+    if (!isSplit.value) return w - SPLIT_GAP
     return Math.max(0, w - detailWidth.value - SPLIT_GAP)
 })
 
-function toggleDetail(groupId: number) {
-    detailGroupId.value = detailGroupId.value === groupId ? null : groupId
+// Heights of the stacked detail scrollers (pane height minus its own header).
+// With a single pane it owns the full height; with two, the bottom takes
+// `stackRatio` of the height (matching how SplitLayout sizes the secondary).
+const bottomPaneHeight = computed(() => Math.round(props.height * stackRatio.value))
+const topScrollerHeight = computed(() => {
+    if (detailPanes.value.length < 2) return props.height - HEADER_PX
+    return Math.max(0, props.height - SPLIT_GAP - bottomPaneHeight.value) - HEADER_PX
+})
+const bottomScrollerHeight = computed(() => bottomPaneHeight.value - HEADER_PX)
+
+function openDetail(groupId: number, shift: boolean) {
+    const ids = detailGroupIds.value
+    if (shift) {
+        if (ids.length === 0) {
+            detailGroupIds.value = [groupId]
+        } else if (ids.length === 1) {
+            detailGroupIds.value = [ids[0], groupId] // spawn below
+            nextReplace.value = 0                    // next shift replaces the top
+        } else {
+            const next = [...ids]
+            next[nextReplace.value] = groupId
+            detailGroupIds.value = next
+            nextReplace.value = nextReplace.value === 0 ? 1 : 0
+        }
+        return
+    }
+    // Plain click: a single inspector. Clicking the only open cluster closes it.
+    if (ids.length === 1 && ids[0] === groupId) {
+        detailGroupIds.value = []
+    } else {
+        detailGroupIds.value = [groupId]
+    }
+    nextReplace.value = 0
+}
+
+function closeDetail(idx: number) {
+    detailGroupIds.value = detailGroupIds.value.filter((_, i) => i !== idx)
+    nextReplace.value = 0
 }
 
 onUnmounted(() => {
     col.disposeNamespace(NAMESPACE)
-    col.disposeNamespace('cluster-detail')
+    DETAIL_NAMESPACES.forEach(ns => col.disposeNamespace(ns))
 })
 </script>
 
 <template>
-    <div class="cluster-workspace" :class="{ split: detailGroupId }" :style="{ height: props.height + 'px' }">
+    <div class="cluster-workspace" :class="{ split: isSplit }" :style="{ height: props.height + 'px' }">
         <div v-if="!group" class="cluster-primary-pane">
             <div class="cluster-header">
                 <div class="cluster-title">{{ $t('main.cluster.title') }}</div>
@@ -189,10 +241,10 @@ onUnmounted(() => {
             :gap="SPLIT_GAP"
             resizable
             :min-secondary="150"
-            :hide-secondary="!detailGroupId"
+            :hide-secondary="!isSplit"
         >
             <template #primary>
-                <div class="cluster-primary-pane" :class="{ split: detailGroupId }">
+                <div class="cluster-primary-pane" :class="{ split: isSplit }">
                     <div class="cluster-header">
                         <div class="cluster-title">{{ $t('main.cluster.title') }}</div>
                         <!-- <div class="cluster-controls">
@@ -230,30 +282,64 @@ onUnmounted(() => {
                         :height="props.height - HEADER_PX"
                         :width="primaryWidth"
                         :properties="props.properties"
+                        :opened-ids="detailGroupIds"
                         :hide-if-modal="true"
-                        @open-cluster="toggleDetail"
+                        @open-cluster="openDetail"
                     />
                 </div>
             </template>
             <template #secondary>
-                <div v-if="detailGroupManager" class="cluster-detail">
-                    <div class="cluster-header">
-                        <div class="cluster-title">
-                            <button class="detail-close" @click="detailGroupId = null">&times;</button>
-                            <span class="detail-name">{{ detailGroupName }}</span>
-                        </div>
-                    </div>
-                    <TreeScroller
-                        input-key="cluster-detail"
-                        :group-manager="detailGroupManager"
-                        :image-size="props.imageSize"
-                        :height="props.height - HEADER_PX"
-                        :width="detailWidth"
-                        :properties="props.properties"
-                        :hide-group="true"
-                        :hide-if-modal="true"
-                    />
-                </div>
+                <!-- Right side: one cluster inspector, or two stacked with a
+                     draggable horizontal divider. -->
+                <ClusterDetailPane
+                    v-if="detailPanes.length === 1"
+                    :input-key="detailPanes[0].inputKey"
+                    :group-manager="detailPanes[0].manager"
+                    :name="detailPanes[0].name"
+                    :image-size="props.imageSize"
+                    :width="detailWidth"
+                    :height="topScrollerHeight"
+                    :properties="props.properties"
+                    position="solo"
+                    @close="closeDetail(0)"
+                />
+                <SplitLayout
+                    v-else-if="detailPanes.length === 2"
+                    direction="column"
+                    :secondary-ratio="stackRatio"
+                    @update:secondary-ratio="stackRatio = $event"
+                    :gap="SPLIT_GAP"
+                    resizable
+                    :min-primary="120"
+                    :min-secondary="120"
+                >
+                    <template #primary>
+                        <ClusterDetailPane
+                            :input-key="detailPanes[0].inputKey"
+                            :group-manager="detailPanes[0].manager"
+                            :name="detailPanes[0].name"
+                            :image-size="props.imageSize"
+                            :width="detailWidth"
+                            :height="topScrollerHeight"
+                            :properties="props.properties"
+                            position="top"
+                            @close="closeDetail(0)"
+                        />
+                    </template>
+                    <template #secondary>
+                        <ClusterDetailPane
+                            :input-key="detailPanes[1].inputKey"
+                            :group-manager="detailPanes[1].manager"
+                            :name="detailPanes[1].name"
+                            :image-size="props.imageSize"
+                            :width="detailWidth"
+                            :height="bottomScrollerHeight"
+                            :properties="props.properties"
+                            position="bottom"
+                            @close="closeDetail(1)"
+                        />
+                    </template>
+                </SplitLayout>
             </template>
         </SplitLayout>
     </div>
@@ -361,7 +447,7 @@ onUnmounted(() => {
     background-color: var(--hover-bg);
 }
 
-/* ── Detail (secondary) pane ──────────────────────────────────────────── */
+/* ── Primary (cluster list) pane ──────────────────────────────────────── */
 
 .cluster-primary-pane {
     display: flex;
@@ -378,50 +464,5 @@ onUnmounted(() => {
 .cluster-primary-pane.split {
     border-top-right-radius: var(--island-radius);
     border-bottom-right-radius: var(--island-radius);
-}
-
-.cluster-detail {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    background-color: var(--island-surface);
-    /* Detail only exists while split: round the inner (left) corners that face
-       the primary pane. */
-    border-top-left-radius: var(--island-radius);
-    border-bottom-left-radius: var(--island-radius);
-}
-
-.detail-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: none;
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    margin-right: var(--spacing-xs);
-}
-
-.detail-close:hover {
-    background-color: var(--hover-bg);
-    color: var(--text-primary);
-}
-
-.detail-name {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 </style>
