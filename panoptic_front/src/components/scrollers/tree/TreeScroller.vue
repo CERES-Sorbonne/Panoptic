@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, onUnmounted, triggerRef } from 'vue';
+import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReactive, provide, triggerRef } from 'vue';
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
@@ -42,14 +42,26 @@ const hoverGroupBorder = ref(-1)
 
 const scroller = ref(null)
 const MARGIN_STEP = 20
+const GAP = 8 // must match the "me-2" margin applied to Image/PileLine cells
+const BORDER = 2 // Image.vue's .full-container 1px border on each side, added on top of its width style
+const WIDTH_OFFSET = 32 // trim off the width prop (vertical scrollbar + a little breathing room)
+
+// The `width` prop is the box this scroller occupies. RecycleScroller scrolls vertically, so
+// its scrollbar (plus a small margin) eats WIDTH_OFFSET px off the usable content width —
+// subtract it up front so the line math matches what's actually available. No ResizeObserver:
+// the prop is the single source of truth, and every per-cell size is precomputed here (never
+// inside the line comps).
+const contentWidth = computed(() => Math.max(0, props.width - WIDTH_OFFSET))
 
 const visiblePropertiesNb = computed(() => props.properties.length)
 const visiblePropertiesCluster = computed(() => props.properties.filter(p => p.mode == PropertyMode.sha1))
 const visiblePropertiesClusterNb = computed(() => visiblePropertiesCluster.value.length)
 
-const maxPerLine = computed(() => Math.ceil(props.width / props.imageSize * 1.5))
+const maxPerLine = computed(() => Math.ceil(contentWidth.value / props.imageSize * 1.5))
 
-const imageLineSize = computed(() => {
+// Row height depends on the actual rendered image size of that row (which varies per
+// line, see computeImageLines/computeImagePileLines), not the global imageSize prop.
+function imageLineSizeFor(imgSize: number) {
     let nb = visiblePropertiesNb.value
     let offset = 0
     if (nb > 0) {
@@ -58,10 +70,10 @@ const imageLineSize = computed(() => {
     if (nb > 1) {
         offset += (nb - 1) * 27
     }
-    return props.imageSize + offset + 10
-})
+    return imgSize + offset + 10
+}
 
-const pileLineSize = computed(() => {
+function pileLineSizeFor(imgSize: number) {
     let nb = visiblePropertiesClusterNb.value
     let offset = 0
     if (nb > 0) {
@@ -70,12 +82,12 @@ const pileLineSize = computed(() => {
     if (nb > 1) {
         offset += (nb - 1) * 27
     }
-    return props.imageSize + offset + 10
-})
+    return imgSize + offset + 10
+}
 
-const simiImageLineSize = computed(() => {
-    return props.imageSize + 40
-})
+function simiImageLineSizeFor(imgSize: number) {
+    return imgSize + 40
+}
 
 const hideFromModal = computed(() => props.hideIfModal && (panoptic.openModalId == ModalId.IMAGE || panoptic.openModalId == ModalId.TAG))
 
@@ -158,10 +170,11 @@ function GroupToLines(it: GroupIterator) {
     if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) return lines
     if (group.view.closed) return lines
 
+    const availableWidth = contentWidth.value - (group.depth * MARGIN_STEP)
     if (group.subGroupType != GroupType.Sha1) {
-        computeImageLines(it, lines, props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+        computeImageLines(it, lines, props.imageSize, availableWidth, group)
     } else {
-        computeImagePileLines(it, lines as ScrollerPileLine[], props.imageSize, props.width - (group.depth * MARGIN_STEP), group)
+        computeImagePileLines(it, lines as ScrollerPileLine[], props.imageSize, availableWidth, group)
     }
 
     return lines
@@ -231,44 +244,58 @@ function computeLines() {
     }
 }
 
+// Per-cell widths that exactly fill a line: flooring the cell size leaves up to
+// (itemsPerLine - 1) leftover px at the line end, so hand those out 1px at a time to the
+// leading columns. The distribution depends only on lineWidth/itemsPerLine (constant across
+// a group's lines), so grid columns stay aligned line-to-line and the line comps do no math.
+function fillWidths(lineWidth: number, itemsPerLine: number): { lineImgSize: number, cardWidths: number[] } {
+    const cardArea = lineWidth - GAP * (itemsPerLine - 1) // px available for cell OUTER widths
+    const baseOuter = Math.floor(cardArea / itemsPerLine)
+    const extraCount = cardArea - baseOuter * itemsPerLine
+    const lineImgSize = Math.max(1, baseOuter - BORDER)
+    const cardWidths: number[] = []
+    for (let c = 0; c < itemsPerLine; c++) cardWidths.push(lineImgSize + (c < extraCount ? 1 : 0))
+    return { lineImgSize, cardWidths }
+}
+
 function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, parentGroup, isSimilarities = false) {
     // Empty group: no images, so emit no image line (avoids a blank/spinner row).
     if (!parentGroup.slots || parentGroup.slots.length === 0) return
 
-    let lineWidth = totalWidth
-    let newLine = []
-    let actualWidth = 0
-    let groupLineIndex = 0 // <-- ADD LOCAL COUNTER
+    // imageHeight only decides how many images fit in a line...
+    const lineWidth = totalWidth
+    const itemsPerLine = Math.max(1, Math.floor(lineWidth / (imageHeight + BORDER + GAP)))
+    // ...then images are stretched to exactly fill a FULL line. Every line uses these same
+    // widths — a trailing/partial line (end of group, small group) keeps them too instead of
+    // blowing its images up to fill the leftover space; the empty slots are simulated
+    // (reserved, not rendered) so alignment across lines stays consistent.
+    const { lineImgSize, cardWidths } = fillWidths(lineWidth, itemsPerLine)
+    let groupLineIndex = 0
 
-    let addLine = (line) => {
+    let addLine = (line: ImageIterator[]) => {
         lines.push({
-            id: parentGroup.id + '|img-' + groupLineIndex++, // <-- USE LOCAL COUNTER
+            id: parentGroup.id + '|img-' + groupLineIndex++,
             type: 'images',
             data: line,
             groupId: parentGroup.id,
             depth: parentGroup.depth + 1,
-            size: isSimilarities ? simiImageLineSize.value : imageLineSize.value,
+            imageSize: lineImgSize,
+            emptyCount: itemsPerLine - line.length,
+            cardWidths,
+            size: isSimilarities ? simiImageLineSizeFor(lineImgSize) : imageLineSizeFor(lineImgSize),
             isSimilarities: isSimilarities
         })
     }
 
+    let newLine: ImageIterator[] = []
     let imgIt = ImageIterator.fromGroupIterator(it)
-    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId && lines.length !== undefined) {
-        let imgWidth = imageHeight + 12
-        if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(imgIt)
-            actualWidth += imgWidth
-            imgIt = imgIt.nextImages()
-            continue
-        }
-        if (newLine.length == 0) {
-            newLine.push(imgIt)
-        }
-        addLine(newLine)
-        newLine = [imgIt]
-        actualWidth = imgWidth
-
+    while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId) {
+        newLine.push(imgIt)
         imgIt = imgIt.nextImages()
+        if (newLine.length >= itemsPerLine) {
+            addLine(newLine)
+            newLine = []
+        }
     }
 
     if (newLine.length > 0) {
@@ -280,39 +307,34 @@ function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], ima
     // Empty sha1 group: no piles, so emit no image line.
     if (!parentGroup.children || parentGroup.children.length === 0) return
 
-    let lineWidth = totalWidth
-    let newLine: ImageIterator[] = []
-    let actualWidth = 0
-    let groupLineIndex = 0 // <-- ADD LOCAL COUNTER
+    const lineWidth = totalWidth
+    const itemsPerLine = Math.max(1, Math.floor(lineWidth / (imageHeight + BORDER + GAP)))
+    const { lineImgSize, cardWidths } = fillWidths(lineWidth, itemsPerLine)
+    let groupLineIndex = 0
 
     let addLine = (line: ImageIterator[]) => {
         lines.push({
-            id: parentGroup.id + '|pile-' + groupLineIndex++, // <-- USE LOCAL COUNTER (changed to 'pile' for uniqueness)
+            id: parentGroup.id + '|pile-' + groupLineIndex++,
             type: 'piles',
             data: line,
             groupId: parentGroup.id,
             depth: parentGroup.depth + 1,
-            size: pileLineSize.value
+            imageSize: lineImgSize,
+            emptyCount: itemsPerLine - line.length,
+            cardWidths,
+            size: pileLineSizeFor(lineImgSize)
         })
     }
 
+    let newLine: ImageIterator[] = []
     let imgIt = ImageIterator.fromGroupIterator(it)
     while (imgIt && imgIt.isValid && imgIt.groupId == it.groupId) {
-        let imgWidth = imageHeight + 10
-        if (actualWidth + imgWidth < lineWidth) {
-            newLine.push(imgIt)
-            actualWidth += imgWidth
-            imgIt = imgIt.nextImages()
-            continue
-        }
-        if (newLine.length == 0) {
-            throw new Error('Images seems to be to big for the line')
-        }
-        addLine(newLine)
-        newLine = [imgIt]
-        actualWidth = imgWidth
-
+        newLine.push(imgIt)
         imgIt = imgIt.nextImages()
+        if (newLine.length >= itemsPerLine) {
+            addLine(newLine)
+            newLine = []
+        }
     }
 
     if (newLine.length > 0) {
@@ -373,6 +395,14 @@ function triggerUpdate() {
 
 onMounted(computeLines)
 
+// The groupManager prop can be swapped for a brand-new instance (e.g. re-rooting the
+// tree at a different group) without its `version` changing, since a fresh manager
+// starts at the same baseline version as the one it replaced. Watch the reference
+// itself so the scroller content always follows which group is being shown.
+watch(() => props.groupManager, () => {
+    nextTick(computeLines)
+})
+
 watch(() => props.imageSize, () => {
     nextTick(computeLines)
 })
@@ -398,8 +428,8 @@ watch(visiblePropertiesNb, () => {
     // jumps by that offset (showing the previous row when sizes shrink).
     const delta = scrollPos - cumSize
 
-    const newSizeOf = (l) => l.type === 'images' ? imageLineSize.value
-        : l.type === 'piles' ? pileLineSize.value
+    const newSizeOf = (l) => l.type === 'images' ? imageLineSizeFor(l.imageSize)
+        : l.type === 'piles' ? pileLineSizeFor(l.imageSize)
         : l.size
 
     // Pre-compute exact pixel offset of that item in the NEW layout so we can
@@ -425,15 +455,17 @@ watch(visiblePropertiesNb, () => {
     // pe(false) skips Oe() when the visible range is stable — no full pool
     // reset, no LIFO slot scramble, no sha1 changes, no blank flash.
     for (const l of lines) {
-        if (l.type === 'images') l.size = imageLineSize.value
-        else if (l.type === 'piles') l.size = pileLineSize.value
+        if (l.type === 'images') l.size = imageLineSizeFor(l.imageSize)
+        else if (l.type === 'piles') l.size = pileLineSizeFor(l.imageSize)
     }
 
     imageLines.value = [...lines ]
 })
 
+// Width drives per-line/per-cell sizing — recompute when it changes. The width prop is the
+// single source of truth (no observer), so this fires once per real layout change.
 let resizeWidthHandler: ReturnType<typeof setTimeout> | undefined
-watch(() => props.width, () => {
+watch(contentWidth, () => {
     clearTimeout(resizeWidthHandler)
     resizeWidthHandler = setTimeout(computeLines, 200)
 })
@@ -459,15 +491,14 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         @select="toggleGroupSelect" @reco="emit('reco', $event)" />
                 </div>
                 <div v-else-if="item.type == 'images'">
-                    <!-- +1 on imageSize to avoid little gap. TODO: Find if there is a real fix -->
-                    <ImageLineVue :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
+                    <ImageLineVue :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="props.properties"
                         @update:selected-image="e => updateImageSelection(e, item)" @scroll="scrollTo"
                         @hover="updateHoverBorder" @unhover="hoverGroupBorder = -1" />
                 </div>
                 <div v-else-if="item.type == 'piles'">
-                    <PileLine :image-size="props.imageSize + 1" :input-index="index * maxPerLine" :item="item"
+                    <PileLine :image-size="item.imageSize" :input-index="index * maxPerLine" :item="item"
                         :index="props.groupManager.result.index" :hover-border="hoverGroupBorder"
                         :parent-ids="getImageLineParents(item)" :properties="visiblePropertiesCluster"
                         :sha1-scores="props.sha1Scores"

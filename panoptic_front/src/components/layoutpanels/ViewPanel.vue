@@ -108,7 +108,7 @@ onUnmounted(() => {
                 :group-manager="collection.groupManager"
                 :image-size="view.imageSize"
                 :height="dimensions.height"
-                :width="dimensions.width - 20"
+                :width="dimensions.width"
                 :properties="view.showProperties ? visibleProperties : []"
                 :hide-if-modal="true"
                 @reco="openReco"
@@ -158,7 +158,7 @@ onUnmounted(() => {
                 :cluster-options="view.clusterOptions"
                 :image-size="view.imageSize"
                 :properties="view.showProperties ? visibleProperties : []"
-                :width="dimensions.width - 32"
+                :width="dimensions.width"
                 :height="dimensions.height - 15"
             />
         </div>
@@ -201,6 +201,7 @@ onUnmounted(() => {
     min-height: 0;
     overflow: hidden;
     padding-left: calc(var(--spacing-xs) + 0.23em);
+    padding-right: 0px;
 }
 
 .grid-container {

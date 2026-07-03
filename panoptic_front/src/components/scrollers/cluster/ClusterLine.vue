@@ -19,9 +19,15 @@ const props = defineProps<{
     properties: any[]
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster'])
 
 const hoveredCard = ref<number | null>(null)
+
+// Inner (image) width for the card at column `i` — precomputed by the scroller so the
+// cards add up to exactly the line width. Falls back to the line's base image size.
+function cardInner(i: number) {
+    return props.item.cardWidths[i] ?? props.imageSize
+}
 
 function getInstanceId(slot: number) {
     return columnStore.instanceIds()[slot]
@@ -50,15 +56,16 @@ function isSelected(group: Group) {
             v-for="(entry, i) in props.item.data"
             :key="entry.group.id"
             class="cluster-card me-2 mb-2"
-            :style="{ width: props.imageSize + 2 + 'px' }"
+            :style="{ width: cardInner(i) + 2 + 'px' }"
             @mouseenter="hoveredCard = entry.group.id"
             @mouseleave="hoveredCard = null"
+            @click="$emit('open-cluster', entry.group.id)"
         >
-            <div class="cluster-image" :style="{ width: props.imageSize + 'px', height: props.imageSize + 'px' }">
+            <div class="cluster-image" :style="{ width: cardInner(i) + 'px', height: props.imageSize + 'px' }">
                 <CenteredImage
                     v-if="getInstanceId(entry.slot) !== undefined"
                     :instance-id="getInstanceId(entry.slot)"
-                    :width="props.imageSize"
+                    :width="cardInner(i)"
                     :height="props.imageSize"
                     :no-click="true"
                 />
@@ -76,6 +83,14 @@ function isSelected(group: Group) {
                 <span v-if="entry.group.score?.value != undefined" class="cluster-badge cluster-badge-score">{{ Math.round(entry.group.score.value) }}</span>
             </div>
         </div>
+        <!-- Reserve the space of the images missing from this (partial) line so it keeps
+             the same card size as a full line instead of stretching to fill the gap. -->
+        <div
+            v-for="n in props.item.emptyCount"
+            :key="'empty-' + n"
+            class="cluster-card cluster-card-empty me-2 mb-2"
+            :style="{ width: cardInner(props.item.data.length + n - 1) + 2 + 'px', height: props.imageSize + 30 + 'px' }"
+        ></div>
     </div>
 </template>
 
@@ -90,12 +105,23 @@ function isSelected(group: Group) {
     border-left: 1px solid blue;
 }
 
+.cluster-card:last-child {
+    margin-right: 0;
+}
+
 .cluster-card {
     position: relative;
     background-color: white;
     border: 1px solid var(--border-color);
     border-radius: 3px;
     overflow: hidden;
+    cursor: pointer;
+}
+
+.cluster-card-empty {
+    visibility: hidden;
+    pointer-events: none;
+    border: none;
 }
 
 .cluster-image {

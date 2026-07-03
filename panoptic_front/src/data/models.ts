@@ -436,6 +436,13 @@ export interface GroupLine extends ScrollerLine {
 
 export interface ImageLine extends ScrollerLine {
     data: ImageIterator[]
+    imageSize: number
+    emptyCount: number
+    // Per-column inner (image) widths, precomputed by the scroller so the cells add up to
+    // exactly the line width. Length == cells-per-line; leading columns may be 1px wider to
+    // absorb the flooring remainder. Indexed by column, so empty trailing slots reuse the
+    // same entry as the column they sit under.
+    cardWidths: number[]
 }
 
 export interface RowLine extends ScrollerLine {
@@ -448,10 +455,21 @@ export interface PileRowLine extends ScrollerLine {
 
 export interface ScrollerPileLine extends ScrollerLine {
     data: ImageIterator[]
+    imageSize: number
+    emptyCount: number
+    // See ImageLine.cardWidths — same precomputed per-column widths for pile rows.
+    cardWidths: number[]
 }
 
 export interface ClusterLine extends ScrollerLine {
     data: { group: Group, slot: number }[]
+    imageSize: number
+    emptyCount: number
+    // Per-column inner (image) widths, precomputed by the scroller so the cards add
+    // up to exactly the line width. Length == cards-per-line; the leading columns may
+    // be 1px wider to absorb the flooring remainder. Indexed by column, so empty
+    // trailing slots reuse the same entry as the column they sit under.
+    cardWidths: number[]
 }
 
 export interface Recommendation {

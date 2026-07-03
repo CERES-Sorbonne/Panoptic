@@ -22,6 +22,11 @@ const props = defineProps<{
 
 const emits = defineEmits(['hover', 'unhover', 'scroll', 'update', 'update:selected-image'])
 
+// Inner (image) width for the cell at column `i` — precomputed by the scroller so cells
+// add up to exactly the line width. Falls back to the line's base image size.
+function cellWidth(i: number): number {
+    return props.item.cardWidths?.[i] ?? props.imageSize
+}
 
 const selected = computed(() => {
     const ns = selectNamespace.value
@@ -55,10 +60,19 @@ const previews = computed(() => {
             <div class="image-line" :class="props.hoverBorder == parentId ? 'active' : ''"></div>
         </div>
         <ImageVue :image="imageIt" :index="props.inputIndex + i" :groupId="item.groupId" :size="props.imageSize"
+            :width="cellWidth(i)"
             :properties="props.properties" :selected="selected[col.instanceIds()[imageIt.slot]]" :selectedPreview="previews[col.instanceIds()[imageIt.slot]]"
             @update:selected="v => emits('update:selected-image', { id: col.instanceIds()[imageIt.slot], value: v })"
             v-for="imageIt, i in props.item.data" class="me-2 mb-2" />
 
+        <!-- Reserve the space of the images missing from this (partial) line so it keeps
+             the same size as a full line instead of stretching to fill the gap. -->
+        <div
+            v-for="n in props.item.emptyCount"
+            :key="'empty-' + n"
+            class="image-empty me-2 mb-2"
+            :style="{ width: cellWidth(props.item.data.length + n - 1) + 2 + 'px', height: props.imageSize + 2 + 'px' }"
+        ></div>
     </div>
 </template>
 
@@ -71,5 +85,14 @@ const previews = computed(() => {
 
 .active {
     border-left: 1px solid blue;
+}
+
+.image-empty {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.d-flex.flex-row > :last-child {
+    margin-right: 0 !important;
 }
 </style>

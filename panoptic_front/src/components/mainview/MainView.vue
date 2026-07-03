@@ -99,7 +99,7 @@ onMounted(updateScrollerHeight)
             <TreeScroller input-key="main-view-tree" :group-manager="props.tab.collection.groupManager" :image-size="props.tab.state.views[0].imageSize"
                 :height="scrollerHeight" :properties="visibleProperties" :hide-if-modal="true"
                 ref="imageList" @reco="openReco"
-                :width="scrollerWidth -20" style="margin-left: 10px;"/>
+                :width="scrollerWidth -10" style="margin-left: 10px;"/>
         </template>
         <template v-if="props.tab.state.views[0].type == 'grid'">
             <div :style="{ width: (scrollerWidth - 12) + 'px' }" class="grid-container" style="margin-left: 10px;">

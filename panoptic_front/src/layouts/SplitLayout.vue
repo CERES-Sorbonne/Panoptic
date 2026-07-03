@@ -57,7 +57,12 @@ watch(() => props.secondaryRatio, (newRatio) => {
 
 const isColumn = computed(() => props.direction === 'column')
 const useRatio = computed(() => (props.secondaryRatio !== undefined || props.secondaryRatio === 0))
-const showHandle = computed(() => !props.hidePrimary && !props.hideSecondary)
+// The divider is shown as long as the primary pane is visible — even when the
+// secondary pane is hidden — so the primary always gets a visible trailing
+// edge (margin-like gap + hover highlight). Dragging only makes sense when
+// both panes are actually present.
+const showHandle = computed(() => !props.hidePrimary)
+const canDrag = computed(() => props.resizable && !props.hidePrimary && !props.hideSecondary)
 
 const secondaryStyle = computed(() => {
     if (isColumn.value && useRatio.value) {
@@ -130,9 +135,9 @@ onBeforeUnmount(stopResize)
         <div
             v-if="showHandle"
             class="split-handle"
-            :class="{ resizable, active: isResizing }"
+            :class="{ resizable, draggable: canDrag, active: isResizing }"
             :style="handleStyle"
-            @pointerdown="resizable && startResize($event)"
+            @pointerdown="canDrag && startResize($event)"
         >
             <div v-if="$slots.handle" class="split-handle-widget">
                 <slot name="handle"></slot>
@@ -226,16 +231,16 @@ onBeforeUnmount(stopResize)
     z-index: 2;
 }
 
-.split.split-column > .split-handle.resizable {
+.split.split-column > .split-handle.draggable {
     cursor: row-resize;
 }
 
-.split.split-row > .split-handle.resizable {
+.split.split-row > .split-handle.draggable {
     cursor: col-resize;
 }
 
-/* Widen the pointer hit area beyond the visible gutter */
-.split.split-column > .split-handle.resizable::before {
+/* Widen the pointer/hover hit area beyond the visible gutter */
+.split.split-column > .split-handle.draggable::before {
     content: '';
     position: absolute;
     left: 0;
@@ -244,7 +249,7 @@ onBeforeUnmount(stopResize)
     bottom: -3px;
 }
 
-.split.split-row > .split-handle.resizable::before {
+.split.split-row > .split-handle.draggable::before {
     content: '';
     position: absolute;
     top: 0;
@@ -254,7 +259,7 @@ onBeforeUnmount(stopResize)
 }
 
 /* Highlight line shown on hover / while dragging */
-.split.split-column > .split-handle.resizable::after {
+.split.split-column > .split-handle.draggable::after {
     content: '';
     position: absolute;
     left: 0;
@@ -263,11 +268,11 @@ onBeforeUnmount(stopResize)
     height: 2px;
     transform: translateY(-50%);
     border-radius: 1px;
-    background-color: transparent;
+    background-color: var(--border-color);
     transition: background-color var(--transition-fast);
 }
 
-.split.split-row > .split-handle.resizable::after {
+.split.split-row > .split-handle.draggable::after {
     content: '';
     position: absolute;
     top: 0;
@@ -276,12 +281,14 @@ onBeforeUnmount(stopResize)
     width: 2px;
     transform: translateX(-50%);
     border-radius: 1px;
-    background-color: transparent;
+    background-color: var(--border-color);
     transition: background-color var(--transition-fast);
 }
 
-.split-handle.resizable:hover::after,
-.split-handle.resizable.active::after {
+.split.split-column > .split-handle.draggable:hover::after,
+.split.split-column > .split-handle.draggable.active::after,
+.split.split-row > .split-handle.draggable:hover::after,
+.split.split-row > .split-handle.draggable.active::after {
     background-color: var(--primary);
 }
 </style>

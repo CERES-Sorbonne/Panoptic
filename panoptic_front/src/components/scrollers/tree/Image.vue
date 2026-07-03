@@ -19,6 +19,9 @@ const data     = useDataStore()
 const props = defineProps({
     image: { type: ImageIterator, required: true },
     size: { type: Number, default: 100 },
+    // Optional per-cell width (defaults to `size`). The scroller hands out 1px-wider
+    // widths to some cells so a line fills its full width; height stays driven by `size`.
+    width: { type: Number, default: undefined },
     index: Number,
     groupId: Number,
     hideProperties: Boolean,
@@ -30,6 +33,9 @@ const props = defineProps({
 })
 
 const emits = defineEmits(['resize', 'update:selected'])
+
+// Cell width: the scroller-provided width when set, otherwise a square `size` cell.
+const w = computed(() => props.width ?? props.size)
 
 // ── RESOLVE INSTANCE ID FROM SLOT ───────────────────────────────────────────
 const instanceId = computed(() => store.instanceIds()[props.image.slot])
@@ -61,12 +67,12 @@ const score = computed(() => {
     <div
         class="full-container"
         :class="(!props.noBorder ? 'img-border' : '')"
-        :style="`width: ${props.size + 2}px;`"
+        :style="`width: ${w + 2}px;`"
     >
         <Zoomable v-if="!hideImg && instanceId !== undefined" :image="inst">
             <div
                 class="img-container"
-                :style="`width: ${props.size + 2}px; height: ${props.size}px;`"
+                :style="`width: ${w + 2}px; height: ${props.size}px;`"
                 @click="panoptic.showModal(ModalId.IMAGE, props.image)"
                 @mouseenter="hover = true"
                 @mouseleave="hover = false"
@@ -74,13 +80,13 @@ const score = computed(() => {
                 <div v-if="score != undefined" class="simi-ratio">{{ score }}</div>
                 <CenteredImage
                     :instance-id="instanceId"
-                    :width="props.size"
+                    :width="w"
                     :height="props.size"
                     style="position: absolute; top: 0"
                 />
 
                 <div v-if="hover || isSelected" class="w-100 box-shadow"
-                    :style="`width: ${props.size + 2}px; height: ${props.size}px;`" />
+                    :style="`width: ${w + 2}px; height: ${props.size}px;`" />
                 <SelectCircle
                     v-if="hover || isSelected"
                     :model-value="isSelected"
@@ -95,7 +101,7 @@ const score = computed(() => {
              unresolved slot means an empty group, so render nothing instead. -->
         <div v-else-if="!hideImg && !data.isLoaded"
             class="d-flex align-items-center justify-content-center bg-light text-muted border border-secondary-subtle"
-            :style="`width: ${props.size + 2}px; height: ${props.size}px;`"
+            :style="`width: ${w + 2}px; height: ${props.size}px;`"
         >
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
