@@ -1,4 +1,25 @@
 {
+    "launcher": {
+        "checking": "Checking installation...",
+        "installing_uv": "Installing uv...",
+        "creating_venv": "Preparing the Python environment...",
+        "installing_panoptic": "Installing Panoptic...",
+        "updating": "Updating Panoptic...",
+        "launching": "Starting Panoptic...",
+        "gpu": {
+            "question": "Do you have an NVIDIA GPU?",
+            "hint": "The install will be GPU-optimized but heavier.",
+            "yes": "Yes",
+            "no": "No"
+        },
+        "update": {
+            "question": "A Panoptic update is available. Install it?",
+            "yes": "Update",
+            "no": "Skip"
+        },
+        "error": "An error occurred during installation.",
+        "retry": "Retry"
+    },
     "main": {
         "home": {
             "label": {

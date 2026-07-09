@@ -17,10 +17,22 @@ import TagModal from './components/modals/TagModal.vue';
 import FirstModal from './components/modals/FirstModal.vue';
 import NotifModal from './components/modals/NotifModal.vue';
 import PanopticView2 from './views/PanopticView.vue';
+import { computed } from 'vue';
+import { isTauri, useTauriLauncherStore } from './data/tauriLauncherStore';
+import TauriLauncher from './components/tauri/TauriLauncher.vue';
 
 const panoptic = usePanopticStore()
 
-panoptic.init()
+const launcher = isTauri ? useTauriLauncherStore() : null
+const backendReady = computed(() => !isTauri || launcher.phase === 'ready')
+
+if (isTauri) {
+    // sous Tauri le launcher installe/démarre le backend d'abord ;
+    // PanopticView2 fait les init() à son montage, une fois le backend prêt
+    launcher.start()
+} else {
+    panoptic.init()
+}
 document.title = 'Panoptic'
 
 function setMousePos(e) {
@@ -32,7 +44,8 @@ function setMousePos(e) {
 
 <template>
     <body @mousemove="setMousePos">
-        <PanopticView2 />
+        <TauriLauncher v-if="!backendReady" />
+        <PanopticView2 v-else />
     </body>
 </template>
 
