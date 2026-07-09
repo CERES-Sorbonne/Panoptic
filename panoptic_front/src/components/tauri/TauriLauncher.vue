@@ -106,17 +106,17 @@ watch(() => launcher.logs.length, async () => {
 <style scoped>
 .launcher {
     height: 100vh;
-    background-color: var(--background-color);
-    color: var(--text-color);
+    background-color: #f2f3f5;
+    color: #212529;
 }
 
 .launcher-card {
     width: 620px;
     max-width: 90vw;
-    padding: var(--card-padding);
-    border: var(--hr);
-    border-radius: var(--card-border-radius);
-    background-color: var(--light-background);
+    padding: 1rem;
+    border: 1px solid #d9dce0;
+    border-radius: 0.4rem;
+    background-color: #ffffff;
 }
 
 .log-panel {
@@ -125,15 +125,16 @@ watch(() => launcher.logs.length, async () => {
     overflow-y: auto;
     font-size: 0.75rem;
     padding: 0.5rem;
-    border: var(--hr);
-    border-radius: var(--card-border-radius);
-    background-color: var(--background-color);
+    border: 1px solid #d9dce0;
+    border-radius: 0.4rem;
+    background-color: #f8f9fa;
+    color: #343a40;
     white-space: pre-wrap;
     word-break: break-all;
 }
 
 .log-stderr {
-    color: var(--disabled-color);
+    color: #8a929a;
 }
 
 .error-message {
@@ -141,6 +142,6 @@ watch(() => launcher.logs.length, async () => {
     overflow-y: auto;
     font-size: 0.75rem;
     white-space: pre-wrap;
-    color: var(--text-color);
+    color: #212529;
 }
 </style>
