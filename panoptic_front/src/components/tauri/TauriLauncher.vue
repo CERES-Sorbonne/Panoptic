@@ -34,6 +34,23 @@ watch(() => launcher.logs.length, async () => {
                 {{ $t(stepLabel) }}
             </div>
 
+            <div v-if="launcher.phase === 'ask-install-dir'" class="mb-2">
+                <p>{{ $t('launcher.folder.question') }}</p>
+                <p class="text-secondary small">{{ $t('launcher.folder.hint') }}</p>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <input type="text" class="form-control form-control-sm" v-model="launcher.installDir" />
+                    <button class="btn btn-sm btn-secondary text-nowrap" @click="launcher.browseInstallDir()">
+                        {{ $t('launcher.folder.browse') }}
+                    </button>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-sm btn-primary" :disabled="!launcher.installDir"
+                        @click="launcher.answer(true)">
+                        {{ $t('launcher.folder.confirm') }}
+                    </button>
+                </div>
+            </div>
+
             <div v-if="launcher.phase === 'ask-gpu'" class="mb-2">
                 <p>{{ $t('launcher.gpu.question') }}</p>
                 <p class="text-secondary small">{{ $t('launcher.gpu.hint') }}</p>
@@ -80,6 +97,7 @@ watch(() => launcher.logs.length, async () => {
             <div class="text-secondary small text-center mt-2">
                 <span v-if="launcher.uiVersion">UI v{{ launcher.uiVersion }}</span>
                 <span v-if="launcher.status?.installedVersion"> — panoptic v{{ launcher.status.installedVersion }}</span>
+                <div v-if="launcher.status?.logPath">{{ $t('launcher.logs') }} : {{ launcher.status.logPath }}</div>
             </div>
         </div>
     </div>

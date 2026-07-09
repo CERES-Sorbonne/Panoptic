@@ -4,8 +4,8 @@ import { ref } from "vue"
 // True when running inside the Tauri desktop app
 export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
-export type LauncherPhase = 'checking' | 'installing-uv' | 'creating-venv' | 'ask-gpu'
-    | 'installing-panoptic' | 'ask-update' | 'updating' | 'launching' | 'ready' | 'error'
+export type LauncherPhase = 'checking' | 'installing-uv' | 'ask-install-dir' | 'creating-venv'
+    | 'ask-gpu' | 'installing-panoptic' | 'ask-update' | 'updating' | 'launching' | 'ready' | 'error'
 
 export interface SetupStatus {
     backendRunning: boolean
@@ -14,6 +14,8 @@ export interface SetupStatus {
     panopticInstalled: boolean
     installedVersion?: string
     os: string
+    logPath?: string
+    installDir?: string
 }
 
 export interface UpdateInfo {
@@ -34,6 +36,7 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
     const status = ref<SetupStatus>(null)
     const updateInfo = ref<UpdateInfo>(null)
     const uiVersion = ref<string>('')
+    const installDir = ref<string>('')
 
     let listening = false
     let answerResolve: (value: boolean) => void = null
@@ -86,9 +89,15 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
                 phase.value = 'installing-uv'
                 await invoke('install_uv')
             }
-            phase.value = 'creating-venv'
-            await invoke('create_venv')
             if (!status.value.panopticInstalled) {
+                // first install: let the user pick the install folder before creating the venv
+                installDir.value = status.value.installDir ?? ''
+                phase.value = 'ask-install-dir'
+                await waitForAnswer()
+                await invoke('set_install_dir', { path: installDir.value })
+                status.value = await invoke<SetupStatus>('check_status')
+                phase.value = 'creating-venv'
+                await invoke('create_venv')
                 let gpuMode = 'default'
                 if (status.value.os !== 'macos') {
                     phase.value = 'ask-gpu'
@@ -97,6 +106,8 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
                 phase.value = 'installing-panoptic'
                 await invoke('install_panoptic', { gpuMode })
             } else {
+                phase.value = 'creating-venv'
+                await invoke('create_venv')
                 updateInfo.value = await invoke<UpdateInfo>('check_update')
                 if (updateInfo.value.updateAvailable) {
                     phase.value = 'ask-update'
@@ -116,6 +127,17 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
         }
     }
 
+    async function browseInstallDir() {
+        const { open } = await import('@tauri-apps/plugin-dialog')
+        const picked = await open({
+            directory: true,
+            defaultPath: installDir.value || undefined,
+        })
+        if (typeof picked === 'string' && picked) {
+            installDir.value = picked
+        }
+    }
+
     async function retry() {
         const { invoke } = await import('@tauri-apps/api/core')
         error.value = null
@@ -124,5 +146,5 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
         await start()
     }
 
-    return { phase, logs, error, status, updateInfo, uiVersion, start, retry, answer }
+    return { phase, logs, error, status, updateInfo, uiVersion, installDir, start, retry, answer, browseInstallDir }
 })

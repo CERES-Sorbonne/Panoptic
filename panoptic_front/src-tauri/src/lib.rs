@@ -26,6 +26,8 @@ struct SetupStatus {
     panoptic_installed: bool,
     installed_version: Option<String>,
     os: &'static str,
+    log_path: Option<String>,
+    install_dir: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -47,7 +49,21 @@ fn home_dir() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "could not resolve home directory".to_string())
 }
 
+/// File persisting the user's chosen install directory (e.g. ~/.config/panoptic/install_dir)
+fn install_dir_config_path() -> Result<PathBuf, String> {
+    let dir = dirs::config_dir().ok_or_else(|| "could not resolve config directory".to_string())?;
+    Ok(dir.join("panoptic").join("install_dir"))
+}
+
 fn panoptic_dir() -> Result<PathBuf, String> {
+    if let Ok(config) = install_dir_config_path() {
+        if let Ok(content) = std::fs::read_to_string(&config) {
+            let path = content.trim();
+            if !path.is_empty() {
+                return Ok(PathBuf::from(path));
+            }
+        }
+    }
     Ok(home_dir()?.join("panoptic"))
 }
 
@@ -69,6 +85,19 @@ fn uv_bin() -> PathBuf {
         }
     }
     PathBuf::from(name)
+}
+
+fn backend_log_path() -> Result<PathBuf, String> {
+    Ok(panoptic_dir()?.join("panoptic.log"))
+}
+
+/// Fresh log file for this session; the previous one is kept as panoptic.log.old
+fn create_backend_log_file() -> Result<std::fs::File, String> {
+    let path = backend_log_path()?;
+    if path.exists() {
+        let _ = std::fs::rename(&path, path.with_extension("log.old"));
+    }
+    std::fs::File::create(&path).map_err(|e| format!("failed to create {}: {e}", path.display()))
 }
 
 fn panoptic_bin() -> Result<PathBuf, String> {
@@ -116,10 +145,20 @@ fn spawn_log_reader(
     app: AppHandle,
     event: &'static str,
     stream: &'static str,
+    file: Option<std::sync::Arc<Mutex<std::fs::File>>>,
     reader: impl std::io::Read + Send + 'static,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
+        use std::io::Write;
         for line in BufReader::new(reader).lines().map_while(Result::ok) {
+            if let Some(file) = &file {
+                if let Ok(mut file) = file.lock() {
+                    let _ = writeln!(file, "{line}");
+                }
+            }
+            if event == "backend-log" {
+                eprintln!("[backend] {line}");
+            }
             let _ = app.emit(event, LogLine { line, stream });
         }
     })
@@ -132,8 +171,8 @@ fn run_streamed(app: &AppHandle, mut cmd: Command, event: &'static str) -> Resul
         .spawn()
         .map_err(|e| format!("failed to run {:?}: {e}", cmd.get_program()))?;
     let readers: Vec<_> = [
-        child.stdout.take().map(|out| spawn_log_reader(app.clone(), event, "stdout", out)),
-        child.stderr.take().map(|err| spawn_log_reader(app.clone(), event, "stderr", err)),
+        child.stdout.take().map(|out| spawn_log_reader(app.clone(), event, "stdout", None, out)),
+        child.stderr.take().map(|err| spawn_log_reader(app.clone(), event, "stderr", None, err)),
     ]
     .into_iter()
     .flatten()
@@ -187,6 +226,8 @@ async fn check_status() -> Result<SetupStatus, String> {
             panoptic_installed: installed_version.is_some(),
             installed_version,
             os: std::env::consts::OS,
+            log_path: backend_log_path().ok().map(|p| p.display().to_string()),
+            install_dir: panoptic_dir().ok().map(|p| p.display().to_string()),
         })
     })
     .await
@@ -352,11 +393,14 @@ async fn launch_backend(app: AppHandle) -> Result<(), String> {
             .recv()
             .map_err(|e| e.to_string())?
             .map_err(|e| format!("failed to start backend: {e}"))?;
+        let log_file = create_backend_log_file()
+            .ok()
+            .map(|f| std::sync::Arc::new(Mutex::new(f)));
         if let Some(out) = child.stdout.take() {
-            spawn_log_reader(app.clone(), "backend-log", "stdout", out);
+            spawn_log_reader(app.clone(), "backend-log", "stdout", log_file.clone(), out);
         }
         if let Some(err) = child.stderr.take() {
-            spawn_log_reader(app.clone(), "backend-log", "stderr", err);
+            spawn_log_reader(app.clone(), "backend-log", "stderr", log_file, err);
         }
         let state = app.state::<BackendProcess>();
         *state.0.lock().unwrap() = Some(child);
@@ -384,6 +428,25 @@ async fn launch_backend(app: AppHandle) -> Result<(), String> {
             }
             std::thread::sleep(Duration::from_millis(500));
         }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_install_dir(path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = PathBuf::from(path.trim());
+        if !dir.is_absolute() {
+            return Err("install directory must be an absolute path".to_string());
+        }
+        std::fs::create_dir_all(&dir)
+            .map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+        let config = install_dir_config_path()?;
+        if let Some(parent) = config.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        std::fs::write(&config, dir.to_string_lossy().as_bytes()).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -419,6 +482,7 @@ fn kill_backend(app: &AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(BackendProcess(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             check_status,
@@ -429,6 +493,7 @@ pub fn run() {
             update_panoptic,
             launch_backend,
             stop_backend,
+            set_install_dir,
             frontend_log
         ])
         .setup(|app| {

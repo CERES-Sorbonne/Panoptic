@@ -6,6 +6,12 @@
         "installing_panoptic": "Installing Panoptic...",
         "updating": "Updating Panoptic...",
         "launching": "Starting Panoptic...",
+        "folder": {
+            "question": "Where should Panoptic be installed?",
+            "hint": "The Python environment and logs will live in this folder.",
+            "browse": "Browse…",
+            "confirm": "Install here"
+        },
         "gpu": {
             "question": "Do you have an NVIDIA GPU?",
             "hint": "The install will be GPU-optimized but heavier.",
@@ -18,7 +24,8 @@
             "no": "Skip"
         },
         "error": "An error occurred during installation.",
-        "retry": "Retry"
+        "retry": "Retry",
+        "logs": "Backend logs"
     },
     "main": {
         "home": {
