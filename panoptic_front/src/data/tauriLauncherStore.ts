@@ -22,7 +22,10 @@ export interface UpdateInfo {
     updateAvailable: boolean
     installedVersion?: string
     latestVersion?: string
+    latestIsDev: boolean
 }
+
+export type UpdateAnswer = boolean | 'skip-dev'
 
 export interface LogLine {
     line: string
@@ -39,14 +42,14 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
     const installDir = ref<string>('')
 
     let listening = false
-    let answerResolve: (value: boolean) => void = null
+    let answerResolve: (value: UpdateAnswer) => void = null
 
-    // resolved by answer() when the user clicks a button in the ask-gpu / ask-update cards
-    function waitForAnswer(): Promise<boolean> {
+    // resolved by answer() when the user clicks a button in the ask-* cards
+    function waitForAnswer(): Promise<UpdateAnswer> {
         return new Promise(resolve => { answerResolve = resolve })
     }
 
-    function answer(value: boolean) {
+    function answer(value: UpdateAnswer) {
         if (answerResolve) {
             answerResolve(value)
             answerResolve = null
@@ -109,13 +112,21 @@ export const useTauriLauncherStore = defineStore('tauriLauncherStore', () => {
                 phase.value = 'creating-venv'
                 await invoke('create_venv')
                 updateInfo.value = await invoke<UpdateInfo>('check_update')
-                if (updateInfo.value.updateAvailable) {
+                while (updateInfo.value?.updateAvailable) {
                     phase.value = 'ask-update'
-                    if (await waitForAnswer()) {
+                    const ans = await waitForAnswer()
+                    if (ans === 'skip-dev') {
+                        // persist the opt-out, then re-check with stable versions only
+                        await invoke('set_skip_dev_updates')
+                        updateInfo.value = await invoke<UpdateInfo>('check_update')
+                        continue
+                    }
+                    if (ans) {
                         phase.value = 'updating'
-                        await invoke('update_panoptic')
+                        await invoke('update_panoptic', { version: updateInfo.value.latestVersion ?? null })
                         status.value = await invoke<SetupStatus>('check_status')
                     }
+                    break
                 }
             }
             phase.value = 'launching'

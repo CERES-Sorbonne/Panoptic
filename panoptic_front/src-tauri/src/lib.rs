@@ -36,6 +36,7 @@ struct UpdateInfo {
     update_available: bool,
     installed_version: Option<String>,
     latest_version: Option<String>,
+    latest_is_dev: bool,
 }
 
 #[derive(serde::Deserialize)]
@@ -49,10 +50,23 @@ fn home_dir() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "could not resolve home directory".to_string())
 }
 
+fn launcher_config_dir() -> Result<PathBuf, String> {
+    let dir = dirs::config_dir().ok_or_else(|| "could not resolve config directory".to_string())?;
+    Ok(dir.join("panoptic"))
+}
+
 /// File persisting the user's chosen install directory (e.g. ~/.config/panoptic/install_dir)
 fn install_dir_config_path() -> Result<PathBuf, String> {
-    let dir = dirs::config_dir().ok_or_else(|| "could not resolve config directory".to_string())?;
-    Ok(dir.join("panoptic").join("install_dir"))
+    Ok(launcher_config_dir()?.join("install_dir"))
+}
+
+/// Flag file: when present, development pre-releases are not offered as updates
+fn skip_dev_updates_path() -> Result<PathBuf, String> {
+    Ok(launcher_config_dir()?.join("skip_dev_updates"))
+}
+
+fn dev_updates_skipped() -> bool {
+    skip_dev_updates_path().map(|p| p.exists()).unwrap_or(false)
 }
 
 fn panoptic_dir() -> Result<PathBuf, String> {
@@ -234,30 +248,73 @@ async fn check_status() -> Result<SetupStatus, String> {
     .map_err(|e| e.to_string())?
 }
 
+fn is_prerelease(version: &str) -> bool {
+    version.chars().any(|c| c.is_ascii_alphabetic())
+}
+
+/// Latest available version on PyPI via the venv's `pip index versions`
+/// (the only pip/uv interface that can also list pre-releases for one package).
+fn latest_available_version(include_pre: bool) -> Option<String> {
+    let pip = venv_dir().ok()?.join(if cfg!(windows) { "Scripts/pip.exe" } else { "bin/pip" });
+    let mut cmd = new_command(pip);
+    cmd.args(["index", "versions", "panoptic", "--disable-pip-version-check"]);
+    if include_pre {
+        cmd.arg("--pre");
+    }
+    cmd.current_dir(panoptic_dir().ok()?);
+    let output = cmd.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    // "Available versions: 0.4.2, 0.4.2.dev3, 0.4.1, ..." — newest first
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .find_map(|l| l.strip_prefix("Available versions:").map(str::trim))
+        .and_then(|versions| versions.split(',').next().map(|v| v.trim().to_string()))
+        .filter(|v| !v.is_empty())
+}
+
 #[tauri::command]
 async fn check_update() -> Result<UpdateInfo, String> {
     tauri::async_runtime::spawn_blocking(|| {
+        let installed = installed_panoptic_version();
+        if let (Some(installed), Some(latest)) =
+            (&installed, latest_available_version(!dev_updates_skipped()))
+        {
+            return Ok(UpdateInfo {
+                update_available: *installed != latest,
+                latest_is_dev: is_prerelease(&latest),
+                installed_version: Some(installed.clone()),
+                latest_version: Some(latest),
+            });
+        }
+        // fallback: same detection as the install scripts (stable versions only)
         let output = uv_command(&["pip", "list", "--outdated", "--format", "json"])?
             .output()
             .map_err(|e| e.to_string())?;
         let stdout = String::from_utf8_lossy(&output.stdout);
-        if let Ok(entries) = serde_json::from_str::<Vec<OutdatedEntry>>(&stdout) {
-            let panoptic = entries.into_iter().find(|e| e.name == "panoptic");
-            return Ok(UpdateInfo {
-                update_available: panoptic.is_some(),
-                installed_version: panoptic.as_ref().map(|e| e.version.clone()),
-                latest_version: panoptic.map(|e| e.latest_version),
-            });
-        }
-        // fallback: same detection as the install scripts (plain text output)
-        let output = uv_command(&["pip", "list", "--outdated"])?
-            .output()
-            .map_err(|e| e.to_string())?;
+        let panoptic = serde_json::from_str::<Vec<OutdatedEntry>>(&stdout)
+            .ok()
+            .and_then(|entries| entries.into_iter().find(|e| e.name == "panoptic"));
         Ok(UpdateInfo {
-            update_available: String::from_utf8_lossy(&output.stdout).contains("panoptic"),
-            installed_version: installed_panoptic_version(),
-            latest_version: None,
+            update_available: panoptic.is_some(),
+            installed_version: panoptic.as_ref().map(|e| e.version.clone()).or(installed),
+            latest_version: panoptic.map(|e| e.latest_version),
+            latest_is_dev: false,
         })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn set_skip_dev_updates() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let path = skip_dev_updates_path()?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        std::fs::write(&path, b"").map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -339,9 +396,14 @@ async fn install_panoptic(app: AppHandle, gpu_mode: String) -> Result<(), String
 }
 
 #[tauri::command]
-async fn update_panoptic(app: AppHandle) -> Result<(), String> {
+async fn update_panoptic(app: AppHandle, version: Option<String>) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        run_streamed(&app, uv_command(&["pip", "install", "-U", "panoptic"])?, "install-log")
+        // pin the offered version explicitly: `-U panoptic` alone would skip pre-releases
+        let cmd = match &version {
+            Some(v) => uv_command(&["pip", "install", &format!("panoptic=={v}")])?,
+            None => uv_command(&["pip", "install", "-U", "panoptic"])?,
+        };
+        run_streamed(&app, cmd, "install-log")
     })
     .await
     .map_err(|e| e.to_string())?
@@ -494,6 +556,7 @@ pub fn run() {
             launch_backend,
             stop_backend,
             set_install_dir,
+            set_skip_dev_updates,
             frontend_log
         ])
         .setup(|app| {

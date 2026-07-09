@@ -21,7 +21,9 @@
         "update": {
             "question": "A Panoptic update is available. Install it?",
             "yes": "Update",
-            "no": "Skip"
+            "no": "Skip",
+            "dev_hint": "This is a development version and may be unstable.",
+            "skip_dev": "Stop offering development versions"
         },
         "error": "An error occurred during installation.",
         "retry": "Retry",

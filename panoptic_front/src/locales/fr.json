@@ -21,7 +21,9 @@
         "update": {
             "question": "Une mise à jour de Panoptic est disponible. L'installer ?",
             "yes": "Mettre à jour",
-            "no": "Ignorer"
+            "no": "Ignorer",
+            "dev_hint": "Il s'agit d'une version de développement, potentiellement instable.",
+            "skip_dev": "Ne plus proposer les versions de développement"
         },
         "error": "Une erreur est survenue pendant l'installation.",
         "retry": "Réessayer",

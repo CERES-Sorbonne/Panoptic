@@ -71,12 +71,19 @@ watch(() => launcher.logs.length, async () => {
                         ({{ launcher.updateInfo.installedVersion }} → {{ launcher.updateInfo.latestVersion }})
                     </span>
                 </p>
-                <div class="d-flex gap-2 justify-content-center">
+                <p v-if="launcher.updateInfo?.latestIsDev" class="text-secondary small">
+                    {{ $t('launcher.update.dev_hint') }}
+                </p>
+                <div class="d-flex gap-2 justify-content-center flex-wrap">
                     <button class="btn btn-sm btn-primary" @click="launcher.answer(true)">
                         {{ $t('launcher.update.yes') }}
                     </button>
                     <button class="btn btn-sm btn-secondary" @click="launcher.answer(false)">
                         {{ $t('launcher.update.no') }}
+                    </button>
+                    <button v-if="launcher.updateInfo?.latestIsDev" class="btn btn-sm btn-outline-secondary"
+                        @click="launcher.answer('skip-dev')">
+                        {{ $t('launcher.update.skip_dev') }}
                     </button>
                 </div>
             </div>
