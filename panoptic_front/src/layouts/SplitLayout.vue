@@ -96,13 +96,13 @@ function startResize(e: PointerEvent) {
 function onResize(e: PointerEvent) {
     const pos = isColumn.value ? e.clientY : e.clientX
     if (useRatio.value) {
-        const containerHeight = root.value?.clientHeight ?? 0
-        if (containerHeight === 0) return
-        const delta = (startPos - pos) / containerHeight
+        const containerSize = (isColumn.value ? root.value?.clientHeight : root.value?.clientWidth) ?? 0
+        if (containerSize === 0) return
+        const delta = (startPos - pos) / containerSize
         const next = startRatio + delta
         // Clamp: primary >= minPrimary, secondary >= minSecondary
-        const minRatio = (props.minSecondary ?? 80) / containerHeight
-        const maxRatio = 1 - (props.minPrimary ?? 80) / containerHeight
+        const minRatio = (props.minSecondary ?? 80) / containerSize
+        const maxRatio = 1 - (props.minPrimary ?? 80) / containerSize
         ratio.value = Math.min(maxRatio, Math.max(minRatio, next))
     } else {
         const next = startSize + (startPos - pos)
