@@ -834,6 +834,60 @@ export class GroupManager {
         if (emit) this.emitResult()
     }
 
+    // Move instances between two existing (cluster) groups in-place: pull their slots out of
+    // `fromGroupId` and add them to `toGroupId`, keeping the reverse index and any sha1 display
+    // subgroups consistent, then re-emit so all views refresh. Mutates the live Group objects
+    // (also referenced by customGroups), so no separate sync is needed. Runtime-only.
+    moveImagesToGroup(fromGroupId: number, toGroupId: number, instanceIds: number[], emit = true) {
+        if (fromGroupId === toGroupId) return
+        const from = this.result.index[fromGroupId]
+        const to = this.result.index[toGroupId]
+        if (!from || !to || !instanceIds.length) return
+
+        this.invalidateIterators()
+        const col = useColumnStore()
+
+        const slotSet = new Set<number>()
+        for (const id of instanceIds) {
+            const s = col.slotMap.get(id)
+            if (s !== undefined) slotSet.add(s)
+        }
+        if (!slotSet.size) return
+
+        from.slots = from.slots.filter(s => !slotSet.has(s))
+        const existing = new Set(to.slots)
+        for (const s of slotSet) if (!existing.has(s)) to.slots.push(s)
+
+        // Reverse index (instance → cluster group id). sha1 children are display-only and map
+        // to the parent, so we only move the cluster-group membership here.
+        for (const id of instanceIds) {
+            let set = this.result.imageToGroups.get(id)
+            if (!set) { set = new Set<number>(); this.result.imageToGroups.set(id, set) }
+            set.delete(fromGroupId)
+            set.add(toGroupId)
+        }
+
+        // Rebuild sha1 display subgroups for any group that had them.
+        for (const g of [from, to]) {
+            if (g.subGroupType === GroupType.Sha1) {
+                this.removeChildren(g)
+                this.groupBySha1(g)
+            }
+        }
+
+        setOrder(this.result.root)
+        this.buildOrdinalRanges()
+        if (emit) this.emitResult()
+    }
+
+    // Rename a group in-place (runtime-only, e.g. a cluster). Bumps version so views refresh.
+    renameGroup(groupId: number, name: string, emit = true) {
+        const g = this.result.index[groupId]
+        if (!g) return
+        g.name = name
+        if (emit) this.emitResult()
+    }
+
     delCustomGroups(targetGroupId: number, emit?: boolean) {
         delete this.customGroups[targetGroupId]
         this.removeChildren(this.result.index[targetGroupId])

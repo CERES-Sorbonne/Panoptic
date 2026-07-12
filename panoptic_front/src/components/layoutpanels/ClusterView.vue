@@ -15,7 +15,7 @@ import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
 import { Group, GroupManager, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
-import { ClusterOptions, Property } from '@/data/models'
+import { ClusterOptions, Instance, Property } from '@/data/models'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
 
@@ -93,6 +93,19 @@ function addClusters(groups: Group[]) {
     }
 }
 
+// Sub-divide one cluster (from the cluster view's per-card button): attach on the OWNING
+// collection GroupManager so the split also shows in the normal tree. The version bump
+// re-clones clusterTreeManager, so the cluster view reflects it too.
+function onAddClusters(groupId: number, groups: Group[]) {
+    props.collection.groupManager.addCustomGroups(groupId, groups, true)
+}
+
+// Rename on the owning collection GroupManager so the new name also shows in the normal tree;
+// the version bump re-clones clusterTreeManager, so the cluster view reflects it too.
+function onRenameCluster(groupId: number, name: string) {
+    props.collection.groupManager.renameGroup(groupId, name, true)
+}
+
 // ---- Standalone tree fed to ClusterScroller --------------------------------------
 
 const NAMESPACE = 'cluster-view'
@@ -123,8 +136,65 @@ watch([group, () => props.collection.groupManager.version.value], rebuildTree, {
 // alternately (top, then bottom, then top…).
 
 const DETAIL_NAMESPACES = ['cluster-detail-0', 'cluster-detail-1']
+// Shared vuedraggable group: every visible line in both stacked inspectors joins it, so an
+// image can be dragged from one open cluster into the other.
+const DRAG_GROUP = 'cluster-inspector'
 
 const detailGroupIds = ref<number[]>([])
+
+// Per-open-pane instance lists (aligned with detailGroupIds), materialised from each
+// cluster group's slots. Held as local, mutable state so a drag between the two panes moves
+// the image across the arrays. Rebuilt when the opened clusters or the group tree change.
+const paneInstances = ref<Instance[][]>([])
+
+function instancesForGroup(gid: number): Instance[] {
+    const g = props.collection.groupManager.result?.index?.[gid]
+    if (!g) return []
+    const ids = col.instanceIds()
+    const sha1s = col.sha1s()
+    return (g.slots ?? []).map(slot => ({
+        id: ids[slot],
+        imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot],
+    }))
+}
+
+watch(
+    [detailGroupIds, () => props.collection.groupManager.version.value],
+    () => { paneInstances.value = detailGroupIds.value.map(gid => instancesForGroup(gid)) },
+    { immediate: true }
+)
+
+// On drop into pane `idx`, move the instance between the underlying cluster groups (not just
+// the local copies) so the whole group tree reflects the swap. Order-independent: the source
+// cluster is whichever OTHER open cluster still owns the dragged slot at drop time (group.slots
+// is only mutated by moveImagesToGroup, so it still reflects pre-move membership here). This
+// avoids relying on whether vuedraggable fires `add` or `remove` first, and naturally makes an
+// intra-pane reorder a no-op (no other open cluster owns the slot).
+function onPaneAdd(idx: number, payload: { instance: Instance, index: number }) {
+    const arr = paneInstances.value[idx]
+    if (arr) arr.splice(Math.max(0, Math.min(payload.index, arr.length)), 0, payload.instance)
+
+    const gm = props.collection.groupManager
+    const slot = col.slotMap.get(payload.instance.id)
+    const targetGid = detailGroupIds.value[idx]
+    if (slot === undefined || targetGid == null) return
+
+    const sourceGid = detailGroupIds.value.find(
+        (g, i) => i !== idx && gm.result?.index?.[g]?.slots.includes(slot)
+    )
+    if (sourceGid != null && sourceGid !== targetGid) {
+        // Bumps version → the watch above re-derives paneInstances from the authoritative
+        // group.slots, and rebuildTree re-clones the left ClusterScroller.
+        gm.moveImagesToGroup(sourceGid, targetGid, [payload.instance.id], true)
+    }
+}
+
+function onPaneRemove(idx: number, payload: { instance: Instance }) {
+    const arr = paneInstances.value[idx]
+    if (!arr) return
+    const i = arr.findIndex(x => x.id === payload.instance.id)
+    if (i >= 0) arr.splice(i, 1)
+}
 // Which slot the next shift-click replaces once both slots are occupied.
 const nextReplace = ref(0)
 
@@ -137,20 +207,18 @@ const SPLIT_GAP = 10
 
 const isSplit = computed(() => detailGroupIds.value.length > 0)
 
-// One rooted GroupManager per open cluster, each with its own selection
-// namespace so the two inspectors select independently.
+// One inspector descriptor per open cluster, each with its own instance list and
+// selection namespace so the two inspectors select (and drag) independently.
 const detailPanes = computed(() =>
     detailGroupIds.value.map((gid, idx) => {
-        const m = props.collection.groupManager.rootedAt(gid)
-        if (m) m.setSelectionNamespace(DETAIL_NAMESPACES[idx])
-        const root = m?.result?.root
+        const g = props.collection.groupManager.result?.index?.[gid]
         return {
             id: gid,
-            manager: m,
-            name: root ? (root.name ?? ('Cluster ' + root.parentIdx)) : '',
+            instances: paneInstances.value[idx] ?? [],
+            name: g ? (g.name ?? ('Cluster ' + g.parentIdx)) : '',
             inputKey: DETAIL_NAMESPACES[idx]
         }
-    }).filter(p => p.manager)
+    })
 )
 
 // The primary pane's width is derived purely from the parent-supplied prop: the
@@ -285,6 +353,8 @@ onUnmounted(() => {
                         :opened-ids="detailGroupIds"
                         :hide-if-modal="true"
                         @open-cluster="openDetail"
+                        @add-clusters="onAddClusters"
+                        @rename-cluster="onRenameCluster"
                     />
                 </div>
             </template>
@@ -294,7 +364,8 @@ onUnmounted(() => {
                 <ClusterDetailPane
                     v-if="detailPanes.length === 1"
                     :input-key="detailPanes[0].inputKey"
-                    :group-manager="detailPanes[0].manager"
+                    :instances="detailPanes[0].instances"
+                    :drag-group="DRAG_GROUP"
                     :name="detailPanes[0].name"
                     :image-size="props.imageSize"
                     :width="detailWidth"
@@ -302,6 +373,8 @@ onUnmounted(() => {
                     :properties="props.properties"
                     position="solo"
                     @close="closeDetail(0)"
+                    @instance-added="p => onPaneAdd(0, p)"
+                    @instance-removed="p => onPaneRemove(0, p)"
                 />
                 <SplitLayout
                     v-else-if="detailPanes.length === 2"
@@ -316,7 +389,8 @@ onUnmounted(() => {
                     <template #primary>
                         <ClusterDetailPane
                             :input-key="detailPanes[0].inputKey"
-                            :group-manager="detailPanes[0].manager"
+                            :instances="detailPanes[0].instances"
+                            :drag-group="DRAG_GROUP"
                             :name="detailPanes[0].name"
                             :image-size="props.imageSize"
                             :width="detailWidth"
@@ -324,12 +398,15 @@ onUnmounted(() => {
                             :properties="props.properties"
                             position="top"
                             @close="closeDetail(0)"
+                            @instance-added="p => onPaneAdd(0, p)"
+                            @instance-removed="p => onPaneRemove(0, p)"
                         />
                     </template>
                     <template #secondary>
                         <ClusterDetailPane
                             :input-key="detailPanes[1].inputKey"
-                            :group-manager="detailPanes[1].manager"
+                            :instances="detailPanes[1].instances"
+                            :drag-group="DRAG_GROUP"
                             :name="detailPanes[1].name"
                             :image-size="props.imageSize"
                             :width="detailWidth"
@@ -337,6 +414,8 @@ onUnmounted(() => {
                             :properties="props.properties"
                             position="bottom"
                             @close="closeDetail(1)"
+                            @instance-added="p => onPaneAdd(1, p)"
+                            @instance-removed="p => onPaneRemove(1, p)"
                         />
                     </template>
                 </SplitLayout>

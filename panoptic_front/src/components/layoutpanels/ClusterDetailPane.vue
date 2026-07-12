@@ -1,23 +1,30 @@
 <script setup lang="ts">
-// A single cluster inspector pane (header with a close button + a TreeScroller).
+// A single cluster inspector pane (header with a close button + an ImageScroller).
 // Rendered on the right side of the ClusterView, one or two stacked at a time.
-import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
-import { GroupManager } from '@/core/GroupManager'
-import { Property } from '@/data/models'
+// It shows a plain list of the cluster's instances; when two panes are open they share a
+// `dragGroup` so images can be dragged between the two clusters.
+import ImageScroller from '@/components/scrollers/image/ImageScroller.vue'
+import { Instance, Property } from '@/data/models'
 
 defineProps<{
     inputKey: string
-    groupManager: GroupManager
+    instances: Instance[]
     name: string
     imageSize: number
     width: number
     height: number
     properties: Property[]
+    // Shared vuedraggable group so images can be dragged between the two stacked panes.
+    dragGroup?: string
     // Which touching corners round: single pane, or the top / bottom of a stack.
     position: 'solo' | 'top' | 'bottom'
 }>()
 
-defineEmits<{ close: [] }>()
+defineEmits<{
+    close: []
+    'instance-added': [payload: { instance: Instance, index: number }]
+    'instance-removed': [payload: { instance: Instance }]
+}>()
 </script>
 
 <template>
@@ -28,15 +35,18 @@ defineEmits<{ close: [] }>()
                 <span class="detail-name">{{ name }}</span>
             </div>
         </div>
-        <TreeScroller
+        <ImageScroller
             :input-key="inputKey"
-            :group-manager="groupManager"
+            :select-namespace="inputKey"
+            :instances="instances"
+            :drag-group="dragGroup"
             :image-size="imageSize"
             :height="height"
             :width="width"
             :properties="properties"
-            :hide-group="true"
             :hide-if-modal="true"
+            @instance-added="$emit('instance-added', $event)"
+            @instance-removed="$emit('instance-removed', $event)"
         />
     </div>
 </template>

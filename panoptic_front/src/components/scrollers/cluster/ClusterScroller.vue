@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
 import ClusterLineVue from './ClusterLine.vue';
-import { GroupManager, Group } from '@/core/GroupManager';
+import { GroupManager, Group, GroupType } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 import { Property, ClusterLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
@@ -24,7 +24,7 @@ const props = defineProps<{
     openedIds?: number[]
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster'])
+const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'rename-cluster'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
@@ -111,7 +111,7 @@ function sameLine(a: ClusterLine, b: ClusterLine): boolean {
     const ad = a.data, bd = b.data
     if (ad.length !== bd.length) return false
     for (let i = 0; i < ad.length; i++) {
-        if (ad[i].slot !== bd[i].slot || ad[i].group.id !== bd[i].group.id) return false
+        if (ad[i].slot !== bd[i].slot || ad[i].group.id !== bd[i].group.id || ad[i].name !== bd[i].name) return false
     }
     return true
 }
@@ -127,7 +127,22 @@ function reconcileLines(prev: ClusterLine[], next: ClusterLine[]): ClusterLine[]
     return next
 }
 
-type ClusterEntry = { group: Group, slot: number }
+// `name` is snapshotted so reconcile (sameLine) rebuilds the line when a cluster is renamed —
+// the group object is mutated in place, so without the snapshot the change would be invisible.
+type ClusterEntry = { group: Group, slot: number, name?: string }
+
+// Collect the cluster cards to show. A cluster that has been sub-divided (its children are
+// themselves clusters) is replaced by its sub-clusters — so the "further divide" action turns
+// one card into several. Sha1 display subgroups (subGroupType == Sha1) are NOT descended into.
+function collectCandidates(group: Group, out: ClusterEntry[]) {
+    for (const child of group.children) {
+        if (child.subGroupType === GroupType.Cluster && child.children.length > 0) {
+            collectCandidates(child, out)
+        } else if (child.slots && child.slots.length > 0) {
+            out.push({ group: child, slot: child.slots[0], name: child.name })
+        }
+    }
+}
 
 let _computingLines = false
 function computeLines() {
@@ -140,13 +155,9 @@ function computeLines() {
             return
         }
         const candidates: ClusterEntry[] = []
-        for (const child of root.children) {
-            if (child.slots && child.slots.length > 0) {
-                candidates.push({ group: child, slot: child.slots[0] })
-            }
-        }
+        collectCandidates(root, candidates)
         if (candidates.length === 0 && root.slots && root.slots.length > 0) {
-            candidates.push({ group: root, slot: root.slots[0] })
+            candidates.push({ group: root, slot: root.slots[0], name: root.name })
         }
 
         // Reserve one MARGIN_STEP per parent-border column that ClusterLine will
@@ -190,7 +201,8 @@ function computeLines() {
                 imageSize: lineImageSize,
                 emptyCount: itemsPerLine - chunk.length,
                 cardWidths,
-                size: lineImageSize + 40
+                // image + header (22) + footer (22) + border/margin
+                size: lineImageSize + 54
             })
         }
 
@@ -278,6 +290,8 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         @unhover="hoverGroupBorder = -1"
                         @select-cluster="toggleClusterSelect"
                         @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
+                        @add-clusters="(id, groups) => emit('add-clusters', id, groups)"
+                        @rename-cluster="(id, name) => emit('rename-cluster', id, name)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />
                 </div>
