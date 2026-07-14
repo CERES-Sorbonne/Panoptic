@@ -287,9 +287,6 @@ onUnmounted(() => {
 <template>
     <div class="cluster-workspace" :class="{ split: isSplit }" :style="{ height: props.height + 'px' }">
         <div v-if="!group" class="cluster-primary-pane">
-            <div class="cluster-header">
-                <div class="cluster-title">{{ $t('main.cluster.title') }}</div>
-            </div>
             <div class="cluster-empty">
                 <span class="text-secondary">{{ $t('main.cluster.empty') }}</span>
                 <ActionButton2 action="group" :images="getAllImages" @groups="addClusters" :no-border="true">
@@ -313,36 +310,6 @@ onUnmounted(() => {
         >
             <template #primary>
                 <div class="cluster-primary-pane" :class="{ split: isSplit }">
-                    <div class="cluster-header">
-                        <div class="cluster-title">{{ $t('main.cluster.title') }}</div>
-                        <!-- <div class="cluster-controls">
-                            <Dropdown v-if="eligibleGroups.length" placement="bottom-start">
-                                <template #button>
-                                    <div class="group-select-button">
-                                        <template v-if="group">
-                                            <ClusterBadge :value="group.slots.length" />
-                                            <span class="ms-1">{{ groupLabel(group) }}</span>
-                                        </template>
-                                        <i class="bi bi-chevron-down ms-2"></i>
-                                    </div>
-                                </template>
-                                <template #popup="{ hide }">
-                                    <div class="group-select-popup">
-                                        <div
-                                            v-for="g in eligibleGroups"
-                                            :key="g.id"
-                                            class="group-select-item"
-                                            :class="{ 'is-selected': group && g.id === group.id }"
-                                            @click="selectGroup(g); hide()"
-                                        >
-                                            <ClusterBadge :value="g.slots.length" />
-                                            <span class="ms-1">{{ groupLabel(g) }}</span>
-                                        </div>
-                                    </div>
-                                </template>
-                            </Dropdown>
-                        </div> -->
-                    </div>
                     <ClusterScroller
                         input-key="cluster-view"
                         :group-manager="clusterTreeManager"
@@ -537,6 +504,7 @@ onUnmounted(() => {
     min-height: 0;
     overflow: hidden;
     background-color: var(--island-surface);
+    margin-top: 4px;
 }
 
 /* When split, only the inner (right) corners that face the detail pane round. */

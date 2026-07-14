@@ -46,6 +46,7 @@ function selectView(viewId: ViewType) {
             <div class="view-button" :class="{ active: currentView === activeOption.id }">
                 <wTT :message="activeOption.tooltip">
                     <i :class="'bi bi-' + activeOption.icon"></i>
+                    <span class="view-label">{{ activeOption.id.charAt(0).toUpperCase() + activeOption.id.slice(1) }}</span>
                 </wTT>
             </div>
         </template>
@@ -78,8 +79,8 @@ function selectView(viewId: ViewType) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
     height: 26px;
+    padding: 0 var(--spacing-xs);
     background: none;
     border: none;
     border-radius: var(--radius-sm);
@@ -91,6 +92,11 @@ function selectView(viewId: ViewType) {
 .view-button:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary);
+}
+
+.view-label {
+    margin-left: 6px;
+    white-space: nowrap;
 }
 
 .view-popup {

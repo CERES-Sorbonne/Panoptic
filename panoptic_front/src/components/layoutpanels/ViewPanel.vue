@@ -10,7 +10,7 @@ import TreeScroller from '@/components/scrollers/tree/TreeScroller.vue'
 import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
-import RecoWorkspace from '@/components/layoutpanels/RecoWorkspace.vue'
+import RecommendView from '@/components/layoutpanels/RecommendView.vue'
 import ClusterView from '@/components/layoutpanels/ClusterView.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { useCurrentTab } from '@/data/useCurrentTab'
@@ -140,7 +140,7 @@ onUnmounted(() => {
                 :map-options="view.mapOptions"
             />
 
-            <RecoWorkspace
+            <RecommendView
                 v-if="tab && view && collection && view.type == 'reco' && dimensions.width > 0"
                 :tab="tab"
                 :collection="collection"

@@ -10,22 +10,21 @@
 // doesn't affect the others or the global selection.
 import { computed, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import CenteredImage from '@/components/images/CenteredImage.vue'
-import PropertyValue from '@/components/properties/PropertyValue.vue'
-import ActionSelect from '@/components/actions/ActionSelect.vue'
-import Dropdown from '@/components/dropdowns/Dropdown.vue'
+import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import RecoPanel from '@/components/layoutpanels/RecoPanel.vue'
+import GroupSelect from '@/components/layoutpanels/GroupSelect.vue'
 import { Group, GroupManager, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
 import {
-    ImagePropertyValue, Instance, InstancePropertyValue,
+    ActionResult, ImagePropertyValue, Instance, InstancePropertyValue,
     PropertyMode, PropertyType, PropertyValue as PropertyValueModel, RecoOptions,
 } from '@/data/models'
 import { useActionStore } from '@/data/actionStore'
 import { useDataStore } from '@/data/dataStore'
 import { useColumnStore } from '@/data/columnStore'
-import { convertSearchGroupResult, getGroupParents, sortGroupByScore } from '@/utils/utils'
+import { convertSearchGroupResult, sortGroupByScore } from '@/utils/utils'
 import { apiGetUIData, apiSetUIData } from '@/data/apiProjectRoutes'
 
 const data = useDataStore()
@@ -73,13 +72,6 @@ const group = computed<Group | null>(() => {
     if (!groups.length) return null
     return groups.find(g => g.id === props.recoOptions.selectedGroupId) ?? groups[0]
 })
-
-function groupLabel(g: Group) {
-    const values: PropertyValueModel[] = []
-    getGroupParents(g).reverse().forEach(p => values.push(...(p.meta.propertyValues ?? [])))
-    values.push(...(g.meta.propertyValues ?? []))
-    return values
-}
 
 function selectGroup(g: Group) {
     props.recoOptions.selectedGroupId = g.id
@@ -176,23 +168,21 @@ function persistBlacklist() {
 
 // ---- Recommendations ---------------------------------------------------------
 
-async function getReco() {
-    similarIds.value = []
-    accepted.clear()
-    if (!group.value) return
-    if (!actions.hasSimilaryFunction) return
-
-    const func = actions.defaultActions['similar']
-    const ctx = actions.getContext(func)
+// Ids of the current group's instances, used both as the similarity search
+// context and as the images passed to the header's similarity ActionButton2.
+const groupInstances = computed<Instance[]>(() => {
+    if (!group.value) return []
     const ids = col.instanceIds()
-    ctx.instanceIds = group.value.slots.map(s => ids[s])
+    return group.value.slots.map(s => data.instances[ids[s]]).filter(Boolean) as Instance[]
+})
 
-    const res = await actions.getSimilarImages(ctx)
+async function applySimilarResult(res: ActionResult) {
     if (!res || !res.groups) return
 
     let searchGroup = convertSearchGroupResult(res.groups)[0]
     if (!searchGroup) return
 
+    const ids = col.instanceIds()
     if (useFilter.value) {
         const valid = new Set(
             Array.from(props.collection.filterManager.result.slots).map(s => ids[s])
@@ -212,6 +202,27 @@ async function getReco() {
 
     await loadBlacklist()
     similarIds.value = searchGroup.slots.map(s => ids[s])
+}
+
+async function getReco() {
+    similarIds.value = []
+    accepted.clear()
+    if (!group.value) return
+    if (!actions.hasSimilaryFunction) return
+
+    const func = actions.defaultActions['similar']
+    const ctx = actions.getContext(func)
+    ctx.instanceIds = groupInstances.value.map(i => i.id)
+
+    const res = await actions.getSimilarImages(ctx)
+    await applySimilarResult(res)
+}
+
+async function onSimilarCall(res: ActionResult) {
+    similarIds.value = []
+    accepted.clear()
+    if (!group.value) return
+    await applySimilarResult(res)
 }
 
 async function acceptRecommend(image: Instance) {
@@ -464,55 +475,26 @@ onBeforeUnmount(() => heroObserver?.disconnect())
     <div class="reco-workspace" :style="{ height: props.height + 'px' }">
         <!-- Header: title, then group selection + similarity function -->
         <div class="reco-header">
-            <div class="reco-title">
-                <wTT message="main.recommand.close">
-                    <button class="reco-close" @click="emit('close')"><i class="bi bi-arrow-left"></i></button>
-                </wTT>
-                <span>{{ $t('main.recommand.title') }}</span>
-            </div>
-            <div class="reco-controls">
-                <Dropdown v-if="eligibleGroups.length" placement="bottom-start">
-                    <template #button>
-                        <div class="group-select-button">
-                            <template v-if="group">
-                                <template v-for="(value, index) in groupLabel(group)" :key="index">
-                                    <PropertyValue :value="value" />
-                                    <div v-if="index < groupLabel(group).length - 1" class="separator"></div>
-                                </template>
-                            </template>
-                            <i class="bi bi-chevron-down ms-2"></i>
-                        </div>
-                    </template>
-                    <template #popup="{ hide }">
-                        <div class="group-select-popup">
-                            <div
-                                v-for="g in eligibleGroups"
-                                :key="g.id"
-                                class="group-select-item"
-                                :class="{ 'is-selected': group && g.id === group.id }"
-                                @click="selectGroup(g); hide()"
-                            >
-                                <template v-for="(value, index) in groupLabel(g)" :key="index">
-                                    <PropertyValue :value="value" />
-                                    <div v-if="index < groupLabel(g).length - 1" class="separator"></div>
-                                </template>
-                                <span class="text-secondary ms-1">({{ g.slots.length }})</span>
-                            </div>
-                        </div>
-                    </template>
-                </Dropdown>
-
-                <div class="control-sep"></div>
-                <ActionSelect action="similar" @changed="getReco" />
-
+            <div class="d-flex" style="column-gap: 2px; align-items: center;">
                 <wTT message="main.recommand.filter">
-                    <span class="tool" @click="toggleFilter">
+                    <span class="sb" @click="toggleFilter">
                         <span :class="useFilter ? 'bi bi-funnel-fill text-primary' : 'bi bi-funnel'"></span>
+                        <span class="filter-label">Filtrer</span>
                     </span>
                 </wTT>
+
+                <ActionButton2 :no-border="true" action="similar" @call="onSimilarCall" :images="groupInstances">
+                    <span>
+                        <i class="bi bi-boxes me-1" />{{ actions.defaultActions['similar'] }}
+                    </span>
+                </ActionButton2>
+
                 <wTT message="main.recommand.reload">
-                    <span class="tool" @click="getReco"><span class="bi bi-arrow-clockwise"></span></span>
+                    <span class="sb reload-tool" @click="getReco"><span class="bi bi-arrow-clockwise" style="position: relative; top: 1px;"></span></span>
                 </wTT>
+
+                <span class="group-select-label">Groupe</span>
+                <GroupSelect :groups="eligibleGroups" :selected="group" @select="selectGroup"/>
             </div>
         </div>
 
@@ -523,20 +505,18 @@ onBeforeUnmount(() => heroObserver?.disconnect())
             <div class="hero-slot" :style="heroStyle">
                 <div class="hero">
                     <div ref="heroImageRef" class="hero-image">
-                        <CenteredImage
-                            v-if="hero && heroDims.height > 0"
-                            :instance-id="hero.id"
-                            :width="Math.max(heroDims.width - 16, 40)"
-                            :height="Math.max(heroDims.height - 8, 40)"
-                        />
+                        <CenteredImage v-if="hero && heroDims.height > 0" :instance-id="hero.id"
+                            :width="Math.max(heroDims.width - 16, 40)" :height="Math.max(heroDims.height - 8, 40)" />
                         <div v-else-if="!hero" class="hero-empty text-secondary">{{ $t('main.reco.no_more') }}</div>
                     </div>
                     <div v-if="hero" class="hero-actions">
                         <wTT message="main.recommand.accept">
-                            <button class="accept" @click="acceptRecommend(hero)"><span class="bi bi-check-lg"></span></button>
+                            <button class="accept" @click="acceptRecommend(hero)"><span
+                                    class="bi bi-check-lg"></span></button>
                         </wTT>
                         <wTT message="main.recommand.refuse">
-                            <button class="refuse" @click="refuseRecommend(hero)"><span class="bi bi-x-lg"></span></button>
+                            <button class="refuse" @click="refuseRecommend(hero)"><span
+                                    class="bi bi-x-lg"></span></button>
                         </wTT>
                     </div>
                 </div>
@@ -550,17 +530,10 @@ onBeforeUnmount(() => heroObserver?.disconnect())
             <div class="panels" ref="panelsRef" :style="panelsStyle">
                 <template v-for="(it, li) in panelItems" :key="it.key">
                     <div class="panel-slot" :style="panelSlotStyle(it.key)">
-                        <RecoPanel
-                            :title="$t(it.titleKey)"
-                            :count="it.count"
-                            :group-manager="it.manager"
-                            :ready="it.ready"
-                            :image-size="imageSize"
-                            :input-key="it.inputKey"
-                            :collapsed="collapsed[it.key]"
-                            :empty-message="it.emptyKey ? $t(it.emptyKey) : undefined"
-                            @toggle="toggleCollapse(it.key)"
-                        >
+                        <RecoPanel :title="$t(it.titleKey)" :count="it.count" :group-manager="it.manager"
+                            :ready="it.ready" :image-size="imageSize" :input-key="it.inputKey"
+                            :collapsed="collapsed[it.key]" :empty-message="it.emptyKey ? $t(it.emptyKey) : undefined"
+                            @toggle="toggleCollapse(it.key)">
                             <template #actions>
                                 <template v-if="it.key === 'queue'">
                                     <wTT message="main.reco.accept_selected">
@@ -574,29 +547,20 @@ onBeforeUnmount(() => heroObserver?.disconnect())
                                         </button>
                                     </wTT>
                                 </template>
-                                <button
-                                    v-else-if="it.key === 'group'"
-                                    class="panel-action text"
-                                    @click="removeSelectedFromGroup"
-                                >
+                                <button v-else-if="it.key === 'group'" class="panel-action text"
+                                    @click="removeSelectedFromGroup">
                                     {{ $t('main.reco.remove_from_group') }}
                                 </button>
-                                <button
-                                    v-else-if="it.key === 'blacklist'"
-                                    class="panel-action text"
-                                    @click="removeSelectedFromBlacklist"
-                                >
+                                <button v-else-if="it.key === 'blacklist'" class="panel-action text"
+                                    @click="removeSelectedFromBlacklist">
                                     {{ $t('main.reco.remove_from_blacklist') }}
                                 </button>
                             </template>
                         </RecoPanel>
                     </div>
-                    <div
-                        v-if="li < panelItems.length - 1"
-                        class="stack-handle"
+                    <div v-if="li < panelItems.length - 1" class="stack-handle"
                         :class="{ resizable: showPanelHandle(li) }"
-                        @pointerdown="showPanelHandle(li) && startPanelResize(li, $event)"
-                    >
+                        @pointerdown="showPanelHandle(li) && startPanelResize(li, $event)">
                         <div class="stack-handle-line"></div>
                     </div>
                 </template>
@@ -614,8 +578,8 @@ onBeforeUnmount(() => heroObserver?.disconnect())
 
 .reco-header {
     flex-shrink: 0;
-    padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-sm);
-    border-bottom: 1px solid var(--border-color);
+    margin-top: 1px;
+    /* border-bottom: 1px solid var(--border-color); */
 }
 
 .reco-title {
@@ -659,46 +623,6 @@ onBeforeUnmount(() => heroObserver?.disconnect())
     align-self: stretch;
     background-color: var(--border-color);
     margin: 2px var(--spacing-xs);
-}
-
-.group-select-button {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: background-color var(--transition-fast);
-}
-
-.group-select-button:hover {
-    background-color: var(--hover-bg);
-}
-
-.group-select-popup {
-    display: flex;
-    flex-direction: column;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.group-select-item {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 8px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background-color var(--transition-fast);
-}
-
-.group-select-item:hover {
-    background-color: var(--hover-bg);
-}
-
-.group-select-item.is-selected {
-    color: var(--primary);
-    font-weight: var(--font-weight-medium);
 }
 
 .reco-empty {
@@ -874,14 +798,14 @@ onBeforeUnmount(() => heroObserver?.disconnect())
 }
 
 .tool {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
+    text-align: center;
+    width: 26px;
+    height: 26px;
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     cursor: pointer;
+    /* font-size: 20px; */
+    padding-top: 2px;
 }
 
 .tool:hover {
@@ -889,8 +813,30 @@ onBeforeUnmount(() => heroObserver?.disconnect())
     color: var(--text-primary);
 }
 
-.separator {
-    border-left: 2px solid var(--border-color);
-    margin: 3px 4px;
+.reload-tool {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    /* top:1px; */
+}
+
+.filter-tool {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    height: auto;
+    padding: 0px 2px;
+    border-radius: 3px;
+
+    color: var(--text-primary);
+}
+
+.filter-label {
+    white-space: nowrap;
+}
+
+.group-select-label {
+    white-space: nowrap;
+    color: var(--text-primary);
 }
 </style>

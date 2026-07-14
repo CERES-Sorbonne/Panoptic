@@ -62,24 +62,52 @@ const realMessage = computed(() => {
 // whenever the element or any ancestor is display:none, which lets us detect
 // that case and close. The loop only runs while a tooltip is visible.
 const triggerElem = ref<HTMLElement | null>(null)
+const popperElem = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const coords = ref({ top: 0, left: 0 })
 let showTimer: ReturnType<typeof setTimeout> | undefined
 let rafId = 0
 
+// Gap between the trigger and the popup, and the minimum distance kept between
+// the popup and the viewport edges.
+const GAP = 8
+const EDGE = 4
+const OPPOSITE: Record<string, string> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' }
+
+// The popup is measured, not just anchored: we flip to the opposite side when
+// the requested one doesn't have room, then clamp the final rect inside the
+// viewport so the tooltip is always fully visible.
 function computePosition() {
     const el = triggerElem.value
+    const pop = popperElem.value
     if (!el) return
     const r = el.getBoundingClientRect()
-    let top = r.top + r.height / 2
-    let left = r.left + r.width / 2
-    switch (props.pos) {
-        case 'bottom': top = r.bottom; break
-        case 'left': left = r.left; break
-        case 'right': left = r.right; break
-        case 'top':
-        default: top = r.top; break
+    const pw = pop ? pop.offsetWidth : 0
+    const ph = pop ? pop.offsetHeight : 0
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    let pos: string = props.pos
+    if (pop) {
+        const space: Record<string, number> = { top: r.top, bottom: vh - r.bottom, left: r.left, right: vw - r.right }
+        const size: Record<string, number> = { top: ph, bottom: ph, left: pw, right: pw }
+        const needed = (size[pos] ?? ph) + GAP + EDGE
+        const flipped = OPPOSITE[pos] ?? 'bottom'
+        if (space[pos] < needed && space[flipped] >= needed) pos = flipped
     }
+
+    let top: number
+    let left: number
+    switch (pos) {
+        case 'bottom': top = r.bottom + GAP; left = r.left + r.width / 2 - pw / 2; break
+        case 'left': left = r.left - GAP - pw; top = r.top + r.height / 2 - ph / 2; break
+        case 'right': left = r.right + GAP; top = r.top + r.height / 2 - ph / 2; break
+        case 'top':
+        default: top = r.top - GAP - ph; left = r.left + r.width / 2 - pw / 2; break
+    }
+
+    left = Math.min(Math.max(left, EDGE), Math.max(EDGE, vw - pw - EDGE))
+    top = Math.min(Math.max(top, EDGE), Math.max(EDGE, vh - ph - EDGE))
     coords.value = { top, left }
 }
 
@@ -125,7 +153,7 @@ onUnmounted(hide)
                 class="bi bi-question-circle small-icon"></i></span>
     </span>
     <Teleport to="body">
-        <div v-if="visible && realMessage" class="wtt-popper" :class="'wtt-' + props.pos"
+        <div v-if="visible && realMessage" ref="popperElem" class="wtt-popper"
             :style="{ top: coords.top + 'px', left: coords.left + 'px' }">
             <span v-for="line in realMessage">{{ line }}<br /></span>
         </div>
@@ -147,7 +175,9 @@ onUnmounted(hide)
 .wtt-popper {
     position: fixed;
     z-index: 10000;
-    max-width: 300px;
+    max-width: min(300px, calc(100vw - 8px));
+    max-height: calc(100vh - 8px);
+    overflow: auto;
     background: rgba(0, 0, 0, 0.8);
     color: #fff;
     border-radius: 6px;
@@ -157,23 +187,5 @@ onUnmounted(hide)
     word-break: normal;
     word-wrap: break-word;
     pointer-events: none;
-}
-
-/* Anchor is the middle of the trigger edge on the chosen side; translate the
-   popup so it sits outside that edge with an 8px gap. */
-.wtt-top {
-    transform: translate(-50%, calc(-100% - 8px));
-}
-
-.wtt-bottom {
-    transform: translate(-50%, 8px);
-}
-
-.wtt-left {
-    transform: translate(calc(-100% - 8px), -50%);
-}
-
-.wtt-right {
-    transform: translate(8px, -50%);
 }
 </style>

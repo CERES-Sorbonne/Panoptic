@@ -110,8 +110,8 @@ watch(localFunction, loadInput)
                 <div v-if="loading" class="spinner-border spinner-border-sm text-primary me-1" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <wTT :message="'dropdown.action.' + props.action" class="">
-                    <div class="">
+                <wTT :message="'dropdown.action.' + props.action" class="slot-wrap">
+                    <div class="slot-inner">
                         <slot></slot>
                     </div>
                 </wTT>
@@ -169,6 +169,19 @@ watch(localFunction, loadInput)
     cursor: pointer;
     /* font-size: 14px; */
     align-items: center;
+    height: 100%;
+}
+
+.slot-wrap {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.slot-inner {
+    display: flex;
+    align-items: center;
+    height: 100%;
 }
 
 .params-grid {
