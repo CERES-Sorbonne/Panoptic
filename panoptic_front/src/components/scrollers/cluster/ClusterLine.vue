@@ -24,7 +24,7 @@ const props = defineProps<{
     openedIds: number[]
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'rename-cluster'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'rename-cluster', 'delete-cluster'])
 
 const hoveredCard = ref<number | null>(null)
 
@@ -121,6 +121,10 @@ function isSelected(group: Group) {
                         @groups="g => addClusters(entry.group.id, g)">
                         <i class="bi bi-diagram-2 cluster-cluster-btn" />
                     </ActionButton2>
+                </div>
+                <!-- Delete this group: its images move to the leftover "Unclustered" bucket. -->
+                <div class="cluster-header-action" @click.stop="$emit('delete-cluster', entry.group.id)">
+                    <i class="bi bi-trash cluster-cluster-btn" />
                 </div>
             </div>
             <!-- Only clicking the image opens the cluster in the split window (not the name). -->

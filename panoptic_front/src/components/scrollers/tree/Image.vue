@@ -106,10 +106,13 @@ const score = computed(() => {
             <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
 
-        <wTT v-if="props.image.sha1Group && props.image.sha1Group.slots?.length > 1"
-            message="main.view.instances_tooltip" :click="false">
-            <div class="image-count">{{ props.image.sha1Group.slots.length }}</div>
-        </wTT>
+        <!-- Absolutely-positioned wrapper: keeps the tooltip trigger span out of normal
+             flow so it doesn't add an empty line box (which would overflow the row). -->
+        <div v-if="props.image.slots?.length > 1" class="image-count-wrap">
+            <wTT message="main.view.instances_tooltip" :click="false">
+                <div class="image-count">{{ props.image.slots.length }}</div>
+            </wTT>
+        </div>
 
         <div class="prop-container" v-if="props.properties.length && !props.hideProperties && instanceId !== undefined">
             <div v-for="property, index in props.properties" :key="property.id">
@@ -131,10 +134,14 @@ const score = computed(() => {
     </div>
 </template>
 <style scoped>
-.image-count {
+.image-count-wrap {
     position: absolute;
     top: 0;
     right: 0;
+    z-index: 100;
+}
+
+.image-count {
     padding: 0px 4px;
     background-color: var(--border-color);
     color: var(--grey-text);
@@ -142,7 +149,6 @@ const score = computed(() => {
     line-height: 15px;
     margin: 2px;
     border-radius: 5px;
-    z-index: 100;
 }
 
 .simi-ratio {

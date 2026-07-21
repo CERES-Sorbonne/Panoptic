@@ -66,7 +66,7 @@ watch(() => props.item.id, reload)
         <div v-if="item.type == 'pile'">
             <RowLineVue :tab="props.tab" :image-size="props.imageSize" :manager="props.manager" :item="(item as PileRowLine)" :properties="props.properties" :show-image="props.showImages"
                 :missing-width="props.missingWidth" @resizeHeight="h => emits('resizeHeight', h)" :selected="selected"
-                @toggle:image="e => emits('toggle:image', { groupId: item.data.parent.id, imageIndex: item.data.parentIdx })" />
+                @toggle:image="e => emits('toggle:image', { groupId: (item as PileRowLine).data.groupId, imageIndex: (item as PileRowLine).data.pileIndex })" />
         </div>
         <div v-if="item.type == 'filler'" style="height: 1000px;">
 

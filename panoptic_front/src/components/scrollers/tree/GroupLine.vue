@@ -45,7 +45,7 @@ const subgroups = computed(() => props.item.data.children ?? [])
 const hasImages = computed(() => slots.value.length > 0)
 
 const hasSubgroups = computed(() => {
-    return subgroups.value.length > 0 && props.item.data.subGroupType != GroupType.Sha1
+    return subgroups.value.length > 0
 })
 const properties = computed(() => props.item.data.meta.propertyValues.map(v => data.properties[v.propertyId]))
 const propertyValues = computed(() => props.item.data.meta.propertyValues)
@@ -148,7 +148,7 @@ async function saveHirachy(ignoreParents?: boolean) {
 function countTags(children: Group[], ignoreParents?: boolean): number {
     let count = 0
     for (const child of children) {
-        const hasSubgroups = child.children.length > 0 && child.subGroupType != GroupType.Sha1
+        const hasSubgroups = child.children.length > 0
         if (hasSubgroups) {
             if (!ignoreParents) count++ // parent tag
             count += countTags(child.children, ignoreParents)
@@ -166,7 +166,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 
     for (let i = 0; i < children.length; i++) {
         const child = children[i]
-        const hasSubgroups = child.children.length > 0 && child.subGroupType != GroupType.Sha1
+        const hasSubgroups = child.children.length > 0
 
         if (hasSubgroups && ignoreParents) {
             // Skip intermediate parent tags — recurse directly without creating a tag for this level

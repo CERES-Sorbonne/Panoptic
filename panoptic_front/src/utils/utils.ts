@@ -9,7 +9,7 @@ import chroma from 'chroma-js';
 import { Exception } from "sass"
 
 let _tmpIdCounter = -10000
-function getTmpId() { return _tmpIdCounter-- }
+export function getTmpId() { return _tmpIdCounter-- }
 
 export function hasProperty(image: Instance, propertyId: number) {
     return image.properties[propertyId] && image.properties[propertyId].value !== undefined
@@ -327,7 +327,7 @@ export function adjustForTimezone(date: Date): Date {
 
 export function allChildrenSha1Groups(group: Group) {
     function recursive(child: Group) {
-        if (!child.isSha1Group && child.type != GroupType.Sha1) {
+        if (!child.isSha1Group) {
             return false
         }
         if (child.children) {

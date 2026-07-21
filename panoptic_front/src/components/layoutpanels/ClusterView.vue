@@ -93,11 +93,40 @@ function addClusters(groups: Group[]) {
     }
 }
 
-// Sub-divide one cluster (from the cluster view's per-card button): attach on the OWNING
-// collection GroupManager so the split also shows in the normal tree. The version bump
+// How a divide places its new groups: 'replace' swaps the divided leaf for the new groups
+// at its own level; 'children' nests them under it.
+const splitMode = ref<'replace' | 'children'>('replace')
+
+// Sub-divide one cluster (from the cluster view's per-card button): split on the OWNING
+// collection GroupManager so the result also shows in the normal tree. The version bump
 // re-clones clusterTreeManager, so the cluster view reflects it too.
 function onAddClusters(groupId: number, groups: Group[]) {
-    props.collection.groupManager.addCustomGroups(groupId, groups, true)
+    props.collection.groupManager.split(groupId, groups, splitMode.value, true)
+}
+
+// Delete one cluster card: its images move to the leftover "Unclustered" bucket.
+function onDeleteCluster(groupId: number) {
+    props.collection.groupManager.delete(groupId, true)
+}
+
+// Cluster cards currently selected in the workspace (all their slots selected in NAMESPACE).
+// Clone group ids match the collection-tree ids (rootedAt keeps child ids), so these can be
+// merged directly on the owning collection GroupManager.
+const selectedClusterIds = computed(() => {
+    col.selectionTick(NAMESPACE) // reactive dep on the workspace selection
+    const gm = clusterTreeManager.value
+    if (!gm) return [] as number[]
+    const ids: number[] = []
+    for (const g of Object.values(gm.result.index) as Group[]) {
+        if (g.type !== GroupType.Cluster || !g.slots.length) continue
+        if (g.slots.every(s => col.isSelected(s, NAMESPACE))) ids.push(g.id)
+    }
+    return ids
+})
+
+function mergeSelected() {
+    const ids = selectedClusterIds.value
+    if (ids.length >= 2) props.collection.groupManager.merge(ids, true)
 }
 
 // Rename on the owning collection GroupManager so the new name also shows in the normal tree;
@@ -116,11 +145,12 @@ function rebuildTree() {
         clusterTreeManager.value = undefined
         return
     }
-    // If the selected group is an individual cluster whose parent is a cluster
-    // container (subGroupType == Cluster), root at the parent so root.children
-    // yields all sibling clusters. Otherwise root at the selected group itself.
+    // If the selected group's parent holds cluster children, root at the parent so
+    // root.children yields all sibling clusters. (A level can mix cluster + property
+    // children now, so test children types rather than parent.subGroupType.) Otherwise
+    // root at the selected group itself.
     const parent = group.value.parent
-    const useParent = parent != null && parent.subGroupType === GroupType.Cluster
+    const useParent = parent != null && parent.children.some(c => c.type === GroupType.Cluster)
     const rootId = useParent ? parent.id : group.value.id
 
     clusterTreeManager.value = props.collection.groupManager.rootedAt(rootId)
@@ -310,6 +340,20 @@ onUnmounted(() => {
         >
             <template #primary>
                 <div class="cluster-primary-pane" :class="{ split: isSplit }">
+                    <div class="cluster-toolbar" :style="{ height: HEADER_PX + 'px' }">
+                        <div class="split-mode">
+                            <span class="split-mode-label">Divide:</span>
+                            <div class="split-mode-btn" :class="{ active: splitMode === 'replace' }"
+                                @click="splitMode = 'replace'">replace</div>
+                            <div class="split-mode-btn" :class="{ active: splitMode === 'children' }"
+                                @click="splitMode = 'children'">children</div>
+                        </div>
+                        <div class="toolbar-btn" :class="{ disabled: selectedClusterIds.length < 2 }"
+                            @click="mergeSelected">
+                            <i class="bi bi-union me-1" />Merge
+                            <span v-if="selectedClusterIds.length" class="toolbar-count">{{ selectedClusterIds.length }}</span>
+                        </div>
+                    </div>
                     <ClusterScroller
                         input-key="cluster-view"
                         :group-manager="clusterTreeManager"
@@ -322,6 +366,7 @@ onUnmounted(() => {
                         @open-cluster="openDetail"
                         @add-clusters="onAddClusters"
                         @rename-cluster="onRenameCluster"
+                        @delete-cluster="onDeleteCluster"
                     />
                 </div>
             </template>
@@ -505,6 +550,64 @@ onUnmounted(() => {
     overflow: hidden;
     background-color: var(--island-surface);
     margin-top: 4px;
+}
+
+.cluster-toolbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 0 var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+}
+
+.split-mode {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.split-mode-label {
+    color: var(--text-secondary);
+}
+
+.split-mode-btn {
+    padding: 1px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.split-mode-btn.active {
+    background-color: var(--primary, #4f46e5);
+    color: #fff;
+    border-color: var(--primary, #4f46e5);
+}
+
+.toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.toolbar-btn.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.toolbar-count {
+    margin-left: 5px;
+    background: var(--primary, #4f46e5);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0 5px;
+    font-size: 10px;
 }
 
 /* When split, only the inner (right) corners that face the detail pane round. */

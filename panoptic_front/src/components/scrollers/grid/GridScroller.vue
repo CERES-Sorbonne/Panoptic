@@ -3,7 +3,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import TableHeader from './TableHeader.vue';
 import { keyState } from '@/data/keyState';
-import { Group, GroupManager, GroupType } from '@/core/GroupManager';
+import { Group, GroupManager } from '@/core/GroupManager';
 import { Property, GroupLine, RowLine, PileRowLine, ScrollerLine, ModalId, PropertyMode } from '@/data/models';
 import { useProjectStore } from '@/data/projectStore';
 import GridScrollerLine from './GridScrollerLine.vue';
@@ -154,10 +154,8 @@ function computeLines() {
     const defaultSize = props.showImages ? props.imageSize + 4 : 28
 
     function visit(group: Group) {
-        const isLeaf      = group.children.length === 0
-        const isSha1Parent = group.subGroupType === GroupType.Sha1
-
-        if (!isLeaf && !isSha1Parent) {
+        // Piled leaves have no children; a group with children is a real sub-tree.
+        if (group.children.length > 0) {
             if (!group.view.closed) {
                 for (const child of group.children) visit(child)
             }
@@ -175,30 +173,32 @@ function computeLines() {
             } as GroupLine)
         }
 
-        if (!group.view.closed && group.slots.length) {
-            if (!isSha1Parent) {
-                for (let i = 0; i < group.slots.length; i++) {
-                    const instanceId = ids[group.slots[i]]
-                    lines.push({
-                        id: group.id + '-img:' + instanceId,
-                        data: { id: instanceId, imageUrl: '' },
-                        type: 'image',
-                        size: lineSizes[instanceId] ?? defaultSize,
-                        index: i,
-                        groupId: group.id,
-                    } as RowLine)
-                }
-            } else {
-                for (let i = 0; i < group.children.length; i++) {
-                    const sha1Group = group.children[i]
-                    const firstId = ids[sha1Group.slots[0]]
-                    lines.push({
-                        id: sha1Group.id + '-sha1:' + firstId,
-                        data: sha1Group,
-                        type: 'pile',
-                        size: lineSizes[firstId] ?? defaultSize,
-                    } as PileRowLine)
-                }
+        if (group.view.closed || !group.slots.length) return
+
+        const pile = props.manager.result.pileIndex.get(group.id)
+        if (!pile) {
+            for (let i = 0; i < group.slots.length; i++) {
+                const instanceId = ids[group.slots[i]]
+                lines.push({
+                    id: group.id + '-img:' + instanceId,
+                    data: { id: instanceId, imageUrl: '' },
+                    type: 'image',
+                    size: lineSizes[instanceId] ?? defaultSize,
+                    index: i,
+                    groupId: group.id,
+                } as RowLine)
+            }
+        } else {
+            const pileCount = pile.bounds.length - 1
+            for (let i = 0; i < pileCount; i++) {
+                const slots = pile.order.slice(pile.bounds[i], pile.bounds[i + 1])
+                const firstId = ids[slots[0]]
+                lines.push({
+                    id: group.id + '-sha1:' + firstId,
+                    data: { groupId: group.id, pileIndex: i, slots },
+                    type: 'pile',
+                    size: lineSizes[firstId] ?? defaultSize,
+                } as PileRowLine)
             }
         }
     }

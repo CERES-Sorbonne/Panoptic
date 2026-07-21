@@ -2,7 +2,7 @@
 import Zoomable from '@/components/Zoomable.vue';
 import CenteredImage from '@/components/images/CenteredImage.vue';
 import SelectCircle from '@/components/inputs/SelectCircle.vue';
-import { Group, GroupManager } from '@/core/GroupManager';
+import { GroupManager } from '@/core/GroupManager';
 import { ModalId, PileRowLine, Property, RowLine } from '@/data/models';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useProjectStore } from '@/data/projectStore';
@@ -41,8 +41,8 @@ const hover = ref(false)
 const tab = computed(() => props.tab.state)
 const rawImage = computed(() => {
     if (props.item.type == 'pile') {
-        const group = (props.item as PileRowLine).data as Group
-        const instanceId = columnStore.instanceIds()[group.slots[0]]
+        const handle = (props.item as PileRowLine).data
+        const instanceId = columnStore.instanceIds()[handle.slots[0]]
         return store.instances[instanceId] ?? { id: instanceId, imageUrl: '', properties: {} }
     }
     return (props.item as RowLine).data
@@ -56,7 +56,7 @@ const image = computed(() =>
 
 const pile = computed(() => {
     if (props.item.type == 'pile') {
-        return props.item.data as Group
+        return (props.item as PileRowLine).data
     }
     return undefined
 })
@@ -170,8 +170,8 @@ function emitResizeOnce() {
 function showModal() {
     let iterator
     if (props.item.type === 'pile') {
-        const sha1Group = (props.item as PileRowLine).data as Group
-        iterator = props.manager.getImageIterator(sha1Group.parent.id, sha1Group.parentIdx)
+        const handle = (props.item as PileRowLine).data
+        iterator = props.manager.getImageIterator(handle.groupId, handle.pileIndex)
     } else {
         const rowItem = props.item as RowLine
         iterator = props.manager.getImageIterator(rowItem.groupId, rowItem.index)

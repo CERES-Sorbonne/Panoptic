@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } from 'vue';
 import ClusterLineVue from './ClusterLine.vue';
-import { GroupManager, Group, GroupType } from '@/core/GroupManager';
+import { GroupManager, Group } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 import { Property, ClusterLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
@@ -24,7 +24,7 @@ const props = defineProps<{
     openedIds?: number[]
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'rename-cluster'])
+const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'rename-cluster', 'delete-cluster'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
@@ -133,10 +133,13 @@ type ClusterEntry = { group: Group, slot: number, name?: string }
 
 // Collect the cluster cards to show. A cluster that has been sub-divided (its children are
 // themselves clusters) is replaced by its sub-clusters — so the "further divide" action turns
-// one card into several. Sha1 display subgroups (subGroupType == Sha1) are NOT descended into.
+// one card into several. sha1 piling is a leaf overlay (pileIndex), not children, so a piled
+// cluster leaf still surfaces as one card here.
 function collectCandidates(group: Group, out: ClusterEntry[]) {
     for (const child of group.children) {
-        if (child.subGroupType === GroupType.Cluster && child.children.length > 0) {
+        // A divided group (any children) expands into its sub-groups. subGroupType is no
+        // longer reliable (a level can mix cluster + property children), so key off children.
+        if (child.children.length > 0) {
             collectCandidates(child, out)
         } else if (child.slots && child.slots.length > 0) {
             out.push({ group: child, slot: child.slots[0], name: child.name })
@@ -292,6 +295,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
                         @add-clusters="(id, groups) => emit('add-clusters', id, groups)"
                         @rename-cluster="(id, name) => emit('rename-cluster', id, name)"
+                        @delete-cluster="id => emit('delete-cluster', id)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />
                 </div>

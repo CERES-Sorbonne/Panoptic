@@ -46,7 +46,7 @@ const emit = defineEmits(['close'])
 
 function isEligible(g: Group): boolean {
     const hasImages = g.slots.length > 0
-    const hasSubgroups = g.children.length > 0 && g.subGroupType != GroupType.Sha1
+    const hasSubgroups = g.children.length > 0
     const someValue = (g.meta.propertyValues ?? []).some(v => v.value != undefined)
     return hasImages && !hasSubgroups && g.type != GroupType.Cluster && someValue
 }

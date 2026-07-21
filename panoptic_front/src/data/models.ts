@@ -449,8 +449,16 @@ export interface RowLine extends ScrollerLine {
     data: Instance,
 }
 
+// A sha1 pile row in the grid. `data` is a lightweight handle into the leaf's pile
+// overlay (no per-sha1 Group is materialized anymore).
+export interface PileHandle {
+    groupId: number
+    pileIndex: number
+    slots: number[]
+}
+
 export interface PileRowLine extends ScrollerLine {
-    data: Group
+    data: PileHandle
 }
 
 export interface ScrollerPileLine extends ScrollerLine {

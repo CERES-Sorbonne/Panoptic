@@ -3,7 +3,7 @@ import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, shallowReac
 import ImageLineVue from './ImageLine.vue';
 import PileLine from './PileLine.vue';
 import GroupLineVue from './GroupLine.vue';
-import { GroupManager, Group, GroupType, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager';
+import { GroupManager, Group, GroupIterator, ImageIterator, SelectedImages } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
 import { Property, Sha1Scores, ScrollerLine, PropertyMode, GroupLine, ScrollerPileLine, ImageLine, ModalId } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
@@ -167,11 +167,13 @@ function GroupToLines(it: GroupIterator) {
         nbClusters: 10
     })
 
-    if (group.children.length > 0 && group.subGroupType != GroupType.Sha1) return lines
+    // A group with children is a real sub-tree; piled leaves have no children.
+    if (group.children.length > 0) return lines
     if (group.view.closed) return lines
 
     const availableWidth = contentWidth.value - (group.depth * MARGIN_STEP)
-    if (group.subGroupType != GroupType.Sha1) {
+    const piled = props.groupManager.result.pileIndex.has(group.id)
+    if (!piled) {
         computeImageLines(it, lines, props.imageSize, availableWidth, group)
     } else {
         computeImagePileLines(it, lines as ScrollerPileLine[], props.imageSize, availableWidth, group)
@@ -304,8 +306,8 @@ function computeImageLines(it: GroupIterator, lines, imageHeight, totalWidth, pa
 }
 
 function computeImagePileLines(it: GroupIterator, lines: ScrollerPileLine[], imageHeight, totalWidth, parentGroup) {
-    // Empty sha1 group: no piles, so emit no image line.
-    if (!parentGroup.children || parentGroup.children.length === 0) return
+    // Empty leaf: no piles, so emit no image line.
+    if (!parentGroup.slots || parentGroup.slots.length === 0) return
 
     const lineWidth = totalWidth
     const itemsPerLine = Math.max(1, Math.floor(lineWidth / (imageHeight + BORDER + GAP)))
