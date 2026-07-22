@@ -12,25 +12,25 @@
  */
 
 import { deletedID, PropertyIndex, PropertyValue, TagIndex } from "@/data/models";
-import { Ref, ref, reactive } from "vue";
+import { Ref, reactive } from "vue";
 import { PropertyType } from "@/data/models";
 import { EventEmitter, isTag, objValues } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { useColumnStore } from "@/data/columnStore";
-import { computeSha1Piles, pileIndexOfSlot } from "./sha1Piles";
+import { computeSha1Piles } from "./sha1Piles";
 
 // ── group/* modules (extracted concerns) ────────────────────────────────────
 import {
     GroupType, GroupState, Group, GroupTree, GroupOption,
-    IteratorHost, GroupOpsHost,
+    ClusterOpsHost,
 } from "./group/types";
-import { GroupValueIndex } from "./group/valueIndex";
 import { buildGroup, buildRoot, buildGroupOption, createGroupState } from "./group/builders";
 import { sortGroup, setOrder } from "./group/sort";
 import { valueParser } from "./group/valueParser";
 import { dateBucketKey, dateBucketRange } from "./group/dateBuckets";
 import { GroupIterator, ImageIterator, GroupIteratorOptions } from "./group/GroupIterator";
-import * as groupOps from "./group/groupOps";
+import { GroupResult } from "./group/GroupResult";
+import { ClusterManager } from "./group/ClusterManager";
 
 // ── Barrel re-exports — keep `@/core/GroupManager` as the public entry point ─
 export { GroupType, GroupSortType } from "./group/types";
@@ -42,9 +42,15 @@ export { buildGroup, buildGroupOption, createGroupState } from "./group/builders
 export { GroupIterator, ImageIterator } from "./group/GroupIterator";
 export type { GroupIteratorOptions } from "./group/GroupIterator";
 
-export class GroupManager implements IteratorHost, GroupOpsHost {
+export class GroupManager implements ClusterOpsHost {
     state: GroupState
-    result: GroupTree
+    // The composed tree + iterators + result-change signal now live on GroupResult;
+    // the manager is the engine that fills it. GroupResult satisfies GroupTree, so callers
+    // that read `manager.result.index` etc. are unaffected.
+    result: GroupResult
+    // The cluster/custom-group overlay lives here now, not on the manager. GroupManager stays
+    // the pure property-tree engine; cluster ops are delegating facades (below).
+    clusters: ClusterManager
 
     // Slot→position typed array from the last group() call (faster than plain-object map).
     // _posArr[slot] = display position; replaces ImageOrder = {[slot]: pos}.
@@ -54,21 +60,18 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
     private _rebuildingTree = false
     // Leaf groups collected during computePropertySubGroup — avoids Object.values() in post-loop.
     private _leafGroups: Group[] = []
-    customGroups: { [parentgroupId: number]: Group[] }
-    onResultChange: EventEmitter
     onStateChange: EventEmitter
-    // Result-change signal (note §3, step 1). Bumped whenever the group tree
-    // changes; UI watches this and re-reads the (non-reactive) result tree.
-    // Replaces external onResultChange listeners. Kept separate from any
-    // status/dirty signal (Q-I) so watchers here only fire on real result changes.
-    version: Ref<number>
+
+    // Result-change signal + legacy event live on GroupResult now; expose delegating getters
+    // so existing callers (`manager.version.value`, `manager.onResultChange`) keep working.
+    get version(): Ref<number> { return this.result.version }
+    get onResultChange(): EventEmitter { return this.result.onResultChange }
 
     // Selection lives in columnStore, keyed by namespace (note §5, step 2). By
     // default a manager drives the shared 'global' selection; a custom namespace
     // (set via setSelectionNamespace) gives it an independent selection mask.
     selectionNamespace = 'global'
     private selection: { lastImage: ImageIterator, lastGroup: GroupIterator }
-    private iterators: GroupIterator[]
 
     constructor(state?: GroupState) {
         if (state) {
@@ -76,31 +79,19 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
         } else {
             this.state = reactive(createGroupState())
         }
-        this.result = {
-            root: undefined,
-            index: {},
-            imageToGroups: new Map(),
-            valueIndex: new GroupValueIndex(),
-            orderedIds: new Int32Array(0),
-            cacheStale: false,
-            pileIndex: new Map()
-        }
+        this.result = new GroupResult()
+        this.clusters = new ClusterManager(this)
         this._posArr = new Int32Array(0)
         this._posMaxSlot = 0
-        this.customGroups = {}
-        this.onResultChange = new EventEmitter()
         this.onStateChange = new EventEmitter()
-        this.version = ref(0)
         this.selection = { lastImage: undefined, lastGroup: undefined }
-        this.iterators = []
     }
 
     // Bump the reactive version tick AND emit the legacy event. The version ref
     // is the new result-change contract (UI watches it); onResultChange is kept
     // during the transition for any not-yet-migrated internal listener.
     emitResult() {
-        this.version.value++
-        this.onResultChange.emit(this.result)
+        this.result.emitResult()
     }
 
     // ── Column requirements ────────────────────────────────────────────────
@@ -135,8 +126,8 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
         this.result.index = {}
         this.result.imageToGroups = new Map()
         this.result.pileIndex = new Map()
-        const lastCustom = this.customGroups ?? {}
-        this.customGroups = {}
+        const lastCustom = this.clusters.customGroups ?? {}
+        this.clusters.customGroups = {}
         this._leafGroups = []
         this.regsiterGroup(this.result.root)
 
@@ -159,18 +150,8 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
             }
         }
 
-        let insert = true
-        const toInsert = new Set(Object.keys(lastCustom).map(Number))
-        while (insert) {
-            insert = false
-            for (const target of Array.from(toInsert)) {
-                if (this.result.index[target]) {
-                    this.addCustomGroups(target, lastCustom[target])
-                    toInsert.delete(target)
-                    insert = true
-                }
-            }
-        }
+        // Re-graft the previous custom/cluster groups (fixed-point replay now owned by ClusterManager).
+        this.clusters.reapplyAfter(lastCustom)
 
         this.applySha1Piles()
 
@@ -186,30 +167,9 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
         return this.result
     }
 
-    // Build start/end offsets for all groups and fill orderedIds (instance IDs in DFS display order).
-    // Single DFS pass: root.slots.length is the pre-known total, so we pre-allocate and fill in one sweep.
+    // Delegates to GroupResult (owns orderedIds / display order).
     buildOrdinalRanges(): void {
-        if (!this.result.root) return
-        const ids = useColumnStore().instanceIds()
-        const orderedIds = new Int32Array(this.result.root.slots.length)
-        let pos = 0
-
-        const dfs = (group: Group): void => {
-            group.start = pos
-            if (group.children.length === 0) {
-                // Piled leaf: emit in pile order so getImageOrder = group.start + bounds[k].
-                const pile = this.result.pileIndex.get(group.id)
-                const slots = pile ? pile.order : group.slots
-                for (const s of slots) orderedIds[pos++] = ids[s]
-            } else {
-                for (const child of group.children) dfs(child)
-            }
-            group.end = pos
-        }
-        dfs(this.result.root)
-
-        this.result.orderedIds = orderedIds
-        this.result.cacheStale = false
+        this.result.buildOrdinalRanges()
     }
 
     private addUpdatedToGroups(slots: Int32Array) {
@@ -369,17 +329,10 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
     }
 
     clear(emit?: boolean) {
-        this.invalidateIterators()
-        this.result.imageToGroups = new Map()
-        this.result.index = {}
-        this.result.root = undefined
-        this.result.valueIndex = new GroupValueIndex()
-        this.result.orderedIds = new Int32Array(0)
-        this.result.cacheStale = false
-        this.result.pileIndex = new Map()
+        this.result.clear()
         this.clearLastSelected()
         this.clearSelection()
-        this.customGroups = {}
+        this.clusters.clear()
         this._posArr = new Int32Array(0)
         this._posMaxSlot = 0
         if (emit) this.emitResult()
@@ -410,13 +363,8 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
             .forEach(id => delete this.state.options[Number(id)])
     }
 
-    registerIterator(it: GroupIterator) {
-        this.iterators.push(it)
-    }
-
     invalidateIterators() {
-        for (const it of this.iterators) it.isValid = false
-        this.iterators = []
+        this.result.invalidateIterators()
     }
 
     removeChildren(group: Group) {
@@ -544,7 +492,7 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
         if (option) Object.assign(this.state.options[propertyId], option)
         if (!this.state.groupBy.includes(propertyId)) {
             this.state.groupBy.push(propertyId)
-            this.customGroups = {}
+            this.clusters.clear()
         }
         this.onStateChange.emit()
     }
@@ -553,45 +501,42 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
         const index = this.state.groupBy.indexOf(propertyId)
         if (index < 0) return
         this.state.groupBy.splice(index, 1)
-        this.customGroups = {}
+        this.clusters.clear()
         this.onStateChange.emit()
     }
 
-    // ── Structural group ops (implemented in group/groupOps.ts) ─────────────
-    // Thin facades so external callers keep using `manager.addCustomGroups(...)` etc.
+    // ── Structural cluster ops — thin facades delegating to ClusterManager, so external
+    // callers keep using `manager.split(...)` etc. until they migrate to `collection`/`clusters`.
     addCustomGroups(targetGroupId: number, groups: Group[], emit?: boolean) {
-        groupOps.addCustomGroups(this, targetGroupId, groups, emit)
+        this.clusters.addCustomGroups(targetGroupId, groups, emit)
     }
 
     moveImagesToGroup(fromGroupId: number, toGroupId: number, instanceIds: number[], emit = true) {
-        groupOps.moveImagesToGroup(this, fromGroupId, toGroupId, instanceIds, emit)
+        this.clusters.moveImagesToGroup(fromGroupId, toGroupId, instanceIds, emit)
     }
 
     renameGroup(groupId: number, name: string, emit = true) {
-        groupOps.renameGroup(this, groupId, name, emit)
+        this.clusters.renameGroup(groupId, name, emit)
     }
 
     delCustomGroups(targetGroupId: number, emit?: boolean) {
-        groupOps.delCustomGroups(this, targetGroupId, emit)
+        this.clusters.delCustomGroups(targetGroupId, emit)
     }
 
     clearCustomGroups(emit?: boolean) {
-        groupOps.clearCustomGroups(this, emit)
+        this.clusters.clearCustomGroups(emit)
     }
 
-    // Divide a leaf group into `groups` — 'replace' (new siblings) or 'children' (nested).
     split(groupId: number, groups: Group[], mode: 'replace' | 'children' = 'replace', emit = true) {
-        groupOps.split(this, groupId, groups, mode, emit)
+        this.clusters.split(groupId, groups, mode, emit)
     }
 
-    // Merge any groups into one Cluster group at the first group's position.
     merge(groupIds: number[], emit = true) {
-        groupOps.merge(this, groupIds, emit)
+        this.clusters.merge(groupIds, emit)
     }
 
-    // Delete one group; its images move to a leftover "Unclustered" bucket.
     delete(groupId: number, emit = true) {
-        groupOps.deleteGroup(this, groupId, emit)
+        this.clusters.delete(groupId, emit)
     }
 
     setSha1Mode(value: boolean, emit?: boolean) {
@@ -618,76 +563,17 @@ export class GroupManager implements IteratorHost, GroupOpsHost {
         if (emit) this.emitResult()
     }
 
-    // Clone the subtree rooted at groupId into a brand-new, standalone GroupManager
-    // (own index/imageToGroups/order), re-rooted at depth 0 with no parent — so it
-    // renders in TreeScroller like any other full tree, independent of the source
-    // tree's collapse state and unaffected by later changes to the source.
-    rootedAt(groupId: number): GroupManager | undefined {
-        const source = this.result.index[groupId]
-        if (!source) return undefined
-
-        const manager = new GroupManager()
-
-        const cloneNode = (g: Group, parent: Group | undefined, depth: number, id: number | string): Group => {
-            const clone: Group = { ...g, id, parent, depth, view: { ...g.view }, children: [] }
-            clone.children = g.children.map((c, i) => {
-                const cc = cloneNode(c, clone, depth + 1, c.id)
-                cc.parentIdx = i
-                return cc
-            })
-            manager.result.index[clone.id] = clone
-            return clone
-        }
-        // TreeScroller/GroupIterator default to starting at group id 0 (the
-        // convention buildRoot() uses) — force the clone's root to id 0 so it
-        // is discoverable the same way a normal full tree's root is.
-        const root = cloneNode(source, undefined, 0, 0)
-        manager.result.root = root
-
-        // Rebuild imageToGroups for the cloned subtree by walking down to true leaves.
-        const ids = useColumnStore().instanceIds()
-        const registerLeaves = (g: Group) => {
-            if (g.children.length === 0) {
-                for (const s of g.slots) {
-                    const id = ids[s]
-                    let set = manager.result.imageToGroups.get(id)
-                    if (!set) { set = new Set<number>(); manager.result.imageToGroups.set(id, set) }
-                    set.add(g.id)
-                }
-            } else {
-                g.children.forEach(registerLeaves)
-            }
-        }
-        registerLeaves(root)
-
-        // Carry sha1Mode into the standalone tree and compute its pile overlay so the
-        // cloned subview shows piles just like the source did.
-        manager.state.sha1Mode = this.state.sha1Mode
-        manager.applySha1Piles()
-
-        setOrder(root)
-        manager.buildOrdinalRanges()
-        return manager
-    }
 
     getGroupIterator(groupId?: number, options?: GroupIteratorOptions) {
-        return new GroupIterator(this, groupId, options)
+        return this.result.getGroupIterator(groupId, options)
     }
 
     getImageIterator(groupId?: number, imageIdx?: number, options?: GroupIteratorOptions) {
-        return new ImageIterator(this, groupId, imageIdx, options)
+        return this.result.getImageIterator(groupId, imageIdx, options)
     }
 
     findImageIterator(groupId: number, imageId: number) {
-        const col = useColumnStore()
-        const group = this.result.index[groupId]
-        const targetSlot = col.slotMap.get(imageId)
-        let idx = -1
-        if (targetSlot !== undefined) {
-            const pile = this.result.pileIndex.get(groupId)
-            idx = pile ? pileIndexOfSlot(pile, targetSlot) : group.slots.indexOf(targetSlot)
-        }
-        return this.getImageIterator(groupId, idx)
+        return this.result.findImageIterator(groupId, imageId)
     }
 
     setChildGroup(parent: Group, groups: Group[]) {

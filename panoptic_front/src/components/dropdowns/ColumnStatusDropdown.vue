@@ -89,7 +89,7 @@ const requestedIds = computed(() => {
     // Properties needed for filter / sort / group computation
     for (const id of col.filterManager.getRequiredColumns()) ids.add(id)
     for (const id of col.sortManager.getRequiredColumns())   ids.add(id)
-    for (const id of col.groupManager.getRequiredColumns())  ids.add(id)
+    for (const id of col.getRequiredColumns())  ids.add(id)
 
     return ids
 })

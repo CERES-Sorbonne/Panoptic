@@ -12,7 +12,7 @@ const props = defineProps<{
 const collection = computed(() => props.collection ?? props.tab.collection)
 
 function updateSha1Mode(value: boolean) {
-    collection.value.groupManager.setSha1Mode(value, true)
+    collection.value.setSha1Mode(value, true)
 }
 
 </script>
@@ -22,23 +22,23 @@ function updateSha1Mode(value: boolean) {
         <template #button>
             <div
                 class="bb"
-                :title="collection.groupManager.state.sha1Mode ? 'Image mode' : 'Instance mode'"
+                :title="collection.groupState.sha1Mode ? 'Image mode' : 'Instance mode'"
             >
-                <i :class="collection.groupManager.state.sha1Mode ? 'bi bi-images' : 'bi bi-image'"></i>
+                <i :class="collection.groupState.sha1Mode ? 'bi bi-images' : 'bi bi-image'"></i>
         </div>
         </template>
         <template #popup="{ hide }">
             <div class="mode-menu">
                 <div
                     class="mode-option"
-                    :class="{ selected: !collection.groupManager.state.sha1Mode }"
+                    :class="{ selected: !collection.groupState.sha1Mode }"
                     @click="updateSha1Mode(false); hide()"
                 >
                     <i class="bi bi-image"></i><span>Instance</span>
                 </div>
                 <div
                     class="mode-option"
-                    :class="{ selected: collection.groupManager.state.sha1Mode }"
+                    :class="{ selected: collection.groupState.sha1Mode }"
                     @click="updateSha1Mode(true); hide()"
                 >
                     <i class="bi bi-images"></i><span>Image</span>

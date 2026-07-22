@@ -21,10 +21,12 @@ const props = defineProps<{
     hideIfModal?: boolean,
     inputKey: string,
     // Group ids currently open in the right-side inspector panel.
-    openedIds?: number[]
+    openedIds?: number[],
+    // Property whose value each cluster's badge reflects (assignment target). undefined = none.
+    targetPropertyId?: number
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'rename-cluster', 'delete-cluster'])
+const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'rename-cluster', 'delete-cluster', 'assign-cluster'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
@@ -288,6 +290,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         :hover-border="hoverGroupBorder"
                         :manager="props.groupManager"
                         :properties="props.properties"
+                        :target-property-id="props.targetPropertyId"
                         :opened-ids="props.openedIds ?? []"
                         @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1"
@@ -296,6 +299,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         @add-clusters="(id, groups) => emit('add-clusters', id, groups)"
                         @rename-cluster="(id, name) => emit('rename-cluster', id, name)"
                         @delete-cluster="id => emit('delete-cluster', id)"
+                        @assign-cluster="(id, val) => emit('assign-cluster', id, val)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />
                 </div>

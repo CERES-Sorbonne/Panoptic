@@ -157,36 +157,58 @@ Then migrate the ~20 components: `collection.groupManager.result` →
 
 ## Sequence (low-risk, each step shippable)
 
-1. **Extract GroupResult.** Move the result fields + `buildOrdinalRanges` +
-   iterator host onto a `GroupResult`; `GroupManager.group()` fills one. Point
-   iterators at the result. Purely mechanical; behaviour identical. Unblocks
-   everything.
-2. **Extract ClusterManager.** Move `customGroups` + all group-ops + `rootedAt`
-   out; strip cluster branches from `updateSelection`/`applySha1Piles`. Cluster
-   ops become registry mutations + recompose. GroupManager is now pure.
-3. **CollectionManager facade + component migration.** Add the inspection API,
-   fold selection in, and rewrite the ~20 call sites off `.groupManager.*`. Do the
-   scrollers (`TreeScroller`, `ClusterScroller`, `GridScroller`) last/carefully —
-   they own iteration + virtualization.
-4. **Cluster view rebuild** (separate note) — now that `clusters` + `derive`
-   exist, replace `ClusterView`'s `rootedAt` clone per `cluster_view_goals.md`.
+Status as of this pass — validation harness added first (`vue-tsc`/`typescript`
+devDeps + `npm run typecheck`; baseline **112** pre-existing errors). Each phase
+verified by `typecheck` (no new errors) + `vite build`. **No runtime tests exist**,
+so all phases are behaviour-preserving *by construction*, not runtime-verified.
+
+1. ✅ **Extract GroupResult** — `src/core/group/GroupResult.ts` owns the result
+   fields (`index`/`imageToGroups`/`valueIndex`/`orderedIds`/`pileIndex`), the
+   `version`/`onResultChange`/`emitResult` signal, `buildOrdinalRanges`, and the
+   iterators; it is the `IteratorHost` (iterators read `host.index`/`host.pileIndex`
+   directly). `GroupManager` holds one and delegates; `version`/`onResultChange` are
+   getters. Consumers unaffected.
+2. ✅ **Extract ClusterManager** — `src/core/group/ClusterManager.ts` owns
+   `customGroups` + all cluster ops (`add`/`move`/`split`/`merge`/`delete`/`rename`)
+   + the replay (`reapplyAfter`). `types.ts` split into `ClusterOpsHost` (tree
+   primitives, implemented by `GroupManager`) + `GroupOpsHost` (adds `customGroups`,
+   implemented by `ClusterManager`). Typed against the interface → no import cycle.
+   **Behaviour-preserving relocation only** — deferred to the cluster-view rebuild
+   (step 4): stripping the cluster branches from `updateSelection`/`applySha1Piles`
+   and moving `rootedAt` (both need the non-destructive Set overlay first, and there
+   are no runtime tests to catch a behaviour change).
+3. ✅ **CollectionManager inspection API + component migration** — added the
+   delegating API (`result`/`version`/`groupState`/`clusters`/iterators/grouping/
+   selection/cluster-ops; `groupState` avoids clashing with `CollectionState`).
+   Migrated the ~9 components with collection-routed `collection.groupManager.<x>`
+   accesses onto `collection.<x>`. **Deferred:** the 25 `props.groupManager`
+   scroller/form props (`TreeScroller`/`GridScroller`/`GroupForm`) still receive a
+   `GroupManager` directly — rewiring them to `CollectionManager`/`GroupResult` is a
+   distinct change, best done with the cluster-view rebuild.
+4. ⏭️ **Cluster view rebuild** (`cluster_view_goals.md`) — Set overlay + `derive`,
+   delete `rootedAt`, strip the `updateSelection` cluster branches, rewire scrollers.
 
 Order rationale: the result object first means the cluster extraction and the API
 land on the clean structure instead of wrapping the old one.
 
 ## Open questions / risks
 
-- **Selection home.** CollectionManager-level (one selection per collection) vs. a
-  per-view selection object (the cluster view already uses its own namespaces:
-  `cluster-view`, `cluster-detail-0/1`). Decide in Phase 3 — leaning per-view
-  object keyed by namespace, owned by the view, backed by `columnStore`.
-- **Scroller coupling.** `TreeScroller`/`GridScroller` consume `GroupIterator` +
-  `orderedIds` heavily (15 + 5 iterator refs). Keep the iterator contract identical
-  across the move so scrollers change only the *host* they get it from, not their
-  logic.
-- **Recompose trigger.** Cluster edits bump `result.version`; confirm no consumer
-  still listens to a `GroupManager`-level event after the split (`onResultChange`
-  is still emitted alongside `version` today).
+- **Selection home.** *Not yet moved.* Selection still lives on `GroupManager`
+  (`selectionNamespace`, `select*`/`toggle*`), exposed via delegating methods on
+  `CollectionManager`. Still to decide: CollectionManager-level vs. a per-view
+  selection object (the cluster view already uses namespaces `cluster-view`,
+  `cluster-detail-0/1`). Leaning per-view object keyed by namespace, backed by
+  `columnStore` — do it with the cluster-view rebuild.
+- **Scroller coupling.** Iterator contract kept identical: the only change was the
+  *host* (`GroupResult` instead of `GroupManager`) and iterators reading
+  `host.index`/`host.pileIndex`. Scroller logic untouched. The scrollers still take
+  a `GroupManager` prop (deferred rewiring, step 4).
+- **Recompose trigger.** `onResultChange` is still emitted alongside `version`
+  (both on `GroupResult` now). Confirm no consumer depends on the emitted payload
+  before removing the legacy event.
+- **`rootedAt` still on GroupManager** (delegated from `CollectionManager.rootedAt`)
+  — removed with the cluster-view rebuild. The one pre-existing typecheck error
+  (`string | number` id) lives here and goes away with it.
 
 Resolved by prior analysis / `cluster_view_goals.md`: overlay lives composed into
 `GroupResult` (see *Compose* above); cluster sets are **reset** on a groupBy change

@@ -35,7 +35,7 @@ export class GroupIterator {
     }
 
     private getGroup(): Group {
-        return this.manager.result.index[this.groupId]
+        return this.manager.index[this.groupId]
     }
 
     nextGroup(): GroupIterator {
@@ -108,7 +108,7 @@ export class ImageIterator extends GroupIterator {
 
     // The pile overlay for the current leaf (undefined when the leaf renders flat).
     private pile(): PileData | undefined {
-        return this.manager.result.pileIndex.get(this.groupId)
+        return this.manager.pileIndex.get(this.groupId)
     }
 
     // A leaf (no property/cluster children) yields images; a group with children is
@@ -119,7 +119,7 @@ export class ImageIterator extends GroupIterator {
 
     // Number of navigable image positions in a leaf: pile count when piled, else slots.
     private positionCount(group: Group): number {
-        const pile = this.manager.result.pileIndex.get(group.id)
+        const pile = this.manager.pileIndex.get(group.id)
         return pile ? pile.bounds.length - 1 : group.slots.length
     }
 
@@ -211,9 +211,9 @@ export class ImageIterator extends GroupIterator {
     // For piled leaves: group.start + the pile's offset (bounds[imageIdx]).
     // For flat leaves: group.start + imageIdx.
     getImageOrder(): number {
-        const group = this.manager.result.index[this.groupId]
+        const group = this.manager.index[this.groupId]
         if (!group) return 0
-        const pile = this.manager.result.pileIndex.get(this.groupId)
+        const pile = this.manager.pileIndex.get(this.groupId)
         if (pile) return group.start + pile.bounds[this.imageIdx]
         return group.start + this.imageIdx
     }

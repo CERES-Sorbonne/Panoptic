@@ -8,7 +8,7 @@
 import { CollectionState } from "@/data/models";
 import { FilterContext, FilterManager, FilterState } from "./FilterManager";
 import { SortManager, SortState } from "./SortManager";
-import { GroupManager, GroupState } from "./GroupManager";
+import { GroupManager, GroupState, Group, GroupIteratorOptions } from "./GroupManager";
 import { EventEmitter } from "@/utils/utils";
 import { useDataStore } from "@/data/dataStore";
 import { useColumnStore } from "@/data/columnStore";
@@ -113,6 +113,49 @@ export class CollectionManager {
         this.sortManager.verifyState(data.properties)
         this.groupManager.verifyState(data.properties)
     }
+
+    // ── Inspection API ─────────────────────────────────────────────────────────
+    // CollectionManager is the object views use to inspect a collection. These delegate to the
+    // GroupManager / ClusterManager so components no longer reach through `.groupManager`.
+    // (`groupState` is named to avoid clashing with `this.state`, the CollectionState.)
+
+    get result() { return this.groupManager.result }
+    get clusters() { return this.groupManager.clusters }
+    get version() { return this.groupManager.version }
+    get groupState(): GroupState { return this.groupManager.state }
+    get selectionNamespace() { return this.groupManager.selectionNamespace }
+
+    hasResult() { return this.groupManager.hasResult() }
+    getRequiredColumns() { return this.groupManager.getRequiredColumns() }
+
+    // Iteration
+    getGroupIterator(groupId?: number, options?: GroupIteratorOptions) { return this.groupManager.getGroupIterator(groupId, options) }
+    getImageIterator(groupId?: number, imageIdx?: number, options?: GroupIteratorOptions) { return this.groupManager.getImageIterator(groupId, imageIdx, options) }
+    findImageIterator(groupId: number, imageId: number) { return this.groupManager.findImageIterator(groupId, imageId) }
+
+    // Grouping state
+    setGroupOption(...args: Parameters<GroupManager['setGroupOption']>) { return this.groupManager.setGroupOption(...args) }
+    delGroupOption(...args: Parameters<GroupManager['delGroupOption']>) { return this.groupManager.delGroupOption(...args) }
+    setSha1Mode(value: boolean, emit?: boolean) { return this.groupManager.setSha1Mode(value, emit) }
+
+    // Selection
+    setSelectionNamespace(ns: string) { return this.groupManager.setSelectionNamespace(ns) }
+    clearSelection() { return this.groupManager.clearSelection() }
+    toggleAll() { return this.groupManager.toggleAll() }
+    toggleGroupIterator(...args: Parameters<GroupManager['toggleGroupIterator']>) { return this.groupManager.toggleGroupIterator(...args) }
+    toggleImageIterator(...args: Parameters<GroupManager['toggleImageIterator']>) { return this.groupManager.toggleImageIterator(...args) }
+    selectImages(imageIds: number[]) { return this.groupManager.selectImages(imageIds) }
+    unselectImages(imageIds: number[]) { return this.groupManager.unselectImages(imageIds) }
+
+    // Cluster / custom-group ops (delegate through to ClusterManager)
+    addCustomGroups(targetGroupId: number, groups: Group[], emit?: boolean) { return this.groupManager.addCustomGroups(targetGroupId, groups, emit) }
+    moveImagesToGroup(fromGroupId: number, toGroupId: number, instanceIds: number[], emit = true) { return this.groupManager.moveImagesToGroup(fromGroupId, toGroupId, instanceIds, emit) }
+    renameGroup(groupId: number, name: string, emit = true) { return this.groupManager.renameGroup(groupId, name, emit) }
+    delCustomGroups(targetGroupId: number, emit?: boolean) { return this.groupManager.delCustomGroups(targetGroupId, emit) }
+    clearCustomGroups(emit?: boolean) { return this.groupManager.clearCustomGroups(emit) }
+    split(groupId: number, groups: Group[], mode: 'replace' | 'children' = 'replace', emit = true) { return this.groupManager.split(groupId, groups, mode, emit) }
+    merge(groupIds: number[], emit = true) { return this.groupManager.merge(groupIds, emit) }
+    delete(groupId: number, emit = true) { return this.groupManager.delete(groupId, emit) }
 
     setAutoReload(value: boolean) {
         this.state.autoReload = value

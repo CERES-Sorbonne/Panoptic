@@ -53,8 +53,8 @@ function isEligible(g: Group): boolean {
 
 // Eligible leaf groups in display order (DFS).
 const eligibleGroups = computed(() => {
-    props.collection.groupManager.version.value // reactive dep on the group tree
-    const root = props.collection.groupManager.result?.root
+    props.collection.version.value // reactive dep on the group tree
+    const root = props.collection.result?.root
     if (!root) return [] as Group[]
     const res: Group[] = []
     const stack: Group[] = [root]
@@ -90,10 +90,10 @@ const useFilter = ref(true)
 const similarIds = ref<number[]>([])
 
 const groupIds = computed<number[]>(() => {
-    props.collection.groupManager.version.value
+    props.collection.version.value
     if (!group.value) return []
     const ids = col.instanceIds()
-    const g = props.collection.groupManager.result.index[group.value.id]
+    const g = props.collection.result.index[group.value.id]
     return g ? g.slots.map(s => ids[s]) : []
 })
 

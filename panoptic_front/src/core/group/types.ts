@@ -100,16 +100,19 @@ export type SelectedImages = { [imageId: number]: boolean }
 // Iterators and structural ops depend on these narrow structural contracts, not on the
 // concrete GroupManager class, so those modules never import GroupManager.
 
+// Iterators navigate the display order; they read only the tree index + pile overlay and
+// register themselves for invalidation. Satisfied by GroupResult (the host is the result now,
+// not the manager).
 export interface IteratorHost {
-    result: GroupTree
+    index: GroupIndex
+    pileIndex: Map<number, PileData>
     registerIterator(it: GroupIterator): void
 }
 
-// What group/groupOps.ts needs from the manager to mutate the tree.
-export interface GroupOpsHost {
+// The tree-mutation primitives the cluster ops delegate to (provided by the tree layer /
+// GroupManager). The custom-group registry itself is NOT here — it lives on ClusterManager.
+export interface ClusterOpsHost {
     result: GroupTree
-    state: GroupState
-    customGroups: { [parentGroupId: number]: Group[] }
     setChildGroup(parent: Group, groups: Group[]): void
     removeChildren(group: Group): void
     regsiterGroup(group: Group): void
@@ -117,4 +120,10 @@ export interface GroupOpsHost {
     applySha1Piles(): void
     invalidateIterators(): void
     emitResult(): void
+}
+
+// What group/groupOps.ts needs: the tree primitives + the custom-group registry.
+// Satisfied by ClusterManager.
+export interface GroupOpsHost extends ClusterOpsHost {
+    customGroups: { [parentGroupId: number]: Group[] }
 }

@@ -145,7 +145,7 @@ function generateGroups() {
     const groupOption = props.mapOptions.groupOption
 
     if (groupOption === 'property') {
-        groupList = props.collection.groupManager.result.root.children
+        groupList = props.collection.result.root.children
     } else {
         groupList = clusters
     }
@@ -302,8 +302,8 @@ const handleLasso = (selectedPoints: PointData[]) => {
         const instanceIds = columnStore.getInstancesBySha1(point.sha1)
         if (instanceIds.length) ids.push(...instanceIds)
     }
-    if (mouseMode.value == 'lasso-plus') props.collection.groupManager.selectImages(ids)
-    if (mouseMode.value == 'lasso-minus') props.collection.groupManager.unselectImages(ids)
+    if (mouseMode.value == 'lasso-plus') props.collection.selectImages(ids)
+    if (mouseMode.value == 'lasso-minus') props.collection.unselectImages(ids)
 }
 
 async function deleteMap(mapId: number) {
@@ -357,7 +357,7 @@ watch(() => media.atlas, async () => {
 })
 
 // React to result changes via the version tick (note §3, step 1).
-watch(() => props.collection.groupManager.version.value, onGroupManager)
+watch(() => props.collection.version.value, onGroupManager)
 
 onMounted(async () => {
     await media.loadMaps()
@@ -378,7 +378,7 @@ onMounted(async () => {
                 :color-option="props.mapOptions.groupOption"
                 @update:color-option="opt => { props.mapOptions.groupOption = opt }"
                 :has-maps="media.hasMaps"
-                :images="collection.groupManager.result.root?.images || []"
+                :images="collection.result.root?.images || []"
                 :map-images="mapInstances"
                 @clusters="cc => { clusters = cc; generateGroups()}"
                 @delete:map="deleteMap"
@@ -398,7 +398,7 @@ onMounted(async () => {
                 v-model:color-option="props.mapOptions.groupOption" 
                 :hover-image-id="lastValiderHoverId"
                 :groups="groups" 
-                :images="collection.groupManager.result.root?.images || []"
+                :images="collection.result.root?.images || []"
                 @clusters="cc => { clusters = cc; generateGroups() }" 
                 @hover-group="onGroupHover"
                 @click-group="g => renderer?.lookAtRect(g.box)"

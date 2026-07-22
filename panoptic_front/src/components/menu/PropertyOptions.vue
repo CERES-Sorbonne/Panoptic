@@ -34,7 +34,7 @@ const nameInput = ref<HTMLInputElement>()
 const propertyVisible = computed(() => props.tab.state.visibleProperties[props.property.id] == true)
 
 const isInFilter = computed(() => props.tab.collection.filterManager.state.filter.filters.some((f) => !f.isGroup && (f as Filter).propertyId == props.property.id))
-const isInGroups = computed(() => props.tab.collection.groupManager.state.groupBy.includes(props.property.id))
+const isInGroups = computed(() => props.tab.collection.groupState.groupBy.includes(props.property.id))
 const isInSort = computed(() => props.tab.collection.sortManager.state.sortBy.includes(props.property.id))
 const filterId = computed(() => {
     if (!isInFilter.value) return undefined
@@ -79,9 +79,9 @@ function setSort() {
 
 function setGroup() {
     if (!isInGroups.value) {
-        props.tab.collection.groupManager.setGroupOption(props.property.id)
+        props.tab.collection.setGroupOption(props.property.id)
     } else {
-        props.tab.collection.groupManager.delGroupOption(props.property.id)
+        props.tab.collection.delGroupOption(props.property.id)
     }
 }
 

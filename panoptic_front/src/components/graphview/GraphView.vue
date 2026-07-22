@@ -40,7 +40,7 @@ const chartPropIds = computed(() => {
 
 function getAllPropValues() {
     const allPropValues = new Set();
-    let it: GroupIterator = props.collection.groupManager.getGroupIterator()
+    let it: GroupIterator = props.collection.getGroupIterator()
     while (it) {
         const group = it.group
         // on est root
@@ -59,11 +59,11 @@ function getAllPropValues() {
 }
 
 function computeSeries() {
-    if (!props.collection.groupManager.hasResult()) return null
+    if (!props.collection.hasResult()) return null
 
     const res: { [key: string | number]: { [key: string]: any } } = {}
     let allPropValues;
-    let properties = props.collection.groupManager.state.groupBy
+    let properties = props.collection.groupState.groupBy
 
     if (properties.length === 0) {
         error.value = "Choose at least one date or numeric value to group the images by"
@@ -98,7 +98,7 @@ function computeSeries() {
         return slots.slice(0, 20).map(s => columnStore.instanceIds()[s])
     }
 
-    let it: GroupIterator = props.collection.groupManager.getGroupIterator()
+    let it: GroupIterator = props.collection.getGroupIterator()
     const xValues = []
     while (it) {
         const group: Group = it.group
@@ -156,7 +156,7 @@ function computeSeries() {
 }
 
 // React to result changes via the version tick (note §3, step 1).
-watch(() => props.collection.groupManager.version.value, () => chartData.value = computeSeries())
+watch(() => props.collection.version.value, () => chartData.value = computeSeries())
 
 onMounted(() => {
     chartData.value = computeSeries()

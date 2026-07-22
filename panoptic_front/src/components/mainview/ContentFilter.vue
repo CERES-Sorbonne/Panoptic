@@ -37,7 +37,7 @@ const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 
 function updateSha1Mode(value: boolean) {
-    props.tab.collection.groupManager.setSha1Mode(value, true)
+    props.tab.collection.setSha1Mode(value, true)
 }
 
 function getLocalQuery() {
@@ -96,12 +96,12 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
 
         <div class="ms-3 d-flex align-items-center">
             <wTT message="main.menu.instance_mode_tooltip">
-                <div class="tool-sm" :class="{ selected: !props.tab.collection.groupManager.state.sha1Mode }" @click="updateSha1Mode(false)">
+                <div class="tool-sm" :class="{ selected: !props.tab.collection.groupState.sha1Mode }" @click="updateSha1Mode(false)">
                     <i class="bi bi-image"></i>
                 </div>
             </wTT>
             <wTT message="main.menu.image_mode_tooltip">
-                <div class="tool-sm" :class="{ selected: props.tab.collection.groupManager.state.sha1Mode }" @click="updateSha1Mode(true)">
+                <div class="tool-sm" :class="{ selected: props.tab.collection.groupState.sha1Mode }" @click="updateSha1Mode(true)">
                     <i class="bi bi-images"></i>
                 </div>
             </wTT>
@@ -113,8 +113,8 @@ watch(() => props.tab.collection.filterManager.state.query, getLocalQuery)
         <div>
             <SelectionStamp v-if="hasSelectedImages" class="ms-5" style="font-size: 14px;"
                 :selected-images-ids="selectedImageIds"
-                @remove:selected="props.tab.collection.groupManager.clearSelection()"
-                @stamped="props.tab.collection.groupManager.clearSelection()" />
+                @remove:selected="props.tab.collection.clearSelection()"
+                @stamped="props.tab.collection.clearSelection()" />
         </div>
         <div class="flex-grow-1"></div>
         <wTT message="main.menu.issue" class="bb ">

@@ -33,7 +33,7 @@ const selectedImageIds = computed(() => { col.selectionVersion.value; return col
 const hasSelectedImages = computed(() => selectedImageIds.value.length)
 
 function clearSelection() {
-    tab.activeManager?.collection.groupManager.clearSelection()
+    tab.activeManager?.collection.clearSelection()
 }
 
 function onChangeLang(event: Event) {
