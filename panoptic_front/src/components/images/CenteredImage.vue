@@ -19,6 +19,9 @@ const props = defineProps<{
     noClick?:    boolean
     border?:     number
     isZoom?:     boolean
+    // Fill the whole box instead of fitting inside it: the image is scaled up until it covers
+    // width AND height, and the overflow is cropped (centred, so it crops evenly on both sides).
+    cover?:      boolean
 }>()
 
 const panoptic   = usePanopticStore()
@@ -73,6 +76,12 @@ const imageSize = computed(() => {
     if (!imageWidth.value || !imageHeight.value) return { w: 0, h: 0 }
     const imgRatio = imageWidth.value / imageHeight.value
     const divRatio = props.width / props.height
+    // cover: scale on the axis that still leaves a gap, so the image overflows the other one
+    // (cropped by the container) — the exact mirror of the fit case below.
+    if (props.cover) {
+        if (divRatio > imgRatio) return { w: props.width, h: props.width / imgRatio }
+        return { w: props.height * imgRatio, h: props.height }
+    }
     if (divRatio > imgRatio) return { w: props.height * imgRatio, h: props.height }
     return { w: props.width, h: props.width / imgRatio }
 })
@@ -87,7 +96,7 @@ function onLoad() {
 </script>
 
 <template>
-    <div class="center-container"
+    <div class="center-container" :class="{ 'cover-crop': props.cover }"
         :style="{ width: props.width + 'px', height: props.height + 'px', cursor: props.noClick ? 'inherit' : 'pointer' }">
         <div class="center-content">
             <img v-if="loadedImageUrl" :src="loadedImageUrl"
@@ -111,6 +120,16 @@ function onLoad() {
     margin: 0;
     padding: 0;
     display: inline-block;
+}
+
+/* Cover mode: the image is deliberately larger than the box on one axis, so the box must clip
+   it and the fit-mode max-width clamp must not shrink it back. Centred, so it crops evenly. */
+.cover-crop {
+    overflow: hidden;
+}
+
+.cover-crop img {
+    max-width: none;
 }
 
 img {

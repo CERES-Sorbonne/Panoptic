@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ComputedRef, computed, inject, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
-import { ClusterLine } from '@/data/models'
+import { ClusterLine, GroupViewMode, MOSAIC_GRID, mosaicSlotCount } from '@/data/models'
 import { GroupManager, Group, GroupType } from '@/core/GroupManager'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
@@ -34,9 +34,59 @@ const props = defineProps<{
     highlightIds?: number[]
     // Assignment target property — the value each card's top chip reflects. undefined = none.
     targetPropertyId?: number
+    // 'single' = one representative image fills the card; the mosaic modes show several of the
+    // group's images, gridded — with or without a large one on the left half (see MOSAIC_GRID).
+    viewMode?: GroupViewMode
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'delete-cluster', 'assign-cluster-value'])
+// Gap between the tiles of a mosaic card (the card's own background shows through).
+const MOSAIC_GAP = 2
+
+// The tiles of one mosaic card: the group's first images, laid out as an optional [big left half]
+// plus [the others gridded into the space left], the shape coming from the mode. Returns null
+// when there is no mosaic to draw (single mode, or a group with a single image) — such a card
+// falls back to the plain single-image layout.
+// Sizes are computed here, in px, so the tiles add up to EXACTLY the card box (the leftover
+// pixels of each floor go to the last column / row), as everywhere else in this view.
+function mosaicTiles(group: Group, width: number) {
+    const grid = MOSAIC_GRID[props.viewMode ?? 'single'] ?? MOSAIC_GRID.single
+    if (!grid.cols || !grid.rows) return null
+    const slots = (group.slots ?? []).slice(0, mosaicSlotCount(props.viewMode ?? 'single'))
+    if (slots.length < 2) return null
+
+    const h = props.imageSize
+    // With a large image the grid gets the right half; without one it spans the whole card.
+    const leftW = grid.big ? Math.floor((width - MOSAIC_GAP) / 2) : 0
+    const rightW = grid.big ? width - MOSAIC_GAP - leftW : width
+
+    // Shrink the grid to what the group actually has, so a small group fills its space instead
+    // of leaving holes: as many columns as fit its images, and only the rows it needs.
+    const rest = grid.big ? slots.length - 1 : slots.length
+    const cols = Math.min(grid.cols, rest)
+    const rows = Math.min(grid.rows, Math.ceil(rest / cols))
+
+    const rowBase = Math.floor((h - MOSAIC_GAP * (rows - 1)) / rows)
+    const rowLast = h - MOSAIC_GAP * (rows - 1) - rowBase * (rows - 1)
+
+    return {
+        big: grid.big ? { slot: slots[0], width: leftW, height: h } : null,
+        gridWidth: rightW,
+        tiles: (grid.big ? slots.slice(1) : slots).map((slot, i) => {
+            const c = i % cols, r = Math.floor(i / cols)
+            // A short last row shares the half between its own tiles, so it fills the width
+            // instead of leaving a hole beside it.
+            const inRow = r === rows - 1 ? rest - cols * r : cols
+            const base = Math.floor((rightW - MOSAIC_GAP * (inRow - 1)) / inRow)
+            return {
+                slot,
+                width: c === inRow - 1 ? rightW - MOSAIC_GAP * (inRow - 1) - base * (inRow - 1) : base,
+                height: r === rows - 1 ? rowLast : rowBase,
+            }
+        }),
+    }
+}
+
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
 
 const hoveredCard = ref<number | null>(null)
 
@@ -50,6 +100,10 @@ function cardInner(i: number) {
     return props.item.cardWidths[i] ?? props.imageSize
 }
 
+// One tile list per card of this line (empty in single mode, or for a one-image group), so the
+// layout is computed once per render instead of once per template use.
+const cardTiles = computed(() => props.item.data.map((e, i) => mosaicTiles(e.group, cardInner(i))))
+
 function getInstanceId(slot: number) {
     return columnStore.instanceIds()[slot]
 }
@@ -59,9 +113,32 @@ function clusterName(group: Group) {
 }
 
 // A cluster card: a real Cluster group — a sub-cluster of the parent, or the "New" leftover pile
-// of images not covered by any cluster. Only these are deletable; property value-groups are not.
+// of images not covered by any cluster. Property value-groups carry their value in the input row.
 function isClusterCard(group: Group) {
     return group.type === GroupType.Cluster
+}
+
+// This card stands in for a whole closed subtree: opening it swaps the card for its children.
+// (An OPEN group with children is never a card — the scroller renders its children instead.)
+function isCollapsed(group: Group) {
+    return (group.children?.length ?? 0) > 0
+}
+
+// Collapsing goes UP: it closes this card's PARENT, so the parent's whole level folds back
+// into a single card. Only a CLUSTER card may do it — clusters are what an action added on top
+// of the grouping, so folding them away returns to the group they were made from. The property
+// groups the GroupManager builds are the base of the view: they are always shown, never folded.
+// Also not offered when the parent is the tree root, which is never a card.
+function canCollapse(group: Group) {
+    if (group.type !== GroupType.Cluster) return false
+    const parent = group.parent
+    return !!parent && !!parent.parent
+}
+
+// A collapsed card whose subtree is CLUSTERS (not property value-groups) can drop them
+// outright, like the tree view's "close clusters" button — same delCustomGroups call.
+function hasClusterChildren(group: Group) {
+    return (group.children ?? []).some(c => c.type === GroupType.Cluster)
 }
 
 const highlightSet = computed(() => new Set(props.highlightIds ?? []))
@@ -145,7 +222,32 @@ function groupScore(group: Group): number | null {
                  Click opens the cluster in the split inspector. -->
             <div class="cc-image-wrap" :style="{ height: props.imageSize + 'px', cursor: 'pointer' }"
                 @click="$emit('open-cluster', entry.group.id, $event.shiftKey)">
-                <div class="cluster-image">
+                <!-- Mosaic: one large image on the left half, the next ones gridded into the
+                     right half. A group with a single image has no tiles and falls back below. -->
+                <div v-if="cardTiles[i]" class="cluster-image cluster-mosaic" :style="{ gap: MOSAIC_GAP + 'px' }">
+                    <CenteredImage
+                        v-if="cardTiles[i].big && getInstanceId(cardTiles[i].big.slot) !== undefined"
+                        :instance-id="getInstanceId(cardTiles[i].big.slot)"
+                        :width="cardTiles[i].big.width"
+                        :height="cardTiles[i].big.height"
+                        :no-click="true"
+                        :cover="true"
+                    />
+                    <div class="cluster-mosaic-grid"
+                        :style="{ gap: MOSAIC_GAP + 'px', width: cardTiles[i].gridWidth + 'px' }">
+                        <template v-for="tile in cardTiles[i].tiles" :key="'m' + tile.slot">
+                            <CenteredImage
+                                v-if="getInstanceId(tile.slot) !== undefined"
+                                :instance-id="getInstanceId(tile.slot)"
+                                :width="tile.width"
+                                :height="tile.height"
+                                :no-click="true"
+                                :cover="true"
+                            />
+                        </template>
+                    </div>
+                </div>
+                <div v-else class="cluster-image">
                     <CenteredImage
                         v-if="getInstanceId(entry.slot) !== undefined"
                         :instance-id="getInstanceId(entry.slot)"
@@ -155,8 +257,32 @@ function groupScore(group: Group): number | null {
                     />
                 </div>
 
-                <!-- Top overlay: select circle + cluster name (left), score (right). -->
-                <div class="cc-top" :class="{ 'cc-scrim': isClusterCard(entry.group) }">
+                <!-- The corner toggle is pinned to the card, NOT a child of the .cc-top flex row:
+                     as a flex item it was re-centered whenever the row's height changed (the
+                     hover-revealed select circle is taller), which made it jump on hover. Pinned,
+                     its position is fixed for good. `+` on a card standing in for a closed subtree
+                     (open it to swap this card for its children), `−` otherwise (fold this whole
+                     level back into the parent card). -->
+                <div v-if="isCollapsed(entry.group) || canCollapse(entry.group)" class="cc-corner-wrap" @click.stop>
+                    <wTT v-if="isCollapsed(entry.group)" message="btn.open-group">
+                        <div class="cc-btn cc-corner" @click.stop="$emit('open-group', entry.group.id)">
+                            <i class="bi bi-plus-square-dotted" />
+                        </div>
+                    </wTT>
+                    <wTT v-else message="btn.close-group">
+                        <div class="cc-btn cc-corner" @click.stop="$emit('close-group', entry.group.parent.id)">
+                            <i class="bi bi-dash-square-dotted" />
+                        </div>
+                    </wTT>
+                </div>
+
+                <!-- Top overlay: select circle · name (left), score (right). Indented past the
+                     pinned corner toggle when there is one. -->
+                <div class="cc-top"
+                    :class="{
+                        'cc-scrim': isClusterCard(entry.group) || hoveredCard === entry.group.id,
+                        'cc-indent': isCollapsed(entry.group) || canCollapse(entry.group),
+                    }">
                     <SelectCircle
                         v-if="hoveredCard === entry.group.id || isSelected(entry.group)"
                         :model-value="isSelected(entry.group)"
@@ -173,7 +299,7 @@ function groupScore(group: Group): number | null {
                         :value="groupScore(entry.group)" />
                 </div>
 
-                <!-- Hover action pill, centered over the image: subdivide · inspect · delete. -->
+                <!-- Hover action pill, centered over the image: subdivide · inspect · clear. -->
                 <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop>
                     <ActionButton2 action="group" :no-border="true"
                         :images="() => getClusterImages(entry.group)"
@@ -188,17 +314,24 @@ function groupScore(group: Group): number | null {
                             <i class="bi bi-eye" />
                         </div>
                     </wTT>
-                    <wTT v-if="isClusterCard(entry.group)" message="btn.delete-cluster">
-                        <div class="cc-btn cc-danger" @click.stop="$emit('delete-cluster', entry.group.id)">
-                            <i class="bi bi-trash" />
+                    <!-- Collapsed card holding clusters: drop them, as in the tree view. -->
+                    <wTT v-if="isCollapsed(entry.group) && hasClusterChildren(entry.group)" message="btn.close-clusters">
+                        <div class="cc-btn cc-danger" @click.stop="$emit('clear-clusters', entry.group.id)">
+                            <i class="bi bi-x-lg" />
                         </div>
                     </wTT>
                 </div>
 
-                <!-- Bottom-left image count: a self-contained chip, so no full-width scrim is needed. -->
-                <span class="cc-count">
-                    <i class="bi bi-images me-1" />{{ entry.group.slots.length }}
-                </span>
+                <!-- Bottom-left counts: self-contained chips, so no full-width scrim is needed.
+                     Images, then the sub-group count on a card that holds a (closed) subtree. -->
+                <div class="cc-counts">
+                    <span class="cc-chip">
+                        <i class="bi bi-images me-1" />{{ entry.group.slots.length }}
+                    </span>
+                    <span v-if="isCollapsed(entry.group)" class="cc-chip">
+                        <i class="bi bi-intersect me-1" />{{ entry.group.children.length }}
+                    </span>
+                </div>
             </div>
 
             <!-- Below the image: an editable typed input on the target property, for EVERY card.
@@ -301,6 +434,29 @@ function groupScore(group: Group): number | null {
     background-color: var(--bg-subtle, #f3f4f6);
 }
 
+/* Mosaic: the big image on the left, the stacked column on the right. Tile sizes are computed
+   in JS (mosaicTiles) so the images add up to exactly the card's box, as everywhere else here. */
+.cluster-mosaic {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.cluster-mosaic-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+}
+
+/* Each tile keeps exactly the size computed for it: no flex shrink/grow, so an image stays
+   centred inside its own half instead of being pulled towards the card's edge. */
+.cluster-mosaic > *,
+.cluster-mosaic-grid > * {
+    flex: 0 0 auto;
+}
+
 .cc-input-row {
     display: flex;
     align-items: center;
@@ -330,13 +486,18 @@ function groupScore(group: Group): number | null {
     top: 0;
     display: flex;
     align-items: center;
+    /* Fixed 28px band (border-box, so the padding cannot grow it): the pinned corner toggle
+       spans the same band, and the hover-revealed select circle cannot change the row height. */
+    box-sizing: border-box;
+    height: 28px;
     gap: 4px;
-    padding: 3px 5px;
+    padding: 0 5px;
     pointer-events: none;
     z-index: 2;
 }
 
-/* Scrim only when there is a title to keep legible — a nameless card stays clean. */
+/* Scrim when there is a title to keep legible, and on hover for every card — the corner
+   toggle and select circle then need the same backdrop a title does. */
 .cc-top.cc-scrim {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
 }
@@ -348,6 +509,36 @@ function groupScore(group: Group): number | null {
 
 .cc-select {
     flex-shrink: 0;
+}
+
+/* The open/close toggle, pinned to the card's top-left corner: fixed coordinates, so no
+   change in the overlay row can move it. Above the scrim (z-index 2) but below the ring.
+   A plain div holds the position because wTT has two root nodes (trigger + teleported popup),
+   and Vue cannot stamp this component's scope attribute on a fragment root — a scoped class
+   put directly on wTT is emitted but never matches. */
+.cc-corner-wrap {
+    position: absolute;
+    top: 0;
+    left: 5px;
+    z-index: 3;
+    /* Span the same 28px band as .cc-top and centre inside it, so the toggle shares the
+       overlay row's baseline with the select circle and the title instead of being offset
+       by a hand-picked `top`. */
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Same disc as the pill buttons, slightly smaller so it does not crowd the title. */
+.cc-corner {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+}
+
+/* Keep the overlay row clear of the pinned toggle: 5px inset + 18px disc + 8px gap. */
+.cc-top.cc-indent {
+    padding-left: 31px;
 }
 
 /* Round icon buttons: subtle glass discs that read on top of a photo. */
@@ -425,13 +616,19 @@ function groupScore(group: Group): number | null {
     line-height: 1;
 }
 
-/* Image count: its own pill at the bottom-left, dark enough to read on any image
-   without darkening the whole bottom of the card. */
-.cc-count {
+/* Counts: their own pills at the bottom-left, dark enough to read on any image without
+   darkening the whole bottom of the card. */
+.cc-counts {
     position: absolute;
     left: 4px;
     bottom: 4px;
     z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cc-chip {
     padding: 1px 5px;
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.55);

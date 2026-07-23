@@ -3,7 +3,7 @@ import { ref, nextTick, onMounted, watch, computed, Ref, shallowRef, provide } f
 import ClusterLineVue from './ClusterLine.vue';
 import { GroupManager, Group } from '@/core/GroupManager';
 import { keyState } from '@/data/keyState';
-import { Property, ClusterLine, ModalId } from '@/data/models';
+import { Property, ClusterLine, ModalId, GroupViewMode, mosaicSlotCount } from '@/data/models';
 import { RecycleScroller } from 'vue-virtual-scroller';
 import { usePanopticStore } from '@/data/panopticStore';
 import { useColumnStore } from '@/data/columnStore';
@@ -29,10 +29,12 @@ const props = defineProps<{
     // Group ids to highlight (e.g. the clusters created by the last action).
     highlightIds?: number[],
     // Property whose value each cluster's badge reflects (assignment target). undefined = none.
-    targetPropertyId?: number
+    targetPropertyId?: number,
+    // How each card renders its group: one representative image, or a mosaic of the first few.
+    viewMode?: GroupViewMode
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'delete-cluster', 'assign-cluster-value'])
+const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'open-group', 'close-group', 'clear-clusters', 'assign-cluster-value'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
@@ -96,9 +98,15 @@ const windowIds = computed(() => {
         const line = lines[i]
         if (line.type === 'cluster') {
             for (const entry of (line as ClusterLine).data) {
-                const instanceId = columnStore.instanceIds()[entry.slot]
-                if (instanceId !== undefined && !isNaN(instanceId)) {
-                    ids.push(instanceId)
+                // A mosaic card shows the group's first images, so preload all of them —
+                // otherwise only the representative one has its data ready.
+                const count = mosaicSlotCount(props.viewMode ?? 'single')
+                const slots = count > 1 ? (entry.group.slots ?? []).slice(0, count) : [entry.slot]
+                for (const slot of slots) {
+                    const instanceId = columnStore.instanceIds()[slot]
+                    if (instanceId !== undefined && !isNaN(instanceId)) {
+                        ids.push(instanceId)
+                    }
                 }
             }
         }
@@ -142,15 +150,16 @@ function reconcileLines(prev: ClusterLine[], next: ClusterLine[]): ClusterLine[]
 
 type ClusterEntry = { group: Group, slot: number }
 
-// Collect the cluster cards to show. A cluster that has been sub-divided (its children are
-// themselves clusters) is replaced by its sub-clusters — so the "further divide" action turns
-// one card into several. sha1 piling is a leaf overlay (pileIndex), not children, so a piled
-// cluster leaf still surfaces as one card here.
+// Collect the cards to show, following the tree view's open/close semantics rather than the
+// old leaves-only rule: an OPEN group with children is replaced by those children (so
+// sub-dividing turns one card into several), while a CLOSED one stands in for its whole
+// subtree as a single card that can be re-opened from its + button. sha1 piling is a leaf
+// overlay (pileIndex), not children, so a piled leaf still surfaces as one card here.
 function collectCandidates(group: Group, out: ClusterEntry[]) {
     for (const child of group.children) {
-        // A divided group (any children) expands into its sub-groups. subGroupType is no
-        // longer reliable (a level can mix cluster + property children), so key off children.
-        if (child.children.length > 0) {
+        // subGroupType is not reliable (a level can mix cluster + property children), so key
+        // off children + the group's own open state.
+        if (child.children.length > 0 && !child.view.closed) {
             collectCandidates(child, out)
         } else if (child.slots && child.slots.length > 0) {
             out.push({ group: child, slot: child.slots[0] })
@@ -314,12 +323,15 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         :target-property-id="props.targetPropertyId"
                         :highlight-ids="props.highlightIds ?? []"
                         :opened-ids="props.openedIds ?? []"
+                        :view-mode="props.viewMode ?? 'single'"
                         @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1"
                         @select-cluster="toggleClusterSelect"
                         @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
                         @add-clusters="(id, groups) => emit('add-clusters', id, groups)"
-                        @delete-cluster="id => emit('delete-cluster', id)"
+                        @open-group="id => emit('open-group', id)"
+                        @close-group="id => emit('close-group', id)"
+                        @clear-clusters="id => emit('clear-clusters', id)"
                         @assign-cluster-value="(id, val) => emit('assign-cluster-value', id, val)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />

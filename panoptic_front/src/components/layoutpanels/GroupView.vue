@@ -11,7 +11,7 @@ import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
 import { Group, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
-import { ClusterOptions, Instance, Property } from '@/data/models'
+import { ClusterOptions, GroupViewMode, Instance, Property } from '@/data/models'
 import { isTag } from '@/utils/utils'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
@@ -30,6 +30,44 @@ const props = defineProps<{
 }>()
 
 const HEADER_PX = 34
+// The view's own toolbar, above the split. Its height is taken out of the height available
+// to the panes below.
+const TOOLBAR_PX = 30
+const contentHeight = computed(() => Math.max(0, props.height - TOOLBAR_PX))
+
+// ---- Toolbar --------------------------------------------------------------------------------
+// How a group's images are rendered inside its card: one representative image, or a mosaic of
+// several (two densities). Purely a display mode.
+const viewMode = ref<GroupViewMode>('single')
+const VIEW_MODES: { mode: GroupViewMode, icon: string, label: string }[] = [
+    { mode: 'single', icon: 'bi-square', label: 'mode_single' },
+    { mode: 'mosaic', icon: 'bi-layout-sidebar-inset-reverse', label: 'mode_mosaic' },
+    { mode: 'mosaic-large', icon: 'bi-grid-3x3-gap', label: 'mode_mosaic_large' },
+]
+
+// What the toolbar counts. `groups` = the cards currently on screen (walking the tree the way
+// the scroller does: a closed group stands in for its subtree), `leafClusters` = cluster groups
+// with no cluster children, i.e. the actual bottom-level piles, open or not.
+const counts = computed(() => {
+    props.collection.version.value // reactive dep
+    const root = props.collection.result?.root
+    let groups = 0
+    let leafClusters = 0
+    // Visible cards: descend only through open groups, exactly as the scroller does.
+    const walkVisible = (g: Group) => {
+        const children = g.children ?? []
+        if (children.length && !g.view?.closed) children.forEach(walkVisible)
+        else groups++
+    }
+    // Leaf clusters: the whole tree, regardless of open state.
+    const walkAll = (g: Group) => {
+        const children = g.children ?? []
+        if (g.type === GroupType.Cluster && !children.some(c => c.type === GroupType.Cluster)) leafClusters++
+        children.forEach(walkAll)
+    }
+    for (const g of root?.children ?? []) { walkVisible(g); walkAll(g) }
+    return { groups, leafClusters }
+})
 
 // ---- Assignment target = the leaf grouping property (cluster_view_goals.md) -----------------
 // The paradigm: assigning IS grouping. The target is ALWAYS the deepest (leaf) group-by property;
@@ -52,13 +90,15 @@ function isEmptyBucketGroup(g: Group): boolean {
 
 // ---- Clustering ------------------------------------------------------------------------------
 
-// The clusters created by the most recent clustering/split action, highlighted in the scroller
-// so a fresh pass stands out. Collect the leaf group ids the action produced.
+// The cards the most recent action produced, highlighted in the scroller so its result stands
+// out: the new clusters after a clustering pass, or the parent card a collapse folded a whole
+// level into. Collect the CARDS, i.e. stop at a closed group (which stands in for its subtree)
+// exactly as the scroller does, instead of always walking down to the leaves.
 const highlightIds = ref<number[]>([])
 function markHighlight(groups: Group[]) {
     const ids: number[] = []
     const walk = (g: Group) => {
-        if (g.children?.length) g.children.forEach(walk)
+        if (g.children?.length && !g.view?.closed) g.children.forEach(walk)
         else if (g.id != null) ids.push(g.id)
     }
     groups.forEach(walk)
@@ -69,13 +109,42 @@ function markHighlight(groups: Group[]) {
 // ('children'), so the sub-clusters inherit the parent's value (a value-group's value, or the
 // undecided empty bucket). The version bump reflects it in the cluster view.
 function onAddClusters(groupId: number, groups: Group[]) {
+    // Re-clustering replaces: `split` is leaf-only (groupOps.split bails on a group that already
+    // has children), so an existing cluster level has to be dropped first — the new run then
+    // takes its place instead of the action silently doing nothing.
+    const target = props.collection.result?.index?.[groupId]
+    if ((target?.children ?? []).some(c => c.type === GroupType.Cluster)) {
+        props.collection.delCustomGroups(groupId, false)
+    }
     props.collection.split(groupId, groups, 'children', true)
+    // A collapsed group stands in for its subtree, so clustering it would otherwise produce no
+    // visible change: force it open so the new sub-clusters replace its card right away.
+    props.collection.groupManager.openGroup(groupId, true)
     markHighlight(groups)
 }
 
-// Delete one cluster card: its images move to the leftover "Unclustered" bucket.
-function onDeleteCluster(groupId: number) {
-    props.collection.delete(groupId, true)
+// Open / close, exactly as in the tree view — the card grid just renders the same open state
+// differently: an open group is replaced by its children, a closed one stands in for them.
+// Closing a group therefore folds its whole children level back into that single parent card.
+function onOpenGroup(groupId: number) {
+    props.collection.groupManager.openGroup(groupId, true)
+    // The cards that just replaced this one — its children, or deeper if any of them is itself
+    // open — so it is obvious what the card unfolded into.
+    const g = props.collection.result?.index?.[groupId]
+    if (g) markHighlight(g.children ?? [])
+}
+
+function onCloseGroup(groupId: number) {
+    props.collection.groupManager.closeGroup(groupId, true)
+    // The closed group is now the card standing in for the level that just folded away —
+    // highlight it so it is obvious where the children went.
+    highlightIds.value = [groupId]
+}
+
+// Drop a group's clusters, exactly like the tree view's "close clusters" button: the
+// sub-groups disappear and the group becomes a leaf card again.
+function onClearClusters(groupId: number) {
+    props.collection.delCustomGroups(groupId, true)
 }
 
 // ---- Assignment: write the target property's value onto a cluster's instances -----
@@ -261,10 +330,10 @@ const primaryWidth = computed(() => {
 // Heights of the stacked detail scrollers (pane height minus its own header).
 // With a single pane it owns the full height; with two, the bottom takes
 // `stackRatio` of the height (matching how SplitLayout sizes the secondary).
-const bottomPaneHeight = computed(() => Math.round(props.height * stackRatio.value))
+const bottomPaneHeight = computed(() => Math.round(contentHeight.value * stackRatio.value))
 const topScrollerHeight = computed(() => {
-    if (detailPanes.value.length < 2) return props.height - HEADER_PX
-    return Math.max(0, props.height - SPLIT_GAP - bottomPaneHeight.value) - HEADER_PX
+    if (detailPanes.value.length < 2) return contentHeight.value - HEADER_PX
+    return Math.max(0, contentHeight.value - SPLIT_GAP - bottomPaneHeight.value) - HEADER_PX
 })
 const bottomScrollerHeight = computed(() => bottomPaneHeight.value - HEADER_PX)
 
@@ -305,6 +374,20 @@ onUnmounted(() => {
 
 <template>
     <div class="cluster-workspace" :class="{ split: isSplit }" :style="{ height: props.height + 'px' }">
+        <div class="group-toolbar" :style="{ height: TOOLBAR_PX + 'px' }">
+            <div class="group-toolbar-modes">
+                <div v-for="m in VIEW_MODES" :key="m.mode" class="group-mode-btn"
+                    :class="{ active: viewMode === m.mode }" :title="$t('main.group.' + m.label)"
+                    @click="viewMode = m.mode">
+                    <i class="bi" :class="m.icon" />
+                </div>
+            </div>
+            <div class="group-toolbar-counts">
+                <span class="group-count"><i class="bi bi-collection me-1" />{{ counts.groups }} {{ $t('main.group.groups') }}</span>
+                <span class="group-count"><i class="bi bi-intersect me-1" />{{ counts.leafClusters }} {{ $t('main.group.leaf_clusters') }}</span>
+            </div>
+        </div>
+
         <div v-if="!hasImages" class="cluster-primary-pane">
             <div class="cluster-empty">
                 <span class="text-secondary">{{ $t('main.group.empty') }}</span>
@@ -331,17 +414,20 @@ onUnmounted(() => {
                         input-key="cluster-view"
                         :group-manager="viewManager"
                         :image-size="props.imageSize"
-                        :height="props.height"
+                        :height="contentHeight"
                         :width="primaryWidth"
                         :layout-width="totalWidth"
                         :properties="props.properties"
                         :target-property-id="targetPropertyId ?? undefined"
+                        :view-mode="viewMode"
                         :highlight-ids="highlightIds"
                         :opened-ids="detailGroupIds"
                         :hide-if-modal="true"
                         @open-cluster="openDetail"
                         @add-clusters="onAddClusters"
-                        @delete-cluster="onDeleteCluster"
+                        @open-group="onOpenGroup"
+                        @close-group="onCloseGroup"
+                        @clear-clusters="onClearClusters"
                         @assign-cluster-value="assignClusterValue"
                     />
                 </div>
@@ -424,6 +510,50 @@ onUnmounted(() => {
    so the panels read as separated cards. Single view stays seamless. */
 .cluster-workspace.split {
     background-color: var(--bg-secondary);
+}
+
+/* ── View toolbar ─────────────────────────────────────────────────────── */
+
+.group-toolbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md, 12px);
+    padding: 0 var(--spacing-sm);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.group-toolbar-modes {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.group-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.group-mode-btn:hover {
+    background-color: var(--hover-bg);
+}
+
+.group-mode-btn.active {
+    color: var(--primary);
+    background-color: var(--hover-bg);
+}
+
+.group-toolbar-counts {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md, 12px);
 }
 
 .cluster-header {

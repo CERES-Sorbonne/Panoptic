@@ -142,7 +142,12 @@
             "title": "Groups",
             "empty": "No images to display.",
             "no_grouping": "Group by at least one property.",
-            "no_lines": "No groups to display"
+            "no_lines": "No groups to display",
+            "groups": "groups",
+            "leaf_clusters": "leaf clusters",
+            "mode_single": "Single image",
+            "mode_mosaic": "Mosaic: a few images per group",
+            "mode_mosaic_large": "Mosaic: more images per group"
         },
         "view": {
             "all_group": "All",
@@ -316,7 +321,6 @@
             "params": "Params",
             "createNewVectorType": "Add vector type",
             "createNewImageType": "Add image type",
-            "cancel": "Cancel",
             "name": "Name",
             "format": "Format",
             "maxSize": "Max size",
@@ -454,7 +458,8 @@
         "save-clusters": "Save the clusters in a new property",
         "subcluster-group": "Sub-cluster this group",
         "inspect-group": "Inspect in the side panel\nHold shift to open a second inspector",
-        "delete-cluster": "Delete this cluster"
+        "open-group": "Show the sub-groups",
+        "close-group": "Back to the parent group\nCloses the other groups of this level"
     },
     "datepicker": {
         "cancel": "Cancel",
