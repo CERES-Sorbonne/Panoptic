@@ -2,20 +2,16 @@
 // Cluster view. A workspace over the collection's groups: the ClusterScroller shows one
 // representative image per group — the flat collection before clustering, the property groups
 // when a tree grouping is active, or cluster cards once clustered — fed the collection's own
-// groupManager directly (no clone / no rootedAt). A toolbar picks a target property to badge and
-// assign; a right-side inspector can open up to two groups for drag-between editing.
+// groupManager directly (no clone / no rootedAt). A right-side inspector can open up to two
+// groups for drag-between editing.
 import { onUnmounted, computed, watch, ref } from 'vue'
 import ClusterScroller from '@/components/scrollers/cluster/ClusterScroller.vue'
-import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import SplitLayout from '@/layouts/SplitLayout.vue'
 import ClusterDetailPane from '@/components/layoutpanels/ClusterDetailPane.vue'
-import Dropdown from '@/components/dropdowns/Dropdown.vue'
-import PropertySelection from '@/components/inputs/PropertySelection.vue'
-import PropertyIcon from '@/components/properties/PropertyIcon.vue'
-import { Group, GroupManager, GroupType } from '@/core/GroupManager'
+import { Group, GroupType } from '@/core/GroupManager'
 import { CollectionManager } from '@/core/CollectionManager'
 import { TabManager } from '@/core/TabManager'
-import { ClusterOptions, Instance, Property, PropertyType } from '@/data/models'
+import { ClusterOptions, Instance, Property } from '@/data/models'
 import { isTag } from '@/utils/utils'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
@@ -33,90 +29,48 @@ const props = defineProps<{
     height: number
 }>()
 
-const HEADER_PX = 32
+const HEADER_PX = 34
 
-// ---- Assignment target property ---------------------------------------------
-// The property whose value each cluster's badge reflects (and that assignment writes).
-// Defaults to the LAST grouping property (so badges line up with the active grouping); the
-// picker overrides. `undefined` override = follow grouping. Not persisted yet (cluster_view_goals.md).
-const targetOverride = ref<number | null | undefined>(undefined)
-const lastGroupProperty = computed<number | null>(() => {
+// ---- Assignment target = the leaf grouping property (cluster_view_goals.md) -----------------
+// The paradigm: assigning IS grouping. The target is ALWAYS the deepest (leaf) group-by property;
+// there is no separate free-floating axis. The view requires ≥1 grouping property; with none there
+// is no target.
+const targetPropertyId = computed<number | null>(() => {
     const gb = props.collection.groupState?.groupBy ?? []
     return gb.length ? gb[gb.length - 1] : null
 })
-const targetPropertyId = computed<number | null>({
-    get: () => targetOverride.value === undefined ? lastGroupProperty.value : targetOverride.value,
-    set: (v) => { targetOverride.value = v },
-})
 
-// ---- Group selection ---------------------------------------------------------
-
-function isEligible(g: Group): boolean {
-    return g.type === GroupType.Cluster && g.slots.length > 0
+// ---- The empty bucket -----------------------------------------------------------------------
+// The undecided pile: the leaf-level property group whose target value is null/undefined. Clustering
+// and bulk assignment happen ONLY here (D1). For single-level grouping there is exactly one; for
+// nested grouping there is one per parent and we target the first (nested clustering: follow-up).
+function isEmptyBucketGroup(g: Group): boolean {
+    if (g.type !== GroupType.Property) return false
+    const pv = g.meta?.propertyValues?.[0]
+    return !!pv && (pv.value === null || pv.value === undefined || pv.value === '')
 }
 
-// Eligible cluster groups in display order (DFS).
-const eligibleGroups = computed(() => {
-    props.collection.version.value // reactive dep on the group tree
-    const root = props.collection.result?.root
-    if (!root) return [] as Group[]
-    const res: Group[] = []
-    const stack: Group[] = [root]
-    while (stack.length) {
-        const g = stack.pop()!
-        if (isEligible(g)) res.push(g)
-        for (let i = g.children.length - 1; i >= 0; i--) stack.push(g.children[i])
+// ---- Clustering ------------------------------------------------------------------------------
+
+// The clusters created by the most recent clustering/split action, highlighted in the scroller
+// so a fresh pass stands out. Collect the leaf group ids the action produced.
+const highlightIds = ref<number[]>([])
+function markHighlight(groups: Group[]) {
+    const ids: number[] = []
+    const walk = (g: Group) => {
+        if (g.children?.length) g.children.forEach(walk)
+        else if (g.id != null) ids.push(g.id)
     }
-    return res
-})
-
-// Selected group, revalidated against the eligible list (falls back to first).
-const group = computed<Group | null>(() => {
-    const groups = eligibleGroups.value
-    if (!groups.length) return null
-    return groups.find(g => g.id === props.clusterOptions.selectedGroupId) ?? groups[0]
-})
-
-function groupLabel(g: Group) {
-    return g.name ?? ('Cluster ' + g.parentIdx)
+    groups.forEach(walk)
+    highlightIds.value = ids
 }
 
-function selectGroup(g: Group) {
-    props.clusterOptions.selectedGroupId = g.id
-}
-
-// ---- Clustering ---------------------------------------------------------------
-
-function getAllImages() {
-    const root = props.collection.result?.root
-    if (!root) return []
-    const slots = root.slots ?? []
-    if (!slots.length) return []
-    const ids = col.instanceIds()
-    const sha1s = col.sha1s()
-    return slots.map(slot => ({
-        id: ids[slot],
-        imageUrl: data.baseImgUrl + 'by_size/' + sha1s[slot],
-        sha1: sha1s[slot]
-    }))
-}
-
-function addClusters(groups: Group[]) {
-    const rootId = props.collection.result.root?.id
-    if (rootId != null) {
-        props.collection.addCustomGroups(rootId, groups, true)
-    }
-}
-
-// How a divide places its new groups: 'replace' swaps the divided leaf for the new groups
-// at its own level; 'children' nests them under it.
-const splitMode = ref<'replace' | 'children'>('replace')
-
-// Sub-divide one cluster (from the cluster view's per-card button): split on the OWNING
-// collection GroupManager so the result also shows in the normal tree. The version bump
-// re-clones clusterTreeManager, so the cluster view reflects it too.
+// Sub-divide one group (from the per-card button): always nest the new clusters UNDER it
+// ('children'), so the sub-clusters inherit the parent's value (a value-group's value, or the
+// undecided empty bucket). The version bump reflects it in the cluster view.
 function onAddClusters(groupId: number, groups: Group[]) {
-    props.collection.split(groupId, groups, splitMode.value, true)
+    props.collection.split(groupId, groups, 'children', true)
+    markHighlight(groups)
 }
 
 // Delete one cluster card: its images move to the leftover "Unclustered" bucket.
@@ -124,49 +78,12 @@ function onDeleteCluster(groupId: number) {
     props.collection.delete(groupId, true)
 }
 
-// Cluster cards fully selected in the shared selection — mergeable directly on the collection.
-const selectedClusterIds = computed(() => {
-    const gm = props.collection.groupManager
-    const ns = gm.selectionNamespace
-    col.selectionTick(ns) // reactive dep on the selection
-    const ids: number[] = []
-    for (const g of Object.values(gm.result.index) as Group[]) {
-        if (g.type !== GroupType.Cluster || !g.slots.length) continue
-        if (g.slots.every(s => col.isSelected(s, ns))) ids.push(g.id)
-    }
-    return ids
-})
-
-function mergeSelected() {
-    const ids = selectedClusterIds.value
-    if (ids.length >= 2) props.collection.merge(ids, true)
-}
-
-// Rename on the owning collection GroupManager so the new name also shows in the normal tree;
-// the version bump re-clones clusterTreeManager, so the cluster view reflects it too.
-function onRenameCluster(groupId: number, name: string) {
-    props.collection.renameGroup(groupId, name, true)
-}
-
 // ---- Assignment: write the target property's value onto a cluster's instances -----
-// Direct write (cluster_view_goals.md D5): assigning a non-parent property doesn't reflow the
-// view; the value change flows back through the collection and the badge updates in place.
-
-// Resolve a raw text value to the stored value for the target property's type.
-// For tag properties, find an existing tag by name (case-insensitive) or create one.
-async function resolveValue(pid: number, raw: string): Promise<any> {
-    const prop = data.properties[pid]
-    if (!prop) return raw
-    if (isTag(prop.type)) {
-        const existing = Object.values((prop.tags ?? {}) as Record<number, any>)
-            .find((t: any) => String(t.value).toLowerCase() === raw.toLowerCase())
-        const tag = existing ?? await data.addTag(pid, raw)
-        return [tag.id]   // tag values are stored as id arrays
-    }
-    if (prop.type === PropertyType.number) { const n = Number(raw); return Number.isNaN(n) ? undefined : n }
-    if (prop.type === PropertyType.checkbox) return raw === 'true' || raw === '1'
-    return raw
-}
+// Direct write + queue-drain reflow (cluster_view_goals.md D5): the target IS the leaf grouping, so
+// writing its value moves the assigned images out of the empty bucket into their value-group. The
+// value write reflows the property tree (updateSelection adds them to their value-group); we then
+// call ClusterManager.drain to pull the same images out of the cluster/empty bucket — O(delta), no
+// regroup, so only the acted-on pile moves and unworked piles stay put.
 
 // Instance descriptors (id + sha1) for a cluster's slots, read from the OWNING collection tree.
 function clusterInstances(groupId: number) {
@@ -177,24 +94,15 @@ function clusterInstances(groupId: number) {
     return (g.slots ?? []).map(slot => ({ id: ids[slot], sha1: sha1s[slot] } as any as Instance))
 }
 
-async function assignCluster(groupId: number, raw: string) {
-    if (props.clusterOptions == null || targetPropertyId.value == null) return
-    const pid = targetPropertyId.value
-    const value = await resolveValue(pid, raw)
-    if (value === undefined) return
-    const imgs = clusterInstances(groupId)
-    if (imgs.length) await data.setPropertyValue(pid, imgs, value)
-}
-
-// "Default values" button: give every cluster in the view the target value = its own name.
-async function assignDefaults() {
-    const gm = props.collection.groupManager
+// From the per-card typed property input (ClusterPropertyInput): the value is already typed
+// (tag id array, number, date, …). A defined value assigns it and drains the pile into its
+// value-group; an undefined value clears the property (undecide) and the pile stays in place.
+async function assignClusterValue(groupId: number, value: any) {
     if (targetPropertyId.value == null) return
-    for (const g of Object.values(gm.result.index) as Group[]) {
-        if (g.type !== GroupType.Cluster || !g.slots?.length) continue
-        const name = g.name ?? ('Cluster ' + g.parentIdx)
-        await assignCluster(g.id, name)
-    }
+    const imgs = clusterInstances(groupId)
+    if (!imgs.length) return
+    await data.setPropertyValue(targetPropertyId.value, imgs, value)
+    if (value !== undefined && value !== null) props.collection.drainCluster(groupId, imgs.map(i => i.id))
 }
 
 // ---- Standalone tree fed to ClusterScroller --------------------------------------
@@ -207,6 +115,9 @@ const hasImages = computed(() => {
     props.collection.version.value // reactive dep
     return (props.collection.result?.root?.slots?.length ?? 0) > 0
 })
+// The view requires ≥1 grouping property: the leaf grouping IS the assignment target. With no
+// grouping there is no target, so we prompt to pick one instead of showing the flat collection.
+const hasGrouping = computed(() => (props.collection.groupState?.groupBy?.length ?? 0) > 0)
 
 // ---- Detail inspector (right side) -------------------------------------------
 // Up to two clusters can be inspected at once, stacked vertically. A plain click
@@ -243,13 +154,33 @@ watch(
     { immediate: true }
 )
 
+// The destination region's value on the target property, by construction (D4): a value-group holds
+// exactly its own value (from the grouping), so dropping there writes that value; a cluster or the
+// empty bucket carries no value, so dropping there clears it (undecide). No homogeneity scan.
+function groupTargetValue(gid: number): { has: boolean, value?: any } {
+    const g = props.collection.result?.index?.[gid]
+    if (!g || !isValueGroup(g)) return { has: false }
+    const pv = g.meta?.propertyValues?.[0]
+    // A tag value-group's key value is a single tag id; the stored form is an id array.
+    if (pv && isTag(data.properties?.[pv.propertyId]?.type)) {
+        return { has: true, value: pv.value != null ? [pv.value] : undefined }
+    }
+    return { has: true, value: pv?.value }
+}
+
+// A value-group: a real, homogeneous group of the target property with a defined value (as opposed
+// to the empty bucket or a cluster, which carry no value).
+function isValueGroup(g: Group): boolean {
+    return g.type === GroupType.Property && !isEmptyBucketGroup(g)
+}
+
 // On drop into pane `idx`, move the instance between the underlying cluster groups (not just
 // the local copies) so the whole group tree reflects the swap. Order-independent: the source
 // cluster is whichever OTHER open cluster still owns the dragged slot at drop time (group.slots
 // is only mutated by moveImagesToGroup, so it still reflects pre-move membership here). This
 // avoids relying on whether vuedraggable fires `add` or `remove` first, and naturally makes an
 // intra-pane reorder a no-op (no other open cluster owns the slot).
-function onPaneAdd(idx: number, payload: { instance: Instance, index: number }) {
+async function onPaneAdd(idx: number, payload: { instance: Instance, index: number }) {
     const arr = paneInstances.value[idx]
     if (arr) arr.splice(Math.max(0, Math.min(payload.index, arr.length)), 0, payload.instance)
 
@@ -265,6 +196,16 @@ function onPaneAdd(idx: number, payload: { instance: Instance, index: number }) 
         // Bumps version → the watch above re-derives paneInstances from the authoritative
         // group.slots, and rebuildTree re-clones the left ClusterScroller.
         gm.moveImagesToGroup(sourceGid, targetGid, [payload.instance.id], true)
+
+        // Apply the target group's value to the moved image so membership and the property agree.
+        // A group with no shared value clears the moved image's value.
+        if (targetPropertyId.value != null) {
+            const pid = targetPropertyId.value
+            const sha1s = col.sha1s()
+            const img = { id: payload.instance.id, sha1: sha1s[slot] } as any as Instance
+            const target = groupTargetValue(targetGid)
+            await data.setPropertyValue(pid, img, target.has ? target.value : undefined)
+        }
     }
 }
 
@@ -382,50 +323,26 @@ onUnmounted(() => {
         >
             <template #primary>
                 <div class="cluster-primary-pane" :class="{ split: isSplit }">
-                    <div class="cluster-toolbar" :style="{ height: HEADER_PX + 'px' }">
-                        <ActionButton2 action="group" :images="getAllImages" @groups="addClusters" :no-border="true">
-                            <div class="toolbar-btn"><i class="bi bi-diagram-2 me-1" />Cluster</div>
-                        </ActionButton2>
-                        <div class="split-mode">
-                            <span class="split-mode-label">Divide:</span>
-                            <div class="split-mode-btn" :class="{ active: splitMode === 'replace' }"
-                                @click="splitMode = 'replace'">replace</div>
-                            <div class="split-mode-btn" :class="{ active: splitMode === 'children' }"
-                                @click="splitMode = 'children'">children</div>
-                        </div>
-                        <div class="toolbar-btn" :class="{ disabled: selectedClusterIds.length < 2 }"
-                            @click="mergeSelected">
-                            <i class="bi bi-union me-1" />Merge
-                            <span v-if="selectedClusterIds.length" class="toolbar-count">{{ selectedClusterIds.length }}</span>
-                        </div>
-                        <div class="target-pick">
-                            <span class="split-mode-label">Assign:</span>
-                            <select class="target-select" :value="targetPropertyId ?? ''"
-                                @change="targetPropertyId = ($event.target as HTMLSelectElement).value === '' ? null : Number(($event.target as HTMLSelectElement).value)">
-                                <option value="">—</option>
-                                <option v-for="p in props.properties" :key="p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
-                            <div v-if="targetPropertyId != null" class="toolbar-btn" @click="assignDefaults"
-                                title="Give every cluster its name as the value">
-                                <i class="bi bi-magic me-1" />Default values
-                            </div>
-                        </div>
+                    <div v-if="!hasGrouping" class="cluster-empty">
+                        <span class="text-secondary">Group by a property — clustering assigns its values.</span>
                     </div>
                     <ClusterScroller
+                        v-else
                         input-key="cluster-view"
                         :group-manager="viewManager"
                         :image-size="props.imageSize"
-                        :height="props.height - HEADER_PX"
+                        :height="props.height"
                         :width="primaryWidth"
+                        :layout-width="totalWidth"
                         :properties="props.properties"
                         :target-property-id="targetPropertyId ?? undefined"
+                        :highlight-ids="highlightIds"
                         :opened-ids="detailGroupIds"
                         :hide-if-modal="true"
                         @open-cluster="openDetail"
                         @add-clusters="onAddClusters"
-                        @rename-cluster="onRenameCluster"
                         @delete-cluster="onDeleteCluster"
-                        @assign-cluster="assignCluster"
+                        @assign-cluster-value="assignClusterValue"
                     />
                 </div>
             </template>
@@ -608,82 +525,7 @@ onUnmounted(() => {
     min-height: 0;
     overflow: hidden;
     background-color: var(--island-surface);
-    margin-top: 4px;
-}
-
-.cluster-toolbar {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: 0 var(--spacing-sm);
-    border-bottom: 1px solid var(--border-color);
-    font-size: 12px;
-}
-
-.split-mode {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.target-pick {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: auto;
-}
-
-.target-select {
-    font-size: 12px;
-    padding: 1px 4px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background: var(--island-surface, #fff);
-    color: var(--text-primary);
-    max-width: 140px;
-}
-
-.split-mode-label {
-    color: var(--text-secondary);
-}
-
-.split-mode-btn {
-    padding: 1px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    color: var(--text-secondary);
-}
-
-.split-mode-btn.active {
-    background-color: var(--primary, #4f46e5);
-    color: #fff;
-    border-color: var(--primary, #4f46e5);
-}
-
-.toolbar-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 1px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    color: var(--text-secondary);
-}
-
-.toolbar-btn.disabled {
-    opacity: 0.45;
-    pointer-events: none;
-}
-
-.toolbar-count {
-    margin-left: 5px;
-    background: var(--primary, #4f46e5);
-    color: #fff;
-    border-radius: 8px;
-    padding: 0 5px;
-    font-size: 10px;
+    /* margin-top: 4px; */
 }
 
 /* When split, only the inner (right) corners that face the detail pane round. */

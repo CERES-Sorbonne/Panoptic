@@ -28,8 +28,14 @@ const props = defineProps<{
     minHeight?: number
     width?: number
     forceMulti?: boolean
+    // Force single-tag (mono) behaviour even for a multi-tag property: selecting a tag replaces
+    // the value and closes the popup. Used at group level in the cluster view (one tag per group).
+    forceMono?: boolean
     instanceId?: number
 }>()
+
+// Mono when the property is single-tag, or when the caller forces it — but forceMulti wins.
+const isMono = computed(() => props.forceMono || (props.property.type == PropertyType.tag && !props.forceMulti))
 const emits = defineEmits(['update:modelValue', 'hide', 'update:height', 'show', 'tab'])
 defineExpose({
     getHeight,
@@ -53,7 +59,7 @@ function getHeight() {
 async function updateValue(value, hide) {
     localValue.value = value
     updateHeight()
-    if(props.property.type == PropertyType.tag && !props.forceMulti) {
+    if(isMono.value) {
         hide()
     }
 }
@@ -122,7 +128,8 @@ onMounted(updateLocal)
                 <TagInput :property="props.property" :model-value="safeValue" :excluded="props.excluded"
                     :can-create="props.canCreate" :can-customize="props.canCustomize" :can-link="props.canLink"
                     :can-delete="props.canDelete" :auto-focus="props.autoFocus" @update:model-value="v => updateValue(v, hide)"
-                    :force-multi="props.forceMulti" :instance-id="props.instanceId" @tab="onTab(hide)"
+                    :force-multi="props.forceMulti" :force-mono="props.forceMono"
+                    :instance-id="props.instanceId" @tab="onTab(hide)"
                     ref="inputElem" />
             </div>
         </template>

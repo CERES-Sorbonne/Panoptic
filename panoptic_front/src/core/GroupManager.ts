@@ -30,6 +30,7 @@ import { valueParser } from "./group/valueParser";
 import { dateBucketKey, dateBucketRange } from "./group/dateBuckets";
 import { GroupIterator, ImageIterator, GroupIteratorOptions } from "./group/GroupIterator";
 import { GroupResult } from "./group/GroupResult";
+import { GroupNavigator } from "./group/GroupNavigator";
 import { ClusterManager } from "./group/ClusterManager";
 
 // ── Barrel re-exports — keep `@/core/GroupManager` as the public entry point ─
@@ -51,6 +52,9 @@ export class GroupManager implements ClusterOpsHost {
     // The cluster/custom-group overlay lives here now, not on the manager. GroupManager stays
     // the pure property-tree engine; cluster ops are delegating facades (below).
     clusters: ClusterManager
+    // Traversal/view state over the result tree: open/close + selection + shift anchors.
+    // The manager keeps thin delegating facades (below) so existing callers are unaffected.
+    nav: GroupNavigator
 
     // Slot→position typed array from the last group() call (faster than plain-object map).
     // _posArr[slot] = display position; replaces ImageOrder = {[slot]: pos}.
@@ -67,11 +71,10 @@ export class GroupManager implements ClusterOpsHost {
     get version(): Ref<number> { return this.result.version }
     get onResultChange(): EventEmitter { return this.result.onResultChange }
 
-    // Selection lives in columnStore, keyed by namespace (note §5, step 2). By
-    // default a manager drives the shared 'global' selection; a custom namespace
-    // (set via setSelectionNamespace) gives it an independent selection mask.
-    selectionNamespace = 'global'
-    private selection: { lastImage: ImageIterator, lastGroup: GroupIterator }
+    // Selection lives in columnStore, keyed by namespace (note §5, step 2), and is
+    // driven by GroupNavigator (this.nav). Delegating getter kept for callers reading
+    // `manager.selectionNamespace`.
+    get selectionNamespace(): string { return this.nav.selectionNamespace }
 
     constructor(state?: GroupState) {
         if (state) {
@@ -81,10 +84,10 @@ export class GroupManager implements ClusterOpsHost {
         }
         this.result = new GroupResult()
         this.clusters = new ClusterManager(this)
+        this.nav = new GroupNavigator(this.result)
         this._posArr = new Int32Array(0)
         this._posMaxSlot = 0
         this.onStateChange = new EventEmitter()
-        this.selection = { lastImage: undefined, lastGroup: undefined }
     }
 
     // Bump the reactive version tick AND emit the legacy event. The version ref
@@ -330,8 +333,7 @@ export class GroupManager implements ClusterOpsHost {
 
     clear(emit?: boolean) {
         this.result.clear()
-        this.clearLastSelected()
-        this.clearSelection()
+        this.nav.clearSelection()
         this.clusters.clear()
         this._posArr = new Int32Array(0)
         this._posMaxSlot = 0
@@ -411,9 +413,15 @@ export class GroupManager implements ClusterOpsHost {
             if (!group) continue
             if (group.type == GroupType.Cluster) continue
             group.dirty = true
+            // Root holds every present slot; when grouping is active it is not a leaf, so
+            // addUpdatedToGroups won't re-add value-updated slots to it. A value change doesn't
+            // remove the image (it just moves between leaves), so root must KEEP updated slots —
+            // only drop removed ones. Otherwise root drains to 0 and the whole tree is deleted.
+            const isGroupedRoot = group.id === 0 && this.state.groupBy.length > 0
             group.slots = group.slots.filter(s => {
                 const id = ids[s]
-                return !removed.has(id) && !updated.has(id)
+                if (removed.has(id)) return false
+                return isGroupedRoot ? true : !updated.has(id)
             })
         }
 
@@ -450,8 +458,11 @@ export class GroupManager implements ClusterOpsHost {
         for (const group of objValues(this.result.index)) {
             if (!group.dirty) continue
             if (group.subGroupType == GroupType.Property) {
-                const option = this.state.options[group.children[0].meta.propertyValues[0].propertyId]
-                sortGroup(group, option)
+                const propChild = group.children.find(c => c.meta.propertyValues?.[0])
+                if (propChild) {
+                    const option = this.state.options[propChild.meta.propertyValues[0].propertyId]
+                    sortGroup(group, option)
+                }
             }
             if (group.type != GroupType.Cluster) {
                 group.slots.sort((a, b) => (a <= this._posMaxSlot ? this._posArr[a] : 0) - (b <= this._posMaxSlot ? this._posArr[b] : 0))
@@ -465,11 +476,16 @@ export class GroupManager implements ClusterOpsHost {
             group.dirty = false
         }
 
+        // Reconcile the cluster overlay against the refreshed property tree: images that left a
+        // sub-clustered group are pulled from their cluster, and images newly in the group join
+        // its "New" leftover pile. Done before ordering so the display reflects final membership.
+        const clusterChanged = this.clusters.reconcile()
+
         setOrder(this.result.root)
         this.applySha1Piles()
         this.buildOrdinalRanges()
 
-        let structureChanged = removed.size > 1
+        let structureChanged = removed.size > 1 || clusterChanged
         if (!structureChanged) {
             for (const id of updated) {
                 const before = oldGroupIds.get(id) ?? []
@@ -548,19 +564,17 @@ export class GroupManager implements ClusterOpsHost {
         if (emit) this.emitResult()
     }
 
+    // ── Open/close — thin facades delegating to GroupNavigator ───────────────
     toggleGroup(groupId, emit?: boolean) {
-        this.result.index[groupId].view.closed = !this.result.index[groupId].view.closed
-        if (emit) this.emitResult()
+        this.nav.toggleGroup(groupId, emit)
     }
 
     openGroup(groupId, emit?: boolean) {
-        this.result.index[groupId].view.closed = false
-        if (emit) this.emitResult()
+        this.nav.openGroup(groupId, emit)
     }
 
     closeGroup(groupId, emit?: boolean) {
-        this.result.index[groupId].view.closed = true
-        if (emit) this.emitResult()
+        this.nav.closeGroup(groupId, emit)
     }
 
 
@@ -711,133 +725,28 @@ export class GroupManager implements ClusterOpsHost {
         }
     }
 
-    // ── Selection ──────────────────────────────────────────────────────────
+    // ── Selection — thin facades delegating to GroupNavigator ────────────────
 
-    // Point this manager at a custom selection namespace (creating its mask).
-    setSelectionNamespace(ns: string) {
-        this.selectionNamespace = ns
-        useColumnStore().ensureNamespace(ns)
-    }
+    setSelectionNamespace(ns: string) { this.nav.setSelectionNamespace(ns) }
+    clearSelection() { this.nav.clearSelection() }
+    clearLastSelected() { this.nav.clearLastSelected() }
 
-    clearSelection() {
-        useColumnStore().clearSelection(this.selectionNamespace)
-        this.clearLastSelected()
-    }
+    selectImageIterator(iterator: ImageIterator, shift = false) { this.nav.selectImageIterator(iterator, shift) }
+    unselectImageIterator(iterator: ImageIterator) { this.nav.unselectImageIterator(iterator) }
+    toggleImageIterator(iterator: ImageIterator, shift = false) { this.nav.toggleImageIterator(iterator, shift) }
+    toggleAll() { this.nav.toggleAll() }
 
-    selectImageIterator(iterator: ImageIterator, shift = false) {
-        if (shift) this._shiftSelect(iterator)
-        useColumnStore().select(iterator.slots, this.selectionNamespace)
-        this.clearLastSelected()
-        this.selection.lastImage = iterator.clone()
-    }
+    unselectImage(imageId: number) { this.nav.unselectImage(imageId) }
+    selectImage(imageId: number)   { this.nav.selectImage(imageId) }
+    selectImages(imageIds: number[]) { this.nav.selectImages(imageIds) }
+    unselectImages(imageIds: number[]) { this.nav.unselectImages(imageIds) }
 
-    unselectImageIterator(iterator: ImageIterator) {
-        useColumnStore().deselect(iterator.slots, this.selectionNamespace)
-        this.clearLastSelected()
-    }
+    propagateUnselect(group: Group) { this.nav.propagateUnselect(group) }
+    propagateSelect(group: Group) { this.nav.propagateSelect(group) }
 
-    toggleImageIterator(iterator: ImageIterator, shift = false) {
-        const col = useColumnStore()
-        const selected = iterator.slots.every(s => col.isSelected(s, this.selectionNamespace))
-        if (selected) this.unselectImageIterator(iterator)
-        else this.selectImageIterator(iterator, shift)
-    }
-
-    toggleAll() {
-        const iterator = this.getGroupIterator()
-        this.toggleGroupIterator(iterator)
-    }
-
-    private _shiftSelect(iterator: ImageIterator) {
-        if (this.selection.lastImage == undefined) return false
-        const start = this.selection.lastImage.isImageBefore(iterator) ? this.selection.lastImage : iterator
-        const end   = start == iterator ? this.selection.lastImage : iterator
-
-        const selected: number[] = []
-        let it = start.clone()
-        while (it) {
-            if (end.isImageBefore(it)) break
-            // it.slots is the whole pile when piled, or [slot] otherwise.
-            for (const s of it.slots) selected.push(s)
-            it = it.nextImages()
-        }
-        if (selected.length) { useColumnStore().select(selected, this.selectionNamespace); return true }
-        return false
-    }
-
-    private _shiftGroup(iterator: GroupIterator) {
-        if (this.selection.lastGroup == undefined) return false
-        const start = this.selection.lastGroup.isGroupBefore(iterator) ? this.selection.lastGroup : iterator
-        const end   = start == iterator ? this.selection.lastGroup : iterator
-
-        const selected: number[] = []
-        let it = start.clone()
-        while (it) {
-            if (end.isGroupBefore(it)) break
-            for (const s of it.group.slots) selected.push(s)
-            it = it.nextGroup()
-        }
-        if (selected.length) { useColumnStore().select(selected, this.selectionNamespace); return true }
-        return false
-    }
-
-    clearLastSelected() {
-        this.selection.lastGroup = undefined
-        this.selection.lastImage = undefined
-    }
-
-    unselectImage(imageId: number) { useColumnStore().deselectIds([imageId], this.selectionNamespace) }
-    selectImage(imageId: number)   { useColumnStore().selectIds([imageId], this.selectionNamespace) }
-
-    selectImages(imageIds: number[]) {
-        useColumnStore().selectIds(imageIds, this.selectionNamespace)
-    }
-
-    unselectImages(imageIds: number[]) {
-        useColumnStore().deselectIds(imageIds, this.selectionNamespace)
-    }
-
-    propagateUnselect(group: Group) {
-        group.view.selected = false
-        if (!group.parent) return
-        this.propagateUnselect(group.parent)
-    }
-
-    propagateSelect(group: Group) {
-        const col = useColumnStore()
-        if (group.children.length == 0) {
-            group.view.selected = group.slots.every(s => col.isSelected(s, this.selectionNamespace))
-        } else {
-            group.view.selected = group.children.every(g => g.view.selected)
-        }
-        if (!group.parent) return
-        this.propagateSelect(group.parent)
-    }
-
-    selectGroup(group: Group) {
-        useColumnStore().select(group.slots, this.selectionNamespace)
-    }
-
-    unselectGroup(group: Group) {
-        useColumnStore().deselect(group.slots, this.selectionNamespace)
-    }
-
-    selectGroupIterator(iterator: GroupIterator, shift = false) {
-        if (shift) this._shiftGroup(iterator)
-        this.selectGroup(iterator.group)
-        this.clearLastSelected()
-        this.selection.lastGroup = iterator.clone()
-    }
-
-    unselectGroupIterator(iterator: GroupIterator) {
-        this.unselectGroup(iterator.group)
-        this.clearLastSelected()
-    }
-
-    toggleGroupIterator(iterator: GroupIterator, shift = false) {
-        const col = useColumnStore()
-        const selected = !iterator.group.slots.some(s => !col.isSelected(s, this.selectionNamespace))
-        if (selected) this.unselectGroupIterator(iterator)
-        else this.selectGroupIterator(iterator, shift)
-    }
+    selectGroup(group: Group) { this.nav.selectGroup(group) }
+    unselectGroup(group: Group) { this.nav.unselectGroup(group) }
+    selectGroupIterator(iterator: GroupIterator, shift = false) { this.nav.selectGroupIterator(iterator, shift) }
+    unselectGroupIterator(iterator: GroupIterator) { this.nav.unselectGroupIterator(iterator) }
+    toggleGroupIterator(iterator: GroupIterator, shift = false) { this.nav.toggleGroupIterator(iterator, shift) }
 }

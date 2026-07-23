@@ -74,6 +74,28 @@ export class GroupIterator {
 
     isGroupBefore(it: GroupIterator): boolean { return this.group.order < it.group.order }
     isGroupEqual(it: GroupIterator): boolean  { return this.group.order == it.group.order }
+
+    // ── Range walk (shift-select geometry) ─────────────────────────────────────
+    // The three primitives below are the only things that differ between a group
+    // walk and an image walk; ImageIterator overrides them so collectRange is shared.
+    protected isBefore(it: GroupIterator): boolean { return this.isGroupBefore(it) }
+    protected rangeSlots(): number[] { return this.group.slots }
+    protected advance(): GroupIterator { return this.nextGroup() }
+
+    // Collect every slot from `this` to `other` inclusive, in display order, regardless
+    // of which endpoint comes first. Pure geometry — no selection/store side effects.
+    collectRange(other: GroupIterator): number[] {
+        const start = this.isBefore(other) ? this : other
+        const end   = start === this ? other : this
+        const selected: number[] = []
+        let it: GroupIterator = start.clone()
+        while (it) {
+            if (end.isBefore(it)) break
+            for (const s of it.rangeSlots()) selected.push(s)
+            it = it.advance()
+        }
+        return selected
+    }
 }
 
 export class ImageIterator extends GroupIterator {
@@ -193,6 +215,12 @@ export class ImageIterator extends GroupIterator {
         }
         return undefined
     }
+
+    // Override the range-walk primitives so collectRange walks images (piles included)
+    // rather than groups. `it.slots` is the whole pile when piled, or [slot] otherwise.
+    protected isBefore(it: GroupIterator): boolean { return this.isImageBefore(it as ImageIterator) }
+    protected rangeSlots(): number[] { return this.slots }
+    protected advance(): GroupIterator { return this.nextImages() }
 
     isImageBefore(it: ImageIterator) {
         if (this.isGroupEqual(it)) return this.imageIdx < it.imageIdx

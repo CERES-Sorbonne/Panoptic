@@ -25,6 +25,8 @@ const props = defineProps<{
     canDelete?: boolean,
     autoFocus?: boolean,
     forceMulti?: boolean,
+    // Force single-tag (mono) selection even for a multi-tag property: a pick replaces the value.
+    forceMono?: boolean,
     instanceId?: number
 }>()
 const emits = defineEmits(['update:modelValue', 'select', 'remove', 'tab'])
@@ -38,20 +40,29 @@ const safeValue = computed(() => props.modelValue ?? [])
 const tags = computed(() => safeValue.value.map(id => data.tags[id]))
 const allExcluded = computed(() => props.excluded ? [...props.excluded, ...safeValue.value] : [...safeValue.value])
 
+// Tags the user removed during this editing session. The store commit is deferred (e.g.
+// CellTagInput only writes on hide), so instanceStore still holds a just-removed tag; without
+// this, the union in `currentValue` would re-add it on the next select. Re-selecting a tag
+// clears it from the set.
+const removed = ref(new Set<number>())
+
 // When editing a concrete instance, union `safeValue` (this session's accumulated local
 // edits) with the CURRENT value straight from instanceStore. `safeValue` alone can go
 // stale across an async gap — e.g. while `data.addTag` is awaited to create a brand-new
 // tag — silently dropping tags that were already assigned but hadn't reached this
 // component's local snapshot yet. instanceStore.instanceData is the canonical live source,
-// so unioning against it can only ever add missing tags back in, never drop one.
+// so unioning against it can only ever add missing tags back in, never drop one — except a
+// tag removed this session, which `removed` filters back out so a deferred commit doesn't
+// resurrect it.
 function currentValue(): number[] {
-    if (props.instanceId == null) return safeValue.value
+    if (props.instanceId == null) return safeValue.value.filter(id => !removed.value.has(id))
     const fromStore: number[] = instanceStore.instanceData[props.instanceId]?.properties[props.property.id] ?? []
-    return [...new Set([...safeValue.value, ...fromStore])]
+    return [...new Set([...safeValue.value, ...fromStore])].filter(id => !removed.value.has(id))
 }
 
 function onSelect(tag: Tag) {
-    if (props.property.type == PropertyType.tag && !props.forceMulti) {
+    removed.value.delete(tag.id)
+    if (props.forceMono || (props.property.type == PropertyType.tag && !props.forceMulti)) {
         emits('update:modelValue', [tag.id])
     } else {
         emits('update:modelValue', [...new Set([...currentValue(), tag.id])])
@@ -66,6 +77,7 @@ function onCreate(tag: Tag) {
 }
 
 function onDelete(tagId: number) {
+    removed.value.add(tagId)
     emits('update:modelValue', currentValue().filter(i => i != tagId))
     emits('remove', tagId)
     focus()

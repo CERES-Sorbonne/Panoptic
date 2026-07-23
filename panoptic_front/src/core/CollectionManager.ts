@@ -156,6 +156,9 @@ export class CollectionManager {
     split(groupId: number, groups: Group[], mode: 'replace' | 'children' = 'replace', emit = true) { return this.groupManager.split(groupId, groups, mode, emit) }
     merge(groupIds: number[], emit = true) { return this.groupManager.merge(groupIds, emit) }
     delete(groupId: number, emit = true) { return this.groupManager.delete(groupId, emit) }
+    // Cluster the empty bucket (adds a real leftover group) / drain an assigned pile — O(delta).
+    clusterEmptyBucket(bucketId: number, groups: Group[], emit = true) { return this.groupManager.clusters.clusterEmptyBucket(bucketId, groups, emit) }
+    drainCluster(groupId: number, instanceIds: number[], emit = true) { return this.groupManager.clusters.drain(groupId, instanceIds, emit) }
 
     setAutoReload(value: boolean) {
         this.state.autoReload = value

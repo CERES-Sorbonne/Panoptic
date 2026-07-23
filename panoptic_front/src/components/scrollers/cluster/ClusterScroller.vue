@@ -16,17 +16,23 @@ const props = defineProps<{
     imageSize: number,
     height: number,
     width: number,
+    // Stable width used to SIZE the images: the full workspace width, which does not change
+    // when the inspector opens. Column sizing keys off this so the per-image pixel size stays
+    // frozen; only how many columns fit (from `width`) reflows. Defaults to `width`.
+    layoutWidth?: number,
     groupManager: GroupManager,
     properties: Property[],
     hideIfModal?: boolean,
     inputKey: string,
     // Group ids currently open in the right-side inspector panel.
     openedIds?: number[],
+    // Group ids to highlight (e.g. the clusters created by the last action).
+    highlightIds?: number[],
     // Property whose value each cluster's badge reflects (assignment target). undefined = none.
     targetPropertyId?: number
 }>()
 
-const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'rename-cluster', 'delete-cluster', 'assign-cluster'])
+const emit = defineEmits(['reco', 'open-cluster', 'add-clusters', 'delete-cluster', 'assign-cluster-value'])
 
 provide('inputKey', props.inputKey)
 provide('selectNamespace', computed(() => props.groupManager?.selectionNamespace ?? 'global'))
@@ -40,6 +46,7 @@ const MARGIN_STEP = 20
 
 const GAP = 8 // must match the .cluster-card "me-2" margin in ClusterLine.vue
 const BORDER = 2 // .cluster-card's 1px border on each side, added on top of its width style
+const INPUT_ROW = 30 // .cc-input-row height below each card's image (must match ClusterLine.vue)
 const SCROLLBAR = 8 // RecycleScroller's vertical scrollbar (theme.css ::-webkit-scrollbar width)
 
 // The `width` prop is the box this scroller occupies. RecycleScroller scrolls vertically,
@@ -47,6 +54,9 @@ const SCROLLBAR = 8 // RecycleScroller's vertical scrollbar (theme.css ::-webkit
 // the line math matches what's actually available. No ResizeObserver: the prop is the single
 // source of truth, and every per-card size is precomputed here (never inside ClusterLine).
 const contentWidth = computed(() => Math.max(0, props.width - SCROLLBAR))
+// The width the image size is derived from. Falls back to the actual width when no stable
+// width is supplied, so a standalone scroller behaves exactly as before.
+const layoutContentWidth = computed(() => Math.max(0, (props.layoutWidth ?? props.width) - SCROLLBAR))
 
 const maxPerLine = computed(() => Math.ceil(contentWidth.value / props.imageSize * 1.5))
 
@@ -110,10 +120,11 @@ function clear() {
 function sameLine(a: ClusterLine, b: ClusterLine): boolean {
     if (!a || a.type !== b.type || a.size !== b.size) return false
     if (a.id !== b.id) return false
+    if (a.cardWidths[0] !== b.cardWidths[0] || a.cardWidths.length !== b.cardWidths.length) return false
     const ad = a.data, bd = b.data
     if (ad.length !== bd.length) return false
     for (let i = 0; i < ad.length; i++) {
-        if (ad[i].slot !== bd[i].slot || ad[i].group.id !== bd[i].group.id || ad[i].name !== bd[i].name) return false
+        if (ad[i].slot !== bd[i].slot || ad[i].group.id !== bd[i].group.id) return false
     }
     return true
 }
@@ -129,9 +140,7 @@ function reconcileLines(prev: ClusterLine[], next: ClusterLine[]): ClusterLine[]
     return next
 }
 
-// `name` is snapshotted so reconcile (sameLine) rebuilds the line when a cluster is renamed —
-// the group object is mutated in place, so without the snapshot the change would be invisible.
-type ClusterEntry = { group: Group, slot: number, name?: string }
+type ClusterEntry = { group: Group, slot: number }
 
 // Collect the cluster cards to show. A cluster that has been sub-divided (its children are
 // themselves clusters) is replaced by its sub-clusters — so the "further divide" action turns
@@ -144,7 +153,7 @@ function collectCandidates(group: Group, out: ClusterEntry[]) {
         if (child.children.length > 0) {
             collectCandidates(child, out)
         } else if (child.slots && child.slots.length > 0) {
-            out.push({ group: child, slot: child.slots[0], name: child.name })
+            out.push({ group: child, slot: child.slots[0] })
         }
     }
 }
@@ -162,7 +171,7 @@ function computeLines() {
         const candidates: ClusterEntry[] = []
         collectCandidates(root, candidates)
         if (candidates.length === 0 && root.slots && root.slots.length > 0) {
-            candidates.push({ group: root, slot: root.slots[0], name: root.name })
+            candidates.push({ group: root, slot: root.slots[0] })
         }
 
         // Reserve one MARGIN_STEP per parent-border column that ClusterLine will
@@ -171,27 +180,38 @@ function computeLines() {
         // because it early-returns on the falsy id. Mirror that here so we don't reserve
         // indent width for columns that never get drawn (which left a ~20px gap).
         const borderCols = root.id ? getParents(root).length + 1 : 0
-        const lineWidth = contentWidth.value - (borderCols * MARGIN_STEP)
+        // The image HEIGHT is frozen against the STABLE line width (the full workspace), so it does
+        // NOT change when the inspector opens and narrows the pane. The ACTUAL line width sets how
+        // many cards fit and how WIDE each one stretches to fill the pane — only the width flexes,
+        // so the vertical rhythm stays perfectly stable while the space is still fully used.
+        const stableLineWidth = layoutContentWidth.value - (borderCols * MARGIN_STEP)
+        const actualLineWidth = contentWidth.value - (borderCols * MARGIN_STEP)
 
-        // imageSize only decides how many images fit in a line...
+        // imageSize sets how many cards fit a full (stable) line...
         // (+BORDER accounts for .cluster-card's 1px border on each side, which is added
         // on top of the image-size we set as its width)
         const rawItemWidth = props.imageSize + BORDER + GAP
-        const itemsPerLine = Math.max(1, Math.floor(lineWidth / rawItemWidth))
-        // ...then images are stretched to exactly fill a FULL line. Every line uses this
-        // same size — a trailing/partial line (end of group, small group) keeps it too
-        // instead of blowing its images up to fill the leftover space; the empty slots are
-        // simulated (reserved, not rendered) so alignment across lines stays consistent.
-        // Flooring the per-card size leaves up to (itemsPerLine - 1) leftover px at the line
-        // end; hand those out 1px at a time to the leading columns so the line fills the full
-        // width. The per-column widths are computed once here and shared by every line, so
-        // grid columns stay aligned line-to-line and ClusterLine does no width math itself.
-        const cardArea = lineWidth - GAP * (itemsPerLine - 1) // px available for card OUTER widths
+        const stableItemsPerLine = Math.max(1, Math.floor(stableLineWidth / rawItemWidth))
+        // ...and the frozen HEIGHT is derived to fill that full line. This one number is the stable
+        // image height used on every line, independent of the current pane width.
+        const stableCardArea = stableLineWidth - GAP * (stableItemsPerLine - 1)
+        const frozenHeight = Math.max(1, Math.floor(stableCardArea / stableItemsPerLine) - BORDER)
+        const frozenOuter = frozenHeight + BORDER
+
+        // How many cards fit the CURRENT pane, targeting the frozen size. Fewer columns when the
+        // pane narrows; the WIDTH of each then stretches to fill (below).
+        const itemsPerLine = Math.max(1, Math.floor((actualLineWidth + GAP) / (frozenOuter + GAP)))
+
+        // Stretch the card WIDTHS to fill the actual line exactly (fixed gap). Flooring leaves up
+        // to (itemsPerLine - 1) leftover px; hand those out 1px at a time to the leading columns so
+        // the line covers the full width with no trailing whitespace. Height stays frozenHeight, so
+        // cards become slightly wider than tall when a column is dropped, never taller/shorter.
+        const cardArea = actualLineWidth - GAP * (itemsPerLine - 1) // px for card OUTER widths
         const baseOuter = Math.floor(cardArea / itemsPerLine)
         const extraCount = cardArea - baseOuter * itemsPerLine
-        const lineImageSize = Math.max(1, baseOuter - BORDER)
+        const lineImageWidth = Math.max(1, baseOuter - BORDER)
         const cardWidths: number[] = []
-        for (let c = 0; c < itemsPerLine; c++) cardWidths.push(lineImageSize + (c < extraCount ? 1 : 0))
+        for (let c = 0; c < itemsPerLine; c++) cardWidths.push(lineImageWidth + (c < extraCount ? 1 : 0))
 
         const lines: ClusterLine[] = []
         let groupLineIndex = 0
@@ -203,11 +223,12 @@ function computeLines() {
                 data: chunk,
                 groupId: root.id,
                 depth: root.depth + 1,
-                imageSize: lineImageSize,
+                imageSize: frozenHeight,
                 emptyCount: itemsPerLine - chunk.length,
                 cardWidths,
-                // image + header (22) + footer (22) + border/margin
-                size: lineImageSize + 54
+                // card == image height + the typed property-input row (INPUT_ROW); +10 for the
+                // row's bottom margin (mb-2) + gap
+                size: frozenHeight + INPUT_ROW + 10
             })
         }
 
@@ -270,7 +291,7 @@ watch(() => props.groupManager, () => {
 
 // Width and imageSize both drive the per-line/per-card sizing — recompute on either.
 // The width prop is the single source of truth (no observer), so one pass per change.
-watch([contentWidth, () => props.imageSize], () => {
+watch([contentWidth, layoutContentWidth, () => props.imageSize], () => {
     nextTick(computeLines)
 })
 
@@ -278,7 +299,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
 </script>
 
 <template>
-    <div style="width: 100%; min-width: 0;">
+    <div style="width: 100%; min-width: 0; padding-top: 8px;">
         <div v-if="clusterLines.length === 0" class="p-3 text-secondary">No clusters to display</div>
         <InstanceData v-else :instance-ids="windowIds" :prop-ids="windowPropIds">
         <RecycleScroller :items="clusterLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
@@ -291,15 +312,15 @@ watch(() => props.groupManager.version.value, triggerUpdate)
                         :manager="props.groupManager"
                         :properties="props.properties"
                         :target-property-id="props.targetPropertyId"
+                        :highlight-ids="props.highlightIds ?? []"
                         :opened-ids="props.openedIds ?? []"
                         @hover="updateHoverBorder"
                         @unhover="hoverGroupBorder = -1"
                         @select-cluster="toggleClusterSelect"
                         @open-cluster="(id, shift) => emit('open-cluster', id, shift)"
                         @add-clusters="(id, groups) => emit('add-clusters', id, groups)"
-                        @rename-cluster="(id, name) => emit('rename-cluster', id, name)"
                         @delete-cluster="id => emit('delete-cluster', id)"
-                        @assign-cluster="(id, val) => emit('assign-cluster', id, val)"
+                        @assign-cluster-value="(id, val) => emit('assign-cluster-value', id, val)"
                         @scroll="scrollTo"
                         @reco="emit('reco', $event)" />
                 </div>

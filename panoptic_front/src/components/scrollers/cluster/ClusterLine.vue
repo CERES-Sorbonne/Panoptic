@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { ComputedRef, computed, inject, nextTick, ref } from 'vue'
+import { ComputedRef, computed, inject, ref } from 'vue'
 import SelectCircle from '@/components/inputs/SelectCircle.vue'
-import PropertyValue from '@/components/properties/PropertyValue.vue'
 import { ClusterLine } from '@/data/models'
 import { GroupManager, Group, GroupType } from '@/core/GroupManager'
 import { useColumnStore } from '@/data/columnStore'
 import { useDataStore } from '@/data/dataStore'
 import CenteredImage from '@/components/images/CenteredImage.vue'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
-import { badgeState } from '@/core/group/clusterOverlay'
+import ClusterPropertyInput from './ClusterPropertyInput.vue'
+import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
 import { isTag } from '@/utils/utils'
+
+// Height reserved below each card's image for the typed property-input row. Must match the
+// per-line `size` reserved in ClusterScroller.computeLines.
+const INPUT_ROW = 30
 
 const columnStore = useColumnStore()
 const data = useDataStore()
@@ -25,35 +29,19 @@ const props = defineProps<{
     properties: any[]
     // Group ids currently open in the right-side inspector panel.
     openedIds: number[]
-    // Assignment target property — the value each card's badge reflects. undefined = none.
+    // Group ids to highlight (e.g. the clusters created by the last action).
+    highlightIds?: number[]
+    // Assignment target property — the value each card's top chip reflects. undefined = none.
     targetPropertyId?: number
 }>()
 
-const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'rename-cluster', 'delete-cluster', 'assign-cluster'])
+const emits = defineEmits(['hover', 'unhover', 'scroll', 'select-cluster', 'reco', 'open-cluster', 'add-clusters', 'delete-cluster', 'assign-cluster-value'])
 
 const hoveredCard = ref<number | null>(null)
 
-// ── Inline assignment (click the tag icon → type a value → commit) ────────────
-const assigningId = ref<number | null>(null)
-const assignText = ref('')
-const assignInput = ref<HTMLInputElement | null>(null)
-
-function startAssign(group: Group) {
-    assigningId.value = group.id
-    assignText.value = ''
-    nextTick(() => { assignInput.value?.focus() })
-}
-
-function commitAssign(group: Group) {
-    if (assigningId.value !== group.id) return
-    const v = assignText.value.trim()
-    assigningId.value = null
-    if (v) emits('assign-cluster', group.id, v)
-}
-
-function cancelAssign() {
-    assigningId.value = null
-}
+// The assignment target property, whose value each card's input edits.
+const targetProperty = computed(() =>
+    props.targetPropertyId != null ? data.properties?.[props.targetPropertyId] : null)
 
 // Inner (image) width for the card at column `i` — precomputed by the scroller so the
 // cards add up to exactly the line width. Falls back to the line's base image size.
@@ -69,35 +57,13 @@ function clusterName(group: Group) {
     return group.name ?? ('Cluster ' + group.parentIdx)
 }
 
-// A property group's label is its real property value (rendered via <PropertyValue>), not a
-// "Cluster N" fallback. Only real Cluster groups use the editable text name.
-function isPropertyGroup(group: Group) {
-    return group.type === GroupType.Property && (group.meta?.propertyValues?.length ?? 0) > 0
+// A cluster card: a real Cluster group — a sub-cluster of the parent, or the "New" leftover pile
+// of images not covered by any cluster. Only these are deletable; property value-groups are not.
+function isClusterCard(group: Group) {
+    return group.type === GroupType.Cluster
 }
 
-// ── Inline rename (double-click the name) ────────────────────────────────────
-const editingId = ref<number | null>(null)
-const editValue = ref('')
-const nameInput = ref<HTMLInputElement | null>(null)
-
-function startRename(group: Group) {
-    editingId.value = group.id
-    editValue.value = clusterName(group)
-    nextTick(() => { nameInput.value?.focus(); nameInput.value?.select() })
-}
-
-function commitRename(group: Group) {
-    if (editingId.value !== group.id) return
-    const v = editValue.value.trim()
-    editingId.value = null
-    // Rename on the OWNING collection GroupManager (not the cluster-view clone) so the new
-    // name also shows in the normal tree; the version bump re-clones the cluster view.
-    if (v) emits('rename-cluster', group.id, v)
-}
-
-function cancelRename() {
-    editingId.value = null
-}
+const highlightSet = computed(() => new Set(props.highlightIds ?? []))
 
 // Images of one cluster, for the clustering action (same shape as GroupLine.getImages).
 function getClusterImages(group: Group) {
@@ -125,32 +91,34 @@ function isSelected(group: Group) {
     return !slots.some(slot => !columnStore.isSelected(slot, ns))
 }
 
-// ── Target-property badge (homogeneity of the cluster on the assignment target) ──
-// Precomputed per line so each card reads it by group id. Recomputes when the target or the
-// line's data changes; value edits reflow the line via the manager version bump.
-const targetBadges = computed(() => {
-    const m = new Map<number, { label: string, mixed: boolean }>()
-    const pid = props.targetPropertyId
-    if (pid == null) return m
-    const prop = data.properties?.[pid]
-    const tag = prop ? isTag(prop.type) : false
-    const read = (slot: number) => columnStore.readSlot(pid, slot)
-    const canon = tag ? (v: unknown) => Array.isArray(v) ? v.slice().sort().join(',') : v : undefined
-    for (const entry of props.item.data) {
-        const g = entry.group
-        const b = badgeState(g.slots ?? [], read, canon)
-        if (b.kind === 'empty') continue
-        if (b.kind === 'mixed') { m.set(g.id, { label: '⇄ ' + b.count, mixed: true }); continue }
-        m.set(g.id, { label: formatValue(pid, b.value), mixed: false })
+// The value shown (and editable) in each card's input, ALWAYS on the current target property. Every
+// card is editable now — including value-groups (edit re-attributes the whole group). There is no
+// `mixed` state: a value-group is homogeneous by construction. A card inherits the value of its
+// nearest ancestor value-group KEYED ON THE TARGET PROPERTY only (so a value-group shows its own
+// value, a sub-cluster of it pre-fills with it), and undefined otherwise (undecided). Ancestors
+// grouped by a *different* property (nested grouping) are skipped — their value is not the target's,
+// and feeding it to the target input would be a type mismatch (e.g. a tag array into a text input).
+function inheritedValue(group: Group): any {
+    const tpid = props.targetPropertyId
+    if (tpid == null) return undefined
+    let g: Group | undefined = group
+    while (g) {
+        if (g.type === GroupType.Property) {
+            const pv = g.meta?.propertyValues?.[0]
+            if (pv && pv.propertyId === tpid) {
+                if (pv.value === null || pv.value === undefined || pv.value === '') return undefined
+                // Tag properties store an id array; a value-group's key value is a single tag id.
+                return isTag(data.properties?.[tpid]?.type) ? [pv.value] : pv.value
+            }
+        }
+        g = g.parent
     }
-    return m
-})
+    return undefined
+}
 
-function formatValue(pid: number, v: unknown): string {
-    const prop = data.properties?.[pid]
-    if (Array.isArray(v)) return v.map(id => data.tags?.[id]?.value ?? id).join(', ')
-    if (prop && isTag(prop.type)) return data.tags?.[v as number]?.value ?? String(v)
-    return String(v)
+function groupScore(group: Group): number | null {
+    const s = group.score?.value
+    return (s != undefined && group.type === GroupType.Cluster) ? Math.round(s) : null
 }
 </script>
 
@@ -164,70 +132,84 @@ function formatValue(pid: number, v: unknown): string {
             v-for="(entry, i) in props.item.data"
             :key="entry.group.id"
             class="cluster-card me-2 mb-2"
-            :class="{ opened: props.openedIds.includes(entry.group.id) }"
-            :style="{ width: cardInner(i) + 2 + 'px' }"
+            :class="{
+                opened: props.openedIds.includes(entry.group.id),
+                highlighted: highlightSet.has(entry.group.id),
+            }"
+            :style="{ width: cardInner(i) + 'px', height: (props.imageSize + INPUT_ROW) + 'px' }"
             @mouseenter="hoveredCard = entry.group.id"
             @mouseleave="hoveredCard = null"
         >
-            <div class="cluster-header">
-                <input v-if="editingId === entry.group.id" ref="nameInput" v-model="editValue"
-                    class="cluster-name-input" @click.stop @dblclick.stop
-                    @keydown.enter="commitRename(entry.group)" @keydown.esc="cancelRename"
-                    @blur="commitRename(entry.group)" />
-                <span v-else-if="isPropertyGroup(entry.group)" class="cluster-name-text cluster-name-prop">
-                    <PropertyValue :value="entry.group.meta.propertyValues[0]" />
-                </span>
-                <span v-else class="cluster-name-text" @dblclick.stop="startRename(entry.group)">{{ clusterName(entry.group) }}</span>
-                <!-- Sub-cluster this group. @click.stop so the card's open-cluster click doesn't fire. -->
-                <div class="cluster-header-action" @click.stop>
+            <!-- Image area (fixed height); the name / stats / hover actions float over it.
+                 Click opens the cluster in the split inspector. -->
+            <div class="cc-image-wrap" :style="{ height: props.imageSize + 'px', cursor: 'pointer' }"
+                @click="$emit('open-cluster', entry.group.id, $event.shiftKey)">
+                <div class="cluster-image">
+                    <CenteredImage
+                        v-if="getInstanceId(entry.slot) !== undefined"
+                        :instance-id="getInstanceId(entry.slot)"
+                        :width="cardInner(i)"
+                        :height="props.imageSize"
+                        :no-click="true"
+                    />
+                </div>
+
+                <!-- Top overlay: select circle + cluster name (left), score (right). -->
+                <div class="cc-top" :class="{ 'cc-scrim': isClusterCard(entry.group) }">
+                    <SelectCircle
+                        v-if="hoveredCard === entry.group.id || isSelected(entry.group)"
+                        :model-value="isSelected(entry.group)"
+                        @update:model-value="$emit('select-cluster', entry.group.id)"
+                        @click.stop
+                        class="cc-select"
+                        :light-mode="true"
+                    />
+                    <!-- Title only for clusters (incl. the "New" leftover pile of images not covered
+                         by any cluster). Property value-groups — including the null-value "no value"
+                         group — are real groups that carry their value in the input row, so no title. -->
+                    <span v-if="isClusterCard(entry.group)" class="cc-name">{{ clusterName(entry.group) }}</span>
+                    <ClusterBadge v-if="groupScore(entry.group) != null" class="cc-score"
+                        :value="groupScore(entry.group)" />
+                </div>
+
+                <!-- Hover action pill, centered over the image: subdivide · inspect · delete. -->
+                <div v-show="hoveredCard === entry.group.id" class="cc-actions" @click.stop>
                     <ActionButton2 action="group" :no-border="true"
                         :images="() => getClusterImages(entry.group)"
                         @groups="g => addClusters(entry.group.id, g)">
-                        <i class="bi bi-diagram-2 cluster-cluster-btn" />
+                        <div class="cc-btn" title="Sub-cluster this group">
+                            <img class="cluster-icon-sm" src="/icons/network2_white.svg" />
+                        </div>
                     </ActionButton2>
+                    <div class="cc-btn" title="Inspect in the side panel"
+                        @click.stop="$emit('open-cluster', entry.group.id, $event.shiftKey)">
+                        <i class="bi bi-eye" />
+                    </div>
+                    <div v-if="isClusterCard(entry.group)" class="cc-btn cc-danger" title="Delete this cluster"
+                        @click.stop="$emit('delete-cluster', entry.group.id)">
+                        <i class="bi bi-trash" />
+                    </div>
                 </div>
-                <!-- Assign the target property's value to this whole cluster. -->
-                <div v-if="props.targetPropertyId != null" class="cluster-header-action"
-                    @click.stop="startAssign(entry.group)" title="Assign a value to this cluster">
-                    <i class="bi bi-tag cluster-cluster-btn" />
-                </div>
-                <!-- Delete this group: its images move to the leftover "Unclustered" bucket. -->
-                <div class="cluster-header-action" @click.stop="$emit('delete-cluster', entry.group.id)">
-                    <i class="bi bi-trash cluster-cluster-btn" />
-                </div>
+
+                <!-- Bottom-left image count: a self-contained chip, so no full-width scrim is needed. -->
+                <span class="cc-count">
+                    <i class="bi bi-images me-1" />{{ entry.group.slots.length }}
+                </span>
             </div>
-            <!-- Only clicking the image opens the cluster in the split window (not the name). -->
-            <div class="cluster-image" :style="{ width: cardInner(i) + 'px', height: props.imageSize + 'px', cursor: 'pointer' }"
-                @click="$emit('open-cluster', entry.group.id, $event.shiftKey)">
-                <CenteredImage
-                    v-if="getInstanceId(entry.slot) !== undefined"
+
+            <!-- Below the image: an editable typed input on the target property, for EVERY card.
+                 A value-group shows its own value (editing re-attributes the whole group); a cluster
+                 or empty bucket inherits its ancestor value-group's value (undefined = undecided).
+                 Assigning writes to the whole pile, which then drains into its value-group. -->
+            <div class="cc-input-row" @click.stop>
+                <ClusterPropertyInput
+                    v-if="targetProperty"
+                    :property="targetProperty"
+                    :model-value="inheritedValue(entry.group)"
                     :instance-id="getInstanceId(entry.slot)"
                     :width="cardInner(i)"
-                    :height="props.imageSize"
-                    :no-click="true"
+                    @update:model-value="v => $emit('assign-cluster-value', entry.group.id, v)"
                 />
-                <SelectCircle
-                    v-if="hoveredCard === entry.group.id || isSelected(entry.group)"
-                    :model-value="isSelected(entry.group)"
-                    @update:model-value="$emit('select-cluster', entry.group.id)"
-                    @click.stop
-                    class="cluster-select"
-                    :light-mode="true"
-                />
-            </div>
-            <div class="cluster-footer">
-                <template v-if="assigningId === entry.group.id">
-                    <input ref="assignInput" v-model="assignText" class="assign-input" placeholder="value…"
-                        @click.stop @keydown.enter="commitAssign(entry.group)" @keydown.esc="cancelAssign"
-                        @blur="commitAssign(entry.group)" />
-                </template>
-                <template v-else>
-                    <span class="cluster-badge cluster-badge-count"><i class="bi bi-image me-1"></i>{{ entry.group.slots.length }}</span>
-                    <span v-if="targetBadges.get(entry.group.id)" class="cluster-badge cluster-badge-target"
-                        :class="{ mixed: targetBadges.get(entry.group.id)!.mixed }"
-                        :title="targetBadges.get(entry.group.id)!.label">{{ targetBadges.get(entry.group.id)!.label }}</span>
-                    <span v-else-if="entry.group.score?.value != undefined" class="cluster-badge cluster-badge-score">{{ Math.round(entry.group.score.value) }}</span>
-                </template>
             </div>
         </div>
         <!-- Reserve the space of the images missing from this (partial) line so it keeps
@@ -236,7 +218,7 @@ function formatValue(pid: number, v: unknown): string {
             v-for="n in props.item.emptyCount"
             :key="'empty-' + n"
             class="cluster-card cluster-card-empty me-2 mb-2"
-            :style="{ width: cardInner(props.item.data.length + n - 1) + 2 + 'px', height: props.imageSize + 44 + 'px' }"
+            :style="{ width: cardInner(props.item.data.length + n - 1) + 'px', height: (props.imageSize + INPUT_ROW) + 'px' }"
         ></div>
     </div>
 </template>
@@ -256,155 +238,195 @@ function formatValue(pid: number, v: unknown): string {
     margin-right: 0;
 }
 
+/* Photo card: image area on top with floating info, a typed property-input row below. */
 .cluster-card {
     position: relative;
-    background-color: white;
-    border: 1px solid var(--border-color);
-    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-subtle, #f3f4f6);
+    border-radius: 5px;
     overflow: hidden;
-    cursor: pointer;
 }
 
-/* Clusters open in the right inspector get a colored header bar. */
-.cluster-card.opened .cluster-header {
-    background: var(--primary-light);
+/* Every card carries a full ring around the whole card (image + input row), drawn as an inset
+   overlay rather than an outline/box-shadow: it stays inside the card's own width (no bleed into
+   the neighbour or the line) and paints above the image and the floating overlays, so the top edge
+   stays visible instead of being covered by the scrim. Opened / highlighted just recolour it. */
+.cluster-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.cluster-card.opened::after {
+    border: 2px solid var(--primary, #4f46e5);
+}
+
+/* Last-made clusters: warm ring so a fresh clustering pass stands out at a glance. */
+.cluster-card.highlighted::after {
+    border: 2px solid #f59e0b;
+}
+
+/* Opened wins the border colour when a card is both. */
+.cluster-card.opened.highlighted::after {
+    border-color: var(--primary, #4f46e5);
 }
 
 .cluster-card-empty {
     visibility: hidden;
     pointer-events: none;
-    border: none;
+    box-shadow: none;
+}
+
+/* The image area sits at the top of the card; the name / stats / hover pill float over it,
+   and the typed property input sits in its own row below (.cc-input-row). */
+.cc-image-wrap {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .cluster-image {
-    position: relative;
-    background-color: white;
+    position: absolute;
+    inset: 0;
+    background-color: var(--bg-subtle, #f3f4f6);
 }
 
-/* Header above the image: the cluster name. */
-.cluster-header {
+.cc-input-row {
     display: flex;
     align-items: center;
-    height: 22px;
-    padding: 0 4px;
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border-color);
-}
-
-/* Footer below the image: image count (left), cluster score (right). */
-.cluster-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 22px;
-    padding: 0 4px;
-    font-size: 10px;
-    color: var(--text-secondary);
-    background: var(--bg-subtle);
-    border-top: 1px solid var(--border-color);
-}
-
-.cluster-name-text {
-    flex: 1;
+    height: 30px;
+    padding: 2px 6px;
+    background: var(--island-surface, #fff);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-    font-weight: 600;
-    font-size: 11px;
-    color: var(--text-primary);
-    cursor: text;
-}
-
-/* Property-group label: the real value chip, non-editable. */
-.cluster-name-prop {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
     cursor: default;
 }
 
-.cluster-name-input {
-    flex: 1;
-    min-width: 0;
-    font-weight: 600;
-    font-size: 11px;
-    color: var(--text-primary);
-    background: var(--island-surface, #fff);
-    border: 1px solid var(--primary, #4f46e5);
-    border-radius: 3px;
-    padding: 0 3px;
-    height: 18px;
-    outline: none;
-}
-
-.cluster-header-action {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    margin-left: 4px;
-}
-
-.cluster-cluster-btn {
-    font-size: 13px;
-    line-height: 1;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-
-.cluster-header-action:hover .cluster-cluster-btn {
-    color: var(--text-primary);
-}
-
-.cluster-badge {
-    flex-shrink: 0;
-    padding: 0px 5px;
-    border-radius: 4px;
-    font-size: 10px;
-    line-height: 16px;
-}
-
-.cluster-badge-count {
-    background: var(--border-color);
-    color: var(--text-secondary);
-}
-
-.cluster-badge-score {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-/* Assignment-target value badge: a single common value, or amber "mixed" when heterogeneous. */
-.cluster-badge-target {
-    max-width: 60%;
+.cc-static-value {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: var(--primary-light, #e0e7ff);
-    color: var(--primary, #4f46e5);
-}
-
-.cluster-badge-target.mixed {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.assign-input {
-    flex: 1;
-    min-width: 0;
-    font-size: 10px;
-    height: 16px;
-    padding: 0 4px;
-    border: 1px solid var(--primary, #4f46e5);
-    border-radius: 4px;
-    outline: none;
-    background: var(--island-surface, #fff);
+    font-size: 13px;
     color: var(--text-primary);
 }
 
-.cluster-select {
+.cc-static-undef {
+    color: var(--text-secondary);
+}
+
+.cc-top {
     position: absolute;
-    top: 2px;
-    left: 2px;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 5px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Scrim only when there is a title to keep legible — a nameless card stays clean. */
+.cc-top.cc-scrim {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+
+/* Only interactive children opt back into pointer events. */
+.cc-top > * {
+    pointer-events: auto;
+}
+
+.cc-select {
+    flex-shrink: 0;
+}
+
+/* Round icon buttons: subtle glass discs that read on top of a photo. */
+.cc-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.12s;
+}
+
+.cc-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.cc-danger:hover {
+    background: #dc2626;
+}
+
+/* ActionButton2 wraps its slot in its own `.sb` chrome (light hover background + radius), which
+   fights the round dark discs used here. Strip it so the wrapped button hovers like a plain .cc-btn. */
+.cc-actions :deep(.sb),
+.cc-actions :deep(.sb:hover) {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+}
+
+.cc-actions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 3;
+}
+
+.cc-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    font-weight: 600;
+    font-size: 11px;
+    color: #fff;
+    cursor: text;
+}
+
+/* Score badge, top-right on the title line — same color code as the tree view's ClusterBadge. */
+.cc-score {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 10px;
+    line-height: 1;
+}
+
+/* Image count: its own pill at the bottom-left, dark enough to read on any image
+   without darkening the whole bottom of the card. */
+.cc-count {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    z-index: 2;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    font-size: 10px;
+    color: #fff;
+    white-space: nowrap;
 }
 </style>
