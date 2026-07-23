@@ -300,7 +300,7 @@ watch(() => props.groupManager.version.value, triggerUpdate)
 
 <template>
     <div style="width: 100%; min-width: 0; padding-top: 8px;">
-        <div v-if="clusterLines.length === 0" class="p-3 text-secondary">No clusters to display</div>
+        <div v-if="clusterLines.length === 0" class="p-3 text-secondary">{{ $t('main.group.no_lines') }}</div>
         <InstanceData v-else :instance-ids="windowIds" :prop-ids="windowPropIds">
         <RecycleScroller :items="clusterLines" key-field="id" ref="scroller" :style="'height: ' + props.height + 'px;'"
             :buffer="400" :min-item-size="0" :emitUpdate="true" @update="onScrollerUpdate" :page-mode="false" :prerender="0">

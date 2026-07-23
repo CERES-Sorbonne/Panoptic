@@ -307,7 +307,7 @@ onUnmounted(() => {
     <div class="cluster-workspace" :class="{ split: isSplit }" :style="{ height: props.height + 'px' }">
         <div v-if="!hasImages" class="cluster-primary-pane">
             <div class="cluster-empty">
-                <span class="text-secondary">{{ $t('main.cluster.empty') }}</span>
+                <span class="text-secondary">{{ $t('main.group.empty') }}</span>
             </div>
         </div>
 
@@ -324,7 +324,7 @@ onUnmounted(() => {
             <template #primary>
                 <div class="cluster-primary-pane" :class="{ split: isSplit }">
                     <div v-if="!hasGrouping" class="cluster-empty">
-                        <span class="text-secondary">Group by a property — clustering assigns its values.</span>
+                        <span class="text-secondary">{{ $t('main.group.no_grouping') }}</span>
                     </div>
                     <ClusterScroller
                         v-else

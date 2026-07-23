@@ -9,6 +9,7 @@ import CenteredImage from '@/components/images/CenteredImage.vue'
 import ActionButton2 from '@/components/actions/ActionButton2.vue'
 import ClusterPropertyInput from './ClusterPropertyInput.vue'
 import ClusterBadge from '@/components/cluster/ClusterBadge.vue'
+import wTT from '@/components/tooltips/withToolTip.vue'
 import { isTag } from '@/utils/utils'
 
 // Height reserved below each card's image for the typed property-input row. Must match the
@@ -177,18 +178,21 @@ function groupScore(group: Group): number | null {
                     <ActionButton2 action="group" :no-border="true"
                         :images="() => getClusterImages(entry.group)"
                         @groups="g => addClusters(entry.group.id, g)">
-                        <div class="cc-btn" title="Sub-cluster this group">
+                        <!-- ActionButton2 wraps its slot in its own wTT ('dropdown.action.group'). -->
+                        <div class="cc-btn">
                             <i class="bi bi-intersect" />
                         </div>
                     </ActionButton2>
-                    <div class="cc-btn" title="Inspect in the side panel"
-                        @click.stop="$emit('open-cluster', entry.group.id, $event.shiftKey)">
-                        <i class="bi bi-eye" />
-                    </div>
-                    <div v-if="isClusterCard(entry.group)" class="cc-btn cc-danger" title="Delete this cluster"
-                        @click.stop="$emit('delete-cluster', entry.group.id)">
-                        <i class="bi bi-trash" />
-                    </div>
+                    <wTT message="btn.inspect-group">
+                        <div class="cc-btn" @click.stop="$emit('open-cluster', entry.group.id, $event.shiftKey)">
+                            <i class="bi bi-eye" />
+                        </div>
+                    </wTT>
+                    <wTT v-if="isClusterCard(entry.group)" message="btn.delete-cluster">
+                        <div class="cc-btn cc-danger" @click.stop="$emit('delete-cluster', entry.group.id)">
+                            <i class="bi bi-trash" />
+                        </div>
+                    </wTT>
                 </div>
 
                 <!-- Bottom-left image count: a self-contained chip, so no full-width scrim is needed. -->
@@ -368,6 +372,12 @@ function groupScore(group: Group): number | null {
 
 .cc-danger:hover {
     background: #dc2626;
+}
+
+/* wTT's trigger is an inline span; make it a flex item so the discs stay aligned in the pill. */
+.cc-actions :deep(.wtt-trigger) {
+    display: inline-flex;
+    align-items: center;
 }
 
 /* ActionButton2 wraps its slot in its own `.sb` chrome (light hover background + radius), which

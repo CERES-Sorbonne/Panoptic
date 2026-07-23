@@ -138,9 +138,11 @@
             "remove_from_group": "Remove from group",
             "remove_from_blacklist": "Remove from blacklist"
         },
-        "cluster": {
-            "title": "Clusters",
-            "empty": "No clusters found. Generate clusters from the tree view first."
+        "group": {
+            "title": "Groups",
+            "empty": "No images to display.",
+            "no_grouping": "Group by at least one property.",
+            "no_lines": "No groups to display"
         },
         "view": {
             "all_group": "All",
@@ -449,7 +451,10 @@
             "dirty": "Data is not up to-date, click to reload"
         },
         "close-clusters": "Close clusters",
-        "save-clusters": "Save the clusters in a new property"
+        "save-clusters": "Save the clusters in a new property",
+        "subcluster-group": "Sub-cluster this group",
+        "inspect-group": "Inspect in the side panel",
+        "delete-cluster": "Delete this cluster"
     },
     "datepicker": {
         "cancel": "Cancel",

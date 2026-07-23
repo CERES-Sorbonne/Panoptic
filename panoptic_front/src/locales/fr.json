@@ -143,9 +143,11 @@
             "remove_from_group": "Retirer du groupe",
             "remove_from_blacklist": "Retirer de la liste noire"
         },
-        "cluster": {
-            "title": "Clusters",
-            "empty": "Aucun cluster trouvé. Générez des clusters depuis la vue arborescente."
+        "group": {
+            "title": "Groupes",
+            "empty": "Aucune image à afficher.",
+            "no_grouping": "Groupez par au moins une propriété.",
+            "no_lines": "Aucun groupe à afficher"
         },
         "view": {
             "all_group": "Toutes",
@@ -465,7 +467,10 @@
             "dirty": "Actualisation nécessaire\nCliquez pour actualiser"
         },
         "close-clusters": "Retirer les clusters",
-        "save-clusters": "Sauvegarde les clusters dans une propriétés tag"
+        "save-clusters": "Sauvegarde les clusters dans une propriétés tag",
+        "subcluster-group": "Sous-clusteriser ce groupe",
+        "inspect-group": "Inspecter dans le panneau latéral",
+        "delete-cluster": "Supprimer ce cluster"
     },
     "datepicker": {
         "cancel": "Annuler",
