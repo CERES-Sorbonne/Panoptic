@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Cluster view. A workspace over the collection's groups: the ClusterScroller shows one
+// Group view. A workspace over the collection's groups: the ClusterScroller shows one
 // representative image per group — the flat collection before clustering, the property groups
 // when a tree grouping is active, or cluster cards once clustered — fed the collection's own
 // groupManager directly (no clone / no rootedAt). A right-side inspector can open up to two

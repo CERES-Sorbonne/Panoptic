@@ -261,7 +261,9 @@ export interface ScoreInterval {
     description: string
 }
 
-export type ViewType = 'tree' | 'grid' | 'graph' | 'map' | 'reco' | 'cluster'
+// 'cluster' is the legacy name of the 'group' view, kept so views persisted before the
+// rename still resolve. Nothing creates it anymore.
+export type ViewType = 'tree' | 'grid' | 'graph' | 'map' | 'reco' | 'group' | 'cluster'
 
 /**
  * Per-view display state (Pillar F). A tab holds a fixed pair of views; the

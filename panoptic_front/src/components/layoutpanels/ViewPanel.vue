@@ -11,7 +11,7 @@ import GridScroller from '@/components/scrollers/grid/GridScroller.vue'
 import GraphView from '@/components/graphview/GraphView.vue'
 import MapView from '@/components/mapview/MapView.vue'
 import RecommendView from '@/components/layoutpanels/RecommendView.vue'
-import ClusterView from '@/components/layoutpanels/ClusterView.vue'
+import GroupView from '@/components/layoutpanels/GroupView.vue'
 import wTT from '@/components/tooltips/withToolTip.vue'
 import { useCurrentTab } from '@/data/useCurrentTab'
 
@@ -23,6 +23,10 @@ const tab = useCurrentTab()
 const view = computed(() => tab.value?.state.views[props.viewIndex] ?? null)
 // The collection this pane renders (M4): may differ from the other pane's.
 const collection = computed(() => tab.value?.collectionForView(props.viewIndex) ?? null)
+
+// The group view was previously named "cluster"; views persisted before the rename still
+// carry that type, so both values map to it.
+const isGroupView = computed(() => view.value?.type == 'group' || view.value?.type == 'cluster')
 
 function toggleProperties() {
     if (!view.value) return
@@ -151,8 +155,8 @@ onUnmounted(() => {
                 @close="closeReco"
             />
 
-            <ClusterView
-                v-if="tab && view && collection && view.type == 'cluster' && dimensions.width > 0"
+            <GroupView
+                v-if="tab && view && collection && isGroupView && dimensions.width > 0"
                 :tab="tab"
                 :collection="collection"
                 :cluster-options="view.clusterOptions"

@@ -178,7 +178,7 @@ function groupScore(group: Group): number | null {
                         :images="() => getClusterImages(entry.group)"
                         @groups="g => addClusters(entry.group.id, g)">
                         <div class="cc-btn" title="Sub-cluster this group">
-                            <img class="cluster-icon-sm" src="/icons/network2_white.svg" />
+                            <i class="bi bi-intersect" />
                         </div>
                     </ActionButton2>
                     <div class="cc-btn" title="Inspect in the side panel"

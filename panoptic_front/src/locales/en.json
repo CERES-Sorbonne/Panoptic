@@ -92,7 +92,7 @@
             "graph_tooltip": "Switch to chart view",
             "map_tooltip": "Switch to map view",
             "reco_tooltip": "Switch to recommendations view",
-            "cluster_tooltip": "Switch to cluster view",
+            "cluster_tooltip": "Switch to group view",
             "image_size_tooltip": "Image size",
             "all_images": "Instances",
             "sha1_images": "Images",

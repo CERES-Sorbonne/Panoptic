@@ -259,7 +259,7 @@ function childrenToTags(children: Group[], nextId: () => number, parentTag: Tag 
 
                             <ActionButton2 v-if="!hasSubgroups" action="group" :images="getImages" :no-border="true" @groups="addClusters">
                                 <div class="opt-row">
-                                    <span class="opt-icon"><i class="bi bi-diagram-2" /></span>
+                                    <span class="opt-icon"><i class="bi bi-intersect" /></span>
                                     <span class="opt-label">{{ $t('action.group') }}</span>
                                 </div>
                             </ActionButton2>

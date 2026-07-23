@@ -23,11 +23,13 @@ const viewOptions: ViewOption[] = [
     { id: 'graph', icon: 'bar-chart', tooltip: 'main.menu.graph_tooltip' },
     { id: 'map', icon: 'map', tooltip: 'main.menu.map_tooltip' },
     { id: 'reco', icon: 'magic', tooltip: 'main.menu.reco_tooltip' },
-    { id: 'cluster', icon: 'diagram-3', tooltip: 'main.menu.cluster_tooltip' },
+    { id: 'group', icon: 'intersect', tooltip: 'main.menu.cluster_tooltip' },
 ]
 
 const currentView = computed(() => {
-    return tab.value?.state.views[props.viewIndex]?.type ?? 'grid'
+    const type = tab.value?.state.views[props.viewIndex]?.type ?? 'grid'
+    // Legacy name of the group view, still present in persisted views.
+    return type == 'cluster' ? 'group' : type
 })
 
 const activeOption = computed(() => {

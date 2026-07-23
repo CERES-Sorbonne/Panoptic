@@ -84,7 +84,7 @@ async function updateMap(event) {
 
         <div v-if="props.colorOption === 'cluster'" class="toobar-item">
             <ActionButton2 :images="props.mapImages ?? props.images" action="group" class="sb ps-1 pe-1" style="font-size: 14px;" :no-border="true" @groups="clusters => emits('clusters', clusters)">
-                <img class="cluster-icon" src="/icons/network2_white.svg" />
+                <i class="bi bi-intersect" />
             </ActionButton2>
         </div>
 
