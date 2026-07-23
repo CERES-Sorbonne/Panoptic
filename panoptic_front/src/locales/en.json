@@ -453,7 +453,7 @@
         "close-clusters": "Close clusters",
         "save-clusters": "Save the clusters in a new property",
         "subcluster-group": "Sub-cluster this group",
-        "inspect-group": "Inspect in the side panel",
+        "inspect-group": "Inspect in the side panel\nHold shift to open a second inspector",
         "delete-cluster": "Delete this cluster"
     },
     "datepicker": {

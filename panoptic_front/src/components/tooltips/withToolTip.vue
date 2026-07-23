@@ -1,3 +1,10 @@
+<script lang="ts">
+// Module scope (shared by every instance): only one tooltip may be on screen at a time, so a
+// trigger that opens one closes whichever other instance is still showing. Without this, any
+// instance that missed its mouseleave keeps its popup up while the next one opens.
+const active: { close: (() => void) | null } = { close: null }
+</script>
+
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n'
@@ -64,6 +71,10 @@ const realMessage = computed(() => {
 const triggerElem = ref<HTMLElement | null>(null)
 const popperElem = ref<HTMLElement | null>(null)
 const visible = ref(false)
+// The popup can only be positioned once it exists in the DOM (it has to be measured), so the
+// first computePosition() runs with a 0x0 size and lands in the wrong place. Stay transparent
+// until the first tick has measured and repositioned it, so no misplaced frame is ever painted.
+const placed = ref(false)
 const coords = ref({ top: 0, left: 0 })
 let showTimer: ReturnType<typeof setTimeout> | undefined
 let rafId = 0
@@ -114,11 +125,15 @@ function computePosition() {
 function tick() {
     const el = triggerElem.value
     // Trigger (or an ancestor) became display:none without a mouseleave — close.
-    if (!el || el.getClientRects().length === 0) {
+    // Same for a trigger the pointer is no longer over: hover-revealed buttons can be
+    // re-rendered or moved out from under the cursor without ever firing mouseleave,
+    // which is what leaves a tooltip stranded on screen.
+    if (!el || el.getClientRects().length === 0 || !el.matches(':hover')) {
         hide()
         return
     }
     computePosition()
+    placed.value = true
     rafId = requestAnimationFrame(tick)
 }
 
@@ -126,7 +141,12 @@ function show() {
     if (!props.message) return
     clearTimeout(showTimer)
     showTimer = setTimeout(() => {
-        computePosition()
+        if (active.close && active.close !== hide) active.close()
+        active.close = hide
+        placed.value = false
+        // Park it out of the way for the measuring frame instead of at stale/unmeasured
+        // coordinates, so it is laid out with the full max-width available to it.
+        coords.value = { top: 0, left: -10000 }
         visible.value = true
         cancelAnimationFrame(rafId)
         rafId = requestAnimationFrame(tick)
@@ -138,6 +158,8 @@ function hide() {
     cancelAnimationFrame(rafId)
     rafId = 0
     visible.value = false
+    placed.value = false
+    if (active.close === hide) active.close = null
 }
 
 onUnmounted(hide)
@@ -154,7 +176,7 @@ onUnmounted(hide)
     </span>
     <Teleport to="body">
         <div v-if="visible && realMessage" ref="popperElem" class="wtt-popper"
-            :style="{ top: coords.top + 'px', left: coords.left + 'px' }">
+            :style="{ top: coords.top + 'px', left: coords.left + 'px', opacity: placed ? 1 : 0 }">
             <span v-for="line in realMessage">{{ line }}<br /></span>
         </div>
     </Teleport>
@@ -175,6 +197,12 @@ onUnmounted(hide)
 .wtt-popper {
     position: fixed;
     z-index: 10000;
+    /* Size the box from its text alone, never from where it happens to sit: a shrink-to-fit
+       fixed box is also bounded by (viewport edge - left), so a popup laid out near an edge
+       would wrap differently than once it is moved to its final spot — the text visibly
+       reflowing from 3 lines to 2. `max-content` + `max-width` makes wrapping depend only on
+       the max-width, so the shape measured on the first frame is the final shape. */
+    width: max-content;
     max-width: min(300px, calc(100vw - 8px));
     max-height: calc(100vh - 8px);
     overflow: auto;
