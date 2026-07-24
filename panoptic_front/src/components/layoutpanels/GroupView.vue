@@ -119,7 +119,7 @@ function onAddClusters(groupId: number, groups: Group[]) {
     props.collection.split(groupId, groups, 'children', true)
     // A collapsed group stands in for its subtree, so clustering it would otherwise produce no
     // visible change: force it open so the new sub-clusters replace its card right away.
-    props.collection.groupManager.openGroup(groupId, true)
+    props.collection.openGroup(groupId, true)
     markHighlight(groups)
 }
 
@@ -127,7 +127,7 @@ function onAddClusters(groupId: number, groups: Group[]) {
 // differently: an open group is replaced by its children, a closed one stands in for them.
 // Closing a group therefore folds its whole children level back into that single parent card.
 function onOpenGroup(groupId: number) {
-    props.collection.groupManager.openGroup(groupId, true)
+    props.collection.openGroup(groupId, true)
     // The cards that just replaced this one — its children, or deeper if any of them is itself
     // open — so it is obvious what the card unfolded into.
     const g = props.collection.result?.index?.[groupId]
@@ -135,7 +135,7 @@ function onOpenGroup(groupId: number) {
 }
 
 function onCloseGroup(groupId: number) {
-    props.collection.groupManager.closeGroup(groupId, true)
+    props.collection.closeGroup(groupId, true)
     // The closed group is now the card standing in for the level that just folded away —
     // highlight it so it is obvious where the children went.
     highlightIds.value = [groupId]
@@ -171,6 +171,10 @@ async function assignClusterValue(groupId: number, value: any) {
     const imgs = clusterInstances(groupId)
     if (!imgs.length) return
     await data.setPropertyValue(targetPropertyId.value, imgs, value)
+    // The value write kicks off the collection's reflow (updateSelection) asynchronously, so
+    // awaiting setPropertyValue alone left the drain racing it. settle() waits for that reflow,
+    // giving the documented order: tree reflows into the value-group, THEN the pile drains.
+    await props.collection.settle()
     if (value !== undefined && value !== null) props.collection.drainCluster(groupId, imgs.map(i => i.id))
 }
 
@@ -253,18 +257,17 @@ async function onPaneAdd(idx: number, payload: { instance: Instance, index: numb
     const arr = paneInstances.value[idx]
     if (arr) arr.splice(Math.max(0, Math.min(payload.index, arr.length)), 0, payload.instance)
 
-    const gm = props.collection.groupManager
     const slot = col.slotMap.get(payload.instance.id)
     const targetGid = detailGroupIds.value[idx]
     if (slot === undefined || targetGid == null) return
 
     const sourceGid = detailGroupIds.value.find(
-        (g, i) => i !== idx && gm.result?.index?.[g]?.slots.includes(slot)
+        (g, i) => i !== idx && props.collection.result?.index?.[g]?.slots.includes(slot)
     )
     if (sourceGid != null && sourceGid !== targetGid) {
         // Bumps version → the watch above re-derives paneInstances from the authoritative
         // group.slots, and rebuildTree re-clones the left ClusterScroller.
-        gm.moveImagesToGroup(sourceGid, targetGid, [payload.instance.id], true)
+        props.collection.moveImagesToGroup(sourceGid, targetGid, [payload.instance.id], true)
 
         // Apply the target group's value to the moved image so membership and the property agree.
         // A group with no shared value clears the moved image's value.

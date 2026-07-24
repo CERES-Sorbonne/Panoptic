@@ -8,7 +8,8 @@ import { ModalId } from '@/data/models'
 const uiStore = useUiStore()
 const panoptic = usePanopticStore()
 
-// Activity-bar panel toggles: Folders, separated from Properties + Export.
+// Activity-bar panel toggles: Folders, separated from Properties + Import/Export.
+// Import and Export are modals, not panels — they only borrow the same bar.
 const folderPanels = [
     { id: 'folders', icon: 'bi-folder2-open', title: 'Folders' },
 ]
@@ -26,6 +27,10 @@ function togglePanel(id: string) {
     }
     if (id === 'import') {
         panoptic.showModal(ModalId.IMPORT)
+        return
+    }
+    if (id === 'export') {
+        panoptic.showModal(ModalId.EXPORT)
         return
     }
     uiStore.panelStates.activeBottomPanel = uiStore.panelStates.activeBottomPanel === id ? null : (id as BottomPanel)

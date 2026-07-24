@@ -354,7 +354,6 @@ export class SortManager {
 
     async sort(slots: Int32Array, emit?: boolean): Promise<SortResult> {
         await this._ensureColumns()
-        console.time('Sort')
 
         const data = useDataStore()
         const properties = this.state.sortBy.map(id => data.properties[id])
@@ -391,7 +390,6 @@ export class SortManager {
 
         this.result.slots = sorted
 
-        console.timeEnd('Sort')
         if (emit) this.onResultChange.emit(this.result)
         return this.result
     }

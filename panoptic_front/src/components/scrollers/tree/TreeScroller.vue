@@ -221,7 +221,6 @@ function computeLines() {
     if (_computingLines) return
     _computingLines = true
     try {
-        console.time('compute Lines')
         if (!props.groupManager.result.root) return
         let it = props.groupManager.getGroupIterator()
         if (!it?.group) {
@@ -240,7 +239,6 @@ function computeLines() {
             it = it.nextGroup()
         }
         imageLines.value = reconcileLines(imageLines.value, lines)
-        console.timeEnd('compute Lines')
     } finally {
         _computingLines = false
     }

@@ -42,7 +42,7 @@ function indexLeaf(host: GroupOpsHost, g: Group) {
 // A parent's subGroupType is the children's common type, or undefined when mixed (e.g. a
 // merged/cluster group sitting beside property groups). Consumers must key per-child chrome
 // off each child's own `type`, not this.
-function refreshSubGroupType(parent: Group) {
+export function refreshSubGroupType(parent: Group) {
     if (!parent.children.length) { parent.subGroupType = undefined; return }
     const t = parent.children[0].type
     parent.subGroupType = parent.children.every(c => c.type === t) ? t : undefined
@@ -85,14 +85,23 @@ function collectSlots(group: Group, out: number[], seen: Set<number>) {
 // host.customGroups lets group() replay them after a property-tree rebuild.
 export function addCustomGroups(host: GroupOpsHost, targetGroupId: number, groups: Group[], emit?: boolean) {
     host.invalidateIterators()
-    const parent = host.result.index[targetGroupId]
-    if (!parent) return
-    host.customGroups[targetGroupId] = groups
-    host.setChildGroup(parent, groups)
+    if (!attachCustomGroups(host, targetGroupId, groups)) return
     host.applySha1Piles()
     setOrder(host.result.root)
     host.buildOrdinalRanges()
     if (emit) host.emitResult()
+}
+
+// Attach without finalising (pile overlay / display order). For batch callers that finalise
+// once at the end — notably the post-rebuild replay in ClusterManager.reapplyAfter, which
+// otherwise paid a full-tree applySha1Piles + setOrder per re-grafted target.
+// Returns whether the target existed.
+export function attachCustomGroups(host: GroupOpsHost, targetGroupId: number, groups: Group[]): boolean {
+    const parent = host.result.index[targetGroupId]
+    if (!parent) return false
+    host.customGroups[targetGroupId] = groups
+    host.setChildGroup(parent, groups)
+    return true
 }
 
 // Move instances between two existing groups in-place: pull their slots out of `from` and
@@ -127,8 +136,9 @@ export function moveImagesToGroup(host: GroupOpsHost, fromGroupId: number, toGro
         set.add(toGroupId)
     }
 
-    // Recompute the sha1 pile overlay for the affected leaves (from/to slot sets changed).
-    host.applySha1Piles()
+    // Recompute the sha1 pile overlay for the affected leaves (from/to slot sets changed) —
+    // and only those: a drag must not sweep the whole tree.
+    host.applySha1Piles([from, to])
 
     setOrder(host.result.root)
     host.buildOrdinalRanges()
@@ -145,7 +155,11 @@ export function renameGroup(host: GroupOpsHost, groupId: number, name: string, e
 
 export function delCustomGroups(host: GroupOpsHost, targetGroupId: number, emit?: boolean) {
     delete host.customGroups[targetGroupId]
-    host.removeChildren(host.result.index[targetGroupId])
+    // The registry can outlive the tree node (a rebuild may not re-create that group), and
+    // removeChildren dereferences its argument — so drop the record and bail rather than throw.
+    const parent = host.result.index[targetGroupId]
+    if (!parent) return
+    host.removeChildren(parent)
     host.applySha1Piles()
     host.buildOrdinalRanges()
     if (emit) host.emitResult()

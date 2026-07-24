@@ -28,7 +28,7 @@ const isLoading = ref(false)
 
 const all = computed(() => properties.value.every(p => state.properties[p.id]))
 const properties = computed(() => {
-    const tmp = Object.values(data.properties)
+    const tmp = [...data.propertyList]
     tmp.sort((a, b) => a.id - b.id)
     const computed = tmp.filter(p => p.id < 0)
     const personal = tmp.filter(p => p.id > 0)
@@ -80,9 +80,17 @@ function clear() {
 
 function show() {
     clear()
-    const properties = tabStore.getMainTab().getVisibleProperties()
+    const properties = tabStore.getMainTab()?.getVisibleProperties() ?? []
     properties.forEach(p => state.properties[p.id] = true)
     // state.properties[-1] = true
+}
+
+// The filter pipeline works on slots now, so map them back to instance ids.
+function getFilteredIds() {
+    const collection = tabStore.getMainTab()?.collection
+    if (!collection) return []
+    const ids = col.instanceIds()
+    return Array.from(collection.filterManager.result.slots).map(s => ids[s])
 }
 
 async function buildRequest() {
@@ -96,14 +104,16 @@ async function buildRequest() {
         req.images = col.getSelectedIds()
     }
     if (state.selection == 'filtered') {
-        req.images = tabStore.getMainTab().collection.filterManager.result.images.map(i => i.id)
+        req.images = getFilteredIds()
     }
     req.key = state.key
     isLoading.value = true
     await sleep(100)
-    console.log(req)
-    await apiExportProperties(req.name, req.images, req.key, req.properties, req.exportImages)
-    isLoading.value = false
+    try {
+        await apiExportProperties(req.name, req.images, req.key, req.properties, req.exportImages)
+    } finally {
+        isLoading.value = false
+    }
     modalElem.value.hide()
 }
 

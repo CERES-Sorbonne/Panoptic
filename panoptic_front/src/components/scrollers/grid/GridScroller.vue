@@ -148,7 +148,6 @@ function onScroll(event: Event) {
 
 function computeLines() {
     if (!props.manager.result.root) return
-    console.time('Table compute lines')
     const lines: ScrollerLine[] = []
     const ids = columnStore.instanceIds()
     const defaultSize = props.showImages ? props.imageSize + 4 : 28
@@ -214,7 +213,6 @@ function computeLines() {
     _winStart = -1
     _winEnd   = -1
     rebuildWindow()
-    console.timeEnd('Table compute lines')
 }
 
 function resizeHeight(item: ScrollerLine, h: number) {

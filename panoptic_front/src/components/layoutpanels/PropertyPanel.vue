@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// Properties / Export tool-window root node — inserted into the sidebar
-// split's #secondary. Shows either the property list or the export actions
-// depending on which bottom panel is active.
+// Properties tool-window root node — inserted into the sidebar split's
+// #secondary. Export is a modal (ExportModal2), not a panel.
 import IslandPanel from '@/layouts/IslandPanel.vue'
 import TabContainer from '@/components/TabContainer.vue'
 import PropertyGroupPanel from './PropertyGroupPanel.vue'
@@ -17,20 +16,19 @@ const tabStore = useTabStore()
 const data = useDataStore()
 const panoptic = usePanopticStore()
 
-const isPropertiesPanel = uiStore.panelStates.activeBottomPanel === 'properties'
 </script>
 
 <template>
     <IslandPanel grow>
         <template #header>
             <div class="tw-header">
-                <span class="tw-title">{{ uiStore.panelStates.activeBottomPanel === 'export' ? 'Export' : 'Properties' }}</span>
+                <span class="tw-title">Properties</span>
                 <div class="tw-actions">
-                    <button v-if="isPropertiesPanel" class="tw-action" title="Add property"
+                    <button class="tw-action" title="Add property"
                         @click="panoptic.showModal(ModalId.PROPERTY); goNext()">
                         <i class="bi bi-plus-lg"></i>
                     </button>
-                    <button v-if="isPropertiesPanel" class="tw-action" title="Add group"
+                    <button class="tw-action" title="Add group"
                         @click="data.addPropertyGroup('New Group')">
                         <i class="bi bi-plus-lg"></i>
                     </button>
@@ -40,27 +38,11 @@ const isPropertiesPanel = uiStore.panelStates.activeBottomPanel === 'properties'
             </div>
         </template>
         <div class="tw-body">
-            <template v-if="uiStore.panelStates.activeBottomPanel === 'export'">
-                <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
-                    <i class="export-icon bi bi-download"></i>
-                    <span>Export as CSV</span>
-                </button>
-                <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
-                    <i class="export-icon bi bi-download"></i>
-                    <span>Export as JSON</span>
-                </button>
-                <button class="export-row" @click="uiStore.panelStates.activeBottomPanel = null">
-                    <i class="export-icon bi bi-download"></i>
-                    <span>Export images</span>
-                </button>
-            </template>
-            <template v-else>
-                <TabContainer :id="tabStore.mainTab">
-                    <template #default="{ tab }">
-                        <PropertyGroupPanel :tab="tab" />
-                    </template>
-                </TabContainer>
-            </template>
+            <TabContainer :id="tabStore.mainTab">
+                <template #default="{ tab }">
+                    <PropertyGroupPanel :tab="tab" />
+                </template>
+            </TabContainer>
         </div>
     </IslandPanel>
 </template>
@@ -112,28 +94,4 @@ const isPropertiesPanel = uiStore.panelStates.activeBottomPanel === 'properties'
     padding: var(--spacing-xs) 0;
 }
 
-/* Export list */
-.export-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    width: 100%;
-    height: 30px;
-    padding: 0 var(--spacing-sm);
-    background: none;
-    border: none;
-    text-align: left;
-    color: var(--text-primary);
-    font-size: var(--font-size-sm);
-    transition: background-color var(--transition-fast);
-}
-
-.export-row:hover {
-    background-color: var(--hover-bg);
-}
-
-.export-icon {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-}
 </style>

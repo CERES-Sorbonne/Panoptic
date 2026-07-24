@@ -11,7 +11,7 @@ import { deepCopy } from '@/utils/utils'
 
 console.log('[uiStore] Module loaded')
 
-export type BottomPanel = 'properties' | 'import' | 'export' | null
+export type BottomPanel = 'properties' | null
 
 export interface PanelStates {
     leftPanelOpen: boolean
@@ -100,6 +100,11 @@ export const useUiStore = defineStore('uiStore', () => {
                 console.log('[uiStore] Applying layout:', layout)
                 if (layout.panelStates) {
                     Object.assign(panelStates, layout.panelStates)
+                    // 'import'/'export' used to be bottom panels, they are modals now:
+                    // a stale saved value would open the sidebar on nothing.
+                    if (panelStates.activeBottomPanel !== 'properties') {
+                        panelStates.activeBottomPanel = null
+                    }
                 }
                 if (layout.resizeStates) {
                     Object.assign(resizeStates, layout.resizeStates)

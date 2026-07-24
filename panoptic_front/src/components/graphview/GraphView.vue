@@ -29,7 +29,6 @@ const chartInstanceIds = computed(() => {
             }
         }
     }
-    console.log(Object.keys(ids).length)
     return Array.from(ids)
 })
 

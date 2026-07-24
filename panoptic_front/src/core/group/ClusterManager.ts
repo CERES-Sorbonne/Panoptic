@@ -37,7 +37,7 @@ export class ClusterManager implements GroupOpsHost {
     removeChildren(group: Group) { this.host.removeChildren(group) }
     regsiterGroup(group: Group) { this.host.regsiterGroup(group) }
     buildOrdinalRanges() { this.host.buildOrdinalRanges() }
-    applySha1Piles() { this.host.applySha1Piles() }
+    applySha1Piles(only?: Iterable<Group>) { this.host.applySha1Piles(only) }
     invalidateIterators() { this.host.invalidateIterators() }
     emitResult() { this.host.emitResult() }
 
@@ -94,6 +94,14 @@ export class ClusterManager implements GroupOpsHost {
             for (const target of Array.from(toInsert)) {
                 const parent = this.host.result.index[target]
                 if (parent) {
+                    toInsert.delete(target)
+                    insert = true
+                    // Leaf-only: setChildGroup REPLACES the parent's children, so replaying a
+                    // cluster onto a group that now has property sub-groups (a grouping level
+                    // added since) would silently delete that level. Nested replay is
+                    // unaffected — a cluster's own children are grafted after it, when it is
+                    // still a leaf.
+                    if (parent.children.length > 0) continue
                     const parentSlots = new Set<number>(parent.slots)
                     const reconciled = lastCustom[target]
                         .map(g => {
@@ -101,9 +109,9 @@ export class ClusterManager implements GroupOpsHost {
                             return g
                         })
                         .filter(g => g.slots.length > 0 || g.isLeftover)
-                    if (reconciled.length) this.addCustomGroups(target, reconciled)
-                    toInsert.delete(target)
-                    insert = true
+                    // Attach only: group() finalises the pile overlay + display order once,
+                    // right after this replay.
+                    if (reconciled.length) groupOps.attachCustomGroups(this, target, reconciled)
                 }
             }
         }
@@ -183,7 +191,8 @@ export class ClusterManager implements GroupOpsHost {
             if (list) this.customGroups[parent.id] = list.filter(g => g.id !== groupId)
         }
 
-        this.host.applySha1Piles()
+        // Only the drained group and the bucket it came from changed.
+        this.host.applySha1Piles(group.parent ? [group, group.parent] : [group])
         setOrder(this.host.result.root)
         this.host.buildOrdinalRanges()
         if (emit) this.host.emitResult()

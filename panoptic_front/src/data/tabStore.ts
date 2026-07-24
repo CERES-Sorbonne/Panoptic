@@ -88,7 +88,7 @@ export const useTabStore = defineStore('tabStore', () => {
         flushSave = () => {}
         loaded.value = false
         mainTab.value = null
-        for (const k of Object.keys(managers)) delete managers[k]
+        for (const k of Object.keys(managers)) { managers[k].dispose(); delete managers[k] }
         loadedTabs.value = []
         Object.keys(tabs).forEach(k => delete tabs[k])
     }
@@ -192,6 +192,7 @@ export const useTabStore = defineStore('tabStore', () => {
 
     async function deleteTab(id: string) {
         loadedTabs.value = loadedTabs.value.filter(t => t != id)
+        managers[id]?.dispose()
         delete managers[id]
         delete tabs[id]
         await Promise.all([

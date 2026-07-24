@@ -182,6 +182,9 @@
             "open": "Sélectionner"
         },
         "image": {
+            "properties": "Propriétés",
+            "properties_tooltip": "Afficher / Masquer le panneau des propriétés",
+            "history_tooltip": "Afficher / Masquer l'historique de navigation",
             "similar_images": "Images similaires",
             "similar_images_tooltip": "Des images considérées comme visuellement et / ou sémantiquement proches de l'image courante en utilisant l'algorithme KDTree et des vecteurs d'image",
             "unique_properties": "Propriétés des instances",

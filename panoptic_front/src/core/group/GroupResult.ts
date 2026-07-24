@@ -21,9 +21,18 @@ export class GroupResult implements GroupTree, IteratorHost {
     index: GroupIndex
     imageToGroups: Map<number, Set<number>>
     valueIndex: GroupValueIndex
-    orderedIds: Int32Array
     cacheStale: boolean
     pileIndex: Map<number, PileData>
+
+    private _orderedIds: Int32Array
+
+    // Instance IDs in DFS display order. Materialised on read: every structural edit only
+    // marks it stale (buildOrdinalRanges), so a drag-and-drop no longer pays a full-collection
+    // sweep for an order nothing may look at.
+    get orderedIds(): Int32Array {
+        this.ensureOrderedIds()
+        return this._orderedIds
+    }
 
     // Result-change signal. Bumped whenever the tree changes; UI watches this and
     // re-reads the (non-reactive) tree. onResultChange is the legacy event kept during
@@ -38,7 +47,7 @@ export class GroupResult implements GroupTree, IteratorHost {
         this.index = {}
         this.imageToGroups = new Map()
         this.valueIndex = new GroupValueIndex()
-        this.orderedIds = new Int32Array(0)
+        this._orderedIds = new Int32Array(0)
         this.cacheStale = false
         this.pileIndex = new Map()
         this.version = ref(0)
@@ -53,7 +62,7 @@ export class GroupResult implements GroupTree, IteratorHost {
         this.index = {}
         this.imageToGroups = new Map()
         this.valueIndex = new GroupValueIndex()
-        this.orderedIds = new Int32Array(0)
+        this._orderedIds = new Int32Array(0)
         this.cacheStale = false
         this.pileIndex = new Map()
     }
@@ -82,29 +91,53 @@ export class GroupResult implements GroupTree, IteratorHost {
         return new ImageIterator(this, groupId, imageIdx, options)
     }
 
-    findImageIterator(groupId: number, imageId: number) {
-        const col = useColumnStore()
+    // The image's iterator within `groupId`, or undefined when the group is gone or no
+    // longer holds it. It used to fall through with idx = -1, producing an iterator whose
+    // slot was undefined — callers then "selected" it and wrote a junk key into the mask.
+    findImageIterator(groupId: number, imageId: number): ImageIterator | undefined {
         const group = this.index[groupId]
-        const targetSlot = col.slotMap.get(imageId)
-        let idx = -1
-        if (targetSlot !== undefined) {
-            const pile = this.pileIndex.get(groupId)
-            idx = pile ? pileIndexOfSlot(pile, targetSlot) : group.slots.indexOf(targetSlot)
-        }
+        if (!group) return undefined
+        const targetSlot = useColumnStore().slotMap.get(imageId)
+        if (targetSlot === undefined) return undefined
+        const pile = this.pileIndex.get(groupId)
+        const idx = pile ? pileIndexOfSlot(pile, targetSlot) : group.slots.indexOf(targetSlot)
+        if (idx < 0) return undefined
         return this.getImageIterator(groupId, idx)
     }
 
     // ── Ordinal ranges / display order ─────────────────────────────────────────
 
-    // Build start/end offsets for all groups and fill orderedIds (instance IDs in DFS display
-    // order). Single DFS pass: root.slots.length is the pre-known total, so we pre-allocate and
-    // fill in one sweep.
+    // Invalidate the display order (orderedIds + every group's start/end). Called after each
+    // structural change; the rebuild itself happens lazily in ensureOrderedIds.
     buildOrdinalRanges(): void {
-        if (!this.root) return
-        const ids = useColumnStore().instanceIds()
-        const orderedIds = new Int32Array(this.root.slots.length)
-        let pos = 0
+        this.cacheStale = true
+    }
 
+    // Build start/end offsets for all groups and fill orderedIds (instance IDs in DFS display
+    // order), if a structural change invalidated them.
+    ensureOrderedIds(): void {
+        if (!this.cacheStale) return
+        this.cacheStale = false
+        if (!this.root) { this._orderedIds = new Int32Array(0); return }
+        const ids = useColumnStore().instanceIds()
+
+        // The total is NOT root.slots.length: under tag grouping one instance lands in several
+        // leaves, so the DFS emits more entries than the root holds. Pre-sizing from the root
+        // silently dropped that overflow (typed-array writes past the end are no-ops), leaving
+        // a truncated order and out-of-range start/end. Count the leaves first instead.
+        let total = 0
+        const count = (group: Group): void => {
+            if (group.children.length === 0) {
+                const pile = this.pileIndex.get(group.id)
+                total += pile ? pile.order.length : group.slots.length
+            } else {
+                for (const child of group.children) count(child)
+            }
+        }
+        count(this.root)
+
+        const orderedIds = new Int32Array(total)
+        let pos = 0
         const dfs = (group: Group): void => {
             group.start = pos
             if (group.children.length === 0) {
@@ -119,7 +152,6 @@ export class GroupResult implements GroupTree, IteratorHost {
         }
         dfs(this.root)
 
-        this.orderedIds = orderedIds
-        this.cacheStale = false
+        this._orderedIds = orderedIds
     }
 }

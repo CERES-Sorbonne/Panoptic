@@ -120,7 +120,7 @@ export class TabManager {
     }
 
     deactivate() {
-        for (const id in this.collections) this.collections[id].runState.active = false
+        for (const id in this.collections) this.collections[id].setActive(false)
     }
 
     activate() {
@@ -128,8 +128,20 @@ export class TabManager {
         // lazily when their view becomes visible (e.g. split toggled on).
         const active = new Set(this.activeCollections)
         for (const id in this.collections) {
-            this.collections[id].runState.active = active.has(this.collections[id])
+            this.collections[id].setActive(active.has(this.collections[id]))
         }
+    }
+
+    // Tear down every runtime collection. Must be called when the tab is dropped
+    // (deleted, or the whole store cleared): each CollectionManager holds a
+    // dataStore.onChange listener plus config watches that would otherwise keep
+    // recomputing the pipeline for a tab that no longer exists.
+    dispose() {
+        for (const id of Object.keys(this.collections)) {
+            this.collections[id].dispose()
+            delete this.collections[id]
+        }
+        this.onLoad.clear()
     }
 
     verifyState() {
@@ -182,7 +194,7 @@ export class TabManager {
     }
 
     getSha1Mode() {
-        return this.collection.groupManager.state.sha1Mode
+        return this.collection.groupState.sha1Mode
     }
 
     getVisibleProperties() {

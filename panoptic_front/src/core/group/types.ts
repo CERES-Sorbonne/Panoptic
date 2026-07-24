@@ -37,7 +37,8 @@ export interface Group {
     depth: number
     order: number
 
-    // Offsets into GroupTree.orderedIds — set by buildOrdinalRanges() after each rebuild.
+    // Offsets into GroupTree.orderedIds. Computed lazily with it (GroupResult.ensureOrderedIds),
+    // so read them through orderedIds / ensureOrderedIds rather than straight after an edit.
     start: number
     end: number
 
@@ -76,7 +77,7 @@ export interface GroupTree {
     index: GroupIndex
     imageToGroups: Map<number, Set<number>>  // instanceId → Set<leafGroupId>
     valueIndex: GroupValueIndex               // persistent across rebuilds — stable group IDs
-    orderedIds: Int32Array                    // instance IDs in DFS display order
+    readonly orderedIds: Int32Array           // instance IDs in DFS display order (lazy — see GroupResult)
     cacheStale: boolean
     // sha1Mode display overlay — non-destructive. Keyed by leaf group id; present only
     // for leaves that actually contain duplicate-sha1 instances. Absent leaves render flat.
@@ -107,6 +108,9 @@ export interface IteratorHost {
     index: GroupIndex
     pileIndex: Map<number, PileData>
     registerIterator(it: GroupIterator): void
+    // Materialise the display order if a structural change invalidated it. Only the
+    // position-reporting iterator methods need it (start/end are lazy now).
+    ensureOrderedIds(): void
 }
 
 // The tree-mutation primitives the cluster ops delegate to (provided by the tree layer /
@@ -117,7 +121,8 @@ export interface ClusterOpsHost {
     removeChildren(group: Group): void
     regsiterGroup(group: Group): void
     buildOrdinalRanges(): void
-    applySha1Piles(): void
+    // `only` limits the recompute to the given leaves; omitted = full rebuild.
+    applySha1Piles(only?: Iterable<Group>): void
     invalidateIterators(): void
     emitResult(): void
 }

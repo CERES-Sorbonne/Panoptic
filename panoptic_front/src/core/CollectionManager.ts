@@ -49,6 +49,8 @@ export class CollectionManager {
     private runToken = 0
     private pendingKind: ReloadKind | null = null
     private reloadTimer: ReturnType<typeof setTimeout> | null = null
+    // In-flight data-driven reflow (see updateInstances / settle).
+    private pending: Promise<void> | null = null
 
     // Lifecycle: stop handles for the config watches + the bound data listener,
     // so a collection can be torn down when its last view stops referencing it
@@ -137,6 +139,12 @@ export class CollectionManager {
     setGroupOption(...args: Parameters<GroupManager['setGroupOption']>) { return this.groupManager.setGroupOption(...args) }
     delGroupOption(...args: Parameters<GroupManager['delGroupOption']>) { return this.groupManager.delGroupOption(...args) }
     setSha1Mode(value: boolean, emit?: boolean) { return this.groupManager.setSha1Mode(value, emit) }
+    sortGroups(emit?: boolean) { return this.groupManager.sortGroups(emit) }
+
+    // Open / close — completes the inspection API so views never need `.groupManager`.
+    toggleGroup(groupId: number, emit?: boolean) { return this.groupManager.toggleGroup(groupId, emit) }
+    openGroup(groupId: number, emit?: boolean) { return this.groupManager.openGroup(groupId, emit) }
+    closeGroup(groupId: number, emit?: boolean) { return this.groupManager.closeGroup(groupId, emit) }
 
     // Selection
     setSelectionNamespace(ns: string) { return this.groupManager.setSelectionNamespace(ns) }
@@ -169,25 +177,28 @@ export class CollectionManager {
         this.runState.isDirty = true
         if (!this.runState.active) return
 
-        if (this.state.filterBySelection) {
+        // Narrow to the selection on a copy: the payload is shared with every other
+        // collection listening to the same data change, so it must never be mutated here.
+        let dirty = instanceIds
+        if (dirty && this.state.filterBySelection) {
             const col = useColumnStore()
-            for (const id of Array.from(instanceIds)) {
-                if (!col.isSelectedId(id)) instanceIds.delete(id)
-            }
+            const kept = new Set<number>()
+            for (const id of dirty) if (col.isSelectedId(id)) kept.add(id)
+            dirty = kept
         }
 
         if (this.state.autoReload) {
-            if (instanceIds) {
-                const filterUpdate = await this.filterManager.updateSelection(instanceIds)
+            if (dirty) {
+                const filterUpdate = await this.filterManager.updateSelection(dirty)
                 this.sortManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 if (this.groupManager.result.root) {
                     this.groupManager.updateSelection(filterUpdate.updated, filterUpdate.removed)
                 } else {
-                    this.groupManager.group(this.sortManager.result.slots, true)
+                    await this.groupManager.group(this.sortManager.result.slots, true)
                 }
                 this.runState.isDirty = false
             } else {
-                this.update()
+                await this.update()
             }
         }
     }
@@ -205,36 +216,41 @@ export class CollectionManager {
         const deleted     = col.deletedMask()
         const instanceIds = col.instanceIds()
 
-        // Build Int32Array of active slots — no Instance objects created.
-        let slots: Int32Array
+        // Build Int32Array of active slots — no Instance objects created. Written straight
+        // into a pre-allocated typed array (slotCount is the exact upper bound) instead of a
+        // boxed number[] + copy, which doubled peak memory on large collections.
+        const buf = new Int32Array(count)
+        let n = 0
         if (this.state.instances) {
             const allowed = new Set(this.state.instances)
-            const sub: number[] = []
             for (let s = 0; s < count; s++) {
-                if (!deleted[s] && allowed.has(instanceIds[s])) sub.push(s)
+                if (!deleted[s] && allowed.has(instanceIds[s])) buf[n++] = s
             }
-            slots = new Int32Array(sub)
         } else {
-            const all: number[] = []
             for (let s = 0; s < count; s++) {
-                if (!deleted[s]) all.push(s)
+                if (!deleted[s]) buf[n++] = s
             }
-            slots = new Int32Array(all)
         }
 
         if (this.state.filterBySelection) {
-            const sel: number[] = []
-            for (let i = 0; i < slots.length; i++) {
-                if (col.isSelected(slots[i])) sel.push(slots[i])
+            let k = 0
+            for (let i = 0; i < n; i++) {
+                if (col.isSelected(buf[i])) buf[k++] = buf[i]
             }
-            slots = new Int32Array(sel)
+            n = k
         }
+        // FilterManager retains this array (lastSlots), so hand it an exactly-sized one
+        // rather than a view that pins the full-slotCount buffer alive.
+        const slots = n === count ? buf : buf.slice(0, n)
 
         const filterRes = await this.filterManager.filter(slots)
         if (token !== this.runToken) return
         const sortRes   = await this.sortManager.sort(filterRes.slots)
         if (token !== this.runToken) return
-        this.groupManager.group(sortRes.slots, true)
+        // Awaited: group() loads any missing columns first, so leaving it dangling cleared
+        // isDirty (and resolved TabManager.update) before the tree actually existed.
+        await this.groupManager.group(sortRes.slots, true)
+        if (token !== this.runToken) return
         this.runState.isDirty = false
     }
 
@@ -264,31 +280,62 @@ export class CollectionManager {
         if (kind === 'sort') {
             const sortRes = await this.sortManager.sort(this.filterManager.result.slots)
             if (token !== this.runToken) return
-            this.groupManager.group(sortRes.slots, true)
+            await this.groupManager.group(sortRes.slots, true)
+            if (token !== this.runToken) return
             this.runState.isDirty = false
             return
         }
         if (kind === 'group') {
-            this.groupManager.group(this.sortManager.result.slots, true)
+            await this.groupManager.group(this.sortManager.result.slots, true)
+            if (token !== this.runToken) return
             this.runState.isDirty = false
             return
         }
         if (kind === 'sortGroups') {
             this.groupManager.sortGroups(true)
+            this.runState.isDirty = false
         }
     }
 
     updateInstances(instanceIds: Set<number>) {
-        this.setDirty(instanceIds)
+        // Keep the in-flight reflow so callers that write a value and then act on the
+        // resulting tree (e.g. assign-then-drain in the group view) can await it.
+        this.pending = this.setDirty(instanceIds).catch(e => { console.error('[collection] update failed', e) })
+    }
+
+    // Resolve once no data-driven reflow is in flight. Chains rather than snapshots, so a
+    // reflow started while awaiting an earlier one is covered too.
+    async settle(): Promise<void> {
+        while (this.pending) {
+            const p = this.pending
+            await p
+            if (this.pending === p) this.pending = null
+        }
+    }
+
+    // Activate / deactivate. Going inactive must also drop any debounced reload, otherwise a
+    // timer armed while visible still fires (and recomputes) after the tab is hidden.
+    setActive(value: boolean) {
+        this.runState.active = value
+        if (!value && this.reloadTimer) {
+            clearTimeout(this.reloadTimer)
+            this.reloadTimer = null
+            this.pendingKind = null
+        }
     }
 
     // Tear down all reactive subscriptions. Called when the last view that
-    // referenced this collection stops doing so (TabManager.pruneCollections).
+    // referenced this collection stops doing so (TabManager.pruneCollections),
+    // and when the owning tab is deleted (TabManager.dispose).
     dispose() {
         this.stops.forEach(stop => stop())
         this.stops = []
         useDataStore().onChange.removeListener(this.boundUpdateInstances)
         if (this.reloadTimer) { clearTimeout(this.reloadTimer); this.reloadTimer = null }
+        this.pendingKind = null
         this.runState.active = false
+        // Bump the token so any run still awaiting a column load bails instead of writing
+        // results into a collection nobody references anymore.
+        this.runToken++
     }
 }

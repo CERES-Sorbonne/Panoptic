@@ -492,11 +492,9 @@ export class FilterManager {
     }
 
     async filter(slots: Int32Array, emit?: boolean) {
-        console.time('Filter')
         this.lastSlots = slots
         const res = await this.filterSlots(slots)
         this.result.slots = res.valid
-        console.timeEnd('Filter')
         if (emit) this.onResultChange.emit(this.result)
         return this.result
     }

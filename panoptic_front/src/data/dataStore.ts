@@ -172,7 +172,10 @@ export const useDataStore = defineStore('dataStore', () => {
         triggerRef(propertyGroups)
 
         if (dirtyInstances.size > 0 || dirtyPropIds.size > 0) {
-            onChange.emit(Array.from(dirtyInstances))
+            // Emit a Set (the contract every listener is typed against) built as a COPY:
+            // dirtyInstances is cleared right after, and listeners may hold on to / narrow
+            // the payload, so they must never share this store's own set.
+            onChange.emit(new Set(dirtyInstances))
             dirtyInstances.clear()
             dirtyPropIds.clear()
         }

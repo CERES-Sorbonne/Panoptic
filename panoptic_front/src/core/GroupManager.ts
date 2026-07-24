@@ -4,7 +4,8 @@
  *
  * Key invariants:
  *  - Group.slots: number[]         — column-store slot indices
- *  - GroupTree.orderedIds           — instance IDs in DFS display order (rebuilt after each structural change)
+ *  - GroupTree.orderedIds           — instance IDs in DFS display order (invalidated by each structural
+ *                                     change, rebuilt lazily on read — see GroupResult.ensureOrderedIds)
  *  - GroupValueIndex is persistent  — group IDs are stable across rebuilds (view state preserved)
  *  - imageToGroups: Map<instanceId, Set<leafGroupId>>  — O(1) lookup and delete
  *  - computePropertySubGroup pre-buckets slots before key construction — zero per-slot spread allocations
@@ -32,6 +33,7 @@ import { GroupIterator, ImageIterator, GroupIteratorOptions } from "./group/Grou
 import { GroupResult } from "./group/GroupResult";
 import { GroupNavigator } from "./group/GroupNavigator";
 import { ClusterManager } from "./group/ClusterManager";
+import { refreshSubGroupType } from "./group/groupOps";
 
 // ── Barrel re-exports — keep `@/core/GroupManager` as the public entry point ─
 export { GroupType, GroupSortType } from "./group/types";
@@ -60,6 +62,9 @@ export class GroupManager implements ClusterOpsHost {
     // _posArr[slot] = display position; replaces ImageOrder = {[slot]: pos}.
     private _posArr: Int32Array
     private _posMaxSlot: number
+    // Number of slots in the last group() call — the base position handed to slots that
+    // appeared since (so they sort after everything the last full sort ordered).
+    private _posCount = 0
     // When true, saveImagesToGroup is a no-op — avoids redundant Map writes during full rebuild.
     private _rebuildingTree = false
     // Leaf groups collected during computePropertySubGroup — avoids Object.values() in post-loop.
@@ -112,17 +117,19 @@ export class GroupManager implements ClusterOpsHost {
 
     async group(slots: Int32Array, emit?: boolean): Promise<GroupTree> {
         await this._ensureColumns()
-        console.time('Group')
         const data = useDataStore()
         this.invalidateIterators()
 
         // Build slot→position as typed array — O(1) access vs plain-object hash lookup.
         // Single pass to find maxSlot so we can pre-allocate the exact typed array size.
+        // Pre-filled with -1 so "position 0" and "slot absent from this run" stay
+        // distinguishable (see slotPos, used by the incremental re-sort).
         let maxSlot = 0
         for (let i = 0; i < slots.length; i++) if (slots[i] > maxSlot) maxSlot = slots[i]
-        this._posArr = new Int32Array(maxSlot + 1)
+        this._posArr = new Int32Array(maxSlot + 1).fill(-1)
         for (let i = 0; i < slots.length; i++) this._posArr[slots[i]] = i
         this._posMaxSlot = maxSlot
+        this._posCount = slots.length
 
         const lastIndex = this.result.index ?? {}
         this.result.root = buildRoot(Array.from(slots))
@@ -165,7 +172,6 @@ export class GroupManager implements ClusterOpsHost {
 
         setOrder(this.result.root)
         this.buildOrdinalRanges()
-        console.timeEnd('Group')
         if (emit) this.emitResult()
         return this.result
     }
@@ -212,8 +218,10 @@ export class GroupManager implements ClusterOpsHost {
 
     addInstanceToGroups(slot: number, properties: PropertyIndex, tags: TagIndex, tagParentsByProp: { [propId: number]: { [id: number]: Set<number> } }) {
         const col = useColumnStore()
-        const keys = []
-        let previousKeys = []
+        // The running set of value-keys for this slot, one per level descended so far. (There
+        // used to be a parallel `keys` accumulator collecting every level's keys; nothing read
+        // it, and its `push(...spread)` risked blowing the stack on a wide tag fan-out.)
+        let previousKeys: any[][] = []
 
         for (const propId of this.state.groupBy) {
             const property = properties[propId]
@@ -248,14 +256,12 @@ export class GroupManager implements ClusterOpsHost {
             }
 
             if (previousKeys.length == 0) {
-                keys.push(...values.map(v => [v]))
                 previousKeys = values.map(v => [v])
             } else {
-                const newKeys = []
+                const newKeys: any[][] = []
                 for (const prevK of previousKeys) {
                     for (const val of values) newKeys.push([...prevK, val])
                 }
-                keys.push(...newKeys)
                 previousKeys = newKeys
             }
 
@@ -298,6 +304,15 @@ export class GroupManager implements ClusterOpsHost {
         if (emit) this.emitResult()
     }
 
+    // Display position of a slot under the last full sort. Slots that appeared after it
+    // (newly imported instances) have no recorded position: give them one past the end,
+    // ordered by slot index, so they land at the END of their group. Reading the raw array
+    // instead put them at position 0, i.e. ahead of everything, whatever the sort said.
+    private slotPos(slot: number): number {
+        const p = slot <= this._posMaxSlot ? this._posArr[slot] : -1
+        return p >= 0 ? p : this._posCount + slot
+    }
+
     private saveImagesToGroup(group: Group) {
         if (this._rebuildingTree) return
         const ids = useColumnStore().instanceIds()
@@ -313,18 +328,35 @@ export class GroupManager implements ClusterOpsHost {
     // computes a PileData per final leaf that has duplicate sha1s and stores it in
     // result.pileIndex, leaving group.slots/children untouched. Called as the final step
     // of group()/custom-group mutations so it composes over property + cluster groups.
-    applySha1Piles() {
+    // `only` restricts the recompute to the leaves an edit actually touched — a drag between
+    // two groups changed two leaves, not the whole tree, and the full sweep is O(all slots).
+    // Omit it for a full rebuild (after group() / a structural op that moved many nodes).
+    applySha1Piles(only?: Iterable<Group>) {
         this.invalidateIterators()
-        this.result.pileIndex = new Map()
-        if (!this.state.sha1Mode) return
+        if (!this.state.sha1Mode) {
+            if (this.result.pileIndex.size) this.result.pileIndex = new Map()
+            return
+        }
         const col = useColumnStore()
         const sha1s = col.sha1s()
         const ids = col.instanceIds()
-        for (const group of Object.values(this.result.index) as Group[]) {
-            if (group.children.length > 0) continue
+        const recompute = (group: Group) => {
+            // Detached (no longer the node registered under its id) or no longer a leaf:
+            // it must not keep a pile entry.
+            if (!group || this.result.index[group.id] !== group || group.children.length > 0) {
+                if (group) this.result.pileIndex.delete(group.id)
+                return
+            }
             const pile = computeSha1Piles(group.slots, sha1s, ids)
             if (pile) this.result.pileIndex.set(group.id, pile)
+            else this.result.pileIndex.delete(group.id)
         }
+        if (only) {
+            for (const group of only) recompute(group)
+            return
+        }
+        this.result.pileIndex = new Map()
+        for (const group of Object.values(this.result.index) as Group[]) recompute(group)
     }
 
     hasResult() {
@@ -363,18 +395,31 @@ export class GroupManager implements ClusterOpsHost {
         Object.keys(this.state.options)
             .filter(id => !properties[Number(id)] || properties[Number(id)].id == deletedID)
             .forEach(id => delete this.state.options[Number(id)])
+        // Every grouped property MUST have an option object: computePropertySubGroup and
+        // sortGroup dereference it unconditionally, so a persisted state missing one (or a
+        // groupBy written without going through setGroupOption) crashed the whole build.
+        for (const id of this.state.groupBy) {
+            if (!this.state.options[id]) this.state.options[id] = buildGroupOption(id, properties)
+        }
     }
 
     invalidateIterators() {
         this.result.invalidateIterators()
     }
 
+    // Detach a group's children — the WHOLE subtree, not just the direct children: a
+    // grandchild left registered in `result.index` is an orphan no longer reachable from the
+    // tree, yet still walked by every objValues(index) sweep (updateSelection, applySha1Piles)
+    // and still resolvable by getGroupIterator(id).
     removeChildren(group: Group) {
-        group.children.forEach(c => {
+        const detach = (c: Group) => {
+            c.children.forEach(detach)
             delete this.result.index[c.id]
             if (c.key.length) this.result.valueIndex.delete(c.key)
+            this.result.pileIndex.delete(c.id)
             this.removeImageToGroups(c)
-        })
+        }
+        group.children.forEach(detach)
         group.children.length = 0
         group.subGroupType = undefined
     }
@@ -405,6 +450,17 @@ export class GroupManager implements ClusterOpsHost {
         for (const instanceId of updated) {
             this.result.imageToGroups.get(instanceId)?.forEach(g => dirtyGroupIds.add(g))
         }
+        // imageToGroups only holds the DEEPEST property level (plus clusters), so with nested
+        // grouping the intermediate parents never showed up here: their stale slots were never
+        // dropped while addInstanceToGroups re-added the slot at every level, leaving the image
+        // counted in both its old and new first-level group. Walk up and mark the whole chain.
+        for (const gid of Array.from(dirtyGroupIds)) {
+            let parent = this.result.index[gid]?.parent
+            while (parent && !dirtyGroupIds.has(parent.id)) {
+                dirtyGroupIds.add(parent.id)
+                parent = parent.parent
+            }
+        }
         dirtyGroupIds.add(0)
 
         const ids = col.instanceIds()
@@ -433,7 +489,10 @@ export class GroupManager implements ClusterOpsHost {
         this.addUpdatedToGroups(new Int32Array(updatedSlots))
 
         for (const group of objValues(this.result.index)) {
-            if (group.slots.length == 0) delete this.result.index[group.id]
+            // NEVER unregister the root (id 0): result.root keeps pointing at it, so dropping
+            // it from the index left hasResult() true while every iterator resolved to
+            // undefined, and no later updateSelection could repopulate it.
+            if (group.id !== 0 && group.slots.length == 0) delete this.result.index[group.id]
             const oldLen = group.children.length
             group.children = group.children.filter(g => g.slots.length > 0)
             if (group.children.length < oldLen) group.dirty = true
@@ -465,7 +524,7 @@ export class GroupManager implements ClusterOpsHost {
                 }
             }
             if (group.type != GroupType.Cluster) {
-                group.slots.sort((a, b) => (a <= this._posMaxSlot ? this._posArr[a] : 0) - (b <= this._posMaxSlot ? this._posArr[b] : 0))
+                group.slots.sort((a, b) => this.slotPos(a) - this.slotPos(b))
             }
             // Re-add reverse-index entries for dirty leaves only (property leaves, or root when
             // ungrouped). sha1 sub-groups were removed at the top of updateSelection, so
@@ -600,7 +659,10 @@ export class GroupManager implements ClusterOpsHost {
             this.regsiterGroup(group)
             this.saveImagesToGroup(group)
         }
-        parent.subGroupType = parent.children.length ? groups[0].type : undefined
+        // Same rule as groupOps: undefined when the children disagree. Taking children[0].type
+        // could label a mixed level "Property", and sortGroups then dereferenced
+        // meta.propertyValues[0] on a Cluster child.
+        refreshSubGroupType(parent)
     }
 
     private addChildGroup(parent: Group, group: Group) {
@@ -610,7 +672,7 @@ export class GroupManager implements ClusterOpsHost {
         parent.children.push(group)
         this.regsiterGroup(group)
         this.saveImagesToGroup(group)
-        parent.subGroupType = parent.children.length ? group.type : undefined
+        refreshSubGroupType(parent)
         this.removeImageToGroups(parent)
     }
 

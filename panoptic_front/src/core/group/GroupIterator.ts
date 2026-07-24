@@ -38,15 +38,24 @@ export class GroupIterator {
         return this.manager.index[this.groupId]
     }
 
+    // Every hop carries `this.options` forward. Without it a walk silently reverted to the
+    // defaults after one step, so `ignoreClosed` only ever applied to the first group.
+    protected at(groupId: number): GroupIterator {
+        return new GroupIterator(this.manager, groupId, this.options)
+    }
+
     nextGroup(): GroupIterator {
         let current = this.group
-        if (!current.view.closed && current.children.length > 0) {
-            return new GroupIterator(this.manager, current.children[0].id)
+        // Descend into an open group's children — or any group's, when the walk is told to
+        // ignore the open/closed state (prevGroup has always honoured that flag; forward
+        // traversal used to stop at every closed group regardless).
+        if ((!current.view.closed || this.options.ignoreClosed) && current.children.length > 0) {
+            return this.at(current.children[0].id)
         }
         let parent = current.parent
         while (parent != undefined) {
             const next = parent.children[current.parentIdx + 1]
-            if (next) return new GroupIterator(this.manager, next.id)
+            if (next) return this.at(next.id)
             current = parent
             parent = current.parent
         }
@@ -62,13 +71,13 @@ export class GroupIterator {
                 while (lastChild.children.length > 0 && (!lastChild.view.closed || this.options.ignoreClosed)) {
                     lastChild = lastChild.children[lastChild.children.length - 1]
                 }
-                return new GroupIterator(this.manager, lastChild.id)
+                return this.at(lastChild.id)
             } else {
-                return new GroupIterator(this.manager, prevSibling.id)
+                return this.at(prevSibling.id)
             }
         }
         const parent = current.parent
-        if (parent && parent.parent) return new GroupIterator(this.manager, parent.id)
+        if (parent && parent.parent) return this.at(parent.id)
         return undefined
     }
 
@@ -88,7 +97,7 @@ export class GroupIterator {
         const start = this.isBefore(other) ? this : other
         const end   = start === this ? other : this
         const selected: number[] = []
-        let it: GroupIterator = start.clone()
+        let it: GroupIterator = start
         while (it) {
             if (end.isBefore(it)) break
             for (const s of it.rangeSlots()) selected.push(s)
@@ -190,7 +199,7 @@ export class ImageIterator extends GroupIterator {
     }
 
     nextImages(): ImageIterator {
-        let current = this.clone()
+        let current: ImageIterator = this
         let nextIdx = current.imageIdx + 1
         while (current) {
             if (nextIdx < this.positionCount(current.group)) {
@@ -199,10 +208,13 @@ export class ImageIterator extends GroupIterator {
             current = current.nextGroup()
             nextIdx = 0
         }
+        return undefined
     }
 
     prevImages(): ImageIterator {
-        let current = this.clone()
+        // No clone: the walk only ever READS current and reassigns it, so cloning just added
+        // an allocation per step to a loop that runs once per image.
+        let current: ImageIterator = this
         let prevIdx = current.imageIdx - 1
         while (current) {
             if (prevIdx >= 0) {
@@ -239,6 +251,8 @@ export class ImageIterator extends GroupIterator {
     // For piled leaves: group.start + the pile's offset (bounds[imageIdx]).
     // For flat leaves: group.start + imageIdx.
     getImageOrder(): number {
+        // start/end are rebuilt lazily now — force them current before reading.
+        this.manager.ensureOrderedIds()
         const group = this.manager.index[this.groupId]
         if (!group) return 0
         const pile = this.manager.pileIndex.get(this.groupId)
