@@ -118,7 +118,6 @@ export class GroupManager implements ClusterOpsHost {
     async group(slots: Int32Array, emit?: boolean): Promise<GroupTree> {
         await this._ensureColumns()
         const data = useDataStore()
-        this.invalidateIterators()
 
         // Build slot→position as typed array — O(1) access vs plain-object hash lookup.
         // Single pass to find maxSlot so we can pre-allocate the exact typed array size.
@@ -188,7 +187,6 @@ export class GroupManager implements ClusterOpsHost {
         }
 
         const data = useDataStore()
-        this.invalidateIterators()
 
         if (this.state.groupBy.length > 0) {
             // Hoist tagWithParents out of the per-slot loop: build once per grouped tag property.
@@ -295,7 +293,6 @@ export class GroupManager implements ClusterOpsHost {
     }
 
     sortGroups(emit?: boolean) {
-        this.invalidateIterators()
         for (const group of Object.values(this.result.index) as Group[]) {
             if (group.subGroupType != GroupType.Property) continue
             if (group.children.length == 0) continue
@@ -332,7 +329,6 @@ export class GroupManager implements ClusterOpsHost {
     // two groups changed two leaves, not the whole tree, and the full sweep is O(all slots).
     // Omit it for a full rebuild (after group() / a structural op that moved many nodes).
     applySha1Piles(only?: Iterable<Group>) {
-        this.invalidateIterators()
         if (!this.state.sha1Mode) {
             if (this.result.pileIndex.size) this.result.pileIndex = new Map()
             return
@@ -403,10 +399,6 @@ export class GroupManager implements ClusterOpsHost {
         }
     }
 
-    invalidateIterators() {
-        this.result.invalidateIterators()
-    }
-
     // Detach a group's children — the WHOLE subtree, not just the direct children: a
     // grandchild left registered in `result.index` is an orphan no longer reachable from the
     // tree, yet still walked by every objValues(index) sweep (updateSelection, applySha1Piles)
@@ -425,14 +417,12 @@ export class GroupManager implements ClusterOpsHost {
     }
 
     async update(emit?: boolean): Promise<void> {
-        this.invalidateIterators()
         if (!this.result.root) return
         await this.group(new Int32Array(this.result.root.slots), emit)
     }
 
     updateSelection(updated: Set<number>, removed: Set<number>) {
         const col = useColumnStore()
-        this.invalidateIterators()
         // Pile overlay is recomputed at the end from the updated leaves; clear it up front
         // so the dirty-leaf logic below sees plain leaves (children.length === 0).
         this.result.pileIndex = new Map()

@@ -1,10 +1,22 @@
 # Mission: extract clusters + iterators from GroupManager; make CollectionManager the inspection object
 
-Prerequisite refactor for `cluster_view_goals.md` (the cluster overlay / `derive`
-model, removing `rootedAt`, can't land cleanly until this is done). Folds in the
-prior "separate cluster logic from GroupManager" analysis (verified against current
-code below) and adds one goal: **CollectionManager becomes the object views use to
-inspect a collection.**
+> **Status: DONE** (rework-front, committed through `87f97a28`). All four phases
+> landed; the group view (née cluster view) runs on the result. What is still open
+> is listed in `collection_pipeline_audit_fixes.md`, not here.
+>
+> **Revoked while implementing:** this note originally proposed a non-destructive
+> **Set overlay + per-render `derive`** for clusters (the `ClusterSet` registry
+> sketched under *Target architecture*). `cluster_view_goals.md` §"Performance &
+> data flow" settled the opposite — clusters are **grafted as real `Group` nodes**
+> into the one property tree, because at 1M images a per-render derive re-pays
+> O(|empty|) on the hot path while grafted nodes cost nothing. The sections below
+> that assume the overlay model are marked; treat `ClusterManager` in the code as
+> the authority.
+
+Prerequisite refactor for `cluster_view_goals.md`. Folds in the prior "separate
+cluster logic from GroupManager" analysis (verified against the code at the time)
+and adds one goal: **CollectionManager becomes the object views use to inspect a
+collection.**
 
 ## The problem
 
@@ -63,26 +75,19 @@ Four objects, each with one job:
 2. **GroupResult** (the result object) — owns `index`, `imageToGroups`,
    `valueIndex`, `orderedIds`, `pileIndex`, `version`, `buildOrdinalRanges`, and is
    the **`IteratorHost`** (iterators are constructed from it, not from GroupManager).
-3. **ClusterManager** — owns the cluster overlay, composed onto the result. All
-   cluster edits (`cluster`, `merge`, `split`-nest, `delete`, `rename`, `move`,
-   `assignValue`) live here. Replaces `customGroups`, the replay loop, and
-   `rootedAt`. A **registry keyed by parent group id** — pure data, no
-   parent/depth/order:
+3. **ClusterManager** — owns the cluster overlay and every cluster edit
+   (`clusterEmptyBucket`, `drain`, `merge`, `split`, `delete`, `rename`, `move`).
+   Replaces the cluster half of `GroupManager` and `rootedAt`.
 
-   ```ts
-   // per-parent cluster set; carries the function + inputs so a re-cluster can rerun
-   interface ClusterSet {
-     clusters: ClusterMember[]     // membership Sets + slotToCluster (cluster_view_goals derive)
-     function?: string             // cluster funcId
-     inputs?: ClusterParam[]
-     timestamp: number
-   }
-   type ClusterRegistry = Map<number, ClusterSet>   // parentGroupId → set
-   ```
-
-   `moveImagesToGroup` becomes a registry mutation + recompose; the cluster branches
-   fall out of `updateSelection`/`applySha1Piles` naturally (property updates never
-   touch the registry).
+   > ~~Originally specced as a pure-data `ClusterRegistry: Map<parentGroupId,
+   > ClusterSet>` of membership Sets, derived per render.~~ **Revoked** — see the
+   > status block. As built, the registry is `customGroups: {parentGroupId:
+   > Group[]}`, holding the **grafted nodes themselves**; `reapplyAfter` re-grafts
+   > them after each rebuild, intersecting each cluster's slots against its target's
+   > current slots (that intersection *is* the queue-drain). Because clusters are
+   > real nodes in the one tree, the cluster branches in `updateSelection` /
+   > `applySha1Piles` did **not** fall out — they were replaced by an explicit
+   > `ClusterManager.reconcile()` called from `updateSelection`.
 4. **CollectionManager** — **the inspection object.** Owns filter/sort/group +
    result + clusterManager, and exposes a stable API so views stop touching
    `.groupManager`. "Inspect this collection" = hold a `CollectionManager`.
@@ -90,12 +95,16 @@ Four objects, each with one job:
 ### Compose: one final tree, two sources of truth
 
 Two sources of truth (property tree + cluster registry), **one** composed
-`GroupResult` that views read. A deterministic *apply-overlays* pass replaces the
-ad-hoc `while (insert)` replay: after each property-tree rebuild, apply the registry
-(and the sha1 overlay — same shape) to produce the final tree. Traversal, iterators,
+`GroupResult` that views read. After each property-tree rebuild the registry (and
+the sha1 pile overlay) is applied to produce the final tree. Traversal, iterators,
 `orderedIds`, `imageToGroups` stay exactly as simple as today because they consult
 one tree, not two. This is the answer to "where does the overlay live": composed
 **into** `GroupResult`, not a sibling the view stitches together.
+
+*As built:* the replay is `ClusterManager.reapplyAfter()`, called by
+`GroupManager.group()` — still the fixed-point `while (insert)` loop, moved rather
+than redesigned. (The note earlier claimed a deterministic apply-overlays pass would
+replace it; it didn't, and the loop is fine — it terminates on the target index.)
 
 ## What moves out of GroupManager
 
@@ -152,8 +161,8 @@ manager).
 Then migrate the ~20 components: `collection.groupManager.result` →
 `collection.result`; `collection.groupManager.getGroupIterator()` →
 `collection.groupIterator()`; `collection.groupManager.split(...)` →
-`collection.splitNest(...)`; and `ClusterView`'s `rootedAt` clone →
-`collection.clusters` overlay + `derive`.
+`collection.splitNest(...)`; and `ClusterView`'s `rootedAt` clone → reading the
+collection's own tree directly (the clusters are already grafted into it).
 
 ## Sequence (low-risk, each step shippable)
 
@@ -173,10 +182,8 @@ so all phases are behaviour-preserving *by construction*, not runtime-verified.
    + the replay (`reapplyAfter`). `types.ts` split into `ClusterOpsHost` (tree
    primitives, implemented by `GroupManager`) + `GroupOpsHost` (adds `customGroups`,
    implemented by `ClusterManager`). Typed against the interface → no import cycle.
-   **Behaviour-preserving relocation only** — deferred to the cluster-view rebuild
-   (step 4): stripping the cluster branches from `updateSelection`/`applySha1Piles`
-   and moving `rootedAt` (both need the non-destructive Set overlay first, and there
-   are no runtime tests to catch a behaviour change).
+   **Behaviour-preserving relocation only** at this point; the cluster branches in
+   `updateSelection`/`applySha1Piles` and `rootedAt` were handled in step 4.
 3. ✅ **CollectionManager inspection API + component migration** — added the
    delegating API (`result`/`version`/`groupState`/`clusters`/iterators/grouping/
    selection/cluster-ops; `groupState` avoids clashing with `CollectionState`).
@@ -185,8 +192,14 @@ so all phases are behaviour-preserving *by construction*, not runtime-verified.
    scroller/form props (`TreeScroller`/`GridScroller`/`GroupForm`) still receive a
    `GroupManager` directly — rewiring them to `CollectionManager`/`GroupResult` is a
    distinct change, best done with the cluster-view rebuild.
-4. ⏭️ **Cluster view rebuild** (`cluster_view_goals.md`) — Set overlay + `derive`,
-   delete `rootedAt`, strip the `updateSelection` cluster branches, rewire scrollers.
+4. ✅ **Cluster view rebuild** (`cluster_view_goals.md`) — shipped as the **group
+   view**. `rootedAt` and the tree clone are gone; the view reads the collection's
+   own tree with the clusters grafted in. `ClusterManager` gained the two ops the
+   rebuild needed — `clusterEmptyBucket` (graft + materialise the `New` leftover)
+   and `drain` (the O(delta) assign primitive) — plus `reconcile()` for the
+   `updateSelection` path. The scroller props were **not** rewired: they still take
+   a `GroupManager`. That, and the inert iterator invalidation, are the live
+   leftovers — tracked in `collection_pipeline_audit_fixes.md`.
 
 Order rationale: the result object first means the cluster extraction and the API
 land on the clean structure instead of wrapping the old one.
@@ -196,19 +209,16 @@ land on the clean structure instead of wrapping the old one.
 - **Selection home.** *Not yet moved.* Selection still lives on `GroupManager`
   (`selectionNamespace`, `select*`/`toggle*`), exposed via delegating methods on
   `CollectionManager`. Still to decide: CollectionManager-level vs. a per-view
-  selection object (the cluster view already uses namespaces `cluster-view`,
+  selection object (the group view already uses namespaces `cluster-view`,
   `cluster-detail-0/1`). Leaning per-view object keyed by namespace, backed by
-  `columnStore` — do it with the cluster-view rebuild.
+  `columnStore`. The group view shipped without it — still open.
 - **Scroller coupling.** Iterator contract kept identical: the only change was the
   *host* (`GroupResult` instead of `GroupManager`) and iterators reading
   `host.index`/`host.pileIndex`. Scroller logic untouched. The scrollers still take
-  a `GroupManager` prop (deferred rewiring, step 4).
+  a `GroupManager` prop — still open.
 - **Recompose trigger.** `onResultChange` is still emitted alongside `version`
   (both on `GroupResult` now). Confirm no consumer depends on the emitted payload
   before removing the legacy event.
-- **`rootedAt` still on GroupManager** (delegated from `CollectionManager.rootedAt`)
-  — removed with the cluster-view rebuild. The one pre-existing typecheck error
-  (`string | number` id) lives here and goes away with it.
 
 Resolved by prior analysis / `cluster_view_goals.md`: overlay lives composed into
 `GroupResult` (see *Compose* above); cluster sets are **reset** on a groupBy change

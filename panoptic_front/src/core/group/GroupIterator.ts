@@ -1,6 +1,6 @@
 /**
  * GroupIterator / ImageIterator — read-only navigators over a GroupTree's display order.
- * They depend only on IteratorHost (result + registerIterator), never on the concrete
+ * They depend only on IteratorHost (tree index + pile overlay + rev), never on the concrete
  * GroupManager class, so this module has no cycle back to the manager.
  */
 import { PileData } from "../sha1Piles";
@@ -9,25 +9,47 @@ import { Group, IteratorHost } from "./types";
 export interface GroupIteratorOptions {
     ignoreClosed?: boolean
     onlyPropertyGroups?: boolean
-    register?: boolean
 }
 
 export class GroupIterator {
+    // "This iterator resolved" — set once at construction, never changed afterwards. Cheap plain
+    // field read; the scrollers walk it per image. It says nothing about later tree changes: for
+    // that, a holder that outlives a rebuild must ask `isCurrent`.
     isValid: boolean
     readonly group: Group
 
     protected manager: IteratorHost
+    // Host revision this iterator was last verified against (see isCurrent).
+    protected hostRev: number
     groupId: number
     options: GroupIteratorOptions
 
     constructor(manager: IteratorHost, groupId?: number, options?: GroupIteratorOptions) {
         this.isValid = true
         this.manager = manager
-        if (options?.register) this.manager.registerIterator(this)
+        this.hostRev = manager.rev
         this.groupId = groupId ?? 0
         this.options = options ?? {}
         this.group = this.getGroup()
         this.isValid = this.group !== undefined
+    }
+
+    // "This iterator still describes a real position in the CURRENT tree."
+    //
+    // For iterators created and consumed inside one synchronous walk this is always true and
+    // nobody needs to ask. It exists for handles held across a rebuild (the image modal and its
+    // navigation history), where `group` is a captured reference that a rebuild orphans.
+    //
+    // Strictly identity-based, on purpose: no re-resolution, no following an image that moved.
+    // Traversal is only meaningful relative to a position that still exists — if the anchor is
+    // gone, any "next" we could offer would assert an adjacency that never existed and read to
+    // the user as "these were side by side". Failing is the honest answer.
+    get isCurrent(): boolean {
+        if (this.hostRev === this.manager.rev) return true
+        if (!this.isValid) return false
+        if (this.manager.index[this.groupId] !== this.group) return false
+        this.hostRev = this.manager.rev     // re-stamp so repeat checks are a single compare
+        return true
     }
 
     clone(options?: GroupIteratorOptions): GroupIterator {
@@ -152,6 +174,25 @@ export class ImageIterator extends GroupIterator {
     private positionCount(group: Group): number {
         const pile = this.manager.pileIndex.get(group.id)
         return pile ? pile.bounds.length - 1 : group.slots.length
+    }
+
+    // Same as GroupIterator.isCurrent, plus the image position itself: the group must still be
+    // the same node AND still hold the same image (the same slots, in the same place) at
+    // `imageIdx`. Groups are mutated in place — ClusterManager.drain filters a group's `slots`
+    // without replacing the node — so group identity alone would pass while `slot`, captured at
+    // construction, points at an image that has left. The whole `slots` array is compared, so a
+    // sha1 pile whose membership changed also counts as "not the same image".
+    override get isCurrent(): boolean {
+        if (this.hostRev === this.manager.rev) return true
+        if (!this.isValid) return false
+        if (this.manager.index[this.groupId] !== this.group) return false
+        // Bounds first: getSlots() past the end would read undefined and compare as garbage.
+        if (this.imageIdx >= this.positionCount(this.group)) return false
+        const now = this.getSlots()
+        if (now.length !== this.slots.length) return false
+        for (let i = 0; i < now.length; i++) if (now[i] !== this.slots[i]) return false
+        this.hostRev = this.manager.rev
+        return true
     }
 
     static fromGroupIterator(it: GroupIterator, options?: GroupIteratorOptions) {

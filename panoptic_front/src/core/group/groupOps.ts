@@ -84,7 +84,6 @@ function collectSlots(group: Group, out: number[], seen: Set<number>) {
 // Attach `groups` as children of the target group (nesting). The runtime record in
 // host.customGroups lets group() replay them after a property-tree rebuild.
 export function addCustomGroups(host: GroupOpsHost, targetGroupId: number, groups: Group[], emit?: boolean) {
-    host.invalidateIterators()
     if (!attachCustomGroups(host, targetGroupId, groups)) return
     host.applySha1Piles()
     setOrder(host.result.root)
@@ -113,7 +112,6 @@ export function moveImagesToGroup(host: GroupOpsHost, fromGroupId: number, toGro
     const to = host.result.index[toGroupId]
     if (!from || !to || !instanceIds.length) return
 
-    host.invalidateIterators()
     const col = useColumnStore()
 
     const slotSet = new Set<number>()
@@ -188,7 +186,6 @@ export function split(host: GroupOpsHost, groupId: number, groups: Group[], mode
         return
     }
 
-    host.invalidateIterators()
     spliceChildren(host, g.parent, g.parentIdx, 1, groups)
     host.applySha1Piles()
     setOrder(host.result.root)
@@ -205,8 +202,6 @@ export function merge(host: GroupOpsHost, groupIds: number[], emit = true) {
     const anchorParent = anchor.parent
     if (!anchorParent) return   // cannot merge the root
     const anchorOrder = anchor.order
-
-    host.invalidateIterators()
 
     const slots: number[] = []
     const seen = new Set<number>()
@@ -247,8 +242,6 @@ export function deleteGroup(host: GroupOpsHost, groupId: number, emit = true) {
     const g = host.result.index[groupId]
     const parent = g?.parent
     if (!g || !parent) return
-
-    host.invalidateIterators()
 
     if (!g.isLeftover) {
         let leftover = parent.children.find(c => c.isLeftover)

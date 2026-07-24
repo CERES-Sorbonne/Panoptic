@@ -107,7 +107,7 @@ with `(pileSlots, pileBounds)`.
 
 # sha1 as the final compose overlay (with clusters)
 
-See `collection_inspection_mission.md`. That mission defines the pipeline
+See `refactor/collection_inspection_mission.md`. That mission defines the pipeline
 
 ```
 propertyTree + clusterRegistry (+ sha1Mode) → GroupResult
@@ -351,7 +351,7 @@ image modal from a pile, cluster + sha1Mode together, incremental update while s
 
 ## Phase 2 — sha1 as the final compose overlay (rides the cluster mission)
 
-Once `collection_inspection_mission.md` lands its compose step:
+Once `refactor/collection_inspection_mission.md` lands its compose step:
 
 1. Move `pileIndex` onto `GroupResult`.
 2. Make pile computation the **last** compose pass — a single sweep over final leaves

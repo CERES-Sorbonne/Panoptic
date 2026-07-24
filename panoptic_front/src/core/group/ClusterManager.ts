@@ -38,7 +38,6 @@ export class ClusterManager implements GroupOpsHost {
     regsiterGroup(group: Group) { this.host.regsiterGroup(group) }
     buildOrdinalRanges() { this.host.buildOrdinalRanges() }
     applySha1Piles(only?: Iterable<Group>) { this.host.applySha1Piles(only) }
-    invalidateIterators() { this.host.invalidateIterators() }
     emitResult() { this.host.emitResult() }
 
     // ── Structural cluster / custom-group operations ──────────────────────────
@@ -166,8 +165,6 @@ export class ClusterManager implements GroupOpsHost {
             if (s !== undefined) slotSet.add(s)
         }
         if (!slotSet.size) return
-
-        this.host.invalidateIterators()
 
         group.slots = group.slots.filter(s => !slotSet.has(s))
         // A cluster's parent is the empty bucket — pull the drained slots out of it too. When the

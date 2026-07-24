@@ -40,7 +40,10 @@ export class GroupResult implements GroupTree, IteratorHost {
     version: Ref<number>
     onResultChange: EventEmitter
 
-    private iterators: GroupIterator[]
+    // Non-reactive counterpart of `version`, for iterators (see IteratorHost.rev). Bumped by
+    // buildOrdinalRanges — i.e. on every structural/order change, including the `emit = false`
+    // batching paths that never reach emitResult — so it tracks the *tree*, not the notification.
+    rev: number
 
     constructor() {
         this.root = undefined
@@ -52,12 +55,11 @@ export class GroupResult implements GroupTree, IteratorHost {
         this.pileIndex = new Map()
         this.version = ref(0)
         this.onResultChange = new EventEmitter()
-        this.iterators = []
+        this.rev = 0
     }
 
     // Reset all tree data (keeps the version ref / listeners identity).
     clear() {
-        this.invalidateIterators()
         this.root = undefined
         this.index = {}
         this.imageToGroups = new Map()
@@ -65,6 +67,7 @@ export class GroupResult implements GroupTree, IteratorHost {
         this._orderedIds = new Int32Array(0)
         this.cacheStale = false
         this.pileIndex = new Map()
+        this.rev++
     }
 
     emitResult() {
@@ -73,15 +76,6 @@ export class GroupResult implements GroupTree, IteratorHost {
     }
 
     // ── Iterators ────────────────────────────────────────────────────────────
-
-    registerIterator(it: GroupIterator) {
-        this.iterators.push(it)
-    }
-
-    invalidateIterators() {
-        for (const it of this.iterators) it.isValid = false
-        this.iterators = []
-    }
 
     getGroupIterator(groupId?: number, options?: GroupIteratorOptions) {
         return new GroupIterator(this, groupId, options)
@@ -111,6 +105,9 @@ export class GroupResult implements GroupTree, IteratorHost {
     // structural change; the rebuild itself happens lazily in ensureOrderedIds.
     buildOrdinalRanges(): void {
         this.cacheStale = true
+        // Every structural or order change funnels through here, so this is the one place that
+        // has to bump `rev` for iterators to notice (see IteratorHost.rev).
+        this.rev++
     }
 
     // Build start/end offsets for all groups and fill orderedIds (instance IDs in DFS display

@@ -167,7 +167,16 @@ async function onModalDataChange(value: ImageIterator) {
     iterator.value = value
 }
 
+// Navigation needs a position that still exists in the current tree: `next` is defined relative
+// to where this image sits. Once the tree has moved under us (the image left its group — e.g. a
+// value assignment drained it — or the group itself was rebuilt away), we can't offer a
+// neighbour without implying an adjacency that was never on screen. So we do nothing.
+function canNavigate() {
+    return !!iterator.value?.isValid && iterator.value.isCurrent
+}
+
 function nextImage() {
+    if (!canNavigate()) return
     const next = iterator.value.nextImages()
     if (next) {
         iterator.value = next
@@ -176,6 +185,7 @@ function nextImage() {
 }
 
 function prevImage() {
+    if (!canNavigate()) return
     const prev = iterator.value.prevImages()
     if (prev) {
         iterator.value = prev

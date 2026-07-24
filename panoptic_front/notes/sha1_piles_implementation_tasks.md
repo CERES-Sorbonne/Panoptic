@@ -112,7 +112,7 @@ In `ImageIterator` (`GroupManager.ts`); for a piled leaf, `imageIdx` = pile inde
 
 ---
 
-## Phase 2 — sha1 as final compose overlay (rides `collection_inspection_mission.md`)
+## Phase 2 — sha1 as final compose overlay (rides `refactor/collection_inspection_mission.md`)
 
 Do after `GroupResult` is extracted and clusters move to a registry.
 

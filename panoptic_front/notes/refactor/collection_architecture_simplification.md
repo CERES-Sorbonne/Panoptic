@@ -4,7 +4,13 @@ Related: [[tabstore_manager_reactivity_refactor]], [[new_data_store_design]],
 [[group_manager_redesign_plan]], [[managers_1m_optimization]],
 [[tree_scroller_update_flow]], [[VUE3_CODE_STYLE_GUIDE]]
 
-> **Status: PROPOSAL.** This note rethinks the runtime side of a tab
+> **Status: PARTIALLY IMPLEMENTED.** The headline reversal shipped —
+> `TabManager.collections` is a `Record<string, CollectionManager>` keyed by id,
+> with `state.collections[]` and per-view `collectionId` (`src/core/TabManager.ts`).
+> The rest (state/compute/result separation) was only partly taken up, via
+> [[collection_inspection_mission]]. Read it as a proposal *except* for §4.
+>
+> This note rethinks the runtime side of a tab
 > (`tabStore` → `TabManager` → `CollectionManager` → `FilterManager` /
 > `SortManager` / `GroupManager`) for two reasons:
 > 1. The current split of responsibilities is hard to reason about (dual

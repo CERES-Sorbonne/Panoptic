@@ -25,7 +25,7 @@ It covers the `tabStore`, `TabManager`, and the three managers (`FilterManager`,
 | Q4 | Provider payload | **Full `TabManager`.** Provide/inject the manager; least churn for the 50+ `tab.collection.*` call sites. |
 | Q6 | Persist view-state | **Persist nothing transient.** Folds + selection reset on reload → recompute can rebuild the group tree freely, no re-apply step. |
 | Q9 | Version bump | **Warn + reset explicitly.** On `version` mismatch, log a warning and reset that tab to default (no silent drop, no migrators). |
-| Q10 | Collection scope | **Shared.** One `CollectionManager` (filter/sort/group) per tab; both views display the same result. Shared selection + group folds across panes. |
+| Q10 | Collection scope | ~~**Shared.** One `CollectionManager` per tab; both views display the same result.~~ **REVOKED** — reversed to one collection per view by [[collection_architecture_simplification]] §4. |
 | Q11 | Per-view fields | **Only `type` + `imageSize` + `mapOptions`.** Everything else (`visibleProperties`, `propertyOptions`, `selectedFolders`, …) stays tab-level/shared. |
 | Q12 | View structure | **Fixed pair** `views: [ViewState, ViewState]`; `splitView` toggles view2 visibility. |
 | Q13 | Split layout | **Move to tab.** `splitView` + `splitRatio` both live in `TabState` (per-tab geometry); migrate out of `uiStore`. |
@@ -502,8 +502,9 @@ Each step is independently shippable and testable.
 
 ### New questions from the per-view model (Pillar F)
 
-- **Q10 — ✅ RESOLVED → shared.** One `CollectionManager` per tab; both views display the
-  same filter/sort/group result. Shared selection + group folds across panes.
+- **Q10 — ❌ REVOKED.** Was "shared: one `CollectionManager` per tab, both views display
+  the same result". Reversed to **one collection per view** by
+  [[collection_architecture_simplification]] §4 — multiple collections per tab.
 - **Q11 — ✅ RESOLVED → only `type` + `imageSize` + `mapOptions` per-view.** Everything else
   stays tab-level/shared.
 - **Q12 — ✅ RESOLVED → fixed pair** `views: [ViewState, ViewState]`; `splitView` toggles

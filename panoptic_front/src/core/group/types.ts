@@ -7,7 +7,6 @@ import { DateUnit, GroupScoreList, PropertyValue, Score } from "@/data/models";
 import { SortOption } from "../SortManager";
 import { PileData } from "../sha1Piles";
 import { GroupValueIndex } from "./valueIndex";
-import type { GroupIterator } from "./GroupIterator";
 
 export enum GroupType {
     All = 'all',
@@ -101,13 +100,16 @@ export type SelectedImages = { [imageId: number]: boolean }
 // Iterators and structural ops depend on these narrow structural contracts, not on the
 // concrete GroupManager class, so those modules never import GroupManager.
 
-// Iterators navigate the display order; they read only the tree index + pile overlay and
-// register themselves for invalidation. Satisfied by GroupResult (the host is the result now,
-// not the manager).
+// Iterators navigate the display order; they read only the tree index + pile overlay + the
+// structural revision. Satisfied by GroupResult (the host is the result now, not the manager).
 export interface IteratorHost {
     index: GroupIndex
     pileIndex: Map<number, PileData>
-    registerIterator(it: GroupIterator): void
+    // Non-reactive structural revision, bumped on every tree/order change. Iterators compare
+    // against it to decide whether they still describe a real position (GroupIterator.isCurrent).
+    // Deliberately a plain number, not the `version` Ref: the check sits on hot paths and must
+    // not create reactive dependencies. Consumers that want reactivity read `version` too.
+    rev: number
     // Materialise the display order if a structural change invalidated it. Only the
     // position-reporting iterator methods need it (start/end are lazy now).
     ensureOrderedIds(): void
@@ -123,7 +125,6 @@ export interface ClusterOpsHost {
     buildOrdinalRanges(): void
     // `only` limits the recompute to the given leaves; omitted = full rebuild.
     applySha1Piles(only?: Iterable<Group>): void
-    invalidateIterators(): void
     emitResult(): void
 }
 
